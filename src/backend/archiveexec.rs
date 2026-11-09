@@ -1,7 +1,7 @@
 // Archive and conversion workers execute off the backend loop and return existing protocol lines.
 use super::{archivedone_line, collision_message, convertdone_line};
 use crate::backend::archive::Formats;
-use crate::backend::archiveops::{self, compress, convert_one, split_paths};
+use crate::backend::archiveops::{self, compress_leaving, convert_leaving, split_paths};
 use crate::backend::archivepass;
 use crate::backend::menu_actions::{validate_sources, Selected};
 use crate::backend::opsreq::{op_err, OpMsg};
@@ -76,7 +76,8 @@ pub(crate) fn archive_line(
         });
         match split_paths(&paths) {
             Some((parent, names)) => {
-                compress(formats, &parent, &names, &format, &dest, &cancel, password).map(|()| true)
+                compress_leaving(formats, &parent, &names, &format, &dest, &cancel, password)
+                    .map(|left| (true, left))
             }
             None => Err(op_err(
                 "archive",
@@ -97,11 +98,26 @@ pub(crate) fn archive_line(
         )
     };
     match result {
-        Ok(verified) => archivedone_line(id, true, verified, ""),
+        Ok((verified, left)) => {
+            with_left(archivedone_line(id, true, verified, ""), left.as_deref())
+        }
         Err(e) if !compressing && archivepass::asks_again(&e.msg) => {
             archivepass::asks_again_line(id, &e.msg, &archive, &dest)
         }
         Err(e) => archivedone_line(id, false, true, &e.msg),
+    }
+}
+
+// Issue 370: the result landed whole, so a work folder the drive kept is named beside the success, never as a failure.
+// Sample output: {"t":"archivedone","id":4,"ok":true,"verified":true,"err":"","left":"/mnt/gdrive/.flea-work-ext-81-0"}
+fn with_left(line: String, left: Option<&str>) -> String {
+    match left {
+        None => line,
+        Some(path) => format!(
+            r#"{},"left":"{}"}}"#,
+            &line[..line.len() - 1],
+            crate::json::escape(path)
+        ),
     }
 }
 
@@ -117,16 +133,19 @@ pub(crate) fn run_convert(
 ) {
     let result = validate_sources(selection.as_deref(), std::slice::from_ref(&input))
         .map_err(|error| op_err("convert", &input.to_string_lossy(), &error))
-        .and_then(|()| convert_one(&input, &dest, strip, &cancel));
+        .and_then(|()| convert_leaving(&input, &dest, strip, &cancel));
     let line = match result {
-        Ok(()) => convertdone_line(
-            id,
-            request_id,
-            &input.to_string_lossy(),
-            true,
-            &dest.to_string_lossy(),
-            "",
-            false,
+        Ok(left) => with_left(
+            convertdone_line(
+                id,
+                request_id,
+                &input.to_string_lossy(),
+                true,
+                &dest.to_string_lossy(),
+                "",
+                false,
+            ),
+            left.as_deref(),
         ),
         Err(e) => {
             let collision = dest.symlink_metadata().is_ok();
@@ -147,4 +166,24 @@ pub(crate) fn run_convert(
         }
     };
     let _ = tx.send(OpMsg::DetachedDone { id, line });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_kept_folder_rides_on_the_success_line_and_a_clean_one_adds_nothing() {
+        let done = archivedone_line(4, true, true, "");
+        assert_eq!(with_left(done.clone(), None), done);
+        assert_eq!(
+            with_left(done, Some("/mnt/g/.flea-work-ext-8-0")),
+            r#"{"t":"archivedone","id":4,"ok":true,"verified":true,"err":"","left":"/mnt/g/.flea-work-ext-8-0"}"#
+        );
+        let converted = convertdone_line(5, 9, "/p/a.heic", true, "/p/a.jpg", "", false);
+        assert_eq!(
+            with_left(converted, Some("/p/.flea-work-cvt-8-0")),
+            r#"{"t":"convertdone","id":5,"requestId":9,"source":"/p/a.heic","ok":true,"path":"/p/a.jpg","err":"","collision":false,"left":"/p/.flea-work-cvt-8-0"}"#
+        );
+    }
 }

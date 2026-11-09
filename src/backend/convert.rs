@@ -18,7 +18,7 @@ pub fn argv(input: &Path, dest: &Path, strip: bool) -> Vec<String> {
     if strip {
         a.push("-strip".to_string());
     }
-    a.push(dest.to_string_lossy().to_string());
+    a.push(flea::ui_logic_op4::output::magick_output(dest));
     a
 }
 

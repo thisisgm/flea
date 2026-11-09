@@ -73,6 +73,16 @@ impl Shell {
             row_is_archive: facts
                 .is_some_and(|r| flea::ui_logic_mn1::archive::row_is_archive(&r.name, r.dir)),
             archive_name: facts.map_or_else(String::new, |r| r.name.clone()),
+            // A row the held listing cannot answer leaves the list short, so Extract stays off for that selection.
+            archive_names: if background {
+                Vec::new()
+            } else {
+                flea::ui_logic_mn1::archive::selection_archives(
+                    rows.iter()
+                        .filter_map(|&row| host.pane.held.row(row))
+                        .map(|r| (r.name.as_str(), r.dir)),
+                )
+            },
             row_is_image: facts.is_some_and(|r| crate::window::output::kind(r) == image),
             row_is_document: facts.is_some_and(|r| crate::window::output::kind(r).paged()),
             selection_images: kinds.iter().filter(|&&kind| kind == image).count(),
@@ -108,7 +118,8 @@ impl Shell {
     /// The facts a formats reply or an update check may change while the menu is open.
     pub(super) fn menu_live_facts(&self, side: usize, context: &mut MenuContext) {
         context.archive_formats = self.output.archive[side].clone().unwrap_or_default();
-        context.can_extract = flea::ui_logic_mn1::archive::can_extract(
+        context.can_extract = flea::ui_logic_mn1::archive::can_extract_all(
+            &context.archive_names,
             &context.archive_name,
             self.output.extract[side],
         );

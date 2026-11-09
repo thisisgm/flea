@@ -86,22 +86,21 @@ impl Shell {
             self.operations.archive.card_menu = Some(menu);
             self.archive_effects(side, effects, window, cx);
         } else if action == "extract" {
-            let path = chosen.paths[0].clone();
-            let dest = join(parent(&path), &archive::extract_dir(&logic::leaf_of(&path)));
-            self.operations
-                .archive
-                .extracts
-                .retain(|(s, p, d)| !(*s == side && *p == path && *d == dest));
-            self.operations
-                .archive
-                .extracts
-                .push((side, path.clone(), dest.clone()));
-            self.archive_effects(
-                side,
-                vec![Effect::Send(wire::extract_request(&path, &dest, menu))],
-                window,
-                cx,
-            );
+            // Issue 397: several archives run one of today's extracts each, into its own folder with its own card.
+            let mut effects = Vec::with_capacity(chosen.paths.len());
+            for path in &chosen.paths {
+                let dest = join(parent(path), &archive::extract_dir(&logic::leaf_of(path)));
+                self.operations
+                    .archive
+                    .extracts
+                    .retain(|(s, p, d)| !(*s == side && p == path && *d == dest));
+                self.operations
+                    .archive
+                    .extracts
+                    .push((side, path.clone(), dest.clone()));
+                effects.push(Effect::Send(wire::extract_request(path, &dest, menu)));
+            }
+            self.archive_effects(side, effects, window, cx);
             self.archive_menu_close(side, menu, cx);
         } else {
             let path = chosen.paths[0].clone();

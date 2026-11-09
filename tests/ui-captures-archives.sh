@@ -326,3 +326,43 @@ case_cap_archives_format_kanagawa() {
     shot archives-format-focus-kanagawa
     kill_flea
 }
+
+# Issue 397: two marked archives offer Extract, and choosing it extracts each into its own folder.
+case_cap_archives_several() {
+    local dir="$fixture_root/cap-archives-several" menus_checks=0 src="$fixture_root/cap-archives-several-src" i
+    command -v bsdtar >/dev/null || { printf 'CAP SKIP cap-archives-several: bsdtar is not installed\n'; return 0; }
+    sandbox_scratch "$dir"
+    sandbox_scratch "$src"
+    printf 'alpha\n' > "$src/alpha.txt"
+    printf 'beta\n' > "$src/beta.txt"
+    bsdtar -a -cf "$dir/first.zip" -C "$src" alpha.txt || fail "cap_archives_several: no zip fixture"
+    bsdtar -a -cf "$dir/second.tar.gz" -C "$src" beta.txt || fail "cap_archives_several: no tar.gz fixture"
+    printf 'notes\n' > "$dir/notes.txt"
+    seed_ui_state "$fixture_root/cap-archives-several-state" '{"keys":"default","view":"list"}'
+    launch "$dir"
+    wait_listing 3
+    cap_resize 1100 700
+    click_row "$(row_index_of first.zip)" left
+    settle
+    click_row "$(row_index_of second.tar.gz)" left --mods ctrl
+    settle
+    [[ "$(ipc selectionCount)" == "2" ]] || fail "cap_archives_several: two clicks selected $(ipc selectionCount), not 2"
+    click_row "$(row_index_of first.zip)" right
+    settle
+    menus_expect menuState '.opened and .hasRow' "the file menu opens over the two archives"
+    printf 'CAP several menu=%s\n' "$(ipc contextMenuEntries)"
+    shot archives-several-menu
+    menus_expect menuState '([.entries[] | select(.action == "extract" and .disabled != true)] | length) == 1' "two marked archives offer an enabled Extract"
+    menu_seek Extract
+    key -k Return >/dev/null
+    for i in $(seq 1 60); do
+        [[ -f "$dir/first/alpha.txt" && -f "$dir/second/beta.txt" ]] && break
+        sleep 0.25
+    done
+    [[ "$(cat "$dir/first/alpha.txt" 2>/dev/null)" == alpha && "$(cat "$dir/second/beta.txt" 2>/dev/null)" == beta ]] \
+        || fail "cap_archives_several: each archive did not land in its own folder: $(ls -A "$dir")"
+    printf 'CAP several landed=%s\n' "$(ls -A "$dir" | tr '\n' ' ')"
+    settle
+    shot archives-several-done
+    kill_flea
+}

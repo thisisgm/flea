@@ -93,6 +93,8 @@ pub struct Context {
     pub row_is_archive: bool,
     pub row_name: String,
     pub archive_name: String,
+    // Issue 397: every marked name when several are marked and each is an archive file, else empty.
+    pub archive_names: Vec<String>,
     pub flash_zip_member: String,
     pub selection_modes: Vec<u32>,
     // Each marked item's own type bits, None while the held rows cannot answer.

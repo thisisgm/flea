@@ -14,6 +14,7 @@ impl Default for Context {
             row_is_archive: false,
             row_name: String::new(),
             archive_name: String::new(),
+            archive_names: Vec::new(),
             flash_zip_member: String::new(),
             selection_modes: Vec::new(),
             compare_kinds: None,

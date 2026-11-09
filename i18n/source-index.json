@@ -1549,7 +1549,7 @@
     {
       "coverage": "dynamic-needs-owner-verification",
       "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-      "line": 49,
+      "line": 71,
       "path": "src/backend/archiveops.rs",
       "pattern": "archive.{}",
       "possible_keys": [
@@ -7448,7 +7448,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -7586,7 +7586,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -7722,7 +7722,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -7886,7 +7886,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -8029,7 +8029,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -8165,7 +8165,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -8312,7 +8312,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -8451,7 +8451,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -8587,7 +8587,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -8723,7 +8723,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -8859,7 +8859,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -8995,7 +8995,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -9138,7 +9138,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -9274,7 +9274,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -9412,7 +9412,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -9550,7 +9550,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -9689,7 +9689,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -9828,7 +9828,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -9964,7 +9964,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -10111,7 +10111,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -10253,7 +10253,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -10393,7 +10393,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -10534,7 +10534,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -10670,7 +10670,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -10808,7 +10808,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -10946,7 +10946,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -11082,7 +11082,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -11221,7 +11221,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -11360,7 +11360,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -11498,7 +11498,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -11643,7 +11643,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -11781,7 +11781,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -11919,7 +11919,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -12057,7 +12057,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -12193,7 +12193,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -12321,7 +12321,7 @@
       "call_sites": [
         {
           "excerpt": ".tr_args(\"archive.flash.chooser_failed\", &[&binary, &reason]);",
-          "line": 312,
+          "line": 319,
           "path": "crates/flea-gui/src/g2/op2/host.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -12329,7 +12329,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -12468,7 +12468,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -12604,7 +12604,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -12750,7 +12750,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -12889,7 +12889,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -13025,7 +13025,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -13172,7 +13172,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -13308,7 +13308,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -13446,7 +13446,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -13584,7 +13584,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -13720,7 +13720,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -13858,7 +13858,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -13997,7 +13997,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -14135,7 +14135,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -14273,7 +14273,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -14411,7 +14411,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -14547,7 +14547,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -14683,7 +14683,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -14819,7 +14819,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -14955,7 +14955,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -15091,7 +15091,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -15227,7 +15227,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -15363,7 +15363,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -15501,7 +15501,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -15639,7 +15639,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -15781,7 +15781,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -15922,7 +15922,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -16060,7 +16060,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -16196,7 +16196,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -16332,7 +16332,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -16468,7 +16468,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -16606,7 +16606,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -16744,7 +16744,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -16882,7 +16882,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -17020,7 +17020,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -17156,7 +17156,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -17294,7 +17294,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -17439,7 +17439,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -17575,7 +17575,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -17718,7 +17718,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -17854,7 +17854,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -17990,7 +17990,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -18126,7 +18126,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -18271,7 +18271,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -18407,7 +18407,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -18546,7 +18546,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -18685,7 +18685,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -18826,7 +18826,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -18966,7 +18966,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -19104,7 +19104,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -19242,7 +19242,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -19380,7 +19380,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -19518,7 +19518,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -19656,7 +19656,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -19794,7 +19794,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -19937,7 +19937,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -20075,7 +20075,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -20211,7 +20211,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -20350,7 +20350,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -20486,7 +20486,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -20624,7 +20624,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -20760,7 +20760,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -20896,7 +20896,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -21032,7 +21032,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -21168,7 +21168,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -21311,7 +21311,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -21447,7 +21447,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -21590,7 +21590,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 49,
+          "line": 71,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -72847,7 +72847,7 @@
       "call_sites": [
         {
           "excerpt": "\"network\" => Some(\"menu.class.network\"),",
-          "line": 433,
+          "line": 446,
           "path": "src/ui_logic_mn1/rows.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -72869,7 +72869,7 @@
       "call_sites": [
         {
           "excerpt": "\"phone\" => Some(\"menu.class.phone\"),",
-          "line": 434,
+          "line": 447,
           "path": "src/ui_logic_mn1/rows.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -72891,7 +72891,7 @@
       "call_sites": [
         {
           "excerpt": "\"usb\" => Some(\"menu.class.usb\"),",
-          "line": 435,
+          "line": 448,
           "path": "src/ui_logic_mn1/rows.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74462,7 +74462,7 @@
       "call_sites": [
         {
           "excerpt": "e.label = Some(Text::Key(\"menu.row.copy_path\"));",
-          "line": 287,
+          "line": 289,
           "path": "src/ui_logic_mn1/build.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -74784,7 +74784,7 @@
       "call_sites": [
         {
           "excerpt": "\"menu.row.hide_thumbnails\"",
-          "line": 455,
+          "line": 468,
           "path": "src/ui_logic_mn1/rows.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -75195,7 +75195,7 @@
         },
         {
           "excerpt": "count_label(e, count, \"menu.row.print_many\");",
-          "line": 299,
+          "line": 301,
           "path": "src/ui_logic_mn1/build.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -75316,7 +75316,7 @@
       "call_sites": [
         {
           "excerpt": "count_label(e, count, \"menu.row.rename_many\");",
-          "line": 310,
+          "line": 312,
           "path": "src/ui_logic_mn1/build.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -75575,7 +75575,7 @@
         },
         {
           "excerpt": "\"menu.row.show_thumbnails\"",
-          "line": 457,
+          "line": 470,
           "path": "src/ui_logic_mn1/rows.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -107591,7 +107591,7 @@
         },
         {
           "excerpt": "key: \"window.backend_stopped\",",
-          "line": 193,
+          "line": 200,
           "path": "crates/flea-gui/src/g2/op2/host.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -111131,7 +111131,7 @@
     },
     {
       "excerpt": ".join(\" · \");",
-      "line": 261,
+      "line": 268,
       "literal": " · ",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/op2/host.rs",
@@ -133604,7 +133604,7 @@
     },
     {
       "excerpt": "\"the items to compress must be in one folder\",",
-      "line": 84,
+      "line": 85,
       "literal": "the items to compress must be in one folder",
       "owner": "controller",
       "path": "src/backend/archiveexec.rs",
@@ -134279,7 +134279,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"archive\", &dest.to_string_lossy(), \"that destination already exists\"));",
-      "line": 31,
+      "line": 44,
       "literal": "that destination already exists",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -134288,7 +134288,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"archive\", &dest.to_string_lossy(), \"cancelled\"));",
-      "line": 35,
+      "line": 48,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -134297,7 +134297,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"archive\", format, \"a password needs 7-Zip, which is not installed\"));",
-      "line": 39,
+      "line": 52,
       "literal": "a password needs 7-Zip, which is not installed",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -134306,7 +134306,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"archive\", format, \"a password needs the 7z or zip format\"));",
-      "line": 42,
+      "line": 55,
       "literal": "a password needs the 7z or zip format",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -134315,7 +134315,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"archive\", format, \"no installed tool can create that format\"));",
-      "line": 45,
+      "line": 58,
       "literal": "no installed tool can create that format",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -134324,7 +134324,7 @@
     },
     {
       "excerpt": "None => return Err(op_err(\"archive\", format, \"no installed tool can create that format\")),",
-      "line": 61,
+      "line": 84,
       "literal": "no installed tool can create that format",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -134333,7 +134333,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"archive\", format, \"the archive tool wrote nothing\"));",
-      "line": 66,
+      "line": 93,
       "literal": "the archive tool wrote nothing",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -134342,7 +134342,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"archive\", &dest.to_string_lossy(), \"that destination already exists\"));",
-      "line": 97,
+      "line": 126,
       "literal": "that destination already exists",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -134351,7 +134351,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"archive\", &archive.to_string_lossy(), \"cancelled\"));",
-      "line": 110,
+      "line": 139,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -134360,7 +134360,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"archive\", &archive.to_string_lossy(), \"cancelled\"));",
-      "line": 117,
+      "line": 146,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -134369,7 +134369,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"archive\", &archive.to_string_lossy(), \"cancelled\"));",
-      "line": 129,
+      "line": 158,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -134378,7 +134378,7 @@
     },
     {
       "excerpt": "None => return Err(op_err(\"archive\", &archive.to_string_lossy(), \"no installed tool can open that archive\")),",
-      "line": 141,
+      "line": 170,
       "literal": "no installed tool can open that archive",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -134387,7 +134387,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"archive\", &archive.to_string_lossy(), \"cancelled\"));",
-      "line": 145,
+      "line": 174,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -134396,7 +134396,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"archive\", &archive.to_string_lossy(), \"cancelled\"));",
-      "line": 169,
+      "line": 198,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -134405,7 +134405,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"archive\", &archive.to_string_lossy(), \"the archive tool wrote nothing\"));",
-      "line": 188,
+      "line": 217,
       "literal": "the archive tool wrote nothing",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -134414,7 +134414,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"archive\", &archive.to_string_lossy(), \"cancelled\"));",
-      "line": 202,
+      "line": 231,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -134423,7 +134423,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"convert\", &dest.to_string_lossy(), \"that destination already exists\"));",
-      "line": 218,
+      "line": 279,
       "literal": "that destination already exists",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -134432,7 +134432,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"convert\", &dest.to_string_lossy(), \"cancelled\"));",
-      "line": 226,
+      "line": 287,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -134441,7 +134441,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"convert\", &name, \"the converter wrote nothing\"));",
-      "line": 234,
+      "line": 295,
       "literal": "the converter wrote nothing",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -134679,6 +134679,51 @@
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/archivework.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "pub const ONLY_SPECIAL: &str = \"a zip cannot hold a pipe, socket or device file\";",
+      "line": 9,
+      "literal": "a zip cannot hold a pipe, socket or device file",
+      "owner": "controller",
+      "path": "src/backend/archivezip.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"this selection holds too many pipes, sockets or device files for a zip, choose tar or 7z\";",
+      "line": 14,
+      "literal": "this selection holds too many pipes, sockets or device files for a zip, choose tar or 7z",
+      "owner": "controller",
+      "path": "src/backend/archivezip.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "&format!(\"a zip cannot keep the backslash in {shown}, choose tar or 7z\"),",
+      "line": 32,
+      "literal": "a zip cannot keep the backslash in {shown}, choose tar or 7z",
+      "owner": "controller",
+      "path": "src/backend/archivezip.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "return Err(op_err(\"archive\", &rel.to_string_lossy(), \"cancelled\"));",
+      "line": 64,
+      "literal": "cancelled",
+      "owner": "controller",
+      "path": "src/backend/archivezip.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "&format!(\"{shown} cannot be left out of a zip, choose tar or 7z\"),",
+      "line": 85,
+      "literal": "{shown} cannot be left out of a zip, choose tar or 7z",
+      "owner": "controller",
+      "path": "src/backend/archivezip.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "core/backend"
     },
@@ -142460,7 +142505,7 @@
     },
     {
       "excerpt": "let cursor = self.cursor.as_ref().ok_or(\"The item under the cursor changed; reopen the menu.\")?;",
-      "line": 254,
+      "line": 267,
       "literal": "The item under the cursor changed; reopen the menu.",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142469,7 +142514,7 @@
     },
     {
       "excerpt": "if self.items.len() != 1 { return Err(\"This action requires one selected item.\".into()); }",
-      "line": 265,
+      "line": 278,
       "literal": "This action requires one selected item.",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142478,7 +142523,7 @@
     },
     {
       "excerpt": "return Err(format!(\"Opened it, but {} has no file type to set a default for.\", item.path.display()));",
-      "line": 288,
+      "line": 301,
       "literal": "Opened it, but {} has no file type to set a default for.",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142487,7 +142532,7 @@
     },
     {
       "excerpt": "return Err(format!(\"Opened it, but the default was not saved: {}.\", error.trim_end_matches('.')));",
-      "line": 291,
+      "line": 304,
       "literal": "Opened it, but the default was not saved: {}.",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142496,7 +142541,7 @@
     },
     {
       "excerpt": "_ => Err(\"Unknown menu operation.\".into()),",
-      "line": 296,
+      "line": 309,
       "literal": "Unknown menu operation.",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142505,7 +142550,7 @@
     },
     {
       "excerpt": ".ok_or(\"Dropbox account folder changed; reopen the menu.\")?;",
-      "line": 305,
+      "line": 318,
       "literal": "Dropbox account folder changed; reopen the menu.",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142514,7 +142559,7 @@
     },
     {
       "excerpt": "selected.current().map_err(|_| \"Dropbox account folder changed or disappeared; reopen the menu.\")?;",
-      "line": 306,
+      "line": 319,
       "literal": "Dropbox account folder changed or disappeared; reopen the menu.",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142523,7 +142568,7 @@
     },
     {
       "excerpt": "return Err(\"New File requires an absolute folder and one non-empty filename.\".into());",
-      "line": 334,
+      "line": 347,
       "literal": "New File requires an absolute folder and one non-empty filename.",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142532,7 +142577,7 @@
     },
     {
       "excerpt": ".map_err(|e| format!(\"Could not create {}: {}.\", path.display(), crate::error::io_message(&e)))?;",
-      "line": 338,
+      "line": 351,
       "literal": "Could not create {}: {}.",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142541,7 +142586,7 @@
     },
     {
       "excerpt": "let meta = file.metadata().map_err(|e| format!(\"Created {}, but undo cannot remove it: {}.\", path.display(), crate::error::io_message(&e)))?;",
-      "line": 339,
+      "line": 352,
       "literal": "Created {}, but undo cannot remove it: {}.",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142550,7 +142595,7 @@
     },
     {
       "excerpt": "pub(super) const CHANGED: &str = \"Selected items changed; reopen the menu.\";",
-      "line": 348,
+      "line": 361,
       "literal": "Selected items changed; reopen the menu.",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142559,7 +142604,7 @@
     },
     {
       "excerpt": "\"a reopen during its own snapshot must not refuse while that snapshot is still queued\");",
-      "line": 373,
+      "line": 386,
       "literal": "a reopen during its own snapshot must not refuse while that snapshot is still queued",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142568,7 +142613,7 @@
     },
     {
       "excerpt": "match rx.try_recv().expect(\"the displaced snapshot must still be answered\") {",
-      "line": 374,
+      "line": 387,
       "literal": "the displaced snapshot must still be answered",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142577,7 +142622,7 @@
     },
     {
       "excerpt": "OpMsg::Meta { line } => assert!(field_usize(&line, \"id\") == Some(41) && field_bool(&line, \"cancelled\")),",
-      "line": 375,
+      "line": 388,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142586,7 +142631,7 @@
     },
     {
       "excerpt": "_ => panic!(\"a displaced snapshot is answered as Meta\"),",
-      "line": 376,
+      "line": 389,
       "literal": "a displaced snapshot is answered as Meta",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142595,7 +142640,7 @@
     },
     {
       "excerpt": "let queued = menu.slot.take().expect(\"the newer snapshot must hold the slot\");",
-      "line": 378,
+      "line": 391,
       "literal": "the newer snapshot must hold the slot",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142604,7 +142649,7 @@
     },
     {
       "excerpt": "assert_eq!(field_usize(&queued.0, \"id\"), Some(42), \"the older snapshot must be displaced and answered, never run\");",
-      "line": 379,
+      "line": 392,
       "literal": "the older snapshot must be displaced and answered, never run",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142613,7 +142658,7 @@
     },
     {
       "excerpt": "\"work must keep its slot; only the refusal may answer\");",
-      "line": 390,
+      "line": 403,
       "literal": "work must keep its slot; only the refusal may answer",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142622,7 +142667,7 @@
     },
     {
       "excerpt": "match rx.try_recv().expect(\"the refusal must still answer rather than hang\") {",
-      "line": 391,
+      "line": 404,
       "literal": "the refusal must still answer rather than hang",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142631,7 +142676,7 @@
     },
     {
       "excerpt": "assert!(!field_bool(&line, \"ok\") && line.contains(\"still running\"));",
-      "line": 394,
+      "line": 407,
       "literal": "still running",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142640,7 +142685,7 @@
     },
     {
       "excerpt": "_ => panic!(\"a refusal must arrive as Meta\"),",
-      "line": 396,
+      "line": 409,
       "literal": "a refusal must arrive as Meta",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142649,7 +142694,7 @@
     },
     {
       "excerpt": "let queued = menu.slot.take().expect(\"the activate must still be queued\");",
-      "line": 398,
+      "line": 411,
       "literal": "the activate must still be queued",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142658,7 +142703,7 @@
     },
     {
       "excerpt": "let reply = rx.recv_timeout(std::time::Duration::from_secs(5)).expect(\"a snapshot reply\");",
-      "line": 415,
+      "line": 428,
       "literal": "a snapshot reply",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142667,7 +142712,7 @@
     },
     {
       "excerpt": "assert!(saw42, \"the reopened snapshot must still be answered\");",
-      "line": 423,
+      "line": 436,
       "literal": "the reopened snapshot must still be answered",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142676,7 +142721,7 @@
     },
     {
       "excerpt": "assert_eq!(published.lock().unwrap().id, 3, \"the former check-before-lock ordering resurrects the snapshot\");",
-      "line": 432,
+      "line": 445,
       "literal": "the former check-before-lock ordering resurrects the snapshot",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142685,7 +142730,7 @@
     },
     {
       "excerpt": "assert_eq!(published.lock().unwrap().id, 0, \"publication must recheck the cancelled generation under its lock\");",
-      "line": 439,
+      "line": 452,
       "literal": "publication must recheck the cancelled generation under its lock",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142694,7 +142739,7 @@
     },
     {
       "excerpt": "assert!(snapshot.deletion.is_none(), \"a refused confirmation cannot be retried as a different token\");",
-      "line": 453,
+      "line": 466,
       "literal": "a refused confirmation cannot be retried as a different token",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142703,7 +142748,7 @@
     },
     {
       "excerpt": "d.file(\"folder/new\", \"new child\");",
-      "line": 473,
+      "line": 486,
       "literal": "new child",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142712,7 +142757,7 @@
     },
     {
       "excerpt": "assert_eq!(snapshot.items.len(), 2, \"unrelated arrivals never widen the confirmation\");",
-      "line": 484,
+      "line": 497,
       "literal": "unrelated arrivals never widen the confirmation",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142721,7 +142766,7 @@
     },
     {
       "excerpt": "assert!(snapshot.handle(r#\"{\"op\":\"validate\",\"id\":3}\"#, vec![]).contains(\"Selected item changed\"));",
-      "line": 521,
+      "line": 534,
       "literal": "Selected item changed",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142730,7 +142775,7 @@
     },
     {
       "excerpt": "assert!(snapshot.handle(r#\"{\"op\":\"activate\",\"id\":3,\"action\":\"addFavourite\"}\"#, vec![]).contains(\"Selected item changed\"));",
-      "line": 522,
+      "line": 535,
       "literal": "Selected item changed",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142739,7 +142784,7 @@
     },
     {
       "excerpt": "let (path, identity) = create_file(sandbox.path(), \"New File\").unwrap();",
-      "line": 528,
+      "line": 541,
       "literal": "New File",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142748,7 +142793,7 @@
     },
     {
       "excerpt": "assert!(create_file(sandbox.path(), \"New File\").is_err());",
-      "line": 532,
+      "line": 545,
       "literal": "New File",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142757,7 +142802,7 @@
     },
     {
       "excerpt": "symlink(sandbox.join(\"absent\"), sandbox.join(\"link\")).unwrap();",
-      "line": 536,
+      "line": 549,
       "literal": "link",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142766,7 +142811,7 @@
     },
     {
       "excerpt": "assert!(create_file(sandbox.path(), \"link\").is_err());",
-      "line": 537,
+      "line": 550,
       "literal": "link",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142775,7 +142820,7 @@
     },
     {
       "excerpt": "let destination = sandbox.dir(\"Dropbox\");",
-      "line": 543,
+      "line": 556,
       "literal": "Dropbox",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142784,7 +142829,7 @@
     },
     {
       "excerpt": "assert!(reply.contains(\"Selected item changed\"));",
-      "line": 567,
+      "line": 580,
       "literal": "Selected item changed",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142793,7 +142838,7 @@
     },
     {
       "excerpt": "assert!(snapshot.handle(r#\"{\"op\":\"activate\",\"id\":12,\"action\":\"taildrop:peer\"}\"#, vec![]).contains(\"The item under the cursor changed; reopen the menu.\"));",
-      "line": 571,
+      "line": 584,
       "literal": "The item under the cursor changed; reopen the menu.",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142802,7 +142847,7 @@
     },
     {
       "excerpt": "let reply = snapshot.handle(r#\"{\"op\":\"activate\",\"id\":21,\"action\":\"localsend:Fixture Phone\"}\"#, vec![]);",
-      "line": 586,
+      "line": 599,
       "literal": "{\"op\":\"activate\",\"id\":21,\"action\":\"localsend:Fixture Phone\"}",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142811,7 +142856,7 @@
     },
     {
       "excerpt": "let destination = sandbox.dir(\"Dropbox\");",
-      "line": 595,
+      "line": 608,
       "literal": "Dropbox",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142820,7 +142865,7 @@
     },
     {
       "excerpt": "sandbox.dir(\"Dropbox\");",
-      "line": 605,
+      "line": 618,
       "literal": "Dropbox",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142829,7 +142874,7 @@
     },
     {
       "excerpt": "assert!(snapshot.handle(&activate, vec![]).contains(\"Dropbox account folder changed\"));",
-      "line": 606,
+      "line": 619,
       "literal": "Dropbox account folder changed",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -142838,7 +142883,7 @@
     },
     {
       "excerpt": "let link = sandbox.join(\"link\");",
-      "line": 614,
+      "line": 627,
       "literal": "link",
       "owner": "controller",
       "path": "src/backend/menu_actions.rs",
@@ -178532,7 +178577,7 @@
     },
     {
       "excerpt": "\"network\" => Some(\"menu.class.network\"),",
-      "line": 433,
+      "line": 446,
       "literal": "network",
       "owner": "controller",
       "path": "src/ui_logic_mn1/rows.rs",
@@ -178541,7 +178586,7 @@
     },
     {
       "excerpt": "\"phone\" => Some(\"menu.class.phone\"),",
-      "line": 434,
+      "line": 447,
       "literal": "phone",
       "owner": "controller",
       "path": "src/ui_logic_mn1/rows.rs",
@@ -178550,7 +178595,7 @@
     },
     {
       "excerpt": "\"network\" => thumbs.network,",
-      "line": 442,
+      "line": 455,
       "literal": "network",
       "owner": "controller",
       "path": "src/ui_logic_mn1/rows.rs",
@@ -178559,7 +178604,7 @@
     },
     {
       "excerpt": "\"phone\" => thumbs.phone,",
-      "line": 443,
+      "line": 456,
       "literal": "phone",
       "owner": "controller",
       "path": "src/ui_logic_mn1/rows.rs",
@@ -249132,8 +249177,8 @@
   },
   "schema": 1,
   "source_files": {
-    "Cargo.toml": "5653c9fa01c3bb0911b631498ec7b3645b76d42faf5135f50863b907dbe1066e",
-    "crates/flea-gui/Cargo.toml": "589a73f511211a013e57f2761a6e8592336a4110df0e8abfb2068cdfa68c8c31",
+    "Cargo.toml": "be693cac71a10c0983d190f281dd6319d7c84f61b328d222f97f8fcc48fa856a",
+    "crates/flea-gui/Cargo.toml": "86fd25848a1a993a0ae1a91f210ca4f93e6ad212ab521895072022a39322597d",
     "crates/flea-gui/build.rs": "06ea5b8a62b74a9d659b1ef6d92393cc68507f8484717678054144ec06daccaf",
     "crates/flea-gui/deny.toml": "1d3ec035ff745443250ea0d7f23f7cae39329f446c869b92b4365df3cc73fd2b",
     "crates/flea-gui/examples/ipc-fixture.rs": "4e931f7c60bd1a15e3c2c9c06bfd921a207ce099b4e280d1d73676f5c0bb495b",
@@ -249254,7 +249299,7 @@
     "crates/flea-gui/src/g2/mn1/element.rs": "88d5db0d0c26717ee22aba7c96545273cd59693416c11a69676653c98f636b48",
     "crates/flea-gui/src/g2/mn1/element/frames.rs": "88a40e52879b3bacb2f7283cb7beb635a5631bc27ed87c27355963b272de42bc",
     "crates/flea-gui/src/g2/mn1/element/ink.rs": "54dc9d97d23f49ba30e446cb767fe75640b6fd3591ecbbef3d4b97fbd3224cdf",
-    "crates/flea-gui/src/g2/mn1/facts.rs": "6044e6411cfc4fefc743f458ddeaeea6850b182a08eeef37dd38231726ae29ae",
+    "crates/flea-gui/src/g2/mn1/facts.rs": "d673ab5bd698ba31015ed95b42dbe9b051bfa87ba810e52df4481d2b464e9922",
     "crates/flea-gui/src/g2/mn1/fix2_prior_proofs.rs": "81d7c499281a1a818bb6b8c08a31a932562f3e75898b61db1e0299e9ec13d937",
     "crates/flea-gui/src/g2/mn1/fix2_width_proof.rs": "d541621b1c99e6a66ab3b090cbcd0657e864e2adfe462a5827094f9fc3938b4f",
     "crates/flea-gui/src/g2/mn1/glyphs.rs": "3e8c06c20ec75b9c7ead15c96e56e6179e2e7fadd81a722655f88ede2401d100",
@@ -249345,8 +249390,8 @@
     "crates/flea-gui/src/g2/op2/flash/mod.rs": "beca0ffa598156c2019aac9be1a159da771450159a5c864d2da01881f730ebdf",
     "crates/flea-gui/src/g2/op2/flash/run.rs": "aece847488213b38a586ed7abd30bdf2ffebe66148e16d039bcc6c2e41e1dd3b",
     "crates/flea-gui/src/g2/op2/flash/view.rs": "227fc0aac54fd6122b22ede128cf8ce4ba1af56f347d6564230c3f43b9142c56",
-    "crates/flea-gui/src/g2/op2/host.rs": "99b2d7311b556cd769a432a65320d01ea9d62e2412c2646845a764f9f2be0450",
-    "crates/flea-gui/src/g2/op2/host/chosen.rs": "651c6eb5e1cb065a32319afca27fd3e21affe6e2739afa2e339c44b51d455083",
+    "crates/flea-gui/src/g2/op2/host.rs": "e8225072ac94cf5b510471dca148fa5348c29ff14d3c193ba13fd7ba9985d1c9",
+    "crates/flea-gui/src/g2/op2/host/chosen.rs": "e30634aae4b2379c8ac7b4ae77aa3c2efdc280a1837ffd688a68919bc058536b",
     "crates/flea-gui/src/g2/op2/host/cover.rs": "20a5c5eb60bad1300a57544c93da2a9f2b07cbe154d3969fbd49452c66fd5824",
     "crates/flea-gui/src/g2/op2/host/layer.rs": "30a56b6e877472aeeda9ab7332df0647260c6b14e48ad6942a0dfa62b4bbd768",
     "crates/flea-gui/src/g2/op2/host/reply.rs": "f9c2351192d1a4d68f4dd9f68bb7e9150ba74d7e0e490091c78200ff07dcffc1",
@@ -250306,17 +250351,18 @@
     "src/backend/answersizes.rs": "c04f235077d66e3010a470f71e0a05f84cb805538207a2715253cbbc7c02b1fc",
     "src/backend/appicon.rs": "5dc64b3d92b2f46a2f7ab01deec122bf525f20b7c749ea886a86cee161374cf1",
     "src/backend/appicon_fixtures.rs": "3a7998297a58de09d0e96492b95ccf327ddfc859327326166b4c285f9e8e85aa",
-    "src/backend/archive.rs": "1b2f15100d8069753e68b564ff1673c872937a45aff0cbce12bb2c490003412f",
+    "src/backend/archive.rs": "29cdc761a1ad0919d4d2a95991e58acfcba899f618dab31bf71978a787fa10f7",
     "src/backend/archiveenc.rs": "6ab146c0f593246eea6ebd29534d684973da7346a84deeb688eb5fc8e5067751",
-    "src/backend/archiveexec.rs": "ec8aa43d6c1a69580e6a3eeb12f1f6b5b3f9433dcf3042cf0327bc8e05e6f7c0",
+    "src/backend/archiveexec.rs": "1d7fd45328ec1bb2cd9436d34913012ef4832ac9be026e5d4b24881f86cb06a4",
     "src/backend/archivefailure.rs": "6d8917cd6b1b6336cb82179374310334f46213b2f71925e4d8371b479aa17224",
     "src/backend/archivefree.rs": "638f57994a455989818c9bb5a7864a46dfe77185e5ba934c0a0da3d859cab242",
     "src/backend/archivelist.rs": "6ba21fc9307cb234bd29cca714cbb7c5689facfe07ee12171c9846e404c01a5a",
-    "src/backend/archiveops.rs": "3d4328486a1ddc31213eef352af70254c699ae6f14081501183a55253697f4f9",
+    "src/backend/archiveops.rs": "bd952725261f6c623193b879d9b7233b8ea35cddb2f4a3b3025fead18ea4213a",
     "src/backend/archivepass.rs": "83ed5deb644ff25d47dca23c0a260779c2e05d8b202f2c25923eebfa2e1b982b",
-    "src/backend/archivereq.rs": "820e4b6c7ca564a6ac7d566dc3cc198a4e2d459b670bdc2c86b2c14e0644a8c1",
+    "src/backend/archivereq.rs": "d956ffef981cbb673815439bccd3ca82cef8a7fb03c94dfee52f2ecf3ea276e3",
     "src/backend/archivespec.rs": "9569e3ab8cc5fa96ddbfd9e245a6ce757399de7fe7b289f97962b443cf13f99a",
     "src/backend/archivework.rs": "379fe5655b4365bde0ba74d0493773280b5478f379b9d0e19dfed3041dbcc2f2",
+    "src/backend/archivezip.rs": "d61d9da4b88343e8e1385b6a713e225668dfcc1f089a476f05008ff23ff74a22",
     "src/backend/birthtime.rs": "07c40980d1dddede61b9a8eec177762195e71dc71ba262e8157cf6bd2a1d77bd",
     "src/backend/bulkrename.rs": "dee03d179cfaa66deea1afeadcae922ee4b072ef5060c0105521a33274fde7e6",
     "src/backend/child.rs": "d15fb999aa1540c66feabf5f8c53618ed0cfe0bf00fc6421cc8ae95b36ffa919",
@@ -250333,8 +250379,8 @@
     "src/backend/contentsparse.rs": "8725aa6220a2f3a58dcf0af042ffa85bbdce009ab2d380a36865c7ade3155eb9",
     "src/backend/contentsreq.rs": "e6374039283c2d1329944446294a2eb1e12aaa5cb6f301d6991023f49975e36a",
     "src/backend/contentsworker.rs": "ec578e2da07adbaa033fdc7cb51ed3f4a9308a116d11d77e9287023753083f52",
-    "src/backend/convert.rs": "27d3f89a9dc475631c26fddcd19c620bfda88146d137e90fec1b89cfe211cd0f",
-    "src/backend/convertbatch.rs": "e950fde424b374595336d7a6d70e45e8645f6a7df9298786c60e7e8f83dbcd5d",
+    "src/backend/convert.rs": "9a6f442c4222b570ef765e9db004977e6f11fd9f9535f4bf1c7d60c0b46bda57",
+    "src/backend/convertbatch.rs": "fc96cc627aa26fa548430003e05ad4040cc62d7e49d71073de2869c827235b64",
     "src/backend/copyfile.rs": "8268ded64c9cbebc63053530912f730a99b511a2d18de318caf882e30279a1ba",
     "src/backend/copymanifest.rs": "96a53c6936c0d5ab078a4d40992c5c0192a6933169bd85db08cd933ae3ff1d89",
     "src/backend/copynode.rs": "812e62829738a84e55d03dea80b5fbf9ae54ff775e01b319c3eddfa211b4411d",
@@ -250436,12 +250482,12 @@
     "src/backend/manifestdir.rs": "ecf7741bbfe990baf3427fb53e3dfbeebaa8163d6af5870ead60f30444543ea8",
     "src/backend/md5.rs": "0dc93d9ba71fd2eb80030de0d4dd1b1fde573a60822e603e4dfa8c770767df48",
     "src/backend/mediaprobe.rs": "a608e926f8f51b82e4539fdadcaa8afec520e4d6c7450344c44f593075884946",
-    "src/backend/menu_actions.rs": "305e50baf4bc08145737133f8a9fef682f4e810369dbc42b8643abc138cb8bc3",
+    "src/backend/menu_actions.rs": "eb5f8b4bb72d1fb2d2289050449140a53f75433ccab8554a5d5aa0fa765bc32d",
     "src/backend/menu_actions/snapshot.rs": "76c3690ceb407082f3126da6a0aa15371f71cc40adc53be18d61a8ab38014ead",
     "src/backend/menu_many.rs": "9eb7f7d0ee31e09d2fc4b4e0a0421b74ce0fe91967d28d377d602c7b9a3b728a",
     "src/backend/menu_registry.rs": "8df89cc6c5551d4f8572f05007e4fe9b0fc3265ecab1f9b2b44e69ec76008ef8",
     "src/backend/menu_registry_work.rs": "499dd157f3a4b4f2ea3341f76c9dff62f0c7b190bb22b93cf0055f9612ca4381",
-    "src/backend/menu_selection.rs": "172662fac4080a29289db1e6167c79603e932bf60b086f4ef53cc7a964fa82a7",
+    "src/backend/menu_selection.rs": "81ba3623e52c305f56b2f660ed9f935685d4f086d7183c5c92053e49fa2833cb",
     "src/backend/menu_slot.rs": "1572bef46483b96054be5ca4d71dc6b0353e8ee1789c98b04d0de5bee0cdd99d",
     "src/backend/menu_worker.rs": "9b7411a6d7ebe1779ebb626d6706620cb594b66f4243db48e3cdb5bf75785de3",
     "src/backend/menucontents.rs": "96b312a581eb97621edd7dffb408671b76dbe1b7361a33b5f0bafbfbd753c00c",
@@ -250905,9 +250951,9 @@
     "src/ui_logic_fb1/status.rs": "a1b9536b76f3aa02df822f70b84f4ea5307ff1e8338eb98771da17af437848af",
     "src/ui_logic_mn1.rs": "80ef9b0bc9e460cde3263ed52b301dda4a04e7c941d2852c11220df253910dc6",
     "src/ui_logic_mn1/airdrop.rs": "45e4cce87dc0a33e61621440df250bdf79578f407f88c6295588598ffc42fe42",
-    "src/ui_logic_mn1/archive.rs": "7d5f990c6fd7a593104e727190f806a7b6b7cbf00607042c967aeda3eb669a0e",
-    "src/ui_logic_mn1/build.rs": "f4dc824d1dc4b3bc04a0c7c05090b11085d3d43047be51ab5d03964615d57e27",
-    "src/ui_logic_mn1/build_context_default.rs": "987fe4c26c89a6011b7d1f06804ee2e7a9d1ddf2cdcb6b2b23e844aac0cc0c9b",
+    "src/ui_logic_mn1/archive.rs": "f89521cd336985b9b2ae5084e58eaa57692ca2c239ca38176a9bf8b1d531d1e3",
+    "src/ui_logic_mn1/build.rs": "403b4c961cbb882fd6f47114758f27c60127953168615c3b5fb698bcb87fc226",
+    "src/ui_logic_mn1/build_context_default.rs": "f8236e671d39e623fdfb1ee66be01c638009cf61b720e1395ece6b53ea1452ed",
     "src/ui_logic_mn1/copyas.rs": "ea154c12fe0c3e18baaabc9c865e0c2c9090966c2949e6bcc6773ad7992e6f2d",
     "src/ui_logic_mn1/entry.rs": "64474c208113d26ec13a22be3c52b175adba6b7e438ecc726792be5b985df378",
     "src/ui_logic_mn1/fit.rs": "7a66e079e875462ebcc9dfb1360b76624601a3f18ac3bdb497936c6a3b2ee32c",
@@ -250916,7 +250962,7 @@
     "src/ui_logic_mn1/inventory.rs": "9445145e0f026784b975dff4f989ea3815d0950a076b8ef05192408a8cf4ee75",
     "src/ui_logic_mn1/places.rs": "8982623fad0ad7910cbd05bd42bfef4a6663a1c565192859af6d1b1004dbc452",
     "src/ui_logic_mn1/refresh.rs": "03f67a530ecbaebfa9378af54fdfbf836f41a5df7ae09d716728442870554922",
-    "src/ui_logic_mn1/rows.rs": "988c38b6dd9a0b2d630a36f3b05982f56443756227923283f4ebf2211edd951a",
+    "src/ui_logic_mn1/rows.rs": "72d028f17df49f19b5f66ad28da7b7bcf1b56cbd22e0577d780ad6cd1130c308",
     "src/ui_logic_mn1/testkit.rs": "73539bb94d067043810d2c1869d2459c480235b0a62f4ad0d029c05158fea811",
     "src/ui_logic_mn2.rs": "12ba38653978000aa7bf63852f4230a3efaddac4ea0eced09cda347a838c7dda",
     "src/ui_logic_mn2/agent.rs": "3b3e5798579ba95ea9cd4cc9b21ebc0db4d081d133f934054bd813e53602afa8",
@@ -250958,9 +251004,9 @@
     "src/ui_logic_op3/runfile.rs": "bd6929127334c2e68e2149dde0708fa4d2aa00a296dfec071615e193059fc7a8",
     "src/ui_logic_op3/viewerorder.rs": "628e675a3aece0ab8d36575605114ec14f2330bc6b0f853e425c3bce9d244d8a",
     "src/ui_logic_op4.rs": "d7f7990d2e9f884cab0fef1406cad2ce4fb21a237669c53d626db7ecb46c48e7",
-    "src/ui_logic_op4/composition.rs": "811703f8148fe8cbc7b53429f65ee5ad2b58009529cd97f10c8a54c6f26b177a",
+    "src/ui_logic_op4/composition.rs": "9bb5dea6d94f2ca612b2d10e2fe602d946bcf7fce2f565aa948c4f3350ee2b8f",
     "src/ui_logic_op4/geometry.rs": "710ebfabee4c92500e44f8fba0ae6b351334070a61d9191cf2ec9cce41dc4147",
-    "src/ui_logic_op4/output.rs": "1bc130347e7e22544a7b244c8f9c127d7e37fae490af6f5f227e30410bca9dd7",
+    "src/ui_logic_op4/output.rs": "ba23d35800fb39a681a6acafa7e09c60c8b90ae9d2db13030921c03fbc48ebd7",
     "src/ui_logic_op4/pages.rs": "399c9401006641341435a94f1639410e1de5f77315734a296c3f3b4fa850c65a",
     "src/ui_logic_op4/printing.rs": "b3fe310aee98518bfbe169409918ddbcdfb0a00250973b80c3ac052db001bb44",
     "src/ui_logic_op4/selection.rs": "b2419be863bee59aaafcd624b2c9f638f5286980abe4bac22875b379c3b1b624",
@@ -251806,13 +251852,13 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "fa2511801c250bda42339eb83a05c51978eb32f9",
-  "source_sha": "fa2511801c250bda42339eb83a05c51978eb32f9",
+  "source_ref_sha": "d61159a59551adc0b553021c7296d265783330ce",
+  "source_sha": "d61159a59551adc0b553021c7296d265783330ce",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1334,
-      "missing_literal_candidates": 5688,
-      "source_files": 849
+      "missing_literal_candidates": 5693,
+      "source_files": 850
     },
     "generated/tooling": {
       "keys_with_occurrences": 155,
