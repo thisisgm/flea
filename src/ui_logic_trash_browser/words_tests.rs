@@ -83,7 +83,7 @@ fn trash_menu_target_follows_marks_and_cursor() {
 fn trash_backend_order_and_membership_pins_hold() {
     let rust = include_str!("../backend/trashbrowse.rs");
     assert!(rust.contains("dated.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.uri.cmp(&b.1.uri)))"), "newest first, then the uri");
-    assert!(rust.contains(r#"read(&["list", "-u", "-a", "trash::deletion-date", "trash:///"])"#) && !rust.contains("fn deletion_date("),
+    assert!(rust.contains(r#"read(&["list", "-u", "-h", "-a", "trash::deletion-date", "trash:///"])"#) && !rust.contains("fn deletion_date("),
         "one gio list dates every volume's items");
     assert!(rust.contains("newest_first(&mut items, |item| dates.get(&item.uri)")
         && rust.contains("fn list() -> Result<Vec<Item>, Refusal> {\n    list_with(gio)\n}"), "one reader orders every listing");
