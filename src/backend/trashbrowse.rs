@@ -162,29 +162,77 @@ fn answer(output: std::io::Result<std::process::Output>) -> Result<String, Refus
     String::from_utf8(output.stdout).map_err(|_| unreadable("The Trash helper returned invalid text."))
 }
 
-// Sample input: "trash:///a.txt\t/home/gm/a.txt\n"; malformed framing must not silently lose an item.
-fn parse_list(text: &str) -> Result<Vec<Item>, Refusal> {
+// Sample input, gio list -u -h -a trash::orig-path trash:///: "trash:///a%0Ab.txt\t4\t(regular)\ttrash::orig-path=/tmp/a\\x0ab.txt\n".
+// gio escapes every control, non-ASCII and backslash byte, so one line is one item, and an item it cannot describe is left out, never the rest.
+fn parse_list(text: &str) -> Vec<Item> {
     let mut items = Vec::new();
+    let mut left_out = Vec::new();
+    let mut uris = Vec::new();
     for line in text.lines() {
-        let (uri, original) = line
-            .split_once('\t')
-            .ok_or_else(|| unreadable("The Trash helper returned an unreadable listing."))?;
-        if !uri.starts_with("trash:///")
-            || uri.len() <= "trash:///".len()
-            || !original.starts_with('/')
-        {
-            return Err(unreadable("The Trash helper returned an invalid item identity."));
+        let mut fields = line.split('\t');
+        let uri = fields.next().unwrap_or_default();
+        uris.push(uri);
+        let original = fields
+            .find_map(|field| field.strip_prefix("trash::orig-path="))
+            .and_then(unescape);
+        match original {
+            Some(original)
+                if uri.starts_with("trash:///")
+                    && uri.len() > "trash:///".len()
+                    && original.starts_with('/') =>
+            {
+                items.push(Item {
+                    uri: uri.into(),
+                    original,
+                })
+            }
+            _ => left_out.push(uri.to_string()),
         }
-        items.push(Item {
-            uri: uri.into(),
-            original: original.into(),
-        });
     }
     items.sort_by(|a, b| a.uri.cmp(&b.uri));
-    if items.windows(2).any(|pair| pair[0].uri == pair[1].uri) {
-        return Err(unreadable("The Trash helper returned duplicate item identities."));
+    uris.sort_unstable();
+    // Two lines under one uri, either one left out or not, leave no way to tell which entry an action would reach, so neither is offered.
+    let doubled: HashSet<String> = uris
+        .windows(2)
+        .filter(|pair| pair[0] == pair[1])
+        .map(|pair| pair[0].to_string())
+        .collect();
+    items.retain(|item| !doubled.contains(&item.uri));
+    left_out.retain(|uri| !doubled.contains(uri));
+    left_out.extend(doubled);
+    if !left_out.is_empty() {
+        crate::backend::trashmanifest::log(&format!(
+            "Trash left out what gio could not describe: {}",
+            left_out.join(", ")
+        ));
     }
-    Ok(items)
+    items
+}
+// Sample input: "/tmp/a\\x0ab.txt" is the original "/tmp/a\nb.txt"; None for a broken escape or an original that is not UTF-8.
+fn unescape(value: &str) -> Option<String> {
+    let mut bytes = Vec::with_capacity(value.len());
+    let mut rest = value.as_bytes();
+    while let Some((&byte, tail)) = rest.split_first() {
+        rest = tail;
+        if byte == b'\\' {
+            let hex = rest.strip_prefix(b"x").and_then(|after| after.get(..2))?;
+            bytes.push(u8::from_str_radix(std::str::from_utf8(hex).ok()?, 16).ok()?);
+            rest = &rest[3..];
+        } else {
+            bytes.push(byte);
+        }
+    }
+    String::from_utf8(bytes).ok()
+}
+// The gio list line for each "uri<TAB>original" pair, so a test names its items the way they read.
+#[cfg(test)]
+fn listed(pairs: &str) -> Vec<Item> {
+    parse_list(
+        &pairs
+            .lines()
+            .map(|line| line.replacen('\t', "\t1\t(regular)\ttrash::orig-path=", 1) + "\n")
+            .collect::<String>(),
+    )
 }
 fn list() -> Result<Vec<Item>, Refusal> {
     list_with(gio)
@@ -192,9 +240,9 @@ fn list() -> Result<Vec<Item>, Refusal> {
 
 // The listing over any reader of gio's text, so a test can feed the two outputs through the real join.
 fn list_with(read: impl Fn(&[&str]) -> Result<String, Refusal>) -> Result<Vec<Item>, Refusal> {
-    let mut items = parse_list(&read(&["trash", "--list"])?)?;
-    // One gio call dates every volume's items; a failed call leaves the order by uri.
-    let dates = parse_dates(&read(&["list", "-u", "-a", "trash::deletion-date", "trash:///"]).unwrap_or_default());
+    let mut items = parse_list(&read(&["list", "-u", "-h", "-a", "trash::orig-path", "trash:///"])?);
+    // One gio call dates every volume's items, a dot name too; a failed call leaves the order by uri.
+    let dates = parse_dates(&read(&["list", "-u", "-h", "-a", "trash::deletion-date", "trash:///"]).unwrap_or_default());
     newest_first(&mut items, |item| dates.get(&item.uri).cloned().unwrap_or_default());
     Ok(items)
 }
@@ -757,22 +805,31 @@ mod thumbnail_tests;
 #[cfg(test)]
 mod tests {
     use super::*;
+    // gio 2.90.1's gio list shape: the line feed line as minipc printed it, then a tab, a backslash and a two-byte UTF-8 name.
     #[test]
-    fn malformed_or_duplicate_listing_fails_closed() {
-        assert!(parse_list("").unwrap().is_empty());
-        for text in [
-            "bad",
-            "file:///x\t/x",
-            "trash:///\t/x",
-            "trash:///a\trelative",
-            "trash:///a\t/a\ntrash:///a\t/a",
-        ] {
-            assert!(parse_list(text).is_err());
-        }
+    fn an_escaped_original_reads_back_as_its_own_bytes() {
+        let text = "trash:///a%0Ab.txt\t4\t(regular)\ttrash::orig-path=/tmp/a\\x0ab.txt\ntrash:///c\t4\t(regular)\ttrash::orig-path=/tmp/a\\x09b \\x5cx41.txt\ntrash:///e\t4\t(regular)\ttrash::orig-path=/tmp/caf\\xc3\\xa9.txt\n";
+        let originals: Vec<_> = parse_list(text)
+            .into_iter()
+            .map(|item| item.original)
+            .collect();
         assert_eq!(
-            parse_list("trash:///a\t/tmp/a b\n").unwrap()[0].original,
-            "/tmp/a b"
+            originals,
+            ["/tmp/a\nb.txt", "/tmp/a\tb \\x41.txt", "/tmp/caf\u{e9}.txt"]
         );
+        assert_eq!(
+            unescape("/tmp/good one.txt").as_deref(),
+            Some("/tmp/good one.txt")
+        );
+        for broken in [
+            "/tmp/a\\x0",
+            "/tmp/a\\",
+            "/tmp/a\\y41",
+            "/tmp/a\\xzz",
+            "/tmp/caf\\xe9.txt",
+        ] {
+            assert_eq!(unescape(broken), None, "{broken}");
+        }
     }
     #[test]
     fn listing_is_newest_deleted_first_and_ties_break_by_uri() {
@@ -808,12 +865,14 @@ mod tests {
         assert_eq!(order, ["trash:///b", "trash:///a", "trash:///c"]);
     }
     // gio's two outputs for one Trash, one escaped name in both: the listing in uri order, the dates by uri.
-    const TRASH_LIST: &str = "trash:///a%20b.txt\t/home/u/a b.txt\ntrash:///c.txt\t/home/u/c.txt\ntrash:///z.txt\t/home/u/z.txt\n";
+    const TRASH_LIST: &str = "trash:///a%20b.txt\t0\t(regular)\ttrash::orig-path=/home/u/a b.txt\ntrash:///c.txt\t0\t(regular)\ttrash::orig-path=/home/u/c.txt\ntrash:///z.txt\t0\t(regular)\ttrash::orig-path=/home/u/z.txt\n";
     const TRASH_DATES: &str = "trash:///a%20b.txt\t0\t(regular)\ttrash::deletion-date=2026-10-05T09:00:00\ntrash:///c.txt\t0\t(regular)\ttrash::deletion-date=2026-10-01T09:00:00\ntrash:///z.txt\t0\t(regular)\ttrash::deletion-date=2026-10-03T09:00:00\n";
     fn read_gio(dates: Result<&'static str, &'static str>) -> impl Fn(&[&str]) -> Result<String, Refusal> {
-        move |args: &[&str]| match args[0] {
-            "trash" => Ok(TRASH_LIST.to_string()),
-            _ => dates.map(String::from).map_err(unreadable),
+        // Both calls list dot names too, so a trashed .hidden is listed and dated.
+        move |args: &[&str]| match args {
+            ["list", "-u", "-h", "-a", "trash::orig-path", "trash:///"] => Ok(TRASH_LIST.to_string()),
+            ["list", "-u", "-h", "-a", "trash::deletion-date", "trash:///"] => dates.map(String::from).map_err(unreadable),
+            _ => panic!("unexpected gio call {args:?}"),
         }
     }
     fn uris(items: &[Item]) -> Vec<&str> {
@@ -859,7 +918,7 @@ mod tests {
     fn selected_targets_require_known_paths_and_original_identities() {
         let d = crate::backend::testdir::TestDir::new("trash-selected-targets");
         let session = Session {
-            items: parse_list("trash:///a\t/tmp/a\n").unwrap(),
+            items: listed("trash:///a\t/tmp/a\n"),
             scratch: d.path().to_path_buf(),
             ..Session::default()
         };
@@ -880,7 +939,7 @@ mod tests {
         let mut selected = Manifest::new(d.path()).unwrap();
         selected.append(br#"{"uri":"trash:///a","original":"/original/a","identity":"original-inode"}"#).unwrap();
         let session = Session {
-            items: parse_list("trash:///a\t/replacement/a\ntrash:///new\t/new\n").unwrap(),
+            items: listed("trash:///a\t/replacement/a\ntrash:///new\t/new\n"),
             selection: Some(Selection { token: 7, items: selected }),
             scratch: d.path().to_path_buf(),
             ..Session::default()
@@ -901,7 +960,7 @@ mod tests {
         targets.append(br#"{"uri":"trash:///gone","original":"/old/gone","identity":"gone-inode"}"#).unwrap();
         let confirmation = Confirmation { token: 3, items: Manifest::new(d.path()).unwrap(),
             trees: Manifest::new(d.path()).unwrap(), listing: Vec::new(), targets, count: 0, nodes: 0, all: false };
-        let session = Session { items: parse_list("trash:///a\t/new/a\ntrash:///new\t/new\n").unwrap(),
+        let session = Session { items: listed("trash:///a\t/new/a\ntrash:///new\t/new\n"),
             scratch: d.path().to_path_buf(), ..Session::default() };
         let refreshed = session.refreshed_targets(&confirmation).unwrap();
         let mut offset = 0;
@@ -1009,7 +1068,7 @@ mod tests {
         let line = r#"{"c":"trashbrowse","op":"restore","id":9,"uris":["trash:///a.txt"],"identities":["held"]}"#;
         // A restore whose original sits on the held mount waits before gio runs.
         let mut held = Session {
-            items: parse_list(&listing).unwrap(),
+            items: listed(&listing),
             scratch: remote.path().to_path_buf(),
             pending: vec![remote.path().to_path_buf()],
             body: body.clone(),
@@ -1019,7 +1078,7 @@ mod tests {
         assert!(busy.contains(r#""ok":false"#) && busy.contains("already running"), "a restore onto a pending mount waits: {}", busy);
         // The same restore elsewhere runs past the gate to gio's own answer.
         let mut free = Session {
-            items: parse_list(&listing).unwrap(),
+            items: listed(&listing),
             scratch: remote.path().to_path_buf(),
             ..Session::default()
         };

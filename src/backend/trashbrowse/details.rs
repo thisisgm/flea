@@ -79,7 +79,7 @@ mod tests {
 
     #[test]
     fn batch_details_keep_request_order_and_refuse_incomplete_or_ambiguous_answers() {
-        let items = parse_list("trash:///a\t/a\ntrash:///b\t/b\n").unwrap();
+        let items = listed("trash:///a\t/a\ntrash:///b\t/b\n");
         let a = "uri: trash:///a\n  standard::size: 1\n  id::file: a\n  id::filesystem: fs\n";
         let b = "uri: trash:///b\n  standard::size: 2\n  id::file: b\n  id::filesystem: fs\n";
         let rows = parse(&items, &format!("{b}{a}")).unwrap();

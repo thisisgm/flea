@@ -6,8 +6,8 @@ files = root / 'data/Trash/files'
 names = sorted(p.name for p in files.iterdir() if p.is_file())
 args = sys.argv[1:]
 def uri(name): return 'trash:///' + urllib.parse.quote(name)
-if args[:2] == ['trash', '--list']:
-    for name in names: print(uri(name) + '\t' + str(root / 'original' / name))
+if args[0] == 'list' and 'trash::orig-path' in args:
+    for name in names: print(uri(name) + '\t1\t(regular)\ttrash::orig-path=' + str(root / 'original' / name))
 elif args[0] == 'list':
     for name in names: print(uri(name) + '  trash::deletion-date=2026-10-18T09:00:00')
 elif args[0] == 'info':
