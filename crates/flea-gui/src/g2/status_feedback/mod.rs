@@ -16,6 +16,8 @@ mod empty_omi_tests;
 mod fix9_tests;
 pub mod hero;
 #[cfg(test)]
+mod hero_look_tests;
+#[cfg(test)]
 mod hero_tests;
 pub mod line;
 #[cfg(test)]

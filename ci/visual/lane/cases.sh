@@ -217,3 +217,31 @@ case_cols_density_pictures_end() (
     [ "$(ipc rowIconStatus "$last")" = 1 ] || { state_failure "Columns row $last drew no picture"; return 1; }
     snap
 )
+
+# Boards 0401-empty-omi-off, -fixed and -both-off, and 0401-tabs-icons-a: Settings > View's three rows, each off its default.
+CASES+=("empty-omi-off 1100x700 state:empty surface:EmptyState"
+        "empty-fixed 1100x700 state:empty surface:EmptyState"
+        "empty-both-off 1100x700 state:empty surface:EmptyState"
+        "tabs-icons 1100x700 surface:TabBar key:tabNew")
+case_empty_omi_off() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    LAUNCH_STATE=',"emptyFolderOmi":false' launch list "$W/Empty" || return 1
+    snap
+)
+case_empty_fixed() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    LAUNCH_STATE=',"emptyFolderRotate":false' launch list "$W/Empty" || return 1
+    snap
+)
+case_empty_both_off() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    LAUNCH_STATE=',"emptyFolderOmi":false,"emptyFolderRotate":false' launch list "$W/Empty" || return 1
+    snap
+)
+case_tabs_icons() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    LAUNCH_STATE=',"tabsAsIcons":true' launch list "$W" || return 1
+    key t; wait_ipc tabCount 2 || return 1
+    key t; wait_ipc tabCount 3 || return 1
+    snap
+)

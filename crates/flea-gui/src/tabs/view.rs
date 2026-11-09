@@ -21,6 +21,7 @@ pub(crate) struct Strip {
     pub shell: WeakEntity<Shell>,
     press: Option<super::atomic::Press>,
     frames: Rc<RefCell<super::held::StripFrames>>,
+    pub(super) tip: super::icons::Tip,
 }
 
 #[derive(Clone)]
@@ -107,6 +108,7 @@ impl Render for Strip {
             }))
             .on_hover(cx.listener(|strip, hovered: &bool, _, cx| {
                 if !hovered {
+                    strip.tip_left(cx);
                     let _ = strip.shell.update(cx, |shell, cx| {
                         if shell
                             .strip
@@ -179,6 +181,7 @@ impl Render for Strip {
                     .with_feedback(self.frames.clone())
                     .with_controls(controls),
             )
+            .map(|root| self.with_tip(root, cx))
     }
 }
 
@@ -244,6 +247,7 @@ impl Shell {
             return;
         };
         self.strip.bar.caption = f32::from(host.list.borrow().typeface.caption);
+        self.strip.bar.icons = super::icons::wanted(&self.launch.settings.data);
         let frame = self.strip.bar.frame(
             &self.strip.tabs[side],
             // TabBar.qml titles the current tab from the pane's live path, the one the path bar reads.
@@ -251,6 +255,7 @@ impl Shell {
             &self.strip.home,
             &self.locale.catalog.tr("tabs.home"),
         );
+        let frame = self.mark_tabs(frame, cx);
         let identities = self.strip.tabs[side]
             .tabs
             .as_ref()
@@ -285,6 +290,7 @@ impl Shell {
                     shell,
                     press: None,
                     frames: self.strip.frames.clone(),
+                    tip: Default::default(),
                 });
                 self.strip.view = Some(view.clone());
                 view

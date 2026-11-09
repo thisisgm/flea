@@ -23,6 +23,9 @@ pub const DEFAULTS: &str = r#"{
   "hiddenLast": false,
   "showGitStatus": false,
   "highlightToday": false,
+  "tabsAsIcons": false,
+  "emptyFolderOmi": true,
+  "emptyFolderRotate": true,
   "wrapAtEnds": false,
   "escapeUp": false,
   "openMode": "double",
@@ -214,6 +217,10 @@ pub const SCHEMA: &[(&str, Rule)] = &[
     ("hiddenLast", Rule::Bool),
     ("showGitStatus", Rule::Bool),
     ("highlightToday", Rule::Bool),
+    // Settings > View's tab marks and the empty folder's two rows; off, on and on draw 0.4.1's window.
+    ("tabsAsIcons", Rule::Bool),
+    ("emptyFolderOmi", Rule::Bool),
+    ("emptyFolderRotate", Rule::Bool),
     ("wrapAtEnds", Rule::Bool),
     // ClickAndRefresh: Escape climbs when on, the pointer's open mode, and the
     // slow-click rename it greys. Single click and Escape-up ship off, slow click ships on.
@@ -312,6 +319,9 @@ mod tests {
                 "hiddenLast",
                 "showGitStatus",
                 "highlightToday",
+                "tabsAsIcons",
+                "emptyFolderOmi",
+                "emptyFolderRotate",
                 "wrapAtEnds",
                 "escapeUp",
                 "openMode",
@@ -339,6 +349,12 @@ mod tests {
         assert_eq!(d.get("langMarks").and_then(Json::as_bool), Some(true));
         assert_eq!(d.get("showGitStatus").and_then(Json::as_bool), Some(false));
         assert_eq!(d.get("highlightToday").and_then(Json::as_bool), Some(false));
+        assert_eq!(d.get("tabsAsIcons").and_then(Json::as_bool), Some(false));
+        assert_eq!(d.get("emptyFolderOmi").and_then(Json::as_bool), Some(true));
+        assert_eq!(
+            d.get("emptyFolderRotate").and_then(Json::as_bool),
+            Some(true)
+        );
         assert_eq!(d.get("wrapAtEnds").and_then(Json::as_bool), Some(false));
         // Escape stays put and a double click opens as in 0.3.4; slow click renames, on by the defaults ledger.
         assert_eq!(d.get("escapeUp").and_then(Json::as_bool), Some(false));

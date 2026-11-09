@@ -56,6 +56,8 @@ impl Default for Preferences {
 
 impl Picker {
     pub(crate) fn apply_settings(&mut self, data: &Json, cx: &mut Context<Self>) {
+        // The file chooser's empty folder follows Settings > View's two rows, as the window's does.
+        crate::g2::status_feedback::hero::EmptyLook::apply(data, cx);
         self.jump_settings(data, cx);
         self.rail_favourites(data, cx);
         self.chrome.preset = data

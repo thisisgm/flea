@@ -32,6 +32,7 @@ pub struct Rotation {
     beats: usize,
     visible: bool,
     reduced: bool,
+    held: bool,
     shown_at: u64,
     entrance_at: Option<u64>,
     fade_at: Option<u64>,
@@ -101,12 +102,30 @@ impl Rotation {
         }
     }
 
+    /// Rotate empty folder messages unticked holds the first phrase with no beat; ticked again it starts over.
+    pub fn set_held(&mut self, held: bool, now: u64) {
+        if self.held == held {
+            return;
+        }
+        self.held = held;
+        self.index = 0;
+        self.beats = 0;
+        self.fade_at = None;
+        self.swapped = false;
+        self.shown_at = now;
+    }
+
+    pub fn held(&self) -> bool {
+        self.held
+    }
+
     fn replay(&mut self, now: u64) {
         self.mark_at = (!self.reduced).then_some(now);
     }
 
     fn next_beat(&self) -> Option<u64> {
-        (self.visible && !self.reduced).then(|| self.shown_at + ROTATE_MS * (self.beats as u64 + 1))
+        (self.visible && !self.reduced && !self.held)
+            .then(|| self.shown_at + ROTATE_MS * (self.beats as u64 + 1))
     }
 
     /// Applies every beat and swap due by `now`, in order.
@@ -195,7 +214,7 @@ impl Rotation {
         self.reduced || !self.animating()
     }
 
-    /// When the next beat lands, for a timer; None while hidden or motion is reduced.
+    /// When the next beat lands, for a timer; None while hidden, held or motion is reduced.
     pub fn next_deadline(&self) -> Option<u64> {
         self.next_beat()
     }

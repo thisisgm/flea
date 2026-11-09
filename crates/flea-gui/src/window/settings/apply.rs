@@ -244,6 +244,7 @@ impl Shell {
                 .update(cx, |view, cx| view.set_languages(languages, cx));
         }
         self.rail_state(&data, cx);
+        crate::g2::status_feedback::hero::EmptyLook::apply(&data, cx);
         if let Some(host) = self.panes.iter().flatten().next() {
             *host.nav.folders.borrow_mut() = Folders::from_settings(&data, newest);
         }

@@ -231,3 +231,25 @@ fn a_beat_lands_only_at_its_swap_while_nothing_is_drawn() {
     hero.advance(10_000 + ROTATE_MS + CLOSE_MS + OPEN_MS);
     assert!(!hero.landed());
 }
+
+/// Held: the first phrase, no beat at any motion setting, a fade cut short; released: a full interval later.
+#[test]
+fn a_held_rotation_never_beats_and_resumes_from_the_first_phrase() {
+    let mut hero = Rotation::default();
+    hero.show(0, true);
+    hero.advance(2 * ROTATE_MS + 10);
+    assert!(hero.caption_animating());
+    hero.set_held(true, 2 * ROTATE_MS + 10);
+    assert_eq!((hero.index(), hero.next_deadline()), (0, None));
+    for reduced in [false, true, false] {
+        hero.set_reduced(reduced, 3 * ROTATE_MS);
+        rest(&mut hero, 40 * ROTATE_MS, 0);
+        assert_eq!((hero.beats(), hero.next_deadline()), (0, None));
+    }
+    hero.hide();
+    hero.show(50 * ROTATE_MS, true);
+    assert_eq!(hero.next_deadline(), None, "a new appearance stays held");
+    hero.set_held(false, 60 * ROTATE_MS);
+    assert_eq!(hero.next_deadline(), Some(61 * ROTATE_MS));
+    assert_eq!(at(&mut hero, 61 * ROTATE_MS + CLOSE_MS), 1);
+}
