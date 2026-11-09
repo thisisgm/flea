@@ -7,6 +7,126 @@ const DEADLINE: Duration = Duration::from_secs(10);
 // How long silence must last before a test believes the follower said nothing more.
 const QUIET: Duration = Duration::from_millis(600);
 
+// Each backend process owns one follower; parallel test cases must not share its queue or watches.
+fn in_own_process(name: &str) -> bool {
+    const CHILD: &str = "FLEA_ANCESTRY_TEST";
+    if std::env::var(CHILD).as_deref() == Ok(name) {
+        return false;
+    }
+    let full_name = format!("backend::watch::ancestry::tests::{name}");
+    let output = std::process::Command::new(std::env::current_exe().unwrap())
+        .args(["--exact", &full_name, "--nocapture"])
+        .env(CHILD, name)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success()
+            && String::from_utf8_lossy(&output.stdout).contains("test result: ok. 1 passed;"),
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    true
+}
+
+#[test]
+fn an_unused_client_starts_no_follower() {
+    if in_own_process("an_unused_client_starts_no_follower") {
+        return;
+    }
+    let threads = || std::fs::read_dir("/proc/self/task").unwrap().count();
+    let before = threads();
+    let (tx, _rx) = crate::backend::events::channel();
+    let mut ancestry = Ancestry::new(tx);
+    ancestry.check();
+    ancestry.forget();
+    drop(ancestry);
+    assert_eq!(
+        threads(),
+        before,
+        "unused cleanup starts no follower threads"
+    );
+}
+
+#[test]
+fn an_overflow_still_reports_folders_that_moved_in_the_lost_events() {
+    use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
+    let dir = TestDir::new("ancestry-overflow");
+    let (one, two, noise) = (dir.dir("p/one"), dir.dir("q/two"), dir.dir("noise"));
+    let fd = unsafe { inotify_init1(IN_CLOEXEC | crate::backend::watch::IN_NONBLOCK) };
+    assert!(fd >= 0, "this box has no inotify to test with");
+    let owned = unsafe { OwnedFd::from_raw_fd(fd) };
+    let (events, replies) = crate::backend::events::channel();
+    let mut follower = Follower {
+        fd,
+        clients: HashMap::new(),
+        refs: HashMap::new(),
+    };
+    follower.follow(1, events.clone(), one.clone());
+    follower.follow(2, events, two.clone());
+    let limit: usize = std::fs::read_to_string("/proc/sys/fs/inotify/max_queued_events")
+        .unwrap()
+        .trim()
+        .parse()
+        .unwrap();
+    let noise = CString::new(noise.as_os_str().as_encoded_bytes()).unwrap();
+    for _ in 0..=limit {
+        let wd = unsafe { inotify_add_watch(fd, noise.as_ptr(), MASK) };
+        assert!(wd >= 0);
+        assert_eq!(unsafe { inotify_rm_watch(fd, wd) }, 0);
+    }
+    std::fs::rename(dir.join("p"), dir.join("moved-p")).unwrap();
+    std::fs::rename(dir.join("q"), dir.join("moved-q")).unwrap();
+    let mut queued = Vec::new();
+    let mut buf = [0; BUF];
+    loop {
+        let n = unsafe { read(fd, buf.as_mut_ptr().cast(), buf.len()) };
+        if n < 0 {
+            assert_eq!(io::Error::last_os_error().kind(), io::ErrorKind::WouldBlock);
+            break;
+        }
+        assert!(n > 0);
+        queued.extend_from_slice(&buf[..n as usize]);
+    }
+    let (mut overflow, mut moved) = (false, false);
+    each_event(&queued, |_, mask| {
+        overflow |= mask & crate::backend::watch::IN_Q_OVERFLOW != 0;
+        moved |= mask & IN_MOVE_SELF != 0;
+    });
+    assert!(
+        overflow && !moved,
+        "the kernel dropped both moves behind the full queue"
+    );
+    // Replay complete kernel records through an EOF-bounded reader using the real pump.
+    std::fs::write(dir.join("queued"), queued).unwrap();
+    let reader = std::fs::File::open(dir.join("queued")).unwrap();
+    let (asks, queue) = mpsc::channel();
+    pump(reader.as_raw_fd(), asks);
+    follower.run(queue);
+    let mut gone: Vec<_> = replies
+        .try_iter()
+        .map(|event| match event {
+            Event::Gone(gone) => gone,
+            _ => panic!("a lost move must answer gone"),
+        })
+        .collect();
+    gone.sort_by(|a, b| a.path.cmp(&b.path));
+    assert_eq!(
+        gone,
+        [
+            Gone {
+                path: one,
+                parent: dir.path().to_path_buf()
+            },
+            Gone {
+                path: two,
+                parent: dir.path().to_path_buf()
+            },
+        ]
+    );
+    drop(owned);
+}
+
 #[test]
 fn a_followed_folder_is_the_same_until_it_moves_or_goes() {
     let dir = TestDir::new("ancestry-verdict");
@@ -97,6 +217,9 @@ fn gone_from(rx: &std::sync::mpsc::Receiver<Event>) -> Gone {
 // S3-7: a folder above the open one moving away left the pane on a path that no longer exists.
 #[test]
 fn a_folder_above_moving_away_names_the_nearest_folder_still_there() {
+    if in_own_process("a_folder_above_moving_away_names_the_nearest_folder_still_there") {
+        return;
+    }
     let dir = TestDir::new("ancestry-above");
     let open = dir.dir("p/mid/open-me");
     let (tx, rx) = crate::backend::events::channel();
@@ -192,6 +315,9 @@ fn a_shared_folder_watch_goes_when_the_last_client_leaves() {
 
 #[test]
 fn two_clients_under_one_folder_keep_its_watch_until_neither_follows() {
+    if in_own_process("two_clients_under_one_folder_keep_its_watch_until_neither_follows") {
+        return;
+    }
     let dir = TestDir::new("ancestry-shared");
     let (one, two) = (dir.dir("p/one"), dir.dir("p/two"));
     let (tx_one, rx_one) = crate::backend::events::channel();
