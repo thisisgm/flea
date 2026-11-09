@@ -11,7 +11,7 @@ use flea::ui_logic_media_preview::{
     player::{column_duration, Media, Status},
     sample_rate_khz,
 };
-use gpui::{div, prelude::*, px, App, Entity, Window};
+use gpui::{div, prelude::*, px, App, ClickEvent, Entity, Window};
 use std::{cell::RefCell, rc::Rc};
 
 /// The facts a host knows about an audio subject before the player does.
@@ -83,6 +83,19 @@ pub fn picture(player: &MediaPlayer, known: &Facts, catalog: &I18n) -> Picture {
     }
 }
 
+/// The travel past which gpui starts a drag; a press that moved further was a drag, never a click.
+const CLICK_SLOP: f64 = 2.;
+
+/// Whether a click on a video's picture toggles play: one primary press released in place, never a double-click's second.
+pub fn frame_toggles(event: &ClickEvent) -> bool {
+    let ClickEvent::Mouse(click) = event else {
+        return false;
+    };
+    event.standard_click()
+        && event.click_count() == 1
+        && (click.up.position - click.down.position).magnitude() <= CLICK_SLOP
+}
+
 /// A host's hook for pointer contact with the strip, which re-arms its hide timer.
 pub type Touched = Rc<dyn Fn(&mut Window, &mut App)>;
 
@@ -114,6 +127,8 @@ pub struct QuickLook<'a> {
     /// Preview.qml: a video's strip hides after its delay; audio's never does.
     pub strip_shown: bool,
     pub touched: Option<Touched>,
+    /// A click on the picture toggles play; a card still revealing takes none.
+    pub frame_click: bool,
 }
 
 /// Quick Look alone leaves ended clips empty at full duration, as ql-video.png and v0.3.12 draw them (EY-52).
@@ -148,7 +163,9 @@ impl QuickLook<'_> {
             strip.seek = None;
             strip.mute = None;
         }
+        let video = matches!(picture, Picture::Video { .. });
         let on_input = strip_input(self.player, self.touched);
+        let on_frame = on_input.clone();
         div()
             .relative()
             .size_full()
@@ -159,6 +176,23 @@ impl QuickLook<'_> {
                 typeface: self.typeface.clone(),
                 cache: self.caches.view.clone(),
                 painted: state.painted.clone(),
+            })
+            // The picture area alone, so the strip's band keeps its own controls whether or not it shows.
+            .when(video && self.frame_click, |card| {
+                card.child(
+                    div()
+                        .id("media-frame")
+                        .absolute()
+                        .top_0()
+                        .left_0()
+                        .right_0()
+                        .bottom(px(size::STRIP))
+                        .on_click(move |event, window, cx| {
+                            if frame_toggles(event) {
+                                on_frame(StripInput::Toggle, window, cx);
+                            }
+                        }),
+                )
             })
             .when(shown, |card| {
                 card.child(

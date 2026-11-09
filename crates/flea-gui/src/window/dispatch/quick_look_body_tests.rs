@@ -21,7 +21,7 @@ use std::{cell::RefCell, rc::Rc};
 #[derive(Default)]
 pub(super) struct Script {
     starts: RefCell<Vec<Request>>,
-    commands: Rc<RefCell<Vec<Command>>>,
+    pub(super) commands: Rc<RefCell<Vec<Command>>>,
     pub(super) feeds: RefCell<Vec<FeedSender>>,
 }
 

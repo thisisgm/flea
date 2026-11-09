@@ -2,6 +2,7 @@
 mod ended_tests;
 mod fake;
 mod feed_tests;
+mod frame_click_tests;
 mod lifecycle_tests;
 mod mpris_tests;
 mod paint_tests;
