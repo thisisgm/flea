@@ -50,6 +50,8 @@
   "archive.compressing": "Komprimuje sa %1 do .%2",
   "archive.confirm": "Potvrdiť",
   "archive.done.cancelled": "Rozbaľovanie zrušené.",
+  "archive.done.name_refused": "„%1“ nemožno rozbaliť na túto jednotku: %2.",
+  "archive.done.twins": "„%1“ a „%2“ by mali na tejto jednotke rovnaký názov, preto sa nič nerozbalilo.",
   "archive.done.unverified": "Rozbalené. Zoznam obsahu archívu sa nepodarilo prečítať, preto sa výsledok neoveril.",
   "archive.done.written": "Archív zapísaný.",
   "archive.encrypt_names": "Šifrovať názvy súborov",

@@ -1,9 +1,9 @@
 {
-  "catalog_file_sha256": "bbd4424e8ae76d318ab9f772198648b9be60cc81d7135ae1c19cd51556f0c5e6",
-  "catalog_sha256": "6088e663a756a95c831cd23e457d94ad733bcce4a0fc898cb4ff8808041d1122",
+  "catalog_file_sha256": "58f6c0923327e9368b117b4fe599458cd4bef7423a9c05343732569bdd0f8eb3",
+  "catalog_sha256": "fd1cbe44e85ef17d2f8d18f011eea3f64da9b78a02168cc4a56f60cad05f9c3a",
   "counts": {
     "direct_references": 0,
-    "keys": 2274,
+    "keys": 2276,
     "plurals": 106
   },
   "direct_references": {},
@@ -1562,6 +1562,8 @@
         "archive.compressing",
         "archive.confirm",
         "archive.done.cancelled",
+        "archive.done.name_refused",
+        "archive.done.twins",
         "archive.done.unverified",
         "archive.done.written",
         "archive.encrypt_names",
@@ -2578,7 +2580,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "if m.transfer_moving { \"receipt.moved\" } else { \"receipt.copied\" }",
-      "line": 214,
+      "line": 215,
       "path": "src/tui/prompts.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2618,17 +2620,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
-      "line": 18,
-      "path": "src/tui/words.rs",
-      "pattern": null,
-      "possible_keys": [],
-      "surface": "tui"
-    },
-    {
-      "blocks_removals": true,
-      "coverage": "unresolved-key-expression",
-      "expression": "key",
-      "line": 23,
+      "line": 20,
       "path": "src/tui/words.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2648,6 +2640,26 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
+      "line": 27,
+      "path": "src/tui/words.rs",
+      "pattern": null,
+      "possible_keys": [],
+      "surface": "tui"
+    },
+    {
+      "blocks_removals": true,
+      "coverage": "unresolved-key-expression",
+      "expression": "key",
+      "line": 35,
+      "path": "src/tui/words.rs",
+      "pattern": null,
+      "possible_keys": [],
+      "surface": "tui"
+    },
+    {
+      "blocks_removals": true,
+      "coverage": "unresolved-key-expression",
+      "expression": "key",
       "line": 20,
       "path": "src/tui/words_title.rs",
       "pattern": null,
@@ -2658,7 +2670,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
-      "line": 56,
+      "line": 57,
       "path": "src/tui/words_title.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2668,7 +2680,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
-      "line": 57,
+      "line": 58,
       "path": "src/tui/words_title.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2837,6 +2849,16 @@
     {
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
+      "expression": "key",
+      "line": 119,
+      "path": "src/ui_logic_fb1/errors.rs",
+      "pattern": null,
+      "possible_keys": [],
+      "surface": "core/backend"
+    },
+    {
+      "blocks_removals": true,
+      "coverage": "unresolved-key-expression",
       "expression": "note.key()",
       "line": 91,
       "path": "src/ui_logic_fb1/status.rs",
@@ -2917,31 +2939,6 @@
     {
       "coverage": "dynamic-needs-owner-verification",
       "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-      "line": 168,
-      "path": "src/ui_logic_op1/lines.rs",
-      "pattern": "jobs.undone.{op}",
-      "possible_keys": [
-        "jobs.undone.copy",
-        "jobs.undone.move",
-        "jobs.undone.rename",
-        "jobs.undone.merge",
-        "jobs.undone.permissions",
-        "jobs.undone.duplicate",
-        "jobs.undone.link",
-        "jobs.undone.bulkrename",
-        "jobs.undone.newfile",
-        "jobs.undone.paste",
-        "jobs.undone.cut",
-        "jobs.undone.trash",
-        "jobs.undone.settags",
-        "jobs.undone.mkdir",
-        "jobs.undone.other"
-      ],
-      "surface": "core/backend"
-    },
-    {
-      "coverage": "dynamic-needs-owner-verification",
-      "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
       "line": 169,
       "path": "src/ui_logic_op1/lines.rs",
       "pattern": "jobs.undone.{op}",
@@ -2966,8 +2963,33 @@
     },
     {
       "coverage": "dynamic-needs-owner-verification",
+      "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
+      "line": 170,
+      "path": "src/ui_logic_op1/lines.rs",
+      "pattern": "jobs.undone.{op}",
+      "possible_keys": [
+        "jobs.undone.copy",
+        "jobs.undone.move",
+        "jobs.undone.rename",
+        "jobs.undone.merge",
+        "jobs.undone.permissions",
+        "jobs.undone.duplicate",
+        "jobs.undone.link",
+        "jobs.undone.bulkrename",
+        "jobs.undone.newfile",
+        "jobs.undone.paste",
+        "jobs.undone.cut",
+        "jobs.undone.trash",
+        "jobs.undone.settags",
+        "jobs.undone.mkdir",
+        "jobs.undone.other"
+      ],
+      "surface": "core/backend"
+    },
+    {
+      "coverage": "dynamic-needs-owner-verification",
       "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-      "line": 176,
+      "line": 177,
       "path": "src/ui_logic_op1/lines.rs",
       "pattern": "jobs.redone.{op}",
       "possible_keys": [
@@ -2989,7 +3011,7 @@
     {
       "coverage": "dynamic-needs-owner-verification",
       "excerpt": "&format!(\"jobs.done.{verb}_of\"),",
-      "line": 221,
+      "line": 222,
       "path": "src/ui_logic_op1/lines.rs",
       "pattern": "jobs.done.{verb}_of",
       "possible_keys": [
@@ -3034,16 +3056,6 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "&format!(\"jobs.undone.{op}\")",
-      "line": 168,
-      "path": "src/ui_logic_op1/lines.rs",
-      "pattern": null,
-      "possible_keys": [],
-      "surface": "core/backend"
-    },
-    {
-      "blocks_removals": true,
-      "coverage": "unresolved-key-expression",
-      "expression": "&format!(\"jobs.undone.{op}\")",
       "line": 169,
       "path": "src/ui_logic_op1/lines.rs",
       "pattern": null,
@@ -3053,8 +3065,18 @@
     {
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
+      "expression": "&format!(\"jobs.undone.{op}\")",
+      "line": 170,
+      "path": "src/ui_logic_op1/lines.rs",
+      "pattern": null,
+      "possible_keys": [],
+      "surface": "core/backend"
+    },
+    {
+      "blocks_removals": true,
+      "coverage": "unresolved-key-expression",
       "expression": "&format!(\"jobs.redone.{op}\")",
-      "line": 176,
+      "line": 177,
       "path": "src/ui_logic_op1/lines.rs",
       "pattern": null,
       "possible_keys": [],
@@ -3064,7 +3086,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "if moving {\n                \"jobs.done.cut\"\n            } else {\n                \"jobs.done.clip_copied\"\n            }",
-      "line": 194,
+      "line": 195,
       "path": "src/ui_logic_op1/lines.rs",
       "pattern": null,
       "possible_keys": [],
@@ -3074,7 +3096,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "if verified {\n        \"jobs.done.archive_written\"\n    } else {\n        \"jobs.done.extract_unverified\"\n    }",
-      "line": 211,
+      "line": 212,
       "path": "src/ui_logic_op1/lines.rs",
       "pattern": null,
       "possible_keys": [],
@@ -3084,7 +3106,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "&format!(\"jobs.done.{verb}_of\")",
-      "line": 220,
+      "line": 221,
       "path": "src/ui_logic_op1/lines.rs",
       "pattern": null,
       "possible_keys": [],
@@ -3094,7 +3116,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "if cursor < 0 {\n        \"jobs.target.none\"\n    } else if !row_loaded {\n        \"jobs.target.not_loaded\"\n    } else {\n        \"jobs.target.filtered\"\n    }",
-      "line": 273,
+      "line": 274,
       "path": "src/ui_logic_op1/lines.rs",
       "pattern": null,
       "possible_keys": [],
@@ -7461,6 +7483,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -7599,6 +7623,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -7735,6 +7761,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -7899,6 +7927,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -8042,6 +8072,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -8178,6 +8210,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -8325,6 +8359,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -8464,6 +8500,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -8600,6 +8638,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -8711,6 +8751,288 @@
       "resolved_source_hash": "d9b21793944a",
       "source_hash": "d9b21793944a"
     },
+    "archive.done.name_refused": {
+      "call_sites": [
+        {
+          "excerpt": "key: \"archive.done.name_refused\",",
+          "line": 150,
+          "path": "src/ui_logic_fb1/errors.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        },
+        {
+          "coverage": "needs-owner-verification",
+          "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
+          "line": 49,
+          "path": "src/backend/archiveops.rs",
+          "pattern": "archive.{}",
+          "possible_keys": [
+            "archive.backend_stopped",
+            "archive.backend_stopped_plain",
+            "archive.busy",
+            "archive.cancel",
+            "archive.compress.action",
+            "archive.compress.title",
+            "archive.compressing",
+            "archive.confirm",
+            "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
+            "archive.done.unverified",
+            "archive.done.written",
+            "archive.encrypt_names",
+            "archive.extract.action",
+            "archive.extract.title",
+            "archive.extract.wrong",
+            "archive.extracting.file",
+            "archive.extracting.head",
+            "archive.extracting.head_unknown",
+            "archive.extracting.head_unknown_count",
+            "archive.extracting.progress",
+            "archive.extracting.progress_no_total",
+            "archive.extracting.progress_stalled",
+            "archive.flash.action_bare",
+            "archive.flash.action_named",
+            "archive.flash.blank_hint",
+            "archive.flash.busy_hint",
+            "archive.flash.cancelled_at",
+            "archive.flash.cancelled_at_line",
+            "archive.flash.cancelled_at_unknown",
+            "archive.flash.cancelled_at_unknown_line",
+            "archive.flash.cancelled_hint",
+            "archive.flash.changed",
+            "archive.flash.changed_line",
+            "archive.flash.choose_again",
+            "archive.flash.choose_image",
+            "archive.flash.chooser_failed",
+            "archive.flash.denied_hint",
+            "archive.flash.done",
+            "archive.flash.done_line",
+            "archive.flash.drives",
+            "archive.flash.drives_line",
+            "archive.flash.eject",
+            "archive.flash.eject_failed",
+            "archive.flash.ejected",
+            "archive.flash.erase_bare",
+            "archive.flash.erase_named",
+            "archive.flash.file_known",
+            "archive.flash.flush",
+            "archive.flash.head_verifying",
+            "archive.flash.head_writing",
+            "archive.flash.hint_holds",
+            "archive.flash.hint_lock",
+            "archive.flash.hint_member",
+            "archive.flash.hint_readonly",
+            "archive.flash.hint_small",
+            "archive.flash.image",
+            "archive.flash.install_bubble",
+            "archive.flash.io",
+            "archive.flash.io_line",
+            "archive.flash.known",
+            "archive.flash.known_stalled",
+            "archive.flash.left_at",
+            "archive.flash.need_bubble",
+            "archive.flash.need_bubble_line",
+            "archive.flash.no_drives",
+            "archive.flash.no_open",
+            "archive.flash.no_open_line",
+            "archive.flash.not_image",
+            "archive.flash.not_verify",
+            "archive.flash.partial_hint",
+            "archive.flash.prewrite",
+            "archive.flash.prewrite_line",
+            "archive.flash.prewrite_hint",
+            "archive.flash.running",
+            "archive.flash.step",
+            "archive.flash.still_mounted",
+            "archive.flash.title",
+            "archive.flash.too_big",
+            "archive.flash.too_big_line",
+            "archive.flash.unknown",
+            "archive.flash.unknown_stalled",
+            "archive.flash.unmount",
+            "archive.flash.unmount_line",
+            "archive.flash.unpacked",
+            "archive.flash.unpacked_past",
+            "archive.flash.unplugged",
+            "archive.flash.unplugged_line",
+            "archive.flash.up_unavailable",
+            "archive.flash.verify_again",
+            "archive.flash.verify_cancelled",
+            "archive.flash.verify_cancelled_line",
+            "archive.flash.verify_cancelled_hint",
+            "archive.flash.wait_password",
+            "archive.format",
+            "archive.name",
+            "archive.name_placeholder",
+            "archive.no_target",
+            "archive.password",
+            "archive.passwords_mismatch",
+            "archive.type_password",
+            "archive.flash.verify_hint",
+            "archive.flash.no_unpack",
+            "archive.flash.no_unpack_line"
+          ],
+          "surface": "core/backend",
+          "usage": "dynamic-candidate"
+        }
+      ],
+      "context": "archive.done.name_refused: src/ui_logic_fb1/errors.rs:150",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "“%1” cannot be extracted onto this drive: %2.",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1",
+        "%2"
+      ],
+      "plural_categories": [],
+      "resolved_english": "“%1” cannot be extracted onto this drive: %2.",
+      "resolved_sha256": "429a0e24a192bdc3134cae86a21fea4c2039076a4abd599d0ab4a2a88ba02aa3",
+      "resolved_source_hash": "3b8858b375e8",
+      "source_hash": "3b8858b375e8"
+    },
+    "archive.done.twins": {
+      "call_sites": [
+        {
+          "excerpt": "key: \"archive.done.twins\",",
+          "line": 144,
+          "path": "src/ui_logic_fb1/errors.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        },
+        {
+          "coverage": "needs-owner-verification",
+          "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
+          "line": 49,
+          "path": "src/backend/archiveops.rs",
+          "pattern": "archive.{}",
+          "possible_keys": [
+            "archive.backend_stopped",
+            "archive.backend_stopped_plain",
+            "archive.busy",
+            "archive.cancel",
+            "archive.compress.action",
+            "archive.compress.title",
+            "archive.compressing",
+            "archive.confirm",
+            "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
+            "archive.done.unverified",
+            "archive.done.written",
+            "archive.encrypt_names",
+            "archive.extract.action",
+            "archive.extract.title",
+            "archive.extract.wrong",
+            "archive.extracting.file",
+            "archive.extracting.head",
+            "archive.extracting.head_unknown",
+            "archive.extracting.head_unknown_count",
+            "archive.extracting.progress",
+            "archive.extracting.progress_no_total",
+            "archive.extracting.progress_stalled",
+            "archive.flash.action_bare",
+            "archive.flash.action_named",
+            "archive.flash.blank_hint",
+            "archive.flash.busy_hint",
+            "archive.flash.cancelled_at",
+            "archive.flash.cancelled_at_line",
+            "archive.flash.cancelled_at_unknown",
+            "archive.flash.cancelled_at_unknown_line",
+            "archive.flash.cancelled_hint",
+            "archive.flash.changed",
+            "archive.flash.changed_line",
+            "archive.flash.choose_again",
+            "archive.flash.choose_image",
+            "archive.flash.chooser_failed",
+            "archive.flash.denied_hint",
+            "archive.flash.done",
+            "archive.flash.done_line",
+            "archive.flash.drives",
+            "archive.flash.drives_line",
+            "archive.flash.eject",
+            "archive.flash.eject_failed",
+            "archive.flash.ejected",
+            "archive.flash.erase_bare",
+            "archive.flash.erase_named",
+            "archive.flash.file_known",
+            "archive.flash.flush",
+            "archive.flash.head_verifying",
+            "archive.flash.head_writing",
+            "archive.flash.hint_holds",
+            "archive.flash.hint_lock",
+            "archive.flash.hint_member",
+            "archive.flash.hint_readonly",
+            "archive.flash.hint_small",
+            "archive.flash.image",
+            "archive.flash.install_bubble",
+            "archive.flash.io",
+            "archive.flash.io_line",
+            "archive.flash.known",
+            "archive.flash.known_stalled",
+            "archive.flash.left_at",
+            "archive.flash.need_bubble",
+            "archive.flash.need_bubble_line",
+            "archive.flash.no_drives",
+            "archive.flash.no_open",
+            "archive.flash.no_open_line",
+            "archive.flash.not_image",
+            "archive.flash.not_verify",
+            "archive.flash.partial_hint",
+            "archive.flash.prewrite",
+            "archive.flash.prewrite_line",
+            "archive.flash.prewrite_hint",
+            "archive.flash.running",
+            "archive.flash.step",
+            "archive.flash.still_mounted",
+            "archive.flash.title",
+            "archive.flash.too_big",
+            "archive.flash.too_big_line",
+            "archive.flash.unknown",
+            "archive.flash.unknown_stalled",
+            "archive.flash.unmount",
+            "archive.flash.unmount_line",
+            "archive.flash.unpacked",
+            "archive.flash.unpacked_past",
+            "archive.flash.unplugged",
+            "archive.flash.unplugged_line",
+            "archive.flash.up_unavailable",
+            "archive.flash.verify_again",
+            "archive.flash.verify_cancelled",
+            "archive.flash.verify_cancelled_line",
+            "archive.flash.verify_cancelled_hint",
+            "archive.flash.wait_password",
+            "archive.format",
+            "archive.name",
+            "archive.name_placeholder",
+            "archive.no_target",
+            "archive.password",
+            "archive.passwords_mismatch",
+            "archive.type_password",
+            "archive.flash.verify_hint",
+            "archive.flash.no_unpack",
+            "archive.flash.no_unpack_line"
+          ],
+          "surface": "core/backend",
+          "usage": "dynamic-candidate"
+        }
+      ],
+      "context": "archive.done.twins: src/ui_logic_fb1/errors.rs:144",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "“%1” and “%2” would take one name on this drive, so nothing was extracted.",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1",
+        "%2"
+      ],
+      "plural_categories": [],
+      "resolved_english": "“%1” and “%2” would take one name on this drive, so nothing was extracted.",
+      "resolved_sha256": "5c9acea6a4edfbf334a4af5528f5f75e2113924901146304d6c18293f35e2b47",
+      "resolved_source_hash": "44ffa420a1c5",
+      "source_hash": "44ffa420a1c5"
+    },
     "archive.done.unverified": {
       "call_sites": [
         {
@@ -8736,6 +9058,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -8872,6 +9196,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -9008,6 +9334,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -9151,6 +9479,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -9287,6 +9617,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -9425,6 +9757,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -9563,6 +9897,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -9702,6 +10038,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -9841,6 +10179,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -9977,6 +10317,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -10124,6 +10466,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -10266,6 +10610,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -10406,6 +10752,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -10547,6 +10895,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -10683,6 +11033,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -10821,6 +11173,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -10959,6 +11313,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -11095,6 +11451,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -11234,6 +11592,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -11373,6 +11733,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -11511,6 +11873,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -11656,6 +12020,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -11794,6 +12160,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -11932,6 +12300,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -12070,6 +12440,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -12206,6 +12578,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -12342,6 +12716,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -12481,6 +12857,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -12617,6 +12995,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -12763,6 +13143,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -12902,6 +13284,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -13038,6 +13422,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -13185,6 +13571,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -13321,6 +13709,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -13459,6 +13849,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -13597,6 +13989,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -13733,6 +14127,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -13871,6 +14267,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -14010,6 +14408,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -14148,6 +14548,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -14286,6 +14688,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -14424,6 +14828,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -14560,6 +14966,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -14696,6 +15104,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -14832,6 +15242,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -14968,6 +15380,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -15104,6 +15518,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -15240,6 +15656,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -15376,6 +15794,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -15514,6 +15934,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -15652,6 +16074,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -15794,6 +16218,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -15935,6 +16361,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -16073,6 +16501,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -16209,6 +16639,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -16345,6 +16777,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -16481,6 +16915,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -16619,6 +17055,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -16757,6 +17195,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -16895,6 +17335,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -17033,6 +17475,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -17169,6 +17613,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -17307,6 +17753,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -17452,6 +17900,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -17588,6 +18038,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -17731,6 +18183,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -17867,6 +18321,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -18003,6 +18459,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -18139,6 +18597,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -18284,6 +18744,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -18420,6 +18882,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -18559,6 +19023,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -18698,6 +19164,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -18839,6 +19307,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -18979,6 +19449,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -19117,6 +19589,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -19255,6 +19729,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -19393,6 +19869,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -19531,6 +20009,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -19669,6 +20149,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -19807,6 +20289,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -19950,6 +20434,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -20088,6 +20574,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -20224,6 +20712,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -20363,6 +20853,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -20499,6 +20991,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -20637,6 +21131,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -20773,6 +21269,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -20909,6 +21407,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -21045,6 +21545,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -21181,6 +21683,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -21324,6 +21828,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -21460,6 +21966,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -21603,6 +22111,8 @@
             "archive.compressing",
             "archive.confirm",
             "archive.done.cancelled",
+            "archive.done.name_refused",
+            "archive.done.twins",
             "archive.done.unverified",
             "archive.done.written",
             "archive.encrypt_names",
@@ -21948,7 +22458,7 @@
         },
         {
           "excerpt": "super::words::Text::Plural(if m.cut { \"clipboard.cut\" } else { \"clipboard.copied\" }, m.clipboard.len(), vec![])",
-          "line": 230,
+          "line": 231,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -21995,7 +22505,7 @@
         },
         {
           "excerpt": "super::words::Text::Plural(if m.cut { \"clipboard.cut\" } else { \"clipboard.copied\" }, m.clipboard.len(), vec![])",
-          "line": 230,
+          "line": 231,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -22205,14 +22715,14 @@
       "call_sites": [
         {
           "excerpt": "let keys_width = columns.saturating_sub(head_width + 2).min(text_width(&i18n.tr(\"collide.keys\")));",
-          "line": 337,
+          "line": 338,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "ellipsis(&i18n.tr(\"collide.keys\"), keys_width), \" \".repeat(columns - head_width - gap - keys_width))",
-          "line": 341,
+          "line": 342,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -22234,7 +22744,7 @@
       "call_sites": [
         {
           "excerpt": "else { i18n.trn_args(\"collide.many\", question.total as i64, &[&folder]) };",
-          "line": 335,
+          "line": 336,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -22268,7 +22778,7 @@
       "call_sites": [
         {
           "excerpt": "let head = if question.total == 1 { i18n.tr_args(\"collide.one\", &[&question.name, &folder]) }",
-          "line": 334,
+          "line": 335,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -58511,7 +59021,7 @@
       "call_sites": [
         {
           "excerpt": "124 => \"feedback.connect.no_answer\",",
-          "line": 281,
+          "line": 322,
           "path": "src/ui_logic_fb1/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -58547,7 +59057,7 @@
       "call_sites": [
         {
           "excerpt": "77 => \"feedback.connect.no_password\",",
-          "line": 283,
+          "line": 324,
           "path": "src/ui_logic_fb1/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -58569,7 +59079,7 @@
       "call_sites": [
         {
           "excerpt": "126 | 127 => \"feedback.connect.no_prompt\",",
-          "line": 282,
+          "line": 323,
           "path": "src/ui_logic_fb1/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -58605,7 +59115,7 @@
       "call_sites": [
         {
           "excerpt": "_ => \"feedback.connect.unopened\",",
-          "line": 284,
+          "line": 325,
           "path": "src/ui_logic_fb1/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -58725,7 +59235,7 @@
       "call_sites": [
         {
           "excerpt": "\"feedback.error.archive_stopped\",",
-          "line": 213,
+          "line": 254,
           "path": "src/ui_logic_fb1/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -58747,7 +59257,7 @@
       "call_sites": [
         {
           "excerpt": "\"feedback.error.archive_stopped_named\",",
-          "line": 212,
+          "line": 253,
           "path": "src/ui_logic_fb1/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -58778,7 +59288,7 @@
         },
         {
           "excerpt": "Sentence::with(\"feedback.error.backend\", &capitalised(message))",
-          "line": 111,
+          "line": 114,
           "path": "src/ui_logic_fb1/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -58802,7 +59312,7 @@
       "call_sites": [
         {
           "excerpt": "\"scan\" if denied(place, message) => pick(\"feedback.error.denied_named\", \"pane.locked\"),",
-          "line": 193,
+          "line": 234,
           "path": "src/ui_logic_fb1/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -58826,7 +59336,7 @@
       "call_sites": [
         {
           "excerpt": "\"duplicate\" => Sentence::key(\"feedback.error.duplicate\"),",
-          "line": 207,
+          "line": 248,
           "path": "src/ui_logic_fb1/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -58877,7 +59387,7 @@
       "call_sites": [
         {
           "excerpt": "\"mkdir\" => keep_or(\"feedback.error.mkdir\"),",
-          "line": 203,
+          "line": 244,
           "path": "src/ui_logic_fb1/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -58906,7 +59416,7 @@
         },
         {
           "excerpt": "\"rename\" => keep_or(\"feedback.error.rename\"),",
-          "line": 201,
+          "line": 242,
           "path": "src/ui_logic_fb1/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -58928,7 +59438,7 @@
       "call_sites": [
         {
           "excerpt": "\"rename-kept\" => Sentence::key(\"feedback.error.rename_kept\"),",
-          "line": 202,
+          "line": 243,
           "path": "src/ui_logic_fb1/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -58950,7 +59460,7 @@
       "call_sites": [
         {
           "excerpt": "\"scan\" if share_gone(message) => Sentence::key(\"feedback.error.share_gone\"),",
-          "line": 195,
+          "line": 236,
           "path": "src/ui_logic_fb1/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -58972,7 +59482,7 @@
       "call_sites": [
         {
           "excerpt": "\"scan\" if share_silent(message) => Sentence::key(\"feedback.error.share_silent\"),",
-          "line": 196,
+          "line": 237,
           "path": "src/ui_logic_fb1/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -58994,7 +59504,7 @@
       "call_sites": [
         {
           "excerpt": "\"scan\" if share_stale(message) => Sentence::key(\"feedback.error.share_stale\"),",
-          "line": 194,
+          "line": 235,
           "path": "src/ui_logic_fb1/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59016,7 +59526,7 @@
       "call_sites": [
         {
           "excerpt": "\"sort\" => Sentence::key(\"feedback.error.sort\"),",
-          "line": 198,
+          "line": 239,
           "path": "src/ui_logic_fb1/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59038,7 +59548,7 @@
       "call_sites": [
         {
           "excerpt": "\"stale\" => Sentence::key(\"feedback.error.stale\"),",
-          "line": 210,
+          "line": 251,
           "path": "src/ui_logic_fb1/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59060,7 +59570,7 @@
       "call_sites": [
         {
           "excerpt": "\"state\" => Sentence::key(\"feedback.error.state\"),",
-          "line": 204,
+          "line": 245,
           "path": "src/ui_logic_fb1/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59082,7 +59592,7 @@
       "call_sites": [
         {
           "excerpt": "\"statefile\" => Sentence::key(\"feedback.error.statefile\"),",
-          "line": 205,
+          "line": 246,
           "path": "src/ui_logic_fb1/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59111,7 +59621,7 @@
         },
         {
           "excerpt": "\"read\" => Sentence::key(\"feedback.error.stopped\"),",
-          "line": 199,
+          "line": 240,
           "path": "src/ui_logic_fb1/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59133,7 +59643,7 @@
       "call_sites": [
         {
           "excerpt": "Sentence::key(\"feedback.error.taken\")",
-          "line": 187,
+          "line": 228,
           "path": "src/ui_logic_fb1/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59155,7 +59665,7 @@
       "call_sites": [
         {
           "excerpt": "\"trash\" => Sentence::key(\"feedback.error.trash\"),",
-          "line": 209,
+          "line": 250,
           "path": "src/ui_logic_fb1/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59177,7 +59687,7 @@
       "call_sites": [
         {
           "excerpt": "\"scan\" => pick(\"feedback.error.unread_named\", \"pane.unread\"),",
-          "line": 197,
+          "line": 238,
           "path": "src/ui_logic_fb1/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60933,7 +61443,7 @@
         },
         {
           "excerpt": "Text::Plural(\"items.count\", count, vec![]).render(i18n)",
-          "line": 183,
+          "line": 186,
           "path": "src/tui/words.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -62201,7 +62711,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.done.archive_written\"",
-          "line": 212,
+          "line": 213,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -62245,7 +62755,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.done.clip_copied\"",
-          "line": 198,
+          "line": 199,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -62301,7 +62811,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "&format!(\"jobs.done.{verb}_of\"),",
-          "line": 221,
+          "line": 222,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.done.{verb}_of",
           "possible_keys": [
@@ -62358,7 +62868,7 @@
       "call_sites": [
         {
           "excerpt": "catalog.tr_args(\"jobs.done.created\", &[leaf(path)])",
-          "line": 183,
+          "line": 184,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -62382,7 +62892,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.done.cut\"",
-          "line": 196,
+          "line": 197,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -62407,7 +62917,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "&format!(\"jobs.done.{verb}_of\"),",
-          "line": 221,
+          "line": 222,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.done.{verb}_of",
           "possible_keys": [
@@ -62472,7 +62982,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.done.extract_unverified\"",
-          "line": 214,
+          "line": 215,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -62599,7 +63109,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "&format!(\"jobs.done.{verb}_of\"),",
-          "line": 221,
+          "line": 222,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.done.{verb}_of",
           "possible_keys": [
@@ -62631,7 +63141,7 @@
       "call_sites": [
         {
           "excerpt": "with_undo(catalog, preset, catalog.trn(\"jobs.done.renamed\", n(ok)))",
-          "line": 206,
+          "line": 207,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -62665,7 +63175,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "&format!(\"jobs.done.{verb}_of\"),",
-          "line": 221,
+          "line": 222,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.done.{verb}_of",
           "possible_keys": [
@@ -63746,7 +64256,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-          "line": 176,
+          "line": 177,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.redone.{op}",
           "possible_keys": [
@@ -63784,7 +64294,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-          "line": 176,
+          "line": 177,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.redone.{op}",
           "possible_keys": [
@@ -63822,7 +64332,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-          "line": 176,
+          "line": 177,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.redone.{op}",
           "possible_keys": [
@@ -63860,7 +64370,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-          "line": 176,
+          "line": 177,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.redone.{op}",
           "possible_keys": [
@@ -63898,7 +64408,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-          "line": 176,
+          "line": 177,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.redone.{op}",
           "possible_keys": [
@@ -63936,7 +64446,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-          "line": 176,
+          "line": 177,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.redone.{op}",
           "possible_keys": [
@@ -63974,7 +64484,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-          "line": 176,
+          "line": 177,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.redone.{op}",
           "possible_keys": [
@@ -64012,7 +64522,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-          "line": 176,
+          "line": 177,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.redone.{op}",
           "possible_keys": [
@@ -64049,7 +64559,7 @@
       "call_sites": [
         {
           "excerpt": "catalog.tr(\"jobs.redone.other\")",
-          "line": 178,
+          "line": 179,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -64057,7 +64567,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-          "line": 176,
+          "line": 177,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.redone.{op}",
           "possible_keys": [
@@ -64095,7 +64605,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-          "line": 176,
+          "line": 177,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.redone.{op}",
           "possible_keys": [
@@ -64133,7 +64643,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-          "line": 176,
+          "line": 177,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.redone.{op}",
           "possible_keys": [
@@ -64171,7 +64681,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-          "line": 176,
+          "line": 177,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.redone.{op}",
           "possible_keys": [
@@ -64208,7 +64718,7 @@
       "call_sites": [
         {
           "excerpt": "catalog.tr(\"jobs.rename.changed\")",
-          "line": 366,
+          "line": 367,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -64254,7 +64764,7 @@
       "call_sites": [
         {
           "excerpt": "bad.then(|| catalog.tr(\"jobs.rename.invalid\"))",
-          "line": 362,
+          "line": 363,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -64391,7 +64901,7 @@
       "call_sites": [
         {
           "excerpt": "catalog.tr(\"jobs.taildrop.gone\")",
-          "line": 240,
+          "line": 241,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -64420,7 +64930,7 @@
         },
         {
           "excerpt": "catalog.tr_args(\"jobs.taildrop.reason\", &[reason])",
-          "line": 242,
+          "line": 243,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -64444,7 +64954,7 @@
       "call_sites": [
         {
           "excerpt": "catalog.tr_args(\"jobs.taildrop.sending\", &[leaf(path), peer])",
-          "line": 251,
+          "line": 252,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -64469,7 +64979,7 @@
       "call_sites": [
         {
           "excerpt": "catalog.tr(\"jobs.taildrop.stale\")",
-          "line": 247,
+          "line": 248,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -64498,7 +65008,7 @@
         },
         {
           "excerpt": "catalog.tr(\"jobs.target.busy\")",
-          "line": 283,
+          "line": 284,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -64520,7 +65030,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.target.filtered\"",
-          "line": 278,
+          "line": 279,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -64542,7 +65052,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.target.none\"",
-          "line": 274,
+          "line": 275,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -64564,7 +65074,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.target.not_loaded\"",
-          "line": 276,
+          "line": 277,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -64822,7 +65332,7 @@
       "call_sites": [
         {
           "excerpt": "(false, true) => catalog.tr_args(\"jobs.trash.failed_many\", &[&items(catalog, failed)]),",
-          "line": 128,
+          "line": 129,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -64846,7 +65356,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.trash.failed_many_why\",",
-          "line": 130,
+          "line": 131,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -64871,7 +65381,7 @@
       "call_sites": [
         {
           "excerpt": "(true, true) => catalog.tr(\"jobs.trash.failed_one\"),",
-          "line": 126,
+          "line": 127,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -64893,7 +65403,7 @@
       "call_sites": [
         {
           "excerpt": "(true, false) => catalog.tr_args(\"jobs.trash.failed_one_why\", &[reason]),",
-          "line": 127,
+          "line": 128,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -64917,7 +65427,7 @@
       "call_sites": [
         {
           "excerpt": "catalog.tr_args(\"jobs.trash.moved\", &[&items(catalog, ok)])",
-          "line": 136,
+          "line": 137,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -64941,7 +65451,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.trash.moved_some\",",
-          "line": 139,
+          "line": 140,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -64966,7 +65476,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.trash.moved_some_why\",",
-          "line": 144,
+          "line": 145,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -65015,7 +65525,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 168,
+          "line": 169,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -65041,7 +65551,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 169,
+          "line": 170,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -65082,7 +65592,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 168,
+          "line": 169,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -65108,7 +65618,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 169,
+          "line": 170,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -65149,7 +65659,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 168,
+          "line": 169,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -65175,7 +65685,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 169,
+          "line": 170,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -65216,7 +65726,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 168,
+          "line": 169,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -65242,7 +65752,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 169,
+          "line": 170,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -65283,7 +65793,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 168,
+          "line": 169,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -65309,7 +65819,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 169,
+          "line": 170,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -65350,7 +65860,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 168,
+          "line": 169,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -65376,7 +65886,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 169,
+          "line": 170,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -65417,7 +65927,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 168,
+          "line": 169,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -65443,7 +65953,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 169,
+          "line": 170,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -65484,7 +65994,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 168,
+          "line": 169,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -65510,7 +66020,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 169,
+          "line": 170,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -65551,7 +66061,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 168,
+          "line": 169,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -65577,7 +66087,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 169,
+          "line": 170,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -65617,7 +66127,7 @@
       "call_sites": [
         {
           "excerpt": "_ => catalog.tr(\"jobs.undone.other\"),",
-          "line": 170,
+          "line": 171,
           "path": "src/ui_logic_op1/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -65625,7 +66135,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 168,
+          "line": 169,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -65651,7 +66161,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 169,
+          "line": 170,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -65692,7 +66202,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 168,
+          "line": 169,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -65718,7 +66228,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 169,
+          "line": 170,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -65759,7 +66269,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 168,
+          "line": 169,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -65785,7 +66295,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 169,
+          "line": 170,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -65826,7 +66336,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 168,
+          "line": 169,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -65852,7 +66362,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 169,
+          "line": 170,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -65893,7 +66403,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 168,
+          "line": 169,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -65919,7 +66429,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 169,
+          "line": 170,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -65960,7 +66470,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 168,
+          "line": 169,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -65986,7 +66496,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 169,
+          "line": 170,
           "path": "src/ui_logic_op1/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -73894,7 +74404,7 @@
         },
         {
           "excerpt": "Sentence::key(\"menu.refusal.empty_clipboard\")",
-          "line": 222,
+          "line": 263,
           "path": "src/ui_logic_fb1/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -79575,7 +80085,7 @@
         },
         {
           "excerpt": "\"scan\" if denied(place, message) => pick(\"feedback.error.denied_named\", \"pane.locked\"),",
-          "line": 193,
+          "line": 234,
           "path": "src/ui_logic_fb1/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -79604,7 +80114,7 @@
         },
         {
           "excerpt": "catalog.tr_args(\"pane.permissions_other_owner\", &[&drawn])",
-          "line": 272,
+          "line": 313,
           "path": "src/ui_logic_fb1/errors.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -79835,7 +80345,7 @@
         },
         {
           "excerpt": "\"scan\" => pick(\"feedback.error.unread_named\", \"pane.unread\"),",
-          "line": 197,
+          "line": 238,
           "path": "src/ui_logic_fb1/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -79864,7 +80374,7 @@
         },
         {
           "excerpt": "if m.clipboard.is_empty() { m.say_key(\"paste.nothing\"); return Ok(()); }",
-          "line": 262,
+          "line": 263,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -79886,7 +80396,7 @@
       "call_sites": [
         {
           "excerpt": "if m.prompts.asked.is_some() || m.prompts.question.is_some() { m.fail_key(\"paste.waiting\"); return Ok(()); }",
-          "line": 263,
+          "line": 264,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -92356,14 +92866,14 @@
       "call_sites": [
         {
           "excerpt": "if flag(value, \"cancelled\") { line.push_str(&format!(\" {}\", i18n.tr(\"receipt.cancelled\"))); }",
-          "line": 217,
+          "line": 218,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "if flag(value, \"cancelled\") { parts.extend([Text::from(\" \"), Text::Key(\"receipt.cancelled\")]); }",
-          "line": 253,
+          "line": 254,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -92385,14 +92895,14 @@
       "call_sites": [
         {
           "excerpt": "let mut line = i18n.trn(if m.transfer_moving { \"receipt.moved\" } else { \"receipt.copied\" }, ok as i64);",
-          "line": 214,
+          "line": 215,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "let mut parts = vec![Text::Plural(if m.transfer_moving { \"receipt.moved\" } else { \"receipt.copied\" }, ok, vec![])];",
-          "line": 249,
+          "line": 250,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -92432,7 +92942,7 @@
         },
         {
           "excerpt": "\"duplicated\" => Text::Key(\"receipt.duplicated\"),",
-          "line": 238,
+          "line": 239,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -92454,14 +92964,14 @@
       "call_sites": [
         {
           "excerpt": "if failed > 0 { line.push_str(&format!(\" {}\", i18n.tr_args(\"receipt.failed\", &[&i18n.locale().format_count(failed as i64)]))); }",
-          "line": 216,
+          "line": 217,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "for (key, count) in [(\"receipt.skipped\", skipped), (\"receipt.failed\", failed)] {",
-          "line": 250,
+          "line": 251,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -92514,7 +93024,7 @@
         },
         {
           "excerpt": "\"made\" => Text::Key(\"receipt.made\"),",
-          "line": 237,
+          "line": 238,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -92536,14 +93046,14 @@
       "call_sites": [
         {
           "excerpt": "let mut line = i18n.trn(if m.transfer_moving { \"receipt.moved\" } else { \"receipt.copied\" }, ok as i64);",
-          "line": 214,
+          "line": 215,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "let mut parts = vec![Text::Plural(if m.transfer_moving { \"receipt.moved\" } else { \"receipt.copied\" }, ok, vec![])];",
-          "line": 249,
+          "line": 250,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -92583,7 +93093,7 @@
         },
         {
           "excerpt": "Some(step) => args(if undone { \"receipt.undid\" } else { \"receipt.redid\" }, vec![Text::Key(step)]),",
-          "line": 243,
+          "line": 244,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -92614,7 +93124,7 @@
         },
         {
           "excerpt": "None => Text::Key(if undone { \"receipt.undidLast\" } else { \"receipt.redidLast\" }),",
-          "line": 244,
+          "line": 245,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -92643,7 +93153,7 @@
         },
         {
           "excerpt": "\"renamed\" => Text::Key(\"receipt.renamed\"),",
-          "line": 236,
+          "line": 237,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -92665,14 +93175,14 @@
       "call_sites": [
         {
           "excerpt": "if skipped > 0 { line.push_str(&format!(\" {}\", i18n.tr_args(\"receipt.skipped\", &[&i18n.locale().format_count(skipped as i64)]))); }",
-          "line": 215,
+          "line": 216,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "for (key, count) in [(\"receipt.skipped\", skipped), (\"receipt.failed\", failed)] {",
-          "line": 250,
+          "line": 251,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -92696,14 +93206,14 @@
       "call_sites": [
         {
           "excerpt": "let line = m.prompts.i18n.trn(\"receipt.trashed\", ok as i64);",
-          "line": 209,
+          "line": 210,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "\"trashed\" => Text::Plural(\"receipt.trashed\", ok, vec![]),",
-          "line": 239,
+          "line": 240,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -92743,7 +93253,7 @@
         },
         {
           "excerpt": "Some(step) => args(if undone { \"receipt.undid\" } else { \"receipt.redid\" }, vec![Text::Key(step)]),",
-          "line": 243,
+          "line": 244,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -92774,7 +93284,7 @@
         },
         {
           "excerpt": "None => Text::Key(if undone { \"receipt.undidLast\" } else { \"receipt.redidLast\" }),",
-          "line": 244,
+          "line": 245,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -92803,7 +93313,7 @@
         },
         {
           "excerpt": "if m.hints.undo.is_empty() { line } else { Text::Joined(vec![line, Text::from(\" \"), args(\"receipt.undoes\", vec![Text::from(m.hints.undo.clone())])]) }",
-          "line": 227,
+          "line": 228,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -102104,7 +102614,7 @@
       "call_sites": [
         {
           "excerpt": "if failed > 0 { m.fail_text(super::words::Text::Plural(\"transfer.failed\", failed, vec![])); }",
-          "line": 218,
+          "line": 219,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -102860,8 +103370,8 @@
           "usage": "translated-call"
         },
         {
-          "excerpt": "m.fail_text(super::words::Text::Plural(if why.is_empty() { \"trash.failed\" } else { \"trash.failedWhy\" }, failed, if why.is_empty() { vec![] } else { vec![why.into()] }));",
-          "line": 204,
+          "excerpt": "m.fail_text(super::words::Text::Plural(if why.is_empty() { \"trash.failed\" } else { \"trash.failedWhy\" }, failed, if why.is_empty() { vec![] } else { vec![cause] }));",
+          "line": 205,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -102900,8 +103410,8 @@
           "usage": "translated-call"
         },
         {
-          "excerpt": "m.fail_text(super::words::Text::Plural(if why.is_empty() { \"trash.failed\" } else { \"trash.failedWhy\" }, failed, if why.is_empty() { vec![] } else { vec![why.into()] }));",
-          "line": 204,
+          "excerpt": "m.fail_text(super::words::Text::Plural(if why.is_empty() { \"trash.failed\" } else { \"trash.failedWhy\" }, failed, if why.is_empty() { vec![] } else { vec![cause] }));",
+          "line": 205,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104873,7 +105383,7 @@
         },
         {
           "excerpt": "m.fail_key(\"tui.editor.selected_item_changed_reopen_rename\");",
-          "line": 268,
+          "line": 269,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105213,7 +105723,7 @@
       "call_sites": [
         {
           "excerpt": "\"tui.launch.could_not_finish\",",
-          "line": 231,
+          "line": 234,
           "path": "src/tui/words.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105238,7 +105748,7 @@
       "call_sites": [
         {
           "excerpt": "\"tui.launch.could_not_observe\",",
-          "line": 240,
+          "line": 243,
           "path": "src/tui/words.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -111149,7 +111659,7 @@
     },
     {
       "excerpt": "error: !done.ok && done.err != \"cancelled\",",
-      "line": 190,
+      "line": 192,
       "literal": "cancelled",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/op2/host/reply.rs",
@@ -134369,7 +134879,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"archive\", &archive.to_string_lossy(), \"cancelled\"));",
-      "line": 129,
+      "line": 133,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -134378,7 +134888,7 @@
     },
     {
       "excerpt": "None => return Err(op_err(\"archive\", &archive.to_string_lossy(), \"no installed tool can open that archive\")),",
-      "line": 141,
+      "line": 145,
       "literal": "no installed tool can open that archive",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -134387,7 +134897,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"archive\", &archive.to_string_lossy(), \"cancelled\"));",
-      "line": 145,
+      "line": 149,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -134396,7 +134906,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"archive\", &archive.to_string_lossy(), \"cancelled\"));",
-      "line": 169,
+      "line": 173,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -134405,7 +134915,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"archive\", &archive.to_string_lossy(), \"the archive tool wrote nothing\"));",
-      "line": 188,
+      "line": 192,
       "literal": "the archive tool wrote nothing",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -134414,7 +134924,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"archive\", &archive.to_string_lossy(), \"cancelled\"));",
-      "line": 202,
+      "line": 206,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -134423,7 +134933,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"convert\", &dest.to_string_lossy(), \"that destination already exists\"));",
-      "line": 218,
+      "line": 222,
       "literal": "that destination already exists",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -134432,7 +134942,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"convert\", &dest.to_string_lossy(), \"cancelled\"));",
-      "line": 226,
+      "line": 230,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -134441,7 +134951,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"convert\", &name, \"the converter wrote nothing\"));",
-      "line": 234,
+      "line": 238,
       "literal": "the converter wrote nothing",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -134832,6 +135342,33 @@
       "literal": "an operation is already running",
       "owner": "controller",
       "path": "src/backend/bulkrename.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "assert!(!folds(sandbox.path()), \"a test sandbox is case-sensitive\");",
+      "line": 158,
+      "literal": "a test sandbox is case-sensitive",
+      "owner": "controller",
+      "path": "src/backend/casefold.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "assert!(!exact.taken(\"A.txt\"), \"a case-sensitive folder holds both\");",
+      "line": 172,
+      "literal": "a case-sensitive folder holds both",
+      "owner": "controller",
+      "path": "src/backend/casefold.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "assert!(folding.taken(\"A.TXT\"), \"a folding folder holds one of them\");",
+      "line": 179,
+      "literal": "a folding folder holds one of them",
+      "owner": "controller",
+      "path": "src/backend/casefold.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "core/backend"
     },
@@ -137248,6 +137785,141 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "\"'{name}' cannot be extracted onto this drive: {why}\"",
+      "line": 39,
+      "literal": "'{name}' cannot be extracted onto this drive: {why}",
+      "owner": "controller",
+      "path": "src/backend/extractnames.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"'{one}' and '{other}' would take one name on this drive, so nothing was extracted\"",
+      "line": 49,
+      "literal": "'{one}' and '{other}' would take one name on this drive, so nothing was extracted",
+      "owner": "controller",
+      "path": "src/backend/extractnames.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"'set/clip: final.txt' cannot be extracted onto this drive: ':' is not allowed in a name on this vfat drive\");",
+      "line": 102,
+      "literal": "'set/clip: final.txt' cannot be extracted onto this drive: ':' is not allowed in a name on this vfat drive",
+      "owner": "controller",
+      "path": "src/backend/extractnames.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"'bad?/inside.txt' cannot be extracted onto this drive: '?' is not allowed in a name on this exfat drive\");",
+      "line": 105,
+      "literal": "'bad?/inside.txt' cannot be extracted onto this drive: '?' is not allowed in a name on this exfat drive",
+      "owner": "controller",
+      "path": "src/backend/extractnames.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"ext4 holds every one of them\"",
+      "line": 109,
+      "literal": "ext4 holds every one of them",
+      "owner": "controller",
+      "path": "src/backend/extractnames.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"ntfs3 without windows_names holds them too\"",
+      "line": 114,
+      "literal": "ntfs3 without windows_names holds them too",
+      "owner": "controller",
+      "path": "src/backend/extractnames.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"'pair/A.txt' and 'pair/a.txt' would take one name on this drive, so nothing was extracted\");",
+      "line": 122,
+      "literal": "'pair/A.txt' and 'pair/a.txt' would take one name on this drive, so nothing was extracted",
+      "owner": "controller",
+      "path": "src/backend/extractnames.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"folders that differ only in case merge, and their files do not collide\"",
+      "line": 128,
+      "literal": "folders that differ only in case merge, and their files do not collide",
+      "owner": "controller",
+      "path": "src/backend/extractnames.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"the files inside those folders still fold together\"",
+      "line": 133,
+      "literal": "the files inside those folders still fold together",
+      "owner": "controller",
+      "path": "src/backend/extractnames.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "let file_on_folder = members(&[\"Readme\", \"readme/notes.txt\"]);",
+      "line": 135,
+      "literal": "Readme",
+      "owner": "controller",
+      "path": "src/backend/extractnames.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"'readme' and 'Readme' would take one name on this drive, so nothing was extracted\"",
+      "line": 138,
+      "literal": "'readme' and 'Readme' would take one name on this drive, so nothing was extracted",
+      "owner": "controller",
+      "path": "src/backend/extractnames.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"SKIP extract case twins: no bsdtar on this box, so the fixture cannot be built\"",
+      "line": 171,
+      "literal": "SKIP extract case twins: no bsdtar on this box, so the fixture cannot be built",
+      "owner": "controller",
+      "path": "src/backend/extractnames.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "assert_eq!(refused.unwrap_err().msg, \"'pair/A.txt' and 'pair/a.txt' would take one name on this drive, so nothing was extracted\");",
+      "line": 187,
+      "literal": "'pair/A.txt' and 'pair/a.txt' would take one name on this drive, so nothing was extracted",
+      "owner": "controller",
+      "path": "src/backend/extractnames.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"no destination and no staging folder were left\"",
+      "line": 191,
+      "literal": "no destination and no staging folder were left",
+      "owner": "controller",
+      "path": "src/backend/extractnames.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": ".expect(\"a case-sensitive folder takes both\");",
+      "line": 200,
+      "literal": "a case-sensitive folder takes both",
+      "owner": "controller",
+      "path": "src/backend/extractnames.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "root.file(\"outside\", \"private bytes\");",
       "line": 260,
       "literal": "private bytes",
@@ -137267,7 +137939,7 @@
     },
     {
       "excerpt": "assert_eq!(sanitize(\"a\\u{7f}b\"), \"a\\u{7f}b\", \"DEL is a legal FAT and exFAT name character\");",
-      "line": 213,
+      "line": 216,
       "literal": "DEL is a legal FAT and exFAT name character",
       "owner": "controller",
       "path": "src/backend/fatnames.rs",
@@ -137276,7 +137948,7 @@
     },
     {
       "excerpt": "assert_eq!(sanitize(\"a\\u{80}b\"), \"a\\u{80}b\", \"a C1 character is a legal FAT name character\");",
-      "line": 216,
+      "line": 219,
       "literal": "a C1 character is a legal FAT name character",
       "owner": "controller",
       "path": "src/backend/fatnames.rs",
@@ -137285,7 +137957,7 @@
     },
     {
       "excerpt": "assert!(is_fat_fstype(fs), \"{} is a FAT filesystem\", fs);",
-      "line": 237,
+      "line": 240,
       "literal": "{} is a FAT filesystem",
       "owner": "controller",
       "path": "src/backend/fatnames.rs",
@@ -137294,7 +137966,7 @@
     },
     {
       "excerpt": "assert!(!is_fat_fstype(fs), \"{} is not one\", fs);",
-      "line": 240,
+      "line": 243,
       "literal": "{} is not one",
       "owner": "controller",
       "path": "src/backend/fatnames.rs",
@@ -137303,7 +137975,7 @@
     },
     {
       "excerpt": "_ => panic!(\"rename remaps the leaf\"),",
-      "line": 261,
+      "line": 264,
       "literal": "rename remaps the leaf",
       "owner": "controller",
       "path": "src/backend/fatnames.rs",
@@ -137312,7 +137984,7 @@
     },
     {
       "excerpt": "assert_eq!(rows.len(), 4, \"the clean name never reaches the card: {}\", joined);",
-      "line": 273,
+      "line": 276,
       "literal": "the clean name never reaches the card: {}",
       "owner": "controller",
       "path": "src/backend/fatnames.rs",
@@ -137321,7 +137993,7 @@
     },
     {
       "excerpt": "assert!(joined.contains(r#\"\"old\":\"a: folder\",\"new\":\"a_ folder\",\"d\":true\"#), \"a folder shows as one: {}\", joined);",
-      "line": 276,
+      "line": 279,
       "literal": "a folder shows as one: {}",
       "owner": "controller",
       "path": "src/backend/fatnames.rs",
@@ -137330,7 +138002,7 @@
     },
     {
       "excerpt": "assert_eq!(line.matches(r#\"\"old\":\"#).count(), 1, \"the clean name never reaches the card: {}\", line);",
-      "line": 288,
+      "line": 291,
       "literal": "the clean name never reaches the card: {}",
       "owner": "controller",
       "path": "src/backend/fatnames.rs",
@@ -137339,7 +138011,7 @@
     },
     {
       "excerpt": "assert!(answer_in(&table, 7, &[d.join(\"ok.mp4\").to_string_lossy().into()], &dest.to_string_lossy(), &db, &icons).is_none(), \"clean names ask nothing\");",
-      "line": 289,
+      "line": 292,
       "literal": "clean names ask nothing",
       "owner": "controller",
       "path": "src/backend/fatnames.rs",
@@ -137348,7 +138020,7 @@
     },
     {
       "excerpt": "assert!(answer_in(&ext4, 7, &[bad], &dest.to_string_lossy(), &db, &icons).is_none(), \"an ext4 destination asks nothing\");",
-      "line": 291,
+      "line": 294,
       "literal": "an ext4 destination asks nothing",
       "owner": "controller",
       "path": "src/backend/fatnames.rs",
@@ -156086,7 +156758,7 @@
     },
     {
       "excerpt": "return Err(error(Path::new(\"\"), \"this operation cannot be redone\"));",
-      "line": 62,
+      "line": 75,
       "literal": "this operation cannot be redone",
       "owner": "controller",
       "path": "src/backend/redo.rs",
@@ -156095,7 +156767,7 @@
     },
     {
       "excerpt": ".ok_or_else(|| error(path, \"the destination has no absolute parent\"))?;",
-      "line": 70,
+      "line": 83,
       "literal": "the destination has no absolute parent",
       "owner": "controller",
       "path": "src/backend/redo.rs",
@@ -156104,7 +156776,7 @@
     },
     {
       "excerpt": "return Err(error(path, \"the original item changed or was replaced; redo left it in place\"));",
-      "line": 105,
+      "line": 118,
       "literal": "the original item changed or was replaced; redo left it in place",
       "owner": "controller",
       "path": "src/backend/redo.rs",
@@ -156113,7 +156785,7 @@
     },
     {
       "excerpt": "return Err(error(path, \"the destination folder was replaced, so nothing was redone\"));",
-      "line": 110,
+      "line": 123,
       "literal": "the destination folder was replaced, so nothing was redone",
       "owner": "controller",
       "path": "src/backend/redo.rs",
@@ -156122,7 +156794,7 @@
     },
     {
       "excerpt": "Ok(_) => return Err(error(path, \"an item with that name is already there, so redo left it in place\")),",
-      "line": 118,
+      "line": 133,
       "literal": "an item with that name is already there, so redo left it in place",
       "owner": "controller",
       "path": "src/backend/redo.rs",
@@ -156131,7 +156803,7 @@
     },
     {
       "excerpt": "if cancel.load(Ordering::Relaxed) { return Err(error(Path::new(\"\"), \"redo cancelled\")); }",
-      "line": 131,
+      "line": 146,
       "literal": "redo cancelled",
       "owner": "controller",
       "path": "src/backend/redo.rs",
@@ -156140,7 +156812,7 @@
     },
     {
       "excerpt": "if cancel.load(Ordering::Relaxed) { return Err(error(Path::new(\"\"), \"redo cancelled\")); }",
-      "line": 137,
+      "line": 152,
       "literal": "redo cancelled",
       "owner": "controller",
       "path": "src/backend/redo.rs",
@@ -156149,7 +156821,7 @@
     },
     {
       "excerpt": "let parent = path.parent().ok_or_else(|| error(path, \"the new file has no parent\"))?;",
-      "line": 215,
+      "line": 230,
       "literal": "the new file has no parent",
       "owner": "controller",
       "path": "src/backend/redo.rs",
@@ -156158,7 +156830,7 @@
     },
     {
       "excerpt": "let name = path.file_name().and_then(|n| n.to_str()).ok_or_else(|| error(path, \"the filename cannot be represented\"))?;",
-      "line": 216,
+      "line": 231,
       "literal": "the filename cannot be represented",
       "owner": "controller",
       "path": "src/backend/redo.rs",
@@ -156167,7 +156839,7 @@
     },
     {
       "excerpt": "if failed != 0 || trashed.len() != 1 { return Err(error(&entry.original, \"could not move the original item back to Trash\")); }",
-      "line": 223,
+      "line": 238,
       "literal": "could not move the original item back to Trash",
       "owner": "controller",
       "path": "src/backend/redo.rs",
@@ -156176,7 +156848,7 @@
     },
     {
       "excerpt": "Step::Created { path } => Err(error(path, \"this operation cannot be redone\")),",
-      "line": 228,
+      "line": 243,
       "literal": "this operation cannot be redone",
       "owner": "controller",
       "path": "src/backend/redo.rs",
@@ -156185,7 +156857,7 @@
     },
     {
       "excerpt": "Step::Barrier => Err(error(Path::new(\"\"), \"That operation was too large to undo.\")),",
-      "line": 230,
+      "line": 245,
       "literal": "That operation was too large to undo.",
       "owner": "controller",
       "path": "src/backend/redo.rs",
@@ -163502,7 +164174,7 @@
     },
     {
       "excerpt": "assert!(o.live.running().is_none(), \"the announce frees the slot, so any write runs while the settle list is out\");",
-      "line": 104,
+      "line": 126,
       "literal": "the announce frees the slot, so any write runs while the settle list is out",
       "owner": "controller",
       "path": "src/backend/trashland.rs",
@@ -163511,7 +164183,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), 0, \"the entry stays pending until the settle list lands\");",
-      "line": 105,
+      "line": 127,
       "literal": "the entry stays pending until the settle list lands",
       "owner": "controller",
       "path": "src/backend/trashland.rs",
@@ -163520,7 +164192,7 @@
     },
     {
       "excerpt": "assert_eq!(String::from_utf8_lossy(&buf).matches(r#\"\"t\":\"trashed\"\"#).count(), 1, \"the wire carries one line per batch\");",
-      "line": 107,
+      "line": 129,
       "literal": "the wire carries one line per batch",
       "owner": "controller",
       "path": "src/backend/trashland.rs",
@@ -163529,7 +164201,7 @@
     },
     {
       "excerpt": "assert!(o.settling.is_empty(), \"the journal ends the wait\");",
-      "line": 109,
+      "line": 131,
       "literal": "the journal ends the wait",
       "owner": "controller",
       "path": "src/backend/trashland.rs",
@@ -163538,7 +164210,7 @@
     },
     {
       "excerpt": "assert!(line.contains(\"already running\") && line.contains(&*trashed.to_string_lossy()), \"undo waits on this batch's entry and names it: {line}\");",
-      "line": 136,
+      "line": 158,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/trashland.rs",
@@ -163547,7 +164219,7 @@
     },
     {
       "excerpt": "assert!(line.contains(\"already running\") && line.contains(&*trashed.to_string_lossy()), \"undo waits on this batch's entry and names it: {line}\");",
-      "line": 136,
+      "line": 158,
       "literal": "undo waits on this batch's entry and names it: {line}",
       "owner": "controller",
       "path": "src/backend/trashland.rs",
@@ -163556,7 +164228,7 @@
     },
     {
       "excerpt": "assert!(older.exists() && o.journal.len() == 1, \"the earlier entry is never reversed in the window\");",
-      "line": 137,
+      "line": 159,
       "literal": "the earlier entry is never reversed in the window",
       "owner": "controller",
       "path": "src/backend/trashland.rs",
@@ -163565,7 +164237,7 @@
     },
     {
       "excerpt": "assert!(!trashed.exists() && older.exists(), \"the first undo after the settle list reverses this trash, not the earlier entry\");",
-      "line": 142,
+      "line": 164,
       "literal": "the first undo after the settle list reverses this trash, not the earlier entry",
       "owner": "controller",
       "path": "src/backend/trashland.rs",
@@ -163574,7 +164246,7 @@
     },
     {
       "excerpt": "let second = o.live.running().expect(\"the second trash claimed the slot\");",
-      "line": 156,
+      "line": 178,
       "literal": "the second trash claimed the slot",
       "owner": "controller",
       "path": "src/backend/trashland.rs",
@@ -163583,7 +164255,7 @@
     },
     {
       "excerpt": "assert_eq!(String::from_utf8_lossy(&next), format!(r#\"{{\"t\":\"trashstarted\",\"id\":{second},\"n\":1,\"cancellable\":false}}\"#) + \"\\n\", \"a second trash acknowledges acceptance without any refusal or extra line\");",
-      "line": 157,
+      "line": 179,
       "literal": "a second trash acknowledges acceptance without any refusal or extra line",
       "owner": "controller",
       "path": "src/backend/trashland.rs",
@@ -163592,7 +164264,7 @@
     },
     {
       "excerpt": "assert_eq!(o.live.running(), Some(second), \"the first batch landing never frees the second batch's slot\");",
-      "line": 159,
+      "line": 181,
       "literal": "the first batch landing never frees the second batch's slot",
       "owner": "controller",
       "path": "src/backend/trashland.rs",
@@ -163601,7 +164273,7 @@
     },
     {
       "excerpt": "let done = rx.recv_timeout(std::time::Duration::from_secs(10)).expect(\"the second trash reports\");",
-      "line": 160,
+      "line": 182,
       "literal": "the second trash reports",
       "owner": "controller",
       "path": "src/backend/trashland.rs",
@@ -163610,7 +164282,7 @@
     },
     {
       "excerpt": "assert!(d.join(\"y.txt\").exists() && o.journal.is_empty(), \"the rename ran and waits behind the batch's place\");",
-      "line": 184,
+      "line": 206,
       "literal": "the rename ran and waits behind the batch's place",
       "owner": "controller",
       "path": "src/backend/trashland.rs",
@@ -163619,7 +164291,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), 2, \"the trash and the rename both filed once the settle list landed\");",
-      "line": 186,
+      "line": 208,
       "literal": "the trash and the rename both filed once the settle list landed",
       "owner": "controller",
       "path": "src/backend/trashland.rs",
@@ -163628,7 +164300,7 @@
     },
     {
       "excerpt": "assert!(x.exists() && trashed.exists(), \"the first undo reverses the rename, the user's last action, and leaves the trash\");",
-      "line": 188,
+      "line": 210,
       "literal": "the first undo reverses the rename, the user's last action, and leaves the trash",
       "owner": "controller",
       "path": "src/backend/trashland.rs",
@@ -163637,7 +164309,7 @@
     },
     {
       "excerpt": "assert!(!trashed.exists(), \"the second undo reverses the trash\");",
-      "line": 190,
+      "line": 212,
       "literal": "the second undo reverses the trash",
       "owner": "controller",
       "path": "src/backend/trashland.rs",
@@ -163646,7 +164318,7 @@
     },
     {
       "excerpt": "assert!(o.journal.is_empty(), \"the later batch waits for the earlier one's place\");",
-      "line": 205,
+      "line": 227,
       "literal": "the later batch waits for the earlier one's place",
       "owner": "controller",
       "path": "src/backend/trashland.rs",
@@ -163655,7 +164327,7 @@
     },
     {
       "excerpt": "assert!(undone(&mut o).contains(\"already running\") && b.exists());",
-      "line": 206,
+      "line": 228,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/trashland.rs",
@@ -163664,7 +164336,7 @@
     },
     {
       "excerpt": "assert!(a.exists() && !b.exists(), \"the first undo reverses the later batch\");",
-      "line": 210,
+      "line": 232,
       "literal": "the first undo reverses the later batch",
       "owner": "controller",
       "path": "src/backend/trashland.rs",
@@ -163673,7 +164345,7 @@
     },
     {
       "excerpt": "assert!(!a.exists(), \"the second undo reverses the earlier batch\");",
-      "line": 212,
+      "line": 234,
       "literal": "the second undo reverses the earlier batch",
       "owner": "controller",
       "path": "src/backend/trashland.rs",
@@ -163682,7 +164354,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), 1, \"the rename journals and the empty entry adds nothing\");",
-      "line": 227,
+      "line": 249,
       "literal": "the rename journals and the empty entry adds nothing",
       "owner": "controller",
       "path": "src/backend/trashland.rs",
@@ -163691,7 +164363,7 @@
     },
     {
       "excerpt": "assert!(undone(&mut o).contains(r#\"\"t\":\"undone\"\"#), \"undo is free again\");",
-      "line": 228,
+      "line": 250,
       "literal": "undo is free again",
       "owner": "controller",
       "path": "src/backend/trashland.rs",
@@ -163700,7 +164372,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), 2, \"the drain left before the settle list landed, so the trash entry died with the window\");",
-      "line": 262,
+      "line": 284,
       "literal": "the drain left before the settle list landed, so the trash entry died with the window",
       "owner": "controller",
       "path": "src/backend/trashland.rs",
@@ -163709,7 +164381,7 @@
     },
     {
       "excerpt": "assert!(x.exists() && trashed.exists(), \"the rename is still the last action after the quit\");",
-      "line": 264,
+      "line": 286,
       "literal": "the rename is still the last action after the quit",
       "owner": "controller",
       "path": "src/backend/trashland.rs",
@@ -163718,7 +164390,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), 1, \"the rename held behind the open place died with the window\");",
-      "line": 280,
+      "line": 302,
       "literal": "the rename held behind the open place died with the window",
       "owner": "controller",
       "path": "src/backend/trashland.rs",
@@ -163727,8 +164399,62 @@
     },
     {
       "excerpt": "assert!(x.exists() && !d.join(\"y.txt\").exists(), \"the filed entry is the rename\");",
-      "line": 284,
+      "line": 306,
       "literal": "the filed entry is the rename",
+      "owner": "controller",
+      "path": "src/backend/trashland.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "let gio = \"gio: file:///x: Unable to find or create trash directory\";",
+      "line": 313,
+      "literal": "gio: file:///x: Unable to find or create trash directory",
+      "owner": "controller",
+      "path": "src/backend/trashland.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "assert_eq!(read_only_reason(&paths, &[], 2, gio), \"the drive is read-only\");",
+      "line": 317,
+      "literal": "the drive is read-only",
+      "owner": "controller",
+      "path": "src/backend/trashland.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "assert_eq!(read_only_reason(&paths, std::slice::from_ref(&other), 1, gio), \"the drive is read-only\", \"only the item left behind is judged\");",
+      "line": 318,
+      "literal": "the drive is read-only",
+      "owner": "controller",
+      "path": "src/backend/trashland.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "assert_eq!(read_only_reason(&paths, std::slice::from_ref(&other), 1, gio), \"the drive is read-only\", \"only the item left behind is judged\");",
+      "line": 318,
+      "literal": "only the item left behind is judged",
+      "owner": "controller",
+      "path": "src/backend/trashland.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "assert_eq!(read_only_reason(&paths, &paths, 0, \"\"), \"\", \"nothing failed, so nothing is said\");",
+      "line": 319,
+      "literal": "nothing failed, so nothing is said",
+      "owner": "controller",
+      "path": "src/backend/trashland.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "assert_eq!(read_only_reason(&paths, &[], 2, gio), gio, \"a writable drive keeps gio's own reason\");",
+      "line": 322,
+      "literal": "a writable drive keeps gio's own reason",
       "owner": "controller",
       "path": "src/backend/trashland.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -177353,7 +178079,7 @@
     },
     {
       "excerpt": "if flag(value, \"cancelled\") { line.push_str(&format!(\" {}\", i18n.tr(\"receipt.cancelled\"))); }",
-      "line": 217,
+      "line": 218,
       "literal": "cancelled",
       "owner": "t11",
       "path": "src/tui/prompts.rs",
@@ -177362,7 +178088,7 @@
     },
     {
       "excerpt": "if flag(value, \"cancelled\") { parts.extend([Text::from(\" \"), Text::Key(\"receipt.cancelled\")]); }",
-      "line": 253,
+      "line": 254,
       "literal": "cancelled",
       "owner": "t11",
       "path": "src/tui/prompts.rs",
@@ -177371,7 +178097,7 @@
     },
     {
       "excerpt": "let mut fields = vec![(\"c\", word(if linked { \"link\" } else { \"transfer\" })), (\"op\", word(paste.op)), (\"paths\", Json::Arr(paste.paths.iter().map(|p| word(p)).collect())),",
-      "line": 311,
+      "line": 312,
       "literal": "link",
       "owner": "t11",
       "path": "src/tui/prompts.rs",
@@ -177380,7 +178106,7 @@
     },
     {
       "excerpt": "let cancel = key.name == \"Escape\" || (m.preset == \"yazi\" && key.mods == \"ctrl\" && matches!(key.name.as_str(), \"C\" | \"BracketLeft\"));",
-      "line": 319,
+      "line": 320,
       "literal": "Escape",
       "owner": "t11",
       "path": "src/tui/prompts.rs",
@@ -177389,7 +178115,7 @@
     },
     {
       "excerpt": "(\"Return\" | \"Enter\", _, \"\") | (_, \"b\", \"\") => \"keep\",",
-      "line": 322,
+      "line": 323,
       "literal": "Return",
       "owner": "t11",
       "path": "src/tui/prompts.rs",
@@ -177398,7 +178124,7 @@
     },
     {
       "excerpt": "(\"Return\" | \"Enter\", _, \"\") | (_, \"b\", \"\") => \"keep\",",
-      "line": 322,
+      "line": 323,
       "literal": "Enter",
       "owner": "t11",
       "path": "src/tui/prompts.rs",
@@ -177839,7 +178565,7 @@
     },
     {
       "excerpt": "reason = \"I50-11 terminal active-layout identity adapter is an outstanding owner dependency\"",
-      "line": 189,
+      "line": 192,
       "literal": "I50-11 terminal active-layout identity adapter is an outstanding owner dependency",
       "owner": "t11",
       "path": "src/tui/words.rs",
@@ -178216,8 +178942,26 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "const TWINS_TAIL: &str = \"' would take one name on this drive, so nothing was extracted\";",
+      "line": 128,
+      "literal": "' would take one name on this drive, so nothing was extracted",
+      "owner": "controller",
+      "path": "src/ui_logic_fb1/errors.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "const REFUSED_AT: &str = \"' cannot be extracted onto this drive: \";",
+      "line": 129,
+      "literal": "' cannot be extracted onto this drive: ",
+      "owner": "controller",
+      "path": "src/ui_logic_fb1/errors.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "text.contains(\"file exists\") || text.contains(\"already exists\")",
-      "line": 135,
+      "line": 176,
       "literal": "file exists",
       "owner": "controller",
       "path": "src/ui_logic_fb1/errors.rs",
@@ -178226,7 +178970,7 @@
     },
     {
       "excerpt": "text.contains(\"file exists\") || text.contains(\"already exists\")",
-      "line": 135,
+      "line": 176,
       "literal": "already exists",
       "owner": "controller",
       "path": "src/ui_logic_fb1/errors.rs",
@@ -178235,7 +178979,7 @@
     },
     {
       "excerpt": "\"is not allowed in a name\",",
-      "line": 145,
+      "line": 186,
       "literal": "is not allowed in a name",
       "owner": "controller",
       "path": "src/ui_logic_fb1/errors.rs",
@@ -178244,7 +178988,7 @@
     },
     {
       "excerpt": "\"is reserved on this\",",
-      "line": 146,
+      "line": 187,
       "literal": "is reserved on this",
       "owner": "controller",
       "path": "src/ui_logic_fb1/errors.rs",
@@ -178253,7 +178997,7 @@
     },
     {
       "excerpt": "\"cannot end in a dot\",",
-      "line": 147,
+      "line": 188,
       "literal": "cannot end in a dot",
       "owner": "controller",
       "path": "src/ui_logic_fb1/errors.rs",
@@ -178262,7 +179006,7 @@
     },
     {
       "excerpt": "\"cannot end in a space\",",
-      "line": 148,
+      "line": 189,
       "literal": "cannot end in a space",
       "owner": "controller",
       "path": "src/ui_logic_fb1/errors.rs",
@@ -178271,7 +179015,7 @@
     },
     {
       "excerpt": "\"cannot hold control character\",",
-      "line": 149,
+      "line": 190,
       "literal": "cannot hold control character",
       "owner": "controller",
       "path": "src/ui_logic_fb1/errors.rs",
@@ -178280,7 +179024,7 @@
     },
     {
       "excerpt": "place == \"scan\" && lower(message).contains(\"permission denied\")",
-      "line": 157,
+      "line": 198,
       "literal": "permission denied",
       "owner": "controller",
       "path": "src/ui_logic_fb1/errors.rs",
@@ -178289,7 +179033,7 @@
     },
     {
       "excerpt": "text.contains(\"stale\") || text.contains(\"no longer available\")",
-      "line": 162,
+      "line": 203,
       "literal": "no longer available",
       "owner": "controller",
       "path": "src/ui_logic_fb1/errors.rs",
@@ -178298,7 +179042,7 @@
     },
     {
       "excerpt": "lower(message).contains(\"not connected\")",
-      "line": 166,
+      "line": 207,
       "literal": "not connected",
       "owner": "controller",
       "path": "src/ui_logic_fb1/errors.rs",
@@ -178307,7 +179051,7 @@
     },
     {
       "excerpt": "text.contains(\"timed out\") || text.contains(\"timeout\")",
-      "line": 171,
+      "line": 212,
       "literal": "timed out",
       "owner": "controller",
       "path": "src/ui_logic_fb1/errors.rs",
@@ -178316,7 +179060,7 @@
     },
     {
       "excerpt": "\"archive\" if message == \"the backend is not running\" => pick(",
-      "line": 211,
+      "line": 252,
       "literal": "the backend is not running",
       "owner": "controller",
       "path": "src/ui_logic_fb1/errors.rs",
@@ -178325,7 +179069,7 @@
     },
     {
       "excerpt": ".eq_ignore_ascii_case(\"the clipboard holds no image\") =>",
-      "line": 220,
+      "line": 261,
       "literal": "the clipboard holds no image",
       "owner": "controller",
       "path": "src/ui_logic_fb1/errors.rs",
@@ -178334,7 +179078,7 @@
     },
     {
       "excerpt": "\"transfer\" | \"archive\" | \"convert\" | \"link\" | \"linktarget\" | \"rename-stranded\"",
-      "line": 224,
+      "line": 265,
       "literal": "link",
       "owner": "controller",
       "path": "src/ui_logic_fb1/errors.rs",
@@ -178964,7 +179708,7 @@
     },
     {
       "excerpt": "\"link\",",
-      "line": 158,
+      "line": 159,
       "literal": "link",
       "owner": "controller",
       "path": "src/ui_logic_op1/lines.rs",
@@ -249132,8 +249876,8 @@
   },
   "schema": 1,
   "source_files": {
-    "Cargo.toml": "5653c9fa01c3bb0911b631498ec7b3645b76d42faf5135f50863b907dbe1066e",
-    "crates/flea-gui/Cargo.toml": "589a73f511211a013e57f2761a6e8592336a4110df0e8abfb2068cdfa68c8c31",
+    "Cargo.toml": "be693cac71a10c0983d190f281dd6319d7c84f61b328d222f97f8fcc48fa856a",
+    "crates/flea-gui/Cargo.toml": "86fd25848a1a993a0ae1a91f210ca4f93e6ad212ab521895072022a39322597d",
     "crates/flea-gui/build.rs": "06ea5b8a62b74a9d659b1ef6d92393cc68507f8484717678054144ec06daccaf",
     "crates/flea-gui/deny.toml": "1d3ec035ff745443250ea0d7f23f7cae39329f446c869b92b4365df3cc73fd2b",
     "crates/flea-gui/examples/ipc-fixture.rs": "4e931f7c60bd1a15e3c2c9c06bfd921a207ce099b4e280d1d73676f5c0bb495b",
@@ -249349,7 +250093,7 @@
     "crates/flea-gui/src/g2/op2/host/chosen.rs": "651c6eb5e1cb065a32319afca27fd3e21affe6e2739afa2e339c44b51d455083",
     "crates/flea-gui/src/g2/op2/host/cover.rs": "20a5c5eb60bad1300a57544c93da2a9f2b07cbe154d3969fbd49452c66fd5824",
     "crates/flea-gui/src/g2/op2/host/layer.rs": "30a56b6e877472aeeda9ab7332df0647260c6b14e48ad6942a0dfa62b4bbd768",
-    "crates/flea-gui/src/g2/op2/host/reply.rs": "f9c2351192d1a4d68f4dd9f68bb7e9150ba74d7e0e490091c78200ff07dcffc1",
+    "crates/flea-gui/src/g2/op2/host/reply.rs": "8308fa647aaac2c5b1958f571042c869ce04928c145266ee76287ae5bfffb697",
     "crates/flea-gui/src/g2/op2/host_tests/cancel_click.rs": "a6cf896ff6856e723ecc79afc859f6616a7ced107b4338317aa1ba5045ce97cd",
     "crates/flea-gui/src/g2/op2/host_tests/compress_geometry.rs": "69b8aaea1338f07b604c3a84bdaa117abc71d269e4609244c9709600980927af",
     "crates/flea-gui/src/g2/op2/host_tests/control_click.rs": "db4432decf0c7a72e2ea49e9dcfa3f6a2833ef9b040f24074272652a7befd9db",
@@ -250312,17 +251056,18 @@
     "src/backend/archivefailure.rs": "6d8917cd6b1b6336cb82179374310334f46213b2f71925e4d8371b479aa17224",
     "src/backend/archivefree.rs": "638f57994a455989818c9bb5a7864a46dfe77185e5ba934c0a0da3d859cab242",
     "src/backend/archivelist.rs": "6ba21fc9307cb234bd29cca714cbb7c5689facfe07ee12171c9846e404c01a5a",
-    "src/backend/archiveops.rs": "3d4328486a1ddc31213eef352af70254c699ae6f14081501183a55253697f4f9",
+    "src/backend/archiveops.rs": "d3ed0ab320b8271c3f955f97af9bfd108d0f86fe7b1dc5b1c38d328bae10ffeb",
     "src/backend/archivepass.rs": "83ed5deb644ff25d47dca23c0a260779c2e05d8b202f2c25923eebfa2e1b982b",
     "src/backend/archivereq.rs": "820e4b6c7ca564a6ac7d566dc3cc198a4e2d459b670bdc2c86b2c14e0644a8c1",
     "src/backend/archivespec.rs": "9569e3ab8cc5fa96ddbfd9e245a6ce757399de7fe7b289f97962b443cf13f99a",
     "src/backend/archivework.rs": "379fe5655b4365bde0ba74d0493773280b5478f379b9d0e19dfed3041dbcc2f2",
     "src/backend/birthtime.rs": "07c40980d1dddede61b9a8eec177762195e71dc71ba262e8157cf6bd2a1d77bd",
     "src/backend/bulkrename.rs": "dee03d179cfaa66deea1afeadcae922ee4b072ef5060c0105521a33274fde7e6",
+    "src/backend/casefold.rs": "6bf534a39f0efd42180f1df57d1f52814d1d3634bbb5970f7ae1d4fd03d19f82",
     "src/backend/child.rs": "d15fb999aa1540c66feabf5f8c53618ed0cfe0bf00fc6421cc8ae95b36ffa919",
     "src/backend/clipreq.rs": "d3b67ba002230d2573d0581172dcb2841487aec730a9d97411c88a030a47d301",
     "src/backend/codereq.rs": "1d9d2623de4dfa5114cadf67892e7d27076c6aaac439b576c2fc2ec2a7b82c0e",
-    "src/backend/collide.rs": "c02ce3eb5bdf38a571e6a1c2da6d2268ff3ef7d0da1e5b1c3e680b4fc9dd2af4",
+    "src/backend/collide.rs": "3bfef20cab77dd497630418dc26c49ed96603fe81a244b860c9a45bb570d78b4",
     "src/backend/collide_table.rs": "d4825b13dd94d559374746652be6ef476f019cd91b939d98d96d5b119bb3c335",
     "src/backend/collidelink.rs": "13a50bae82bdc2b0a9193e5d2760044201d5ebdfebb1716154da3b8fdcaf8e07",
     "src/backend/combine.rs": "71a6f0ad1adec493421abdb9f125c584f645f9d612a2562e353eb35d92601896",
@@ -250354,9 +251099,10 @@
     "src/backend/exiffacts.rs": "ffc31ed02e73a44adab1d21385be72ee4bb0d2c8dbfe0b0c1254c5d7e4ecf8ac",
     "src/backend/extclass.rs": "075bd0cb395fdcbe0924bad0ad21a94a5483059fdb3258bb669d19e302f729d2",
     "src/backend/extractindex.rs": "3b2a19b3487ae145f9dadfb0259b9c378f718840176f7d4e661af488f667c5fe",
+    "src/backend/extractnames.rs": "96f27005775c71b672c44267eb975fec14d267948192c1da88f83fd062b51bfc",
     "src/backend/extractprogress.rs": "071fc8eccbc7f1134fe944d1ad55f01fe5ca4e487e523954cc2c8acf267dda0c",
     "src/backend/extractrun.rs": "2c1949f4db9a68c30a114a7c64c1eb7eece6b3134938579ab62ed23105e0c445",
-    "src/backend/fatnames.rs": "67d3ececf878506206ec00b95cbb70ca104b590a8badc17a672c75b6f12f05fa",
+    "src/backend/fatnames.rs": "4f40b723cf65513155fb9b30b7c3beb032e6e4b6ea8a3a3e45ffccf8335886e1",
     "src/backend/fdpass.rs": "c064ed49ba69ed3c3dd78a94424b5a58350aab51cdb1e500b612eb6a941a1d24",
     "src/backend/fifotest.rs": "51fdb8991e45d4a70bf6000a0b230860fe9c87815e531b5f3b48c38678d1d187",
     "src/backend/filegen.rs": "a2f12bb184775cc5f666d00518dc4b90259a337ca526dca4942cb220f523809f",
@@ -250452,7 +251198,7 @@
     "src/backend/menuproperties_remote.rs": "4b4fda24e02e9e727b98710658422ad119908033f592667fcac807dad14c8dc2",
     "src/backend/menutags_io.rs": "4a6bb511455576cda830d56b996420ab4083049dbbe5c645e40ab8d830d04bd7",
     "src/backend/menutags_states.rs": "0d7336c0413ef3fe537837c52676e36b98ecf7bb30489895a481785abe4af68a",
-    "src/backend/merge.rs": "4cae27be50e5fbc9581b2fa85506bf83580e547f3ed735e19b5414064756c47b",
+    "src/backend/merge.rs": "bdea7968921592217877f94d71cdf819693a6057083539187a40f5c6b29b4efc",
     "src/backend/mergeapply.rs": "f86919bdda29b138942d134bdfaebe96210867032e0081ef558cff516e0035db",
     "src/backend/meta.rs": "e1b2e8b7b514f8b3ae24b527aeb894010ca57377e2e4fb1346373dc61c6f5f73",
     "src/backend/metareq.rs": "1eb1dcb134c20df244092f49eb43bcff679740b4e20176fad67c53d9b8e8ec14",
@@ -250564,12 +251310,12 @@
     "src/backend/rcloneproc.rs": "44ebea628f7e76371b5fdcca901df0c8dcc1cf4399182ade1d6ed9c8f7787001",
     "src/backend/rclonerun.rs": "921410698157c09ee4577b9eb1d11e8411bec44bb769fe1c4bcad19c2f457dd9",
     "src/backend/reaphold.rs": "edbe93a4b6a8e716f0f7a7684db570d6fa53af551495fa7179c1cbfdaf860617",
-    "src/backend/redo.rs": "f952c5d5c3a97ebce69c3179d48482bbb684af9184808b6f6456347ed95041eb",
+    "src/backend/redo.rs": "a291913a55bc946781d7c2dea82258f1b308f2de05537df44ca1fbff11b99f80",
     "src/backend/regfile.rs": "1cc23c50036df8e8163fe5118a5c3ef79281cc66cd0f45d146ffedccf2507ca7",
     "src/backend/renamecompat.rs": "f966c42ee17d5d6114f6260e7d5db101716d3894dfd0ebe91c1a60003ecd755e",
     "src/backend/renametiming.rs": "a5ce89173e838ebe8ab2852c26573233b45a0f7276a4bfbba8a30bdd5171c658",
     "src/backend/renamework.rs": "cb16b4a41c542058ddf2bb33d9dc0ce972a2c95bfdc58f5c3b7b4d296c5f6064",
-    "src/backend/replacedefer.rs": "ca0427614294f9773cdacd54c616c57c7de5df021788801be8b852f3ecde9bd0",
+    "src/backend/replacedefer.rs": "e4b6c761ebe9c6049930b23565ecf8df73ff3c35f1c15d87be76285de73c7891",
     "src/backend/rowguard.rs": "84350fe6ae586a34136d14bc8304211b5a26407777e12cef9031193f0ef0e361",
     "src/backend/rows.rs": "80cc0ea5dadb4a14e49853dfe6bf6fff4e04544a8b3e016e2ac1afb743a77324",
     "src/backend/run.rs": "d2edd7cf129b283dabf210755d3168f90b517979fed3e5d721d482ae71f5788b",
@@ -250651,7 +251397,7 @@
     "src/backend/trashdelete/cancel.rs": "40ca4b37e9d0873594832957bb6e0b8db0f4f586128d6ff69cf8aceb3340cc25",
     "src/backend/trashdelete/deletetest.rs": "54dcc4855047a92d9c48829c321d246dff9a3971d4795617a214500b2ad8ecba",
     "src/backend/trashdelete/recovery.rs": "cf9b5ce02bab3718b5b16072aeeba921b808f1984ae84c4ee5c26d18799ceeee",
-    "src/backend/trashland.rs": "e337fe4900c68c924bc9aadb84fa6e439b84e0c469cd0baaa1255be7a99cf2c3",
+    "src/backend/trashland.rs": "71e62978703dc0ff11457abab6f87d0eebbcf9fcaa4d7657840b502de8c9a52e",
     "src/backend/trashmanifest.rs": "c2166ea8ea90f91c4979142901476d6343dd4aca2e531e94a25dd8101857e2d3",
     "src/backend/trashmanifest/anonymous.rs": "4364fa44a764bb8c1306b5d266b11ac33364b071047360005a488fe31ede5bbf",
     "src/backend/trashthumb.rs": "50f3308d1fb51af82b46787f28958d931c5c19e8884eb2949557e4446cec4233",
@@ -250833,7 +251579,7 @@
     "src/tui/icons.rs": "085c14d17aecd28c7caf4de44c36405d01d7318512b1b33a412cabe2945c9b90",
     "src/tui/input.rs": "d9768c9e39f50994fde6a0bdb011fb49a9a416b0c5e53426a950dd86ec95f66a",
     "src/tui/job.rs": "76758b70e86589e8b94c2ec873cc4139cb5f513ab0c0d878ce1a84124d2a0d3b",
-    "src/tui/jobstatus.rs": "969480bbe62dbc75e775e1acbb14ca55d0a06068ed0b6995951c3bd3f6709864",
+    "src/tui/jobstatus.rs": "5be9fb1cc8c54cce38ca55b20c0613a92f3b55fe7b7ae065bd8c84c2064105ec",
     "src/tui/key_sheet.rs": "b4937103bcd2645473b9d537f1661c96f366377606c223eb11065b46091eef19",
     "src/tui/keycaps.rs": "b039b08e4e69962e463a53a4dc56654a188937b12a2075f2bcedf3c6681bc48a",
     "src/tui/keymap.rs": "c43659252066174ea7ec6c32a337d6e510a215da80441f2e8270a3d6c019b45d",
@@ -250862,7 +251608,7 @@
     "src/tui/print/card.rs": "7e513d5ef0fe27901abf502bf9372ae74c97d54df86066e0de71aea4ab7174b0",
     "src/tui/print/input.rs": "2feadebdca18d18e77e604d762044c371781dfc4c265662d47e8e71d8920cc98",
     "src/tui/print/replies.rs": "0d9558640c05dd6527bcf9f66ec702b77f9cd4c1a5afc48dd104de786766c810",
-    "src/tui/prompts.rs": "73ec6423ef4c341075b1e7e1627d506c2333a405cc525caeb002452b411671b8",
+    "src/tui/prompts.rs": "3c3386281a15d53f9273f6b26830592972da83e25d9e41f7795142e7d888f691",
     "src/tui/render.rs": "7e686a909f5934896a6978970f3cb995844068a4efdb23593fe73b6302f93307",
     "src/tui/sort_actions.rs": "10962bd7e3d0e4cd0bff680ba7c492d779f39625865f3b60c8181c1606119586",
     "src/tui/stage.rs": "6bc1a61b139ffb8a408251234c0ed6763bec47bfb9ab922b4ba3d61b1706ec69",
@@ -250879,8 +251625,8 @@
     "src/tui/wait.rs": "f54f0e8409eeb694985ecb5134a8f8a4ba179ff5a72d353d1654c2f6ddd0125a",
     "src/tui/warm.rs": "570e7ede28f3d3acbec35de19986deb31a11f25ca5552e56ea608fb8b8c2da6c",
     "src/tui/wire.rs": "13ecd5d333ff3506ae14387bd97565a00b42aaf2901fb36376eebe06d6cf3a3f",
-    "src/tui/words.rs": "f1e60cffd997147168390c5749539a88e51dd397212e750b73e3bc4a92a9cfdd",
-    "src/tui/words_title.rs": "5ee3263342ec4ad8afe5fcc75b7405e6c687148444e625b20002bb2e1424e77d",
+    "src/tui/words.rs": "009502c394e7743e6580122c40e2dde9a9b4a78da3a8362a6f7e5012f1209ef8",
+    "src/tui/words_title.rs": "5b5033d92a22b6e7d7fdcaea4bfbeb767af3fa1ba3ffb840d4d8fb2e5c8fb453",
     "src/ui_logic_dg1.rs": "a4b3cb7d881e7f81ee902c71ff7e39bdf368e300f4919f9062a5780b243b9390",
     "src/ui_logic_dg1/carry.rs": "4fd4c6ed7040596c8004142763f14965a5208fdbf9c9b3e8a92231978a8cc0e8",
     "src/ui_logic_dg1/clipboard.rs": "2e50fdf31e2ad70d9c7d5b7b79cc8132d924b30f6f4f72f0f295e971dfaf4ba8",
@@ -250897,7 +251643,7 @@
     "src/ui_logic_dg2/rail.rs": "cc2597ab53b22ff2e655598bfaad4d5775b7411b083f72e52ef8a059d93a9a77",
     "src/ui_logic_fb1.rs": "239fb7a987ea5667a69e370377f394265ec1a6e630d7f33b55f81fa5bea8b7fd",
     "src/ui_logic_fb1/empty.rs": "ebfce38c44eeab28cc4e1899230f16e32d146605e086923b2284e11daa87462e",
-    "src/ui_logic_fb1/errors.rs": "1ee4147825e43a4c35c9452b7e82e16c952f97b0bb51de8c3fb64e522116125d",
+    "src/ui_logic_fb1/errors.rs": "1594aa9ab00da048c920c7715572677c08641174ed5735b7f9554505d596e04a",
     "src/ui_logic_fb1/lane.rs": "cbfe288450e2d3a02f733511258547aaecfec5f274440e148d60b90270980fc1",
     "src/ui_logic_fb1/messages.rs": "09a5751d4242c307e5a859f3131ef02fd33cf8a19535a2f26b2b7044331345f1",
     "src/ui_logic_fb1/messages/arm.rs": "b5c857ccb06b19c4a22658fa3ce39b376f1a7a010e2f20085dff55228313d1a3",
@@ -250931,7 +251677,7 @@
     "src/ui_logic_op1/fat.rs": "f32aa78bc3ea84591d15bdfab517dcf4136f8da4a19f79d3e5b172d8a691e9d3",
     "src/ui_logic_op1/host.rs": "251d4378d1452e5351a1f010b4efaaf5dbe5ceb2a2b1126a9f27993f38a4fbed",
     "src/ui_logic_op1/jobs.rs": "4562d786dd3b7dfe346eb4de70899981346ed223bb56f0ed571f8c7bb01b3e9a",
-    "src/ui_logic_op1/lines.rs": "76a6f41b288658ed170f3f43b204ab9031f4794d56ac440be339cb634a20248d",
+    "src/ui_logic_op1/lines.rs": "9f93b2b59ef7e3d29efa8c1c9cb33aa22f560c6a2198e708f7cb78c8397453b4",
     "src/ui_logic_op1/lines/link.rs": "fb51d9b97decb93b643513f3d477d9a5cdf498638c3d3a26c6d7a629c0bfd042",
     "src/ui_logic_op1/lines/receipt.rs": "cf0558082d19366359e00b72b9252f0d83744118df6bc892e8adaa47ae4c988e",
     "src/ui_logic_op1/testcat.rs": "d24fb6b7c74ed8c19d4d8b1693aa91bba2ebd8a7793487d1e301e2a5c5f439cd",
@@ -251806,13 +252552,13 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "fa2511801c250bda42339eb83a05c51978eb32f9",
-  "source_sha": "fa2511801c250bda42339eb83a05c51978eb32f9",
+  "source_ref_sha": "d61159a59551adc0b553021c7296d265783330ce",
+  "source_sha": "d61159a59551adc0b553021c7296d265783330ce",
   "surface_coverage": {
     "core/backend": {
-      "keys_with_occurrences": 1334,
-      "missing_literal_candidates": 5688,
-      "source_files": 849
+      "keys_with_occurrences": 1336,
+      "missing_literal_candidates": 5714,
+      "source_files": 851
     },
     "generated/tooling": {
       "keys_with_occurrences": 155,

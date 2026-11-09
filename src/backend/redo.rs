@@ -54,6 +54,19 @@ fn destination(step: &Step) -> Option<&Path> {
     }
 }
 
+// linux/magic.h's exFAT magic: that driver moves a folder's birth time when a redone step writes into it.
+const EXFAT_SUPER_MAGIC: i64 = 0x2011BAB0;
+
+// The folder a step lands in is still the one it was; on exFAT dev, inode and kind decide, since its birth time moves.
+fn same_folder(recorded: &ItemIdentity, current: &ItemIdentity, magic: impl FnOnce() -> Option<i64>) -> bool {
+    recorded.same_item(current) || (recorded.parts() == current.parts() && magic() == Some(EXFAT_SUPER_MAGIC))
+}
+
+// A name an earlier Trashed step empties, spelled as recorded or, on a case-insensitive drive, the same item under another case.
+fn vacates(vacated: &HashSet<&Path>, path: &Path) -> bool {
+    vacated.contains(path) || vacated.iter().any(|gone| gone.parent() == path.parent() && super::renamecompat::is_same_item_for_move(gone, path))
+}
+
 impl Replay {
     pub fn capture(entry: Entry) -> Result<Self, FleaError> {
         let mut steps = Vec::new();
@@ -106,7 +119,7 @@ impl Replay {
             }
         }
         if let Some((path, identity)) = &saved.parent {
-            if !identity.same_item(&ItemIdentity::inspect(path)?) {
+            if !same_folder(identity, &ItemIdentity::inspect(path)?, || super::fsinfo::magic_of(path)) {
                 return Err(error(path, "the destination folder was replaced, so nothing was redone"));
             }
         }
@@ -115,6 +128,8 @@ impl Replay {
             match path.symlink_metadata() {
                 Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
                 Err(e) => return Err(from_io("redo", &path.to_string_lossy(), &e)),
+                // A case-only rename on a case-insensitive drive finds its own source under the new name, which move_any takes through a temp name.
+                Ok(_) if matches!(saved.step, Step::Moved { .. }) && source(&saved.step).is_some_and(|from| super::renamecompat::is_same_item_for_move(from, path)) => {}
                 Ok(_) => return Err(error(path, "an item with that name is already there, so redo left it in place")),
             }
         }
@@ -129,7 +144,7 @@ impl Replay {
             let mut vacated = HashSet::new();
             for saved in &self.steps {
                 if cancel.load(Ordering::Relaxed) { return Err(error(Path::new(""), "redo cancelled")); }
-                Self::check(saved, destination(&saved.step).is_some_and(|path| vacated.contains(path)))?;
+                Self::check(saved, destination(&saved.step).is_some_and(|path| vacates(&vacated, path)))?;
                 if let Step::Trashed(entry) = &saved.step { vacated.insert(entry.original.as_path()); }
             }
             let mut skipped: Vec<String> = Vec::new();
@@ -256,3 +271,7 @@ mod tests;
 #[cfg(test)]
 #[path = "redo_birth_tests.rs"]
 mod birth_tests;
+
+#[cfg(test)]
+#[path = "redo_case_tests.rs"]
+mod case_tests;

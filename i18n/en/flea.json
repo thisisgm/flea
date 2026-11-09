@@ -102,6 +102,8 @@
   "archive.compressing": "Compressing %1 to .%2",
   "archive.confirm": "Confirm",
   "archive.done.cancelled": "Extraction cancelled.",
+  "archive.done.name_refused": "“%1” cannot be extracted onto this drive: %2.",
+  "archive.done.twins": "“%1” and “%2” would take one name on this drive, so nothing was extracted.",
   "archive.done.unverified": "Extracted. The archive index could not be read, so this was not verified.",
   "archive.done.written": "Archive written.",
   "archive.encrypt_names": "Encrypt file names",

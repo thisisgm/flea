@@ -49,6 +49,8 @@
   "archive.compressing": "%1 .%2-এ সংকুচিত হচ্ছে",
   "archive.confirm": "নিশ্চিত করুন",
   "archive.done.cancelled": "আর্কাইভ থেকে বের করা বাতিল হয়েছে।",
+  "archive.done.name_refused": "“%1” এই ড্রাইভে বের করা যাবে না: %2।",
+  "archive.done.twins": "“%1” এবং “%2” এই ড্রাইভে একই নাম নেবে, তাই কিছুই বের করা হয়নি।",
   "archive.done.unverified": "বের করা হয়েছে। আর্কাইভের সূচি পড়া যায়নি, তাই যাচাই হয়নি।",
   "archive.done.written": "আর্কাইভ লেখা হয়েছে।",
   "archive.encrypt_names": "ফাইলের নাম এনক্রিপ্ট করুন",

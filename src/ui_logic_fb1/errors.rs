@@ -108,7 +108,56 @@ pub fn passthrough(message: &str) -> Sentence {
     if let Some(key) = os_reason(message) {
         return Sentence::key(key);
     }
+    if let Some(sentence) = extract_refusal(message) {
+        return sentence;
+    }
     Sentence::with("feedback.error.backend", &capitalised(message))
+}
+
+/// A cause set inside another sentence: a fixed one in the catalog's language without its closing stop where that language has other words, anything else as the backend said it.
+pub fn clause(message: &str, catalog: &I18n) -> String {
+    let Some(key) = os_reason(message) else {
+        return message.to_owned();
+    };
+    let said = catalog.tr(key);
+    let said = said.trim_end_matches(['.', '。', '।', '۔']);
+    if said.to_lowercase() == message.trim().trim_end_matches('.').to_lowercase() {
+        message.to_owned()
+    } else {
+        said.to_owned()
+    }
+}
+
+// src/backend/extractnames.rs's two refusals; the refused name's reason is fsname's own words, a diagnostic as name_refusal's are.
+const TWINS_TAIL: &str = "' would take one name on this drive, so nothing was extracted";
+const REFUSED_AT: &str = "' cannot be extracted onto this drive: ";
+
+// Sample input: "'a.txt' and 'A.txt' would take one name on this drive, so nothing was extracted" reads back as archive.done.twins with both names.
+/// An extract refused from the archive's index, read back into its key and names; twins split where their lower cases meet.
+pub fn extract_refusal(message: &str) -> Option<Sentence> {
+    let text = message.trim().strip_prefix('\'')?;
+    if let Some(pair) = text.strip_suffix(TWINS_TAIL) {
+        let splits: Vec<(&str, &str)> = pair
+            .match_indices("' and '")
+            .map(|(at, and)| (&pair[..at], &pair[at + and.len()..]))
+            .collect();
+        let (one, other) = splits
+            .iter()
+            .find(|(one, other)| one.to_lowercase() == other.to_lowercase())
+            .or(splits.first())?;
+        return Some(Sentence {
+            key: "archive.done.twins",
+            args: vec![(*one).to_owned(), (*other).to_owned()],
+        });
+    }
+    let at = text.rfind(REFUSED_AT)?;
+    Some(Sentence {
+        key: "archive.done.name_refused",
+        args: vec![
+            text[..at].to_owned(),
+            text[at + REFUSED_AT.len()..].to_owned(),
+        ],
+    })
 }
 
 /// The backend's own words read as a sentence: first letter raised, one full stop at the end.

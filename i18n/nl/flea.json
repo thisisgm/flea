@@ -66,6 +66,8 @@
   "archive.compressing": "%1 comprimeren naar .%2",
   "archive.confirm": "Bevestigen",
   "archive.done.cancelled": "Uitpakken geannuleerd.",
+  "archive.done.name_refused": "“%1” kan niet op deze schijf worden uitgepakt: %2.",
+  "archive.done.twins": "“%1” en “%2” zouden op deze schijf dezelfde naam krijgen, dus er is niets uitgepakt.",
   "archive.done.unverified": "Uitgepakt. De archiefindex kon niet worden gelezen, dus dit is niet geverifieerd.",
   "jobs.done.extract_unverified": "Uitgepakt. De archiefindex kon niet worden gelezen, dus dit is niet geverifieerd.",
   "archive.done.written": "Archief geschreven.",

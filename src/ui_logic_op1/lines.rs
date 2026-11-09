@@ -121,6 +121,7 @@ pub fn retry_selection_line(catalog: &I18n, matches: &[&str]) -> String {
 
 // A failure names its reason, so a hung mount or a denial reads as what happened.
 pub fn trashed(catalog: &I18n, preset: &str, ok: u64, failed: u64, reason: &str) -> String {
+    let reason = &crate::ui_logic_fb1::errors::clause(reason, catalog);
     if ok == 0 {
         return match (failed == 1, reason.is_empty()) {
             (true, true) => catalog.tr("jobs.trash.failed_one"),

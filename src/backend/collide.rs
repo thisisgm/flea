@@ -58,6 +58,8 @@ pub struct Question {
     pub(crate) id: usize,
     pub(crate) dest: PathBuf,
     pub(crate) seen: HashMap<PathBuf, ItemIdentity>,
+    // Sources landing on a name an earlier source of the batch takes under dest's case and FAT rules, asked like a name dest holds.
+    pub(crate) twins: HashSet<PathBuf>,
     pub(crate) menu: Option<MenuCapture>,
     // The card's answer this question was asked under, so the merge walk that follows it compares the names the transfer will write.
     pub(crate) fat: Option<super::fatnames::Choice>,
@@ -90,14 +92,14 @@ impl Ask {
 
     // The choice covers only the question this request names, asked about this same destination.
     pub fn policy(self, question: Option<Question>, dest: &Path) -> Policy {
-        let seen = match question {
-            Some(q) if self.answers(&q, dest) => q.seen,
-            _ => HashMap::new(),
+        let (seen, twins) = match question {
+            Some(q) if self.answers(&q, dest) => (q.seen, q.twins),
+            _ => (HashMap::new(), HashSet::new()),
         };
         let inner = self.inner.as_deref().map(Collide::from_word);
         let on_fat = super::fatnames::answered_on_fat(self.fat, dest);
         Policy { choice: self.word.as_deref().map(Collide::from_word), inner, fat: self.fat, on_fat,
-                 seen: Arc::new(seen), ..Policy::default() }
+                 seen: Arc::new(seen), twins: Arc::new(twins), ..Policy::default() }
     }
 
     fn answers(&self, question: &Question, dest: &Path) -> bool {
@@ -130,6 +132,7 @@ pub struct Policy {
     // Whether dest sits on a FAT-family filesystem, read once per transfer: every item lands in one folder.
     on_fat: bool,
     seen: Arc<HashMap<PathBuf, ItemIdentity>>,
+    twins: Arc<HashSet<PathBuf>>,
     batch: Vec<PathBuf>,
     // Every source of the batch and every folder above it, resolved on the first Replace, so one lookup says whether a trash would take a source.
     held: OnceCell<HashSet<PathBuf>>,
@@ -164,17 +167,17 @@ impl Policy {
 
     // The second card's answer as its own policy over the same question, so inner names keep the race story.
     pub(crate) fn inner(&self) -> Policy {
-        Policy { choice: self.inner, inner: None, fat: self.fat, on_fat: self.on_fat, seen: Arc::clone(&self.seen), batch: self.batch.clone(), held: OnceCell::new() }
+        Policy { choice: self.inner, inner: None, fat: self.fat, on_fat: self.on_fat, seen: Arc::clone(&self.seen), twins: Arc::clone(&self.twins), batch: self.batch.clone(), held: OnceCell::new() }
     }
 
-    // The question listed this source and its name still holds the item it saw there.
+    // The question listed this source and its name still holds the item it saw there, or it is a twin that Skip leaves, as the sweep counted, or whose earlier twin landed.
     pub(crate) fn covers(&self, src: &Path, dst: &Path) -> bool {
-        covers(&self.seen, src, dst)
+        covers(&self.seen, src, dst) || (self.twins.contains(src) && (self.choice == Some(Collide::Skip) || dst.symlink_metadata().is_ok()))
     }
 
     // Skip's test for the sweep beside the copy, which leaves out of the batch's total what place will leave in place.
     pub fn skipping(&self) -> Option<Skipping> {
-        (self.choice == Some(Collide::Skip)).then(|| Skipping { seen: Arc::clone(&self.seen) })
+        (self.choice == Some(Collide::Skip)).then(|| Skipping { seen: Arc::clone(&self.seen), twins: Arc::clone(&self.twins) })
     }
 
     // here says the item already lives in dest; a name the question did not see is left to the exclusive create, which refuses it.
@@ -190,7 +193,7 @@ impl Policy {
             // A move onto itself changes nothing, and a copy into its own folder is a Duplicate.
             return if moving { Place::Skip } else { keep_both(dst) };
         }
-        if !covers(&self.seen, src, &dst) {
+        if !self.covers(src, &dst) {
             return Place::Land { to: dst, replace: false };
         }
         match choice {
@@ -223,11 +226,12 @@ pub(crate) fn covers(seen: &HashMap<PathBuf, ItemIdentity>, src: &Path, dst: &Pa
 // What a Skip leaves in place, shared with the sweep's own thread so the first byte never waits on its lstat per name.
 pub struct Skipping {
     seen: Arc<HashMap<PathBuf, ItemIdentity>>,
+    twins: Arc<HashSet<PathBuf>>,
 }
 
 impl Skipping {
     pub fn leaves(&self, src: &Path, dst: &Path) -> bool {
-        covers(&self.seen, src, dst)
+        covers(&self.seen, src, dst) || self.twins.contains(src)
     }
 }
 
@@ -293,13 +297,13 @@ struct Shown {
 
 // The question itself, read-only: which sources would land on a name dest already holds, under their FAT-renamed names.
 fn ask(id: usize, paths: &[String], dest: &str, fat: Option<super::fatnames::Choice>) -> (Question, Vec<Shown>) {
-    let mut question = Question { id, dest: PathBuf::from(dest), seen: HashMap::new(), menu: None, fat };
+    let mut question = Question { id, dest: PathBuf::from(dest), seen: HashMap::new(), twins: HashSet::new(), menu: None, fat };
     let mut shown = Vec::new();
     // An unusable destination asks nothing: the transfer that follows answers its own error.
     let Ok(dest_path) = usable_dest(dest) else { return (question, shown) };
     let on_fat = super::fatnames::answered_on_fat(fat, &dest_path);
     let dest_real = dest_path.canonicalize().unwrap_or_else(|_| dest_path.clone());
-    let (mut parents, table) = (Parents::default(), Table::read(&dest_path));
+    let (mut parents, table, mut claimed) = (Parents::default(), Table::read(&dest_path), super::fatnames::casefold::Claimed::new(&dest_path));
     for raw in paths {
         let src = Path::new(raw);
         if !src.is_absolute() {
@@ -312,8 +316,13 @@ fn ask(id: usize, paths: &[String], dest: &str, fat: Option<super::fatnames::Cho
         if already_there_in(src, &leaf, &dst, &dest_real, &mut parents) {
             continue;
         }
-        let Ok(there) = identity_in(&dst, &table) else { continue };
-        if question.seen.insert(src.to_path_buf(), there).is_none() && shown.len() < SHOWN {
+        let twin = claimed.taken(&leaf);
+        let fresh = match identity_in(&dst, &table) {
+            Ok(there) => question.seen.insert(src.to_path_buf(), there).is_none(),
+            Err(_) if twin => question.twins.insert(src.to_path_buf()),
+            Err(_) => continue,
+        };
+        if fresh && shown.len() < SHOWN {
             shown.push(Shown { name: leaf, dir: meta.is_dir(), mode: meta.mode() });
         }
     }
@@ -357,7 +366,7 @@ pub(crate) fn ask_beside(ops: &mut Ops, id: usize, menu_id: usize, named: Vec<St
         let (mut question, shown) = ask(id, &paths, &dest, fat);
         let mergeable = super::merge::mergeable(&paths, &dest);
         question.menu = menu;
-        let line = collisions_line(id, question.seen.len(), &shown, mergeable, &mime, &icons);
+        let line = collisions_line(id, question.seen.len() + question.twins.len(), &shown, mergeable, &mime, &icons);
         let _ = tx.send(OpMsg::Asked { turn, question, line });
     });
 }

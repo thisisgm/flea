@@ -1,6 +1,7 @@
 use super::english;
 use crate::ui_logic_fb1::errors::{
-    connect_failure, listing_state, locked_line, os_reason, passthrough, sentence, ListingState,
+    clause, connect_failure, extract_refusal, listing_state, locked_line, os_reason, passthrough,
+    sentence, ListingState,
 };
 
 fn said(place: &str, message: &str, named: &str) -> String {
@@ -301,4 +302,25 @@ fn an_empty_paste_image_answers_the_empty_clipboard_sentence() {
         said("pasteimage", "the clipboard could not be read", ""),
         "The clipboard could not be read."
     );
+}
+
+#[test]
+fn an_extract_refusal_reads_back_its_key_and_names_whatever_quotes_the_names_hold() {
+    let twins = |message: &str| extract_refusal(message).map(|refusal| (refusal.key, refusal.args));
+    assert_eq!(
+        twins("'x' and 'y' and 'X' and 'Y' would take one name on this drive, so nothing was extracted"),
+        Some(("archive.done.twins", vec!["x' and 'y".to_owned(), "X' and 'Y".to_owned()])),
+        "the split is where the two names fold to one"
+    );
+    assert_eq!(
+        said("archive", "'a: b' cannot be extracted onto this drive: ':' is not allowed in a name on this vfat drive", ""),
+        "“a: b” cannot be extracted onto this drive: ':' is not allowed in a name on this vfat drive."
+    );
+    assert_eq!(extract_refusal("A.zip is corrupt"), None);
+    assert_eq!(
+        clause("the drive is read-only", &english()),
+        "the drive is read-only",
+        "English keeps the backend's own case inside a sentence"
+    );
+    assert_eq!(clause("gio: no trash", &english()), "gio: no trash");
 }

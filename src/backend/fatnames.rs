@@ -190,6 +190,9 @@ fn answer_in(body: &str, id: usize, paths: &[String], dest: &str, mime: &super::
         id, crate::json::escape(&entry.fstype), crate::json::escape(volume), shown.join(",")))
 }
 
+#[path = "casefold.rs"]
+pub mod casefold;
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -249,7 +249,11 @@ pub(super) fn receive(model: &mut super::model::Model, value: &crate::jsondoc::J
         }
         // A failed extraction says why, whichever job owns the status row.
         if text(job, "kind") == "extract" && text(job, "state") == "failed" {
-            model.fail(text(job, "reason").into());
+            let reason = text(job, "reason");
+            match flea::ui_logic_fb1::errors::extract_refusal(reason) {
+                Some(refusal) => model.fail_text(super::words::Text::Args(refusal.key, refusal.args.into_iter().map(super::words::Text::Data).collect())),
+                None => model.fail(reason.into()),
+            }
         }
     }
 }
@@ -270,3 +274,7 @@ pub(super) fn refresh_locale(model: &mut super::model::Model) {
         model.transfer = line(&status.i18n, &status.head, status.count);
     }
 }
+
+#[cfg(test)]
+#[path = "refusal_language_tests.rs"]
+mod refusal_language_tests;

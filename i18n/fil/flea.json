@@ -49,6 +49,8 @@
   "archive.compressing": "Kino-compress ang %1 sa .%2",
   "archive.confirm": "Kumpirmahin",
   "archive.done.cancelled": "Nakansela ang pag-extract.",
+  "archive.done.name_refused": "Hindi ma-extract ang “%1” sa drive na ito: %2.",
+  "archive.done.twins": "Iisang pangalan ang makukuha ng “%1” at “%2” sa drive na ito, kaya walang na-extract.",
   "archive.done.unverified": "Na-extract na. Hindi mabasa ang index ng archive, kaya hindi ito napatunayan.",
   "archive.done.written": "Naisulat na ang archive.",
   "archive.encrypt_names": "I-encrypt ang mga pangalan ng file",

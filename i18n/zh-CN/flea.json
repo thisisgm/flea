@@ -97,6 +97,8 @@
   "archive.compressing": "正在将 %1 压缩为 .%2",
   "archive.confirm": "确认",
   "archive.done.cancelled": "解压已取消。",
+  "archive.done.name_refused": "无法将“%1”解压到此驱动器：%2。",
+  "archive.done.twins": "“%1”和“%2”在此驱动器上会使用同一个名称，因此未解压任何内容。",
   "archive.done.unverified": "已解压。由于无法读取压缩包索引，结果未经校验。",
   "archive.done.written": "压缩包已写入。",
   "archive.encrypt_names": "加密文件名",

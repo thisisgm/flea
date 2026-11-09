@@ -389,3 +389,5 @@ fn a_folder_resolved_once_decides_every_source_in_it_like_a_fresh_resolve() {
 mod fat_tests;
 #[path = "collide_table_tests.rs"]
 mod table_tests;
+#[path = "collide_twins_tests.rs"]
+mod twins_tests;

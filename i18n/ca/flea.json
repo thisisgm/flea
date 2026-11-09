@@ -50,6 +50,8 @@
   "archive.compressing": "S'està comprimint %1 a .%2",
   "archive.confirm": "Confirma",
   "archive.done.cancelled": "Extracció cancel·lada.",
+  "archive.done.name_refused": "«%1» no es pot extreure en aquesta unitat: %2.",
+  "archive.done.twins": "«%1» i «%2» tindrien el mateix nom en aquesta unitat, així que no s'ha extret res.",
   "archive.done.unverified": "Extret. No s'ha pogut llegir l'índex de l'arxiu, de manera que no s'ha verificat.",
   "archive.done.written": "Arxiu escrit.",
   "archive.encrypt_names": "Xifra els noms dels fitxers",

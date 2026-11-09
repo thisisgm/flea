@@ -49,6 +49,8 @@
   "archive.compressing": "%1 .%2 formatiga siqilmoqda",
   "archive.confirm": "Tasdiqlash",
   "archive.done.cancelled": "Arxivdan chiqarish bekor qilindi.",
+  "archive.done.name_refused": "“%1” ni bu diskka arxivdan chiqarib boʻlmaydi: %2.",
+  "archive.done.twins": "“%1” va “%2” bu diskda bitta nom oladi, shuning uchun hech narsa arxivdan chiqarilmadi.",
   "archive.done.unverified": "Arxivdan chiqarildi. Arxiv indeksini oʻqib boʻlmagani sababli natija tekshirilmadi.",
   "archive.done.written": "Arxiv yozildi.",
   "archive.encrypt_names": "Fayl nomlarini shifrlash",

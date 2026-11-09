@@ -50,6 +50,8 @@
   "archive.compressing": "Saspiež %1 formātā .%2",
   "archive.confirm": "Apstiprināt",
   "archive.done.cancelled": "Atarhivēšana atcelta.",
+  "archive.done.name_refused": "“%1” nevar atarhivēt uz šo disku: %2.",
+  "archive.done.twins": "“%1” un “%2” šajā diskā iegūtu vienu nosaukumu, tāpēc nekas netika atarhivēts.",
   "archive.done.unverified": "Atarhivēts. Arhīva indeksu nevarēja nolasīt, tāpēc rezultāts nav pārbaudīts.",
   "archive.done.written": "Arhīvs ierakstīts.",
   "archive.encrypt_names": "Šifrēt failu nosaukumus",

@@ -50,6 +50,8 @@
   "archive.compressing": "Compressione di %1 in .%2",
   "archive.confirm": "Conferma",
   "archive.done.cancelled": "Estrazione annullata.",
+  "archive.done.name_refused": "“%1” non può essere estratto su questa unità: %2.",
+  "archive.done.twins": "“%1” e “%2” avrebbero lo stesso nome su questa unità, quindi non è stato estratto nulla.",
   "archive.done.unverified": "Estrazione completata. Impossibile leggere l'indice dell'archivio, quindi non è stata verificata.",
   "archive.done.written": "Archivio scritto.",
   "archive.encrypt_names": "Cifra i nomi dei file",

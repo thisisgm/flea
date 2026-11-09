@@ -48,6 +48,8 @@
   "archive.compressing": "%1 を .%2 に圧縮中",
   "archive.confirm": "確認",
   "archive.done.cancelled": "展開をキャンセルしました。",
+  "archive.done.name_refused": "「%1」はこのドライブに展開できません: %2。",
+  "archive.done.twins": "「%1」と「%2」はこのドライブで同じ名前になるため、何も展開しませんでした。",
   "archive.done.unverified": "展開しました。アーカイブの索引を読み取れなかったため、検証は行われていません。",
   "archive.done.written": "アーカイブを書き込みました。",
   "archive.encrypt_names": "ファイル名を暗号化",

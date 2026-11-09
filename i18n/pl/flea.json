@@ -51,6 +51,8 @@
   "archive.compressing": "Kompresowanie do .%2 · %1",
   "archive.confirm": "Potwierdź",
   "archive.done.cancelled": "Anulowano rozpakowywanie.",
+  "archive.done.name_refused": "Nie można rozpakować „%1” na ten dysk: %2.",
+  "archive.done.twins": "„%1” i „%2” miałyby na tym dysku tę samą nazwę, więc niczego nie rozpakowano.",
   "archive.done.unverified": "Rozpakowano. Nie udało się odczytać indeksu archiwum, więc nie zweryfikowano wyniku.",
   "archive.done.written": "Zapisano archiwum.",
   "archive.encrypt_names": "Szyfruj nazwy plików",

@@ -16,7 +16,7 @@ fn a_cancel_inside_the_last_nested_folder_reports_cancelled() {
     d.dir("to/trip/sub");
     // A forced-durable destination confirms each copy after its report, so the trip lands before the cancel stops the fold.
     crate::backend::durable::test_mark_durable(&dest);
-    let question = Question { id: 7, dest: dest.clone(), seen: HashMap::new(), menu: None, fat: None };
+    let question = Question { id: 7, dest: dest.clone(), seen: HashMap::new(), twins: Default::default(), menu: None, fat: None };
     let inner = Ask { word: Some("merge".to_string()), id: 7, inner: Some("keep".to_string()), fat: None }
         .policy(Some(question), &dest).inner();
     let cancel = AtomicBool::new(false);

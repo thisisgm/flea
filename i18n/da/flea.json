@@ -49,6 +49,8 @@
   "archive.compressing": "Komprimerer %1 til .%2",
   "archive.confirm": "Bekræft",
   "archive.done.cancelled": "Udpakning annulleret.",
+  "archive.done.name_refused": "“%1” kan ikke pakkes ud på dette drev: %2.",
+  "archive.done.twins": "“%1” og “%2” ville få samme navn på dette drev, så intet blev pakket ud.",
   "archive.done.unverified": "Udpakket. Arkivets indeks kunne ikke læses, så resultatet blev ikke verificeret.",
   "archive.done.written": "Arkiv skrevet.",
   "archive.encrypt_names": "Krypter filnavne",

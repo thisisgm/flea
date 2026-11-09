@@ -182,6 +182,8 @@ impl Shell {
             })
         } else if done.err == "cancelled" {
             catalog.tr("archive.done.cancelled")
+        } else if let Some(refusal) = flea::ui_logic_fb1::errors::extract_refusal(&done.err) {
+            refusal.render(&catalog)
         } else {
             capitalised(&done.err)
         };
