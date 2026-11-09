@@ -70,6 +70,7 @@ impl Shell {
         );
         let mut sheet = Sheet::new(preset, self.locale.catalog.clone(), self.sheet_sources(cx));
         self.prepare_trash_sheet(&mut sheet, cx);
+        sheet.set_keyboard(self.sheet_keyboard(preset, window.layout_mirrored(), cx));
         let corner = self.corner;
         let typeface = self.settings_typeface(cx);
         let view = cx.new(|cx| {
@@ -77,6 +78,7 @@ impl Shell {
             view.corner = corner;
             view.typeface = typeface;
             window.focus(&view.focus, cx);
+            view.forget_on_blur(window, cx);
             view
         });
         self.settings.sheet_subscription =

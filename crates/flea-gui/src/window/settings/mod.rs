@@ -33,6 +33,7 @@ mod review_tests;
 #[cfg(test)]
 mod service_tests;
 mod sheet;
+mod sheet_keyboard;
 pub(crate) mod store;
 #[cfg(test)]
 mod textsize_tests;

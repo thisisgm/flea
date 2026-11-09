@@ -8,6 +8,11 @@ pub const KEY_MARGIN: f32 = 5.;
 const BOARD_CAPTION: f32 = 12.;
 const BORDER: f32 = 2.;
 
+/// This face's caption against the boards' own: 1 at text size 14, so what is sized in it grows with the text.
+pub fn text_scale(face: &Typeface) -> f32 {
+    f32::from(face.caption) / BOARD_CAPTION
+}
+
 #[cfg(test)]
 pub fn caption_width(card: f32) -> f32 {
     (card - 2. * PAD - BORDER - COL_GAP) / 2. - KEY_COL - KEY_MARGIN - GAP
@@ -25,7 +30,7 @@ fn wanted_width_at(longest: f32, key_col: f32, max: f32) -> f32 {
         .clamp(SHEET_W, max)
 }
 
-fn shaped(text: &str, face: &Typeface, window: &Window) -> f32 {
+pub(super) fn shaped(text: &str, face: &Typeface, window: &Window) -> f32 {
     let run = TextRun {
         len: text.len(),
         font: face.font.clone(),

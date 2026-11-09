@@ -9,6 +9,7 @@ pub mod pages;
 pub mod rows;
 pub mod search;
 pub mod sheet;
+pub mod sheet_keyboard;
 pub mod sheetkeys;
 pub mod textsize;
 pub mod update;

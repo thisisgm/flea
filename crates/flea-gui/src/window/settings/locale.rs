@@ -24,5 +24,6 @@ impl Shell {
             view.update(cx, |view, cx| view.set_catalog(catalog, cx));
         }
         self.sync_trash_sheet(cx);
+        self.refresh_sheet_keyboard(cx);
     }
 }
