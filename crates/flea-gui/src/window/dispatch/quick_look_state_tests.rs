@@ -347,6 +347,7 @@ fn ey238_preview_figures_reads_the_open_markdown_figures(cx: &mut TestAppContext
         Block, Figure, FigureKind,
     };
     use std::sync::Arc;
+    use std::time::{Duration, Instant};
     let (shell, cx, _requests, _script) = mounted(cx);
     open_kind(&shell, cx, "readme.md");
     let View::Markdown(markdown) = mounted_view(&shell, cx) else {
@@ -365,11 +366,20 @@ fn ey238_preview_figures_reads_the_open_markdown_figures(cx: &mut TestAppContext
         figure,
         ..Counter::default()
     };
+    // The real load replies from its own thread; one landing after the edit below would overwrite it.
+    let until = Instant::now() + Duration::from_secs(10);
+    while markdown.read_with(cx, |view, _| view.doc.status == Status::Loading) {
+        assert!(Instant::now() < until, "the real load never landed");
+        draw(cx);
+        std::thread::sleep(Duration::from_millis(5));
+    }
     markdown.update(cx, |view, _| {
+        let mut parsed = view.doc.parsed.clone();
+        parsed.blocks = Arc::new(vec![run, figure.clone(), figure]);
+        parsed.prefix = Arc::new(vec![counter(0), counter(0), counter(1), counter(2)]);
+        // Taken as a parse, so the per-block layout vectors match the blocks.
+        view.doc.take(parsed, true);
         view.doc.status = Status::Ready;
-        view.doc.complete = true;
-        view.doc.parsed.blocks = Arc::new(vec![run, figure.clone(), figure]);
-        view.doc.parsed.prefix = Arc::new(vec![counter(0), counter(0), counter(1), counter(2)]);
         let mut assets = (*view.doc.assets).clone();
         assets.figures.insert(1, FigureState::Failed);
         view.doc.assets = Arc::new(assets);

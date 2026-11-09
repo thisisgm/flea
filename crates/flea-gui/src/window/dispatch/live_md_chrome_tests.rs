@@ -132,6 +132,16 @@ fn sol_live_md_chrome_markdown_relabels_without_reloading_or_scrolling(cx: &mut 
         panic!("Markdown view")
     };
     let text: Arc<str> = "A document line\n".repeat(481).into();
+    // The real load replies from its own thread; one landing after the edit below would overwrite it.
+    let until = std::time::Instant::now() + std::time::Duration::from_secs(10);
+    while markdown.read_with(cx, |view, _| view.doc.status == Status::Loading) {
+        assert!(
+            std::time::Instant::now() < until,
+            "the real load never landed"
+        );
+        super::preview_tests::draw(cx);
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
     markdown.update(cx, |view, _| {
         view.doc.status = Status::Ready;
         view.doc.complete = true;
