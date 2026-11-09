@@ -70,7 +70,8 @@ impl SheetView {
             .probe
             .bounds("body")
             .map_or_else(|| self.viewport(window), |body| f32::from(body.size.height));
-        if std::mem::take(&mut self.sheet.moved) && !self.sheet.query.is_empty() {
+        self.sheet.balanced = self.unit(window).is_some();
+        if std::mem::take(&mut self.sheet.moved) && self.searching() {
             self.sheet.reveal(viewport, KEY_ROW);
         }
         let (most, feet) = (self.most(), self.feet());

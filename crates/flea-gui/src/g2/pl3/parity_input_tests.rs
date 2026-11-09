@@ -1,6 +1,7 @@
 //! Trash borrows window controls through the mounted root and retains its own row actions.
 use super::join_tests::{answer, call, draw, opened, root, shell};
 use crate::list::bench::real_cx;
+use crate::window::user_keys::test_fixture::samples;
 use flea::jsondoc::Json;
 use gpui::{point, px, Modifiers, ScrollDelta, ScrollWheelEvent, TouchPhase, VisualTestContext};
 
@@ -277,5 +278,56 @@ fn pb_trash_sheet_has_only_borrowed_keys_and_its_live_trash_menu() {
         assert_eq!(pane.view().pending_op, "restore");
         assert!(pane.focus.is_focused(window));
         assert_eq!(pane.view().selection.uris(), ["trash:///alpha"]);
+    });
+}
+
+// Over Trash the sheet's keyboard lights only the keys Trash answers, and its search finds key bindings only.
+#[test]
+fn trash_sheet_keyboard_shows_the_keys_trash_answers() {
+    let mut cx = real_cx();
+    let window = root(&mut cx);
+    opened(&mut cx, window);
+    shell(&mut cx, window, |shell, window, cx| {
+        shell.open_sheet(window, cx);
+        let keyboard = shell
+            .sheet_keyboard_from("default", false, samples)
+            .map(|keyboard| shell.over_trash(keyboard, cx));
+        let bound: Vec<String> = keyboard
+            .iter()
+            .flat_map(|k| &k.bound)
+            .map(|b| b.action.clone())
+            .collect();
+        assert!(
+            bound.iter().any(|action| action == "toggleSelect"),
+            "{bound:?}"
+        );
+        assert!(
+            !bound.iter().any(|action| action == "copy"),
+            "Trash does not copy"
+        );
+        assert!(
+            bound
+                .iter()
+                .all(|action| flea::ui_logic_pl3::host::sheet_action(action)),
+            "{bound:?}"
+        );
+        let view = shell.settings.sheet.clone().expect("sheet opened");
+        view.update(cx, |view, _| view.sheet.set_keyboard(keyboard));
+    });
+    cx.simulate_keystrokes(window.into(), "ctrl-f r e s t o r e");
+    shell(&mut cx, window, |shell, _, cx| {
+        let sheet = &shell
+            .settings
+            .sheet
+            .as_ref()
+            .expect("sheet open")
+            .read(cx)
+            .sheet;
+        assert!(sheet.typing, "Ctrl+F opened the search");
+        assert_eq!(sheet.query, "restore", "the search took the word");
+        assert!(
+            sheet.ranked.iter().all(|row| row.menu_action.is_empty()),
+            "no Trash menu rows"
+        );
     });
 }

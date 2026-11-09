@@ -3,6 +3,7 @@ pub mod actions;
 pub mod display;
 #[path = "keys_generated.rs"]
 mod generated;
+pub mod physical;
 pub mod presentation;
 pub mod sequence;
 pub mod user;

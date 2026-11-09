@@ -2,7 +2,7 @@
 use crate::{g2::st1::sheet::Sheet, state::Shell};
 use flea::ui_logic_pl3::host::{self, Item};
 use flea::ui_logic_st1::{
-    sheet::{self, Decision, MenuEntry},
+    sheet::{Decision, MenuEntry},
     Text,
 };
 use gpui::{App, Context, Window};
@@ -34,19 +34,8 @@ impl Shell {
                 Item::Separator => None,
             })
             .collect();
-        if !sheet.query.is_empty() {
-            let mut candidates = sheet::action_candidates(&sheet.rows);
-            candidates.extend(sheet::menu_candidates(&sheet.sources.menus, |action| {
-                flea::keys::presentation::hint_for(&sheet.preset, action).into()
-            }));
-            candidates.extend(sheet::place_candidates(&sheet.sources.rail));
-            candidates.extend(sheet::recent_candidates(
-                &sheet.sources.recent,
-                &sheet.sources.home,
-            ));
-            sheet.ranked = sheet::rank(&candidates, &sheet.query, &sheet.catalog);
-            sheet.cursor = sheet.cursor.min(sheet.ranked.len().saturating_sub(1));
-        }
+        // The sheet ranks the rows Trash kept as it ranks any folder's, so its search finds what its list shows.
+        sheet.rerank();
     }
 
     pub(crate) fn sync_trash_sheet(&self, cx: &mut Context<Self>) {

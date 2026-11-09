@@ -255,6 +255,7 @@ impl Shell {
         }
         self.user_keys.said = lines;
         self.sync_settings_user_keys(cx);
+        self.refresh_sheet_keyboard(cx);
     }
 
     pub(crate) fn sync_settings_user_keys(&mut self, cx: &mut Context<Self>) {

@@ -40,6 +40,12 @@ pub mod sheet;
 #[cfg(test)]
 mod sheet_board_tests;
 #[cfg(test)]
+mod sheet_keyboard_mounted_tests;
+#[cfg(test)]
+mod sheet_keyboard_search_tests;
+#[cfg(test)]
+mod sheet_keyboard_state_tests;
+#[cfg(test)]
 mod sheet_keycap_tests;
 mod sheet_menus;
 #[cfg(test)]
