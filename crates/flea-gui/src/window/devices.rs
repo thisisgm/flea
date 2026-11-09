@@ -196,16 +196,9 @@ impl Shell {
             }
         }
         // A failed quiesce or move is said, and the release still runs, as v0.3.12 never held it back.
+        let hint = flea::ui_logic_status_feedback::status::Hint::None;
         for text in failed {
-            self.status_messages(cx, |messages, now| {
-                messages.say(
-                    &text,
-                    true,
-                    "",
-                    flea::ui_logic_status_feedback::status::Hint::None,
-                    now,
-                )
-            });
+            self.status_messages(cx, |messages, now| messages.say(&text, true, "", hint, now));
         }
         if let Some(source) = source {
             source.update(cx, |source, cx| source.quiesced(volume, moved, cx));

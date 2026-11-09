@@ -171,11 +171,29 @@ for mode in ['confirm', 'cancel', 'multi', 'signal']:
 print('ok chooser confirmation, listing order, cancellation and signal preservation')
 
 case, fixture, env = environment('write-refusal')
-s = Session(fixture, env, '--cwd-file', case / 'missing' / 'out')
+for flag in ['--cwd-file', '--chooser-file']:
+    master, slave = pty.openpty()
+    try:
+        result = subprocess.run([binary, '--tui', flag, str(case / 'missing' / 'out'), str(fixture)], env=env,
+                                stdin=slave, stdout=slave, stderr=slave, timeout=8)
+        said = b''
+        while select.select([master], [], [], 0.2)[0]:
+            said += os.read(master, 262144)
+    finally:
+        os.close(master)
+        os.close(slave)
+    assert result.returncode == 2, (flag, result.returncode, said)
+    assert f'The folder for {flag} does not exist: {case / "missing"}'.encode() in said, said
+    assert b'\x1b[?1049h' not in said and not (case / 'missing').exists(), said
+gone = case / 'gone'
+gone.mkdir()
+s = Session(fixture, env, '--cwd-file', gone / 'out')
+assert b'\x1b[?1049h' in s.output, 'the launch check passed and the terminal interface opened'
+gone.rmdir()
 s.send(b'q')
 s.finish(2)
 assert b'flea: terminal interface:' in s.output
-print('ok output write failure exits 2 after terminal restoration')
+print('ok a missing output folder is refused at launch, and one gone by quit exits 2 after terminal restoration')
 
 def check_editor_guard(tool, fixture, env):
     master, slave = pty.openpty()

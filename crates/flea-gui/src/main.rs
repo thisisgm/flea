@@ -137,6 +137,7 @@ fn main() {
     });
     window::glass_tag::stop();
     flea_gui::g2::doc_preview::reap();
+    flea_gui::g2::send_share::settle_stops();
     // A quit can end the event loop before any window drops, so owly's runs give Wi-Fi back here, within the bound.
     use flea_gui::g2::send_share::airdrop_pids;
     airdrop_pids::teardown(airdrop_pids::TEARDOWN);

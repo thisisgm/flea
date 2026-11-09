@@ -203,9 +203,8 @@ pub fn load_settings() -> Result<Settings, String> {
         .map(PathBuf::from)
         .unwrap_or_else(|| home.join(".config"));
     // Before the window, so a fifo or an endless file in its place reads as no file rather than a launch that never opens.
-    let body =
-        flea::backend::regfile::read_text(&config.join("user-dirs.dirs"), MAX_USER_DIRS_BYTES)
-            .unwrap_or_default();
+    let body = flea::userfile::read_text(&config.join("user-dirs.dirs"), MAX_USER_DIRS_BYTES)
+        .unwrap_or_default();
     settings.newest = crate::navigation::folder_state::newest_paths(&body, &home.to_string_lossy());
     Ok(settings)
 }

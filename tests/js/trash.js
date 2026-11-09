@@ -155,7 +155,7 @@ function run(check) {
     check("wire pin: the listing sorts by deletion date, newest first, before the uri tie",
         rust.indexOf("dated.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.uri.cmp(&b.1.uri)))") >= 0, true)
     check("wire pin: one gio list dates every volume's items, no per-item call",
-        rust.indexOf('read(&["list", "-u", "-a", "trash::deletion-date", "trash:///"])') >= 0 && rust.indexOf("fn deletion_date(") < 0, true)
+        rust.indexOf('read(&["list", "-u", "-h", "-a", "trash::deletion-date", "trash:///"])') >= 0 && rust.indexOf("fn deletion_date(") < 0, true)
     check("wire pin: the backend orders every listing it reads, through the one reader the tests feed",
         rust.indexOf("newest_first(&mut items, |item| dates.get(&item.uri)") >= 0 && rust.indexOf("fn list() -> Result<Vec<Item>, Refusal> {\n    list_with(gio)\n}") >= 0, true)
     check("wire pin: item membership is by uri set, never a uri search of the date-ordered listing",

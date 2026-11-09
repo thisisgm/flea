@@ -185,7 +185,9 @@ impl Shell {
             })
         } else if done.err == "cancelled" {
             catalog.tr("archive.done.cancelled")
-        } else if let Some(refusal) = flea::ui_logic_status_feedback::errors::extract_refusal(&done.err) {
+        } else if let Some(refusal) =
+            flea::ui_logic_status_feedback::errors::extract_refusal(&done.err)
+        {
             refusal.render(&catalog)
         } else {
             capitalised(&done.err)

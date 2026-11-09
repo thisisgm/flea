@@ -1,5 +1,6 @@
 //! The window's owly runs as host processes: doctor, radio, receiver and browse, and the look a second while the radio is up.
 use super::airdrop::Proc;
+use super::airdrop_shared::Seen;
 use super::join::now_ms;
 use crate::state::Shell;
 use flea::ui_logic_send_share::airdrop_ask;
@@ -170,6 +171,81 @@ impl Shell {
         .detach();
     }
 
+    // The machine's radio is read off the window's thread after the window's earlier asks; None when a Receiving choice came meanwhile.
+    pub(super) fn airdrop_probe(
+        &mut self,
+        keep: bool,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+        then: impl FnOnce(&mut Self, Option<&Seen>, &mut Window, &mut Context<Self>) + 'static,
+    ) {
+        let air = &mut self.menu.providers.airdrop;
+        let (done, next) = async_channel::bounded::<()>(1);
+        let (probe, asks, before) = (air.shared.probe(), air.asks, air.io.replace(next));
+        let (unwritten, (looked, seen)) =
+            (keep.then(|| air.shared.hold()), async_channel::bounded(1));
+        // The whole chain runs on the background executor, so a quit that ends the event loop never holds it up.
+        cx.background_executor()
+            .spawn(async move {
+                if let Some(before) = before {
+                    let _ = before.recv().await;
+                }
+                if keep {
+                    probe.keep();
+                }
+                drop(unwritten);
+                let _ = looked.try_send(probe.seen());
+                drop(done);
+            })
+            .detach();
+        cx.spawn_in(window, async move |this, cx| {
+            let Ok(seen) = seen.recv().await else {
+                return;
+            };
+            let _ = this.update_in(cx, |shell, window, cx| {
+                let fresh = shell.menu.providers.airdrop.asks == asks;
+                then(shell, fresh.then_some(&seen), window, cx);
+            });
+        })
+        .detach();
+    }
+
+    // A look that a Receiving choice overtook is taken again, so what it shows is never older than that choice.
+    pub(super) fn airdrop_look(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+        then: impl FnOnce(&mut Self, &Seen, &mut Window, &mut Context<Self>) + 'static,
+    ) {
+        self.airdrop_probe(
+            false,
+            window,
+            cx,
+            move |shell, seen, window, cx| match seen {
+                Some(seen) => then(shell, seen, window, cx),
+                None => shell.airdrop_look(window, cx, then),
+            },
+        );
+    }
+
+    pub(super) fn airdrop_ask_stop(&mut self, cx: &mut Context<Self>) {
+        let air = &mut self.menu.providers.airdrop;
+        let (done, next) = async_channel::bounded::<()>(1);
+        let (probe, before, unwritten) =
+            (air.shared.probe(), air.io.replace(next), air.shared.hold());
+        // Detached, so a stop asked just before the window closes is still written.
+        cx.background_executor()
+            .spawn(async move {
+                if let Some(before) = before {
+                    let _ = before.recv().await;
+                }
+                probe.ask_stop();
+                drop(unwritten);
+                drop(done);
+            })
+            .detach();
+    }
+
     // While the radio is up, the owner answers another window's Off and a reader follows the owner's radio.
     pub(super) fn airdrop_watch(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if !self.menu.providers.airdrop.watch() {
@@ -177,14 +253,22 @@ impl Shell {
         }
         cx.spawn_in(window, async move |this, cx| loop {
             cx.background_executor().timer(WATCH).await;
-            let going = this.update_in(cx, |shell, window, cx| {
-                let catalog = shell.locale.catalog.clone();
-                let (acts, going) = shell.menu.providers.airdrop.tick(now_ms(), &catalog);
-                let side = shell.focus_side;
-                shell.airdrop_acts(side, acts, window, cx);
-                going
+            let (done, going) = async_channel::bounded(1);
+            let asked = this.update_in(cx, |shell, window, cx| {
+                shell.airdrop_probe(false, window, cx, move |shell, seen, window, cx| {
+                    // A look a Receiving choice overtook waits for the next second.
+                    let Some(seen) = seen else {
+                        let _ = done.try_send(true);
+                        return;
+                    };
+                    let catalog = shell.locale.catalog.clone();
+                    let (acts, going) = shell.menu.providers.airdrop.tick(now_ms(), &catalog, seen);
+                    let side = shell.focus_side;
+                    shell.airdrop_acts(side, acts, window, cx);
+                    let _ = done.try_send(going);
+                });
             });
-            if !matches!(going, Ok(true)) {
+            if asked.is_err() || !matches!(going.recv().await, Ok(true)) {
                 break;
             }
         })

@@ -216,7 +216,7 @@ fn write_target(path: &Path) -> Result<Target, String> {
 
 // A fifo never blocks the open, a device is never opened, and a file past MAX_BYTES or not UTF-8 is InvalidData.
 fn read_state(path: &Path) -> std::io::Result<String> {
-    crate::backend::regfile::read_text(path, MAX_BYTES)
+    userfile::read_text(path, MAX_BYTES)
 }
 
 pub(crate) fn state_home() -> Result<PathBuf, String> {

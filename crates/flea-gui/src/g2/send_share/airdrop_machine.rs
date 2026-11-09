@@ -1,5 +1,5 @@
 //! The machine's AirDrop as one window sees it: its own radio or another window's, and what the receiver saved.
-use super::{Act, AirDrop, Proc, Radio, RECEIVED_GROUP_MS};
+use super::{owly, Act, AirDrop, Proc, Radio, Seen, RECEIVED_GROUP_MS};
 use flea::i18n::I18n;
 use flea::ui_logic_send_share::airdrop::{Adapter, Readiness};
 use flea::ui_logic_send_share::airdrop_ask::{self, Heard};
@@ -23,12 +23,49 @@ impl AirDrop {
         self.adapter.ready() || self.elsewhere != Radio::Off
     }
 
-    // Reads another window's radio; one that went down takes this window's browse and devices with it.
-    pub fn look(&mut self) -> Vec<Act> {
+    // Turn On AirDrop, or Receiving set to Everyone for 10 Minutes: the radio first, the receiver once awdl0 is up.
+    pub fn turn_on(&mut self, folder: &str, i18n: &I18n, seen: &Seen) -> Vec<Act> {
         if self.radio != Radio::Off {
             return Vec::new();
         }
-        let (radio, card) = self.shared.read();
+        // owly is still giving Wi-Fi back, and the radio is free once that run exits.
+        if self.stopping.is_some() {
+            return self.retry_later(folder, seen);
+        }
+        // The machine has one radio: one another window holds shows on here.
+        let mut acts = self.look(seen);
+        if self.elsewhere != Radio::Off {
+            acts.push(Act::Refresh);
+            return acts;
+        }
+        if self.owly.is_empty() || !self.adapter.ready() {
+            acts.extend([
+                Act::Say(i18n.tr("send.providers.menu_stale"), true),
+                Act::Refresh,
+            ]);
+            return acts;
+        }
+        if !self.shared.claim(&self.adapter.card) {
+            acts.extend(self.retry_later(folder, seen));
+            return acts;
+        }
+        self.radio = Radio::Starting;
+        self.folder = folder.to_string();
+        self.said.clear();
+        let generation = self.next_gen(Proc::Radio);
+        acts.extend([
+            Act::Start(Proc::Radio, generation, owly::radio_argv(&self.owly)),
+            Act::Refresh,
+        ]);
+        acts
+    }
+
+    // Reads another window's radio; one that went down takes this window's browse and devices with it.
+    pub fn look(&mut self, seen: &Seen) -> Vec<Act> {
+        if self.radio != Radio::Off {
+            return Vec::new();
+        }
+        let (radio, card) = (seen.radio, seen.card.clone());
         // The owner's doctor said ready before it took the radio, and doctor reads the lease while it is up.
         if radio != Radio::Off && !self.adapter.ready() {
             self.adapter = Adapter {
@@ -57,13 +94,13 @@ impl AirDrop {
     }
 
     // Receiving set to Off in a window that does not own the radio: the owner is asked, and stops it within a second.
-    pub(super) fn stop_elsewhere(&mut self) -> Vec<Act> {
-        if self.elsewhere == Radio::Off {
+    pub(super) fn stop_elsewhere(&mut self, waited: bool) -> Vec<Act> {
+        if self.elsewhere == Radio::Off && !waited {
             return Vec::new();
         }
-        self.shared.ask_stop();
         self.elsewhere = Radio::Off;
-        let mut acts = self.quiet();
+        let mut acts = vec![Act::AskStop];
+        acts.extend(self.quiet());
         acts.push(Act::Refresh);
         acts
     }
@@ -78,19 +115,19 @@ impl AirDrop {
     }
 
     // Once a second: the owner answers a stop asked elsewhere, a reader follows the owner; false when nothing is left.
-    pub fn tick(&mut self, now_ms: u64, i18n: &I18n) -> (Vec<Act>, bool) {
+    pub fn tick(&mut self, now_ms: u64, i18n: &I18n, seen: &Seen) -> (Vec<Act>, bool) {
         if let Some(folder) = self.again.take() {
-            return (self.turn_on(&folder, i18n), true);
+            return (self.turn_on(&folder, i18n, seen), true);
         }
         if self.radio != Radio::Off {
-            let acts = if self.shared.stop_asked() {
+            let acts = if self.shared.stop_asked(seen) {
                 self.turn_off()
             } else {
                 Vec::new()
             };
             return (acts, true);
         }
-        let mut acts = self.look();
+        let mut acts = self.look(seen);
         // A reader's open menu lists devices once the owner's radio is up, unless its last browse failed.
         if self.browse_failed_ms.is_none() {
             acts.extend(self.browse(now_ms));
@@ -109,15 +146,16 @@ impl AirDrop {
     pub(super) fn let_go(&mut self, i18n: &I18n) -> Vec<Act> {
         self.stopping = None;
         self.shared.release();
+        // This window held the lock until now, so no other window's radio was up to see.
         match self.again.take() {
-            Some(folder) => self.turn_on(&folder, i18n),
+            Some(folder) => self.turn_on(&folder, i18n, &Seen::default()),
             None => Vec::new(),
         }
     }
 
     // Receiving On while the machine's radio is still going down waits, and the watch tries again each second.
-    pub(super) fn retry_later(&mut self, folder: &str) -> Vec<Act> {
-        let mut acts = self.look();
+    pub(super) fn retry_later(&mut self, folder: &str, seen: &Seen) -> Vec<Act> {
+        let mut acts = self.look(seen);
         if self.elsewhere == Radio::Off {
             self.again = Some(folder.to_string());
         }
