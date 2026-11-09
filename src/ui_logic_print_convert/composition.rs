@@ -199,7 +199,7 @@ pub fn scale_argv(
             geometry,
         ]);
     }
-    args.push(output.to_string_lossy().into_owned());
+    args.push(output::magick_output(output));
     args
 }
 
@@ -241,7 +241,7 @@ pub fn join_argv(
         ]);
     }
     finish_format(&mut args, output);
-    args.push(output.to_string_lossy().into_owned());
+    args.push(output::magick_output(output));
     args
 }
 
@@ -286,6 +286,6 @@ pub fn join_commands(
         format!("{spacing}x{spacing}"),
     ];
     finish_format(&mut finish, output);
-    finish.push(output.to_string_lossy().into_owned());
+    finish.push(output::magick_output(output));
     vec![join_argv(inputs, &intermediate, size, settings), finish]
 }

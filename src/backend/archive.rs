@@ -177,9 +177,8 @@ impl Formats {
                 "import resource,sys; open(sys.argv[1],'wb').write(b'probe'); sys.exit(0 if resource.getrlimit(resource.RLIMIT_CPU)[0]==resource.RLIM_INFINITY else 1)".to_string(),
                 dest.to_string_lossy().to_string()]);
         }
-        let mut a: Vec<String> = Vec::with_capacity(names.len() + 7);
-        // A zip goes to 7z when it is installed: its deflate runs on every core, where bsdtar's runs on one.
-        if format == SEVENZIP_FORMAT || (format == ZIP_FORMAT && self.have_7z) {
+        let mut a: Vec<String> = Vec::with_capacity(names.len() + 9);
+        if self.seven_writes(format) {
             a.push(SEVENZIP.to_string());
             a.push("a".to_string());
             a.push("-bd".to_string());
@@ -202,12 +201,18 @@ impl Formats {
         a.push(dest.to_string_lossy().to_string());
         a.push("-C".to_string());
         a.push(parent.to_string_lossy().to_string());
-        // Members are relative names from the selection; one that begins with a dash would be read
-        // as a bsdtar option (`--use-compress-program` runs an arbitrary program), so option parsing
-        // is terminated first, the same way trash.rs does before its own paths.
+        // bsdtar reads an @ operand as an archive to copy in even after --, so members go as ./name and -s strips ./ (S spares link targets).
+        a.push("-s".to_string());
+        a.push(",^\\./,,S".to_string());
+        // A member beginning with a dash would be a bsdtar option (--use-compress-program runs a program), so -- ends them as trash.rs does.
         a.push("--".to_string());
-        a.extend(names.iter().cloned());
+        a.extend(names.iter().map(|n| format!("./{n}")));
         Some(a)
+    }
+
+    // A zip goes to 7z when it is installed: its deflate runs on every core, where bsdtar's runs on one.
+    pub fn seven_writes(&self, format: &str) -> bool {
+        format == SEVENZIP_FORMAT || (format == ZIP_FORMAT && self.have_7z)
     }
 
     // The one reader choice, shared by extract_argv and list_argv; None when no tool reads it.

@@ -1003,3 +1003,67 @@ fn a_step_skips_the_busy_row_that_says_the_menu_is_still_asking() {
     assert_eq!(step_row(&rows, 2, -1), 2, "the busy row is never the cursor, so Up keeps Add");
     assert_eq!(step_row(&rows, -1, 1), 2);
 }
+
+// Issue 397: several marked archives offer Extract, one job each; a mixed selection or a disk image among them does not.
+#[test]
+fn several_archives_offer_extract_and_a_mixed_selection_does_not() {
+    let several = |names: &[&str], count: usize, can: bool| {
+        let rows = listing_entries(&st(|p| {
+            p.selection_count = count;
+            p.row_is_archive = true;
+            p.archive_name = names[0].to_string();
+            p.archive_names = strings(names);
+            p.can_extract = can;
+        }));
+        entry(&rows, "extract").map(|e| e.disabled)
+    };
+    assert_eq!(several(&["a.zip", "b.tar.gz"], 2, true), Some(false));
+    assert_eq!(
+        several(&["a.zip", "b.7z"], 2, false),
+        Some(true),
+        "a reader missing for one disables the row"
+    );
+    assert_eq!(
+        several(&["a.zip"], 2, true),
+        None,
+        "a selection with a non-archive has no Extract"
+    );
+    assert_eq!(
+        several(&["a.zip", "disk.iso"], 2, true),
+        None,
+        "a disk image lists and never extracts"
+    );
+    use crate::ui_logic_context_menus::archive::{can_extract_all, selection_archives, Extraction};
+    assert_eq!(
+        selection_archives([("a.zip", false), ("b.7z", false)]),
+        strings(&["a.zip", "b.7z"])
+    );
+    assert!(selection_archives([("a.zip", false), ("notes.txt", false)]).is_empty());
+    assert!(
+        selection_archives([("a.zip", false), ("b.zip", true)]).is_empty(),
+        "a folder named like one is not one"
+    );
+    assert!(
+        selection_archives([("a.zip", false)]).is_empty(),
+        "one archive keeps the cursor row's own path"
+    );
+    let zip_only = Extraction {
+        archive: false,
+        seven_zip: false,
+        zip: true,
+    };
+    assert!(can_extract_all(
+        &strings(&["a.zip", "b.rar"]),
+        "a.zip",
+        zip_only
+    ));
+    assert!(!can_extract_all(
+        &strings(&["a.zip", "b.7z"]),
+        "a.zip",
+        zip_only
+    ));
+    assert!(
+        can_extract_all(&[], "a.zip", zip_only),
+        "with no list the row decides"
+    );
+}

@@ -416,8 +416,21 @@ pub fn extract_hint(formats: &[String]) -> &'static str {
 }
 
 // Absent for none and for a disk image, which lists and never extracts; disabled with its reason for no reader.
+// Issue 397: a selection made only of archives runs one extract per archive, so it is offered for several too.
 pub fn extract_entry(entry: &mut Entry, p: &Context, count: usize) -> bool {
-    if !p.row_is_archive || count != 1 || ends_with(&p.archive_name.to_lowercase(), ".iso") {
+    let several = count > 1 && p.archive_names.len() == count;
+    if !(several || p.row_is_archive && count == 1) {
+        return false;
+    }
+    let names = if several {
+        &p.archive_names[..]
+    } else {
+        std::slice::from_ref(&p.archive_name)
+    };
+    if names
+        .iter()
+        .any(|name| ends_with(&name.to_lowercase(), ".iso"))
+    {
         return false;
     }
     if !p.can_extract {

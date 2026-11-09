@@ -245,6 +245,19 @@ impl Snapshot {
                 self.check_provider_destination(Path::new(&field_str(line, "dest").unwrap_or_default()))?;
             }
             if op == "activate" { self.provider_transfer = action == "dropbox"; }
+            // Issue 397: a selection of several archives names each one, and each runs its own extract.
+            if action == "extract" && self.items.len() > 1 {
+                let mut paths = Vec::with_capacity(self.items.len());
+                for item in &self.items {
+                    item.current()?;
+                    paths.push(format!(r#""{}""#, escape(&item.path.to_string_lossy())));
+                }
+                return Ok(format!(
+                    r#""action":"{}","paths":[{}]"#,
+                    escape(&action),
+                    paths.join(",")
+                ));
+            }
             if action == "extract" {
                 let cursor = self.extract_item()?;
                 cursor.current()?;

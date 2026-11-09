@@ -38,7 +38,7 @@ pub fn image_argv(inputs: &[PathBuf], output: &Path, strip: bool) -> Vec<String>
     }
     if strip { args.push("-strip".into()); }
     // A suffix can silently fall back to the input codec when its encoder is missing.
-    args.push(format!("{}:{}", printconvert::extension(output), output.to_string_lossy()));
+    args.push(format!("{}:{}", printconvert::extension(output), printconvert::magick_output(output)));
     args
 }
 

@@ -162,7 +162,14 @@ impl Shell {
         context.row_is_archive = context.row_is_file && archive::is_archive(&name);
         context.archive_name = name.clone();
         context.archive_formats = formats.archive.clone();
-        context.can_extract = formats.known && archive::can_extract(&name, formats.caps);
+        // Issue 397: several marked archives extract only when each one does.
+        let names = if context.archive_names.is_empty() {
+            std::slice::from_ref(&name)
+        } else {
+            &context.archive_names[..]
+        };
+        context.can_extract =
+            formats.known && names.iter().all(|n| archive::can_extract(n, formats.caps));
     }
 
     /// A started backend is asked its formats once, before the first menu needs them, as v0.3.12's backend start asked.

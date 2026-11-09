@@ -99,7 +99,7 @@ pub fn start_archive(
     let sources = if op == "extract" && menu_id != 0 {
         ops.menuactions.as_ref()
             .ok_or_else(|| super::menu_actions::SELECTION_CHANGED.to_string())
-            .and_then(|menu| menu.extract_selection(menu_id)).map(Some)
+            .and_then(|menu| menu.extract_selection(menu_id, &archive)).map(Some)
     } else {
         menu_sources(ops, menu_id)
     };

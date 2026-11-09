@@ -53,6 +53,11 @@ pub fn extension(path: &Path) -> String {
         .to_ascii_lowercase()
 }
 
+// magick expands %d and %x anywhere in an output path (scan%d/o.jpg writes scan0/o.jpg), and %% writes one %.
+pub fn magick_output(path: &Path) -> String {
+    path.to_string_lossy().replace('%', "%%")
+}
+
 pub fn converted_name(source: &Path, format: &str) -> String {
     let word = if extension(source) == format {
         "stripped"

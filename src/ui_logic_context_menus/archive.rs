@@ -17,6 +17,23 @@ pub fn row_is_archive(name: &str, dir: bool) -> bool {
     !dir && is_archive(name)
 }
 
+/// Issue 397: the selection's names when there are several and every one is an archive file, else none.
+pub fn selection_archives<'a>(rows: impl IntoIterator<Item = (&'a str, bool)>) -> Vec<String> {
+    let names: Option<Vec<String>> = rows
+        .into_iter()
+        .map(|(name, dir)| row_is_archive(name, dir).then(|| name.to_string()))
+        .collect();
+    names.filter(|names| names.len() > 1).unwrap_or_default()
+}
+
+/// Several archives extract only when each one does; with none, the menu's own row decides.
+pub fn can_extract_all(names: &[String], row: &str, caps: Extraction) -> bool {
+    if names.is_empty() {
+        return can_extract(row, caps);
+    }
+    names.iter().all(|name| can_extract(name, caps))
+}
+
 pub fn can_extract(name: &str, caps: Extraction) -> bool {
     let lower = name.to_lowercase();
     let tail = |suffix: &&str| lower.ends_with(suffix);
