@@ -83,3 +83,6 @@ fn b16_a_tab_switch_keeps_the_last_explicit_sort_and_its_direction(cx: &mut Test
         shell.update(cx, |shell, _| shell.stop_for_app_quit());
     }
 }
+
+#[path = "dual_folder_sort_tests.rs"]
+mod dual_folder_sort_tests;

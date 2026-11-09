@@ -12554,6 +12554,64 @@ case_foldersort() {
     printf 'FOLDERSORT ok\n'
 }
 
+dualfoldersort_check() {
+    local label="$1" want="$2" m
+    m=$(foldersort_settled_mark)
+    printf 'DUALFOLDERSORT %s: %s (want %s)\n' "$label" "$m" "$want"
+    [[ "$m" == "$want" ]] || dualfoldersort_bad=$((dualfoldersort_bad + 1))
+}
+dualfoldersort_open() {
+    local root="$1" move="$2" child="$3"
+    key -k BackSpace >/dev/null; foldersort_wait_path "$root"; wait_listing 2
+    [[ -z "$move" ]] || key -k "$move" >/dev/null
+    key -k Return >/dev/null; foldersort_wait_path "$root/$child"; wait_listing 3
+}
+
+# Each folder keeps its own sort in either dual pane as in one pane, a folder open in both panes shows one sort, and a restart keeps both.
+case_dualfoldersort() {
+    local root="$fixture_root/dualfoldersort" d dualfoldersort_bad=0 menus_checks=0
+    local by_size="size:asc rows=y.txt,z.txt,x.txt" by_date="mtime:asc rows=x.txt,z.txt,y.txt" by_date_desc="mtime:desc rows=y.txt,z.txt,x.txt"
+    sandbox_scratch "$root"
+    for d in a b; do
+        mkdir -p "$root/$d"
+        head -c 300 /dev/zero > "$root/$d/x.txt"; head -c 10 /dev/zero > "$root/$d/y.txt"; head -c 100 /dev/zero > "$root/$d/z.txt"
+        touch -d @1700000000 "$root/$d/x.txt"; touch -d @1700000200 "$root/$d/y.txt"; touch -d @1700000100 "$root/$d/z.txt"
+    done
+    seed_ui_state "$fixture_root/dualfoldersort-state" "$(jq -cn --arg a "$root/a" --arg b "$root/b" \
+        '{view:"dual",keys:"default",rememberSort:true,sort:{key:"name",reverse:false},dual:{paths:[$a,$b],focus:0}}')"
+    launch "$root/a"
+    menus_expect dualState '.active and .focused == 0 and all(.panes[]; .total == 3 and (.loading | not))' 'dualfoldersort: both panes list their folder'
+    key s >/dev/null
+    dualfoldersort_check 'left a sorted' "$by_size"
+    key -k Tab >/dev/null
+    key s >/dev/null; foldersort_settled_mark >/dev/null; key s >/dev/null
+    dualfoldersort_check 'right b sorted' "$by_date"
+    settings_wait_value ".folderSorts[\"$root/a\"].key == \"size\" and .folderSorts[\"$root/b\"].key == \"date\""
+    dualfoldersort_open "$root" "" b
+    dualfoldersort_check 'right b reopened' "$by_date"
+    key -M shift -k Tab -m shift >/dev/null
+    dualfoldersort_open "$root" "" a
+    dualfoldersort_check 'left a reopened' "$by_size"
+    dualfoldersort_open "$root" Down b
+    dualfoldersort_check 'left opens b' "$by_date"
+    key S >/dev/null
+    dualfoldersort_check 'left b reversed' "$by_date_desc"
+    key -k Tab >/dev/null
+    dualfoldersort_check 'right b follows its folder' "$by_date_desc"
+    shot dualfoldersort-shared
+    dualfoldersort_open "$root" Up a
+    dualfoldersort_check 'right opens a' "$by_size"
+    launch "$root/a"
+    menus_expect dualState '.active and .focused == 1 and all(.panes[]; .total == 3 and (.loading | not))' 'dualfoldersort: the restart reopens both panes'
+    dualfoldersort_check 'right a after restart' "$by_size"
+    key -M shift -k Tab -m shift >/dev/null
+    dualfoldersort_check 'left b after restart' "$by_date_desc"
+    shot dualfoldersort-restart
+    kill_flea
+    [[ $dualfoldersort_bad == 0 ]] || fail "dualfoldersort: $dualfoldersort_bad of 10 remembered-sort expectations broke"
+    printf 'DUALFOLDERSORT ok\n'
+}
+
 case_dualsort() {
     local dir="$fixture_root/dual-sort" state="$fixture_root/dual-sort-state" menus_checks=0
     local side index name left right left_scroll right_scroll mode list_requests kept_name kept_at date_epoch=1700000000

@@ -7471,7 +7471,7 @@
       "call_sites": [
         {
           "excerpt": "let title = locale.catalog.tr(\"app.name\");",
-          "line": 96,
+          "line": 97,
           "path": "crates/flea-gui/src/window/mod.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -78685,8 +78685,15 @@
           "usage": "translated-call"
         },
         {
+          "excerpt": "let failure = self.locale.catalog.tr(\"navigation.save_failed\");",
+          "line": 157,
+          "path": "crates/flea-gui/src/window/navigate.rs",
+          "surface": "gui",
+          "usage": "translated-call"
+        },
+        {
           "excerpt": ".persist(patch, self.locale.catalog.tr(\"navigation.save_failed\"));",
-          "line": 215,
+          "line": 220,
           "path": "crates/flea-gui/src/window/navigate.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -85229,7 +85236,7 @@
         },
         {
           "excerpt": "let name = self.locale.catalog.tr(\"places.row.recent\");",
-          "line": 259,
+          "line": 264,
           "path": "crates/flea-gui/src/window/navigate.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -212334,7 +212341,7 @@
     },
     {
       "excerpt": "echo \"DUPLICATE ceiling: $duplicated\"",
-      "line": 355,
+      "line": 351,
       "literal": "DUPLICATE ceiling: $duplicated",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -212343,7 +212350,7 @@
     },
     {
       "excerpt": "echo \"UNREADABLE $file: cannot read it, so it has no line count\"",
-      "line": 378,
+      "line": 374,
       "literal": "UNREADABLE $file: cannot read it, so it has no line count",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -212352,7 +212359,7 @@
     },
     {
       "excerpt": "echo \"GREW      $file: $lines lines, recorded $recorded, cap $hard\"",
-      "line": 390,
+      "line": 386,
       "literal": "GREW      $file: $lines lines, recorded $recorded, cap $hard",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -212361,7 +212368,7 @@
     },
     {
       "excerpt": "echo \"GREW      $file: $lines lines, recorded $recorded, cap $hard\"",
-      "line": 395,
+      "line": 391,
       "literal": "GREW      $file: $lines lines, recorded $recorded, cap $hard",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -212370,7 +212377,7 @@
     },
     {
       "excerpt": "echo \"known     $file: $lines lines, recorded $recorded, cap $hard\"",
-      "line": 398,
+      "line": 394,
       "literal": "known     $file: $lines lines, recorded $recorded, cap $hard",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -212379,7 +212386,7 @@
     },
     {
       "excerpt": "echo \"OVER CAP  $file: $lines lines, cap $hard\"",
-      "line": 402,
+      "line": 398,
       "literal": "OVER CAP  $file: $lines lines, cap $hard",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -212388,7 +212395,7 @@
     },
     {
       "excerpt": "echo \"over soft $file: $lines lines, budget $soft, split it\"",
-      "line": 405,
+      "line": 401,
       "literal": "over soft $file: $lines lines, budget $soft, split it",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -252317,6 +252324,7 @@
     "crates/flea-gui/src/window/external_action_ipc.rs": "0bab120db83d19ee17f70d4deb3d18b268798d3336754c761971b1a1345464c5",
     "crates/flea-gui/src/window/filter.rs": "4708b96f4ba33dde2f4128cde23245d94245ca592bbe19e561db6d5eb0b7f39b",
     "crates/flea-gui/src/window/filter_input.rs": "dfb6834589c0190e2ee12644b13c4f1f93ee72f9a05903b405362e62410cea30",
+    "crates/flea-gui/src/window/folder_follow.rs": "3e018f6ba1e50ada2328b60202f7426e8e6cb5cf8a8bd78968227f9c759580e3",
     "crates/flea-gui/src/window/frame_feedback.rs": "68861c8cbce401638e873554a22e84e4b07b89777bf5ee0696c9718416544a20",
     "crates/flea-gui/src/window/frame_feedback/activity.rs": "6576d8076e25165ef1da3634c1179bffb3f9e25a294a6cd6ca1e26b51e459548",
     "crates/flea-gui/src/window/frame_feedback/perf_gates.rs": "505b15c5f3528d402d74c60c3e45cecf7e5951a603e4c5c75505bd75b8c3e2f4",
@@ -252350,8 +252358,8 @@
     "crates/flea-gui/src/window/lifecycle.rs": "689767f40d95c0995fbca9ae443a57c406bb7f37e1db1c26376d7b6ed8a2824e",
     "crates/flea-gui/src/window/locale.rs": "db61d8c455cda0df357f3929a2e0993476fd6187722a9b2306c34b764c5bcc25",
     "crates/flea-gui/src/window/m9_g2rows_02_fixtures.rs": "b49f4e8ead91cd2bb902af7fc374950db77446671d739fba45a799ebe0ffb231",
-    "crates/flea-gui/src/window/mod.rs": "89654fedac807e9f331347595e72d0dcb1af7957d7c099b7a80c8b64e06b9d8e",
-    "crates/flea-gui/src/window/navigate.rs": "db162efbb7ee686b825292a51809ec08bb54228e0d13f159e43178744211b614",
+    "crates/flea-gui/src/window/mod.rs": "0f9ec943f09dd32e2a8e3861b200fe584aefc360f397df886a5270a6a1fa3993",
+    "crates/flea-gui/src/window/navigate.rs": "f8d1e09cf9ee353c63049facb4adbe912434d0ee9a48d1f88c8fc115bdd67c60",
     "crates/flea-gui/src/window/network.rs": "153a78bf43a3eb774e95411ee568f1ad18961279e2abd24fd78d9ef5db8abb30",
     "crates/flea-gui/src/window/network_cloud.rs": "3a3febd4a7fe3d9fc7bd67c97c77245c21a3f4a8c12314558d39d5ce542d6fee",
     "crates/flea-gui/src/window/network_effects.rs": "a9a123dfb5024fb55f652df1fed88715dc8a25f1ddef8996df68afe400279445",
@@ -253466,7 +253474,7 @@
     "tools/flea-field-nav": "36bc42104edb84c4194b4b6d28c3e67d915a2a144692aaa49953981a4a5bdbf8",
     "tools/flea-field-search": "70ec859809b73cb1bf58fccb4129b05622023a0686991fe7370aafd8fe7805a6",
     "tools/flea-figure-bench": "60d312818e6af2fa0989d50275907d2a0f9e6019787caae93e8d8a4e440dc8e7",
-    "tools/flea-file-budget": "6c81a7d167b4963960030d23fa38f8e41172d48c6f44aeaf1c1d34f5089c1ec3",
+    "tools/flea-file-budget": "cdc93ed2c4a587bbca90b5bb9f1d4a6dc1f15388417487c57b6f4137f766ac78",
     "tools/flea-filemanager1": "ebccc20a6b2be787dcf7e817d353a21dcca5ff57de184161f12e28ee5b0322e1",
     "tools/flea-first-paint": "6b9555b0a20b6d4bec057bd9c405823a1b742c14d27304b83a5a95d801ac5526",
     "tools/flea-framecap-build": "7c9433d4c4774f8810fd4e4c8ee92d0b5810dcbc7645231205a8155d557f5f2e",
@@ -254002,8 +254010,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "9975cec3467da306c5df4ba3ba264e592a98dbb7",
-  "source_sha": "9975cec3467da306c5df4ba3ba264e592a98dbb7",
+  "source_ref_sha": "8f5f893affde4c71150dc5f4335ddf45485a8c48",
+  "source_sha": "8f5f893affde4c71150dc5f4335ddf45485a8c48",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1353,
@@ -254018,7 +254026,7 @@
     "gui": {
       "keys_with_occurrences": 555,
       "missing_literal_candidates": 2243,
-      "source_files": 1175
+      "source_files": 1176
     },
     "qml-reference": {
       "keys_with_occurrences": 0,
