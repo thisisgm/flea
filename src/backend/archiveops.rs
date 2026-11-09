@@ -9,6 +9,7 @@ use crate::backend::archivepass;
 use crate::backend::archivework::{
     is_empty_dir, run_boxed_cancellable, run_boxed_cancellable_capped, Work,
 };
+use crate::backend::archivework::workhome;
 use crate::backend::convert;
 use crate::backend::opsreq::op_err;
 use crate::error::{from_io, FleaError};
@@ -68,13 +69,13 @@ pub(crate) fn compress_leaving(
     let (names, skipped) = plan
         .as_ref()
         .map_or((names, &[][..]), |p| (&p.names[..], &p.skipped[..]));
-    let mut work = Work::new(parent, "arc")?;
+    let leaf = dest.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+    let mut work = workhome::work_for(parent, "arc", "archive", &leaf, || workhome::tree_bytes(parent, names))?;
     let staged = work.dir.join(format!("archive.{}", format));
     // The password arm builds its own 7z argv and runs it in the archive jail beside every other archive job.
     if let Some(password) = password {
         let mut inner = archivepass::compress_argv(format, &staged, parent, names, password.encrypt_names);
         zipplan::exclude(&mut inner, skipped);
-        let leaf = dest.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
         match archivepass::run_boxed_cancellable_password("archive", &leaf, inner, parent, &mut work, Some(password.secret), cancel)? {
             None => {}
             Some(f) => return Err(op_err("archive", format, &f.message)),
@@ -160,7 +161,8 @@ pub(crate) fn extract_reporting(
         return Err(op_err("archive", &archive.to_string_lossy(), "cancelled"));
     }
     let parent = dest.parent().unwrap_or(Path::new("/"));
-    let mut work = Work::new(parent, "ext")?;
+    let need = if index.known { index.space } else { 0 };
+    let mut work = workhome::work_for(parent, "ext", "archive", &leaf, || need)?;
     let staged = work.dir.join("out");
     std::fs::create_dir(&staged).map_err(|e| from_io("archive", &staged.to_string_lossy(), &e))?;
     let argv = match password {
@@ -247,7 +249,7 @@ fn escape_refusal(message: &str) -> Option<&'static str> {
         .then_some(ESCAPE_REFUSAL)
 }
 
-// Issue 370: fuse.rclone refuses a directory and fuse.megafs any RENAME_NOREPLACE, so those take the exclusive copy, which the cancel stops.
+// Issue 370: a stage workhome kept off a copy-fallback mount crosses a filesystem, so it lands by the exclusive copy, which the cancel stops.
 fn publish(staged: &Path, dest: &Path, cancel: &AtomicBool) -> Result<(), FleaError> {
     match crate::backend::renamecompat::rename_cancellable(staged, dest, cancel) {
         // The copy landed whole and flushed and only the stage would not go: that is clear's to retry, not a failed job.
@@ -297,8 +299,8 @@ pub(crate) fn convert_leaving(
         return Err(op_err("convert", &dest.to_string_lossy(), "cancelled"));
     }
     let parent = dest.parent().unwrap_or(Path::new("/"));
-    let mut work = Work::new(parent, "cvt")?;
     let name = dest.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+    let mut work = workhome::work_for(parent, "cvt", "convert", &name, || workhome::files_bytes(&[input.to_path_buf()]))?;
     let staged = work.dir.join(dest.file_name().unwrap_or_default());
     run_boxed_cancellable_capped("convert", convert::argv(input, &staged, strip), input, &mut work, cancel)?;
     if staged.symlink_metadata().is_err() {

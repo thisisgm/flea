@@ -113,10 +113,11 @@ pub fn stage(source: &Path, dest: &Path) -> Result<(), String> {
     Ok(())
 }
 
-pub fn publish(staged: &Path, dest: &Path) -> Result<(), String> {
+pub fn publish(staged: &Path, dest: &Path, cancel: &AtomicBool) -> Result<(), String> {
     let meta = staged.symlink_metadata().map_err(|_| "the converter wrote nothing".to_string())?;
     if !meta.is_file() || meta.len() == 0 { return Err("the converter wrote no regular output file".into()); }
-    super::ops::rename_noreplace(staged, dest).map_err(|e| e.msg)
+    // Issue 370: a stage workhome kept off a copy-fallback mount lands by the exclusive copy, which the job's cancel stops.
+    super::renamecompat::rename_cancellable(staged, dest, cancel).map_err(|e| e.msg)
 }
 
 pub fn inputs(paths: &[PathBuf]) -> Result<(), String> {

@@ -1559,7 +1559,7 @@
     {
       "coverage": "dynamic-needs-owner-verification",
       "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-      "line": 72,
+      "line": 74,
       "path": "src/backend/archiveops.rs",
       "pattern": "archive.{}",
       "possible_keys": [
@@ -7501,7 +7501,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -7642,7 +7642,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -7781,7 +7781,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -7948,7 +7948,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -8094,7 +8094,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -8233,7 +8233,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -8383,7 +8383,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -8525,7 +8525,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -8664,7 +8664,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -8803,7 +8803,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -8949,7 +8949,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -9098,7 +9098,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -9240,7 +9240,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -9379,7 +9379,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -9518,7 +9518,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -9664,7 +9664,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -9803,7 +9803,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -9944,7 +9944,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -10085,7 +10085,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -10234,7 +10234,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -10390,7 +10390,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -10536,7 +10536,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -10686,7 +10686,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -10831,7 +10831,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -10974,7 +10974,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -11118,7 +11118,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -11257,7 +11257,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -11398,7 +11398,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -11539,7 +11539,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -11678,7 +11678,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -11820,7 +11820,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -11962,7 +11962,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -12103,7 +12103,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -12251,7 +12251,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -12392,7 +12392,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -12533,7 +12533,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -12674,7 +12674,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -12813,7 +12813,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -12952,7 +12952,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -13094,7 +13094,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -13233,7 +13233,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -13382,7 +13382,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -13524,7 +13524,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -13663,7 +13663,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -13813,7 +13813,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -13952,7 +13952,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -14093,7 +14093,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -14234,7 +14234,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -14373,7 +14373,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -14514,7 +14514,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -14656,7 +14656,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -14797,7 +14797,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -14938,7 +14938,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -15079,7 +15079,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -15218,7 +15218,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -15357,7 +15357,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -15496,7 +15496,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -15635,7 +15635,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -15774,7 +15774,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -15913,7 +15913,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -16052,7 +16052,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -16193,7 +16193,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -16334,7 +16334,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -16479,7 +16479,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -16623,7 +16623,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -16764,7 +16764,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -16903,7 +16903,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -17042,7 +17042,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -17181,7 +17181,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -17322,7 +17322,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -17463,7 +17463,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -17604,7 +17604,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -17745,7 +17745,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -17884,7 +17884,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -18025,7 +18025,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -18173,7 +18173,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -18312,7 +18312,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -18458,7 +18458,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -18597,7 +18597,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -18736,7 +18736,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -18875,7 +18875,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -19023,7 +19023,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -19162,7 +19162,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -19304,7 +19304,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -19446,7 +19446,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -19590,7 +19590,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -19733,7 +19733,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -19874,7 +19874,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -20015,7 +20015,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -20156,7 +20156,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -20297,7 +20297,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -20438,7 +20438,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -20579,7 +20579,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -20725,7 +20725,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -20866,7 +20866,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -21005,7 +21005,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -21147,7 +21147,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -21286,7 +21286,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -21427,7 +21427,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -21566,7 +21566,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -21705,7 +21705,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -21844,7 +21844,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -21983,7 +21983,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -22129,7 +22129,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -22268,7 +22268,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -22414,7 +22414,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let staged = work.dir.join(format!(\"archive.{}\", format));",
-          "line": 72,
+          "line": 74,
           "path": "src/backend/archiveops.rs",
           "pattern": "archive.{}",
           "possible_keys": [
@@ -136248,7 +136248,7 @@
     },
     {
       "excerpt": "pub const DISK_IMAGE_REFUSAL: &str = \"a disk image opens as a listing and is never extracted\";",
-      "line": 20,
+      "line": 21,
       "literal": "a disk image opens as a listing and is never extracted",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -136257,7 +136257,7 @@
     },
     {
       "excerpt": "pub const ESCAPE_REFUSAL: &str = \"an entry in this archive would land outside its folder, so nothing was extracted\";",
-      "line": 23,
+      "line": 24,
       "literal": "an entry in this archive would land outside its folder, so nothing was extracted",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -136266,7 +136266,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"archive\", &dest.to_string_lossy(), \"cancelled\"));",
-      "line": 49,
+      "line": 50,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -136275,7 +136275,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"archive\", format, \"a password needs 7-Zip, which is not installed\"));",
-      "line": 53,
+      "line": 54,
       "literal": "a password needs 7-Zip, which is not installed",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -136284,7 +136284,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"archive\", format, \"a password needs the 7z or zip format\"));",
-      "line": 56,
+      "line": 57,
       "literal": "a password needs the 7z or zip format",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -136293,7 +136293,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"archive\", format, \"no installed tool can create that format\"));",
-      "line": 59,
+      "line": 60,
       "literal": "no installed tool can create that format",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -136302,7 +136302,7 @@
     },
     {
       "excerpt": "None => return Err(op_err(\"archive\", format, \"no installed tool can create that format\")),",
-      "line": 85,
+      "line": 86,
       "literal": "no installed tool can create that format",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -136311,7 +136311,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"archive\", format, \"the archive tool wrote nothing\"));",
-      "line": 94,
+      "line": 95,
       "literal": "the archive tool wrote nothing",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -136320,7 +136320,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"archive\", &archive.to_string_lossy(), \"cancelled\"));",
-      "line": 137,
+      "line": 138,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -136329,7 +136329,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"archive\", &archive.to_string_lossy(), \"cancelled\"));",
-      "line": 144,
+      "line": 145,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -136338,7 +136338,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"archive\", &archive.to_string_lossy(), \"cancelled\"));",
-      "line": 160,
+      "line": 161,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -136347,7 +136347,7 @@
     },
     {
       "excerpt": "None => return Err(op_err(\"archive\", &archive.to_string_lossy(), \"no installed tool can open that archive\")),",
-      "line": 172,
+      "line": 174,
       "literal": "no installed tool can open that archive",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -136356,7 +136356,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"archive\", &archive.to_string_lossy(), \"cancelled\"));",
-      "line": 176,
+      "line": 178,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -136365,7 +136365,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"archive\", &archive.to_string_lossy(), \"cancelled\"));",
-      "line": 200,
+      "line": 202,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -136374,7 +136374,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"archive\", &archive.to_string_lossy(), \"the archive tool wrote nothing\"));",
-      "line": 220,
+      "line": 222,
       "literal": "the archive tool wrote nothing",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -136383,7 +136383,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"archive\", &archive.to_string_lossy(), \"cancelled\"));",
-      "line": 234,
+      "line": 236,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -136392,7 +136392,7 @@
     },
     {
       "excerpt": "(message.contains(\"Path contains '..'\") || message.contains(\"Cannot extract through symlink\"))",
-      "line": 246,
+      "line": 249,
       "literal": "Path contains '..'",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -136401,7 +136401,7 @@
     },
     {
       "excerpt": "(message.contains(\"Path contains '..'\") || message.contains(\"Cannot extract through symlink\"))",
-      "line": 246,
+      "line": 249,
       "literal": "Cannot extract through symlink",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -136410,7 +136410,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"convert\", &dest.to_string_lossy(), \"that destination already exists\"));",
-      "line": 289,
+      "line": 295,
       "literal": "that destination already exists",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -136419,7 +136419,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"convert\", &dest.to_string_lossy(), \"cancelled\"));",
-      "line": 297,
+      "line": 303,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -136428,7 +136428,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"convert\", &name, \"the converter wrote nothing\"));",
-      "line": 305,
+      "line": 315,
       "literal": "the converter wrote nothing",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -136590,7 +136590,7 @@
     },
     {
       "excerpt": "return op_err(what, \"\", \"cancelled\");",
-      "line": 161,
+      "line": 164,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/archivework.rs",
@@ -136599,7 +136599,7 @@
     },
     {
       "excerpt": "op_err(what, \"\", &format!(\"cancelled; the {what} tool did not exit, so its work folder {name} was left in place\"))",
-      "line": 166,
+      "line": 169,
       "literal": "cancelled; the {what} tool did not exit, so its work folder {name} was left in place",
       "owner": "controller",
       "path": "src/backend/archivework.rs",
@@ -136608,7 +136608,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"archive\", \"\", \"cancelled\"));",
-      "line": 315,
+      "line": 318,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/archivework.rs",
@@ -136617,7 +136617,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"archive\", \"\", \"cancelled\"));",
-      "line": 324,
+      "line": 327,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/archivework.rs",
@@ -137193,7 +137193,16 @@
     },
     {
       "excerpt": "return Err(\"cancelled\".into());",
-      "line": 78,
+      "line": 81,
+      "literal": "cancelled",
+      "owner": "controller",
+      "path": "src/backend/combine.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "if cancel.load(Ordering::Relaxed) { return Err(\"cancelled\".into()); }",
+      "line": 85,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/combine.rs",
@@ -137598,7 +137607,7 @@
     },
     {
       "excerpt": "let meta = source.symlink_metadata().map_err(|_| \"the converter wrote nothing\")?;",
-      "line": 293,
+      "line": 295,
       "literal": "the converter wrote nothing",
       "owner": "controller",
       "path": "src/backend/convertbatch.rs",
@@ -137607,7 +137616,7 @@
     },
     {
       "excerpt": "if !meta.is_file() || meta.len() == 0 { return Err(\"the converter wrote no regular output file\".into()); }",
-      "line": 294,
+      "line": 296,
       "literal": "the converter wrote no regular output file",
       "owner": "controller",
       "path": "src/backend/convertbatch.rs",
@@ -137616,7 +137625,7 @@
     },
     {
       "excerpt": "if !destinations.insert(dest) { return Err(\"The selected files would have the same output name.\".into()); }",
-      "line": 295,
+      "line": 297,
       "literal": "The selected files would have the same output name.",
       "owner": "controller",
       "path": "src/backend/convertbatch.rs",
@@ -137625,7 +137634,7 @@
     },
     {
       "excerpt": "if cancel.load(Ordering::Relaxed) { return Err(\"cancelled\".into()); }",
-      "line": 301,
+      "line": 303,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/convertbatch.rs",
@@ -150855,7 +150864,7 @@
     },
     {
       "excerpt": "format!(\"{msg}; the record of this copy could not be saved: {detail}\")",
-      "line": 23,
+      "line": 18,
       "literal": "{msg}; the record of this copy could not be saved: {detail}",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -150864,7 +150873,7 @@
     },
     {
       "excerpt": "format!(\"{msg}; undo cannot remove the partial copy of {}: {detail}\", partial.file_name().unwrap_or(partial.as_os_str()).to_string_lossy())",
-      "line": 28,
+      "line": 23,
       "literal": "{msg}; undo cannot remove the partial copy of {}: {detail}",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -150873,7 +150882,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: rename {} landed but the drive did not confirm the folder: {}\", to.display(), error);",
-      "line": 70,
+      "line": 65,
       "literal": "flea: rename {} landed but the drive did not confirm the folder: {}",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -150882,7 +150891,7 @@
     },
     {
       "excerpt": "None => return (Err(named(\"duplicate\", path, \"every copy name for this file is already taken\")), Vec::new()),",
-      "line": 118,
+      "line": 113,
       "literal": "every copy name for this file is already taken",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -150891,7 +150900,7 @@
     },
     {
       "excerpt": "assert_eq!(refuse_name(\"a:b\", \"vfat\", false).unwrap(), \"':' is not allowed in a name on this vfat drive\");",
-      "line": 177,
+      "line": 172,
       "literal": "':' is not allowed in a name on this vfat drive",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -150900,7 +150909,7 @@
     },
     {
       "excerpt": "assert_eq!(refuse_name(\"q?\", \"exfat\", false).unwrap(), \"'?' is not allowed in a name on this exfat drive\");",
-      "line": 178,
+      "line": 173,
       "literal": "'?' is not allowed in a name on this exfat drive",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -150909,7 +150918,7 @@
     },
     {
       "excerpt": "assert_eq!(refuse_name(\"trail.\", \"vfat\", false).unwrap(), \"a name cannot end in a dot on this vfat drive\");",
-      "line": 179,
+      "line": 174,
       "literal": "a name cannot end in a dot on this vfat drive",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -150918,7 +150927,7 @@
     },
     {
       "excerpt": "assert_eq!(refuse_name(\"trail \", \"vfat\", false).unwrap(), \"a name cannot end in a space on this vfat drive\");",
-      "line": 180,
+      "line": 175,
       "literal": "a name cannot end in a space on this vfat drive",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -150927,7 +150936,7 @@
     },
     {
       "excerpt": "assert_eq!(refuse_name(\"CON\", \"vfat\", false).unwrap(), \"'CON' is reserved on this vfat drive\");",
-      "line": 181,
+      "line": 176,
       "literal": "'CON' is reserved on this vfat drive",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -150936,7 +150945,7 @@
     },
     {
       "excerpt": "assert_eq!(refuse_name(\"con.txt\", \"vfat\", false).unwrap(), \"'CON' is reserved on this vfat drive\");",
-      "line": 182,
+      "line": 177,
       "literal": "'CON' is reserved on this vfat drive",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -150945,7 +150954,7 @@
     },
     {
       "excerpt": "assert!(refuse_name(\"a:b\", \"ntfs3\", false).is_none(), \"ntfs3 without windows_names takes a colon\");",
-      "line": 185,
+      "line": 180,
       "literal": "ntfs3 without windows_names takes a colon",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -150954,7 +150963,7 @@
     },
     {
       "excerpt": "assert!(refuse_name(\"a:b\", \"ntfs3\", true).is_some(), \"ntfs3 with windows_names refuses it\");",
-      "line": 186,
+      "line": 181,
       "literal": "ntfs3 with windows_names refuses it",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -150963,7 +150972,7 @@
     },
     {
       "excerpt": "assert!(valid_name(\"a name with spaces\"));",
-      "line": 193,
+      "line": 188,
       "literal": "a name with spaces",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -150972,7 +150981,7 @@
     },
     {
       "excerpt": "assert!(!valid_name(\"\"), \"an empty name would rename onto the parent\");",
-      "line": 194,
+      "line": 189,
       "literal": "an empty name would rename onto the parent",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -150981,7 +150990,7 @@
     },
     {
       "excerpt": "assert!(!valid_name(\".\"), \"renaming to . is the directory itself\");",
-      "line": 195,
+      "line": 190,
       "literal": "renaming to . is the directory itself",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -150990,7 +150999,7 @@
     },
     {
       "excerpt": "assert!(!valid_name(\"..\"), \"renaming to .. would climb out of the directory\");",
-      "line": 196,
+      "line": 191,
       "literal": "renaming to .. would climb out of the directory",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -150999,7 +151008,7 @@
     },
     {
       "excerpt": "assert!(!valid_name(\"../escape\"), \"a separator moves the file out of its own directory\");",
-      "line": 197,
+      "line": 192,
       "literal": "a separator moves the file out of its own directory",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151008,7 +151017,7 @@
     },
     {
       "excerpt": "assert!(!valid_name(\"sub/child\"), \"a separator moves the file out of its own directory\");",
-      "line": 198,
+      "line": 193,
       "literal": "a separator moves the file out of its own directory",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151017,7 +151026,7 @@
     },
     {
       "excerpt": "assert!(!valid_name(\"nul\\0byte\"), \"an interior NUL truncates the path at the syscall\");",
-      "line": 199,
+      "line": 194,
       "literal": "an interior NUL truncates the path at the syscall",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151026,7 +151035,7 @@
     },
     {
       "excerpt": "assert_eq!(manifest_failed(\"permission denied\", \"no space\"), \"permission denied; the record of this copy could not be saved: no space\");",
-      "line": 204,
+      "line": 199,
       "literal": "permission denied",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151035,7 +151044,7 @@
     },
     {
       "excerpt": "assert_eq!(manifest_failed(\"permission denied\", \"no space\"), \"permission denied; the record of this copy could not be saved: no space\");",
-      "line": 204,
+      "line": 199,
       "literal": "no space",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151044,7 +151053,7 @@
     },
     {
       "excerpt": "assert_eq!(manifest_failed(\"permission denied\", \"no space\"), \"permission denied; the record of this copy could not be saved: no space\");",
-      "line": 204,
+      "line": 199,
       "literal": "permission denied; the record of this copy could not be saved: no space",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151053,7 +151062,7 @@
     },
     {
       "excerpt": "assert_eq!(unjournaled_partial(\"cancelled\", Path::new(\"/d/a.txt\"), \"the journal is full\"),",
-      "line": 205,
+      "line": 200,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151062,7 +151071,7 @@
     },
     {
       "excerpt": "assert_eq!(unjournaled_partial(\"cancelled\", Path::new(\"/d/a.txt\"), \"the journal is full\"),",
-      "line": 205,
+      "line": 200,
       "literal": "the journal is full",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151071,7 +151080,7 @@
     },
     {
       "excerpt": "\"cancelled; undo cannot remove the partial copy of a.txt: the journal is full\");",
-      "line": 206,
+      "line": 201,
       "literal": "cancelled; undo cannot remove the partial copy of a.txt: the journal is full",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151080,7 +151089,7 @@
     },
     {
       "excerpt": "let err = rename(&from, \"A.txt\").expect_err(\"a second name is a collision, not a case twin\");",
-      "line": 228,
+      "line": 223,
       "literal": "a second name is a collision, not a case twin",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151089,7 +151098,7 @@
     },
     {
       "excerpt": "assert_eq!(err.msg, \"an item with that name is already here\");",
-      "line": 230,
+      "line": 225,
       "literal": "an item with that name is already here",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151098,7 +151107,7 @@
     },
     {
       "excerpt": "assert_eq!(std::fs::read_to_string(&from).unwrap(), \"body\", \"the source is moved back, not lost\");",
-      "line": 231,
+      "line": 226,
       "literal": "the source is moved back, not lost",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151107,7 +151116,7 @@
     },
     {
       "excerpt": "assert_eq!(std::fs::read_to_string(&twin).unwrap(), \"body\", \"the twin name is never deleted\");",
-      "line": 232,
+      "line": 227,
       "literal": "the twin name is never deleted",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151116,7 +151125,7 @@
     },
     {
       "excerpt": "let from = d.file(\"source.txt\", \"source body\");",
-      "line": 238,
+      "line": 233,
       "literal": "source body",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151125,7 +151134,7 @@
     },
     {
       "excerpt": "d.file(\"target.txt\", \"target body\");",
-      "line": 239,
+      "line": 234,
       "literal": "target body",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151134,7 +151143,7 @@
     },
     {
       "excerpt": "let err = rename(&from, \"target.txt\").expect_err(\"must refuse\");",
-      "line": 240,
+      "line": 235,
       "literal": "must refuse",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151143,7 +151152,7 @@
     },
     {
       "excerpt": "\"target body\",",
-      "line": 244,
+      "line": 239,
       "literal": "target body",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151152,7 +151161,7 @@
     },
     {
       "excerpt": "\"the file that was already there is untouched\"",
-      "line": 245,
+      "line": 240,
       "literal": "the file that was already there is untouched",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151161,7 +151170,7 @@
     },
     {
       "excerpt": "assert!(from.exists(), \"the source is left where it was\");",
-      "line": 247,
+      "line": 242,
       "literal": "the source is left where it was",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151170,7 +151179,7 @@
     },
     {
       "excerpt": "let (_, steps) = rename(&from, \"same.txt\").expect(\"a no-op rename is not an error\");",
-      "line": 254,
+      "line": 249,
       "literal": "a no-op rename is not an error",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151179,7 +151188,7 @@
     },
     {
       "excerpt": "assert!(steps.is_empty(), \"nothing changed, so undo must have nothing to reverse\");",
-      "line": 255,
+      "line": 250,
       "literal": "nothing changed, so undo must have nothing to reverse",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151188,7 +151197,7 @@
     },
     {
       "excerpt": "assert_eq!(copy_name(p, \"copy\", 1).unwrap(), \"backup.tar copy.zst\");",
-      "line": 262,
+      "line": 257,
       "literal": "backup.tar copy.zst",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151197,7 +151206,7 @@
     },
     {
       "excerpt": "assert_eq!(copy_name(p, \"copy\", 2).unwrap(), \"backup.tar copy 2.zst\");",
-      "line": 263,
+      "line": 258,
       "literal": "backup.tar copy 2.zst",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151206,7 +151215,7 @@
     },
     {
       "excerpt": "assert_eq!(copy_name(Path::new(\"/x/notes\"), \"copy\", 1).unwrap(), \"notes copy\");",
-      "line": 264,
+      "line": 259,
       "literal": "notes copy",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151215,7 +151224,7 @@
     },
     {
       "excerpt": "assert_eq!(copy_name(Path::new(\"/x/.bashrc\"), \"copy\", 1).unwrap(), \".bashrc copy\");",
-      "line": 265,
+      "line": 260,
       "literal": ".bashrc copy",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151224,7 +151233,7 @@
     },
     {
       "excerpt": "\"photo copy.jpg\",",
-      "line": 268,
+      "line": 263,
       "literal": "photo copy.jpg",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151233,7 +151242,7 @@
     },
     {
       "excerpt": "\"the operations design names this exact result\"",
-      "line": 269,
+      "line": 264,
       "literal": "the operations design names this exact result",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151242,7 +151251,7 @@
     },
     {
       "excerpt": "\"convert reuses this helper with its own word, per the canvas\"",
-      "line": 274,
+      "line": 269,
       "literal": "convert reuses this helper with its own word, per the canvas",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151251,7 +151260,7 @@
     },
     {
       "excerpt": "assert_eq!(copy_name(raw, \"copy\", 1).unwrap().as_bytes(), b\"r-\\xff copy.txt\");",
-      "line": 282,
+      "line": 277,
       "literal": "r-\\xff copy.txt",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151260,7 +151269,7 @@
     },
     {
       "excerpt": "assert_eq!(free_copy_path(&original, \"copy\").unwrap(), d.join(\"doc copy.txt\"));",
-      "line": 289,
+      "line": 284,
       "literal": "doc copy.txt",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151269,7 +151278,7 @@
     },
     {
       "excerpt": "d.file(\"doc copy.txt\", \"taken\");",
-      "line": 290,
+      "line": 285,
       "literal": "doc copy.txt",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151278,7 +151287,7 @@
     },
     {
       "excerpt": "assert_eq!(free_copy_path(&original, \"copy\").unwrap(), d.join(\"doc copy 2.txt\"));",
-      "line": 291,
+      "line": 286,
       "literal": "doc copy 2.txt",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151287,7 +151296,7 @@
     },
     {
       "excerpt": "assert_eq!(dst, d.join(\"photo copy.jpg\"));",
-      "line": 300,
+      "line": 295,
       "literal": "photo copy.jpg",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151296,7 +151305,7 @@
     },
     {
       "excerpt": "assert!(original.exists(), \"the original is untouched\");",
-      "line": 302,
+      "line": 297,
       "literal": "the original is untouched",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151305,7 +151314,7 @@
     },
     {
       "excerpt": "assert_eq!(dst, d.join(\"tree copy\"));",
-      "line": 313,
+      "line": 308,
       "literal": "tree copy",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151314,7 +151323,7 @@
     },
     {
       "excerpt": "assert!(outcome.is_err(), \"the unreadable file cannot be opened, so the tree copy fails\");",
-      "line": 330,
+      "line": 325,
       "literal": "the unreadable file cannot be opened, so the tree copy fails",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151323,7 +151332,7 @@
     },
     {
       "excerpt": "let partial = d.join(\"tree copy\");",
-      "line": 331,
+      "line": 326,
       "literal": "tree copy",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151332,7 +151341,7 @@
     },
     {
       "excerpt": "assert!(partial.is_dir(), \"the failure left what it had copied\");",
-      "line": 332,
+      "line": 327,
       "literal": "the failure left what it had copied",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151341,7 +151350,7 @@
     },
     {
       "excerpt": "\"and the journal gets the partial with what it created: {:?}\", steps);",
-      "line": 334,
+      "line": 329,
       "literal": "and the journal gets the partial with what it created: {:?}",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151350,7 +151359,7 @@
     },
     {
       "excerpt": "let err = mkdir(d.path(), \"notes\").expect_err(\"a file holds the name\");",
-      "line": 350,
+      "line": 345,
       "literal": "a file holds the name",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151359,7 +151368,7 @@
     },
     {
       "excerpt": "assert_eq!(err.msg, \"a folder or file with that name already exists\");",
-      "line": 352,
+      "line": 347,
       "literal": "a folder or file with that name already exists",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151368,7 +151377,7 @@
     },
     {
       "excerpt": "assert_eq!(std::fs::read_to_string(&file).unwrap(), \"body\", \"the file that owns the name is untouched\");",
-      "line": 353,
+      "line": 348,
       "literal": "the file that owns the name is untouched",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151377,7 +151386,7 @@
     },
     {
       "excerpt": "let err = mkdir(d.path(), \"sub\").expect_err(\"a directory holds the name\");",
-      "line": 355,
+      "line": 350,
       "literal": "a directory holds the name",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151386,7 +151395,7 @@
     },
     {
       "excerpt": "assert_eq!(err.msg, \"a folder or file with that name already exists\", \"an existing directory is a collision too, never a merge\");",
-      "line": 356,
+      "line": 351,
       "literal": "a folder or file with that name already exists",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151395,7 +151404,7 @@
     },
     {
       "excerpt": "assert_eq!(err.msg, \"a folder or file with that name already exists\", \"an existing directory is a collision too, never a merge\");",
-      "line": 356,
+      "line": 351,
       "literal": "an existing directory is a collision too, never a merge",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151404,7 +151413,7 @@
     },
     {
       "excerpt": "let clause = match bad { \".\" | \"..\" => \"a name cannot be a single dot or a double dot\", \"nul\\0byte\" => \"a name cannot contain a null character\", _ => \"a name cannot contain /\" };",
-      "line": 364,
+      "line": 359,
       "literal": "a name cannot be a single dot or a double dot",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151413,7 +151422,7 @@
     },
     {
       "excerpt": "let clause = match bad { \".\" | \"..\" => \"a name cannot be a single dot or a double dot\", \"nul\\0byte\" => \"a name cannot contain a null character\", _ => \"a name cannot contain /\" };",
-      "line": 364,
+      "line": 359,
       "literal": "a name cannot contain a null character",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151422,7 +151431,7 @@
     },
     {
       "excerpt": "let clause = match bad { \".\" | \"..\" => \"a name cannot be a single dot or a double dot\", \"nul\\0byte\" => \"a name cannot contain a null character\", _ => \"a name cannot contain /\" };",
-      "line": 364,
+      "line": 359,
       "literal": "a name cannot contain /",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151431,7 +151440,7 @@
     },
     {
       "excerpt": "assert_eq!(mkdir(Path::new(\"relative\"), \"x\").unwrap_err().msg, \"a parent must be an absolute path\");",
-      "line": 367,
+      "line": 362,
       "literal": "a parent must be an absolute path",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151440,7 +151449,7 @@
     },
     {
       "excerpt": "assert_eq!(std::fs::read_dir(d.path()).unwrap().count(), 2, \"no refusal made anything\");",
-      "line": 371,
+      "line": 366,
       "literal": "no refusal made anything",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151449,7 +151458,7 @@
     },
     {
       "excerpt": "assert_eq!(mkdir(d.path(), \"\").expect(\"first\").0, d.join(\"New Folder\"));",
-      "line": 377,
+      "line": 372,
       "literal": "New Folder",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151458,7 +151467,7 @@
     },
     {
       "excerpt": "assert_eq!(mkdir(d.path(), \"\").expect(\"second\").0, d.join(\"New Folder 2\"));",
-      "line": 378,
+      "line": 373,
       "literal": "New Folder 2",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151467,7 +151476,7 @@
     },
     {
       "excerpt": "d.file(\"New Folder 3\", \"a file holds the name\");",
-      "line": 379,
+      "line": 374,
       "literal": "New Folder 3",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151476,7 +151485,7 @@
     },
     {
       "excerpt": "d.file(\"New Folder 3\", \"a file holds the name\");",
-      "line": 379,
+      "line": 374,
       "literal": "a file holds the name",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151485,7 +151494,7 @@
     },
     {
       "excerpt": "assert_eq!(mkdir(d.path(), \"\").expect(\"third\").0, d.join(\"New Folder 4\"), \"a taken name of any kind is stepped past\");",
-      "line": 380,
+      "line": 375,
       "literal": "New Folder 4",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151494,7 +151503,7 @@
     },
     {
       "excerpt": "assert_eq!(mkdir(d.path(), \"\").expect(\"third\").0, d.join(\"New Folder 4\"), \"a taken name of any kind is stepped past\");",
-      "line": 380,
+      "line": 375,
       "literal": "a taken name of any kind is stepped past",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151503,7 +151512,7 @@
     },
     {
       "excerpt": "let err = mkdir(&d.join(\"gone\"), \"x\").expect_err(\"no parent\");",
-      "line": 387,
+      "line": 382,
       "literal": "no parent",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151512,7 +151521,7 @@
     },
     {
       "excerpt": "assert_eq!(err.msg, \"item not found\");",
-      "line": 389,
+      "line": 384,
       "literal": "item not found",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151521,7 +151530,7 @@
     },
     {
       "excerpt": "assert_eq!(err.msg, \"permission denied\");",
-      "line": 394,
+      "line": 389,
       "literal": "permission denied",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151530,7 +151539,7 @@
     },
     {
       "excerpt": "assert!(refused, \"a drop onto a folder that cannot be written is refused\");",
-      "line": 406,
+      "line": 401,
       "literal": "a drop onto a folder that cannot be written is refused",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -157578,7 +157587,7 @@
     },
     {
       "excerpt": "if !(MIN_ITEMS..=MAX_ITEMS).contains(&paths.len()) { return Err(format!(\"Select between {MIN_ITEMS} and {MAX_ITEMS} items.\")); }",
-      "line": 124,
+      "line": 125,
       "literal": "Select between {MIN_ITEMS} and {MAX_ITEMS} items.",
       "owner": "controller",
       "path": "src/backend/printtool.rs",
@@ -157587,7 +157596,7 @@
     },
     {
       "excerpt": "return Err(\"Absolute file paths are required.\".into());",
-      "line": 128,
+      "line": 129,
       "literal": "Absolute file paths are required.",
       "owner": "controller",
       "path": "src/backend/printtool.rs",
@@ -157596,7 +157605,7 @@
     },
     {
       "excerpt": "if !seen.insert(path) { return Err(\"An item was selected more than once.\".into()); }",
-      "line": 130,
+      "line": 131,
       "literal": "An item was selected more than once.",
       "owner": "controller",
       "path": "src/backend/printtool.rs",
@@ -167734,6 +167743,15 @@
       "literal": "{} took the worker",
       "owner": "controller",
       "path": "src/backend/workerlink.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"{} needs {} free on this computer before it goes to the drive, and the most free is {}\",",
+      "line": 92,
+      "literal": "{} needs {} free on this computer before it goes to the drive, and the most free is {}",
+      "owner": "controller",
+      "path": "src/backend/workhome.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "core/backend"
     },
@@ -252484,11 +252502,11 @@
     "src/backend/archivefree.rs": "638f57994a455989818c9bb5a7864a46dfe77185e5ba934c0a0da3d859cab242",
     "src/backend/archivelist.rs": "6ba21fc9307cb234bd29cca714cbb7c5689facfe07ee12171c9846e404c01a5a",
     "src/backend/archivename.rs": "b93d576ac1aa0021660c80fb23e611cf93082d7c7c769e86cded12d79812d1a7",
-    "src/backend/archiveops.rs": "3b1e86614322df0036038dee51bbd708eb2c9c06b48add203787d8e3f759880c",
+    "src/backend/archiveops.rs": "26ea4f75391185956c7b2db23856200ffaac685c54b4c605e53033eb49587da1",
     "src/backend/archivepass.rs": "f5a9605108c809f5b322a34713009db6f554af2e6a60fe94bade702776924eba",
     "src/backend/archivereq.rs": "5d90dfc9fa727e47c1aa70c20fa656e4c3ce2d5fc31a49c85abd2839749d8e89",
     "src/backend/archivespec.rs": "9569e3ab8cc5fa96ddbfd9e245a6ce757399de7fe7b289f97962b443cf13f99a",
-    "src/backend/archivework.rs": "379fe5655b4365bde0ba74d0493773280b5478f379b9d0e19dfed3041dbcc2f2",
+    "src/backend/archivework.rs": "88710984bf8fac829cbf7b3bf53196bd91897a47db9e0c6104f772be9d8b353c",
     "src/backend/archivezip.rs": "7bd73f03317d9b9dfca0bbd686836078fd7c85f080d67fdb9ebb2671172b1a85",
     "src/backend/birthtime.rs": "07c40980d1dddede61b9a8eec177762195e71dc71ba262e8157cf6bd2a1d77bd",
     "src/backend/bulkrename.rs": "4a151716ac24047492481f441605c81ce24e230f64afe04153c8bb38d2cad2ef",
@@ -252500,7 +252518,7 @@
     "src/backend/collide_ask.rs": "439bf0a2bc60e92dfa0db0f16c476cfe41dba40346cf0e8ca476d69af9f969e1",
     "src/backend/collide_table.rs": "d4825b13dd94d559374746652be6ef476f019cd91b939d98d96d5b119bb3c335",
     "src/backend/collidelink.rs": "13a50bae82bdc2b0a9193e5d2760044201d5ebdfebb1716154da3b8fdcaf8e07",
-    "src/backend/combine.rs": "bb877ec530c88d28ffa2ad386185f751b2d6cc42d99e0c30ee758e004e6227df",
+    "src/backend/combine.rs": "816bbd9d2170c07efa3eaaebaa92ba3746bc19caf3c5dbb9eafabc3464773479",
     "src/backend/compare.rs": "7f6e2130e1a40284ff5525e35be4bc4a4d46a5644645acb63a444fc476df7a63",
     "src/backend/contents.rs": "87bcc782b28b7f2419a752cf900b9b606efead235880ce4281f0b132aab0153d",
     "src/backend/contentsguard.rs": "702ebe85958d25c3a3f4253237a4cc728b969e84d9766a9d218c8745f1fff789",
@@ -252509,7 +252527,7 @@
     "src/backend/contentsreq.rs": "e6e77f9f2ef7e5291e8452e29bcb0ea0a80dcfc38587501a0423c4f365edd27f",
     "src/backend/contentsworker.rs": "a6c93b8d15d0481ab32da7d4a8cff4a0e9ea704de977076c7e49ca1b06055bf5",
     "src/backend/convert.rs": "de8e7af192ea4d972d353fbc4e214248d8c9c88fc1db477df0e58717613b09a2",
-    "src/backend/convertbatch.rs": "c9e0bd41fb3cb8d36ffd6454b2117517e52fe71df484c59ca429e7fc4096780b",
+    "src/backend/convertbatch.rs": "337039354d05cb3d09aa7806de040a25f950bfccd7203a64d92ece239f808af1",
     "src/backend/copyfile.rs": "8268ded64c9cbebc63053530912f730a99b511a2d18de318caf882e30279a1ba",
     "src/backend/copymanifest.rs": "96a53c6936c0d5ab078a4d40992c5c0192a6933169bd85db08cd933ae3ff1d89",
     "src/backend/copynode.rs": "812e62829738a84e55d03dea80b5fbf9ae54ff775e01b319c3eddfa211b4411d",
@@ -252680,7 +252698,7 @@
     "src/backend/officepublish.rs": "df147c15f7e990474965b2ba5a7208a3d20b637b36aea8f1b2ea42887068bde6",
     "src/backend/officesheets.rs": "8d66d59e3fde19335ffcf829e45a4d3c4b172901e0cd77d3d7fb82185e105618",
     "src/backend/opmsg.rs": "7d1cb8ac0f606cbe2d27c2ab1d0686e7b2d191b0ffe84933eee16d6cee263c99",
-    "src/backend/ops.rs": "24a17b6e5639dfbf6ed2077959f87ed0889378a2bed8a56a853d5e4ce26055d8",
+    "src/backend/ops.rs": "ba1fb40e5f9d10121e06f1a2de28421d221ec328ce658a4d71cba734f63ca800",
     "src/backend/opscancel.rs": "9418041dfe86184e9c30bfe87a7c8bd46208e1c1d8130f52ded4ad9e8f819fd0",
     "src/backend/opsdispatch.rs": "70072495f5f66d70512e852a2bba9c36e54a91f9ae54f4aab238a0dfd39a8cf4",
     "src/backend/opsname.rs": "d6a9f806c2f6c343e6fb8e1a645556e728c229f10369214c1e50f2c0ca7ab46d",
@@ -252720,7 +252738,7 @@
     "src/backend/printconvert.rs": "fbf15b13e40aeb23ad81032c327c01544c5c30620fcf4dad8745999a1baa0ba7",
     "src/backend/printing.rs": "fb0795cfa73ee7aa33ad09332e97263f013e60ba7cb5c0f4e61db5cc2a75776d",
     "src/backend/printreq.rs": "f10b69533bbbbf500838ee60377a656baa51de2c2b0ee137811a57aa5f65782f",
-    "src/backend/printtool.rs": "ab7e4ad96d4dd590c3eeca873337028acc809fbbc8dce376840b3ef049b3f9e2",
+    "src/backend/printtool.rs": "a83b37806dfa8977451102f3a752f504d38795fc974253716845222fa06080b8",
     "src/backend/procwatch.rs": "02e48f8c21955f84b80ab07314f7d2fd33102cfbcf4f9b615ef20569eef01b20",
     "src/backend/proto.rs": "ebbc374d161ce4af439a99477eccdb1f8eae85f202fe16ebee7f42d21b143260",
     "src/backend/protoparse.rs": "1c34319a0695291f1be391647f1ee602447ef30e88a770cdf88e9b4ab61d0409",
@@ -252855,6 +252873,7 @@
     "src/backend/watchpoll.rs": "c7c1877e0f9380496d08221688ce01d3549d8ddac9b2a5bbdd897f41aa56bef7",
     "src/backend/windowreq.rs": "c9863ab19099a4e0ee83b976ef064753ba5e4854528c1f8622e8de3e91eb045e",
     "src/backend/workerlink.rs": "c5d7d33fb0d048479aa851919c7a6f3edec5d50b3149c12f26facbbaccb37620",
+    "src/backend/workhome.rs": "58cfeb58b75c252808a741f21b8b85c3e167745e60fb2a3424840870f583ad0d",
     "src/backend/xxh64.rs": "c8b63a7db65fc7d8577b5dfaf2c8f78d605d83325343a15b28bdfb569453bf4d",
     "src/bytename.rs": "bb1e4d321c5ed79e5a94c1263d40b12d1ffc5462dd8fd2144c03dadd8f1ad234",
     "src/cachewrite.rs": "609005ff125b178c02a35c87efe3c3346f97f04e60628554cd74bc92146950a0",
@@ -253991,13 +254010,13 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "db1e8e08f2ad1f47e1d52caa5384bd2215af5910",
-  "source_sha": "db1e8e08f2ad1f47e1d52caa5384bd2215af5910",
+  "source_ref_sha": "157e44fb6b35070b77c1c12cd58db45293eb0d62",
+  "source_sha": "157e44fb6b35070b77c1c12cd58db45293eb0d62",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1353,
-      "missing_literal_candidates": 5709,
-      "source_files": 859
+      "missing_literal_candidates": 5711,
+      "source_files": 860
     },
     "generated/tooling": {
       "keys_with_occurrences": 155,

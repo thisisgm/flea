@@ -47,11 +47,11 @@ fn publication_never_overwrites_a_source_or_a_new_collision() {
     d.assert_contains(&output);
     stage(&source, &output).unwrap();
     assert_eq!(std::fs::read_to_string(&output).unwrap(), "original");
-    assert!(publish(&output, &source).is_err());
+    assert!(publish(&output, &source, &AtomicBool::new(false)).is_err());
     assert_eq!(std::fs::read_to_string(&source).unwrap(), "original");
     let dest = d.join("result.png");
     d.assert_contains(&dest);
-    publish(&output, &dest).unwrap();
+    publish(&output, &dest, &AtomicBool::new(false)).unwrap();
     assert!(!output.exists());
     assert_eq!(std::fs::read_to_string(dest).unwrap(), "original");
     assert!(inputs(&[PathBuf::from("relative.png")]).is_err());

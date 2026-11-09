@@ -134,8 +134,13 @@ the listing on it, so the duplicate sits on disk unmentioned until some later li
 exactly as the partial target above does. An archive compress, extract or convert publishes its staged result
 through the same path (issue 370), by `renamecompat::rename_cancellable` with the job's own cancel: a cancel during
 the copy removes the partial target and the job answers cancelled, and the copy reports no progress past the job's
-last sample. Every other filesystem and error, and every
-`rename_noreplace` caller but `rename`, its undo, `move_any` and those three publishes, stays on the atomic syscall. Mountinfo's escaped mount point is decoded and the deepest
+last sample. On a copy-fallback mount (`fuse.rclone`, `fuse.megafs`, a GVFS WebDAV path) those three, a combine and a
+batch convert keep their work folder on this computer instead of beside the destination (`src/backend/workhome.rs`):
+the cache's `flea/work`, then `/var/tmp`, then the temp folder, the first with room for the stage, else the job is
+refused with its size. rclone uploads a staged file while the job runs and keeps a copy of one Flea unlinks, so a stage
+on the mount would not go and stayed on the user's drive; off the mount the publish crosses filesystems and lands once
+through the same exclusive copy. Every other filesystem and error, and every
+`rename_noreplace` caller but `rename`, its undo, `move_any` and those five publishes, stays on the atomic syscall. Mountinfo's escaped mount point is decoded and the deepest
 enclosing mount wins, so a nested non-rclone mount cannot inherit the exception.
 That kept copy answers `rename-kept` rather than `rename`, because the rename half
 succeeded and the name it came from may be whole, a remnant, or already gone. The error line names the source in `path` and carries the removal's own message in `msg`;

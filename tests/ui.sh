@@ -15935,6 +15935,7 @@ clipboard_wait() {
 . "$repo/tests/ui-captures-glass.sh"
 . "$repo/tests/ui-captures-flasher.sh"
 . "$repo/tests/ui-captures-archives.sh"
+. "$repo/tests/ui-captures-rclone.sh"
 . "$repo/tests/ui-captures-unlock.sh"
 . "$repo/tests/ui-captures-compare.sh"
 . "$repo/tests/ui-captures-raw.sh"
