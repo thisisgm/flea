@@ -8,6 +8,8 @@ use std::sync::atomic::AtomicBool;
 
 // How many " copy N" names duplicate will try before giving up rather than looping forever.
 const NAME_TRIES: usize = 999;
+// Linux NAME_MAX, the most bytes one name may hold.
+const NAME_MAX: usize = 255;
 
 // A name from the client is a trust boundary: anything with a separator would move the file out of its own directory.
 pub use super::opsname::{name_refusal, name_refusal_sentence};
@@ -86,7 +88,13 @@ pub fn copy_name(original: &Path, word: &str, n: usize) -> Option<String> {
     let name = original.file_name()?.to_str()?;
     let suffix = if n <= 1 { format!(" {}", word) } else { format!(" {} {}", word, n) };
     let stem = Path::new(name).file_stem()?.to_str()?;
-    match Path::new(name).extension().and_then(|e| e.to_str()) {
+    // Near NAME_MAX the stem gives up its end on a character boundary; an extension too long to keep joins the stem.
+    let found = Path::new(name).extension().and_then(|e| e.to_str());
+    let ext = found.filter(|ext| suffix.len() + ext.len() + 1 < NAME_MAX);
+    let stem = if found.is_some() && ext.is_none() { name } else { stem };
+    let room = NAME_MAX.checked_sub(suffix.len() + ext.map_or(0, |ext| ext.len() + 1))?;
+    let stem = &stem[..(0..=room.min(stem.len())).rev().find(|&end| stem.is_char_boundary(end))?];
+    match ext {
         Some(ext) => Some(format!("{}{}.{}", stem, suffix, ext)),
         None => Some(format!("{}{}", stem, suffix)),
     }

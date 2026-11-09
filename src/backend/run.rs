@@ -65,8 +65,21 @@ enum Control {
     Quit,
 }
 
+// The same on x86_64 and aarch64.
+pub(crate) const SIGXFSZ: i32 = 25;
+
+// Caught, a write past `ulimit -f` answers EFBIG instead of ending the backend, and every program it starts gets the default back.
+pub(crate) fn catch_file_size_signal() {
+    extern "C" fn on_file_size(_: i32) {}
+    extern "C" {
+        fn signal(signum: i32, handler: usize) -> usize;
+    }
+    unsafe { signal(SIGXFSZ, on_file_size as extern "C" fn(i32) as usize) };
+}
+
 // Errors are responses, so the loop never exits on a bad request.
 pub fn run() -> i32 {
+    catch_file_size_signal();
     if let Some(status) = super::model3dreq::worker_entry() { return status }
     // Before the first listing, because a threshold glibc has already ratcheted strands the next arena on the heap.
     heap::pin_mmap_threshold();

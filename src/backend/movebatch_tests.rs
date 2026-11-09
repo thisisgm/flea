@@ -750,3 +750,34 @@ fn a_failed_cap_syncfs_keeps_all_sixty_four_sources_and_journals_partials() {
     }
     durable::test_reset();
 }
+
+// A staged copy that no longer shows every byte keeps its source and journals the copy, so undo can take it back.
+#[test]
+fn a_batch_copy_shown_short_keeps_the_source_and_journals_the_copy() {
+    use crate::backend::{durable, undo::Journal};
+    durable::test_reset();
+    let d = TestDir::new("movebatch-short");
+    let (srcdir, out) = (d.dir("src"), d.dir("out"));
+    durable::test_mark_durable(&out);
+    let mut durability = durable::Durability::begin(&out);
+    let (flag, settled) = (AtomicBool::new(false), AtomicU64::new(0));
+    let mut batch = MoveBatch::new();
+    let (tx, rx) = channel();
+    let mut steps = Vec::new();
+    let src = srcdir.join("f0.txt");
+    std::fs::write(&src, "body").unwrap();
+    staged(1, &mut batch, &mut durability, &flag, &tx, &settled, &mut steps, 0, &src, &out.join("f0.txt"));
+    std::fs::OpenOptions::new().write(true).open(out.join("f0.txt")).unwrap().set_len(2).unwrap();
+    let (counts, retry) = close_normal(&mut batch, 1, &tx, &mut steps, &mut durability);
+    assert_eq!((counts.ok, counts.failed, retry.len()), (0, 1, 1));
+    drop(tx);
+    let lines = items(rx);
+    assert_eq!((lines.len(), lines[0].1, lines[0].2.as_str()), (1, false, crate::backend::copyfile::landed::FILE_UNCONFIRMED));
+    assert_eq!(std::fs::read_to_string(&src).unwrap(), "body", "the source stays");
+    assert!(matches!(&steps[..], [Step::Copied { .. }]), "the short copy journals a Copied step");
+    let mut journal = Journal::new();
+    journal.push(crate::backend::undo::Entry { op: "move".to_string(), steps });
+    journal.undo().unwrap();
+    assert!(!out.join("f0.txt").exists() && src.exists(), "undo takes the copy back and keeps the source");
+    durable::test_reset();
+}

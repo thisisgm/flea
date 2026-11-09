@@ -120,7 +120,7 @@ tests/csv-preview.qml 520
 shelf/Panel.qml 443
 shelf/ShelfCard.qml 444
 shelf/ShelfService.qml 481
-src/backend/copyfile.rs 797
+src/backend/copyfile.rs 783
 src/backend/archivequit_tests.rs 401
 src/backend/codereq.rs 425
 src/backend/tags.rs 410
@@ -129,11 +129,11 @@ src/backend/searchtags.rs 478
 src/backend/searchtags_tests.rs 519
 src/backend/tagsreq_tests.rs 383
 src/backend/copyfile_tests.rs 694
-src/backend/durable.rs 809
+src/backend/durable.rs 837
 src/backend/dirsize.rs 422
 src/backend/durable_tests.rs 1396
 src/backend/jump_tests.rs 487
-src/backend/renamecompat.rs 739
+src/backend/renamecompat.rs 778
 src/backend/gvfslist.rs 513
 src/backend/imagesize.rs 559
 src/backend/iomount.rs 634
@@ -142,8 +142,8 @@ src/backend/menu_actions.rs 709
 src/backend/menu_registry.rs 621
 src/backend/meta.rs 550
 src/backend/metareq.rs 541
-src/backend/movebatch.rs 477
-src/backend/movebatch_tests.rs 752
+src/backend/movebatch.rs 478
+src/backend/movebatch_tests.rs 783
 src/backend/opsdispatch.rs 2414
 src/backend/opsreq.rs 605
 src/backend/opsreq/tests.rs 502
@@ -164,7 +164,7 @@ src/backend/sandbox.rs 410
 src/backend/thumbworker.rs 974
 src/backend/trashbrowse.rs 1055
 src/backend/rawpreview_tests.rs 427
-src/backend/trashdelete.rs 1011
+src/backend/trashdelete.rs 996
 src/clip/watch_end_tests.rs 405
 src/gvfsprefetch_tests.rs 398
 src/gui.rs 480

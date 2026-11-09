@@ -1,6 +1,8 @@
 // Claim the exact reviewed payload and metadata before deletion; later arrivals keep their original names.
 mod recovery;
 mod cancel;
+mod parents;
+use parents::parent_at;
 use cancel::remove_tree_cancellable;
 #[cfg(test)]
 mod cancel_tests;
@@ -162,19 +164,6 @@ pub struct Reviewed {
     bytes: u64,
 }
 
-// Open one ancestor at a time; neither deep paths nor substituted symlinks need recursive traversal.
-fn parent_at(base: &File, root: &OsStr, relative: &Path) -> Result<(File, OsString), Refusal> {
-    if relative.as_os_str().is_empty() {
-        return Ok((base.try_clone().changed("Could not duplicate a Trash handle")?, root.to_os_string()));
-    }
-    let mut directory = open_dir(&fd_path(base, root))?;
-    let parent = relative.parent().changed("Missing Trash review parent.")?;
-    for component in parent.components() {
-        let std::path::Component::Normal(name) = component else { return Err(Refusal::changed("Invalid Trash review parent.")); };
-        directory = open_dir(&fd_path(&directory, name))?;
-    }
-    Ok((directory, relative.file_name().changed("Missing Trash review name.")?.to_os_string()))
-}
 fn matches(tree: &Records, base: &File, root: &OsStr, cancel: &Cancellation) -> Result<bool, Refusal> {
     #[cfg(test)]
     MATCH_WALKS.with(|walks| walks.set(walks.get() + 1));
