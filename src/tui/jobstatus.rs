@@ -251,7 +251,7 @@ pub(super) fn receive(model: &mut super::model::Model, value: &crate::jsondoc::J
         if text(job, "kind") == "extract" && text(job, "state") == "failed" {
             let reason = text(job, "reason");
             match flea::ui_logic_status_feedback::errors::extract_refusal(reason) {
-                Some(refusal) => model.fail_text(super::words::Text::Args(refusal.key, refusal.args.into_iter().map(super::words::Text::Data).collect())),
+                Some(refusal) => model.fail_text(super::words::sentence(refusal)),
                 None => model.fail(reason.into()),
             }
         }

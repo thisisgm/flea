@@ -104,6 +104,9 @@ impl Shell {
                         self.locale
                             .catalog
                             .tr_args("jobs.rename.exists", &[leaf(&destination)])
+                    } else if let Some(refusal) = errors::drive_refusal(message) {
+                        // A drive's name refusal reads in the window's language, as the status line says it.
+                        refusal.render(&self.locale.catalog)
                     } else {
                         errors::capitalised(message)
                     };

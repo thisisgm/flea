@@ -1,9 +1,9 @@
 {
-  "catalog_file_sha256": "2a107ad4df93b221274b47ff9b2c7a856b7c8f72a55faeafda89c53f52bb0f33",
-  "catalog_sha256": "151d197a56bce36c4892789455549772a29c818293b2ba137e651afd7c101e5c",
+  "catalog_file_sha256": "813dfd80fa38b88eb5f67d8c1d0b307dfca8b5bf562cf9833ffd4b12e0e7cf4a",
+  "catalog_sha256": "0ff83d8664972e04410bc7eb6529475e7ebfcd1d7d003b0a36608cf887ef5dda",
   "counts": {
     "direct_references": 0,
-    "keys": 2296,
+    "keys": 2301,
     "plurals": 111
   },
   "direct_references": {},
@@ -2920,7 +2920,7 @@
     {
       "coverage": "dynamic-needs-owner-verification",
       "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-      "line": 169,
+      "line": 171,
       "path": "src/ui_logic_file_ops/lines.rs",
       "pattern": "jobs.undone.{op}",
       "possible_keys": [
@@ -2945,7 +2945,7 @@
     {
       "coverage": "dynamic-needs-owner-verification",
       "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-      "line": 170,
+      "line": 172,
       "path": "src/ui_logic_file_ops/lines.rs",
       "pattern": "jobs.undone.{op}",
       "possible_keys": [
@@ -2970,7 +2970,7 @@
     {
       "coverage": "dynamic-needs-owner-verification",
       "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-      "line": 177,
+      "line": 179,
       "path": "src/ui_logic_file_ops/lines.rs",
       "pattern": "jobs.redone.{op}",
       "possible_keys": [
@@ -2992,7 +2992,7 @@
     {
       "coverage": "dynamic-needs-owner-verification",
       "excerpt": "&format!(\"jobs.done.{verb}_of\"),",
-      "line": 222,
+      "line": 224,
       "path": "src/ui_logic_file_ops/lines.rs",
       "pattern": "jobs.done.{verb}_of",
       "possible_keys": [
@@ -3027,7 +3027,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "if moving {\n            \"jobs.done.move_failed\"\n        } else {\n            \"jobs.done.copy_failed\"\n        }",
-      "line": 100,
+      "line": 102,
       "path": "src/ui_logic_file_ops/lines.rs",
       "pattern": null,
       "possible_keys": [],
@@ -3037,7 +3037,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "&format!(\"jobs.undone.{op}\")",
-      "line": 169,
+      "line": 171,
       "path": "src/ui_logic_file_ops/lines.rs",
       "pattern": null,
       "possible_keys": [],
@@ -3047,7 +3047,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "&format!(\"jobs.undone.{op}\")",
-      "line": 170,
+      "line": 172,
       "path": "src/ui_logic_file_ops/lines.rs",
       "pattern": null,
       "possible_keys": [],
@@ -3057,7 +3057,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "&format!(\"jobs.redone.{op}\")",
-      "line": 177,
+      "line": 179,
       "path": "src/ui_logic_file_ops/lines.rs",
       "pattern": null,
       "possible_keys": [],
@@ -3067,7 +3067,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "if moving {\n                \"jobs.done.cut\"\n            } else {\n                \"jobs.done.clip_copied\"\n            }",
-      "line": 195,
+      "line": 197,
       "path": "src/ui_logic_file_ops/lines.rs",
       "pattern": null,
       "possible_keys": [],
@@ -3077,7 +3077,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "if verified {\n        \"jobs.done.archive_written\"\n    } else {\n        \"jobs.done.extract_unverified\"\n    }",
-      "line": 212,
+      "line": 214,
       "path": "src/ui_logic_file_ops/lines.rs",
       "pattern": null,
       "possible_keys": [],
@@ -3087,7 +3087,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "&format!(\"jobs.done.{verb}_of\")",
-      "line": 221,
+      "line": 223,
       "path": "src/ui_logic_file_ops/lines.rs",
       "pattern": null,
       "possible_keys": [],
@@ -3097,7 +3097,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "if cursor < 0 {\n        \"jobs.target.none\"\n    } else if !row_loaded {\n        \"jobs.target.not_loaded\"\n    } else {\n        \"jobs.target.filtered\"\n    }",
-      "line": 274,
+      "line": 276,
       "path": "src/ui_logic_file_ops/lines.rs",
       "pattern": null,
       "possible_keys": [],
@@ -3752,7 +3752,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "self.key",
-      "line": 29,
+      "line": 57,
       "path": "src/ui_logic_status_feedback/errors.rs",
       "pattern": null,
       "possible_keys": [],
@@ -3762,7 +3762,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
-      "line": 122,
+      "line": 151,
       "path": "src/ui_logic_status_feedback/errors.rs",
       "pattern": null,
       "possible_keys": [],
@@ -8940,8 +8940,8 @@
           "usage": "key-declaration"
         },
         {
-          "excerpt": "key: \"archive.done.name_refused\",",
-          "line": 155,
+          "excerpt": "\"archive.done.name_refused\",",
+          "line": 188,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -9089,8 +9089,8 @@
           "usage": "key-declaration"
         },
         {
-          "excerpt": "key: \"archive.done.twins\",",
-          "line": 149,
+          "excerpt": "return Some(Sentence::args(\"archive.done.twins\", &[*one, *other]));",
+          "line": 182,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59376,7 +59376,7 @@
       "call_sites": [
         {
           "excerpt": "124 => \"feedback.connect.no_answer\",",
-          "line": 330,
+          "line": 361,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59412,7 +59412,7 @@
       "call_sites": [
         {
           "excerpt": "77 => \"feedback.connect.no_password\",",
-          "line": 332,
+          "line": 363,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59434,7 +59434,7 @@
       "call_sites": [
         {
           "excerpt": "126 | 127 => \"feedback.connect.no_prompt\",",
-          "line": 331,
+          "line": 362,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59470,7 +59470,7 @@
       "call_sites": [
         {
           "excerpt": "_ => \"feedback.connect.unopened\",",
-          "line": 333,
+          "line": 364,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59487,6 +59487,129 @@
       "resolved_sha256": "3b8eb1e6515af5c0658bd2986f122c80cd8830aca0999ca1ffa863a12fea3774",
       "resolved_source_hash": "725a602e59f4",
       "source_hash": "725a602e59f4"
+    },
+    "feedback.drive.char": {
+      "call_sites": [
+        {
+          "excerpt": ".then(|| Sentence::args(\"feedback.drive.char\", &[bad, drive]))",
+          "line": 31,
+          "path": "src/ui_logic_status_feedback/drive_names.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "feedback.drive.char: src/ui_logic_status_feedback/drive_names.rs:31",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "'%1' is not allowed in a name on this %2 drive.",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1",
+        "%2"
+      ],
+      "plural_categories": [],
+      "resolved_english": "'%1' is not allowed in a name on this %2 drive.",
+      "resolved_sha256": "2d69392370c9f1c884259f4dd51fc1f92a0e3e59311bc4c36881a4b89d851e3b",
+      "resolved_source_hash": "6d55db8233b4",
+      "source_hash": "6d55db8233b4"
+    },
+    "feedback.drive.control": {
+      "call_sites": [
+        {
+          "excerpt": ".then(|| Sentence::args(\"feedback.drive.control\", &[code, drive]))",
+          "line": 27,
+          "path": "src/ui_logic_status_feedback/drive_names.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "feedback.drive.control: src/ui_logic_status_feedback/drive_names.rs:27",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "A name cannot hold control character %1 on this %2 drive.",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1",
+        "%2"
+      ],
+      "plural_categories": [],
+      "resolved_english": "A name cannot hold control character %1 on this %2 drive.",
+      "resolved_sha256": "b76a051a8af0087fc5b6cfc9c1bac1ad21e7f4d961c111d104ac23c7e6a9dce1",
+      "resolved_source_hash": "d33d6ecdad7a",
+      "source_hash": "d33d6ecdad7a"
+    },
+    "feedback.drive.end_dot": {
+      "call_sites": [
+        {
+          "excerpt": "Some(Sentence::args(\"feedback.drive.end_dot\", &[drive]))",
+          "line": 18,
+          "path": "src/ui_logic_status_feedback/drive_names.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "feedback.drive.end_dot: src/ui_logic_status_feedback/drive_names.rs:18",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "A name cannot end in a dot on this %1 drive.",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1"
+      ],
+      "plural_categories": [],
+      "resolved_english": "A name cannot end in a dot on this %1 drive.",
+      "resolved_sha256": "e0f3ef6350c5b3e4e399aeb212ed853a0075293b83e6b01e253e27682c0ac192",
+      "resolved_source_hash": "40ae88398948",
+      "source_hash": "40ae88398948"
+    },
+    "feedback.drive.end_space": {
+      "call_sites": [
+        {
+          "excerpt": "Some(Sentence::args(\"feedback.drive.end_space\", &[drive]))",
+          "line": 20,
+          "path": "src/ui_logic_status_feedback/drive_names.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "feedback.drive.end_space: src/ui_logic_status_feedback/drive_names.rs:20",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "A name cannot end in a space on this %1 drive.",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1"
+      ],
+      "plural_categories": [],
+      "resolved_english": "A name cannot end in a space on this %1 drive.",
+      "resolved_sha256": "c1be29514111718e5292518543db8391281db5ffc65ad2cb550a136c53867fb9",
+      "resolved_source_hash": "b3c1914a91fb",
+      "source_hash": "b3c1914a91fb"
+    },
+    "feedback.drive.reserved": {
+      "call_sites": [
+        {
+          "excerpt": "reserved(stem).then(|| Sentence::args(\"feedback.drive.reserved\", &[stem, drive]))",
+          "line": 34,
+          "path": "src/ui_logic_status_feedback/drive_names.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "feedback.drive.reserved: src/ui_logic_status_feedback/drive_names.rs:34",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "'%1' is reserved on this %2 drive.",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1",
+        "%2"
+      ],
+      "plural_categories": [],
+      "resolved_english": "'%1' is reserved on this %2 drive.",
+      "resolved_sha256": "8795760327f718cd9e5e0b94236c44371eb809160011e81090ac31f78f0ffdc7",
+      "resolved_source_hash": "64dfbc410ee7",
+      "source_hash": "64dfbc410ee7"
     },
     "feedback.empty.phrase_1": {
       "call_sites": [],
@@ -59590,7 +59713,7 @@
       "call_sites": [
         {
           "excerpt": "\"feedback.error.archive_stopped\",",
-          "line": 262,
+          "line": 293,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59612,7 +59735,7 @@
       "call_sites": [
         {
           "excerpt": "\"feedback.error.archive_stopped_named\",",
-          "line": 261,
+          "line": 292,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59643,7 +59766,7 @@
         },
         {
           "excerpt": "Sentence::with(\"feedback.error.backend\", &capitalised(message))",
-          "line": 114,
+          "line": 145,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59667,7 +59790,7 @@
       "call_sites": [
         {
           "excerpt": "\"scan\" if denied(place, message) => pick(\"feedback.error.denied_named\", \"pane.locked\"),",
-          "line": 242,
+          "line": 273,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59691,7 +59814,7 @@
       "call_sites": [
         {
           "excerpt": "\"duplicate\" => Sentence::key(\"feedback.error.duplicate\"),",
-          "line": 256,
+          "line": 287,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59720,7 +59843,7 @@
         },
         {
           "excerpt": "pub const GENERIC: &str = \"feedback.error.generic\";",
-          "line": 41,
+          "line": 69,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59742,7 +59865,7 @@
       "call_sites": [
         {
           "excerpt": "\"mkdir\" => keep_or(\"feedback.error.mkdir\"),",
-          "line": 252,
+          "line": 283,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59764,14 +59887,14 @@
       "call_sites": [
         {
           "excerpt": "catalog.tr(\"feedback.error.rename\")",
-          "line": 184,
+          "line": 187,
           "path": "crates/flea-gui/src/window/rename_replies.rs",
           "surface": "gui",
           "usage": "translated-call"
         },
         {
           "excerpt": "\"rename\" => keep_or(\"feedback.error.rename\"),",
-          "line": 250,
+          "line": 281,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59793,7 +59916,7 @@
       "call_sites": [
         {
           "excerpt": "\"rename-kept\" => Sentence::key(\"feedback.error.rename_kept\"),",
-          "line": 251,
+          "line": 282,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59815,7 +59938,7 @@
       "call_sites": [
         {
           "excerpt": "\"scan\" if share_gone(message) => Sentence::key(\"feedback.error.share_gone\"),",
-          "line": 244,
+          "line": 275,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59837,7 +59960,7 @@
       "call_sites": [
         {
           "excerpt": "\"scan\" if share_silent(message) => Sentence::key(\"feedback.error.share_silent\"),",
-          "line": 245,
+          "line": 276,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59859,7 +59982,7 @@
       "call_sites": [
         {
           "excerpt": "\"scan\" if share_stale(message) => Sentence::key(\"feedback.error.share_stale\"),",
-          "line": 243,
+          "line": 274,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59881,7 +60004,7 @@
       "call_sites": [
         {
           "excerpt": "\"sort\" => Sentence::key(\"feedback.error.sort\"),",
-          "line": 247,
+          "line": 278,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59903,7 +60026,7 @@
       "call_sites": [
         {
           "excerpt": "\"stale\" => Sentence::key(\"feedback.error.stale\"),",
-          "line": 259,
+          "line": 290,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59925,7 +60048,7 @@
       "call_sites": [
         {
           "excerpt": "\"state\" => Sentence::key(\"feedback.error.state\"),",
-          "line": 253,
+          "line": 284,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59947,7 +60070,7 @@
       "call_sites": [
         {
           "excerpt": "\"statefile\" => Sentence::key(\"feedback.error.statefile\"),",
-          "line": 254,
+          "line": 285,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59976,7 +60099,7 @@
         },
         {
           "excerpt": "\"read\" => Sentence::key(\"feedback.error.stopped\"),",
-          "line": 248,
+          "line": 279,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59998,7 +60121,7 @@
       "call_sites": [
         {
           "excerpt": "Sentence::key(\"feedback.error.taken\")",
-          "line": 236,
+          "line": 267,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60020,7 +60143,7 @@
       "call_sites": [
         {
           "excerpt": "\"trash\" => Sentence::key(\"feedback.error.trash\"),",
-          "line": 258,
+          "line": 289,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60042,7 +60165,7 @@
       "call_sites": [
         {
           "excerpt": "\"scan\" => pick(\"feedback.error.unread_named\", \"pane.unread\"),",
-          "line": 246,
+          "line": 277,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60198,7 +60321,7 @@
       "call_sites": [
         {
           "excerpt": "(\"address is already in use\", \"feedback.os.address_in_use\"),",
-          "line": 52,
+          "line": 80,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60220,7 +60343,7 @@
       "call_sites": [
         {
           "excerpt": "(\"address is unavailable\", \"feedback.os.address_unavailable\"),",
-          "line": 53,
+          "line": 81,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60242,7 +60365,7 @@
       "call_sites": [
         {
           "excerpt": "(\"already exists\", \"feedback.os.already_exists\"),",
-          "line": 47,
+          "line": 75,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60264,7 +60387,7 @@
       "call_sites": [
         {
           "excerpt": "(\"file or device is busy\", \"feedback.os.busy\"),",
-          "line": 68,
+          "line": 96,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60286,7 +60409,7 @@
       "call_sites": [
         {
           "excerpt": "(\"connection closed\", \"feedback.os.connection_closed\"),",
-          "line": 54,
+          "line": 82,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60308,7 +60431,7 @@
       "call_sites": [
         {
           "excerpt": "(\"connection ended\", \"feedback.os.connection_ended\"),",
-          "line": 50,
+          "line": 78,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60330,7 +60453,7 @@
       "call_sites": [
         {
           "excerpt": "(\"connection refused\", \"feedback.os.connection_refused\"),",
-          "line": 48,
+          "line": 76,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60352,7 +60475,7 @@
       "call_sites": [
         {
           "excerpt": "(\"connection reset\", \"feedback.os.connection_reset\"),",
-          "line": 49,
+          "line": 77,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60374,7 +60497,7 @@
       "call_sites": [
         {
           "excerpt": "\"feedback.os.could_not_finish\",",
-          "line": 90,
+          "line": 118,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60396,7 +60519,7 @@
       "call_sites": [
         {
           "excerpt": "\"feedback.os.cross_device\",",
-          "line": 71,
+          "line": 99,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60418,7 +60541,7 @@
       "call_sites": [
         {
           "excerpt": "(\"the drive is full\", \"feedback.os.full\"),",
-          "line": 81,
+          "line": 109,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60440,7 +60563,7 @@
       "call_sites": [
         {
           "excerpt": "(\"operation was interrupted\", \"feedback.os.interrupted\"),",
-          "line": 60,
+          "line": 88,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60462,7 +60585,7 @@
       "call_sites": [
         {
           "excerpt": "(\"invalid data\", \"feedback.os.invalid_data\"),",
-          "line": 57,
+          "line": 85,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60484,7 +60607,7 @@
       "call_sites": [
         {
           "excerpt": "(\"invalid input\", \"feedback.os.invalid_input\"),",
-          "line": 56,
+          "line": 84,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60506,7 +60629,7 @@
       "call_sites": [
         {
           "excerpt": "\"feedback.os.io\",",
-          "line": 66,
+          "line": 94,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60528,7 +60651,7 @@
       "call_sites": [
         {
           "excerpt": "(\"item is a folder\", \"feedback.os.is_a_folder\"),",
-          "line": 78,
+          "line": 106,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60550,7 +60673,7 @@
       "call_sites": [
         {
           "excerpt": "(\"that name is too long\", \"feedback.os.name_too_long\"),",
-          "line": 83,
+          "line": 111,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60572,7 +60695,7 @@
       "call_sites": [
         {
           "excerpt": "(\"the drive is unavailable\", \"feedback.os.no_device\"),",
-          "line": 73,
+          "line": 101,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60594,7 +60717,7 @@
       "call_sites": [
         {
           "excerpt": "\"feedback.os.not_a_folder\",",
-          "line": 76,
+          "line": 104,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60616,7 +60739,7 @@
       "call_sites": [
         {
           "excerpt": "(\"not connected\", \"feedback.os.not_connected\"),",
-          "line": 51,
+          "line": 79,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60638,7 +60761,7 @@
       "call_sites": [
         {
           "excerpt": "(\"folder is not empty\", \"feedback.os.not_empty\"),",
-          "line": 84,
+          "line": 112,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60660,7 +60783,7 @@
       "call_sites": [
         {
           "excerpt": "(\"item not found\", \"feedback.os.not_found\"),",
-          "line": 45,
+          "line": 73,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60682,7 +60805,7 @@
       "call_sites": [
         {
           "excerpt": "(\"not enough memory\", \"feedback.os.out_of_memory\"),",
-          "line": 63,
+          "line": 91,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60704,7 +60827,7 @@
       "call_sites": [
         {
           "excerpt": "(\"permission denied\", \"feedback.os.permission_denied\"),",
-          "line": 46,
+          "line": 74,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60726,7 +60849,7 @@
       "call_sites": [
         {
           "excerpt": "(\"storage quota exceeded\", \"feedback.os.quota\"),",
-          "line": 87,
+          "line": 115,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60748,7 +60871,7 @@
       "call_sites": [
         {
           "excerpt": "(\"the drive is read-only\", \"feedback.os.read_only\"),",
-          "line": 82,
+          "line": 110,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60770,7 +60893,7 @@
       "call_sites": [
         {
           "excerpt": "(\"file is no longer available\", \"feedback.os.stale\"),",
-          "line": 86,
+          "line": 114,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60792,7 +60915,7 @@
       "call_sites": [
         {
           "excerpt": "(\"operation timed out\", \"feedback.os.timed_out\"),",
-          "line": 58,
+          "line": 86,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60814,7 +60937,7 @@
       "call_sites": [
         {
           "excerpt": "(\"file is too large\", \"feedback.os.too_large\"),",
-          "line": 80,
+          "line": 108,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60836,7 +60959,7 @@
       "call_sites": [
         {
           "excerpt": "(\"the path has too many links\", \"feedback.os.too_many_links\"),",
-          "line": 85,
+          "line": 113,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60858,7 +60981,7 @@
       "call_sites": [
         {
           "excerpt": "(\"too many files are open\", \"feedback.os.too_many_open\"),",
-          "line": 79,
+          "line": 107,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60880,7 +61003,7 @@
       "call_sites": [
         {
           "excerpt": "(\"file ended unexpectedly\", \"feedback.os.unexpected_eof\"),",
-          "line": 62,
+          "line": 90,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60902,7 +61025,7 @@
       "call_sites": [
         {
           "excerpt": "(\"operation is not supported\", \"feedback.os.unsupported\"),",
-          "line": 61,
+          "line": 89,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60924,7 +61047,7 @@
       "call_sites": [
         {
           "excerpt": "(\"the item is busy; try again\", \"feedback.os.would_block\"),",
-          "line": 55,
+          "line": 83,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60946,7 +61069,7 @@
       "call_sites": [
         {
           "excerpt": "(\"could not write all data\", \"feedback.os.write_zero\"),",
-          "line": 59,
+          "line": 87,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -61798,7 +61921,7 @@
         },
         {
           "excerpt": "Text::Plural(\"items.count\", count, vec![]).render(i18n)",
-          "line": 186,
+          "line": 210,
           "path": "src/tui/words.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -63073,7 +63196,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.done.archive_written\"",
-          "line": 213,
+          "line": 215,
           "path": "src/ui_logic_file_ops/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -63117,7 +63240,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.done.clip_copied\"",
-          "line": 199,
+          "line": 201,
           "path": "src/ui_logic_file_ops/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -63173,7 +63296,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "&format!(\"jobs.done.{verb}_of\"),",
-          "line": 222,
+          "line": 224,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.done.{verb}_of",
           "possible_keys": [
@@ -63205,7 +63328,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.done.copy_failed\"",
-          "line": 104,
+          "line": 106,
           "path": "src/ui_logic_file_ops/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -63230,7 +63353,7 @@
       "call_sites": [
         {
           "excerpt": "catalog.tr_args(\"jobs.done.created\", &[leaf(path)])",
-          "line": 184,
+          "line": 186,
           "path": "src/ui_logic_file_ops/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -63254,7 +63377,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.done.cut\"",
-          "line": 197,
+          "line": 199,
           "path": "src/ui_logic_file_ops/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -63279,7 +63402,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "&format!(\"jobs.done.{verb}_of\"),",
-          "line": 222,
+          "line": 224,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.done.{verb}_of",
           "possible_keys": [
@@ -63344,7 +63467,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.done.extract_unverified\"",
-          "line": 215,
+          "line": 217,
           "path": "src/ui_logic_file_ops/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -63414,7 +63537,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.done.move_failed\"",
-          "line": 102,
+          "line": 104,
           "path": "src/ui_logic_file_ops/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -63471,7 +63594,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "&format!(\"jobs.done.{verb}_of\"),",
-          "line": 222,
+          "line": 224,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.done.{verb}_of",
           "possible_keys": [
@@ -63503,7 +63626,7 @@
       "call_sites": [
         {
           "excerpt": "with_undo(catalog, preset, catalog.trn(\"jobs.done.renamed\", n(ok)))",
-          "line": 207,
+          "line": 209,
           "path": "src/ui_logic_file_ops/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -63537,7 +63660,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "&format!(\"jobs.done.{verb}_of\"),",
-          "line": 222,
+          "line": 224,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.done.{verb}_of",
           "possible_keys": [
@@ -63578,14 +63701,14 @@
       "call_sites": [
         {
           "excerpt": "[one] => catalog.tr_args(\"jobs.done.retry_selected\", &[leaf(one)]),",
-          "line": 114,
+          "line": 116,
           "path": "src/ui_logic_file_ops/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
         },
         {
           "excerpt": "\"jobs.done.retry_selected\",",
-          "line": 116,
+          "line": 118,
           "path": "src/ui_logic_file_ops/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -64913,7 +65036,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-          "line": 177,
+          "line": 179,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.redone.{op}",
           "possible_keys": [
@@ -64951,7 +65074,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-          "line": 177,
+          "line": 179,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.redone.{op}",
           "possible_keys": [
@@ -64989,7 +65112,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-          "line": 177,
+          "line": 179,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.redone.{op}",
           "possible_keys": [
@@ -65027,7 +65150,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-          "line": 177,
+          "line": 179,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.redone.{op}",
           "possible_keys": [
@@ -65065,7 +65188,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-          "line": 177,
+          "line": 179,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.redone.{op}",
           "possible_keys": [
@@ -65103,7 +65226,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-          "line": 177,
+          "line": 179,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.redone.{op}",
           "possible_keys": [
@@ -65141,7 +65264,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-          "line": 177,
+          "line": 179,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.redone.{op}",
           "possible_keys": [
@@ -65179,7 +65302,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-          "line": 177,
+          "line": 179,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.redone.{op}",
           "possible_keys": [
@@ -65216,7 +65339,7 @@
       "call_sites": [
         {
           "excerpt": "catalog.tr(\"jobs.redone.other\")",
-          "line": 179,
+          "line": 181,
           "path": "src/ui_logic_file_ops/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -65224,7 +65347,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-          "line": 177,
+          "line": 179,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.redone.{op}",
           "possible_keys": [
@@ -65262,7 +65385,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-          "line": 177,
+          "line": 179,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.redone.{op}",
           "possible_keys": [
@@ -65300,7 +65423,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-          "line": 177,
+          "line": 179,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.redone.{op}",
           "possible_keys": [
@@ -65338,7 +65461,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "catalog.tr(&format!(\"jobs.redone.{op}\"))",
-          "line": 177,
+          "line": 179,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.redone.{op}",
           "possible_keys": [
@@ -65375,7 +65498,7 @@
       "call_sites": [
         {
           "excerpt": "catalog.tr(\"jobs.rename.changed\")",
-          "line": 367,
+          "line": 369,
           "path": "src/ui_logic_file_ops/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -65421,7 +65544,7 @@
       "call_sites": [
         {
           "excerpt": "bad.then(|| catalog.tr(\"jobs.rename.invalid\"))",
-          "line": 363,
+          "line": 365,
           "path": "src/ui_logic_file_ops/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -65472,7 +65595,7 @@
         },
         {
           "excerpt": "let said = self.locale.catalog.tr(\"jobs.rename.stopped\");",
-          "line": 115,
+          "line": 118,
           "path": "crates/flea-gui/src/window/rename_replies.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -65558,7 +65681,7 @@
       "call_sites": [
         {
           "excerpt": "catalog.tr(\"jobs.taildrop.gone\")",
-          "line": 241,
+          "line": 243,
           "path": "src/ui_logic_file_ops/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -65587,7 +65710,7 @@
         },
         {
           "excerpt": "catalog.tr_args(\"jobs.taildrop.reason\", &[reason])",
-          "line": 243,
+          "line": 245,
           "path": "src/ui_logic_file_ops/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -65611,7 +65734,7 @@
       "call_sites": [
         {
           "excerpt": "catalog.tr_args(\"jobs.taildrop.sending\", &[leaf(path), peer])",
-          "line": 252,
+          "line": 254,
           "path": "src/ui_logic_file_ops/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -65636,7 +65759,7 @@
       "call_sites": [
         {
           "excerpt": "catalog.tr(\"jobs.taildrop.stale\")",
-          "line": 248,
+          "line": 250,
           "path": "src/ui_logic_file_ops/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -65665,7 +65788,7 @@
         },
         {
           "excerpt": "catalog.tr(\"jobs.target.busy\")",
-          "line": 284,
+          "line": 286,
           "path": "src/ui_logic_file_ops/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -65687,7 +65810,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.target.filtered\"",
-          "line": 279,
+          "line": 281,
           "path": "src/ui_logic_file_ops/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -65709,7 +65832,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.target.none\"",
-          "line": 275,
+          "line": 277,
           "path": "src/ui_logic_file_ops/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -65731,7 +65854,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.target.not_loaded\"",
-          "line": 277,
+          "line": 279,
           "path": "src/ui_logic_file_ops/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -65989,7 +66112,7 @@
       "call_sites": [
         {
           "excerpt": "(false, true) => catalog.tr_args(\"jobs.trash.failed_many\", &[&items(catalog, failed)]),",
-          "line": 129,
+          "line": 131,
           "path": "src/ui_logic_file_ops/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -66013,7 +66136,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.trash.failed_many_why\",",
-          "line": 131,
+          "line": 133,
           "path": "src/ui_logic_file_ops/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -66038,7 +66161,7 @@
       "call_sites": [
         {
           "excerpt": "(true, true) => catalog.tr(\"jobs.trash.failed_one\"),",
-          "line": 127,
+          "line": 129,
           "path": "src/ui_logic_file_ops/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -66060,7 +66183,7 @@
       "call_sites": [
         {
           "excerpt": "(true, false) => catalog.tr_args(\"jobs.trash.failed_one_why\", &[reason]),",
-          "line": 128,
+          "line": 130,
           "path": "src/ui_logic_file_ops/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -66084,7 +66207,7 @@
       "call_sites": [
         {
           "excerpt": "catalog.tr_args(\"jobs.trash.moved\", &[&items(catalog, ok)])",
-          "line": 137,
+          "line": 139,
           "path": "src/ui_logic_file_ops/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -66108,7 +66231,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.trash.moved_some\",",
-          "line": 140,
+          "line": 142,
           "path": "src/ui_logic_file_ops/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -66133,7 +66256,7 @@
       "call_sites": [
         {
           "excerpt": "\"jobs.trash.moved_some_why\",",
-          "line": 145,
+          "line": 147,
           "path": "src/ui_logic_file_ops/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -66182,7 +66305,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 169,
+          "line": 171,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -66208,7 +66331,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 170,
+          "line": 172,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -66249,7 +66372,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 169,
+          "line": 171,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -66275,7 +66398,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 170,
+          "line": 172,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -66316,7 +66439,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 169,
+          "line": 171,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -66342,7 +66465,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 170,
+          "line": 172,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -66383,7 +66506,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 169,
+          "line": 171,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -66409,7 +66532,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 170,
+          "line": 172,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -66450,7 +66573,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 169,
+          "line": 171,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -66476,7 +66599,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 170,
+          "line": 172,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -66517,7 +66640,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 169,
+          "line": 171,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -66543,7 +66666,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 170,
+          "line": 172,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -66584,7 +66707,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 169,
+          "line": 171,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -66610,7 +66733,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 170,
+          "line": 172,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -66651,7 +66774,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 169,
+          "line": 171,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -66677,7 +66800,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 170,
+          "line": 172,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -66718,7 +66841,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 169,
+          "line": 171,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -66744,7 +66867,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 170,
+          "line": 172,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -66784,7 +66907,7 @@
       "call_sites": [
         {
           "excerpt": "_ => catalog.tr(\"jobs.undone.other\"),",
-          "line": 171,
+          "line": 173,
           "path": "src/ui_logic_file_ops/lines.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -66792,7 +66915,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 169,
+          "line": 171,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -66818,7 +66941,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 170,
+          "line": 172,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -66859,7 +66982,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 169,
+          "line": 171,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -66885,7 +67008,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 170,
+          "line": 172,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -66926,7 +67049,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 169,
+          "line": 171,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -66952,7 +67075,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 170,
+          "line": 172,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -66993,7 +67116,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 169,
+          "line": 171,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -67019,7 +67142,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 170,
+          "line": 172,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -67060,7 +67183,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 169,
+          "line": 171,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -67086,7 +67209,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 170,
+          "line": 172,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -67127,7 +67250,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "\"trash\" | \"settags\" | \"mkdir\" => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 169,
+          "line": 171,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -67153,7 +67276,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "_ if JOURNAL.contains(&op) => catalog.tr(&format!(\"jobs.undone.{op}\")),",
-          "line": 170,
+          "line": 172,
           "path": "src/ui_logic_file_ops/lines.rs",
           "pattern": "jobs.undone.{op}",
           "possible_keys": [
@@ -75075,7 +75198,7 @@
         },
         {
           "excerpt": "Sentence::key(\"menu.refusal.empty_clipboard\")",
-          "line": 271,
+          "line": 302,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -80771,7 +80894,7 @@
         },
         {
           "excerpt": "\"scan\" if denied(place, message) => pick(\"feedback.error.denied_named\", \"pane.locked\"),",
-          "line": 242,
+          "line": 273,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -80800,7 +80923,7 @@
         },
         {
           "excerpt": "catalog.tr_args(\"pane.permissions_other_owner\", &[&drawn])",
-          "line": 321,
+          "line": 352,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -81031,7 +81154,7 @@
         },
         {
           "excerpt": "\"scan\" => pick(\"feedback.error.unread_named\", \"pane.unread\"),",
-          "line": 246,
+          "line": 277,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -106132,7 +106255,7 @@
       "call_sites": [
         {
           "excerpt": "self.fail_key(\"tui.editor.enter_a_filename_before_the_extension\", i18n);",
-          "line": 87,
+          "line": 93,
           "path": "src/tui/editor.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -106154,7 +106277,7 @@
       "call_sites": [
         {
           "excerpt": "\"tui.editor.invalid_name\"",
-          "line": 103,
+          "line": 109,
           "path": "src/tui/editor.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -106176,7 +106299,7 @@
       "call_sites": [
         {
           "excerpt": "\"tui.editor.name_dots\"",
-          "line": 97,
+          "line": 103,
           "path": "src/tui/editor.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -106198,7 +106321,7 @@
       "call_sites": [
         {
           "excerpt": "\"tui.editor.name_empty\"",
-          "line": 95,
+          "line": 101,
           "path": "src/tui/editor.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -106220,7 +106343,7 @@
       "call_sites": [
         {
           "excerpt": "\"tui.editor.name_nul\"",
-          "line": 101,
+          "line": 107,
           "path": "src/tui/editor.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -106242,7 +106365,7 @@
       "call_sites": [
         {
           "excerpt": "\"tui.editor.name_slash\"",
-          "line": 99,
+          "line": 105,
           "path": "src/tui/editor.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -106264,7 +106387,7 @@
       "call_sites": [
         {
           "excerpt": "self.fail_key(\"tui.editor.selected_item_changed_reopen_rename\", i18n);",
-          "line": 113,
+          "line": 119,
           "path": "src/tui/editor.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -106611,7 +106734,7 @@
       "call_sites": [
         {
           "excerpt": "\"tui.launch.could_not_finish\",",
-          "line": 234,
+          "line": 258,
           "path": "src/tui/words.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -106636,7 +106759,7 @@
       "call_sites": [
         {
           "excerpt": "\"tui.launch.could_not_observe\",",
-          "line": 243,
+          "line": 267,
           "path": "src/tui/words.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -111885,7 +112008,7 @@
     },
     {
       "excerpt": "error: !done.ok && done.err != \"cancelled\",",
-      "line": 195,
+      "line": 197,
       "literal": "cancelled",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/archive_flash/host/reply.rs",
@@ -112427,6 +112550,60 @@
       "excerpt": "\"the refusal is said in German: {status}\"",
       "line": 202,
       "literal": "the refusal is said in German: {status}",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/archive_flash/host_tests/extract.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "r#\"{\"t\":\"archivedone\",\"id\":9,\"ok\":false,\"verified\":true,\"err\":\"'set/clip: final.txt' cannot be extracted onto this drive: ':' is not allowed in a name on this vfat drive\"}\"#,",
+      "line": 217,
+      "literal": "{\"t\":\"archivedone\",\"id\":9,\"ok\":false,\"verified\":true,\"err\":\"'set/clip: final.txt' cannot be extracted onto this drive: ':' is not allowed in a name on this vfat drive\"}",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/archive_flash/host_tests/extract.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "\"entpackt werden: „:“ ist in einem Namen auf diesem vfat-Laufwerk nicht erlaubt.\"",
+      "line": 222,
+      "literal": "entpackt werden: „:“ ist in einem Namen auf diesem vfat-Laufwerk nicht erlaubt.",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/archive_flash/host_tests/extract.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "\"the drive's reason is said in German: {status}\"",
+      "line": 224,
+      "literal": "the drive's reason is said in German: {status}",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/archive_flash/host_tests/extract.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "r#\"{\"t\":\"error\",\"where\":\"rename\",\"path\":\"/files/notes.txt\",\"msg\":\"a name cannot end in a space on this exfat drive\"}\"#,",
+      "line": 239,
+      "literal": "{\"t\":\"error\",\"where\":\"rename\",\"path\":\"/files/notes.txt\",\"msg\":\"a name cannot end in a space on this exfat drive\"}",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/archive_flash/host_tests/extract.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": ".contains(\"Ein Name darf auf diesem exfat-Laufwerk nicht mit einem Leerzeichen enden.\"),",
+      "line": 244,
+      "literal": "Ein Name darf auf diesem exfat-Laufwerk nicht mit einem Leerzeichen enden.",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/archive_flash/host_tests/extract.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "\"the rename refusal is said in German: {status}\"",
+      "line": 245,
+      "literal": "the rename refusal is said in German: {status}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/archive_flash/host_tests/extract.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -140687,6 +140864,24 @@
       "excerpt": "return Some(format!(\"'{stem}' is reserved on this {drive} drive\"));",
       "line": 30,
       "literal": "'{stem}' is reserved on this {drive} drive",
+      "owner": "controller",
+      "path": "src/backend/fsname.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "let refusal = refuse_name(name, fstype, windows_names).unwrap_or_else(|| panic!(\"{name} is refused on {fstype}\"));",
+      "line": 73,
+      "literal": "{name} is refused on {fstype}",
+      "owner": "controller",
+      "path": "src/backend/fsname.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "let read = flea::ui_logic_status_feedback::errors::drive_refusal(&refusal).unwrap_or_else(|| panic!(\"{refusal} reads back\"));",
+      "line": 74,
+      "literal": "{refusal} reads back",
       "owner": "controller",
       "path": "src/backend/fsname.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -177378,7 +177573,7 @@
     },
     {
       "excerpt": "\"Left\" | \"Right\" | \"Home\" | \"End\" => {",
-      "line": 158,
+      "line": 164,
       "literal": "Left",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -177387,7 +177582,7 @@
     },
     {
       "excerpt": "\"Left\" | \"Right\" | \"Home\" | \"End\" => {",
-      "line": 158,
+      "line": 164,
       "literal": "Right",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -177396,7 +177591,7 @@
     },
     {
       "excerpt": "\"Left\" | \"Right\" | \"Home\" | \"End\" => {",
-      "line": 158,
+      "line": 164,
       "literal": "Home",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -177405,7 +177600,7 @@
     },
     {
       "excerpt": "\"Left\" | \"Right\" | \"Home\" | \"End\" => {",
-      "line": 158,
+      "line": 164,
       "literal": "End",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -177414,7 +177609,7 @@
     },
     {
       "excerpt": "\"Home\" => 0,",
-      "line": 160,
+      "line": 166,
       "literal": "Home",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -177423,7 +177618,7 @@
     },
     {
       "excerpt": "\"End\" => self.editable_end,",
-      "line": 161,
+      "line": 167,
       "literal": "End",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -177432,7 +177627,7 @@
     },
     {
       "excerpt": "\"Left\" => {",
-      "line": 162,
+      "line": 168,
       "literal": "Left",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -177441,7 +177636,7 @@
     },
     {
       "excerpt": "\"Backspace\" | \"Delete\" if key.mods.is_empty() => {",
-      "line": 181,
+      "line": 187,
       "literal": "Backspace",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -177450,7 +177645,7 @@
     },
     {
       "excerpt": "\"Backspace\" | \"Delete\" if key.mods.is_empty() => {",
-      "line": 181,
+      "line": 187,
       "literal": "Delete",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -177459,7 +177654,7 @@
     },
     {
       "excerpt": "} else if key.name == \"Backspace\" {",
-      "line": 184,
+      "line": 190,
       "literal": "Backspace",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -177468,7 +177663,7 @@
     },
     {
       "excerpt": "(\"alt\", \"B\") | (\"ctrl\" | \"ctrlshift\", \"Left\") => Some(false),",
-      "line": 209,
+      "line": 215,
       "literal": "Left",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -177477,7 +177672,7 @@
     },
     {
       "excerpt": "(\"alt\", \"F\") | (\"ctrl\" | \"ctrlshift\", \"Right\") => Some(true),",
-      "line": 210,
+      "line": 216,
       "literal": "Right",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -177486,7 +177681,7 @@
     },
     {
       "excerpt": "(\"ctrl\", \"W\" | \"Backspace\") => {",
-      "line": 227,
+      "line": 233,
       "literal": "Backspace",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -177495,7 +177690,7 @@
     },
     {
       "excerpt": "(\"alt\", \"D\") | (\"ctrl\", \"Delete\") => {",
-      "line": 230,
+      "line": 236,
       "literal": "Delete",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -179853,7 +180048,7 @@
     },
     {
       "excerpt": "reason = \"I50-11 terminal active-layout identity adapter is an outstanding owner dependency\"",
-      "line": 192,
+      "line": 216,
       "literal": "I50-11 terminal active-layout identity adapter is an outstanding owner dependency",
       "owner": "t11",
       "path": "src/tui/words.rs",
@@ -182688,7 +182883,7 @@
     },
     {
       "excerpt": "\"link\",",
-      "line": 159,
+      "line": 161,
       "literal": "link",
       "owner": "controller",
       "path": "src/ui_logic_file_ops/lines.rs",
@@ -188105,8 +188300,62 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "let (said, drive) = text.strip_suffix(\" drive\")?.rsplit_once(\" on this \")?;",
+      "line": 12,
+      "literal": " on this ",
+      "owner": "controller",
+      "path": "src/ui_logic_status_feedback/drive_names.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "if said == \"a name cannot end in a dot\" {",
+      "line": 17,
+      "literal": "a name cannot end in a dot",
+      "owner": "controller",
+      "path": "src/ui_logic_status_feedback/drive_names.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "} else if said == \"a name cannot end in a space\" {",
+      "line": 19,
+      "literal": "a name cannot end in a space",
+      "owner": "controller",
+      "path": "src/ui_logic_status_feedback/drive_names.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "} else if let Some(code) = said.strip_prefix(\"a name cannot hold control character \") {",
+      "line": 21,
+      "literal": "a name cannot hold control character ",
+      "owner": "controller",
+      "path": "src/ui_logic_status_feedback/drive_names.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "} else if let Some(bad) = quoted(\"' is not allowed in a name\") {",
+      "line": 28,
+      "literal": "' is not allowed in a name",
+      "owner": "controller",
+      "path": "src/ui_logic_status_feedback/drive_names.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "let stem = quoted(\"' is reserved\")?;",
+      "line": 33,
+      "literal": "' is reserved",
+      "owner": "controller",
+      "path": "src/ui_logic_status_feedback/drive_names.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "(\"item not found\", \"feedback.os.not_found\"),",
-      "line": 45,
+      "line": 73,
       "literal": "item not found",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188115,7 +188364,7 @@
     },
     {
       "excerpt": "(\"permission denied\", \"feedback.os.permission_denied\"),",
-      "line": 46,
+      "line": 74,
       "literal": "permission denied",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188124,7 +188373,7 @@
     },
     {
       "excerpt": "(\"already exists\", \"feedback.os.already_exists\"),",
-      "line": 47,
+      "line": 75,
       "literal": "already exists",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188133,7 +188382,7 @@
     },
     {
       "excerpt": "(\"connection refused\", \"feedback.os.connection_refused\"),",
-      "line": 48,
+      "line": 76,
       "literal": "connection refused",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188142,7 +188391,7 @@
     },
     {
       "excerpt": "(\"connection reset\", \"feedback.os.connection_reset\"),",
-      "line": 49,
+      "line": 77,
       "literal": "connection reset",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188151,7 +188400,7 @@
     },
     {
       "excerpt": "(\"connection ended\", \"feedback.os.connection_ended\"),",
-      "line": 50,
+      "line": 78,
       "literal": "connection ended",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188160,7 +188409,7 @@
     },
     {
       "excerpt": "(\"not connected\", \"feedback.os.not_connected\"),",
-      "line": 51,
+      "line": 79,
       "literal": "not connected",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188169,7 +188418,7 @@
     },
     {
       "excerpt": "(\"address is already in use\", \"feedback.os.address_in_use\"),",
-      "line": 52,
+      "line": 80,
       "literal": "address is already in use",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188178,7 +188427,7 @@
     },
     {
       "excerpt": "(\"address is unavailable\", \"feedback.os.address_unavailable\"),",
-      "line": 53,
+      "line": 81,
       "literal": "address is unavailable",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188187,7 +188436,7 @@
     },
     {
       "excerpt": "(\"connection closed\", \"feedback.os.connection_closed\"),",
-      "line": 54,
+      "line": 82,
       "literal": "connection closed",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188196,7 +188445,7 @@
     },
     {
       "excerpt": "(\"the item is busy; try again\", \"feedback.os.would_block\"),",
-      "line": 55,
+      "line": 83,
       "literal": "the item is busy; try again",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188205,7 +188454,7 @@
     },
     {
       "excerpt": "(\"invalid input\", \"feedback.os.invalid_input\"),",
-      "line": 56,
+      "line": 84,
       "literal": "invalid input",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188214,7 +188463,7 @@
     },
     {
       "excerpt": "(\"invalid data\", \"feedback.os.invalid_data\"),",
-      "line": 57,
+      "line": 85,
       "literal": "invalid data",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188223,7 +188472,7 @@
     },
     {
       "excerpt": "(\"operation timed out\", \"feedback.os.timed_out\"),",
-      "line": 58,
+      "line": 86,
       "literal": "operation timed out",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188232,7 +188481,7 @@
     },
     {
       "excerpt": "(\"could not write all data\", \"feedback.os.write_zero\"),",
-      "line": 59,
+      "line": 87,
       "literal": "could not write all data",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188241,7 +188490,7 @@
     },
     {
       "excerpt": "(\"operation was interrupted\", \"feedback.os.interrupted\"),",
-      "line": 60,
+      "line": 88,
       "literal": "operation was interrupted",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188250,7 +188499,7 @@
     },
     {
       "excerpt": "(\"operation is not supported\", \"feedback.os.unsupported\"),",
-      "line": 61,
+      "line": 89,
       "literal": "operation is not supported",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188259,7 +188508,7 @@
     },
     {
       "excerpt": "(\"file ended unexpectedly\", \"feedback.os.unexpected_eof\"),",
-      "line": 62,
+      "line": 90,
       "literal": "file ended unexpectedly",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188268,7 +188517,7 @@
     },
     {
       "excerpt": "(\"not enough memory\", \"feedback.os.out_of_memory\"),",
-      "line": 63,
+      "line": 91,
       "literal": "not enough memory",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188277,7 +188526,7 @@
     },
     {
       "excerpt": "\"the drive could not read or write the data\",",
-      "line": 65,
+      "line": 93,
       "literal": "the drive could not read or write the data",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188286,7 +188535,7 @@
     },
     {
       "excerpt": "(\"file or device is busy\", \"feedback.os.busy\"),",
-      "line": 68,
+      "line": 96,
       "literal": "file or device is busy",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188295,7 +188544,7 @@
     },
     {
       "excerpt": "\"the source and destination are on different drives\",",
-      "line": 70,
+      "line": 98,
       "literal": "the source and destination are on different drives",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188304,7 +188553,7 @@
     },
     {
       "excerpt": "(\"the drive is unavailable\", \"feedback.os.no_device\"),",
-      "line": 73,
+      "line": 101,
       "literal": "the drive is unavailable",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188313,7 +188562,7 @@
     },
     {
       "excerpt": "\"part of the path is not a folder\",",
-      "line": 75,
+      "line": 103,
       "literal": "part of the path is not a folder",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188322,7 +188571,7 @@
     },
     {
       "excerpt": "(\"item is a folder\", \"feedback.os.is_a_folder\"),",
-      "line": 78,
+      "line": 106,
       "literal": "item is a folder",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188331,7 +188580,7 @@
     },
     {
       "excerpt": "(\"too many files are open\", \"feedback.os.too_many_open\"),",
-      "line": 79,
+      "line": 107,
       "literal": "too many files are open",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188340,7 +188589,7 @@
     },
     {
       "excerpt": "(\"file is too large\", \"feedback.os.too_large\"),",
-      "line": 80,
+      "line": 108,
       "literal": "file is too large",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188349,7 +188598,7 @@
     },
     {
       "excerpt": "(\"the drive is full\", \"feedback.os.full\"),",
-      "line": 81,
+      "line": 109,
       "literal": "the drive is full",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188358,7 +188607,7 @@
     },
     {
       "excerpt": "(\"the drive is read-only\", \"feedback.os.read_only\"),",
-      "line": 82,
+      "line": 110,
       "literal": "the drive is read-only",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188367,7 +188616,7 @@
     },
     {
       "excerpt": "(\"that name is too long\", \"feedback.os.name_too_long\"),",
-      "line": 83,
+      "line": 111,
       "literal": "that name is too long",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188376,7 +188625,7 @@
     },
     {
       "excerpt": "(\"folder is not empty\", \"feedback.os.not_empty\"),",
-      "line": 84,
+      "line": 112,
       "literal": "folder is not empty",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188385,7 +188634,7 @@
     },
     {
       "excerpt": "(\"the path has too many links\", \"feedback.os.too_many_links\"),",
-      "line": 85,
+      "line": 113,
       "literal": "the path has too many links",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188394,7 +188643,7 @@
     },
     {
       "excerpt": "(\"file is no longer available\", \"feedback.os.stale\"),",
-      "line": 86,
+      "line": 114,
       "literal": "file is no longer available",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188403,7 +188652,7 @@
     },
     {
       "excerpt": "(\"storage quota exceeded\", \"feedback.os.quota\"),",
-      "line": 87,
+      "line": 115,
       "literal": "storage quota exceeded",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188412,7 +188661,7 @@
     },
     {
       "excerpt": "\"the operation could not finish\",",
-      "line": 89,
+      "line": 117,
       "literal": "the operation could not finish",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188421,7 +188670,7 @@
     },
     {
       "excerpt": "const TWINS_TAIL: &str = \"' would take one name on this drive, so nothing was extracted\";",
-      "line": 132,
+      "line": 166,
       "literal": "' would take one name on this drive, so nothing was extracted",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188430,7 +188679,7 @@
     },
     {
       "excerpt": "const REFUSED_AT: &str = \"' cannot be extracted onto this drive: \";",
-      "line": 133,
+      "line": 167,
       "literal": "' cannot be extracted onto this drive: ",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188439,7 +188688,7 @@
     },
     {
       "excerpt": "text.contains(\"file exists\") || text.contains(\"already exists\")",
-      "line": 184,
+      "line": 215,
       "literal": "file exists",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188448,7 +188697,7 @@
     },
     {
       "excerpt": "text.contains(\"file exists\") || text.contains(\"already exists\")",
-      "line": 184,
+      "line": 215,
       "literal": "already exists",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188457,7 +188706,7 @@
     },
     {
       "excerpt": "\"is not allowed in a name\",",
-      "line": 194,
+      "line": 225,
       "literal": "is not allowed in a name",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188466,7 +188715,7 @@
     },
     {
       "excerpt": "\"is reserved on this\",",
-      "line": 195,
+      "line": 226,
       "literal": "is reserved on this",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188475,7 +188724,7 @@
     },
     {
       "excerpt": "\"cannot end in a dot\",",
-      "line": 196,
+      "line": 227,
       "literal": "cannot end in a dot",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188484,7 +188733,7 @@
     },
     {
       "excerpt": "\"cannot end in a space\",",
-      "line": 197,
+      "line": 228,
       "literal": "cannot end in a space",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188493,7 +188742,7 @@
     },
     {
       "excerpt": "\"cannot hold control character\",",
-      "line": 198,
+      "line": 229,
       "literal": "cannot hold control character",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188502,7 +188751,7 @@
     },
     {
       "excerpt": "place == \"scan\" && lower(message).contains(\"permission denied\")",
-      "line": 206,
+      "line": 237,
       "literal": "permission denied",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188511,7 +188760,7 @@
     },
     {
       "excerpt": "text.contains(\"stale\") || text.contains(\"no longer available\")",
-      "line": 211,
+      "line": 242,
       "literal": "no longer available",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188520,7 +188769,7 @@
     },
     {
       "excerpt": "lower(message).contains(\"not connected\")",
-      "line": 215,
+      "line": 246,
       "literal": "not connected",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188529,7 +188778,7 @@
     },
     {
       "excerpt": "text.contains(\"timed out\") || text.contains(\"timeout\")",
-      "line": 220,
+      "line": 251,
       "literal": "timed out",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188538,7 +188787,7 @@
     },
     {
       "excerpt": "\"archive\" if message == \"the backend is not running\" => pick(",
-      "line": 260,
+      "line": 291,
       "literal": "the backend is not running",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188547,7 +188796,7 @@
     },
     {
       "excerpt": ".eq_ignore_ascii_case(\"the clipboard holds no image\") =>",
-      "line": 269,
+      "line": 300,
       "literal": "the clipboard holds no image",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188556,7 +188805,7 @@
     },
     {
       "excerpt": "\"transfer\" | \"archive\" | \"convert\" | \"link\" | \"linktarget\" | \"rename-stranded\"",
-      "line": 273,
+      "line": 304,
       "literal": "link",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -251377,11 +251626,11 @@
     "crates/flea-gui/src/g2/archive_flash/host/chosen.rs": "b6cb9f5dae26c56d36367a5e7e93d287bd69469a4df8489c5484333d3391f62a",
     "crates/flea-gui/src/g2/archive_flash/host/cover.rs": "20a5c5eb60bad1300a57544c93da2a9f2b07cbe154d3969fbd49452c66fd5824",
     "crates/flea-gui/src/g2/archive_flash/host/layer.rs": "272223448528edb520b6022388c3d26ff997148692403452d527fec7d77c43e4",
-    "crates/flea-gui/src/g2/archive_flash/host/reply.rs": "cd504e809d8ad6718ba89733af6de37da82fda447f95f8fc6dcbecd17ed410b4",
+    "crates/flea-gui/src/g2/archive_flash/host/reply.rs": "6f5e21a8922a149ce28cd3302033c2a37b6a4f227226f75ba69b297517777c78",
     "crates/flea-gui/src/g2/archive_flash/host_tests/cancel_click.rs": "a6cf896ff6856e723ecc79afc859f6616a7ced107b4338317aa1ba5045ce97cd",
     "crates/flea-gui/src/g2/archive_flash/host_tests/compress_geometry.rs": "dc428469d719c20c47409b44f1d78397f213b67ca265268ccc7e09f38aea9388",
     "crates/flea-gui/src/g2/archive_flash/host_tests/control_click.rs": "9108b22ba0d71c6d0c41f97af4502f515bf92807179bcf47075c59fa5b1ef8ec",
-    "crates/flea-gui/src/g2/archive_flash/host_tests/extract.rs": "977f75db176156293e0ceef455014bf5e21a623d44fe2910626f91637380fc5b",
+    "crates/flea-gui/src/g2/archive_flash/host_tests/extract.rs": "d0f77d689f56df7864cdfed6b0b0b60344a22cea593469e2903c19aabd182cf3",
     "crates/flea-gui/src/g2/archive_flash/host_tests/fixcards2.rs": "cc62dd5a89bfadcd53b7a8c16270c82b2dc6c320eacf096aa698ca72070527b5",
     "crates/flea-gui/src/g2/archive_flash/host_tests/flash.rs": "7e7571585eeadbfb5939c2435f1ac42517cfeabfaf8954a3a87ec4789d312927",
     "crates/flea-gui/src/g2/archive_flash/host_tests/flash_look.rs": "b8a0d6c918ea7f41ab050ef7903846c5efc8dcb4aa85b8af51b74159f1754f3e",
@@ -251991,7 +252240,7 @@
     "crates/flea-gui/src/grid/row_pictures_tests/draws.rs": "88f3f85b1049a930916df3da16fce58f778b5ea22c6eb49c54dfd06a5f1ce132",
     "crates/flea-gui/src/grid/row_pictures_tests/fix_preview_2.rs": "c1a7dcba862853b0213c16fa1c3bb9c517c093b777a0f9e90598ece21e89955a",
     "crates/flea-gui/src/grid/scrollbar.rs": "a415c94e5a054055ce1a893f98597e88e28b3a4315a72d6053f01eae2dabda42",
-    "crates/flea-gui/src/grid/tile.rs": "62055d735e3694cf639c2e299de4daadf6b012ec68896c027ed8163f764fdf6a",
+    "crates/flea-gui/src/grid/tile.rs": "360c1638bf4309dba845e69f865d636eb7e6043e83197b9d1cb361acf554d52a",
     "crates/flea-gui/src/grid/transition.rs": "9f3395db13eb91250d5f3d69fe736c26b004085693c29bf2aef44f52fe6c0673",
     "crates/flea-gui/src/grid/zoom.rs": "02f800b6f0688d458b5c8fe123b55d6a365805140d81ad3e5d6168ec0f345dbd",
     "crates/flea-gui/src/input/actions.rs": "f0f32973197db0c48fcbda8f6fed23b481e22975d347b172defdf331847f5138",
@@ -252189,7 +252438,7 @@
     "crates/flea-gui/src/rail/text.rs": "64cd3741f2ad4db194d6a3bf74f32b2093b8e1dfd78e71a013ec29774845a880",
     "crates/flea-gui/src/renderer.rs": "eff3d0ba93b59843619b91b803c0444a22381974c4d2ecdaf043e4fbbe8a2a69",
     "crates/flea-gui/src/reveal.rs": "ce82b445b86801df133b205ecea25091a3ba5477157fb916a2d74157aa73aaff",
-    "crates/flea-gui/src/row.rs": "8d38570be7f4ddbd4a6b9e79b4535c7f823609427bd4e0e3b243f3f9edcdb6a2",
+    "crates/flea-gui/src/row.rs": "e448dbf0e1da5badf0f8244ec756513e5c9e9bb9ec5decf3af90af7bea5f11d6",
     "crates/flea-gui/src/row/cache.rs": "cefaf51318d96cee3640e374feae195851da7b6d32752bc23238dcd3caf96795",
     "crates/flea-gui/src/row/elide.rs": "a18f182b5319ae31b0a3bca2c060a24787fd0cd652818138955565042ef94cda",
     "crates/flea-gui/src/row/format.rs": "7be8f66a3f8ade4b2d04701d88a1a6cd2e27d6d38e11535653e89215c6fce91d",
@@ -252397,7 +252646,7 @@
     "crates/flea-gui/src/window/rename_ipc.rs": "8db0119c1c6cade8b9cd38d41537cefd06e788f2bde0c424a43b81dddb303574",
     "crates/flea-gui/src/window/rename_menu.rs": "3e4cede01ff5b7c7b13a45295d0e96dcd0d05cb5157e33000c2b1796fc341c5f",
     "crates/flea-gui/src/window/rename_place.rs": "d4885371c2c5de5d2e4b3e64d6215a6d6ab374f23b34b60c5b5f040062336dfd",
-    "crates/flea-gui/src/window/rename_replies.rs": "5fbbf527c9ed36a917cf1d8e28e809044aad3beae467e74bf9f235fe77b68101",
+    "crates/flea-gui/src/window/rename_replies.rs": "fc64b000440e619e62e915313e6aceffdf9f66f7c0955a315d0408d4672ec049",
     "crates/flea-gui/src/window/rename_slow.rs": "b14e6dba20ce84e6f6895ccdb2b838a7eaeea21ec204eb8c6d855e2cb5edf5b4",
     "crates/flea-gui/src/window/rename_slow_policy.rs": "a353741f00f4e36fe7e0000ddc875252f7d9e1daa99dd62ed4be671a2967993d",
     "crates/flea-gui/src/window/rename_target.rs": "07fee6fea5e3a9ebda2d9e47eaf609e45ad07b559db7382b59182131051295c7",
@@ -252563,7 +252812,7 @@
     "src/backend/fontinfo/sample.rs": "c1316a711755789d6a1780e0570de1c744e3ac5e665efe0d6cff716a301d8483",
     "src/backend/fsinfo.rs": "56d9b5517d96b275d15b00bbf36ef899ae0555370cfb7689a617ad296c98bd4d",
     "src/backend/fsinforeq.rs": "4ecbaa15f4aa0e37c866a529ce7d367f47d7acc49d7f7b51b2e755f963871cca",
-    "src/backend/fsname.rs": "4e91fd39b1a03553043cbc0457b59ba9ae2b0ed489f0d8c5466da62397ec496d",
+    "src/backend/fsname.rs": "6b8bb55350e770fb38591c5424b8b0007886e457bfb669d5d678417735cc35c8",
     "src/backend/fuzzy.rs": "4dc9805fd1768b9ecc52948754505b72025702bed155e0295a4778342f7755ff",
     "src/backend/gitbudget.rs": "0a6bbac5774e68c8d86845bcf035a2cb0069c64c66bb60fea38acfe8978f3cf4",
     "src/backend/gitfixture.rs": "ca8e8ccdad0e320480703a1fdcf923431012c415b83b391e0fc293d1f6109817",
@@ -253001,7 +253250,7 @@
     "src/tui/convert/replies.rs": "0bb3f382e556326a50650b1b999121c1fe535480ddec61d150b52c120721b5bb",
     "src/tui/cwd.rs": "68b1f7c4493200964a84de4e3a49c1cdea108875387d0668aff6de242c1ae018",
     "src/tui/detail.rs": "64e7775dcb3eaf3b24030391828ccc003b9c32f290fb063b025bf77c8df24adf",
-    "src/tui/editor.rs": "333560149682d8368cef52425f92938bb16e03ae0094a319d88ac49ee5774547",
+    "src/tui/editor.rs": "52e57dd3af1d4082fd75387d7b918ae06e13405052ef22b9f19ba52f8d98d5f8",
     "src/tui/editor_input.rs": "afeedc610fbc3c6418a646363422689d2b74b68eb79b3a427646727c0ba4ac23",
     "src/tui/editor_words.rs": "147da26c3bc92e3de9bfa1689a8873b35fa5926721b65f8dad4c1b7a5b637cab",
     "src/tui/empty.rs": "b8298bbd2187f9e0e0d0e048d1ec326abcf70885f4e4b799b09bfcabfb81454d",
@@ -253016,7 +253265,7 @@
     "src/tui/icons.rs": "559cba80f1abec8f008b52031b46872b893bf4b2573c141bce9ef354e56c4acf",
     "src/tui/input.rs": "180b665df160b72d6c1227dc7b13ee11cbe0d451df9099349193612f48b40b2a",
     "src/tui/job.rs": "76758b70e86589e8b94c2ec873cc4139cb5f513ab0c0d878ce1a84124d2a0d3b",
-    "src/tui/jobstatus.rs": "07311e2bf9b5b6bb87933555fba63c8bca26c2dffcf966f8e12fc972dd5c3398",
+    "src/tui/jobstatus.rs": "7f35b510acf6507bb6c59c2166ef53867abf8d56f2e1cc77d54530bb70cdf8ed",
     "src/tui/key_sheet.rs": "bb653b18f554fae491e936c4b1cdb5081d2dc180e63fa7d8b6956f54aed33ab7",
     "src/tui/keycaps.rs": "b039b08e4e69962e463a53a4dc56654a188937b12a2075f2bcedf3c6681bc48a",
     "src/tui/keymap.rs": "e5a15589d0e3b79c498587b104711b288de229705e0b887bd0574de04ae83518",
@@ -253027,7 +253276,7 @@
     "src/tui/menu_layout.rs": "727fc220b8d74e47d429a15543e544ada4458dc8423e987194c447b6eef4a5c8",
     "src/tui/menu_run.rs": "d17a9c47d79be3b433987a49d30207875b62654bf20df7289f07012625c1dd32",
     "src/tui/mod.rs": "d04c5462287f01fa2013ee8c49b6539c9bbb82bd273eb3edfafa241bf4c1510f",
-    "src/tui/model.rs": "d810cf76142c51855d424bab4ce7f1e7c9a93e19c086956fb5ba54f866fd0917",
+    "src/tui/model.rs": "81ca4bd76b3402860526cd0d53980a30cd68cd342084cae2a66483a8ed3e45b9",
     "src/tui/model3d.rs": "909cffe2cca8b9ae936fce79fcae5dc08a41e70fbf0f7813149019607f4c72a8",
     "src/tui/mounts.rs": "ac7b31e12ae0ee526a65fd8ea04d1594ec730c06a0765b9d8f76da9644621bf1",
     "src/tui/mpv.rs": "cbdc0c69cf48c259093532466139e5c090143cb54aa9d13e196ef5909c973909",
@@ -253064,7 +253313,7 @@
     "src/tui/wait.rs": "f54f0e8409eeb694985ecb5134a8f8a4ba179ff5a72d353d1654c2f6ddd0125a",
     "src/tui/warm.rs": "570e7ede28f3d3acbec35de19986deb31a11f25ca5552e56ea608fb8b8c2da6c",
     "src/tui/wire.rs": "13ecd5d333ff3506ae14387bd97565a00b42aaf2901fb36376eebe06d6cf3a3f",
-    "src/tui/words.rs": "0fb90acbe272221fc67eb790993dfcd0ce73841467ca1b1adb109c299e90831f",
+    "src/tui/words.rs": "22cc0a38efa1996f9cde22d87d900104f6ea60579575bc09f74a043516cb43bc",
     "src/tui/words_title.rs": "09a24eeec641cdb461cc6456e8e091f8810f629bdcfcc55e1f645abbcf5fcd15",
     "src/ui_logic_archive_flash.rs": "720205cbebdbdea05a26c1660436dc9ad81060d08de9422ede26279098798808",
     "src/ui_logic_archive_flash/archive.rs": "298cfccc8d673052121d4fef3a5dee35d68b00ad549fb9ce3e8888fd195a48b1",
@@ -253215,7 +253464,7 @@
     "src/ui_logic_file_ops/fat.rs": "f32aa78bc3ea84591d15bdfab517dcf4136f8da4a19f79d3e5b172d8a691e9d3",
     "src/ui_logic_file_ops/host.rs": "251d4378d1452e5351a1f010b4efaaf5dbe5ceb2a2b1126a9f27993f38a4fbed",
     "src/ui_logic_file_ops/jobs.rs": "83f850f24b8f44c79f358ebdb524b4c7d3cffdb4413c2e918ea14a27c44605bf",
-    "src/ui_logic_file_ops/lines.rs": "b38e3967d2de33e918ef17e5b75784ce938dc16420183fba88b3ce4d58d95e77",
+    "src/ui_logic_file_ops/lines.rs": "9a9446f12998244820d56633960264047daf46fed4f5269debcfd71e2e22d692",
     "src/ui_logic_file_ops/lines/link.rs": "fb51d9b97decb93b643513f3d477d9a5cdf498638c3d3a26c6d7a629c0bfd042",
     "src/ui_logic_file_ops/lines/receipt.rs": "fd14860ca7d0ffc4047a88ba91fe898dd5ab428ae70e8edfbdcd8dc38fbdbfa0",
     "src/ui_logic_file_ops/testcat.rs": "d24fb6b7c74ed8c19d4d8b1693aa91bba2ebd8a7793487d1e301e2a5c5f439cd",
@@ -253389,8 +253638,9 @@
     "src/ui_logic_settings_pages/visible.rs": "40e686a53fd5b4793b3044feaae6893d814f60acbe430431628f5406363da71f",
     "src/ui_logic_settings_pages/words.rs": "6823f05a037166d8b64d4c379acd757e5db95988e24a7b8be98a835463afa28a",
     "src/ui_logic_status_feedback.rs": "239fb7a987ea5667a69e370377f394265ec1a6e630d7f33b55f81fa5bea8b7fd",
+    "src/ui_logic_status_feedback/drive_names.rs": "d68de6e728f37524896d7315c924decb14fbba43bf6cbce445e071cc0a5bfefe",
     "src/ui_logic_status_feedback/empty.rs": "ac53114bb2370486a62a310eae5f438e9bdf3afa8f0fcd761d4384e45b6d7e9f",
-    "src/ui_logic_status_feedback/errors.rs": "761f9c0c6ac73808b5747847456e657569bd1064b7a1335c736ebac4c1d6b1cd",
+    "src/ui_logic_status_feedback/errors.rs": "afb022112fa5e7a18ad0374ed24b6381b7a63f0bf9800d15f2f666fa8218e974",
     "src/ui_logic_status_feedback/lane.rs": "cbfe288450e2d3a02f733511258547aaecfec5f274440e148d60b90270980fc1",
     "src/ui_logic_status_feedback/messages.rs": "09a5751d4242c307e5a859f3131ef02fd33cf8a19535a2f26b2b7044331345f1",
     "src/ui_logic_status_feedback/messages/arm.rs": "df040c99357a86061f60a6b41746b702c9c70ee34d00afd68b2fd03ac43857c3",
@@ -253991,13 +254241,13 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "2c4ba1a7dd7aea827fa3ff16752e0db5f1d0a461",
-  "source_sha": "2c4ba1a7dd7aea827fa3ff16752e0db5f1d0a461",
+  "source_ref_sha": "9a572e43b5fb1c23d58bc03996e75bdb04030b3c",
+  "source_sha": "9a572e43b5fb1c23d58bc03996e75bdb04030b3c",
   "surface_coverage": {
     "core/backend": {
-      "keys_with_occurrences": 1353,
-      "missing_literal_candidates": 5709,
-      "source_files": 859
+      "keys_with_occurrences": 1358,
+      "missing_literal_candidates": 5717,
+      "source_files": 860
     },
     "generated/tooling": {
       "keys_with_occurrences": 155,
@@ -254006,7 +254256,7 @@
     },
     "gui": {
       "keys_with_occurrences": 555,
-      "missing_literal_candidates": 2243,
+      "missing_literal_candidates": 2249,
       "source_files": 1175
     },
     "qml-reference": {
