@@ -20,11 +20,7 @@ fn s6_unreadable_settings_names_favourites_and_escape_clears_it(cx: &mut TestApp
         shell
     });
     entity.update_in(cx, |shell, window, cx| {
-        shell.receive_settings(
-            super::store::Update::Unreadable("settings.error.favourites_unread"),
-            window,
-            cx,
-        );
+        shell.receive_settings(super::store::Update::Notice("settings.error.favourites_unread"), window, cx);
         assert_eq!(
             shell.settings_message(cx).as_deref(),
             Some("Favorites could not be refreshed because ui.json could not be read. The old list stays.")

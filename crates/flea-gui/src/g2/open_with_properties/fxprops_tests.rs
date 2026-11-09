@@ -182,7 +182,7 @@ fn fxprops_s2_3_the_launch_read_key_draws_the_defaults_line(cx: &mut gpui::TestA
     let (backend, _requests) = crate::backend::Backend::test_channel();
     let (entity, cx) = cx.add_window_view(|_, cx| crate::state::tests::shell_with(backend, cx));
     entity.update_in(cx, |shell, window, cx| {
-        shell.receive_settings(Update::Unreadable("settings.error.unreadable"), window, cx);
+        shell.receive_settings(Update::Notice("settings.error.unreadable"), window, cx);
         assert_eq!(
             shell.settings_message(cx).as_deref(),
             Some("Your saved settings could not be read, so these are the defaults.")

@@ -31,6 +31,23 @@ pub fn open_if_regular_with_meta(path: &Path, extra_flags: i32) -> std::io::Resu
     Ok((f, meta))
 }
 
+// A whole document, bounded: missing is NotFound, not a regular file is InvalidInput (never opened), too big or not UTF-8 is InvalidData.
+pub fn read_text(path: &Path, limit: u64) -> std::io::Result<String> {
+    use std::io::{Error, ErrorKind, Read};
+    let read = || {
+        if !std::fs::metadata(path)?.is_file() {
+            return Err(Error::new(ErrorKind::InvalidInput, "not a regular file"));
+        }
+        let (file, meta) = open_if_regular_with_meta(path, 0)?;
+        let mut text = String::new();
+        if meta.len() > limit || file.take(limit + 1).read_to_string(&mut text)? as u64 > limit {
+            return Err(Error::new(ErrorKind::InvalidData, format!("larger than {limit} bytes")));
+        }
+        Ok(text)
+    };
+    read().map_err(|e| Error::new(e.kind(), format!("{}: {e}", path.display())))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -64,5 +81,21 @@ mod tests {
         let real = d.file("real.txt", "body\n");
         std::os::unix::fs::symlink(&real, d.join("toreal")).unwrap();
         assert!(open_regular(&d.join("toreal")).is_some(), "the open follows a link, so the check has to as well");
+    }
+
+    #[test]
+    fn a_document_read_is_bounded_and_names_what_it_refused() {
+        use std::io::ErrorKind;
+        let d = TestDir::new("regfiletext");
+        let fifo = d.join("pipe");
+        mkfifo(&fifo);
+        let kind = |r: std::io::Result<String>| r.map_err(|e| e.kind());
+        assert_eq!(kind(within("read_text", move || read_text(&fifo, 64))), Err(ErrorKind::InvalidInput));
+        assert_eq!(kind(read_text(Path::new("/dev/zero"), 64)), Err(ErrorKind::InvalidInput), "a device is never opened");
+        assert_eq!(kind(read_text(&d.join("never-existed"), 64)), Err(ErrorKind::NotFound));
+        assert_eq!(kind(read_text(&d.file("big.txt", &"x".repeat(65)), 64)), Err(ErrorKind::InvalidData));
+        std::fs::write(d.join("bin"), [0xff_u8, 0xfe]).unwrap();
+        assert_eq!(kind(read_text(&d.join("bin"), 64)), Err(ErrorKind::InvalidData));
+        assert_eq!(kind(read_text(&d.file("fits.txt", &"x".repeat(64)), 64)), Ok("x".repeat(64)));
     }
 }

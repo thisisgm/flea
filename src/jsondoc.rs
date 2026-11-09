@@ -1,6 +1,7 @@
 // One whole JSON document in and out, which src/json.rs deliberately is not: it scans one wire line.
 use crate::json::escape;
 use crate::jsonstring::parse_string;
+use std::collections::HashMap;
 
 // A hand-edited state file is an input, so nesting is bounded rather than recursed until the stack ends.
 pub const MAX_DEPTH: usize = 32;
@@ -162,11 +163,13 @@ fn literal(bytes: &[u8], at: &mut usize, word: &str, value: Json) -> Result<Json
 
 fn parse_object(bytes: &[u8], at: &mut usize, depth: usize) -> Result<Json, String> {
     *at += 1;
-    let mut pairs: Vec<(String, Json)> = Vec::new();
+    // A hashed name-to-slot index keeps a wide or duplicate-heavy object linear; an emptied slot is a replaced name.
+    let mut slots: Vec<Option<(String, Json)>> = Vec::new();
+    let mut named: HashMap<String, usize> = HashMap::new();
     *at = skip_space(bytes, *at);
     if bytes.get(*at) == Some(&b'}') {
         *at += 1;
-        return Ok(Json::Obj(pairs));
+        return Ok(Json::Obj(Vec::new()));
     }
     loop {
         *at = skip_space(bytes, *at);
@@ -179,14 +182,16 @@ fn parse_object(bytes: &[u8], at: &mut usize, depth: usize) -> Result<Json, Stri
         *at = skip_space(bytes, *at);
         let value = parse_value(bytes, at, depth + 1)?;
         // A repeated name is the later one's, the same reading every JSON parser takes.
-        pairs.retain(|(k, _)| k != &key);
-        pairs.push((key, value));
+        if let Some(earlier) = named.insert(key.clone(), slots.len()) {
+            slots[earlier] = None;
+        }
+        slots.push(Some((key, value)));
         *at = skip_space(bytes, *at);
         match bytes.get(*at) {
             Some(b',') => *at += 1,
             Some(b'}') => {
                 *at += 1;
-                return Ok(Json::Obj(pairs));
+                return Ok(Json::Obj(slots.into_iter().flatten().collect()));
             }
             _ => return Err(format!("a comma or a closing brace was expected at byte {}", at)),
         }

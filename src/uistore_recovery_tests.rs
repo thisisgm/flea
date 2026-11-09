@@ -137,6 +137,13 @@ fn unavailable_backup_preserves_original_and_previous_backup() {
             .update(&patch(r#"{"hidden":true}"#))
             .expect_err("backup must succeed first");
         assert!(error.contains("ui.json.broken"), "{}: {}", blocked, error);
+        if blocked == "temporary" {
+            assert!(
+                error.contains(".tmp"),
+                "the blocked link is named: {}",
+                error
+            );
+        }
         assert_eq!(
             fs::read_to_string(s.file()).expect("untouched original"),
             original

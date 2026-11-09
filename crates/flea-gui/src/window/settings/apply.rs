@@ -122,7 +122,7 @@ impl Shell {
                     cx,
                 );
             }
-            store::Update::Unreadable(key) => self.settings_error(key, cx),
+            store::Update::Notice(key) => self.settings_error(key, cx),
             store::Update::Corner(corner) => self.apply_corner(corner, window, cx),
             store::Update::Failed { through, keep } => {
                 self.finish_network_favourite(through, Err(""), cx);
