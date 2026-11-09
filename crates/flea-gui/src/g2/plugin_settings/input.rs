@@ -62,6 +62,9 @@ impl PluginsPane {
             cx.stop_propagation();
             return true;
         }
+        if self.text_menu_key(event, window, cx) {
+            return true;
+        }
         match self.editor.key(event, cx) {
             KeyUse::Text if !type_key(self, event, window, cx) => return true,
             KeyUse::Text => {}

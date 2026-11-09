@@ -16,6 +16,8 @@ pub(super) struct Editor {
     restore: Option<FocusHandle>,
     menu: Option<u64>,
     pub drawn: RefCell<Drawn>,
+    /// The field's Undo, Cut, Copy, Paste and Select All card while a right press holds it open.
+    pub text_menu: crate::path::text_menu::TextMenu,
 }
 
 #[derive(Default)]
@@ -35,6 +37,7 @@ pub(crate) struct Drawn {
 impl Editor {
     pub fn restart(&mut self) {
         self.menu = None;
+        self.text_menu.close();
         self.entry.close();
     }
 }
@@ -140,6 +143,13 @@ impl Overlay {
         if !self.editing_copy(window, cx) {
             return false;
         }
+        // The field's text menu holds the keyboard while it is open.
+        if self.editor.text_menu.opened() {
+            let outcome = self.editor.text_menu.key(event, window);
+            self.copy_menu_answer(outcome, window, cx);
+            cx.stop_propagation();
+            return true;
+        }
         let keys = &event.keystroke;
         let key = keys.key.as_str();
         let held = keys.modifiers;
@@ -193,6 +203,47 @@ impl Overlay {
         self.edited_copy(cx);
         cx.stop_propagation();
         true
+    }
+
+    // A right press in the editing field opens its text menu over the line as it stands.
+    pub(super) fn copy_menu(
+        &mut self,
+        event: &MouseDownEvent,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        match self.model.dialog.as_mut().and_then(Dialog::field_state) {
+            Some((focus, false)) => *focus = CopyFocus::Field,
+            _ => return,
+        }
+        if let Some(focus) = &self.editor.focus {
+            window.focus(focus, cx);
+        }
+        if self.editor.entry.editing && self.editor.entry.marked.is_none() {
+            let catalog = self.catalog.clone();
+            let editor = &mut self.editor;
+            editor
+                .text_menu
+                .open(&editor.entry, &catalog, event.position, window, cx);
+        }
+        cx.stop_propagation();
+        cx.notify();
+    }
+
+    pub(super) fn copy_menu_answer(
+        &mut self,
+        outcome: crate::g2::context_menus::menu::Outcome,
+        _: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        use crate::path::text_menu::{apply, Applied};
+        if let crate::g2::context_menus::menu::Outcome::Fire { action, .. } = &outcome {
+            if apply(&mut self.editor.entry, action, cx) == Applied::Edited {
+                self.edited_copy(cx);
+            }
+        }
+        self.editor.text_menu.settle(&outcome);
+        cx.notify();
     }
 
     pub(super) fn copy_press(

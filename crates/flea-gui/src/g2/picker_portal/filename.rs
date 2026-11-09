@@ -7,7 +7,7 @@ use crate::path::entry::Entry;
 use flea::ui_logic_file_ops::card;
 use flea::ui_logic_picker_listing::stem_end;
 use gpui::{
-    div, prelude::*, px, App, ClickEvent, Context, Entity, EventEmitter, FocusHandle, IntoElement,
+    div, prelude::*, px, App, Context, Entity, EventEmitter, FocusHandle, IntoElement,
     KeyDownEvent, MouseButton, Render, SharedString, Window,
 };
 use std::cell::RefCell;
@@ -44,6 +44,9 @@ pub struct Filename {
     // 0401-picker-new-folder: the card's field, its name above it and the card's width; a refusal frames it in the error role.
     stacked: bool,
     pub(super) refused: bool,
+    /// The field's Undo, Cut, Copy, Paste and Select All card while a right press holds it open.
+    text_menu: crate::path::text_menu::TextMenu,
+    catalog: Option<std::sync::Arc<flea::i18n::I18n>>,
 }
 
 impl Filename {
@@ -85,9 +88,77 @@ impl Filename {
             focused: false,
             stacked: false,
             refused: false,
+            text_menu: Default::default(),
+            catalog: None,
         };
         field.entry.begin(seed);
         field
+    }
+
+    /// The language the field's text menu names its rows in.
+    pub fn with_catalog(mut self, catalog: std::sync::Arc<flea::i18n::I18n>) -> Self {
+        self.catalog = Some(catalog);
+        self
+    }
+
+    /// A key for the field, which its open text menu takes first and holds as motion.
+    pub fn menu_or_key(
+        &mut self,
+        event: &KeyDownEvent,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> FieldKey {
+        if self.text_menu_key(event, window, cx) {
+            return FieldKey::Moved;
+        }
+        self.key(event, cx)
+    }
+
+    /// The field's open text menu takes every key; true when it held this one.
+    pub fn text_menu_key(
+        &mut self,
+        event: &KeyDownEvent,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        if !self.text_menu.opened() {
+            return false;
+        }
+        let outcome = self.text_menu.key(event, window);
+        self.text_menu_answer(outcome, window, cx);
+        true
+    }
+
+    fn text_menu_answer(
+        &mut self,
+        outcome: crate::g2::context_menus::menu::Outcome,
+        _: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        use crate::path::text_menu::{apply, Applied};
+        if let crate::g2::context_menus::menu::Outcome::Fire { action, .. } = &outcome {
+            if apply(&mut self.entry, action, cx) == Applied::Edited {
+                self.changed(cx);
+            }
+        }
+        self.text_menu.settle(&outcome);
+        cx.notify();
+    }
+
+    // A right press in the field opens its text menu over the line as it stands, and the field takes the keyboard.
+    fn text_menu_press(
+        &mut self,
+        event: &gpui::MouseDownEvent,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        window.focus(&self.focus, cx);
+        if let Some(catalog) = self.catalog.clone().filter(|_| self.entry.marked.is_none()) {
+            self.text_menu
+                .open(&self.entry, &catalog, event.position, window, cx);
+        }
+        cx.stop_propagation();
+        cx.notify();
     }
 
     pub fn text(&self) -> &str {
@@ -241,10 +312,14 @@ impl Render for Filename {
                 crate::presentation::frames::Frames::from_palette(&palette, 0.).ink
             })
             .track_focus(&self.focus)
-            .on_click(
-                cx.listener(|field, _: &ClickEvent, window, cx| window.focus(&field.focus, cx)),
-            )
-            .child(Input::new(cx.entity(), face.clone()));
+            .on_mouse_down(MouseButton::Left, cx.listener(Self::pointer_press))
+            .on_mouse_down(MouseButton::Right, cx.listener(Self::text_menu_press))
+            .child(Input::new(cx.entity(), face.clone()))
+            .children(self.text_menu.overlay(
+                &cx.entity(),
+                px(crate::compositor::corner(cx)),
+                Self::text_menu_answer,
+            ));
         if stacked {
             // DialogField: the name in muted capitals above the field, as the window's cards draw it.
             return div()

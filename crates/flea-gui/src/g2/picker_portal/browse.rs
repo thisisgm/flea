@@ -72,7 +72,8 @@ impl Browse {
             let save = cx.new(|_| SaveView::new(catalog.clone(), SaveField::new(&seed)));
             let label = catalog.tr("picker.browser.save_as");
             let tracking = crate::g2::status_feedback::caption::tracking_for(catalog.language());
-            cx.new(|cx| Filename::new(&seed, label, tracking, save, cx))
+            let menu = std::sync::Arc::new(catalog.clone());
+            cx.new(|cx| Filename::new(&seed, label, tracking, save, cx).with_catalog(menu))
         });
         let filename_subscription = filename.as_ref().map(|field| {
             cx.subscribe(field, |picker: &mut Picker, _, event, cx| {

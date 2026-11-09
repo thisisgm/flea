@@ -5,7 +5,7 @@ use gpui::{
     fill, point, px, relative, size, AnyElement, App, Bounds, ContentMask, Context, DispatchPhase,
     Element, ElementId, ElementInputHandler, Entity, EntityInputHandler, FocusHandle,
     GlobalElementId, GlyphRun, InspectorElementId, IntoElement, LayoutId, MouseButton,
-    MouseDownEvent, Pixels, Style, Window,
+    MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels, Style, Window,
 };
 use std::{cell::RefCell, rc::Rc};
 
@@ -21,6 +21,18 @@ pub(super) struct Drawn {
     font: Option<gpui::Font>,
     pixels: Pixels,
     generation: u64,
+    // A left press in the field started a selection, which its drag extends past the field until release.
+    selecting: bool,
+}
+
+impl Drawn {
+    // The entry index nearest window x, and the glyph under it, on the line as it was last drawn.
+    fn at(&self, x: Pixels) -> (usize, Option<usize>) {
+        let x = x - self.bounds.map_or(px(0.), |bounds| bounds.left()) + self.line.scroll;
+        let run = self.line.run.as_ref();
+        let under = run.and_then(|run| run.line().index_for_x(x));
+        (self.line.index_for(x), under)
+    }
 }
 
 pub(super) trait EntryHost: EntityInputHandler + Sized + 'static {
@@ -33,6 +45,27 @@ pub(super) trait EntryHost: EntityInputHandler + Sized + 'static {
 
     fn accepts(&self, window: &Window, cx: &App) -> bool {
         self.active(window, cx) && self.drawn().borrow().line.accepts(self.entry())
+    }
+
+    /// A left press places the caret, Shift extends, a double click takes the word and a third the line, as the rename field does.
+    fn pointer_press(
+        &mut self,
+        event: &MouseDownEvent,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        window.focus(self.focus(), cx);
+        let (at, under) = self.drawn().borrow().at(event.position.x);
+        let entry = self.entry_mut();
+        match event.click_count {
+            1 if event.modifiers.shift => entry.select_to(at),
+            1 => entry.move_to(at),
+            2 => entry.select_word(under.unwrap_or(entry.text.len())),
+            _ => entry.select_all(),
+        }
+        self.drawn().borrow_mut().selecting = event.click_count == 1;
+        cx.stop_propagation();
+        cx.notify();
     }
 }
 
@@ -57,6 +90,42 @@ impl<T: EntryHost> Input<T> {
     ) -> Self {
         self.strip = Some(state);
         self
+    }
+
+    // While a press selects, a drag anywhere in the window extends it and the release ends it, as the rename field captures them.
+    fn capture_drag(&self, window: &mut Window) {
+        let moving = self.host.clone();
+        window.on_mouse_event(move |event: &MouseMoveEvent, phase, _, cx| {
+            if phase != DispatchPhase::Capture {
+                return;
+            }
+            moving.update(cx, |host, cx| {
+                let mut drawn = host.drawn().borrow_mut();
+                if !drawn.selecting {
+                    return;
+                }
+                if event.pressed_button != Some(MouseButton::Left) {
+                    drawn.selecting = false;
+                    return;
+                }
+                let (at, _) = drawn.at(event.position.x);
+                drop(drawn);
+                host.entry_mut().select_to(at);
+                cx.stop_propagation();
+                cx.notify();
+            });
+        });
+        let host = self.host.clone();
+        window.on_mouse_event(move |event: &MouseUpEvent, phase, _, cx| {
+            if phase != DispatchPhase::Capture || event.button != MouseButton::Left {
+                return;
+            }
+            host.update(cx, |host, cx| {
+                if std::mem::take(&mut host.drawn().borrow_mut().selecting) {
+                    cx.stop_propagation();
+                }
+            });
+        });
     }
 }
 
@@ -247,6 +316,8 @@ impl<T: EntryHost> Element for Input<T> {
         });
         let focus = host.focus().clone();
         drawn.line.registered = active.then(|| entry.session()).flatten();
+        drawn.selecting &= active;
+        let selecting = drawn.selecting;
         drop(drawn);
         if active {
             window.handle_input(
@@ -254,32 +325,9 @@ impl<T: EntryHost> Element for Input<T> {
                 ElementInputHandler::new(bounds, self.host.clone()),
                 cx,
             );
-            // A double-click selects the word under the pointer and a third click the whole line, as every text field does.
-            let host = self.host.clone();
-            window.on_mouse_event(move |event: &MouseDownEvent, phase, _, cx| {
-                if phase != DispatchPhase::Bubble
-                    || event.button != MouseButton::Left
-                    || event.click_count < 2
-                    || !bounds.contains(&event.position)
-                {
-                    return;
-                }
-                host.update(cx, |host, cx| {
-                    let at = {
-                        let drawn = host.drawn().borrow();
-                        let line = &drawn.line;
-                        host.entry()
-                            .word_index(line, event.position.x - bounds.left() + line.scroll)
-                    };
-                    let entry = host.entry_mut();
-                    if event.click_count == 2 {
-                        entry.select_word(at);
-                    } else {
-                        entry.select_all();
-                    }
-                    cx.notify();
-                });
-            });
+        }
+        if selecting {
+            self.capture_drag(window);
         }
     }
 }

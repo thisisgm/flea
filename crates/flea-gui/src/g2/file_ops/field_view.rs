@@ -29,6 +29,25 @@ pub(crate) trait FieldView: gpui::EntityInputHandler + Sized {
         window: &mut Window,
         cx: &mut gpui::Context<Self>,
     );
+    /// A right press in the field: a host with a text menu opens it there.
+    fn field_menu(
+        &mut self,
+        _: &gpui::MouseDownEvent,
+        _: &mut Window,
+        _: &mut gpui::Context<Self>,
+    ) {
+    }
+    /// The field's own text menu card, for a host that draws one over its field.
+    fn field_text_menu(&self) -> Option<&crate::path::text_menu::TextMenu> {
+        None
+    }
+    fn field_menu_answer(
+        &mut self,
+        _: crate::g2::context_menus::menu::Outcome,
+        _: &mut Window,
+        _: &mut gpui::Context<Self>,
+    ) {
+    }
 }
 
 impl FieldView for Overlay {
@@ -62,6 +81,25 @@ impl FieldView for Overlay {
         cx: &mut gpui::Context<Self>,
     ) {
         self.copy_drag(event, window, cx);
+    }
+    fn field_menu(
+        &mut self,
+        event: &gpui::MouseDownEvent,
+        window: &mut Window,
+        cx: &mut gpui::Context<Self>,
+    ) {
+        self.copy_menu(event, window, cx);
+    }
+    fn field_text_menu(&self) -> Option<&crate::path::text_menu::TextMenu> {
+        Some(&self.editor.text_menu)
+    }
+    fn field_menu_answer(
+        &mut self,
+        outcome: crate::g2::context_menus::menu::Outcome,
+        window: &mut Window,
+        cx: &mut gpui::Context<Self>,
+    ) {
+        self.copy_menu_answer(outcome, window, cx);
     }
 }
 

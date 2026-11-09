@@ -149,12 +149,8 @@ impl Render for Root {
             .capture_any_mouse_down(move |event, window, cx| {
                 if event.button == gpui::MouseButton::Right {
                     shell.update(cx, |shell, cx| {
-                        // The field takes its own right press before the pane menu captures it.
-                        if shell.rename.edit.as_ref().is_some_and(|edit| {
-                            edit.line
-                                .frame
-                                .is_some_and(|frame| frame.contains(&event.position))
-                        }) {
+                        // A typing line takes its own right press before the pane menu captures it.
+                        if shell.text_line_at(event.position) {
                             return;
                         }
                         if shell.shown_view() != crate::window::startup::View::Columns {

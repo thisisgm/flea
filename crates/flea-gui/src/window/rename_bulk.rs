@@ -283,12 +283,7 @@ impl Shell {
                     .background
                     .opacity(flea::ui_logic_file_ops::card::scrim_alpha(0)))
                 .on_mouse_down(MouseButton::Left, scrim)
-                .child(
-                    div()
-                        .size_full()
-                        .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
-                        .child(drawn),
-                )
+                .child(drawn)
                 .into_any_element(),
         )
     }

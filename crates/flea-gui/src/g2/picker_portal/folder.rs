@@ -35,7 +35,9 @@ impl Picker {
         let tracking = crate::g2::status_feedback::caption::tracking_for(catalog.language());
         // The window's own New Folder name and the field name its prompt uses.
         let (seed, label) = (catalog.tr("prompt.newFolder"), catalog.tr("prompt.folder"));
-        let field = cx.new(|cx| Filename::folder_name(&seed, label, tracking, cx));
+        let menu_catalog = catalog.clone();
+        let field = cx
+            .new(|cx| Filename::folder_name(&seed, label, tracking, cx).with_catalog(menu_catalog));
         self.chrome.folder_edits = Some(cx.subscribe(&field, |picker, _, event, cx| {
             if matches!(event, FieldKey::Edited(_)) {
                 picker.folder_edited(cx);
@@ -174,6 +176,10 @@ impl Picker {
         };
         let key = event.keystroke.key.as_str();
         let typing = field.read(cx).focus.is_focused(window);
+        if typing && field.update(cx, |field, cx| field.text_menu_key(event, window, cx)) {
+            cx.stop_propagation();
+            return;
+        }
         if typing && field.read(cx).entry.marked.is_some() {
             field.update(cx, |field, cx| field.key(event, cx));
             return;

@@ -1,6 +1,6 @@
 //! The filter query shares cached glyphs and caret geometry with its platform adapter.
 use super::*;
-use crate::strips::query_input::{place, SELECTION};
+use crate::strips::query_input::{menu_press, place, SELECTION};
 
 /// The query's cached glyphs and platform geometry, shared by its painter and input adapter.
 #[derive(Default)]
@@ -82,6 +82,11 @@ impl QueryLine {
         placed.caret
     }
 
+    /// The room the typed query owns, from its start to the summary's gap; a right press there opens its text menu.
+    pub(crate) fn room(&self) -> Option<Bounds<Pixels>> {
+        self.clip
+    }
+
     /// The mirror unit: the drawn line from the field's start with its caret, preedit and selection, clipped to the field.
     pub(super) fn unit(&self, laid: Laid, editing: bool) -> Bounds<Pixels> {
         let whole = laid
@@ -158,13 +163,22 @@ impl QueryLine {
                 None
             };
             if active {
-                if let Some(owner) = adapter.owner.upgrade() {
+                let (owner, side, session) = (
+                    adapter.owner.clone(),
+                    adapter.side,
+                    adapter.entry.borrow().session(),
+                );
+                if let Some(shell) = owner.upgrade() {
                     window.handle_input(
-                        &owner.read(cx).focus.clone(),
+                        &shell.read(cx).focus.clone(),
                         gpui::ElementInputHandler::new(laid.query, input.clone()),
                         cx,
                     );
                     crate::strips::query_input::on_press(input.clone(), laid.query, window);
+                }
+                // The same room Shell::text_line_at reads, so the pane menu and this press never both claim it.
+                if let (Some(session), Some(room)) = (session, self.room()) {
+                    menu_press(owner, side, session, room, window);
                 }
             }
         }

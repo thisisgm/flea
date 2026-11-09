@@ -96,7 +96,7 @@ impl Shell {
             .get_or_insert_with(|| cx.new(|cx| Footer::new(preset, catalog, cx)))
             .clone();
         if self.surfaces[0].footer_watch.is_none() {
-            let line = footer.read_with(cx, |footer, _| footer.line.clone());
+            let line = self.footer_undo_line(&footer, cx);
             self.surfaces[0].footer_watch = Some(cx.observe(&line, |shell, line, cx| {
                 let detail = line.read_with(cx, |line, _| line.drawn().detail.clone());
                 if shell.surfaces[0].detail_text != detail {

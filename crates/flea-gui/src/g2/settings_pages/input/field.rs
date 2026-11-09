@@ -16,6 +16,12 @@ impl<T: Host + EntityInputHandler> Field<T> {
     pub fn mount(view: Entity<T>, typeface: &Typeface, visible: bool) -> Stateful<Div> {
         let down = view.downgrade();
         let moved = view.downgrade();
+        let menu = view.downgrade();
+        let slot = crate::path::text_menu::Slot::new(
+            view.clone(),
+            super::editor_menu::<T>,
+            super::text_menu_answer::<T>,
+        );
         let field = div()
             .id("settings-text-input")
             .flex_1()
@@ -26,6 +32,26 @@ impl<T: Host + EntityInputHandler> Field<T> {
             return field;
         }
         field
+            .child(slot)
+            .on_mouse_down(MouseButton::Right, move |event, window, cx| {
+                // A right press opens the field's text menu over the line as it stands, keeping the keyboard on the field.
+                let _ = menu.update(cx, |view, cx| {
+                    if view.draft().is_none() || view.editor().retired {
+                        return;
+                    }
+                    window.focus(view.input_focus(window), cx);
+                    view.sync_editor();
+                    let catalog = view.input_catalog().clone();
+                    let editor = view.editor_mut();
+                    if editor.entry.marked.is_none() {
+                        editor
+                            .menu
+                            .open(&editor.entry, &catalog, event.position, window, cx);
+                    }
+                    cx.stop_propagation();
+                    cx.notify();
+                });
+            })
             .on_mouse_down(MouseButton::Left, move |event, window, cx| {
                 let _ = down.update(cx, |view, cx| {
                     if view.draft().is_none() || view.editor().retired {

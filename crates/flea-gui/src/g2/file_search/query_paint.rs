@@ -128,6 +128,16 @@ impl StripElement {
         if active {
             window.handle_input(focus, ElementInputHandler::new(bounds, input.clone()), cx);
             crate::strips::query_input::on_press(input.clone(), bounds, window);
+            if let Some(session) = session {
+                let adapter = input.read(cx);
+                crate::strips::query_input::menu_press(
+                    adapter.owner.clone(),
+                    adapter.side,
+                    session,
+                    bounds,
+                    window,
+                );
+            }
         }
         true
     }

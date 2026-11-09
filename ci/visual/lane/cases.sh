@@ -281,3 +281,15 @@ case_cols_menu_target() (
     wait_ipc cursor 1 || return 1
     snap
 )
+
+# FX-POINTER (0.4.2): a right press in the path field opens the rename field's text menu, its rows and card (board rename).
+CASES+=("text-menu-path 1100x700")
+
+case_text_menu_path() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    launch list "$W" || return 1
+    key :
+    wait_ipc pathBarOpen true || return 1
+    click_at "$(ipc pathCentre)" right || return 1
+    snap
+)

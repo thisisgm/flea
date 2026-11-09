@@ -45,6 +45,9 @@ impl SettingsView {
             return false;
         }
         self.sync_editor();
+        if self.text_menu_key(event, window, cx) {
+            return true;
+        }
         match self.editor.key(event, cx) {
             KeyUse::Text if !type_key(self, event, window, cx) => return true,
             KeyUse::Text => {}
@@ -120,6 +123,9 @@ impl SheetView {
         cx: &mut Context<Self>,
     ) {
         self.sync_editor();
+        if self.text_menu_key(event, window, cx) {
+            return;
+        }
         match self.editor.key(event, cx) {
             KeyUse::Text if !type_key(self, event, window, cx) => return,
             KeyUse::Text => {}

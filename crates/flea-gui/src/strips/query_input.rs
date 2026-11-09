@@ -225,6 +225,29 @@ impl<R: Route> EntityInputHandler for QueryInput<R> {
     }
 }
 
+/// A right press on the typing line opens its text menu; once it opens, the strip under it never sees the press.
+pub fn menu_press(
+    owner: WeakEntity<Shell>,
+    side: usize,
+    session: u64,
+    bounds: Bounds<Pixels>,
+    window: &mut Window,
+) {
+    window.on_mouse_event(move |event: &gpui::MouseDownEvent, phase, window, cx| {
+        if phase == gpui::DispatchPhase::Bubble
+            && event.button == gpui::MouseButton::Right
+            && bounds.contains(&event.position)
+        {
+            let opened = owner.update(cx, |shell, cx| {
+                shell.query_menu_open(side, session, event, window, cx)
+            });
+            if opened.unwrap_or(false) {
+                cx.stop_propagation();
+            }
+        }
+    });
+}
+
 /// Opens the line on `text` with the caret after it.
 pub fn reopen(entry: &mut Entry, text: &str) {
     entry.begin(text);

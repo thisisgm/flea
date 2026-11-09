@@ -13,6 +13,8 @@ pub mod seams;
 mod transport;
 
 #[cfg(test)]
+mod carry_window_click_tests;
+#[cfg(test)]
 mod host_marks_tests;
 #[cfg(test)]
 mod host_races_tests;

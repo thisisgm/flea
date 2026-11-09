@@ -21,6 +21,7 @@ pub mod strip;
 mod strip_input;
 pub mod suggestions;
 pub(crate) mod tap;
+pub(crate) mod text_menu;
 pub mod view;
 mod wire;
 
