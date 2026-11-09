@@ -22,6 +22,7 @@ impl Properties {
                     "tags",
                     Json::Arr(facts.tags.iter().cloned().map(text).collect()),
                 ),
+                ("photo", facts.photo.clone().unwrap_or(Json::Null)),
             ]),
             Shown::Several(facts) => crate::visual::object([
                 ("ok", Json::Bool(true)),

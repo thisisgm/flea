@@ -1,9 +1,10 @@
 // The Properties card's facts: the single item's pairs in board order, a folder's walk, and the several-item summary.
 use crate::i18n::I18n;
 use crate::jsondoc::Json;
+use crate::ui_logic_preview_core::{meta, property};
 
 /// The single-item `properties` reply.
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Facts {
     pub path: String,
     pub kind: String,
@@ -17,6 +18,8 @@ pub struct Facts {
     pub uid: u64,
     pub gid: u64,
     pub tags: Vec<String>,
+    /// The photo object the reply read from the file's EXIF, kept as sent; None for null or a reply without one.
+    pub photo: Option<Json>,
 }
 
 fn text(reply: &Json, key: &str) -> String {
@@ -47,8 +50,52 @@ impl Facts {
             uid: number(reply, "uid").max(0.) as u64,
             gid: number(reply, "gid").max(0.) as u64,
             tags: reply.get("tags").and_then(Json::as_array).unwrap_or(&[]).iter().filter_map(Json::as_str).map(str::to_string).collect(),
+            photo: reply.get("photo").filter(|photo| photo.as_object().is_some()).cloned(),
         }
     }
+
+    /// The backend names a regular file "File", untranslated; only that kind has codecs or deferred photo facts, and the backend refuses the rest.
+    pub fn asks_media(&self) -> bool {
+        self.kind == "File"
+    }
+}
+
+/// Sample input: {"op":"facts","id":9,"ok":true,"vcodec":"h264","acodec":"aac","bps":8100000,"make":"Canon","model":"Canon EOS R6","lens":"","shutter":[1,250],"fnumber":[28,10],"iso":400,"taken":"2026:09:12 18:31:00"}.
+pub fn media(reply: &Json) -> property::Facts {
+    property::Facts {
+        ok: flag(reply, "ok") && !flag(reply, "cancelled"),
+        vcodec: text(reply, "vcodec"),
+        acodec: text(reply, "acodec"),
+        bps: number(reply, "bps"),
+        make: text(reply, "make"),
+        model: text(reply, "model"),
+        lens: text(reply, "lens"),
+        shutter: meta::ratio(reply, "shutter"),
+        fnumber: meta::ratio(reply, "fnumber"),
+        iso: number(reply, "iso").max(0.) as u32,
+        taken: text(reply, "taken"),
+    }
+}
+
+/// Until the facts reply lands, or when it is refused, the properties reply's own photo speaks alone, as v0.3.12 did.
+pub fn media_pairs(
+    i18n: &I18n,
+    facts: &Facts,
+    media: Option<&property::Facts>,
+) -> Vec<(String, String)> {
+    if !facts.asks_media() {
+        return Vec::new();
+    }
+    let photo = facts.photo.as_ref().and_then(meta::photo);
+    let pending = property::Facts {
+        ok: true,
+        ..property::Facts::default()
+    };
+    property::extra_pairs(
+        Some(media.filter(|media| media.ok).unwrap_or(&pending)),
+        photo.as_ref(),
+        i18n,
+    )
 }
 
 /// A folder's walk as the card knows it: the floor while it counts, the whole once done.

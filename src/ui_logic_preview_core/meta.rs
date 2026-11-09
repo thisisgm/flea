@@ -45,7 +45,7 @@ fn whole(doc: &Json, key: &str) -> u32 { number(doc, key).max(0.0) as u32 }
 fn text(doc: &Json, key: &str) -> String { doc.get(key).and_then(Json::as_str).unwrap_or("").into() }
 fn flag(doc: &Json, key: &str) -> bool { doc.get(key).and_then(Json::as_bool).unwrap_or(false) }
 
-fn ratio(doc: &Json, key: &str) -> Ratio {
+pub fn ratio(doc: &Json, key: &str) -> Ratio {
     let pair = doc.get(key)?.as_array()?;
     match pair {
         [n, d] => Some((n.as_f64()?, d.as_f64()?)),
@@ -53,7 +53,8 @@ fn ratio(doc: &Json, key: &str) -> Ratio {
     }
 }
 
-fn photo(doc: &Json) -> Option<Photo> {
+// The photo object a meta or properties reply carries; null or anything else is no photo.
+pub fn photo(doc: &Json) -> Option<Photo> {
     doc.as_object()?;
     Some(Photo {
         make: text(doc, "make"), model: text(doc, "model"), lens: text(doc, "lens"),
