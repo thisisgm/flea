@@ -179,7 +179,12 @@ impl OpenWith {
                     Stop::Search | Stop::List | Stop::Open => self.launch(),
                 }
             }
-            Key::Space if self.focus == Stop::Always => self.always = !self.always,
+            // OpenWithDialog.qml: Space answers the focused button, and toggles Always from the list, the box or an empty search line.
+            Key::Space if self.focus == Stop::Cancel => return self.close(),
+            Key::Space if self.focus == Stop::Open => return self.launch(),
+            Key::Space if self.focus != Stop::Search || self.query.is_empty() => {
+                self.always = !self.always
+            }
             Key::Up if matches!(self.focus, Stop::Search | Stop::List) => {
                 self.cursor = self.cursor.saturating_sub(1);
                 self.follow();
@@ -201,6 +206,13 @@ impl OpenWith {
             _ => {}
         }
         Vec::new()
+    }
+
+    /// A plain Space on the empty search line is the Always toggle, never a typed character.
+    pub(crate) fn space_ticks(&self, event: &gpui::KeyDownEvent) -> bool {
+        self.focus == Stop::Search
+            && self.query.is_empty()
+            && super::keys::key_of(event) == Some(Key::Space)
     }
 
     /// The search line the window's shared entry edits while Search holds the keys.

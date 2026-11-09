@@ -166,3 +166,39 @@ fn review_fix_props_2_a_refused_snapshot_asks_no_catalogue_and_says_so() {
         "the card says why its list stays empty: {shown:?}"
     );
 }
+
+// S2-8, OpenWithDialog.qml: Space ticks Always from the list, the box or an empty search, types after a query, and presses a focused button.
+#[test]
+fn space_answers_every_open_with_stop_as_v0312_did() {
+    let mut card = open_with();
+    assert!(card.key(Key::Space).is_empty());
+    assert!(card.always, "an empty search line ticks Always");
+    assert_eq!(card.query, "");
+    card.key(Key::Text("n".into()));
+    card.key(Key::Space);
+    assert_eq!(card.query, "n ", "after a query Space types");
+    assert!(card.always);
+    card.key(Key::Tab);
+    card.key(Key::Space);
+    assert!(!card.always, "the list toggles Always");
+    card.key(Key::Tab);
+    card.key(Key::Space);
+    assert!(card.always, "the box toggles Always");
+    card.key(Key::Tab);
+    assert_eq!(
+        sent(&card.key(Key::Space)),
+        vec![r#"{"c":"menuaction","op":"close","id":4}"#],
+        "Space on Cancel closes"
+    );
+    let mut card = open_with();
+    for _ in 0..4 {
+        card.key(Key::Tab);
+    }
+    assert_eq!(
+        sent(&card.key(Key::Space)),
+        vec![
+            r#"{"c":"menuaction","op":"openWith","id":4,"application":"nvim.desktop","always":false}"#
+        ],
+        "Space on Open launches the cursor application"
+    );
+}

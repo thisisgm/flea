@@ -387,3 +387,6 @@ fn ey421_a_created_filename_ending_in_undo_words_stays_whole(cx: &mut TestAppCon
 
 #[path = "newfolder_tests.rs"]
 mod newfolder_tests;
+
+#[path = "band_filter_trash_tests.rs"]
+mod band_filter_trash_tests;

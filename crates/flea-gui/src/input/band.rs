@@ -10,11 +10,13 @@ const ROW_DRAG_STEP: Duration = Duration::from_millis(100);
 
 /// Visits entering and leaving cells only, returning their count for both callers and work tests.
 pub fn update_band(
-    frame: Frame,
+    mut frame: Frame,
     band: &mut Band,
     selected: &mut Vec<usize>,
     shown: Option<&[usize]>,
 ) -> usize {
+    // Under a filter the view holds only the shown rows; the band never reaches a row the filter hides.
+    frame.total = shown.map_or(frame.total, |shown| shown.len().min(frame.total));
     let mut touched = 0;
     let (x, y) = frame.local(band.pointer);
     band.direction = if y < 0. {

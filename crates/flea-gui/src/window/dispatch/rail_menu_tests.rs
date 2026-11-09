@@ -373,3 +373,6 @@ fn ey358_escape_on_an_auto_hidden_favourite_menu_returns_to_the_rail_row(cx: &mu
 
 #[path = "rail_overlay_focus_tests.rs"]
 mod overlay_focus;
+
+#[path = "rail_reveal_hover_tests.rs"]
+mod reveal_hover;

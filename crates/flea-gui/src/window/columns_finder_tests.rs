@@ -60,8 +60,39 @@ fn finder_active_right_click_keeps_cursor_and_selection_and_targets_its_row_or_s
             assert_eq!(captured.rows, rows);
             assert_eq!(captured.cursor, clicked);
             assert!(!captured.background);
+            // S2-6: the ring marks a lone target the cursor is not on; a selection block keeps its own plates.
+            let ring = (rows == [clicked]).then_some((Slot::Active, clicked));
+            assert_eq!(shell.column_menu_focus(0).0, ring);
+            shell.retire_menu(window, cx);
+            assert_eq!(
+                shell.column_menu_focus(0).0,
+                None,
+                "the ring outlived the menu"
+            );
         });
     }
+}
+
+#[test]
+fn a_keyboard_menu_on_the_cursor_row_draws_no_ring() {
+    let mut cx = host::context();
+    let (handle, _requests) = host::open(&mut cx, "/srv/a/b/c");
+    host::change(&mut cx, handle, |shell, window, cx| {
+        host::settle(shell, window, cx)
+    });
+    host::frame(&mut cx, handle);
+    host::change(&mut cx, handle, |shell, window, cx| {
+        shell.open_menu(0, Some(0), (10., 10.), window, cx);
+        // Every other guard holds, so only the cursor test keeps the ring away.
+        let captured = shell.menu.captured.as_ref().expect("the menu opened");
+        assert!(captured.target.is_none() && !captured.background);
+        assert_eq!(captured.rows, [0]);
+        assert_eq!(
+            captured.cursor,
+            shell.panes[0].as_ref().unwrap().pane.cursor
+        );
+        assert_eq!(shell.column_menu_focus(0).0, None);
+    });
 }
 
 #[test]
