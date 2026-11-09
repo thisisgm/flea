@@ -5,7 +5,7 @@ use cancel::remove_tree_cancellable;
 use flea::bytename::ExactText as _;
 #[cfg(test)]
 mod cancel_tests;
-pub use recovery::{recover, recovery_root, RecoveryReport};
+pub use recovery::{recover, recovery_root, FolderSyncs, RecoveryReport};
 use recovery::Recovery;
 
 use crate::backend::trashmanifest::{Cancellation, Manifest, Op, Outcome, Records, Refusal, Refuse};

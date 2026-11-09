@@ -31,7 +31,9 @@ fn reply(out: &mut impl Write, id: usize, file: &str) {
 fn inspect(line: &str, tb: &Tables) -> Option<(Reviewed, PathBuf, i64, String)> {
     let path = flea::bytename::exact(field_str(line, "path")?);
     let original = field_str(line, "original")?;
-    let mime = tb.mime.lookup(original.rsplit('/').next()?)?;
+    let mime = tb
+        .mime
+        .lookup(flea::bytename::display(&original).rsplit('/').next()?)?;
     if !mime.starts_with("image/") || tb.thumbs.for_mime(mime, &tb.aliases).is_none() {
         return None;
     }

@@ -46,6 +46,7 @@ fn two_items(d: &TestDir) -> Confirmation {
         count: 2,
         nodes: 2,
         all: true,
+        sweep: Default::default(),
     }
 }
 

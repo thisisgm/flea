@@ -7,6 +7,9 @@ use std::ffi::{OsStr, OsString};
 use std::fs::File;
 use std::os::unix::fs::DirBuilderExt;
 use std::path::{Path, PathBuf};
+#[path = "syncs.rs"]
+mod syncs;
+pub use syncs::FolderSyncs;
 
 const FINISHED: &[u8] = b"flea recovery complete 1";
 
@@ -74,7 +77,10 @@ impl Recovery {
         }
         std::fs::remove_file(&self.path)
             .map_err(|e| Refusal::os(Outcome::RecordLeft(None), &format!("Could not finish recovery record {}", self.path.display()), &e))?;
-        open_dir(self.path.parent().refuse(Outcome::RecordUnconfirmed(None), "Missing recovery folder.")?)
+        let folder = self.path.parent().refuse(Outcome::RecordUnconfirmed(None), "Missing recovery folder.")?;
+        // An open restore batch syncs the folder once at its close; the record's removal is only cleanup.
+        if syncs::held(folder) { return Ok(()); }
+        open_dir(folder)
             .map_err(|refusal| refusal.wrap(Outcome::RecordUnconfirmed(None)))?.sync_all()
             .map_err(|e| Refusal::os(Outcome::RecordUnconfirmed(None), "Could not sync completed recovery record", &e))
     }
@@ -92,6 +98,7 @@ impl Recovery {
         quarantine.sync_all().map_err(|e| cleanup("Could not sync empty recovery quarantine", &e))?;
         self.record.append(FINISHED).and_then(|_| self.record.sync()).map_err(|e| left(&e, "the recovery record could not be written"))?;
         std::fs::remove_dir(path).map_err(|e| cleanup(&format!("Could not remove empty recovery quarantine {}", path.display()), &e))?;
+        if syncs::held_open(parent) { return Ok(()); }
         parent.sync_all().map_err(|e| cleanup("Could not sync recovery quarantine removal", &e))
     }
     // Where the quarantine opened, its items stay recoverable at that path; before that, nothing was moved.

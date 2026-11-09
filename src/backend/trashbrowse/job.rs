@@ -158,7 +158,8 @@ impl Progress {
             *named = (phase.into(), String::new(), 0);
         }
         if let Some(item) = item {
-            let name = item.item.original.rsplit('/').next().unwrap_or("");
+            let shown = flea::bytename::display(&item.item.original);
+            let name = shown.rsplit('/').next().unwrap_or("");
             if named.1 != name {
                 named.1 = name.into();
             }
@@ -321,6 +322,10 @@ pub(super) fn delete_with(
             Err(_) => failures.push(unread(record_item(&text).ok())),
         }
         progress(removed, None, false);
+    }
+    // What the listing left out goes last, in the same thumbnail purge, and a cancel leaves it.
+    if let (false, Ok(root)) = (cancelled, recovery) {
+        confirmation.sweep.remove(root, cancel, &mut thumbnails);
     }
     let failed = failures.len() + folded;
     progress(removed, None, true);

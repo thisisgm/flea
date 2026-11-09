@@ -151,6 +151,28 @@ fn run_case(case: &str, test: &str) {
     let home = PathBuf::from(std::env::var_os("HOME").unwrap());
     assert!(home.is_absolute() && home.join(".flea-test-sandbox").is_file());
     let (payloads, owned, keep) = fixture(&home);
+    // Beside the two listed items: a file with no record, one whose record has no Path, a record with no file and a file that is no record.
+    let empty = case == "empty" || case == "sweep";
+    let left_out = [
+        write(&home, "data/Trash/files/no record.txt", b"x"),
+        write(&home, "data/Trash/files/no path.txt", b"x"),
+        write(
+            &home,
+            "data/Trash/info/no path.txt.trashinfo",
+            b"[Trash Info]\nDeletionDate=2026-10-18T09:00:00\n",
+        ),
+        write(
+            &home,
+            "data/Trash/info/gone.txt.trashinfo",
+            b"[Trash Info]\nPath=/gone.txt\nDeletionDate=2026-10-18T09:00:00\n",
+        ),
+    ];
+    let notes = write(&home, "data/Trash/info/notes", b"x");
+    if case != "sweep" {
+        for path in &left_out {
+            std::fs::remove_file(path).unwrap();
+        }
+    }
     let scratch = home.join("scratch");
     std::fs::create_dir_all(&scratch).unwrap();
     let mut session = Session {
@@ -172,8 +194,7 @@ fn run_case(case: &str, test: &str) {
         escape(&selection_identity(&current))
     );
     let cancelled = case == "cancel-empty";
-    let batch =
-        case.starts_with("batch-") || case.starts_with("partial-") || case == "empty" || cancelled;
+    let batch = case.starts_with("batch-") || case.starts_with("partial-") || empty || cancelled;
     let partial = case.starts_with("partial-");
     let restoring = matches!(
         case,
@@ -183,13 +204,14 @@ fn run_case(case: &str, test: &str) {
         write(&home, "original/a photo.png", b"destination bytes");
     }
     crate::backend::trashthumbcache::DIRECTORY_READS.with(|reads| reads.set([0; 2]));
+    crate::backend::trashdelete::FolderSyncs::take_synced();
     let result = if restoring {
         let target = if batch { r#""all":true"# } else { &selection };
         session.handle(&format!(
             r#"{{"c":"trashbrowse","op":"restore","id":2,{target}}}"#
         ))
     } else {
-        let target = if case == "empty" || batch {
+        let target = if empty || batch {
             r#""all":true,"emptyTrash":true"#
         } else {
             &selection
@@ -242,7 +264,7 @@ fn run_case(case: &str, test: &str) {
         crate::json::field_usize(&result, "done"),
         Some(if case == "blocked" {
             0
-        } else if !cancelled && (case == "empty" || (batch && !partial)) {
+        } else if !cancelled && (empty || (batch && !partial)) {
             2
         } else {
             1
@@ -290,6 +312,27 @@ fn run_case(case: &str, test: &str) {
                 );
             }
         }
+    }
+    for path in left_out.iter().filter(|_| case == "sweep") {
+        assert!(
+            !path.exists(),
+            "Empty Trash removes what the listing left out: {}",
+            path.display()
+        );
+    }
+    assert!(notes.exists(), "{case}: a file that is no record stays");
+    if case == "batch-restore" {
+        let mut once = vec![
+            home.join("original"),
+            std::fs::canonicalize(home.join("data/Trash/files")).unwrap(),
+            home.join("state/flea/recovery"),
+        ];
+        once.sort();
+        assert_eq!(
+            crate::backend::trashdelete::FolderSyncs::take_synced(),
+            once,
+            "Restore all syncs each folder once, not once per item"
+        );
     }
     if batch {
         assert_eq!(
@@ -343,4 +386,8 @@ purge_case!(
 purge_case!(
     cancelled_empty_trash_purges_only_removed_items_once,
     "cancel-empty"
+);
+purge_case!(
+    empty_trash_removes_what_the_listing_left_out_as_gio_does,
+    "sweep"
 );
