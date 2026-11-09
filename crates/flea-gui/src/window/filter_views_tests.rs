@@ -13,6 +13,9 @@ mod columns;
 #[path = "filter_exit_columns_tests.rs"]
 mod columns_exit;
 
+#[path = "filter_long_query_tests.rs"]
+mod long_query;
+
 #[path = "fixreaders_filter_tests.rs"]
 mod fixreaders;
 

@@ -321,39 +321,6 @@ impl Shell {
         configure_pane(host, &self.launch.settings.data, self.settings_typeface(cx));
     }
 
-    pub(crate) fn choose_settings_view(
-        &mut self,
-        view: View,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) {
-        if self.lifecycle.phase() != crate::window::lifecycle::Phase::Open {
-            return;
-        }
-        self.set_view(view, window, cx);
-        self.remember_settings_view(view, window, cx);
-    }
-
-    fn remember_settings_view(&mut self, view: View, window: &mut Window, cx: &mut Context<Self>) {
-        if view == View::Dual {
-            return;
-        }
-        let name = view_name(view);
-        let data = &self.launch.settings.data;
-        let patch = if pages::is_true(data, &["rememberViewPerFolder"]) {
-            let Some(host) = &self.panes[self.focus_side] else {
-                return;
-            };
-            Json::Obj(vec![(
-                "folderViews".into(),
-                Json::Obj(vec![(host.path.clone(), Json::Str(name.into()))]),
-            )])
-        } else {
-            Json::Obj(vec![("view".into(), Json::Str(name.into()))])
-        };
-        self.change_settings(patch, window, cx);
-    }
-
     pub(crate) fn settings_folder_arrived(&mut self, _window: &mut Window, cx: &mut Context<Self>) {
         if self.view == View::Dual {
             return;

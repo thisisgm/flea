@@ -297,14 +297,18 @@ fn gh265_navigation_answers_around_a_delayed_rename(cx: &mut TestAppContext) {
         "GH265 OBSERVED cursor_after_up_while_pending={held} editing={:?}",
         editing(&shell, cx).is_some()
     );
-    // Escape hides the editor with the request out, and Up then moves at once.
+    // S2-4, v0.3.12 RenameField.qml: Escape cannot abandon the write that is out, so the editor stays and Up moves nothing.
     cx.simulate_keystrokes("escape");
     draw(cx);
+    assert!(
+        editing(&shell, cx).is_some(),
+        "Escape keeps the pending editor"
+    );
     cx.simulate_keystrokes("up");
     draw(cx);
     let moved = cursor(&shell, cx);
     eprintln!("GH265 OBSERVED cursor_after_escape_up_while_pending={moved}");
-    assert!(moved < 2, "navigation answers while the rename is out");
+    assert_eq!(moved, held, "the editor holds the keys until the reply");
     let before = lists(&shell, cx);
     receive(
         &shell,
@@ -334,13 +338,13 @@ fn gh265_navigation_answers_around_a_delayed_rename(cx: &mut TestAppContext) {
         queued(&shell, cx),
         "Down is held for the re-read, not dropped"
     );
-    land_on(&shell, cx, 0, "/files", reread(), 3, 2);
+    land_on(&shell, cx, 0, "/files", reread(), 4, 2);
     assert!(!queued(&shell, cx), "the landing spends the held key");
-    // The cursor Escape left on row `at` keeps that row through the re-read, and the held Down moves one row from it.
+    // The re-read keeps the renamed file on row 2 with a row below it, so the held Down shows it moved one row.
     assert_eq!(
-        cursor(&shell, cx),
-        at + 1,
-        "the held Down moves one row from the row the re-read keeps"
+        (at, cursor(&shell, cx)),
+        (2, 3),
+        "the held Down moves one row past the renamed file"
     );
     close(&shell, cx);
 }
@@ -350,5 +354,6 @@ fn reread() -> Vec<flea::protocol::RowFacts> {
         row("alpha", true),
         row("beta", true),
         row("draft.txt", false),
+        row("zeta.txt", false),
     ]
 }

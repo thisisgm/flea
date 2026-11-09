@@ -41,8 +41,8 @@ fn package_info_reads_the_version_and_whether_a_signature_validated_it() {
 fn the_kind_follows_the_owner_and_only_a_signed_flea_is_opr() {
     assert_eq!(kind_for("flea", true), Kind::Opr);
     assert_eq!(kind_for("flea", false), Kind::Local, "a local makepkg build carries OPR's name and no signature");
-    assert_eq!(kind_for("flea-bin", false), Kind::Local);
-    assert_eq!(kind_for("flea-bin", true), Kind::Local);
+    assert_eq!(kind_for("flea-bin", false), Kind::Release, "the prebuilt release binary, signed or not");
+    assert_eq!(kind_for("flea-bin", true), Kind::Release);
     assert_eq!(kind_for("flea-git", false), Kind::Local);
     assert_eq!(kind_for("flea-git", true), Kind::Local);
     assert_eq!(kind_for("my-flea", true), Kind::Local, "a name Flea never shipped under has no known updater");
@@ -114,6 +114,7 @@ fn a_build_no_release_describes_is_unchecked_and_names_its_kind() {
     assert_eq!((local.line(), local.status()), ("unchecked local - -".to_string(), NOTHING_TO_INSTALL));
     assert_eq!(unchecked(Kind::Local, Some("0.3.3-1".to_string())).line(), "unchecked local 0.3.3-1 -");
     assert_eq!(unchecked(Kind::Unowned, None).line(), "unchecked unowned - -");
+    assert_eq!(unchecked(Kind::Release, Some("0.4.1-1".to_string())).line(), "unchecked release 0.4.1-1 -");
 }
 
 #[test]

@@ -329,10 +329,19 @@ fn focus_owner_hidden_pending_rename_returns_to_listing(cx: &mut TestAppContext)
     edit(cx, handle, |shell, _, _| {
         assert!(shell.rename.edit.as_ref().unwrap().pending.is_some())
     });
+    // S2-4: Escape cannot abandon the write, so the editor keeps the keys.
     press(cx, handle, "escape", false);
+    assert_eq!(
+        keyboard(cx, handle)
+            .get("activeFocusItem")
+            .and_then(flea::jsondoc::Json::as_str),
+        Some("QQuickTextInput")
+    );
+    // A row that leaves the drawn listing hides the editor the way rename.rs does, with the request still out.
     edit(cx, handle, |shell, _, _| {
-        let edit = shell.rename.edit.as_ref().unwrap();
-        assert!(!edit.entry.editing);
+        let edit = shell.rename.edit.as_mut().unwrap();
+        assert!(edit.entry.editing, "Escape keeps the pending editor");
+        edit.entry.close();
         assert!(
             edit.pending.is_some(),
             "the reply still has its original owner"

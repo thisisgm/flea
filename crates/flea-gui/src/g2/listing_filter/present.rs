@@ -52,12 +52,19 @@ pub fn status(counts: &Counts, i18n: &I18n) -> String {
 
 /// Search's no-match headline with the query as typed, drawn only when nothing exact and nothing close stands.
 pub fn no_match(filter: &Filter, listing: usize, i18n: &I18n) -> Option<String> {
-    // The headline names the query whose answer is drawn, so a key still out never relabels the old rows.
+    no_match_query(filter, listing).map(|query| nothing_matches(i18n, query))
+}
+
+/// The query the no-match headline names: the one whose answer is drawn, so a key still out never relabels the old rows.
+pub fn no_match_query(filter: &Filter, listing: usize) -> Option<&str> {
     let drawn = filter.drawn(listing)?;
     let counts = filter.counts(listing)?;
-    counts
-        .nothing()
-        .then(|| i18n.tr_args("filter.nothing_matches", &[&drawn.query]))
+    counts.nothing().then_some(drawn.query.as_str())
+}
+
+/// The filter's no-match headline around a query, which the pane may have elided to fit.
+pub fn nothing_matches(i18n: &I18n, query: &str) -> String {
+    i18n.tr_args("filter.nothing_matches", &[query])
 }
 
 pub fn strip(filter: &Filter, listing: usize, folder: &str, i18n: &I18n) -> StripText {

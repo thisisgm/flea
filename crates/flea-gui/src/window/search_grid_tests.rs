@@ -4,6 +4,9 @@ use crate::{backend::Event as BackendEvent, window::startup::View};
 use flea::protocol::RowFacts;
 use gpui::TestAppContext;
 
+#[path = "search_long_query_tests.rs"]
+mod long_query;
+
 fn answer(cx: &mut TestAppContext, handle: Handle, generation: usize, names: &[&str]) {
     answer_at(cx, handle, generation, "/files", names);
 }

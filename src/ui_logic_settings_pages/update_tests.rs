@@ -85,6 +85,18 @@ fn unowned_binary_is_built_from_source() {
     assert_eq!(say(&value(&after("unchecked unowned - -"))), "Built from source");
 }
 
+// S1A-1: flea-bin is the prebuilt release, which Omarchy's updater keeps current, never a checkout to rebuild.
+#[test]
+fn a_release_package_is_a_release_build_that_omarchy_update_keeps_current() {
+    let release = after("unchecked release 0.4.1-1 -");
+    assert_eq!(drawn(&release), "Release build|live|false");
+    assert_eq!(
+        noted(&release),
+        "Omarchy update installs newer releases.|foreground"
+    );
+    assert!(is_fact(&release), "nothing here checks or launches for it");
+}
+
 #[test]
 fn only_unchecked_kinds_are_facts() {
     let list = [idle(), after(CURRENT), after(OTHER), after(SOURCE), after("unchecked unowned - -")]

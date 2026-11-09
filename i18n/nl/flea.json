@@ -2261,8 +2261,10 @@
   "settings.update.note_failed": "Offline: Omarchy bijwerken opent nog steeds",
   "settings.update.note_launched": "Herstart Flea zodra het bijwerken klaar is",
   "settings.update.note_source": "Bouw opnieuw vanuit de broncheckout om bij te werken.",
+  "settings.update.note_release": "Omarchy bijwerken installeert nieuwere versies.",
   "settings.update.opening": "Omarchy bijwerken openen · herstart Flea zodra het klaar is",
   "settings.update.source": "Gebouwd vanuit broncode",
+  "settings.update.release": "Releaseversie",
   "status.host.free": "%1 · %2 vrij",
   "status.host.selected": {
     "one": "%1 van %2 geselecteerd",
@@ -2373,6 +2375,7 @@
   "keys.label.72a825fc6b84": "Pagina omlaag",
   "keys.label.c2fc6e7bc3be": "Volgend werkblad",
   "keys.label.e3a4d6eba0c6": "Vorig werkblad",
+  "keys.label.07c371255954": "Afdrukken…",
   "menu.original.needs_link": "Plaats de cursor op een koppeling om het origineel te tonen",
   "menu.refusal.nocursor": "Geen item onder de cursor om een menu voor te openen",
   "menu.refusal.recent_new_file": "In Recent kun je geen nieuw bestand maken. Open eerst een map",

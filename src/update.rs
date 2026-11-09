@@ -14,12 +14,17 @@ const UPDATER: &str = "omarchy-update";
 // The signed package Omarchy installs from its repository.
 const OPR_PACKAGE: &str = "flea";
 
+// The prebuilt release binary's package, which `omarchy update` upgrades or moves to OPR's `flea`.
+const RELEASE_PACKAGE: &str = "flea-bin";
+
 // Where the check found this Flea, which decides what may be asked and what `omarchy update` does to it.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Kind {
     // OPR's signed `flea`, which `omarchy update` upgrades through pacman.
     Opr,
-    // A package other than signed `flea`, which is a local build.
+    // `flea-bin`, a release build no source here describes, which `omarchy update` keeps current.
+    Release,
+    // Any other package, which is a local build.
     Local,
     // A binary no package owns, which is a cargo build.
     Unowned,
@@ -29,6 +34,7 @@ impl Kind {
     fn word(self) -> &'static str {
         match self {
             Kind::Opr => "opr",
+            Kind::Release => "release",
             Kind::Local => "local",
             Kind::Unowned => "unowned",
         }
@@ -41,7 +47,7 @@ pub enum State {
     Current,
     // The sentence stderr carries, while stdout still prints the machine line.
     Failed(&'static str),
-    // A local build, which no release source describes.
+    // A release or local build, which no source here is asked about.
     Unchecked,
 }
 
@@ -223,10 +229,11 @@ fn package_info(text: &str) -> (Option<String>, bool) {
     (version, signed)
 }
 
-// Only a signed flea has a known updater; anything else is somebody's own build.
+// Only a signed flea is checked; flea-bin is a prebuilt release, and anything else is somebody's own build.
 fn kind_for(owner: &str, signed: bool) -> Kind {
     match owner {
         OPR_PACKAGE if signed => Kind::Opr,
+        RELEASE_PACKAGE => Kind::Release,
         _ => Kind::Local,
     }
 }

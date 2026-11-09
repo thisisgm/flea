@@ -248,8 +248,8 @@ fn a_former_binary_package_is_local() {
 
 #[test]
 fn the_kind_the_update_row_reads_is_the_same_one() {
-    let answer = answered_status("unchecked local 0.3.4-1 -");
-    assert_eq!(format!("{}|{}", answer.kind, install_kind("flea-bin", false)), "local|local");
+    let answer = answered_status("unchecked release 0.3.4-1 -");
+    assert_eq!(format!("{}|{}", answer.kind, install_kind("flea-bin", false)), "release|release");
 }
 
 #[test]
@@ -301,8 +301,9 @@ fn const_str<'a>(src: &'a str, name: &str) -> Option<&'a str> {
 }
 
 #[test]
-fn the_opr_package_name_is_src_update_rs_own() {
+fn the_package_names_are_src_update_rs_own() {
     assert_eq!(Some(OPR_PACKAGE), const_str(include_str!("../update.rs"), "OPR_PACKAGE"));
+    assert_eq!(Some(RELEASE_PACKAGE), const_str(include_str!("../update.rs"), "RELEASE_PACKAGE"));
 }
 
 #[test]

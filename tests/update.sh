@@ -88,11 +88,13 @@ check "and exits with nothing to install" "3" "$rc"
 check "and pacman described it in the C.UTF-8 locale" "1" "$(grep -Fxc 'pacman -Qi flea LC_ALL=C.UTF-8 LANGUAGE=unset NARGS=2 ENV=exact' "$calls")"
 check "and asked no source" "0|0" "$(called checkupdates)|$(called curl)"
 
-# Former package names, signed or not, are local and never ask a release source.
+# flea-bin is the prebuilt release, and other names are local; signed or not, none asks a release source.
 for owner in flea-bin flea-git flea-custom; do
+  kind=local
+  if [ "$owner" = flea-bin ]; then kind=release; fi
   for validated in None Signature; do
     run_check STUB_OWNER="$owner" STUB_INSTALLED=0.3.3-1 STUB_VALIDATED="$validated"
-    check "$owner ($validated) is local" "unchecked local 0.3.3-1 -" "$out"
+    check "$owner ($validated) is $kind" "unchecked $kind 0.3.3-1 -" "$out"
     check "and exits with nothing to install" "3" "$rc"
     check "and asked no source or comparison" "0|0|0" "$(called checkupdates)|$(called curl)|$(called vercmp)"
     check "and has no failure sentence" "" "$err"

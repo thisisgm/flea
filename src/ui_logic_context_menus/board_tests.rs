@@ -293,12 +293,7 @@ fn sol_menu_order_every_board_card_draws_the_boards_rows_width_place_and_scroll(
         let (rows, hints, work, inset) = entries(card.board);
         let name = card.board;
         let drawn: Vec<String> = rows.iter().map(|e| row(&i18n, e, hints)).collect();
-        // Print's ctrl-p waits for the print unit's binding in keys.toml, so its key is pinned once that lands.
-        let want: Vec<String> = card
-            .rows
-            .split('|')
-            .map(|r| r.replace(" ^ctrl-p", ""))
-            .collect();
+        let want: Vec<String> = card.rows.split('|').map(str::to_owned).collect();
         if name == "lang-de-menu" {
             // The German catalog belongs to the languages unit; until it lands the rows are pinned by mark, ink and shape.
             let shape = |r: &str| {

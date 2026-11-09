@@ -135,8 +135,14 @@ pub fn value(status: &Status) -> Text {
         State::Current => Text::args("settings.update.current", vec![Text::data(pkgver(&status.installed))]),
         State::Failed => Text::Key("settings.update.failed"),
         State::Launched => Text::Key("settings.update.launched"),
+        State::Unchecked if is_release(status) => Text::Key("settings.update.release"),
         State::Unchecked => Text::Key("settings.update.source"),
     }
+}
+
+// The prebuilt flea-bin package, which src/update.rs prints as the "release" kind.
+fn is_release(status: &Status) -> bool {
+    status.kind == "release"
 }
 
 // The value's colour role in ui/SettingsRow.qml: accent for an update, muted while checking, foreground otherwise.
@@ -153,6 +159,9 @@ pub fn note(status: &Status) -> Option<(Text, Role)> {
     match status.state {
         State::Launched => Some((Text::Key("settings.update.note_launched"), Role::Accent)),
         State::Failed => Some((Text::Key("settings.update.note_failed"), Role::Foreground)),
+        State::Unchecked if is_release(status) => {
+            Some((Text::Key("settings.update.note_release"), Role::Foreground))
+        }
         State::Unchecked => Some((Text::Key("settings.update.note_source"), Role::Foreground)),
         _ => None,
     }
