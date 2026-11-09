@@ -1,7 +1,7 @@
 //! The window side of a device release: Ctrl+E, the eject mark and the quiesce that comes before the release child.
 use crate::g2::device_rail::devices::Moved;
 use crate::state::Shell;
-use flea::ui_logic_device_rail::mounts::inside;
+use flea::ui_logic_device_rail::{mounts::inside, Note};
 use flea::ui_logic_rail_places::rail::{Group, RailEntry};
 use gpui::{Context, Window};
 
@@ -69,12 +69,58 @@ impl Shell {
     /// A rail row with nothing to release says so by the name the rail shows for it, a built-in place included.
     fn say_nothing_to_release(&mut self, row: &RailEntry, cx: &mut Context<Self>) {
         let label = crate::g2::rail_places::content::row_label(&self.locale.catalog, row);
-        let note = flea::ui_logic_device_rail::Note::new("device.nothing_to_release", &[&label]);
+        self.say_device_note(Note::new("device.nothing_to_release", &[&label]), cx);
+    }
+
+    fn say_device_note(&mut self, note: Note, cx: &mut Context<Self>) {
         let text = crate::g2::device_rail::words::say(&self.locale.catalog, &note);
         let hint = flea::ui_logic_status_feedback::status::Hint::None;
         self.status_messages(cx, |messages, now| {
             messages.say(&text, false, "", hint, now)
         });
+    }
+
+    /// A transfer of this window on the share refuses its unmount, as a drive's eject does; otherwise the row's own identity is released.
+    pub(crate) fn network_unmount(
+        &mut self,
+        row: &flea::ui_logic_device_rail::RailEntry,
+        origin: u64,
+        cx: &mut Context<Self>,
+    ) {
+        if !row.path.is_empty() && self.transfer_where(&|path| inside(path, &row.path)) {
+            let label = if row.label.is_empty() {
+                &row.path
+            } else {
+                &row.label
+            };
+            self.say_device_note(Note::new("device.transfer_running", &[label]), cx);
+            return;
+        }
+        let Some(network) = self.network() else {
+            return;
+        };
+        let service = network.service.clone();
+        let listing = network.listing.text.clone();
+        service.update(cx, |service, cx| service.unmount(row, &listing, origin, cx));
+    }
+
+    /// A phone unmounts only once no transfer of this window reads or writes its GVFS mount.
+    pub(crate) fn release_phone(
+        &mut self,
+        side: usize,
+        key: &str,
+        uri: &str,
+        label: &str,
+        cx: &mut Context<Self>,
+    ) {
+        if self.transfer_where(&|path| on_phone(path, uri)) {
+            self.say_device_note(Note::new("device.transfer_running", &[label]), cx);
+            return;
+        }
+        if let Some(join) = &self.rail {
+            let source = join.devices.clone();
+            source.update(cx, |source, cx| source.unmount_phone(key, side, cx));
+        }
     }
 
     /// The eject mark's click or its keyboard frame names the row to release.
@@ -101,7 +147,7 @@ impl Shell {
         let side = side.min(1);
         let source = self.rail.as_ref().map(|join| join.devices.clone());
         if let Some(label) = self.transfer_on(volume, cx) {
-            let note = flea::ui_logic_device_rail::Note::new("device.transfer_running", &[&label]);
+            let note = Note::new("device.transfer_running", &[&label]);
             if let Some(source) = source {
                 source.update(cx, |source, cx| source.refused(note, cx));
             }
@@ -171,11 +217,7 @@ impl Shell {
         let devices = &self.rail.as_ref()?.devices.read(cx).devices;
         let volumes = devices.release_volumes(volume);
         let busy = volumes.iter().find(|volume| {
-            self.panes
-                .iter()
-                .flatten()
-                .filter_map(|host| host.backend.as_ref())
-                .any(|backend| backend.transfers_on(volume))
+            !volume.is_empty() && self.transfer_where(&|path| inside(path, volume))
         })?;
         let label = devices
             .entries
@@ -183,6 +225,15 @@ impl Shell {
             .find(|entry| entry.path == *busy)
             .map(|entry| entry.label.clone());
         Some(label.unwrap_or_else(|| busy.clone()))
+    }
+
+    /// Whether a transfer of this window, sent and not yet refused or ended, names a path `on` accepts.
+    fn transfer_where(&self, on: &dyn Fn(&str) -> bool) -> bool {
+        self.panes
+            .iter()
+            .flatten()
+            .filter_map(|host| host.backend.as_ref())
+            .any(|backend| backend.transfers_where(on))
     }
 
     /// A refused release puts each pane it moved back in the folder it left, unless the pane has been sent elsewhere since.
@@ -234,3 +285,28 @@ impl Shell {
         }
     }
 }
+
+/// Whether `path` lies in the GVFS FUSE mount of the phone at `uri`, as mtp://pixel/ mounts at /run/user/1000/gvfs/mtp:host=pixel.
+fn on_phone(path: &str, uri: &str) -> bool {
+    let Some((scheme, rest)) = uri.split_once("://") else {
+        return false;
+    };
+    // An AFC service names its port after the host, and GVFS adds it as a parameter of its own.
+    let host = rest.split(['/', ':']).next().unwrap_or_default();
+    let mount = path
+        .strip_prefix("/run/user/")
+        .and_then(|rest| rest.split_once('/'))
+        .and_then(|(_, rest)| rest.strip_prefix("gvfs/"))
+        .and_then(|rest| rest.split('/').next())
+        .and_then(|mount| mount.strip_prefix(scheme)?.strip_prefix(':'));
+    !host.is_empty()
+        && mount.is_some_and(|params| {
+            params
+                .split(',')
+                .any(|param| param.strip_prefix("host=") == Some(host))
+        })
+}
+
+#[cfg(test)]
+#[path = "devices_phone_tests.rs"]
+mod phone_tests;

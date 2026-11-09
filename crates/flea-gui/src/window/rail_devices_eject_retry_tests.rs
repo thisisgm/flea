@@ -322,3 +322,6 @@ fn fx_eject_s8_16_a_copy_onto_another_partition_of_the_drive_refuses_its_power_o
     );
     assert_eq!(place(&shell, cx), "/media/one/photos");
 }
+
+#[path = "rail_devices_eject_roots_tests.rs"]
+mod roots;

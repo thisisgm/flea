@@ -163,10 +163,16 @@ impl Source {
 
     /// RailMenu.release: the action runs against the row its key names now, never a cached index.
     fn run(&mut self, action: RailAction, key: &str, side: usize, cx: &mut Context<Self>) {
-        if row_by_key(&self.phones.entries, key).is_some() {
+        if let Some(at) = row_by_key(&self.phones.entries, key) {
             if action == RailAction::UnmountPhone {
-                let effects = self.phones.release(key);
-                self.phone_effects(effects, side, cx);
+                let phone = &self.phones.entries[at];
+                let (uri, label) = (phone.uri.clone(), phone.label.clone());
+                let key = key.to_owned();
+                self.events.borrow_mut().push(Request {
+                    side,
+                    event: Event::Device(Effect::ReleasePhone { key, uri, label }),
+                });
+                cx.notify();
             }
             return;
         }
@@ -180,6 +186,12 @@ impl Source {
             _ => return,
         };
         self.apply_at(effects, side, cx);
+    }
+
+    /// No transfer of the window reads or writes the phone, so its unmount child starts.
+    pub fn unmount_phone(&mut self, key: &str, side: usize, cx: &mut Context<Self>) {
+        let effects = self.phones.release(key);
+        self.phone_effects(effects, side, cx);
     }
 
     pub(super) fn phone_effects(

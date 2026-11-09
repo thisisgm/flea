@@ -262,3 +262,26 @@ fn plugin_place_paste_wire_trace_resolves_rows_before_transfer() {
         "file paste must reach the place protocol"
     );
 }
+
+#[gpui::test]
+fn fx_eject2_a_plugin_place_paste_holds_its_paths_only_until_the_place_answers(
+    cx: &mut TestAppContext,
+) {
+    let (mut fixture, shell, cx) = open(cx);
+    shell.update(cx, |s, _| s.panes[0].as_mut().unwrap().pane.cursor = 0);
+    verb(&shell, "copy", cx);
+    settle(&mut fixture, cx);
+    navigate(&shell, Step::OpenPlace(PHOTOS.into()), cx);
+    settle(&mut fixture, cx);
+    verb(&shell, "paste", cx);
+    settle(&mut fixture, cx);
+    assert_eq!(fixture.count("copy"), 1, "{:?}", fixture.pane_calls);
+    let held = shell.read_with(cx, |s, _| {
+        let backend = s.panes[0].as_ref().unwrap().backend.as_ref().unwrap();
+        backend.transfers_on(PHOTOS)
+    });
+    assert!(
+        !held,
+        "the place answered its paste, so no eject waits for it"
+    );
+}

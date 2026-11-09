@@ -302,6 +302,11 @@ pub(crate) fn request(out: &mut impl Write, ops: &mut Ops, line: &str) -> super:
             };
             match retry(job) {
                 Ok(()) => {
+                    // A retry narrows the work to its failed items, which it names again before it queues.
+                    if let Some(work) = &job.work {
+                        let roots = super::jobview::roots_line(id, true, &work.roots());
+                        writeln!(out, "{roots}").ok();
+                    }
                     ops.jobs.next_order += 1;
                     job.order = ops.jobs.next_order;
                     ops.detached.insert(id, &job.cancel);

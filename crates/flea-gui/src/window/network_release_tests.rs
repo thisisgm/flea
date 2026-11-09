@@ -119,3 +119,47 @@ fn m9_integ_ctrl_e_on_the_rail_share_row_unmounts_or_says_nothing_to_release(
         }
     }
 }
+
+#[gpui::test]
+fn fx_eject2_a_transfer_on_the_share_refuses_its_unmount(cx: &mut TestAppContext) {
+    let recorder = Rc::new(Recorder::default());
+    let (shell, cx, _lines) = open(recorder.clone(), cx);
+    let answer = |shell: &Entity<Shell>, line: &str, cx: &mut VisualTestContext| {
+        shell.read_with(cx, |shell, _| {
+            let backend = shell.panes[1].as_ref().unwrap().backend.as_ref().unwrap();
+            if line.starts_with(r#"{"c""#) {
+                backend.line(line.into()).unwrap();
+            } else {
+                backend.test_answered(line);
+            }
+        })
+    };
+    let copy =
+        r#"{"c":"transfer","op":"copy","paths":["/fixture/home/big"],"dest":"/mnt/rclone/docs"}"#;
+    answer(&shell, copy, cx);
+    answer(
+        &shell,
+        r#"{"t":"transferstarted","id":12,"n":1,"moving":false}"#,
+        cx,
+    );
+    at(&shell, "/mnt/rclone/docs", vec![fuse()], cx);
+    cx.simulate_keystrokes("ctrl-e");
+    cx.run_until_parked();
+    assert!(releases(&recorder).is_empty(), "{:?}", releases(&recorder));
+    assert_eq!(
+        status(&shell, cx),
+        "A copy on NAS is still running. Try again when it finishes."
+    );
+    answer(
+        &shell,
+        r#"{"t":"transferdone","id":12,"ok":1,"failed":0}"#,
+        cx,
+    );
+    cx.simulate_keystrokes("ctrl-e");
+    cx.run_until_parked();
+    assert_eq!(
+        releases(&recorder),
+        [vec!["fusermount3", "-u", "--", "/mnt/rclone"]],
+        "the copy has ended"
+    );
+}

@@ -363,16 +363,6 @@ impl Shell {
         });
     }
 
-    /// Unmount releases the row's own identity: FUSE by its path, a lent kernel mount by its exact file URI.
-    pub(crate) fn network_unmount(&mut self, row: &RailEntry, origin: u64, cx: &mut Context<Self>) {
-        let Some(network) = self.network() else {
-            return;
-        };
-        let service = network.service.clone();
-        let listing = network.listing.text.clone();
-        service.update(cx, |service, cx| service.unmount(row, &listing, origin, cx));
-    }
-
     /// Window close stops every child and timer the network join started.
     pub(crate) fn network_shutdown(&mut self, cx: &mut Context<Self>) {
         let Some(network) = self.network() else {
