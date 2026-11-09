@@ -328,7 +328,7 @@ impl SelectionPreview {
             return;
         }
         if frame.animation_source.is_none() {
-            frame.animation_source = Some(std::path::PathBuf::from(frame.subject.path()).into());
+            frame.animation_source = Some(flea::bytename::exact(frame.subject.path()).into());
         }
         if let Some(source) = &frame.animation_source {
             if let Some(Ok(image)) = window.use_asset::<ImageAssetLoader>(source, cx) {

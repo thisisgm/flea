@@ -1,6 +1,7 @@
 // Which archive formats this box can actually write and read, probed once at startup, and the argv
 // each tool needs. The jobs themselves are archiveops.rs and reading an index is archivelist.rs.
 use crate::backend::archivespec::{seven_spec, tar_spec, ListSpec};
+use flea::bytename::ExactText as _;
 use std::path::Path;
 
 const BSDTAR: &str = "bsdtar";
@@ -62,7 +63,7 @@ fn on_path(prog: &str) -> bool {
     let path = std::env::var("PATH").unwrap_or_default();
     path.split(':')
         .filter(|d| !d.is_empty())
-        .any(|d| Path::new(d).join(prog).is_file())
+        .any(|d| flea::bytename::view(d).join(prog).is_file())
 }
 
 impl Formats {
@@ -175,7 +176,7 @@ impl Formats {
         if self.probe {
             return Some(vec!["/usr/bin/python3".to_string(), "-c".to_string(),
                 "import resource,sys; open(sys.argv[1],'wb').write(b'probe'); sys.exit(0 if resource.getrlimit(resource.RLIMIT_CPU)[0]==resource.RLIM_INFINITY else 1)".to_string(),
-                dest.to_string_lossy().to_string()]);
+                dest.exact_text().to_string()]);
         }
         let mut a: Vec<String> = Vec::with_capacity(names.len() + 9);
         if self.seven_writes(format) {
@@ -189,18 +190,22 @@ impl Formats {
             if format == ZIP_FORMAT {
                 a.push(ZIP_TYPE.to_string());
             }
-            a.push(dest.to_string_lossy().to_string());
+            a.push(dest.exact_text().to_string());
             // 7z stores the basename of an absolute path, so it needs no working-directory flag.
-            a.extend(names.iter().map(|n| parent.join(n).to_string_lossy().to_string()));
+            a.extend(
+                names
+                    .iter()
+                    .map(|n| parent.join(n).exact_text().to_string()),
+            );
             return Some(a);
         }
         a.push(BSDTAR.to_string());
         a.push("-a".to_string());
         a.push("-c".to_string());
         a.push("-f".to_string());
-        a.push(dest.to_string_lossy().to_string());
+        a.push(dest.exact_text().to_string());
         a.push("-C".to_string());
-        a.push(parent.to_string_lossy().to_string());
+        a.push(parent.exact_text().to_string());
         // bsdtar reads an @ operand as an archive to copy in even after --, so members go as ./name and -s strips ./ (S spares link targets).
         a.push("-s".to_string());
         a.push(",^\\./,,S".to_string());
@@ -268,9 +273,9 @@ impl Formats {
                 BSDTAR.to_string(),
                 "-x".to_string(),
                 "-f".to_string(),
-                archive.to_string_lossy().to_string(),
+                archive.exact_text().to_string(),
                 "-C".to_string(),
-                dest.to_string_lossy().to_string(),
+                dest.exact_text().to_string(),
             ]),
         }
     }
@@ -304,8 +309,14 @@ impl Formats {
                     .unwrap_or_else(|| stub.technical.clone()),
             );
         }
-        self.seven_reads(archive)
-            .then(|| vec![SEVENZIP.to_string(), "l".to_string(), "-slt".to_string(), archive.to_string_lossy().to_string()])
+        self.seven_reads(archive).then(|| {
+            vec![
+                SEVENZIP.to_string(),
+                "l".to_string(),
+                "-slt".to_string(),
+                archive.exact_text().to_string(),
+            ]
+        })
     }
 
     // The argv that lists an archive without extracting a byte of it.
@@ -316,13 +327,22 @@ impl Formats {
         }
         match self.reader_for(archive)? {
             Reader::SevenZip => Some((
-                vec![SEVENZIP.to_string(), "l".to_string(), "-ba".to_string(),
-                     archive.to_string_lossy().to_string()],
+                vec![
+                    SEVENZIP.to_string(),
+                    "l".to_string(),
+                    "-ba".to_string(),
+                    archive.exact_text().to_string(),
+                ],
                 seven_spec(),
             )),
             Reader::Bsdtar => Some((
-                vec![BSDTAR.to_string(), "-t".to_string(), "-v".to_string(), "-f".to_string(),
-                     archive.to_string_lossy().to_string()],
+                vec![
+                    BSDTAR.to_string(),
+                    "-t".to_string(),
+                    "-v".to_string(),
+                    "-f".to_string(),
+                    archive.exact_text().to_string(),
+                ],
                 tar_spec(),
             )),
         }
@@ -336,8 +356,8 @@ pub(crate) fn seven_extract_argv(archive: &Path, dest: &Path) -> Vec<String> {
         "x".to_string(),
         "-bd".to_string(),
         "-y".to_string(),
-        archive.to_string_lossy().to_string(),
-        format!("-o{}", dest.to_string_lossy()),
+        archive.exact_text().to_string(),
+        format!("-o{}", dest.exact_text()),
     ]
 }
 

@@ -12,6 +12,7 @@ use crate::backend::archivework::{
 use crate::backend::convert;
 use crate::backend::opsreq::op_err;
 use crate::error::{from_io, FleaError};
+use flea::bytename::ExactText as _;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -269,7 +270,7 @@ fn clear(mut work: Work) -> Option<String> {
             Err(_) => {}
         }
     }
-    Some(work.dir.to_string_lossy().to_string())
+    Some(work.dir.exact_text().into_owned())
 }
 
 #[cfg(test)]
@@ -298,7 +299,7 @@ pub(crate) fn convert_leaving(
     let parent = dest.parent().unwrap_or(Path::new("/"));
     let mut work = Work::new(parent, "cvt")?;
     let name = dest.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
-    let staged = work.dir.join(&name);
+    let staged = work.dir.join(dest.file_name().unwrap_or_default());
     run_boxed_cancellable_capped("convert", convert::argv(input, &staged, strip), input, &mut work, cancel)?;
     if staged.symlink_metadata().is_err() {
         return Err(op_err("convert", &name, "the converter wrote nothing"));
@@ -310,16 +311,18 @@ pub(crate) fn convert_leaving(
 // A compress names absolute paths, which all share a parent because a selection comes from one
 // listing; the parent and the relative names are derived here rather than sent twice on the wire.
 pub fn split_paths(paths: &[String]) -> Option<(PathBuf, Vec<String>)> {
-    let first = Path::new(paths.first()?);
+    let first = flea::bytename::view(paths.first()?);
+    let first = &*first;
     let parent = first.parent()?.to_path_buf();
     let mut names = Vec::with_capacity(paths.len());
     for p in paths {
-        let path = Path::new(p);
+        let path = flea::bytename::view(p);
+        let path = &*path;
         // A path from another directory would be stored under a name that is not its own, so it is refused.
         if path.parent() != Some(parent.as_path()) {
             return None;
         }
-        names.push(path.file_name()?.to_string_lossy().to_string());
+        names.push(path.file_name()?.exact_text().to_string());
     }
     Some((parent, names))
 }

@@ -87,6 +87,32 @@ fn a_zip_of_nothing_but_special_files_is_refused_with_a_sentence() {
     assert_eq!(e.msg, ONLY_SPECIAL);
 }
 
+// A selected name that is not UTF-8 arrives as its exact text, so the plan walks its own bytes and never passes it unread.
+#[test]
+fn a_zip_plan_walks_a_selected_name_that_is_not_utf8_by_its_bytes() {
+    let d = TestDir::new("zipraw");
+    let raw = d.path().join(std::ffi::OsStr::from_bytes(b"r\xff"));
+    std::fs::create_dir(&raw).unwrap();
+    fifo(&raw.join("pipe"));
+    fifo(&d.path().join(std::ffi::OsStr::from_bytes(b"p\xff")));
+    put(&d, "keep.txt", "k");
+    let text = |bytes: &[u8]| flea::bytename::name_text(bytes).into_owned();
+    let e = plan(d.path(), &[text(b"r\xff")], &NO_CANCEL)
+        .err()
+        .expect("the FIFO inside is found");
+    assert_eq!(
+        e.msg,
+        "r\u{fffd}/pipe cannot be left out of a zip, choose tar or 7z"
+    );
+    let kept = plan(
+        d.path(),
+        &[text(b"p\xff"), "keep.txt".to_string()],
+        &NO_CANCEL,
+    )
+    .expect("a plan");
+    assert_eq!(kept.names, ["keep.txt"], "the selected FIFO is dropped");
+}
+
 // S4-4: libarchive reads a backslash in a zip member as a separator, so a\b.txt would come back as a/b.txt.
 #[test]
 fn a_backslash_name_is_refused_for_a_zip_selected_or_nested() {

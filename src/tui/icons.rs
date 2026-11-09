@@ -12,18 +12,39 @@ pub const LOCK: &str = "\u{ea75}";
 pub const FILES: &str = "\u{eaf0}";
 pub fn row(row: &Row, available: bool) -> &'static str {
     let folder = row.directory || row.icon == "folder";
-    if !available { return if folder { "›" } else { " " }; }
-    if !row.link.is_empty() { return if folder { "\u{eaed}" } else { "\u{eaee}" }; }
-    if row.directory { return FOLDER; }
-    let extension = std::path::Path::new(&row.name).extension().and_then(|s| s.to_str()).unwrap_or("").to_ascii_lowercase();
+    if !available {
+        return if folder { "›" } else { " " };
+    }
+    if !row.link.is_empty() {
+        return if folder { "\u{eaed}" } else { "\u{eaee}" };
+    }
+    if row.directory {
+        return FOLDER;
+    }
+    let extension = std::path::Path::new(&*row.shown())
+        .extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
     match extension.as_str() {
-        "rs" => "\u{e68b}", "py" | "pyw" => "\u{e606}", "md" | "markdown" => "\u{eb1d}",
-        "js" | "mjs" | "jsx" => "\u{e60c}", "ts" | "tsx" => "\u{e628}", "json" => "\u{e60b}",
-        "sh" | "bash" | "zsh" | "fish" => "\u{e691}", "c" | "h" => "\u{e649}",
-        "cpp" | "cc" | "cxx" | "hpp" => "\u{e646}", "go" => "\u{e627}",
-        "html" | "htm" => "\u{e60e}", "css" | "scss" => "\u{e614}", "lua" => "\u{e620}",
-        "toml" => "\u{e615}", "yaml" | "yml" => "\u{e6a8}", "pdf" => "\u{eaeb}",
-        "xls" | "xlsx" | "ods" | "csv" => "\u{ebb7}", "ppt" | "pptx" | "odp" => "\u{f0428}",
+        "rs" => "\u{e68b}",
+        "py" | "pyw" => "\u{e606}",
+        "md" | "markdown" => "\u{eb1d}",
+        "js" | "mjs" | "jsx" => "\u{e60c}",
+        "ts" | "tsx" => "\u{e628}",
+        "json" => "\u{e60b}",
+        "sh" | "bash" | "zsh" | "fish" => "\u{e691}",
+        "c" | "h" => "\u{e649}",
+        "cpp" | "cc" | "cxx" | "hpp" => "\u{e646}",
+        "go" => "\u{e627}",
+        "html" | "htm" => "\u{e60e}",
+        "css" | "scss" => "\u{e614}",
+        "lua" => "\u{e620}",
+        "toml" => "\u{e615}",
+        "yaml" | "yml" => "\u{e6a8}",
+        "pdf" => "\u{eaeb}",
+        "xls" | "xlsx" | "ods" | "csv" => "\u{ebb7}",
+        "ppt" | "pptx" | "odp" => "\u{f0428}",
         "stl" | "obj" | "3mf" | "step" | "stp" | "gcode" | "bgcode" => "\u{eb29}",
         "dat" | "bin" => "\u{eae8}",
         _ if row.icon.starts_with("audio") => "\u{ec1b}",

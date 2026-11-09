@@ -385,3 +385,14 @@ fn a_line_broken_compress_password_names_the_archive() {
     assert!(line.contains("photos.7z") && line.contains("line break") && !line.contains("s3cret"), "{line}");
     assert!(!dest.exists(), "a refused compress published a destination");
 }
+
+// A raw-named member keeps its bytes, so the archive stores the file and not its lossy twin.
+#[test]
+fn a_raw_named_member_splits_to_its_exact_name() {
+    use std::os::unix::ffi::OsStrExt;
+    let raw = Path::new(std::ffi::OsStr::from_bytes(b"/d/a\xff"));
+    let (parent, names) = split_paths(&[flea::bytename::path_text(raw).into_owned(), "/d/b".to_string()]).unwrap();
+    assert_eq!(parent, Path::new("/d"));
+    assert_eq!(flea::bytename::text_name(&names[0]).as_bytes(), b"a\xff");
+    assert_eq!(names[1], "b");
+}

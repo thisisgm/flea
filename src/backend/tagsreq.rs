@@ -7,6 +7,7 @@ use crate::backend::proto::{error_line, slow_line, Request};
 use crate::backend::state::State;
 use crate::backend::undo::{Entry, Step};
 use crate::error::FleaError;
+use flea::bytename::ExactText as _;
 use std::collections::HashSet;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -31,7 +32,10 @@ fn settagged_skipped(ok: usize, op: &str, skipped: &[String]) -> String {
 
 // The listing's own name for a skipped row: its path under the base, as a search or listpaths row shows it, else the whole path.
 fn row_name(base: &Path, path: &Path) -> String {
-    path.strip_prefix(base).unwrap_or(path).to_string_lossy().into_owned()
+    path.strip_prefix(base)
+        .unwrap_or(path)
+        .exact_text()
+        .into_owned()
 }
 
 // The tag wire's two requests (a change across rows, and the read of what those rows carry) answer the files whose tags changed in time, so the loop can tell an open search session; a late write reports through SetTagsDone.
@@ -75,7 +79,10 @@ pub(super) fn menu(out: &mut impl Write, ops: &mut Ops, st: &State, line: &str) 
         refuse(out, &error);
         return Vec::new();
     }
-    let paths = selected.iter().map(|item| item.path.to_string_lossy().into_owned()).collect();
+    let paths = selected
+        .iter()
+        .map(|item| item.path.exact_text().into_owned())
+        .collect();
     apply_targets(out, ops, &st.base, paths, &op, &tag, Some(selected))
 }
 
@@ -97,7 +104,10 @@ pub(crate) fn resolved(op: &str, tag: &str, carried: &[Vec<String>]) -> &'static
 // Sample input: {"c":"tagstates","rows":[0,4000],"id":3,"listing":7}
 // Read on a thread as shebang is, because a getxattr on a hung mount never returns.
 pub fn ask_states(st: &State, rows: &[usize], id: usize, tx: Sender<OpMsg>) {
-    let paths: Vec<PathBuf> = resolve_rows(Vec::new(), rows, &st.base, &st.listing).into_iter().map(PathBuf::from).collect();
+    let paths: Vec<PathBuf> = resolve_rows(Vec::new(), rows, &st.base, &st.listing)
+        .into_iter()
+        .map(flea::bytename::exact)
+        .collect();
     ask_paths(paths, st.generation, id, tx);
 }
 
@@ -168,7 +178,7 @@ fn apply_targets(out: &mut impl Write, ops: &mut Ops, base: &Path, targets: Vec<
         out.flush().ok();
         return Vec::new();
     }
-    let paths: Vec<PathBuf> = targets.iter().map(PathBuf::from).collect();
+    let paths: Vec<PathBuf> = targets.iter().map(flea::bytename::exact).collect();
     let (base, work_paths, op, tag) = (base.to_path_buf(), paths.clone(), op.to_string(), tag.to_string());
     apply_tags_with(out, ops, paths, CALL_DEADLINE, move || {
         let targets = targets::capture(work_paths, selected)?;
@@ -194,8 +204,17 @@ where
         SlowWrite::Ready(result) => return land(out, ops, result),
         SlowWrite::Slow { mount, rx } => {
             // The slow line names the row's own directory, as the parent key did.
-            let path = first.parent().unwrap_or(Path::new("/")).to_string_lossy().into_owned();
-            writeln!(out, "{}", slow_line("settags", &path, &slow_sentence(&mount, SLOW_TAGS))).ok();
+            let path = first
+                .parent()
+                .unwrap_or(Path::new("/"))
+                .exact_text()
+                .into_owned();
+            writeln!(
+                out,
+                "{}",
+                slow_line("settags", &path, &slow_sentence(&mount, SLOW_TAGS))
+            )
+            .ok();
             out.flush().ok();
             // The pending id is only a number: settags never takes the slot, so the transfer beside it keeps its own.
             let id = ops.claim_id();

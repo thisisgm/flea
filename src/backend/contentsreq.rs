@@ -4,11 +4,9 @@ use super::state::{Held, State, Tables};
 use super::thumbs::Pool;
 use crate::backend::events::Sender;
 use crate::error::FleaError;
-use crate::json::{escape, field_str, field_usize, field_usize_array};
-use crate::jsondoc::Json;
+use crate::json::{escape, field_str};
 use flea::ui_logic_file_search::ContentsMatches;
 use std::io::Write;
-use std::path::{Component, Path, PathBuf};
 #[path = "contentsguard.rs"]
 mod guard;
 #[path = "contentsorder.rs"]
@@ -123,7 +121,7 @@ pub fn done(
             watches.0.stop();
             watches.1.clear();
             forget_rows(st, pool);
-            st.base = PathBuf::from(&ask.path);
+            st.base = flea::bytename::exact(&ask.path);
             st.held = Held::Walk;
             st.listing = super::listing::Listing::new();
             for hit in &snapshot.matches {
@@ -268,66 +266,13 @@ pub fn window(out: &mut impl Write, st: &mut State, tb: &Tables, start: usize, c
     rows(out, st, tb, start, count);
 }
 
-fn normalized(path: &Path, base: &Path) -> PathBuf {
-    let path = if path.is_absolute() {
-        path.to_owned()
-    } else {
-        base.join(path)
-    };
-    let mut out = PathBuf::new();
-    for part in path.components() {
-        match part {
-            Component::ParentDir => {
-                out.pop();
-            }
-            Component::CurDir => {}
-            part => out.push(part.as_os_str()),
-        }
-    }
-    out
-}
-
-// Every backend read or operation refuses a non-operable row or its display-path alias before resolving it.
+// Every contents read or operation refuses a request that is not one well-formed document; each hit names its own exact file.
 pub fn refusal(line: &str, st: &State) -> Option<String> {
-    let held = st.contents.held.as_ref()?;
+    st.contents.held.as_ref()?;
     let command = field_str(line, "c").unwrap_or_default();
-    let document = guard::document(line);
-    if document.is_err() {
-        return Some(identity_error(&command));
-    }
-    if [
-        "searchcontents",
-        "searchcancel",
-        "searchclose",
-        "window",
-        "filter",
-        "quit",
-    ]
-    .contains(&command.as_str())
-    {
-        return None;
-    }
-    let unsafe_row = |row: usize| held.matches.get(row).is_some_and(|hit| !hit.operable);
-    let mut refused = false;
-    refused |= field_usize_array(line, "rows").into_iter().any(unsafe_row);
-    refused |= field_usize(line, "row").is_some_and(unsafe_row);
-    refused |= field_usize(line, "cursor").is_some_and(unsafe_row);
-    let document = document.expect("validated contents request");
-    fn aliases(value: &Json, st: &State, held: &contents::Snapshot) -> bool {
-        match value {
-            Json::Str(value) => {
-                let path = normalized(Path::new(value), &st.base);
-                held.matches.iter().any(|hit| {
-                    !hit.operable && normalized(&st.base.join(&hit.path), &st.base) == path
-                })
-            }
-            Json::Arr(values) => values.iter().any(|value| aliases(value, st, held)),
-            Json::Obj(values) => values.iter().any(|(_, value)| aliases(value, st, held)),
-            _ => false,
-        }
-    }
-    refused |= aliases(&document, st, held);
-    refused.then(|| identity_error(&command))
+    guard::document(line)
+        .is_err()
+        .then(|| identity_error(&command))
 }
 
 fn identity_error(command: &str) -> String {

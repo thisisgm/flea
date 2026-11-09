@@ -19,7 +19,10 @@ pub(super) fn prepare(
     let plain =
         |value: &str, size: Pixels| shaped(value, size, text_runs(value, None, false, &face.font));
     // The match is in the file, so the name carries no run; its trailing space is the gap before the folder.
-    let name = format!("{} ", row::decorated_name(&block.row));
+    let name = format!(
+        "{} ",
+        row::decorated_name(&crate::list::outline::display(&block.row))
+    );
     let line = right_elide(&block.line, cells);
     let line_run = run_in(&line, &state.query);
     let unjoined = Font {
@@ -33,7 +36,7 @@ pub(super) fn prepare(
     );
     Prepared {
         name: plain(&name, face.body),
-        location: plain(&block.location, face.caption),
+        location: plain(&flea::bytename::display(&block.location), face.caption),
         size: plain(&size_text(&block.row, None, &state.words), face.caption),
         number: plain(&block.line_no.to_string(), face.caption),
         wash: wash_span(line_glyphs.line(), line_run, lifted),

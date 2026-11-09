@@ -171,18 +171,39 @@ impl Cache {
     fn begin(&mut self, base: &Path, listing: &Listing, start: usize, count: usize, body: &str) {
         self.drain();
         // A symlink can retarget from an unwatched directory; checked before the rows are chosen, since clear() empties them.
-        if self.linked.iter().any(|(path, &armed)| resolved(path) != Some(armed)) { self.clear(); }
+        if self
+            .linked
+            .iter()
+            .any(|(path, &armed)| resolved(path) != Some(armed))
+        {
+            self.clear();
+        }
         let mounts = super::mountinfo::wedge_points_in(body);
-        self.requested = (start..start.saturating_add(count).min(listing.len())).take(ROW_CAP)
-            .map(|row| base.join(listing.name(row)))
-            .filter(|path| path.is_absolute() && !path.to_string_lossy().contains('\u{fffd}')
-                && super::extclass::gvfs_class(path).is_none()
-                && !path.ancestors().find_map(|parent| mounts.get(parent)).copied().unwrap_or(false)).collect();
+        self.requested = (start..start.saturating_add(count).min(listing.len()))
+            .take(ROW_CAP)
+            .map(|row| listing.path(base, row))
+            .filter(|path| {
+                path.is_absolute()
+                    && super::extclass::gvfs_class(path).is_none()
+                    && !path
+                        .ancestors()
+                        .find_map(|parent| mounts.get(parent))
+                        .copied()
+                        .unwrap_or(false)
+            })
+            .collect();
         let mut needed = BTreeSet::new();
-        let directories: Vec<_> = (start..start.saturating_add(count.min(ROW_CAP)).min(listing.len()))
-            .filter(|&row| listing.is_dir(row)).map(|row| base.join(listing.name(row)))
-            .filter(|path| self.requested.contains(path)).collect();
-        let mut parents: HashSet<_> = self.requested.iter().filter_map(|path| path.parent()).collect();
+        let directories: Vec<_> = (start
+            ..start.saturating_add(count.min(ROW_CAP)).min(listing.len()))
+            .filter(|&row| listing.is_dir(row))
+            .map(|row| listing.path(base, row))
+            .filter(|path| self.requested.contains(path))
+            .collect();
+        let mut parents: HashSet<_> = self
+            .requested
+            .iter()
+            .filter_map(|path| path.parent())
+            .collect();
         parents.extend(directories.iter().map(PathBuf::as_path));
         for path in parents {
             for parent in path.ancestors() {
@@ -260,7 +281,7 @@ impl Cache {
         let mut metas = Vec::with_capacity(end - start);
         let mut devices = HashMap::new();
         for row in start..end {
-            let path = base.join(listing.name(row));
+            let path = listing.path(base, row);
             let directory = listing.is_dir(row);
             let stamp = self.requested.contains(&path).then(|| stamp::read(&path)).flatten();
             if let Some(entry) = self.entries.get(&path).filter(|entry| entry.directory == directory && Some(entry.stamp) == stamp) {

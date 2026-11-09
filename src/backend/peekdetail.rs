@@ -1,10 +1,10 @@
 //! Optional viewport facts for TUI folder previews; ordinary ancestor peeks do no row metadata work.
-use std::{os::unix::fs::MetadataExt, path::Path};
+use std::os::unix::fs::MetadataExt;
 
 pub fn fields(base: &str, name: &str, enabled: bool) -> String {
     fields_with(enabled, || {
-        Path::new(base)
-            .join(name)
+        flea::bytename::view(base)
+            .join(flea::bytename::view(name))
             .symlink_metadata()
             .ok()
             .map(|meta| (meta.len(), meta.mode()))
@@ -39,5 +39,16 @@ mod tests {
         );
         assert_eq!(calls.get(), 1);
         assert_eq!(fields_with(true, || None), r#","s":0,"p":0"#);
+    }
+    #[test]
+    fn a_raw_named_row_reads_its_own_file_and_never_its_twin() {
+        use flea::bytename::ExactText as _;
+        use std::os::unix::ffi::OsStrExt;
+        let root = crate::backend::testdir::TestDir::new("peekdetail-raw");
+        let raw = std::ffi::OsStr::from_bytes(b"row-\xff");
+        std::fs::write(root.path().join(raw), "raw!").unwrap();
+        std::fs::write(root.path().join("row-\u{fffd}"), "the longer twin").unwrap();
+        let line = fields(&root.path().to_string_lossy(), &raw.exact_text(), true);
+        assert!(line.starts_with(r#","s":4,"#), "{line}");
     }
 }

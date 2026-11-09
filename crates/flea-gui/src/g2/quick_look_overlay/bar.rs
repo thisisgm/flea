@@ -41,7 +41,9 @@ pub(super) fn name_parts(name: &Name, look: &Look) -> Vec<AnyElement> {
         .whitespace_nowrap()
         .text_ellipsis_middle()
         .text_color(look.foreground)
-        .child(SharedString::from(name.text.to_owned()))
+        .child(SharedString::from(
+            flea::bytename::display(name.text).into_owned(),
+        ))
         .into_any_element()];
     if let Some((tail, ink)) = name.tail {
         parts.push(
@@ -49,7 +51,9 @@ pub(super) fn name_parts(name: &Name, look: &Look) -> Vec<AnyElement> {
                 .flex_none()
                 .whitespace_nowrap()
                 .text_color(ink)
-                .child(SharedString::from(tail.to_owned()))
+                .child(SharedString::from(
+                    flea::bytename::display(tail).into_owned(),
+                ))
                 .into_any_element(),
         );
     }

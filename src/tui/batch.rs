@@ -1,3 +1,4 @@
+use flea::bytename::ExactText as _;
 use super::{terminal::Terminal, wire::{number, word, Wire}};
 use crate::backend::{ops::valid_name, regfile};
 use crate::oflags::O_NOFOLLOW;
@@ -81,8 +82,15 @@ impl Batch {
         Ok(())
     }
     pub fn send_next(&self, wire: &mut Wire, id: usize) -> io::Result<bool> {
-        let Some((path, name)) = self.pending.front().filter(|_| !self.cancelled) else { return Ok(false); };
-        wire.send(vec![("c", word("rename")), ("path", word(&path.to_string_lossy())), ("to", word(name)), ("menuId", number(id))])?;
+        let Some((path, name)) = self.pending.front().filter(|_| !self.cancelled) else {
+            return Ok(false);
+        };
+        wire.send(vec![
+            ("c", word("rename")),
+            ("path", word(&path.exact_text())),
+            ("to", word(name)),
+            ("menuId", number(id)),
+        ])?;
         Ok(true)
     }
     pub fn complete(&mut self, path: &str) -> io::Result<()> {

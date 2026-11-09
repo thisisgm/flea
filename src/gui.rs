@@ -25,7 +25,7 @@ pub(crate) fn launch_warm_command(exe: &Path, list: Option<&Path>, gvfs: Option<
     cmd.arg(if has_list { list.unwrap().as_os_str() } else { OsStr::new("-") });
     match gvfs {
         Some((path, dest)) => {
-            cmd.arg(path);
+            cmd.arg(flea::bytename::text_name(path));
             cmd.arg(dest);
         }
         None => {

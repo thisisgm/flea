@@ -1,3 +1,4 @@
+use flea::bytename::ExactText as _;
 use super::{
     model::Model,
     wire::{word, Wire},
@@ -46,7 +47,7 @@ pub fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
         ("groupByKind", Json::Bool(m.group_by_kind)),
     ];
     if let Some(anchor) = anchor.as_ref() {
-        request.push(("anchor", word(&anchor.to_string_lossy())));
+        request.push(("anchor", word(&anchor.exact_text())));
     }
     w.send(request)?;
     m.sort_anchor = anchor;

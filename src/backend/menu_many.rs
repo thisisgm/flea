@@ -1,4 +1,5 @@
 // Open With over several selected files: the applications every selected type names, and the launches one choice makes.
+use flea::bytename::ExactText as _;
 use super::menu_actions::{application_entries, Selected};
 use super::menu_registry::{self, Application, Registry};
 use super::trashmanifest::Cancellation;
@@ -33,7 +34,7 @@ pub(super) fn perform(
     launch(registry, &app.path, &paths, current, cancel)?;
     let named = paths
         .iter()
-        .map(|path| format!(r#""{}""#, escape(&path.to_string_lossy())))
+        .map(|path| format!(r#""{}""#, escape(&path.exact_text())))
         .collect::<Vec<_>>();
     Ok(format!(r#""paths":[{}]"#, named.join(",")))
 }

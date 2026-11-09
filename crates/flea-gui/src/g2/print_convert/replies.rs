@@ -303,7 +303,9 @@ impl Model {
                 error: false,
                 text: catalog.tr_args(
                     "dialogs.output.completed",
-                    &[path.rsplit('/').next().unwrap_or(path)],
+                    &[&*flea::bytename::display(
+                        path.rsplit('/').next().unwrap_or(path),
+                    )],
                 ),
             });
             self.close();

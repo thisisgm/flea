@@ -23,7 +23,7 @@ impl Options {
             }
             if self.keymap.replace(value.clone()).is_some() { return Err(super::words::args("tui.cwd.twice", vec![flag.into()]).to_string()); }
         } else {
-            let path = PathBuf::from(value);
+            let path = flea::bytename::exact(value);
             let path = if path.is_absolute() { path } else { std::env::current_dir().map_err(|e| e.to_string())?.join(path) };
             if path.file_name().is_none() { return Err(super::words::args("tui.cwd.needs_file_path", vec![flag.into()]).to_string()); }
             let slot = if flag == "--cwd-file" { &mut self.cwd_file } else { &mut self.chooser_file };

@@ -21,6 +21,17 @@ fn multiple_images_keep_the_listing_order_and_combine_by_default() {
 }
 
 #[test]
+fn a_raw_named_page_source_keeps_its_bytes_beside_the_page_suffix() {
+    use std::os::unix::ffi::OsStrExt;
+    let input = PathBuf::from(std::ffi::OsStr::from_bytes(b"/x/scan-\xff.png"));
+    let args = image_argv(&[input], Path::new("/out.pdf"), false);
+    assert_eq!(
+        flea::bytename::text_name(&args[2]).as_bytes(),
+        b"/x/scan-\xff.png[0]"
+    );
+}
+
+#[test]
 fn image_encoder_is_explicit_for_every_supported_target() {
     for format in ["jpg", "png", "webp", "avif", "heic", "tiff", "bmp", "pdf"] {
         let output = PathBuf::from(format!("/work/output-0.{format}"));

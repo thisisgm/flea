@@ -37,10 +37,12 @@ fn gpui_argv(binary: &Path, start: Option<&str>, select: Option<&str>) -> Comman
     let mut cmd = Command::new(binary);
     cmd.env_remove("FLEA_PATH").env_remove("FLEA_SELECT");
     if let Some(target) = select {
-        cmd.arg("--select").arg(target);
+        cmd.arg("--select")
+            .arg(flea::bytename::text_path(target).as_os_str());
     }
     if let Some(path) = start {
-        cmd.arg("--").arg(path);
+        cmd.arg("--")
+            .arg(flea::bytename::text_path(path).as_os_str());
     }
     cmd
 }
@@ -302,6 +304,20 @@ mod tests {
         }
         let bare = gpui_argv(Path::new("flea-gui"), None, None);
         assert_eq!(bare.get_args().count(), 0);
+    }
+
+    #[test]
+    fn a_raw_start_and_selection_reach_the_child_as_their_own_bytes() {
+        use std::os::unix::ffi::OsStrExt;
+        let folder =
+            flea::bytename::path_text(Path::new(OsStr::from_bytes(b"/d/r\xff"))).into_owned();
+        let target = format!("{folder}/{}", flea::bytename::name_text(b"f\xfe.txt"));
+        let cmd = gpui_argv(Path::new("flea-gui"), Some(&folder), Some(&target));
+        let argv: Vec<&[u8]> = cmd.get_args().map(OsStr::as_bytes).collect();
+        assert_eq!(
+            argv,
+            [&b"--select"[..], b"/d/r\xff/f\xfe.txt", b"--", b"/d/r\xff"]
+        );
     }
 
     fn argv_of(command: &Command) -> Vec<String> {

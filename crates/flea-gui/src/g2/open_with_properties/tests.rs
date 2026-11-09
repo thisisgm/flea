@@ -312,3 +312,20 @@ pub(crate) fn permissions() -> Permissions {
     card.reply(&english(), &parse(INSPECT).unwrap());
     card
 }
+
+#[test]
+fn the_launcher_hands_a_row_text_out_as_its_exact_bytes() {
+    use std::os::unix::ffi::OsStrExt;
+    let raw = std::path::Path::new(std::ffi::OsStr::from_bytes(b"/tmp/col\xff"));
+    let text = flea::bytename::path_text(raw).into_owned();
+    let argv = [
+        "/bin/sh",
+        "-c",
+        "printf %s \"$1\" | od -An -tx1 | tr -d ' \\n'",
+        "sh",
+        &text,
+    ]
+    .map(String::from);
+    let (status, stdout) = super::lane::run(&argv);
+    assert_eq!((status, stdout.as_str()), (Some(0), "2f746d702f636f6cff"));
+}

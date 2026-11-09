@@ -76,7 +76,7 @@ fn cached_or(base: &Path, l: &Listing, i: usize, stat: &(impl Fn(&Path, &str) ->
 
 // corner: a cached symlink pays meta_one's one follow-stat so a linked folder draws as one; no other kind stats.
 fn linked_dir(base: &Path, name: &str, is_symlink: bool) -> bool {
-    is_symlink && base.join(name).metadata().map(|t| t.is_dir()).unwrap_or(false)
+    is_symlink && base.join(flea::bytename::text_path(name)).metadata().map(|t| t.is_dir()).unwrap_or(false)
 }
 
 // Contiguous chunks, joined in order, so the rows come back exactly as the serial walk returns them.
@@ -107,14 +107,15 @@ fn meta_one(base: &Path, name: &str) -> Meta {
     #[cfg(test)]
     SEARCH_STAT_CALLS.with(|calls| calls.set(calls.get() + 1));
     // corner: a row that vanished between listing and stat reports zeroes, see AGENTS.md.
-    match base.join(name).symlink_metadata() {
+    let path = base.join(flea::bytename::text_path(name));
+    match path.symlink_metadata() {
         Ok(m) => {
             // corner: only a symlink pays a second stat, and only so its icon can be a folder; see AGENTS.md "Icons in the row".
             let is_link = m.file_type().is_symlink();
-            let target_is_dir = is_link && base.join(name).metadata().map(|t| t.is_dir()).unwrap_or(false);
+            let target_is_dir = is_link && path.metadata().map(|t| t.is_dir()).unwrap_or(false);
             // corner: only a symlink pays the readlink, on the same row that already pays the second stat.
             let target = if is_link {
-                std::fs::read_link(base.join(name)).map(|t| t.to_string_lossy().to_string()).unwrap_or_default()
+                std::fs::read_link(&path).map(|t| t.to_string_lossy().to_string()).unwrap_or_default()
             } else {
                 String::new()
             };
@@ -228,7 +229,7 @@ fn stat_all_with(base: &Path, l: &Listing, stat: impl Fn(&Path, &str) -> Stat + 
 
 // corner: a row that vanished between listing and stat reports zeroes, the same zeroes stat_range sends.
 fn stat_one(base: &Path, name: &str) -> Stat {
-    match base.join(name).symlink_metadata() {
+    match base.join(flea::bytename::text_path(name)).symlink_metadata() {
         Ok(m) => Stat { size: m.size(), mtime: m.mtime() },
         Err(_) => Stat { size: 0, mtime: 0 },
     }

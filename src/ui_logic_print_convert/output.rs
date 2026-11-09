@@ -53,9 +53,18 @@ pub fn extension(path: &Path) -> String {
         .to_ascii_lowercase()
 }
 
-// magick expands %d and %x anywhere in an output path (scan%d/o.jpg writes scan0/o.jpg), and %% writes one %.
+// magick expands %d and %x anywhere in an output path (scan%d/o.jpg writes scan0/o.jpg), so each % is doubled in the path's own bytes.
 pub fn magick_output(path: &Path) -> String {
-    path.to_string_lossy().replace('%', "%%")
+    use std::os::unix::ffi::{OsStrExt, OsStringExt};
+    let mut doubled = Vec::with_capacity(path.as_os_str().len());
+    for &byte in path.as_os_str().as_bytes() {
+        doubled.push(byte);
+        if byte == b'%' {
+            doubled.push(b'%');
+        }
+    }
+    let doubled = std::path::PathBuf::from(std::ffi::OsString::from_vec(doubled));
+    crate::bytename::path_text(&doubled).into_owned()
 }
 
 pub fn converted_name(source: &Path, format: &str) -> String {

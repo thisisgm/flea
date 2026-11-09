@@ -100,7 +100,11 @@ pub(super) fn pointer_key(
     if pointer.x <= left {
         if pointer.button == 0 && !pointer.motion {
             if let Some(row) = m.parents.get(pointer.y - super::super::render::BODY_ROW) {
-                let path = m.path.parent().unwrap_or(&m.path).join(&row.name);
+                let path = m
+                    .path
+                    .parent()
+                    .unwrap_or(&m.path)
+                    .join(flea::bytename::text_path(&row.name));
                 if row.folder() {
                     navigate(m, path, w)?;
                 }

@@ -43,10 +43,11 @@ pub fn plan(parent: &Path, names: &[String], cancel: &AtomicBool) -> Result<Plan
     };
     let mut dirs: Vec<PathBuf> = Vec::new();
     for name in names {
-        backslash(Path::new(name))?;
-        match parent.join(name).symlink_metadata() {
+        let rel = flea::bytename::exact(name.as_str());
+        backslash(&rel)?;
+        match parent.join(&rel).symlink_metadata() {
             Ok(meta) if special(&meta.file_type()) => continue,
-            Ok(meta) if meta.is_dir() => dirs.push(PathBuf::from(name)),
+            Ok(meta) if meta.is_dir() => dirs.push(rel),
             _ => {}
         }
         plan.names.push(name.clone());

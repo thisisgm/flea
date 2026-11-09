@@ -4,7 +4,6 @@ use crate::backend::regfile::open_regular;
 use crate::backend::{child, jail, sandbox};
 use crate::json::{escape, field_str, field_usize};
 use std::io::Read;
-use std::path::Path;
 use std::process::Stdio;
 use std::sync::mpsc::Sender;
 use std::time::{Duration, Instant};
@@ -61,11 +60,19 @@ fn compare(a: &str, b: &str) -> Outcome {
 
 // The answers that need no process: over is judged on both files before binary is, and diff runs only for text of a size it can answer.
 fn screen(a: &str, b: &str) -> Result<(), Outcome> {
-    if !Path::new(a).is_absolute() || !Path::new(b).is_absolute() {
+    if !flea::bytename::view(a).is_absolute() || !flea::bytename::view(b).is_absolute() {
         return Err(Outcome::Failed);
     }
-    let (Some(first), Some(second)) = (open_regular(Path::new(a)), open_regular(Path::new(b))) else { return Err(Outcome::Failed) };
-    let (Ok(first_len), Ok(second_len)) = (first.metadata().map(|m| m.len()), second.metadata().map(|m| m.len())) else {
+    let (Some(first), Some(second)) = (
+        open_regular(&flea::bytename::view(a)),
+        open_regular(&flea::bytename::view(b)),
+    ) else {
+        return Err(Outcome::Failed);
+    };
+    let (Ok(first_len), Ok(second_len)) = (
+        first.metadata().map(|m| m.len()),
+        second.metadata().map(|m| m.len()),
+    ) else {
         return Err(Outcome::Failed);
     };
     if first_len > OVER_BYTES || second_len > OVER_BYTES {
@@ -96,14 +103,25 @@ fn diff(a: &str, b: &str) -> Outcome {
         return Outcome::Failed;
     }
     let inner = diff_argv(a, b);
-    let mut full = sandbox::wrap_readonly_extra(&inner, &[Path::new(a), Path::new(b)]);
+    let mut full = sandbox::wrap_readonly_extra(
+        &inner,
+        &[&*flea::bytename::view(a), &*flea::bytename::view(b)],
+    );
     sandbox::add_status(&mut full, inner.len());
     let spawned = jail::spawn_jailed(&full, |cmd| {
-        cmd.env_clear().env("PATH", std::env::var_os("PATH").unwrap_or_default());
-        cmd.env("LANG", std::env::var_os("LANG").unwrap_or_else(|| "C.UTF-8".into()));
-        cmd.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::null());
+        cmd.env_clear()
+            .env("PATH", std::env::var_os("PATH").unwrap_or_default());
+        cmd.env(
+            "LANG",
+            std::env::var_os("LANG").unwrap_or_else(|| "C.UTF-8".into()),
+        );
+        cmd.stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null());
     });
-    let Ok(jailed) = spawned else { return Outcome::Failed };
+    let Ok(jailed) = spawned else {
+        return Outcome::Failed;
+    };
     read_diff(jailed)
 }
 

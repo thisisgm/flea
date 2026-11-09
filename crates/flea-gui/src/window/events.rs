@@ -252,11 +252,8 @@ impl Shell {
                     || (operation == "scan"
                         && listed
                         && flea::ui_logic_status_feedback::errors::denied(&operation, &message));
-                let named = if this_folder {
-                    ""
-                } else {
-                    path.rsplit('/').next().unwrap_or_default()
-                };
+                let shown = flea::bytename::display(path.rsplit('/').next().unwrap_or_default());
+                let named = if this_folder { "" } else { &*shown };
                 let ended = host
                     .pane
                     .fail(&operation, &path, &message, mode, host.pane.now());

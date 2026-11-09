@@ -10,7 +10,7 @@ use gpui::{
     canvas, div, fill, point, prelude::*, px, size, App, Bounds, Context, Corners, Entity, Pixels,
     Render, RenderImage, Task, Window,
 };
-use std::{os::unix::fs::FileExt, path::Path, sync::Arc};
+use std::{os::unix::fs::FileExt, sync::Arc};
 
 /// The host's backend: sends `office::request_line` under an id it returns; replies come back through `reply`.
 pub trait OfficeHost {
@@ -351,7 +351,7 @@ fn idle_strip(i18n: &I18n) -> Bar {
 
 // The sniff over a regular file only: its head, its last 64 KiB and one local header, read at their offsets.
 fn sniff_file(path: &str) -> (bool, usize) {
-    let Some(file) = flea::backend::regfile::open_regular(Path::new(path)) else {
+    let Some(file) = flea::backend::regfile::open_regular(&flea::bytename::view(path)) else {
         return (false, 0);
     };
     let size = file.metadata().map_or(0, |m| m.len());

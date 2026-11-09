@@ -17,7 +17,7 @@ pub(crate) fn answer(out: &mut dyn std::io::Write, line: &str) {
 
 // Classifies one image and answers its flashimage line; a mismatch refuses the row with no kind.
 pub fn handle_flashimage(out: &mut dyn std::io::Write, path: &str) {
-    let probe = crate::backend::flashimage::probe(Path::new(path));
+    let probe = crate::backend::flashimage::probe(&flea::bytename::view(path));
     answer(out, &flashimage_line(path, &probe.kind, probe.bytes, probe.unpacked, probe.known, &probe.member));
 }
 
@@ -40,7 +40,7 @@ fn flash_measure(image: &str) -> (Option<std::path::PathBuf>, Option<u64>) {
     if image.is_empty() {
         return (None, None);
     }
-    let path = std::path::PathBuf::from(image);
+    let path = flea::bytename::exact(image);
     let probe = crate::backend::flashimage::probe(&path);
     if probe.kind.is_empty() {
         return (Some(path), None);
@@ -127,7 +127,7 @@ pub(crate) fn run_flash_on(req: FlashReq, cancel: Arc<AtomicBool>, tx: &std::syn
     let id = req.id;
     let done = |end: &Ending| send(tx, id, flashdone_line(id, end.ok, end.phase, end.at, end.err, end.blank), true);
     // The probe first: a row the pane never sends is refused before anything is touched.
-    let probe = crate::backend::flashimage::probe(Path::new(&req.image));
+    let probe = crate::backend::flashimage::probe(&flea::bytename::view(&req.image));
     if probe.kind.is_empty() {
         done(&Ending::failed("probe", "io", false));
         return;
@@ -138,11 +138,29 @@ pub(crate) fn run_flash_on(req: FlashReq, cancel: Arc<AtomicBool>, tx: &std::syn
     // Layers 1 to 4 against fresh sysfs, then layer 2 asked again, before the helper opens anything.
     meter.beat("prepare", 0, 0, true);
     let loop_root = crate::backend::flasheligible::seam_root();
-    let roots = crate::backend::flasheligible::Roots { sys: host.sys, dev: host.dev, exe: host.exe, ui: host.ui, loop_root: loop_root.as_deref() };
+    let roots = crate::backend::flasheligible::Roots {
+        sys: host.sys,
+        dev: host.dev,
+        exe: host.exe,
+        ui: host.ui,
+        loop_root: loop_root.as_deref(),
+    };
     let mountinfo = std::fs::read_to_string(host.mountinfo).unwrap_or_default();
     let swaps = std::fs::read_to_string(host.swaps).unwrap_or_default();
-    let chosen = crate::backend::flasheligible::Chosen { dev: &req.dev, seq: req.seq, serial: &req.serial, bytes: req.bytes };
-    if crate::backend::flasheligible::identity_changed(&roots, &mountinfo, &swaps, &chosen, Some(Path::new(&req.image)), Some(total)) {
+    let chosen = crate::backend::flasheligible::Chosen {
+        dev: &req.dev,
+        seq: req.seq,
+        serial: &req.serial,
+        bytes: req.bytes,
+    };
+    if crate::backend::flasheligible::identity_changed(
+        &roots,
+        &mountinfo,
+        &swaps,
+        &chosen,
+        Some(&*flea::bytename::view(&req.image)),
+        Some(total),
+    ) {
         done(&Ending::failed("prepare", "changed", false));
         return;
     }
@@ -172,7 +190,15 @@ pub(crate) fn run_flash_on(req: FlashReq, cancel: Arc<AtomicBool>, tx: &std::syn
         done(&Ending::failed("password", "cancelled", false));
         return;
     }
-    let mut job = Job::new(Path::new(&req.image), &probe.kind, &probe.member, &dest, req.bytes, &cancel);
+    let image = flea::bytename::view(&req.image);
+    let mut job = Job::new(
+        &image,
+        &probe.kind,
+        &probe.member,
+        &dest,
+        req.bytes,
+        &cancel,
+    );
     job.probe_total = total;
     job.probe_known = probe.known;
     let end = flash_body(&job, &req.dev, &mut meter);

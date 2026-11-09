@@ -73,3 +73,29 @@ fn sandbox_argv_keeps_file_after_double_dash_and_binds_only_input_and_executable
     assert!(argv.iter().any(|v| v == "--unshare-all"));
     assert!(!argv.iter().any(|v| v == "--bind"));
 }
+
+#[test]
+fn a_raw_named_model_reaches_the_worker_as_its_own_file() {
+    use std::os::unix::ffi::OsStrExt;
+    let root = TestDir::new("model3d-raw-name");
+    let input = root
+        .path()
+        .join(std::ffi::OsStr::from_bytes(b"part-\xff.obj"));
+    std::fs::write(&input, testdata::OBJ).unwrap();
+    std::fs::write(root.path().join("part-\u{fffd}.obj"), b"twin").unwrap();
+    let inner: Vec<String> = vec![
+        "/app/flea".into(),
+        "--backend".into(),
+        "--3d-worker".into(),
+        "obj".into(),
+        "--".into(),
+        input.exact_text().into_owned(),
+    ];
+    let args = worker_args(flea::bytename::args(&inner).map(|arg| arg.into_owned()));
+    let mut bytes = Vec::new();
+    regfile::open_if_regular(&flea::bytename::view(&args[5]), 0)
+        .unwrap()
+        .read_to_end(&mut bytes)
+        .unwrap();
+    assert_eq!(bytes, testdata::OBJ);
+}

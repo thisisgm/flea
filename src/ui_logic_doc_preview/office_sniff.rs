@@ -22,8 +22,10 @@ const XML: &[u8] = b"<?xml";
 const BOM_XML: &[u8] = b"\xef\xbb\xbf<?xml";
 const STORED: u16 = 0;
 
+// A name that is not UTF-8 is typed by its lossy spelling, where the extension is.
 fn ext(path: &str) -> String {
-    path.rsplit('/')
+    crate::bytename::display(path)
+        .rsplit('/')
         .next()
         .and_then(|name| name.rsplit_once('.'))
         .map(|(_, e)| e.to_ascii_lowercase())

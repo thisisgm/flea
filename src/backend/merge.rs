@@ -3,6 +3,7 @@ use crate::backend::collide::{MenuCapture, Place, Policy, Question, SHOWN};
 use crate::backend::fatnames::{self, Choice};
 use crate::backend::undo::ItemIdentity;
 use crate::json::escape;
+use flea::bytename::ExactText as _;
 use std::collections::{HashMap, HashSet};
 use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
@@ -28,16 +29,29 @@ pub(crate) fn is_mergeable(src: &Path, dst: &Path) -> bool {
 
 // A menu question's sources as paths, so a merge walk reuses the capture instead of a live selection the dialog already expired.
 pub(crate) fn menu_paths(question: &Question) -> Option<Vec<String>> {
-    question.menu.as_ref().map(|menu| menu.items.iter().map(|item| item.path.to_string_lossy().to_string()).collect())
+    question.menu.as_ref().map(|menu| {
+        menu.items
+            .iter()
+            .map(|item| item.path.exact_text().to_string())
+            .collect()
+    })
 }
 
 // True when a folder lands on a folder, which is the only shape the Merge card offers.
 pub(crate) fn mergeable(paths: &[String], dest: &str) -> bool {
-    let Ok(dest_path) = crate::backend::opsreq::usable_dest(dest) else { return false };
-    let dest_real = dest_path.canonicalize().unwrap_or_else(|_| dest_path.clone());
-    let (mut parents, table) = (super::collide::Parents::default(), super::collide::Table::read(&dest_path));
+    let Ok(dest_path) = crate::backend::opsreq::usable_dest(dest) else {
+        return false;
+    };
+    let dest_real = dest_path
+        .canonicalize()
+        .unwrap_or_else(|_| dest_path.clone());
+    let (mut parents, table) = (
+        super::collide::Parents::default(),
+        super::collide::Table::read(&dest_path),
+    );
     for raw in paths {
-        let src = Path::new(raw);
+        let src = flea::bytename::view(raw);
+        let src = &*src;
         if !src.is_absolute() {
             continue;
         }
@@ -77,13 +91,22 @@ pub(crate) fn count_tree(path: &Path) -> usize {
 // One walk of the sources against the destination, before anything is written; under Rename the names below a merging folder are the renamed ones.
 pub fn walk(paths: &[String], dest: &Path, fat: Option<Choice>) -> Vec<Found> {
     let mut found = Vec::new();
-    let Ok(dest_path) = crate::backend::opsreq::usable_dest(&dest.to_string_lossy()) else { return found };
-    let dest_real = dest_path.canonicalize().unwrap_or_else(|_| dest_path.clone());
+    let Ok(dest_path) = crate::backend::opsreq::usable_dest(&dest.exact_text()) else {
+        return found;
+    };
+    let dest_real = dest_path
+        .canonicalize()
+        .unwrap_or_else(|_| dest_path.clone());
     let rename = fatnames::renames(fat, fatnames::answered_on_fat(fat, &dest_path));
     // One merging folder shows its own relative names; several share the destination's.
-    let single = paths.iter().filter(|raw| is_merging_folder(Path::new(raw), &dest_path, &dest_real)).count() == 1;
+    let single = paths
+        .iter()
+        .filter(|raw| is_merging_folder(&flea::bytename::view(raw), &dest_path, &dest_real))
+        .count()
+        == 1;
     for raw in paths {
-        let src = Path::new(raw);
+        let src = flea::bytename::view(raw);
+        let src = &*src;
         if !src.is_absolute() {
             continue;
         }
@@ -184,7 +207,10 @@ pub(crate) fn ask_beside(
     icons: &std::sync::Arc<crate::backend::icons::Names>,
 ) {
     // The first card's capture is the source list: its dialog already expired the live one.
-    let outer = ops.question.as_ref().filter(|q| q.dest == Path::new(dest));
+    let outer = ops
+        .question
+        .as_ref()
+        .filter(|q| q.dest == *flea::bytename::view(dest));
     let paths = match (outer.and_then(menu_paths), menu_id) {
         (Some(captured), _) => captured,
         (None, 0) => named,
@@ -195,10 +221,10 @@ pub(crate) fn ask_beside(
     ops.asked += 1;
     let (turn, tx, dest, mime, icons) = (ops.asked, ops.tx.clone(), dest.to_string(), std::sync::Arc::clone(mime), std::sync::Arc::clone(icons));
     std::thread::spawn(move || {
-        let inner = walk(&paths, Path::new(&dest), fat);
+        let inner = walk(&paths, &flea::bytename::view(&dest), fat);
         let total = inner.len();
         let names = names_line(&inner, &mime, &icons);
-        let mut question = Question { id, dest: PathBuf::from(&dest), seen: HashMap::new(), twins: Default::default(), menu: None, fat };
+        let mut question = Question { id, dest: flea::bytename::exact(&dest), seen: HashMap::new(), twins: Default::default(), menu: None, fat };
         if let Some((dest, seen, twins, menu)) = base {
             question.dest = dest;
             question.seen = seen;
@@ -226,7 +252,7 @@ pub(crate) fn land_unmerged(dst: PathBuf) -> Place {
 
 // A keep-both landing names a file the request did not name.
 pub(crate) fn kept_name(dst: &Path, name: &str) -> bool {
-    dst.file_name().and_then(|n| n.to_str()) != Some(name)
+    dst.file_name().map(|n| n.exact_text()).as_deref() != Some(name)
 }
 
 // A merge entry that is not a folder pair takes the second card's answer through the same land below.
@@ -245,11 +271,42 @@ pub(crate) fn merge_into_name(merged: &[String], dest: &Path) -> String {
 
 // Sample output: {"t":"transferdone","id":12,"ok":1,"failed":0,"skipped":0,"cancelled":false,"retryPaths":[],"durable":false,"note":"","merged":212,"keptBoth":3,"into":"trip"}
 pub(crate) fn transferdone_merge_line(msg: &super::opsreq::OpMsg) -> String {
-    let super::opsreq::OpMsg::MergeDone { id, ok, failed, skipped, cancelled, retry, durable, note, merged, kept_both, into, refused, .. } = msg else { return String::new() };
-    let paths: Vec<_> = retry.iter().map(|(path, _)| format!("\"{}\"", escape(&path.to_string_lossy()))).collect();
+    let super::opsreq::OpMsg::MergeDone {
+        id,
+        ok,
+        failed,
+        skipped,
+        cancelled,
+        retry,
+        durable,
+        note,
+        merged,
+        kept_both,
+        into,
+        refused,
+        ..
+    } = msg
+    else {
+        return String::new();
+    };
+    let paths: Vec<_> = retry
+        .iter()
+        .map(|(path, _)| format!("\"{}\"", escape(&path.exact_text())))
+        .collect();
     format!(
         r#"{{"t":"transferdone","id":{},"ok":{},"failed":{},"skipped":{},"cancelled":{},"retryPaths":[{}],"durable":{},"note":"{}","merged":{},"keptBoth":{},"into":"{}"{}}}"#,
-        id, ok, failed, skipped, cancelled, paths.join(","), durable, escape(note), merged, kept_both, escape(into), super::opsreq::refused_field(refused)
+        id,
+        ok,
+        failed,
+        skipped,
+        cancelled,
+        paths.join(","),
+        durable,
+        escape(note),
+        merged,
+        kept_both,
+        escape(into),
+        super::opsreq::refused_field(refused)
     )
 }
 

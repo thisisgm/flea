@@ -177,17 +177,57 @@ fn a_name_taken_while_the_tool_ran_is_passed_over_at_publish() {
 
 #[test]
 fn a_taken_name_with_no_copy_name_says_so_instead_of_every_name_taken() {
-    use std::os::unix::ffi::OsStrExt;
-    let d = TestDir::new("archfreenoutf8");
+    let d = TestDir::new("archfreenoname");
     let staged = d.file("staged", "new");
-    let taken = d.path().join(std::ffi::OsStr::from_bytes(b"caf\xe9"));
-    std::fs::create_dir(&taken).unwrap();
-    let e = freename::publish(&staged, &taken, None, &AtomicBool::new(false), |_, _, _| {
-        panic!("no rename runs when no copy name exists")
-    })
+    let e = freename::publish(
+        &staged,
+        Path::new("/"),
+        None,
+        &AtomicBool::new(false),
+        |_, _, _| panic!("no rename runs when no copy name exists"),
+    )
     .unwrap_err();
     assert_eq!(e.msg, freename::NO_COPY_NAME);
     assert!(staged.is_file());
+}
+
+#[test]
+fn a_taken_name_that_is_not_utf8_steps_to_a_copy_of_its_own_bytes() {
+    use std::ffi::OsStr;
+    use std::os::unix::ffi::OsStrExt;
+    let raw = |bytes: &[u8]| Path::new("/d").join(OsStr::from_bytes(bytes));
+    assert_eq!(
+        freename::candidate(&raw(b"caf\xe9"), None, 1).unwrap(),
+        raw(b"caf\xe9 copy")
+    );
+    assert_eq!(
+        freename::candidate(&raw(b"caf\xe9.tar.gz"), Some("tar.gz"), 2).unwrap(),
+        raw(b"caf\xe9 copy 2.tar.gz")
+    );
+    assert_eq!(
+        freename::candidate(&raw(b"caf\xe9.v2"), Some("zip"), 1).unwrap(),
+        raw(b"caf\xe9 copy.v2")
+    );
+    let d = TestDir::new("archfreenoutf8");
+    let staged = d.file("staged", "new");
+    let taken = d.path().join(OsStr::from_bytes(b"caf\xe9"));
+    std::fs::create_dir(&taken).unwrap();
+    let landed = freename::publish(
+        &staged,
+        &taken,
+        None,
+        &AtomicBool::new(false),
+        |from, to, _| {
+            std::fs::rename(from, to).map_err(|e| crate::error::from_io("archive", "", &e))
+        },
+    )
+    .unwrap();
+    assert_eq!(landed, d.path().join(OsStr::from_bytes(b"caf\xe9 copy")));
+    assert_eq!(std::fs::read_to_string(&landed).unwrap(), "new");
+    assert!(
+        !d.path().join("caf\u{fffd} copy").exists(),
+        "never the lossy twin"
+    );
 }
 
 #[test]

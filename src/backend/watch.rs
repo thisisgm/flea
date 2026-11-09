@@ -2,6 +2,7 @@
 use crate::backend::events::Event;
 use crate::backend::inotifyburst::each_event;
 use crate::json::escape;
+use flea::bytename::ExactText as _;
 use std::io;
 use std::ffi::{c_char, c_int, c_void, CString};
 use std::path::Path;
@@ -260,17 +261,17 @@ fn descriptors(buf: &[u8]) -> Vec<i32> {
 
 // The one unsolicited line: the listed directory is no longer what the listing answered with.
 pub fn changed_line(path: &Path) -> String {
-    format!(r#"{{"t":"changed","path":"{}"}}"#, escape(&path.to_string_lossy()))
+    format!(r#"{{"t":"changed","path":"{}"}}"#, escape(&path.exact_text()))
 }
 
 // Sample output: {"t":"unmounted","path":"/media/stick","parent":"/media"}; parent is nearest existing.
 pub fn unmounted_line(path: &Path, parent: &Path) -> String {
-    format!(r#"{{"t":"unmounted","path":"{}","parent":"{}"}}"#, escape(&path.to_string_lossy()), escape(&parent.to_string_lossy()))
+    format!(r#"{{"t":"unmounted","path":"{}","parent":"{}"}}"#, escape(&path.exact_text()), escape(&parent.exact_text()))
 }
 
 // Sample output: {"t":"gone","path":"/w/p/open-me","parent":"/w"}; the folder was deleted or moved away, parent is nearest existing.
 pub fn gone_line(path: &Path, parent: &Path) -> String {
-    format!(r#"{{"t":"gone","path":"{}","parent":"{}"}}"#, escape(&path.to_string_lossy()), escape(&parent.to_string_lossy()))
+    format!(r#"{{"t":"gone","path":"{}","parent":"{}"}}"#, escape(&path.exact_text()), escape(&parent.exact_text()))
 }
 
 // Climbs until exists() holds, so an ejected stick lands on its mountpoint's parent, never /.

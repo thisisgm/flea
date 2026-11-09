@@ -1,4 +1,5 @@
 // Archive and conversion workers execute off the backend loop and return existing protocol lines.
+use flea::bytename::ExactText as _;
 use super::{archivedone_line, collision_message, convertdone_line};
 use crate::backend::archive::Formats;
 use crate::backend::archiveops::{self, compress_leaving, convert_leaving, split_paths};
@@ -62,7 +63,7 @@ pub(crate) fn archive_line(
 ) -> String {
     let ArchiveRequest { compressing, paths, format, archive, dest, password, encrypt_names } = request;
     let sources: Vec<PathBuf> = if compressing {
-        paths.iter().map(PathBuf::from).collect()
+        paths.iter().map(flea::bytename::exact).collect()
     } else {
         vec![archive.clone()]
     };
@@ -105,9 +106,9 @@ pub(crate) fn archive_line(
                 done
             } else {
                 with_field(
-                    with_field(done, "path", &archive.to_string_lossy()),
+                    with_field(done, "path", &archive.exact_text()),
                     "dest",
-                    &dest.to_string_lossy(),
+                    &dest.exact_text(),
                 )
             };
             with_left(done, left.as_deref())
@@ -155,9 +156,9 @@ pub(crate) fn run_convert(
             convertdone_line(
                 id,
                 request_id,
-                &input.to_string_lossy(),
+                &input.exact_text(),
                 true,
-                &dest.to_string_lossy(),
+                &dest.exact_text(),
                 "",
                 false,
             ),
@@ -173,9 +174,9 @@ pub(crate) fn run_convert(
             convertdone_line(
                 id,
                 request_id,
-                &input.to_string_lossy(),
+                &input.exact_text(),
                 false,
-                &dest.to_string_lossy(),
+                &dest.exact_text(),
                 &message,
                 collision,
             )

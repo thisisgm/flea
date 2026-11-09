@@ -186,6 +186,24 @@ fn filters_keep_symlink_navigation_without_inspecting_targets() {
 }
 
 #[test]
+fn a_raw_named_recent_path_lists_its_own_file() {
+    use flea::bytename::ExactText as _;
+    use std::os::unix::ffi::OsStrExt;
+    let dir = TestDir::new("picker-recent-raw");
+    let raw = dir
+        .path()
+        .join(std::ffi::OsStr::from_bytes(b"scan-\xff.png"));
+    std::fs::write(&raw, "raw").unwrap();
+    let (recent, _) = super::super::listpaths::listing_of(&[raw.exact_text().into_owned()]);
+    assert_eq!(
+        recent.len(),
+        1,
+        "the exact text names the raw file, so its stat succeeds"
+    );
+    assert_eq!(recent.path(std::path::Path::new("/"), 0), raw);
+}
+
+#[test]
 fn save_refuses_directories_and_links_to_directories() {
     let dir = TestDir::new("picker-save-directory");
     let folder = dir.dir("folder");

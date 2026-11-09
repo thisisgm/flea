@@ -4,7 +4,7 @@ use gpui::{AppContext, Context};
 use std::io::Read;
 
 fn read(path: &str, limit: u64) -> Option<String> {
-    let file = flea::backend::regfile::open_regular(std::path::Path::new(path))?;
+    let file = flea::backend::regfile::open_regular(&flea::bytename::view(path))?;
     if file.metadata().ok()?.len() > limit {
         return None;
     }

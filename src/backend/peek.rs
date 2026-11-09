@@ -12,13 +12,13 @@ use crate::json::escape;
 // One peek, answered on a worker when the mount is slow; the columns view's own also arms a watch BEFORE the scan, so no change is lost to its gap.
 pub(crate) fn answer(path: &str, (first, details): (usize, bool), hidden: bool, order: Order, focus: String, watch: Option<(std::ffi::c_int, crate::backend::events::Sender<crate::backend::events::Event>)>, tb: &crate::backend::state::Tables) -> String {
     let body = std::fs::read_to_string("/proc/self/mountinfo").unwrap_or_default();
-    let base = std::path::PathBuf::from(path);
+    let base = flea::bytename::exact(path);
     let (mime, icons) = (std::sync::Arc::clone(&tb.mime), std::sync::Arc::clone(&tb.icons));
     let owned = path.to_string();
     match super::iomount::call(&base, &body, "peek", move || {
         if let Some((fd, tx)) = watch {
-            let wd = super::watch::Watch::add_raw(fd, std::path::Path::new(&owned));
-            let _ = tx.send(crate::backend::events::Event::PeekArmed(wd, std::path::PathBuf::from(&owned)));
+            let wd = super::watch::Watch::add_raw(fd, &flea::bytename::view(&owned));
+            let _ = tx.send(crate::backend::events::Event::PeekArmed(wd, flea::bytename::exact(&owned)));
         }
         if details { peek_line_details(&owned, first, true, hidden, order, &focus, (&mime, &icons)) }
         else { peek_line(&owned, first, hidden, order, &focus, &mime, &icons) }
@@ -65,16 +65,33 @@ fn peek_line_details(path: &str, first: usize, details: bool, hidden: bool, orde
     };
     // A row is stat'd only for a remembered size or date order, so a name-order peek stays cheap enough to run per ancestor per move.
     match order.by {
-        Some((by, desc)) => { crate::backend::sort::sort_listing(&mut listing, std::path::Path::new(path), by, desc, hidden_last); }
-        None => { sort_by_name(&mut listing, false, hidden_last); }
+        Some((by, desc)) => {
+            crate::backend::sort::sort_listing(
+                &mut listing,
+                &flea::bytename::view(path),
+                by,
+                desc,
+                hidden_last,
+            );
+        }
+        None => {
+            sort_by_name(&mut listing, false, hidden_last);
+        }
     }
     // The directory's own device and writability, once per peek, so a drag from a column takes the listing's verb.
-    let (dev, writable) = (dev_of(std::path::Path::new(path)), dir_writable(std::path::Path::new(path)));
+    let (dev, writable) = (
+        dev_of(&flea::bytename::view(path)),
+        dir_writable(&flea::bytename::view(path)),
+    );
     let total = listing.len();
     let count = first.min(PEEK_CAP).min(total);
-    let start = if focus.is_empty() { 0 } else {
-        (0..total).find(|&i| listing.name(i) == focus)
-            .map(|i| i.saturating_sub(count / 2).min(total - count)).unwrap_or(0)
+    let start = if focus.is_empty() {
+        0
+    } else {
+        (0..total)
+            .find(|&i| listing.name(i) == focus)
+            .map(|i| i.saturating_sub(count / 2).min(total - count))
+            .unwrap_or(0)
     };
     let mut out = String::with_capacity(count * 64);
     // Echoed so peek clients tell replies apart: NetworkMounts asks with 1 and 512 while the columns view asks with the pane's window size.

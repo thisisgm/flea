@@ -2,9 +2,10 @@
 use crate::backend::opsreq::OpMsg;
 use crate::json::escape;
 use crate::backend::mountinfo::{enclosing, mounts_in};
+use flea::bytename::ExactText as _;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::io::Read;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::Stdio;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::mpsc::{channel, Sender};
@@ -213,7 +214,10 @@ fn recent_parents(recent: &[String]) -> (Vec<String>, Vec<(String, String)>) {
     let mut parents = Vec::new();
     let mut files = Vec::new();
     for file in recent.iter().filter(|path| path.starts_with('/')) {
-        let parent = Path::new(file).parent().map(|parent| parent.to_string_lossy().into_owned()).unwrap_or_default();
+        let parent = flea::bytename::view(file)
+            .parent()
+            .map(|parent| parent.exact_text().into_owned())
+            .unwrap_or_default();
         if !parent.is_empty() && seen.insert(parent.clone()) {
             parents.push(parent.clone());
         }
@@ -224,11 +228,14 @@ fn recent_parents(recent: &[String]) -> (Vec<String>, Vec<(String, String)>) {
 
 // What one recent file stands for: itself when it is a folder, else the parent the caller already resolved.
 fn recent_folder(candidate: &Candidate) -> Option<String> {
-    let path = Path::new(&candidate.path);
+    let path = flea::bytename::view(&candidate.path);
+    let path = &*path;
     if path.is_dir() {
         return Some(candidate.path.clone());
     }
-    path.parent().filter(|parent| !parent.as_os_str().is_empty()).map(|parent| parent.to_string_lossy().into_owned())
+    path.parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .map(|parent| parent.exact_text().into_owned())
 }
 
 // Every folder recent files sit in, checked once each; an unresolved parent drops every file under it.
@@ -239,7 +246,9 @@ fn resolve_parents(parents: Vec<String>, limit: Duration, mounts: &[(PathBuf, St
 
 // A folder stands for itself when it is one.
 fn is_dir_path(candidate: &Candidate) -> Option<String> {
-    Path::new(&candidate.path).is_dir().then(|| candidate.path.clone())
+    flea::bytename::view(&candidate.path)
+        .is_dir()
+        .then(|| candidate.path.clone())
 }
 
 // A filesystem whose stat can wedge: the shared network list plus any FUSE mount.
@@ -249,7 +258,7 @@ fn remote(kind: &str) -> bool {
 
 // What a check is known by: the mount on a remote filesystem, else the path itself; lexical, never a stat.
 fn key_for(path: &str, mounts: &[(PathBuf, String)]) -> String {
-    match enclosing(Path::new(path), mounts) {
+    match enclosing(&flea::bytename::view(path), mounts) {
         Some((point, kind)) if remote(kind) => format!("mount {}", point.display()),
         _ => path.to_string(),
     }

@@ -127,6 +127,11 @@ fn pv3_file_uri_escapes_what_encode_uri_does_and_the_hash_and_query() {
     assert_eq!(file_uri("/m/a b#c?d.ogg"), "file:///m/a%20b%23c%3Fd.ogg");
     assert_eq!(file_uri("/m/é.ogg"), "file:///m/%C3%A9.ogg");
     assert_eq!(
+        file_uri("/m/\u{fffd}.ogg\u{0}e92e6f6767"),
+        "file:///m/%E9.ogg",
+        "a raw name escapes its own bytes"
+    );
+    assert_eq!(
         file_uri("/m/(x)!~*';,@&=+$.mp4"),
         "file:///m/(x)!~*';,@&=+$.mp4"
     );

@@ -1,5 +1,6 @@
 // gio trash is the freedesktop trash this box already shares with every GTK app; nothing about the spec is written here, only an argv and a result.
 use crate::error::FleaError;
+use flea::bytename::ExactText as _;
 use std::os::unix::process::ExitStatusExt;
 use std::path::{Path, PathBuf};
 
@@ -54,7 +55,7 @@ pub(crate) fn gio(args: &[&str]) -> Option<std::process::Output> {
     } else {
         std::process::Command::new(&argv[0])
     };
-    command.args(&argv[1..]).output().ok()
+    command.args(flea::bytename::args(&argv[1..])).output().ok()
 }
 
 // The argv gio runs under, so the suite pins the bound without spawning a subprocess.
@@ -184,7 +185,7 @@ pub(crate) fn trash_announcing(paths: &[PathBuf], selection: Option<&[super::men
         for chunk in rest.chunks(TRASH_CHUNK) {
             let mut argv: Vec<String> = vec!["trash".to_string(), "--".to_string()];
             for &i in chunk {
-                argv.push(present[i].to_string_lossy().to_string());
+                argv.push(present[i].exact_text().to_string());
             }
             let refs: Vec<&str> = argv.iter().map(|s| s.as_str()).collect();
             stamps.push(super::hometrash::deletion_date_local());
@@ -367,7 +368,7 @@ fn err(msg: &str) -> FleaError {
 // The journal's "t" record: an ordinary entry encodes as before, an unattributed settle adds its resolution data.
 pub(crate) fn encode_step(entry: &Entry) -> crate::jsondoc::Json {
     use super::undocodec::{arr, obj, s};
-    let mut fields = vec![("k", s("t")), ("path", s(&entry.original.to_string_lossy())), ("uri", s(&entry.uri))];
+    let mut fields = vec![("k", s("t")), ("path", s(&entry.original.exact_text())), ("uri", s(&entry.uri))];
     if !entry.before.is_empty() {
         fields.push(("before", arr(entry.before.iter().map(|uri| s(uri)).collect())));
     }

@@ -1,5 +1,6 @@
 use crate::backend::thumbcache::uri_for;
 use crate::backend::thumbspec::Spec;
+use flea::bytename::ExactText as _;
 use std::path::{Path, PathBuf};
 
 // argv returns the canonicalised input beside the argv, so a caller cannot bind one path and hand the child another; see AGENTS.md "Thumbnailer specs".
@@ -7,8 +8,8 @@ pub fn argv(spec: &Spec, input: &Path, output: &Path, size: u32) -> Option<(Path
     let abs = std::fs::canonicalize(input).ok()?;
     // %i and %u are two spellings of the one input the sandbox bound, so the URI is built here and never handed in; see AGENTS.md "Thumbnail cache".
     let child_uri = uri_for(&abs);
-    let input = abs.to_string_lossy();
-    let output = output.to_string_lossy();
+    let input = abs.exact_text();
+    let output = output.exact_text();
     let size = size.to_string();
     let mut out = Vec::with_capacity(spec.exec.len());
     for (index, tok) in spec.exec.iter().enumerate() {

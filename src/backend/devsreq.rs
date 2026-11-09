@@ -3,7 +3,6 @@ use super::fsinfo::dev_of;
 use super::iomount;
 use super::opsreq::OpMsg;
 use crate::json::escape;
-use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 
 // Answered on its own thread: a stat through a mount that stopped answering never returns, and the loop never waits on one.
@@ -27,7 +26,7 @@ fn device(path: &str, body: &str) -> u64 {
     if !path.starts_with('/') {
         return 0;
     }
-    let owned = PathBuf::from(path);
+    let owned = flea::bytename::exact(path);
     let target = owned.clone();
     iomount::call(&owned, body, "devs", move || dev_of(&target)).unwrap_or(0)
 }

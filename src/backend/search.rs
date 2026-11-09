@@ -1,6 +1,7 @@
 // The subtree walk behind a search request, ticked a slice at a time so a cancel is never blocked.
 use crate::backend::fuzzy::{rank_order, Fuzzy};
 use crate::backend::listing::Listing;
+use flea::bytename::ExactText as _;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
@@ -26,7 +27,7 @@ impl Search {
     pub fn new(root: &str, query: &str, hidden: bool) -> Search {
         let (tags, text) = split_query(query);
         Search {
-            root: PathBuf::from(root),
+            root: flea::bytename::exact(root),
             fuzzy: Fuzzy::new(&text),
             tags,
             hidden,
@@ -65,7 +66,7 @@ impl Search {
             }
             self.scanned += 1;
             let child = rel.join(&raw);
-            let text = child.to_string_lossy();
+            let text = child.exact_text();
             // The tags were read in bounded chunks for the names this walk can match; an unread entry carries none.
             if !self.tags.is_empty() && !names_carry(&tagged[i], &self.tags) {
                 if is_dir {
@@ -75,8 +76,8 @@ impl Search {
             }
             // The candidate is the whole relative path, not the base name, so one query can span a
             // separator: "dwnhelp" reaches "downloads/helper.txt", see docs/protocol.md "search".
-            if let Some(score) = self.fuzzy.score(&text) {
-                // The row's name is its path relative to the root; a name that is not UTF-8 rows as lossy text, like every row on the wire, so base.join(name) reaches only a UTF-8 name.
+            if let Some(score) = self.fuzzy.score(&flea::bytename::display(&text)) {
+                // The row's name is its path relative to the root, exact for a name that is not UTF-8; the query meets only its lossy spelling.
                 listing.push(&text, is_dir);
                 self.scores.push(score);
             }
@@ -355,7 +356,16 @@ mod tests {
         std::fs::create_dir(&folder).unwrap();
         std::fs::write(folder.join("bench.txt"), "").unwrap();
         let (l, s) = walk_all(root(&d), "bench", false);
-        assert_eq!(names(&l), ["bad\u{fffd}dir/bench.txt"], "the folder is read at its own path, never at a lossy copy of its name");
+        assert_eq!(
+            names(&l),
+            [
+                flea::bytename::path_text(std::path::Path::new(std::ffi::OsStr::from_bytes(
+                    b"bad\xffdir/bench.txt"
+                )))
+                .into_owned()
+            ],
+            "the folder is read at its own path, never at a lossy copy of its name"
+        );
         assert_eq!(s.scanned, 2);
     }
 

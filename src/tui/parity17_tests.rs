@@ -190,5 +190,7 @@ pub(super) fn editor_action(keys: &[Key], action: &str) {
 mod finder;
 #[path = "parity17_flow_tests.rs"]
 mod flows;
+#[path = "parity17_exact_tests.rs"]
+mod exact;
 #[path = "parity17_follow_tests.rs"]
 mod follow;

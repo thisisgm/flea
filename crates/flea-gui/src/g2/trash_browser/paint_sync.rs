@@ -47,7 +47,7 @@ impl TrashPane {
                 marked: view.is_selected(&row.uri),
                 thumb: Some(view.thumbs.file_for(view.first + at, view.policy))
                     .filter(|file| !file.is_empty())
-                    .map(|file| Resource::Path(Arc::from(Path::new(file)))),
+                    .map(|file| Resource::Path(Arc::from(&*flea::bytename::view(file)))),
             })
             .collect();
         let same_text = lines.len() == paint.lines.len()

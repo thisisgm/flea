@@ -2,6 +2,7 @@
 use crate::backend::opsreq::OpMsg;
 use crate::backend::regfile::open_regular;
 use crate::json::escape;
+use flea::bytename::ExactText as _;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
@@ -21,7 +22,9 @@ pub fn shebang_line(path: &str, has: bool, id: usize) -> String {
 pub fn spawn(path: PathBuf, id: usize, tx: std::sync::mpsc::Sender<OpMsg>) {
     std::thread::spawn(move || {
         let has = has_shebang(&path);
-        let _ = tx.send(OpMsg::Meta { line: shebang_line(&path.to_string_lossy(), has, id) });
+        let _ = tx.send(OpMsg::Meta {
+            line: shebang_line(&path.exact_text(), has, id),
+        });
     });
 }
 

@@ -31,10 +31,11 @@ fn writable(path: &Path) -> bool {
 
 /// Blocking stat and access; callers run it on the background executor.
 pub fn read(first_source: Option<&str>, dest: &str) -> Facts {
-    let folder = first_source.and_then(|source| Path::new(source).parent());
+    let source = first_source.map(flea::bytename::view);
+    let folder = source.as_deref().and_then(Path::parent);
     Facts {
         src_dev: folder.map_or(0, dev),
-        dest_dev: dev(Path::new(dest)),
+        dest_dev: dev(&flea::bytename::view(dest)),
         deletable: folder.is_some_and(writable),
     }
 }

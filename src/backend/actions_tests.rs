@@ -204,3 +204,88 @@ fn terminal_root_selection_answers_with_the_root_working_directory() {
     };
     assert!(argv.starts_with("--dir=/\n"), "{argv}");
 }
+
+// A value splices as raw bytes, so an argument that embeds a raw name still decodes to that name.
+#[test]
+fn a_raw_name_inside_a_longer_argument_keeps_its_bytes() {
+    use std::os::unix::ffi::OsStrExt;
+    let action = Action {
+        id: "embed".into(),
+        script: false,
+        manifest: Manifest {
+            name: "Embed".into(),
+            mime: vec!["*/*".into()],
+            selection: "one".into(),
+            mode: "background".into(),
+            run: vec![
+                "/usr/bin/true".into(),
+                "{path}".into(),
+                "--out={dir}/{stem}.png".into(),
+            ],
+        },
+    };
+    let argv = action.argv(Path::new(std::ffi::OsStr::from_bytes(b"/d/a\xff.jpg")));
+    let raw: Vec<Vec<u8>> = flea::bytename::args(&argv)
+        .map(|arg| arg.as_bytes().to_vec())
+        .collect();
+    assert_eq!(
+        raw,
+        [
+            b"/usr/bin/true".to_vec(),
+            b"/d/a\xff.jpg".to_vec(),
+            b"--out=/d/a\xff.png".to_vec()
+        ]
+    );
+}
+
+// A raw-named script runs, and its raw-named selection reaches it as the file's own bytes.
+#[test]
+fn a_raw_named_script_runs_on_a_raw_named_file() {
+    use flea::bytename::ExactText as _;
+    use std::os::unix::ffi::OsStrExt;
+    use std::os::unix::fs::PermissionsExt;
+    let root = TestDir::new("raw-script");
+    let script = root.path().join(std::ffi::OsStr::from_bytes(b"run\xff.sh"));
+    std::fs::write(&script, "#!/bin/sh\nprintf '%s' \"$1\" > \"${0%/*}/out\"\n").unwrap();
+    std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let file = root
+        .path()
+        .join(std::ffi::OsStr::from_bytes(b"pick\xfe.txt"));
+    std::fs::write(&file, "picked").unwrap();
+    let action = Action {
+        id: "script:raw".into(),
+        script: true,
+        manifest: Manifest {
+            name: "Raw".into(),
+            mime: vec!["*/*".into()],
+            selection: "many".into(),
+            mode: "background".into(),
+            run: vec![script.exact_text().into()],
+        },
+    };
+    let (send, replies) = std::sync::mpsc::channel();
+    let mut ops = crate::backend::opsdispatch::Ops::new(send);
+    let mut output = Vec::new();
+    ready(
+        &mut output,
+        &mut ops,
+        7,
+        Ok((action, vec![file.exact_text().into()])),
+    );
+    loop {
+        let reply = replies
+            .recv_timeout(std::time::Duration::from_secs(5))
+            .expect("the script job must finish");
+        let done = matches!(reply, OpMsg::JobDone { .. });
+        crate::backend::opsdispatch::report_op(&mut output, &mut ops, reply);
+        if done {
+            break;
+        }
+    }
+    let said = String::from_utf8_lossy(&output);
+    assert_eq!(
+        std::fs::read(root.join("out")).ok().as_deref(),
+        Some(file.as_os_str().as_bytes()),
+        "{said}"
+    );
+}

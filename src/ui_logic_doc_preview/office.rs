@@ -13,7 +13,9 @@ pub enum Group {
 impl Group {
     /// The group by extension, in any case: DOCX, ODT, DOC, RTF; XLSX, ODS, XLS; PPTX, ODP, PPT.
     pub fn of(path: &str) -> Option<Self> {
-        let name = path.rsplit('/').next().unwrap_or(path);
+        // A name that is not UTF-8 is typed by its lossy spelling, where the extension is.
+        let shown = crate::bytename::display(path);
+        let name = shown.rsplit('/').next().unwrap_or(&shown);
         let (_, ext) = name.rsplit_once('.')?;
         Some(match ext.to_ascii_lowercase().as_str() {
             "docx" | "odt" | "doc" | "rtf" => Group::Document,
@@ -380,3 +382,6 @@ mod sheets;
 #[cfg(test)]
 #[path = "office_tests.rs"]
 mod tests;
+#[cfg(test)]
+#[path = "office_exact_tests.rs"]
+mod exact_tests;

@@ -1,4 +1,5 @@
 // The GVFS FUSE root /run/user/<uid>/gvfs and the share folder under it; a folder named gvfs anywhere else is no mount.
+use flea::bytename::ExactText as _;
 use std::path::{Path, PathBuf};
 
 // The directory whose children are the per-user run folders; a test points it at a sandbox, since /run/user is not writable.
@@ -10,7 +11,9 @@ thread_local! {
 // Names the sandbox that stands for /run/user on this thread, or clears it with None.
 #[cfg(test)]
 pub(crate) fn set_test_run_user(root: Option<&Path>) {
-    RUN_USER.with(|slot| *slot.borrow_mut() = root.map(|r| format!("{}/", r.to_string_lossy().trim_end_matches('/'))));
+    RUN_USER.with(|slot| {
+        *slot.borrow_mut() = root.map(|r| format!("{}/", r.exact_text().trim_end_matches('/')))
+    });
 }
 
 fn run_user_root() -> String {
@@ -23,7 +26,7 @@ fn run_user_root() -> String {
 
 // Sample input: "/run/user/1000//gvfs/../gvfs/smb-share:x/a" answers "/run/user/1000/gvfs/smb-share:x/a"; the text of a clean path is kept as is.
 fn folded(path: &Path) -> std::borrow::Cow<'_, str> {
-    let text = path.to_string_lossy();
+    let text = path.exact_text();
     if !text.contains("//") && !text.contains("/./") && !text.ends_with("/.") && !text.contains("/../") && !text.ends_with("/..") {
         return text;
     }
@@ -39,7 +42,7 @@ fn folded(path: &Path) -> std::borrow::Cow<'_, str> {
             other => out.push(other),
         }
     }
-    std::borrow::Cow::Owned(out.to_string_lossy().into_owned())
+    std::borrow::Cow::Owned(out.exact_text().into_owned())
 }
 
 // Splits "<run>/<uid>/gvfs/<share...>" into the root through "gvfs/" and the rest; None for any path off the gvfs mount root.
@@ -53,7 +56,7 @@ fn gvfs_split(text: &str) -> Option<(String, &str)> {
 
 // The kernel resolves ".." after a symlink, so a text that names a share keeps it; the lexical fold decides only a text whose segment under gvfs/ is empty, "." or "..", or that is off the mount root.
 fn mounted(path: &Path) -> Option<(String, String)> {
-    let text = path.to_string_lossy();
+    let text = path.exact_text();
     if let Some((root, share)) = gvfs_split(&text) {
         let mut segments = share.split('/');
         let named = !matches!(segments.next(), Some("" | "." | ".."));
@@ -90,7 +93,7 @@ pub(crate) fn gvfs_modes_are_real(path: &Path) -> Option<bool> {
 pub fn gvfs_root(path: &Path) -> Option<PathBuf> {
     let (root, share) = mounted(path)?;
     let name = share.split('/').next().filter(|name| !name.is_empty())?;
-    Some(PathBuf::from(root + name))
+    Some(flea::bytename::exact(root + name))
 }
 
 #[cfg(test)]

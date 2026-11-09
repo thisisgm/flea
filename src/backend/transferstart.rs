@@ -17,7 +17,7 @@ pub(super) fn start_transfer_checked(out: &mut impl Write, ops: &mut Ops, op: &s
         }
     };
     // A source or target on a pending mount waits; writes elsewhere run beside the held write.
-    let mut sources: Vec<PathBuf> = paths.iter().map(PathBuf::from).collect();
+    let mut sources: Vec<PathBuf> = paths.iter().map(flea::bytename::exact).collect();
     if let Some(items) = &selection {
         sources.extend(items.iter().map(|item| item.path.clone()));
     }

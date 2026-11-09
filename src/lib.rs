@@ -26,6 +26,7 @@ pub mod protocol;
 pub mod plugin_runtime;
 pub mod qscrash;
 pub mod preview_model;
+pub mod bytename;
 pub mod rawname;
 pub mod textdecode;
 pub mod theme;

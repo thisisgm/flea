@@ -1,4 +1,5 @@
 // Feature requests stay off the listing loop and share its detached-job shutdown registry.
+use flea::bytename::ExactText as _;
 use super::{aliases::Aliases, mime::Db, opsdispatch::Ops, opsreq::OpMsg, pagerange::Pages, printconvert, printing, printtool};
 use crate::json::{escape, field_bool, field_str, field_str_array, field_usize};
 use std::io::Write;
@@ -26,8 +27,14 @@ pub struct Print {
 
 pub fn paths(line: &str) -> Vec<PathBuf> {
     let paths = field_str_array(line, "paths");
-    if paths.is_empty() { field_str(line, "path").into_iter().map(PathBuf::from).collect() }
-    else { paths.into_iter().map(PathBuf::from).collect() }
+    if paths.is_empty() {
+        field_str(line, "path")
+            .into_iter()
+            .map(flea::bytename::exact)
+            .collect()
+    } else {
+        paths.into_iter().map(flea::bytename::exact).collect()
+    }
 }
 
 impl Request {
@@ -112,7 +119,7 @@ fn print(ask: Print, selection: Result<Option<Vec<super::menu_actions::Selected>
             if result.is_err() && cancel.load(Ordering::Relaxed) { return Err("cancelled".into()); }
             message = match &result { Ok(()) => printing::receipt(&name, display), Err(reason) => printing::refusal(&name, reason) };
             let _ = tx.send(OpMsg::Meta { line: format!(r#"{{"t":"printed","id":{id},"requestId":{},"path":"{}","ok":{},"message":"{}"}}"#,
-                ask.request_id, escape(&path.to_string_lossy()), result.is_ok(), escape(&message)) });
+                ask.request_id, escape(&path.exact_text()), result.is_ok(), escape(&message)) });
             match result {
                 Ok(()) => sent += 1,
                 Err(_) => refused.push(message.clone()),
@@ -148,10 +155,38 @@ pub fn serve(out: &mut impl Write, ops: &mut Ops, request: Request, mime: Arc<Db
     let cancel = Arc::new(AtomicBool::new(false));
     ops.detached.insert(id, &cancel);
     match &request {
-        Request::Options { .. } => {},
-        Request::Print(ask) => { writeln!(out, r#"{{"t":"printstarted","id":{id},"requestId":{},"title":"{}"}}"#, ask.request_id, escape(&printconvert::title("Print", &paths))).ok(); },
-        Request::Convert(ask) => { writeln!(out, "{}", super::archivereq::convertstarted_line(id, ask.request_id, &paths.first().map_or(String::new(), |p| p.to_string_lossy().into_owned()))).ok(); },
-        Request::Combine(ask) => { writeln!(out, r#"{{"t":"combinestarted","id":{id},"requestId":{}}}"#, ask.request_id).ok(); },
+        Request::Options { .. } => {}
+        Request::Print(ask) => {
+            writeln!(
+                out,
+                r#"{{"t":"printstarted","id":{id},"requestId":{},"title":"{}"}}"#,
+                ask.request_id,
+                escape(&printconvert::title("Print", &paths))
+            )
+            .ok();
+        }
+        Request::Convert(ask) => {
+            writeln!(
+                out,
+                "{}",
+                super::archivereq::convertstarted_line(
+                    id,
+                    ask.request_id,
+                    &paths
+                        .first()
+                        .map_or(String::new(), |p| p.exact_text().into_owned())
+                )
+            )
+            .ok();
+        }
+        Request::Combine(ask) => {
+            writeln!(
+                out,
+                r#"{{"t":"combinestarted","id":{id},"requestId":{}}}"#,
+                ask.request_id
+            )
+            .ok();
+        }
     }
     out.flush().ok();
     let tx = ops.tx.clone();

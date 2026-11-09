@@ -1,5 +1,6 @@
 // The converter's argv. The preview's PDF is the document's first pages only, under its own key; Print and Convert keep the whole document under the plain key.
 use super::*;
+use flea::bytename::ExactText as _;
 
 // Sample output: soffice --headless --norestore --nolockcheck -env:UserInstallation=file:///tmp/flea-office-profile --convert-to pdf --outdir /out /in.docx
 #[cfg(test)]
@@ -25,8 +26,8 @@ pub(super) fn convert_argv(
         "--outdir",
     ];
     let mut a: Vec<String> = fixed.iter().map(|s| s.to_string()).collect();
-    a.push(outdir.to_string_lossy().into_owned());
-    a.push(input.to_string_lossy().into_owned());
+    a.push(outdir.exact_text().into_owned());
+    a.push(input.exact_text().into_owned());
     a
 }
 

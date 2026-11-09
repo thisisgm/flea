@@ -47,6 +47,11 @@ pub fn display(row: &RowFacts) -> std::borrow::Cow<'_, RowFacts> {
     if row.depth > 0 {
         display.to_mut().name = row.name.rsplit('/').next().unwrap_or(&row.name).to_owned();
     }
+    // A name that is not UTF-8 draws its lossy spelling; its exact tail stays in the facts every path is built from.
+    if flea::bytename::is_exact(&display.name) {
+        let shown = flea::bytename::display(&display.name).into_owned();
+        display.to_mut().name = shown;
+    }
     display
 }
 

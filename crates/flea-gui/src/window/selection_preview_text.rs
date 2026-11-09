@@ -15,7 +15,7 @@ enum Read {
 }
 
 fn read(path: &str, limit: u64) -> Read {
-    let Some(file) = flea::backend::regfile::open_regular(std::path::Path::new(path)) else {
+    let Some(file) = flea::backend::regfile::open_regular(&flea::bytename::view(path)) else {
         return Read::Failed;
     };
     if file.metadata().is_ok_and(|meta| meta.len() > limit) {

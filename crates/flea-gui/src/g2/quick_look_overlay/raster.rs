@@ -7,7 +7,7 @@ use gpui::{size, DevicePixels, RenderImage, SvgRenderer, SvgSize};
 use std::{
     io::Read,
     os::unix::fs::OpenOptionsExt,
-    path::PathBuf,
+    path::{Path, PathBuf},
     sync::{
         atomic::{AtomicU64, Ordering},
         Arc,
@@ -81,7 +81,12 @@ pub fn for_path(path: &std::path::Path, renderer: SvgRenderer) -> Rasterizer {
 }
 
 /// Stat judges the path before any open, and the handle's own fstat catches a swap between the two.
-fn read_bounded(path: &PathBuf) -> Result<Vec<u8>, RasterRefusal> {
+fn read_bounded(path: &Path) -> Result<Vec<u8>, RasterRefusal> {
+    // A row's exact text decodes to its own bytes, see docs/architecture/exact-names.md.
+    let path = path
+        .to_str()
+        .map_or(std::borrow::Cow::Borrowed(path), flea::bytename::text_path);
+    let path = &*path;
     if !std::fs::metadata(path).is_ok_and(|m| m.file_type().is_file()) {
         return Err(RasterRefusal::Unreadable);
     }

@@ -191,3 +191,11 @@ fn a_gnome_offer_that_does_not_parse_falls_through_to_the_uri_list() {
         "a GNOME offer naming no files falls through too"
     );
 }
+
+#[test]
+fn a_raw_name_round_trips_by_its_own_bytes_and_reads_lossy_as_plain_text() {
+    let paths = vec![format!("/tmp/{}", crate::bytename::name_text(b"r\xff.txt"))];
+    assert_eq!(build_urilist(&paths), b"file:///tmp/r%FF.txt\r\n");
+    assert_eq!(parse_urilist(&build_urilist(&paths)), (paths.clone(), 0));
+    assert_eq!(build_plain(&paths), "/tmp/r\u{fffd}.txt".as_bytes());
+}

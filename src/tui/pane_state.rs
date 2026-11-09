@@ -91,16 +91,35 @@ pub enum Kind {
 
 pub fn kind(row: &Row) -> Kind {
     // A link is a PDF when its name or its target is, and its page is the target's.
-    let named = |name: &str| Path::new(name).extension().and_then(|e| e.to_str()).is_some_and(|e| e.eq_ignore_ascii_case("pdf"));
-    let pdf = row.is_pdf() || (!row.directory && !row.link.is_empty() && (named(&row.name) || named(&row.link)));
+    let named = |name: &str| {
+        Path::new(name)
+            .extension()
+            .and_then(|e| e.to_str())
+            .is_some_and(|e| e.eq_ignore_ascii_case("pdf"))
+    };
+    let shown = row.shown();
+    let pdf = row.is_pdf()
+        || (!row.directory && !row.link.is_empty() && (named(&shown) || named(&row.link)));
     let icon = row.icon.to_lowercase();
     if row.folder() {
         Kind::Folder
-    } else if crate::backend::model3d::supported(if row.link.is_empty() { &row.name } else { &row.link }).is_some() {
+    } else if crate::backend::model3d::supported(if row.link.is_empty() {
+        &shown
+    } else {
+        &row.link
+    })
+    .is_some()
+    {
         Kind::Model3d
     } else if pdf {
         Kind::Pdf
-    } else if Group::of(if row.link.is_empty() { &row.name } else { &row.link }).is_some() {
+    } else if Group::of(if row.link.is_empty() {
+        &shown
+    } else {
+        &row.link
+    })
+    .is_some()
+    {
         Kind::Office
     } else if icon.starts_with("image") {
         Kind::Image

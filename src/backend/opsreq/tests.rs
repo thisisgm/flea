@@ -494,3 +494,6 @@ fn retry_preserves_a_symlink_identity_without_following_its_target() {
     retain_retry(&retry, &mut matches);
     assert!(matches.is_empty());
 }
+
+#[path = "exact_tests.rs"]
+mod exact_tests;

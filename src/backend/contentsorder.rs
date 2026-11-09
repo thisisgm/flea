@@ -1,3 +1,4 @@
+use flea::bytename::ExactText as _;
 use super::*;
 use std::collections::HashMap;
 
@@ -71,7 +72,7 @@ pub fn sort(
         pass_ms,
         sort_ms,
         dev,
-        &st.base.to_string_lossy(),
+        &st.base.exact_text(),
         writable,
         gen,
     );
@@ -80,7 +81,7 @@ pub fn sort(
             &listed,
             anchor,
             st.listing
-                .index_of(&st.base, Path::new(anchor))
+                .index_of(&st.base, &flea::bytename::view(anchor))
                 .map_or(-1, |row| row as isize),
         );
     }

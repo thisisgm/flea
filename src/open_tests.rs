@@ -337,5 +337,26 @@ fn an_empty_file_with_no_name_type_still_asks_open_with() {
     );
 }
 
+#[test]
+fn a_raw_argument_resolves_to_its_own_file_and_never_its_lossy_twin() {
+    use flea::bytename::ExactText as _;
+    use std::os::unix::ffi::OsStrExt;
+    let dir = crate::backend::testdir::TestDir::new("open-raw");
+    let raw = dir.path().join(std::ffi::OsStr::from_bytes(b"col\xff"));
+    let twin = dir.path().join("col\u{fffd}");
+    std::fs::write(&raw, b"raw").unwrap();
+    std::fs::write(&twin, b"twin").unwrap();
+    assert_eq!(
+        super::resolved(&raw.exact_text()),
+        raw.canonicalize().ok(),
+        "the raw text names the raw file"
+    );
+    assert_eq!(
+        super::resolved(&twin.to_string_lossy()),
+        twin.canonicalize().ok(),
+        "the twin's own text still names the twin"
+    );
+}
+
 #[path = "open_selection_tests.rs"]
 mod selection_tests;

@@ -1,3 +1,4 @@
+use flea::bytename::ExactText as _;
 use super::{graphics::{Graphics, Task}, model::Model, pane_state::Unshown, wire::Wire};
 use flea::ui_logic_model_preview::{self as pv4, color::Palette, scene::Scene, wire::{Data, State as ReplyState}};
 use std::{fs::File, io, os::unix::fs::MetadataExt, path::PathBuf, sync::{atomic::{AtomicBool, Ordering}, Arc}};
@@ -270,7 +271,10 @@ pub fn step(m: &mut Model, graphics: &mut Graphics, wire: &mut Wire, room: (usiz
                 m.model3d.token = m.model3d.token.wrapping_add(1);
                 m.model3d.waiting = true;
                 let path = &m.model3d.held.as_ref().unwrap().path;
-                send(wire, pv4::wire::request(SLOT, m.model3d.token as u64, &path.to_string_lossy(), None))?;
+                send(
+                    wire,
+                    pv4::wire::request(SLOT, m.model3d.token as u64, &path.exact_text(), None),
+                )?;
             }
             Err(_) => failure(m),
         }

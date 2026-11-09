@@ -372,7 +372,14 @@ pub fn serve(out: &mut impl Write, ops: &mut Ops, mime: &Db, aliases: &Aliases, 
     let reg = ops.claim_id();
     ops.detached.insert(reg, &service.quit);
     let head = (!sheets).then(|| head::export_filter(path, mime, aliases));
-    service.start(id, reg, PathBuf::from(path), sheets, head, ops.tx.clone());
+    service.start(
+        id,
+        reg,
+        flea::bytename::exact(path),
+        sheets,
+        head,
+        ops.tx.clone(),
+    );
 }
 
 #[cfg(test)]

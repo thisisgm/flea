@@ -1,4 +1,5 @@
 // Image paths from the standing name arena, with the same MIME table as the listing's rows.
+use flea::bytename::ExactText as _;
 use super::{listing::Listing, mime::Db};
 use std::path::Path;
 
@@ -47,7 +48,7 @@ pub fn ordered(base: &Path, listing: &Listing, mime: &Db, ask: &Ask) -> Vec<Stri
         if !budget.take(&path) {
             break;
         }
-        out.push(path.to_string_lossy().into_owned());
+        out.push(path.exact_text().into_owned());
     }
     out
 }

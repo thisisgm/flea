@@ -196,7 +196,7 @@ impl Session {
         let body = probes.body.lock().unwrap().take().unwrap_or_else(crate::backend::mountinfo::read_body);
         #[cfg(not(test))]
         let body = crate::backend::mountinfo::read_body();
-        let scope_buf = PathBuf::from(scope);
+        let scope_buf = flea::bytename::exact(scope);
         let remote = crate::backend::iomount::is_remote(&scope_buf, &body);
         // The root's figures go through the bound, so a dead server answers 0 and read-only instead of hanging the loop.
         let root = scope_buf.clone();
@@ -248,7 +248,7 @@ impl Session {
         let priors = crate::backend::searchprior::loaded();
         Session {
             scope: scope_buf,
-            folder: PathBuf::from(folder),
+            folder: flea::bytename::exact(folder),
             hidden,
             dev,
             writable,

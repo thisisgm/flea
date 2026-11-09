@@ -17,7 +17,7 @@ pub const IS_DIRECTORY: i32 = 3;
 
 // Canonical, so a file named --output=/etc/x cannot be read as a flag by the child.
 fn resolved(path: &str) -> Option<PathBuf> {
-    std::fs::canonicalize(path).ok()
+    std::fs::canonicalize(flea::bytename::text_path(path)).ok()
 }
 
 // The environment every program Flea starts carries: huge pages back on, Qt's own pin, driver exclusion and theme dropped, the tear-off hand-off kept to its window. runfile.rs reuses this.

@@ -1,4 +1,5 @@
 // Folder merge, second half: landing entries, manifests, and emptied-folder records.
+use flea::bytename::ExactText as _;
 use super::merge::{count_tree, real_dir};
 pub(crate) use super::merge::Counts;
 use crate::backend::collide::{Place, Policy};
@@ -305,7 +306,11 @@ pub(crate) fn redo_emptied(path: &Path, mode: u32, steps: &mut Vec<Step>) -> Res
 
 // The shared journal's wire arm for the step above, beside the codec that owns the version.
 pub(crate) fn encode_emptied(path: &Path, mode: u32) -> crate::jsondoc::Json {
-    super::undocodec::obj(vec![("k", super::undocodec::s("re")), ("path", super::undocodec::s(&path.to_string_lossy())), ("mode", super::undocodec::n(mode))])
+    super::undocodec::obj(vec![
+        ("k", super::undocodec::s("re")),
+        ("path", super::undocodec::s(&path.exact_text())),
+        ("mode", super::undocodec::n(mode)),
+    ])
 }
 
 pub(crate) fn decode_emptied(pairs: &[(String, crate::jsondoc::Json)]) -> Option<Step> {

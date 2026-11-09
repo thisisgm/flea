@@ -71,7 +71,8 @@ fn encode_uri(path: &str) -> String {
         Some((id, relative)) => (format!("plugin://{id}"), relative),
         None => (String::from("file://"), path),
     };
-    for b in path.as_bytes() {
+    // The exact bytes are encoded, so a name that is not UTF-8 names itself and not its lossy twin.
+    for b in std::os::unix::ffi::OsStrExt::as_bytes(flea::bytename::text_path(path).as_os_str()) {
         if b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_' | b'.' | b'~' | b'/') {
             out.push(*b as char);
         } else {
@@ -108,11 +109,14 @@ fn decode_uri(uri: &[u8]) -> Option<String> {
             i += 1;
         }
     }
-    // Flea's listing is lossy for these, so it cannot act on them; see AGENTS.md corners.
     if raw.contains(&0) {
         return None;
     }
-    let s = String::from_utf8(raw).ok()?;
+    // A name that is not UTF-8 arrives as the exact text the listing carries, see src/bytename.rs.
+    let s = flea::bytename::path_text(std::path::Path::new(
+        <std::ffi::OsStr as std::os::unix::ffi::OsStrExt>::from_bytes(&raw),
+    ))
+    .into_owned();
     if !s.starts_with('/') {
         return None;
     }
@@ -171,7 +175,12 @@ pub fn parse_urilist(bytes: &[u8]) -> (Vec<String>, usize) {
 
 // The absolute paths, one a line, the form ui/js/Drag.js offers beside its uri-list.
 pub fn build_plain(paths: &[String]) -> Vec<u8> {
-    paths.join("\n").into_bytes()
+    paths
+        .iter()
+        .map(|path| flea::bytename::display(path))
+        .collect::<Vec<_>>()
+        .join("\n")
+        .into_bytes()
 }
 
 pub fn build_kde_cut() -> Vec<u8> {
@@ -254,7 +263,9 @@ pub fn check_path_cap(paths: &[String]) -> Result<(), String> {
 pub fn validate_clip_paths(paths: &[String]) -> Result<(), String> {
     check_path_cap(paths)?;
     for p in paths {
-        if p.contains('\0') {
+        if std::os::unix::ffi::OsStrExt::as_bytes(flea::bytename::text_path(p).as_os_str())
+            .contains(&0)
+        {
             return Err(format!("{} holds a NUL byte", p));
         }
         if !p.starts_with('/') && place_path(p).is_none() {

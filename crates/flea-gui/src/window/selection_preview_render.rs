@@ -346,7 +346,7 @@ impl Render for SelectionPreview {
                     self.catalog
                         .trn("preview.selected", frame.subject.selected_count as i64)
                 } else {
-                    frame.subject.row.name.clone()
+                    flea::bytename::display(&frame.subject.row.name).into_owned()
                 }),
         );
         if full {
