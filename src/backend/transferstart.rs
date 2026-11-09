@@ -134,6 +134,112 @@ mod tests {
         );
     }
 
+    fn roots(out: &[u8]) -> Vec<Vec<String>> {
+        String::from_utf8_lossy(out)
+            .lines()
+            .filter(|line| line.starts_with(r#"{"t":"roots""#))
+            .inspect(|line| assert!(line.contains(r#""job":true"#), "a job names itself: {line}"))
+            .map(|line| crate::json::field_str_array(line, "paths"))
+            .collect()
+    }
+
+    #[test]
+    fn a_job_and_its_retry_each_name_the_paths_they_read_and_write() {
+        if unsafe { geteuid() } == 0 {
+            println!("SKIP a_job_and_its_retry_each_name_the_paths_they_read_and_write: root bypasses mode 0o500");
+            return;
+        }
+        let root = TestDir::new("job-roots-retry");
+        let source = root.file("source", "payload");
+        let dest = root.dir("readonly");
+        std::fs::set_permissions(&dest, std::fs::Permissions::from_mode(0o500)).unwrap();
+        let (tx, rx) = channel();
+        let mut ops = Ops::new(tx);
+        let mut out = Vec::new();
+        let named = vec![source.to_string_lossy().into_owned()];
+        let ask = crate::backend::collide::Ask::parse("{}");
+        start_transfer_checked(
+            &mut out,
+            &mut ops,
+            "copy",
+            named,
+            dest.to_str().unwrap(),
+            None,
+            None,
+            ask,
+        );
+        let both = vec![
+            dest.to_string_lossy().into_owned(),
+            source.to_string_lossy().into_owned(),
+        ];
+        assert_eq!(
+            roots(&out),
+            std::slice::from_ref(&both),
+            "{}",
+            String::from_utf8_lossy(&out)
+        );
+        settle(&mut ops, &mut out, &rx);
+        std::fs::set_permissions(&dest, std::fs::Permissions::from_mode(0o700)).unwrap();
+        out.clear();
+        let request = format!(
+            r#"{{"c":"jobs","op":"retry","id":{}}}"#,
+            ops.jobs.rows[0].id
+        );
+        let _ = crate::backend::jobevents::request(&mut out, &mut ops, &request);
+        assert_eq!(
+            roots(&out),
+            [both],
+            "a retry runs again, so it names its paths again"
+        );
+        settle(&mut ops, &mut out, &rx);
+    }
+
+    #[test]
+    fn a_menu_transfer_names_each_selected_source_where_it_lives() {
+        use crate::backend::menu_actions::MenuActions;
+        let root = TestDir::new("job-roots-menu");
+        root.dir("stick");
+        root.dir("home");
+        let found = [root.file("stick/a.jpg", "a"), root.file("home/b.jpg", "b")];
+        let dest = root.dir("dest");
+        let (tx, rx) = channel();
+        let mut ops = Ops::new(tx.clone());
+        let menu = MenuActions::new(tx);
+        let rows = found
+            .iter()
+            .map(|path| path.to_string_lossy().into_owned())
+            .collect();
+        menu.request(r#"{"op":"snapshot","id":5}"#.into(), rows, None);
+        let OpMsg::Meta { line } = rx.recv_timeout(Duration::from_secs(5)).unwrap() else {
+            panic!("snapshot reply")
+        };
+        assert!(line.contains(r#""ok":true"#), "{line}");
+        ops.menuactions = Some(menu);
+        let mut out = Vec::new();
+        let ask = crate::backend::collide::Ask::parse("{}");
+        crate::backend::opsdispatch::start_menu_transfer(
+            &mut out,
+            &mut ops,
+            "copy",
+            5,
+            dest.to_str().unwrap(),
+            ask,
+        );
+        let mut expected: Vec<String> = found
+            .iter()
+            .chain([&dest])
+            .map(|path| path.to_string_lossy().into_owned())
+            .collect();
+        expected.sort();
+        assert_eq!(
+            roots(&out),
+            [expected],
+            "rows from two folders, as search results are: {}",
+            String::from_utf8_lossy(&out)
+        );
+        settle(&mut ops, &mut out, &rx);
+    }
+
     #[test]
     fn queued_destinations_preserve_validation_and_path_spelling() {
         let root = TestDir::new("queued-destination-validation");

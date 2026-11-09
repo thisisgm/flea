@@ -7,6 +7,7 @@ fn route(capacity: usize) -> (Route, async_channel::Receiver<(u64, String)>) {
         Route {
             state: Default::default(),
             sender,
+            transfers: Default::default(),
         },
         receiver,
     )

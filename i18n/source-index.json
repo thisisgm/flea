@@ -1255,7 +1255,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "error.key",
-      "line": 123,
+      "line": 169,
       "path": "crates/flea-gui/src/window/devices.rs",
       "pattern": null,
       "possible_keys": [],
@@ -1265,7 +1265,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "refusal.key()",
-      "line": 148,
+      "line": 194,
       "path": "crates/flea-gui/src/window/devices.rs",
       "pattern": null,
       "possible_keys": [],
@@ -23272,7 +23272,7 @@
       "call_sites": [
         {
           "excerpt": "Note::new(\"device.another_mounting\", &[]),",
-          "line": 281,
+          "line": 287,
           "path": "crates/flea-gui/src/g2/device_rail/devices.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -23775,7 +23775,7 @@
       "call_sites": [
         {
           "excerpt": "let headline = sentence.unwrap_or_else(|| Note::new(\"device.mount_failed\", &[&label]));",
-          "line": 300,
+          "line": 306,
           "path": "crates/flea-gui/src/g2/device_rail/devices.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -23875,7 +23875,7 @@
       "call_sites": [
         {
           "excerpt": "Note::new(\"device.no_folder\", &[&self.pending_open_label]),",
-          "line": 188,
+          "line": 194,
           "path": "crates/flea-gui/src/g2/device_rail/devices.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -23979,7 +23979,7 @@
           "usage": "key-declaration"
         },
         {
-          "excerpt": "let note = flea::ui_logic_device_rail::Note::new(\"device.nothing_to_release\", &[&label]);",
+          "excerpt": "self.say_device_note(Note::new(\"device.nothing_to_release\", &[&label]), cx);",
           "line": 72,
           "path": "crates/flea-gui/src/window/devices.rs",
           "surface": "gui",
@@ -24298,8 +24298,22 @@
     "device.transfer_running": {
       "call_sites": [
         {
-          "excerpt": "let note = flea::ui_logic_device_rail::Note::new(\"device.transfer_running\", &[&label]);",
-          "line": 104,
+          "excerpt": "self.say_device_note(Note::new(\"device.transfer_running\", &[label]), cx);",
+          "line": 96,
+          "path": "crates/flea-gui/src/window/devices.rs",
+          "surface": "gui",
+          "usage": "key-declaration"
+        },
+        {
+          "excerpt": "self.say_device_note(Note::new(\"device.transfer_running\", &[label]), cx);",
+          "line": 117,
+          "path": "crates/flea-gui/src/window/devices.rs",
+          "surface": "gui",
+          "usage": "key-declaration"
+        },
+        {
+          "excerpt": "let note = Note::new(\"device.transfer_running\", &[&label]);",
+          "line": 150,
           "path": "crates/flea-gui/src/window/devices.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -80910,49 +80924,49 @@
       "call_sites": [
         {
           "excerpt": "let document = flea::jsondoc::parse(&line).map_err(|_| failure(\"pane.row_request\", \"\"))?;",
-          "line": 272,
+          "line": 264,
           "path": "crates/flea-gui/src/backend.rs",
           "surface": "gui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "return Err(failure(\"pane.row_request\", \"\"));",
-          "line": 274,
+          "line": 266,
           "path": "crates/flea-gui/src/backend.rs",
           "surface": "gui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "let document = flea::jsondoc::parse(&line).map_err(|_| failure(\"pane.row_request\", \"\"))?;",
-          "line": 285,
+          "line": 277,
           "path": "crates/flea-gui/src/backend.rs",
           "surface": "gui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "return Err(failure(\"pane.row_request\", \"\"));",
-          "line": 292,
+          "line": 284,
           "path": "crates/flea-gui/src/backend.rs",
           "surface": "gui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "return Err(failure(\"pane.row_request\", \"\"));",
-          "line": 316,
+          "line": 308,
           "path": "crates/flea-gui/src/backend.rs",
           "surface": "gui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "\"pane.row_request\",",
-          "line": 148,
+          "line": 158,
           "path": "crates/flea-gui/src/backend/plugin_route.rs",
           "surface": "gui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "\"pane.row_request\",",
-          "line": 152,
+          "line": 162,
           "path": "crates/flea-gui/src/backend/plugin_route.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -108802,7 +108816,7 @@
         },
         {
           "excerpt": "Err(error) => Event::Garbled(failure(\"window.backend_protocol\", error)),",
-          "line": 387,
+          "line": 392,
           "path": "crates/flea-gui/src/backend/worker.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -108882,7 +108896,7 @@
         },
         {
           "excerpt": "return Err(failure(\"window.backend_read\", error));",
-          "line": 363,
+          "line": 368,
           "path": "crates/flea-gui/src/backend/worker.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -108985,14 +108999,14 @@
       "call_sites": [
         {
           "excerpt": "return Err(failure(\"window.backend_stopped\", \"\"));",
-          "line": 339,
+          "line": 336,
           "path": "crates/flea-gui/src/backend.rs",
           "surface": "gui",
           "usage": "key-declaration"
         },
         {
           "excerpt": ".map_err(|_| failure(\"window.backend_stopped\", \"\"))?;",
-          "line": 349,
+          "line": 346,
           "path": "crates/flea-gui/src/backend.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -109993,7 +110007,7 @@
     },
     {
       "excerpt": "\"Plugin request queue is full.\",",
-      "line": 149,
+      "line": 159,
       "literal": "Plugin request queue is full.",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/backend/plugin_route.rs",
@@ -110002,7 +110016,7 @@
     },
     {
       "excerpt": "\"Plugin place owner has stopped.\",",
-      "line": 153,
+      "line": 163,
       "literal": "Plugin place owner has stopped.",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/backend/plugin_route.rs",
@@ -110042,186 +110056,6 @@
       "literal": "an answer with nothing still answers",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/backend/status.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "gui"
-    },
-    {
-      "excerpt": "r#\"{\"t\":\"error\",\"where\":\"transfer\",\"path\":\"\",\"msg\":\"an operation is already running\"}\"#;",
-      "line": 166,
-      "literal": "{\"t\":\"error\",\"where\":\"transfer\",\"path\":\"\",\"msg\":\"an operation is already running\"}",
-      "owner": "I50-07",
-      "path": "crates/flea-gui/src/backend/transfers.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "gui"
-    },
-    {
-      "excerpt": "\"only transfers and archives are kept\"",
-      "line": 174,
-      "literal": "only transfers and archives are kept",
-      "owner": "I50-07",
-      "path": "crates/flea-gui/src/backend/transfers.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "gui"
-    },
-    {
-      "excerpt": "assert!(kept.touch(\"/media/s\"), \"sent and not yet answered\");",
-      "line": 177,
-      "literal": "sent and not yet answered",
-      "owner": "I50-07",
-      "path": "crates/flea-gui/src/backend/transfers.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "gui"
-    },
-    {
-      "excerpt": "\"an idle line written before the backend read the transfer ends nothing\"",
-      "line": 181,
-      "literal": "an idle line written before the backend read the transfer ends nothing",
-      "owner": "I50-07",
-      "path": "crates/flea-gui/src/backend/transfers.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "gui"
-    },
-    {
-      "excerpt": "\"another job's end ends nothing here\"",
-      "line": 189,
-      "literal": "another job's end ends nothing here",
-      "owner": "I50-07",
-      "path": "crates/flea-gui/src/backend/transfers.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "gui"
-    },
-    {
-      "excerpt": "assert!(!kept.touch(\"/media/s\"), \"its own end lets it go\");",
-      "line": 192,
-      "literal": "its own end lets it go",
-      "owner": "I50-07",
-      "path": "crates/flea-gui/src/backend/transfers.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "gui"
-    },
-    {
-      "excerpt": "\"a menu's rows come from the listed folder\"",
-      "line": 199,
-      "literal": "a menu's rows come from the listed folder",
-      "owner": "I50-07",
-      "path": "crates/flea-gui/src/backend/transfers.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "gui"
-    },
-    {
-      "excerpt": "assert!(!kept.touch(\"/media/s\"), \"the refusal answers the oldest\");",
-      "line": 212,
-      "literal": "the refusal answers the oldest",
-      "owner": "I50-07",
-      "path": "crates/flea-gui/src/backend/transfers.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "gui"
-    },
-    {
-      "excerpt": "assert!(kept.touch(\"/media/t\"), \"the newer one is still unread\");",
-      "line": 213,
-      "literal": "the newer one is still unread",
-      "owner": "I50-07",
-      "path": "crates/flea-gui/src/backend/transfers.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "gui"
-    },
-    {
-      "excerpt": "assert!(!kept.touch(\"/media/t\"), \"a stale-row refusal is a refusal\");",
-      "line": 215,
-      "literal": "a stale-row refusal is a refusal",
-      "owner": "I50-07",
-      "path": "crates/flea-gui/src/backend/transfers.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "gui"
-    },
-    {
-      "excerpt": "\"another command's error refuses nothing\"",
-      "line": 220,
-      "literal": "another command's error refuses nothing",
-      "owner": "I50-07",
-      "path": "crates/flea-gui/src/backend/transfers.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "gui"
-    },
-    {
-      "excerpt": "\"an undo failing under transfer names its own path\"",
-      "line": 225,
-      "literal": "an undo failing under transfer names its own path",
-      "owner": "I50-07",
-      "path": "crates/flea-gui/src/backend/transfers.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "gui"
-    },
-    {
-      "excerpt": "r#\"{\"t\":\"error\",\"where\":\"transfer\",\"path\":\"/media/s/in\",\"msg\":\"/media/s is not responding.\"}\"#,",
-      "line": 228,
-      "literal": "{\"t\":\"error\",\"where\":\"transfer\",\"path\":\"/media/s/in\",\"msg\":\"/media/s is not responding.\"}",
-      "owner": "I50-07",
-      "path": "crates/flea-gui/src/backend/transfers.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "gui"
-    },
-    {
-      "excerpt": "\"a refusal naming the destination is this one's\"",
-      "line": 232,
-      "literal": "a refusal naming the destination is this one's",
-      "owner": "I50-07",
-      "path": "crates/flea-gui/src/backend/transfers.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "gui"
-    },
-    {
-      "excerpt": "assert!(!kept.touch(\"/media/s\"), \"its copy died with it\");",
-      "line": 242,
-      "literal": "its copy died with it",
-      "owner": "I50-07",
-      "path": "crates/flea-gui/src/backend/transfers.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "gui"
-    },
-    {
-      "excerpt": "\"a line sent after the exit never runs\"",
-      "line": 246,
-      "literal": "a line sent after the exit never runs",
-      "owner": "I50-07",
-      "path": "crates/flea-gui/src/backend/transfers.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "gui"
-    },
-    {
-      "excerpt": "\"the copy's start and end were its own\"",
-      "line": 263,
-      "literal": "the copy's start and end were its own",
-      "owner": "I50-07",
-      "path": "crates/flea-gui/src/backend/transfers.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "gui"
-    },
-    {
-      "excerpt": "assert!(kept.touch(\"/media/t\"), \"the extract still runs\");",
-      "line": 265,
-      "literal": "the extract still runs",
-      "owner": "I50-07",
-      "path": "crates/flea-gui/src/backend/transfers.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "gui"
-    },
-    {
-      "excerpt": "assert!(!kept.touch(\"/media/t\"), \"a refused disk image never starts\");",
-      "line": 275,
-      "literal": "a refused disk image never starts",
-      "owner": "I50-07",
-      "path": "crates/flea-gui/src/backend/transfers.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "gui"
-    },
-    {
-      "excerpt": "\"an archive's end never ends a transfer\"",
-      "line": 278,
-      "literal": "an archive's end never ends a transfer",
-      "owner": "I50-07",
-      "path": "crates/flea-gui/src/backend/transfers.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "gui"
     },
@@ -142861,7 +142695,7 @@
     },
     {
       "excerpt": "job.reason = \"checking target\".into();",
-      "line": 309,
+      "line": 314,
       "literal": "checking target",
       "owner": "controller",
       "path": "src/backend/jobevents.rs",
@@ -142870,7 +142704,7 @@
     },
     {
       "excerpt": "\"That job can no longer be undone.\".to_string()",
-      "line": 332,
+      "line": 337,
       "literal": "That job can no longer be undone.",
       "owner": "controller",
       "path": "src/backend/jobevents.rs",
@@ -142879,7 +142713,7 @@
     },
     {
       "excerpt": "_ => \"Unknown jobs request.\".into(),",
-      "line": 334,
+      "line": 339,
       "literal": "Unknown jobs request.",
       "owner": "controller",
       "path": "src/backend/jobevents.rs",
@@ -142888,7 +142722,7 @@
     },
     {
       "excerpt": "let work = job.work.as_mut().ok_or(\"This job cannot be retried.\")?;",
-      "line": 342,
+      "line": 347,
       "literal": "This job cannot be retried.",
       "owner": "controller",
       "path": "src/backend/jobevents.rs",
@@ -142906,7 +142740,7 @@
     },
     {
       "excerpt": "reason: \"checking target\".into(),",
-      "line": 66,
+      "line": 68,
       "literal": "checking target",
       "owner": "controller",
       "path": "src/backend/jobstart.rs",
@@ -142915,7 +142749,7 @@
     },
     {
       "excerpt": "\"copy\" => \"Copy failed\".into(),",
-      "line": 19,
+      "line": 75,
       "literal": "Copy failed",
       "owner": "controller",
       "path": "src/backend/jobview.rs",
@@ -142924,7 +142758,7 @@
     },
     {
       "excerpt": "\"move\" => \"Move failed\".into(),",
-      "line": 20,
+      "line": 76,
       "literal": "Move failed",
       "owner": "controller",
       "path": "src/backend/jobview.rs",
@@ -142933,7 +142767,7 @@
     },
     {
       "excerpt": "\"send\" => \"Send failed\".into(),",
-      "line": 21,
+      "line": 77,
       "literal": "Send failed",
       "owner": "controller",
       "path": "src/backend/jobview.rs",
@@ -142942,7 +142776,7 @@
     },
     {
       "excerpt": "\"compress\" => \"Compression failed\".into(),",
-      "line": 22,
+      "line": 78,
       "literal": "Compression failed",
       "owner": "controller",
       "path": "src/backend/jobview.rs",
@@ -142951,7 +142785,7 @@
     },
     {
       "excerpt": "\"extract\" => \"Extraction failed\".into(),",
-      "line": 23,
+      "line": 79,
       "literal": "Extraction failed",
       "owner": "controller",
       "path": "src/backend/jobview.rs",
@@ -142960,7 +142794,7 @@
     },
     {
       "excerpt": "\"emptyTrash\" => \"Emptying Trash failed\".into(),",
-      "line": 24,
+      "line": 80,
       "literal": "Emptying Trash failed",
       "owner": "controller",
       "path": "src/backend/jobview.rs",
@@ -142969,7 +142803,7 @@
     },
     {
       "excerpt": "return format!(\"Checking {} items on {}\", self.total, self.target);",
-      "line": 29,
+      "line": 85,
       "literal": "Checking {} items on {}",
       "owner": "controller",
       "path": "src/backend/jobview.rs",
@@ -142978,7 +142812,7 @@
     },
     {
       "excerpt": "\"Extracting\".into()",
-      "line": 36,
+      "line": 92,
       "literal": "Extracting",
       "owner": "controller",
       "path": "src/backend/jobview.rs",
@@ -142987,7 +142821,7 @@
     },
     {
       "excerpt": "return \"Emptying Trash\".into();",
-      "line": 42,
+      "line": 98,
       "literal": "Emptying Trash",
       "owner": "controller",
       "path": "src/backend/jobview.rs",
@@ -142996,7 +142830,7 @@
     },
     {
       "excerpt": "\"copy\" => format!(\"Copy {} items to {}\", self.total, self.target),",
-      "line": 46,
+      "line": 102,
       "literal": "Copy {} items to {}",
       "owner": "controller",
       "path": "src/backend/jobview.rs",
@@ -143005,7 +142839,7 @@
     },
     {
       "excerpt": "\"move\" => format!(\"Move {} items to {}\", self.total, self.target),",
-      "line": 47,
+      "line": 103,
       "literal": "Move {} items to {}",
       "owner": "controller",
       "path": "src/backend/jobview.rs",
@@ -143014,7 +142848,7 @@
     },
     {
       "excerpt": "\"compress\" => format!(\"Compress {} items to {}\", self.total, self.target),",
-      "line": 48,
+      "line": 104,
       "literal": "Compress {} items to {}",
       "owner": "controller",
       "path": "src/backend/jobview.rs",
@@ -143023,7 +142857,7 @@
     },
     {
       "excerpt": "\"not checked\"",
-      "line": 121,
+      "line": 177,
       "literal": "not checked",
       "owner": "controller",
       "path": "src/backend/jobview.rs",
@@ -161239,7 +161073,7 @@
     },
     {
       "excerpt": "return refuse(out, dest, \"an operation is already running\");",
-      "line": 22,
+      "line": 34,
       "literal": "an operation is already running",
       "owner": "controller",
       "path": "src/backend/shelfdrop.rs",
@@ -161248,7 +161082,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: the shelf kept its references ({})\", e);",
-      "line": 87,
+      "line": 108,
       "literal": "flea: the shelf kept its references ({})",
       "owner": "controller",
       "path": "src/backend/shelfdrop.rs",
@@ -161257,7 +161091,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: the shelf's own bookkeeping stopped before it finished\");",
-      "line": 110,
+      "line": 131,
       "literal": "flea: the shelf's own bookkeeping stopped before it finished",
       "owner": "controller",
       "path": "src/backend/shelfdrop.rs",
@@ -161266,7 +161100,7 @@
     },
     {
       "excerpt": "assert!(line.contains(r#\"\"msg\":\"an operation is already running\"\"#), \"{}\", line);",
-      "line": 170,
+      "line": 192,
       "literal": "\"msg\":\"an operation is already running\"",
       "owner": "controller",
       "path": "src/backend/shelfdrop.rs",
@@ -161274,8 +161108,26 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "assert!(roots.contains(r#\"\"job\":false\"#), \"a drop is no job: {text}\");",
+      "line": 224,
+      "literal": "a drop is no job: {text}",
+      "owner": "controller",
+      "path": "src/backend/shelfdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": ".expect(\"the drop ends\"),",
+      "line": 232,
+      "literal": "the drop ends",
+      "owner": "controller",
+      "path": "src/backend/shelfdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "\"the one that failed stays on the shelf\");",
-      "line": 178,
+      "line": 242,
       "literal": "the one that failed stays on the shelf",
       "owner": "controller",
       "path": "src/backend/shelfdrop.rs",
@@ -161284,7 +161136,7 @@
     },
     {
       "excerpt": "\"a copy leaves every reference where it was\");",
-      "line": 180,
+      "line": 244,
       "literal": "a copy leaves every reference where it was",
       "owner": "controller",
       "path": "src/backend/shelfdrop.rs",
@@ -161293,7 +161145,7 @@
     },
     {
       "excerpt": "\"an engine that reported nothing settles nothing\");",
-      "line": 182,
+      "line": 246,
       "literal": "an engine that reported nothing settles nothing",
       "owner": "controller",
       "path": "src/backend/shelfdrop.rs",
@@ -161302,7 +161154,7 @@
     },
     {
       "excerpt": "\"and an index past the end names no entry\");",
-      "line": 184,
+      "line": 248,
       "literal": "and an index past the end names no entry",
       "owner": "controller",
       "path": "src/backend/shelfdrop.rs",
@@ -163155,8 +163007,53 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": ".inspect(|line| assert!(line.contains(r#\"\"job\":true\"#), \"a job names itself: {line}\"))",
+      "line": 141,
+      "literal": "a job names itself: {line}",
+      "owner": "controller",
+      "path": "src/backend/transferstart.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "println!(\"SKIP a_job_and_its_retry_each_name_the_paths_they_read_and_write: root bypasses mode 0o500\");",
+      "line": 149,
+      "literal": "SKIP a_job_and_its_retry_each_name_the_paths_they_read_and_write: root bypasses mode 0o500",
+      "owner": "controller",
+      "path": "src/backend/transferstart.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"a retry runs again, so it names its paths again\"",
+      "line": 192,
+      "literal": "a retry runs again, so it names its paths again",
+      "owner": "controller",
+      "path": "src/backend/transferstart.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "panic!(\"snapshot reply\")",
+      "line": 214,
+      "literal": "snapshot reply",
+      "owner": "controller",
+      "path": "src/backend/transferstart.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"rows from two folders, as search results are: {}\",",
+      "line": 237,
+      "literal": "rows from two folders, as search results are: {}",
+      "owner": "controller",
+      "path": "src/backend/transferstart.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "root.join(\"missing\").to_string_lossy().into(),",
-      "line": 147,
+      "line": 253,
       "literal": "missing",
       "owner": "controller",
       "path": "src/backend/transferstart.rs",
@@ -251539,13 +251436,13 @@
     "crates/flea-gui/examples/memory-empty-shell.rs": "e7945c4ad18c759dc8f1a10f0eac99fc0a7365ef0080010d12da36a4b86496c1",
     "crates/flea-gui/examples/memory-probe.rs": "4615b8fb5e3a143bf3e04a7f83ed3f88a58101d57c41f30e9a75cfb1e1a0943c",
     "crates/flea-gui/examples/presented-probe.rs": "a5f09cf617d84e3305057651584adfb95371098272d47d4cf9953ab34813f28e",
-    "crates/flea-gui/src/backend.rs": "254c57697c8d8d548cce14da086677e89584cf63b97c3c8aa14d82a7300233ee",
+    "crates/flea-gui/src/backend.rs": "5ceb399e016ad4f7c7302cf8f985e63d946a63fac7fc6028c4deafc7e2e37a42",
     "crates/flea-gui/src/backend/native31_fixture.rs": "145b7ab5c4284e97e798038ad206eb6e7c4c61fd7a53b1e935ad59228135e860",
-    "crates/flea-gui/src/backend/plugin_route.rs": "3def5b1ffed6055818d2b1c4303cbfcf5df2d76cfce60613e35c5baaacc44364",
+    "crates/flea-gui/src/backend/plugin_route.rs": "e3cb778220dceb57d35cbab25461d5ffc7105f8e7cf699c7528871e112a90a52",
     "crates/flea-gui/src/backend/status.rs": "c5245c1deb92cb1a48015615092cae40474891c12578d1c207f49e09c1133228",
-    "crates/flea-gui/src/backend/transfers.rs": "f3a4beaad20425e40aadb99c8916b7423ff85df3bd151f9dc62975b768e2fc0b",
+    "crates/flea-gui/src/backend/transfers.rs": "a15cb877e97c857dacf26da069915e0e64bc4e84b5110d5d91d91a95359ad605",
     "crates/flea-gui/src/backend/transport.rs": "63696cb40395d1606ea347c71ecb9b124bc8718289c57a6c643acff50daa692e",
-    "crates/flea-gui/src/backend/worker.rs": "7f54d7b13abeaa2c989a82503e2493aecc8322f2d2a6d4bf30768a7bc3fa875d",
+    "crates/flea-gui/src/backend/worker.rs": "fcadb81a84796f5a9c87095cc16fb0c2f392d700c3186a8f0b9402beb205bdbd",
     "crates/flea-gui/src/backend_log.rs": "bb6d5a8396c6ec2a0794c728f59b5fc42dc9604de210d322f5bc31b887a60faf",
     "crates/flea-gui/src/bench_thumbs.rs": "efaa91fa440a35d4bde7ec2e368298f8638c597f64c2b265bc4631be50664ed9",
     "crates/flea-gui/src/capture.rs": "5ff7556c1494ff60d67288a1d706eb4303e7af9720f03f8ff94cc538f1430643",
@@ -251676,7 +251573,7 @@
     "crates/flea-gui/src/g2/custom_actions/mod.rs": "95143fcf3d0f2561fc17eaef87b98f06cecf6e3ab008dc41c806f2f93d357563",
     "crates/flea-gui/src/g2/custom_actions/model.rs": "10aa6624e54cbd44f69b2bd18aae63437cc406c8abc0451bf58dc63128c06609",
     "crates/flea-gui/src/g2/device_rail/card.rs": "a1dc65bff99fe99679da6ca240ed652e8226f4adbcc59f326c89a7ebd12c3ec0",
-    "crates/flea-gui/src/g2/device_rail/devices.rs": "cfadb163390a9423f7be2c9c0adc53cab0b0cd25e5122e13a9f12813de8b0847",
+    "crates/flea-gui/src/g2/device_rail/devices.rs": "77ec15f312dc2ea9dcf53a00d9a6f3050dfa864e096b0510212db5ecc1218d20",
     "crates/flea-gui/src/g2/device_rail/eject.rs": "2c34ebbf1b5839e59d890d718a8f2f7046909d3b8b0ed5438ccbe17ec896aae5",
     "crates/flea-gui/src/g2/device_rail/field.rs": "08e40140c43f8a6f4927514b8a1262caac7619b545279069ae2e1e2c2ac2314c",
     "crates/flea-gui/src/g2/device_rail/host.rs": "c8ce29a6470a713b76c8d7bed9b8ccb905dd1301a63bb90a76207ee5501debd3",
@@ -251693,13 +251590,13 @@
     "crates/flea-gui/src/g2/device_rail/process.rs": "03b8743d4f7c823f792f594ba8373ae7f9e6389983bbba467009853259423bd0",
     "crates/flea-gui/src/g2/device_rail/process_input.rs": "f9348d2c4fab7b88b2522a548563d7385cddebbceff4ed75ba643d4c869aa878",
     "crates/flea-gui/src/g2/device_rail/process_io.rs": "e5c9e991588e06fb78679cbc671c062e3aac05414f67b30535ab7f8c578528ad",
-    "crates/flea-gui/src/g2/device_rail/rail_events.rs": "db63482f3f2febc25c5c1081b74b5a57fc25085d2065ffa4c9754bf587506bdf",
+    "crates/flea-gui/src/g2/device_rail/rail_events.rs": "c5e7e13aa618637991a121965f7e1cc73182acb7e7433815312820ccae907b2d",
     "crates/flea-gui/src/g2/device_rail/seams.rs": "6e0210c27d4bf100d60a78d3ce59d63bd3c7a8fe9aa73a76f24c84d5f308ec64",
     "crates/flea-gui/src/g2/device_rail/secret.rs": "2b8f8bcc0ff7b71adec2fa5ff09a203ff0b021947f6fc949d853a0185a59c30e",
     "crates/flea-gui/src/g2/device_rail/source.rs": "10bc62c5c3960b2f9a3b12f80613544b2323da46c561e123e49749e44092324c",
     "crates/flea-gui/src/g2/device_rail/source_fixture.rs": "5b8537e7ded65855c17810a2e249d89c6c3e3975b39ce085e6c96ef26baf000c",
     "crates/flea-gui/src/g2/device_rail/source_jobs.rs": "75ed2c3636baa8b2dae2e3ba9e72acb30f9145c2a84f930a2a3ccf6e563b478d",
-    "crates/flea-gui/src/g2/device_rail/source_release.rs": "2f60ec7a92125fb1f309049e3b03bff7e68134e6c81a0582b22bb746a382d7d0",
+    "crates/flea-gui/src/g2/device_rail/source_release.rs": "5d142619f0f6389806714eac72117f57358584a19cc9f6a95109266d9aa11012",
     "crates/flea-gui/src/g2/device_rail/source_seed.rs": "fca9b89c5fd01eb2d43ddd1c43c116351d83ffb982fa0844777b61e9f4182e81",
     "crates/flea-gui/src/g2/device_rail/unlock.rs": "d5fc78da1cdcc0b8dd0f45b7aeb1c7068fd31f3f21af0311870cb6e0ff4ce44e",
     "crates/flea-gui/src/g2/device_rail/view.rs": "c5c6ec693e7eb479fda90f67844960ed12951a30851d84f9ef9a74d93e6b43eb",
@@ -252034,7 +251931,7 @@
     "crates/flea-gui/src/g2/plugins/menu_send.rs": "cabe41752e3452ec34f5300f3166a7598435c9481b347f8d9572423f2539ecd6",
     "crates/flea-gui/src/g2/plugins/menu_verdict.rs": "8ab5bbc9e698db262fcbda68f35bf097106996d370aa003b54d548afc345a9f5",
     "crates/flea-gui/src/g2/plugins/mod.rs": "4313e8e90692661f1c7b5d558af8dab275a862640943b7eccc0dea16db256c62",
-    "crates/flea-gui/src/g2/plugins/place.rs": "5d45738abad0309f776b21fff308d55ba6d7c629b1795802c9ed2f7babdebec5",
+    "crates/flea-gui/src/g2/plugins/place.rs": "da117cfba41e70439d282acd89949ec11bc8ea3e09f1c10bcbbffae5fcd2d8fb",
     "crates/flea-gui/src/g2/plugins/place_model.rs": "8f9b39bac1986414ea0bfb98592435f1e5901cfafda5a77fd014e20d6b85365a",
     "crates/flea-gui/src/g2/plugins/place_ops.rs": "ab74cd2143f932e3aac07d25babc3aab0f4fb7a4aaf8d95b72549908f99c589c",
     "crates/flea-gui/src/g2/plugins/rail.rs": "02cd23b9acb9aa16c019176f1893c32703b3be64b286bce9548770808c7486be",
@@ -252504,7 +252401,7 @@
     "crates/flea-gui/src/window/columns_scroll_input.rs": "66166123ca8b948e56db59be2d5a7639b933fe4c0fa247ce39f1bc123b3e8cce",
     "crates/flea-gui/src/window/columns_shown.rs": "fbf58bcb3ee1cb09d60cc0765796515a1b1f0f07adfceca685bfc220445c5559",
     "crates/flea-gui/src/window/composition.rs": "d5c782008170d58a13bce77595e876a7fbd3daf74ce1753c1c85b8db0a981595",
-    "crates/flea-gui/src/window/devices.rs": "b7c1d05eb6ff97db5596a57228f16de43d0c190a83727b5cab66e67148e74fcd",
+    "crates/flea-gui/src/window/devices.rs": "11ffcde4344c24f992ab940e548805a06252816253c647e557ebcae9d3c33968",
     "crates/flea-gui/src/window/dispatch/clipboard.rs": "4930f7aebee899c48f4b4fd00fe4a9a6864b494f04830c40e369eadfc75f035e",
     "crates/flea-gui/src/window/dispatch/deletion.rs": "072e1f3bd78f3bb304a2c16aaf454e54af305f772513ab7b4fa94fd92edecd4b",
     "crates/flea-gui/src/window/dispatch/document_keys_fixture.rs": "966a3c113dc59245051590f44e0efc7e21c92546e082ea8cc7fdfe8e8bddbda3",
@@ -252587,7 +252484,7 @@
     "crates/flea-gui/src/window/m9_g2rows_02_fixtures.rs": "b49f4e8ead91cd2bb902af7fc374950db77446671d739fba45a799ebe0ffb231",
     "crates/flea-gui/src/window/mod.rs": "ad0d91e555dbf0521ada42741f917b80066754e4613e4896fe987fe0a57f1aa7",
     "crates/flea-gui/src/window/navigate.rs": "f8d1e09cf9ee353c63049facb4adbe912434d0ee9a48d1f88c8fc115bdd67c60",
-    "crates/flea-gui/src/window/network.rs": "153a78bf43a3eb774e95411ee568f1ad18961279e2abd24fd78d9ef5db8abb30",
+    "crates/flea-gui/src/window/network.rs": "acd62fdcae5bf6a2229d7c0e73f2b867d900e0c3d9c590ef1f28f989b8a3ce14",
     "crates/flea-gui/src/window/network_cloud.rs": "3a3febd4a7fe3d9fc7bd67c97c77245c21a3f4a8c12314558d39d5ce542d6fee",
     "crates/flea-gui/src/window/network_effects.rs": "a9a123dfb5024fb55f652df1fed88715dc8a25f1ddef8996df68afe400279445",
     "crates/flea-gui/src/window/network_focus.rs": "a2bd7430bcd4602d685f36f87ee7fac372aba15caa8f63a4563770c868fb9caa",
@@ -252837,10 +252734,10 @@
     "src/backend/jail.rs": "9be341e5b267c6d39402e9b1ff98043c55a41ef8fb70ec78cf0b388d891a9a34",
     "src/backend/jailreap.rs": "aa8df53bb2032f215fd61274fa73880d41b958951dcea65e6d35a0b3dfa2e12d",
     "src/backend/jobdrive.rs": "bdc2280af9f2d7f17dd6dbb1571182a8bf5416e91e00915549306a8d86e68cf5",
-    "src/backend/jobevents.rs": "1c47a925b1d93ba34cf56767c0da0bdf34b8910b3dc2dba02edb6bb5f6496b10",
+    "src/backend/jobevents.rs": "87616419961e49e96187cf4d1bb844bb2a872186029d113629f60dd3e7395ffb",
     "src/backend/jobs.rs": "d084cfbf3d490456efe54b4adbb023b4210d37403e0ef4ef3f39da5f02dd0c2a",
-    "src/backend/jobstart.rs": "2078816622dded99ce3904e24c10c030bbb61a2e529838e184f6e131493f9785",
-    "src/backend/jobview.rs": "77fffd8e42de7ab6e37a24bc4cc7c3be41d2d5a994895e7f564039348017f747",
+    "src/backend/jobstart.rs": "6dfbd86af2d89c3ec2fba4c54c020eea56f533d87c5f1309d470d08a81e4bb69",
+    "src/backend/jobview.rs": "8fa71aec50c15e23a3eac18210cab79ea2098c4a96df208d6612b6ecfb0234c7",
     "src/backend/jobwork.rs": "3885498b08aef09228c1eb357a187fc4f7c661a020eaa6e223ce5652c26cee62",
     "src/backend/journalgate.rs": "120f78481580dabc64dd13079b84c1f2d3f1efcf73028981e4b21edf93aa4e11",
     "src/backend/jump.rs": "4cd6727a1d7a6a39888933bf3612010dc189a56006c591fa12da82ab1e572c38",
@@ -253045,7 +252942,7 @@
     "src/backend/searchwatchpump.rs": "1985350aba2bd2937270e16a358b4263065bcf7ec1add6656114fcd1707cee62",
     "src/backend/sgr.rs": "e5c8557cc94cc56e7786ccd7fc68382c9488c62da12c417b545badfd389f6f71",
     "src/backend/shebang.rs": "653189eaa0785482ea56acdca440f0eac4d8bd6e00557f3c479656c07a466950",
-    "src/backend/shelfdrop.rs": "7675283c54b8c0fdf837b1ec9f6ed1cebed18d3d9f2f682189b7cdba9213d2d6",
+    "src/backend/shelfdrop.rs": "a14fd60665beae9aa6b486c18ca15433cd87bb1f4b97c33013f06b54d30ee833",
     "src/backend/sort.rs": "1735f2d656b6f30dd2bcd8aacd2a3f68181f1d3e56f5b9799b01c3ab995259da",
     "src/backend/state.rs": "fac8136b0e036c7a2428f26b5662c518685c6d4eb75f174b49cb08a1603bc52b",
     "src/backend/tagreadprobe.rs": "a5b5d41231ee53f66ad017ddca32e66e72e243abcf6c5c45fe3c89158ce97c49",
@@ -253068,7 +252965,7 @@
     "src/backend/thumbwrite.rs": "615c6859b0e771a60c8a9f51656b183f422d598440a45c7388b2cb8d5d36ffac",
     "src/backend/timing.rs": "5a94332dff4d75f478acb922436ac2420ee8690e79b3610696f0e7183b7f74e3",
     "src/backend/transferitem.rs": "c7e13c100c83409b646457b2691caa7f2561473c1190fd6e0a96a53c1e6c7f0d",
-    "src/backend/transferstart.rs": "8d8ceb89b05357d4fd7cd8e74ae8f0e6e95385b3a3b44e0475eb15b8edb48e6a",
+    "src/backend/transferstart.rs": "f85f95cb0a6e248ce1f4c751a114e605d9bfffae50f9b3fac2e28de1cbf0016b",
     "src/backend/trash.rs": "773955f0c978f8fd20c37244c11ff082d3416c572a2cb156eebc88662cc106b1",
     "src/backend/trashbrowse.rs": "9c4be9590f7ea5e8c32861bb41ab5a2e31dcd8ed68241f5b37701c378647b67b",
     "src/backend/trashbrowse/details.rs": "3a96ced3090d8002c0d466e4cc6e1c0ba4629637ee093c6b942586a7f6802c65",
@@ -254242,12 +254139,12 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "480847cde5ad7e5d7a3ae8b9713b62c330a8aa7b",
-  "source_sha": "480847cde5ad7e5d7a3ae8b9713b62c330a8aa7b",
+  "source_ref_sha": "de3d96c56a2e48ebeaa67ce077ce64b71615c2eb",
+  "source_sha": "de3d96c56a2e48ebeaa67ce077ce64b71615c2eb",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1353,
-      "missing_literal_candidates": 5733,
+      "missing_literal_candidates": 5740,
       "source_files": 865
     },
     "generated/tooling": {
@@ -254257,7 +254154,7 @@
     },
     "gui": {
       "keys_with_occurrences": 555,
-      "missing_literal_candidates": 2245,
+      "missing_literal_candidates": 2225,
       "source_files": 1179
     },
     "qml-reference": {

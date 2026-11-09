@@ -7,6 +7,7 @@ use std::sync::{Arc, Mutex};
 pub(crate) struct Route {
     state: Arc<Mutex<State>>,
     sender: async_channel::Sender<(u64, String)>,
+    transfers: Arc<Mutex<super::transfers::Transfers>>,
 }
 
 #[derive(Default, Clone, Copy)]
@@ -33,6 +34,7 @@ impl Backend {
         let route = Route {
             state: Default::default(),
             sender,
+            transfers: self.transfers.clone(),
         };
         self.plugin_route.set(route.clone()).ok()?;
         Some((route, receiver, self.plugin_output.clone()))
@@ -54,6 +56,14 @@ impl Backend {
 impl Route {
     pub(crate) fn current(&self, epoch: u64) -> bool {
         self.state.lock().unwrap().epoch == epoch
+    }
+
+    /// The place has answered `line`, the oldest it took, so an eject no longer waits for a transfer it named.
+    pub(crate) fn answered(&self, line: &str) {
+        self.transfers
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .routed_done(line);
     }
 
     fn line(control: &Control) -> Option<String> {

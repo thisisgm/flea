@@ -2,6 +2,62 @@
 use super::jobs::{Job, State};
 use crate::json::escape;
 
+// A job or a shelf drop names every path it reads or writes once, so an eject can wait for it.
+pub(crate) fn roots_line(id: usize, job: bool, paths: &[String]) -> String {
+    let paths: Vec<_> = paths
+        .iter()
+        .map(|path| format!("\"{}\"", escape(path)))
+        .collect();
+    format!(
+        r#"{{"t":"roots","id":{id},"job":{job},"paths":[{}]}}"#,
+        paths.join(",")
+    )
+}
+
+impl super::jobwork::Work {
+    // Every path the work reads or writes, which a client checks before it releases a volume.
+    pub(crate) fn roots(&self) -> Vec<String> {
+        let (paths, selection, written) = match self {
+            Self::Rclone(send) => (&send.paths, &send.selection, Vec::new()),
+            Self::Transfer {
+                paths,
+                dest,
+                selection,
+                destination,
+                ..
+            } => {
+                let mut written = vec![dest.clone()];
+                written.extend(destination.as_ref().map(|held| held.path.clone()));
+                (paths, selection, written)
+            }
+            Self::Archive {
+                paths,
+                archive,
+                dest,
+                selection,
+                ..
+            } => (paths, selection, vec![archive.clone(), dest.clone()]),
+            Self::Action {
+                paths, selection, ..
+            }
+            | Self::Send {
+                paths, selection, ..
+            } => (paths, selection, Vec::new()),
+        };
+        let mut roots = paths.clone();
+        let named = selection
+            .iter()
+            .flatten()
+            .map(|item| &item.path)
+            .chain(&written);
+        roots.extend(named.map(|path| path.to_string_lossy().into_owned()));
+        roots.retain(|path| !path.is_empty());
+        roots.sort();
+        roots.dedup();
+        roots
+    }
+}
+
 impl Job {
     pub(super) fn wait_name(&self) -> &str {
         match self.kind.as_str() {

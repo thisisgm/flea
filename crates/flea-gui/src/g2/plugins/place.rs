@@ -153,6 +153,7 @@ impl Shell {
                             }
                         }
                     };
+                    route.answered(&line);
                     if scoped && !route.current(epoch) {
                         continue;
                     }

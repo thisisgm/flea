@@ -34,6 +34,8 @@ impl Jobs {
             work.paths().len()
         };
         let file = work.file();
+        let roots = super::jobview::roots_line(id, true, &work.roots());
+        writeln!(out, "{roots}").ok();
         let target_name = match &work {
             Work::Rclone(send) => send.remote.clone(),
             Work::Send { peer, name, .. } if name.is_empty() => peer.clone(),

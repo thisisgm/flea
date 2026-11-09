@@ -39,6 +39,12 @@ pub enum Effect {
     ReadSectors(String),
     /// A release ended with its volume still mounted, so the panes it moved go back.
     Restore(Vec<Moved>),
+    /// A phone's Unmount waits until the window has checked its transfers against the phone.
+    ReleasePhone {
+        key: String,
+        uri: String,
+        label: String,
+    },
 }
 
 /// A pane a release moved off its volume: its side, the folder it left and the place it landed in.

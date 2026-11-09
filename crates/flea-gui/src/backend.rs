@@ -172,14 +172,6 @@ impl Backend {
         self.thumbs.load(std::sync::atomic::Ordering::Relaxed)
     }
 
-    /// Menu producer requests share the ordered backend pipe.
-    pub fn line(&self, line: String) -> Result<(), Failure> {
-        if flea::json::field_str(&line, "c").as_deref() == Some("formats") {
-            self.formats_requests.fetch_add(1, Ordering::Relaxed);
-        }
-        self.record_transfer(&line);
-        self.send(Control::Line(line))
-    }
     /// Backend.qml dirWritable for this folder; a folder no listed line has named yet reads writable.
     pub fn dir_writable(&self, path: &str) -> bool {
         self.folders
@@ -334,13 +326,18 @@ impl Backend {
     }
 
     fn send(&self, control: Control) -> Result<(), Failure> {
+        self.place(control).map(drop)
+    }
+
+    /// True when a plugin place took the line instead of the backend.
+    fn place(&self, control: Control) -> Result<bool, Failure> {
         let closing = self.closing.lock().unwrap();
         if *closing != Closing::Open {
             return Err(failure("window.backend_stopped", ""));
         }
         if let Some(route) = self.plugin_route.get() {
             if route.intercept(&control)? {
-                return Ok(());
+                return Ok(true);
             }
         }
         let thumb = matches!(&control, Control::Line(line) if line.starts_with(r#"{"c":"thumb","#));
@@ -353,7 +350,7 @@ impl Backend {
         }
         drop(closing);
         self.notify();
-        Ok(())
+        Ok(false)
     }
 
     pub fn drained(&self) -> Receiver<()> {

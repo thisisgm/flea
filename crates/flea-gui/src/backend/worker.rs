@@ -295,6 +295,15 @@ impl<'a> Worker<'a> {
                 return;
             }
         };
+        // A roots line only feeds the eject check, so it is never parsed for an owner downstream.
+        if self
+            .transfers
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .answered(line)
+        {
+            return;
+        }
         let event = wire_event(line);
         // The folder fact lands before its listed event, so a menu built on that landing reads it.
         if let Some((folder, writable)) = transport::listed_folder(&event, line) {
@@ -303,10 +312,6 @@ impl<'a> Worker<'a> {
                 .unwrap_or_else(PoisonError::into_inner)
                 .record(folder, writable);
         }
-        self.transfers
-            .lock()
-            .unwrap_or_else(PoisonError::into_inner)
-            .answered(line);
         if let Some(changed) = transport::reload_changed(&event, line) {
             let _ = self.output.try_send(Event::ReloadChanged(changed));
         }

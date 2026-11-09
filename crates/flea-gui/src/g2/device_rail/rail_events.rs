@@ -67,6 +67,10 @@ impl Shell {
                     self.status_messages(cx, |messages, now| messages.forget(&text, now));
                 }
                 Event::Device(Effect::Restore(moved)) => self.restore_moved(moved, window, cx),
+                Event::Device(Effect::ReleasePhone { key, uri, label }) => {
+                    let (key, uri, label) = (key.clone(), uri.clone(), label.clone());
+                    self.release_phone(request.side, &key, &uri, &label, cx);
+                }
                 _ => self.dispatch(Order::Device(request), window, cx),
             }
         }

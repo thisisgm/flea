@@ -16,6 +16,18 @@ use std::thread;
 // Rule 4: a token that is unknown, expired, already spent or no longer names the files it was minted
 // for is refused with a sentence. Flea never falls back to a URI copy after promising a move.
 pub(crate) fn start(out: &mut impl Write, ops: &mut Ops, token: &str, dest: &str, collide: Ask) {
+    start_from(out, ops, Shelf::user, token, dest, collide)
+}
+
+// The shelf is opened here, after the live and landing checks, so a test can hand in a sandboxed one.
+fn start_from(
+    out: &mut impl Write,
+    ops: &mut Ops,
+    open: impl FnOnce() -> Result<Shelf, String>,
+    token: &str,
+    dest: &str,
+    collide: Ask,
+) {
     // Redeeming spends the token whatever happens next, so every refusal this drop can earn is
     // earned before it: a burned token leaves the operator with a drag they cannot repeat.
     if ops.live.running().is_some() {
@@ -29,7 +41,7 @@ pub(crate) fn start(out: &mut impl Write, ops: &mut Ops, token: &str, dest: &str
             return;
         }
     };
-    let shelf = match Shelf::user() {
+    let shelf = match open() {
         Ok(shelf) => shelf,
         Err(e) => return refuse(out, dest, &e),
     };
@@ -41,6 +53,15 @@ pub(crate) fn start(out: &mut impl Write, ops: &mut Ops, token: &str, dest: &str
     let dest = landing;
     let (id, cancel) = ops.claim_transfer();
     writeln!(out, "{}", transferstarted_line(id, redeemed.paths.len(), redeemed.moving)).ok();
+    // The client sent only the token, so the shelf's own entries are named for its eject check.
+    let mut roots = redeemed.paths.clone();
+    roots.push(dest.to_string_lossy().into_owned());
+    writeln!(
+        out,
+        "{}",
+        crate::backend::jobview::roots_line(id, false, &roots)
+    )
+    .ok();
     out.flush().ok();
     let tx = ops.tx.clone();
     thread::spawn(move || run_and_settle(id, redeemed.moving, redeemed.paths, dest, cancel, tx, shelf, policy));
@@ -157,7 +178,8 @@ fn refuse(out: &mut impl Write, dest: &str, why: &str) {
 
 #[cfg(test)]
 mod tests {
-    use super::{moved_paths, start, Ask, Ops};
+    use super::{moved_paths, start, start_from, Ask, OpMsg, Ops, Shelf};
+    use crate::backend::testdir::TestDir;
 
     #[test]
     fn a_drop_while_an_operation_runs_says_the_shared_sentence() {
@@ -168,6 +190,48 @@ mod tests {
         start(&mut out, &mut ops, "token", "/d", Ask::parse(r#"{"c":"transfer"}"#));
         let line = String::from_utf8(out).unwrap();
         assert!(line.contains(r#""msg":"an operation is already running""#), "{}", line);
+    }
+
+    #[test]
+    fn a_drop_names_the_shelf_entries_it_reads_and_the_folder_it_writes() {
+        let root = TestDir::new("shelf-drop-roots");
+        root.dir("stick");
+        let photo = root
+            .file("stick/photo.jpg", "jpeg")
+            .to_string_lossy()
+            .into_owned();
+        let dest = root.dir("home");
+        let shelf = Shelf::at(&root.join("state"));
+        let token = shelf
+            .drag_begin(false, std::slice::from_ref(&photo), crate::shelf::now_ms())
+            .unwrap();
+        let (tx, rx) = std::sync::mpsc::channel();
+        let mut ops = Ops::new(tx);
+        let mut out = Vec::new();
+        start_from(
+            &mut out,
+            &mut ops,
+            move || Ok(shelf),
+            &token,
+            dest.to_str().unwrap(),
+            Ask::parse(r#"{"c":"transfer"}"#),
+        );
+        let text = String::from_utf8(out).unwrap();
+        let roots = text
+            .lines()
+            .find(|line| line.starts_with(r#"{"t":"roots""#))
+            .unwrap_or_default();
+        assert!(roots.contains(r#""job":false"#), "a drop is no job: {text}");
+        assert_eq!(
+            crate::json::field_str_array(roots, "paths"),
+            [photo, dest.to_string_lossy().into_owned()],
+            "{text}"
+        );
+        while !matches!(
+            rx.recv_timeout(std::time::Duration::from_secs(10))
+                .expect("the drop ends"),
+            OpMsg::TransferDone { .. }
+        ) {}
     }
 
     #[test]
