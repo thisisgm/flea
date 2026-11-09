@@ -154,6 +154,8 @@ impl QuickLook {
                 touched: Some(std::rc::Rc::new(move |_, cx| {
                     let _ = weak.update(cx, |look, cx| look.reveal_strip(cx));
                 })),
+                // A press during the hold only reveals the card, as the ground rules.
+                frame_click: self.revealed,
             }
             .build(cx);
             return vec![div()

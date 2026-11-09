@@ -256,14 +256,7 @@ impl Render for SelectionPreview {
                             .as_ref()
                             .map_or_else(Default::default, |p| p.read(cx).painted.clone()),
                     };
-                    media.child(
-                        div()
-                            .size_full()
-                            .when(failed, |d| {
-                                d.debug_selector(|| "column-media-failed".into())
-                            })
-                            .child(element),
-                    )
+                    media.child(Self::video_frame(failed, element, cx))
                 }
                 _ if frame.kind == Kind::Multi => {
                     media.child(multi::stack(&frame.subject, mark_size, roles.muted_frame))

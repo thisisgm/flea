@@ -229,6 +229,7 @@ impl Render for Kit {
             caches: &self.caches,
             strip_shown: true,
             touched: None,
+            frame_click: true,
         }
         .build(cx);
         div().size_full().bg(ink.surface).child(card)

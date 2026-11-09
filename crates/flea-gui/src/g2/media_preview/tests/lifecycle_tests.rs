@@ -173,6 +173,7 @@ impl Render for Host {
             caches: &self.caches,
             strip_shown: false,
             touched: None,
+            frame_click: true,
         };
         card.child(quick.build(cx))
     }
