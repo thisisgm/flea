@@ -50,6 +50,8 @@ const fn acting(
 
 pub const INVENTORY: &[Spec] = &[
     spec("open", "menu.row.open", "folder-open", "FTPR", "open"),
+    // The search results' own way to the file, the reveal o and Enter make, for hands on the mouse.
+    spec("goToLocation", "menu.row.go_to_location", "folder", "FTPR", "open"),
     acting(
         "showOriginal",
         "menu.row.show_original",

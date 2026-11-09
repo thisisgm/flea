@@ -15,16 +15,16 @@ pub(super) fn st(change: impl FnOnce(&mut Context)) -> Context {
 fn sol_menu_order_inventory_order_and_default_menus() {
     let i18n = english();
     let file = listing_entries(&state());
-    // 0.4.0 adds Print, Combine Images and Send with rclone to the 57 rows v0.3.12 shipped; 0.4.1 adds Send with AirDrop.
+    // 0.4.0 adds Print, Combine Images and Send with rclone to the 57 rows v0.3.12 shipped; 0.4.1 adds Send with AirDrop and the search results' Go to Location.
     check(
-        "Menus and Places inventory has 61 actions",
+        "Menus and Places inventory has 62 actions",
         INVENTORY.len(),
-        61,
+        62,
     );
     check(
         "inventory storage ids are unique",
         INVENTORY.iter().map(|s| s.id).collect::<HashSet<_>>().len(),
-        61,
+        62,
     );
     check("default image menu matches Menus specimen", actions(&file),
         "open,openWith,run,openAsText,cut,copy,paste,duplicate,rename,compress,convert,flashDrive,addToShelf,taildrop,dropbox,tags,toggleHidden,toggleLangMarks,trash".into());
@@ -824,5 +824,29 @@ fn print_convert_and_combine() {
             entry(&mixed, "combineImages").is_none(),
         ),
         (true, true),
+    );
+}
+
+#[test]
+fn go_to_location_joins_only_a_search_listing() {
+    // A plain listing already stands in the folder the row would name, so the row is the walk's alone.
+    assert!(
+        entry(&listing_entries(&state()), "goToLocation").is_none(),
+        "a plain listing carries no Go to Location"
+    );
+    let searching = actions(&listing_entries(&st(|p| p.searching = true)));
+    let order: Vec<&str> = searching.split(',').collect();
+    assert!(
+        order.contains(&"goToLocation"),
+        "a search listing offers its own way to the file: {searching}"
+    );
+    let (open, go, with) = (
+        order.iter().position(|a| *a == "open"),
+        order.iter().position(|a| *a == "goToLocation"),
+        order.iter().position(|a| *a == "openWith"),
+    );
+    assert!(
+        open.is_some_and(|open| go.is_some_and(|go| with.is_some_and(|with| open < go && go < with))),
+        "Go to Location opens the first group, beside Open: {searching}"
     );
 }

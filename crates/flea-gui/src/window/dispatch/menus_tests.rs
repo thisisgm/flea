@@ -309,3 +309,52 @@ mod extracted;
 
 #[path = "menus_refuse_tests.rs"]
 mod refuse;
+
+#[gpui::test]
+fn a_search_results_go_to_location_row_takes_the_file_to_its_folder(
+    cx: &mut gpui::TestAppContext,
+) {
+    let (shell, cx) = open(cx, "default");
+    let mut track = entry("Music/Album/track-60.flac", FILE);
+    track.icon = "audio-x-generic".into();
+    land(&shell, cx, "/files", vec![entry("Music", DIR), track], 1);
+    // A walk owns the rows, as fixmenus' search fixture sets it: the results name files under the base.
+    shell.update(cx, |shell, _| {
+        let host = shell.panes[0].as_mut().unwrap();
+        host.search.owner.session.base = "/files".into();
+        host.search.owner.session.query = "track".into();
+        host.search.owner.session.mode = flea::ui_logic_sr1::Mode::Results;
+    });
+    settle(cx);
+    cx.simulate_keystrokes("j");
+    super::test_shell::sent();
+    // The pointer's own entrance, as a right click on a result takes: open_menu moves the cursor there.
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| shell.open_menu(0, Some(1), (300., 80.), window, cx))
+    });
+    cx.run_until_parked();
+    answer(&shell, cx, &[FILE]);
+    let shown = actions(&shell, cx);
+    assert!(
+        shown.contains(&"goToLocation".to_owned()),
+        "the search results offer their own way to the file: {shown:?}"
+    );
+    choose(&shell, cx, "goToLocation");
+    validated(&shell, cx, "goToLocation", &["/files/Music/Album/track-60.flac"]);
+    assert_eq!(
+        super::test_shell::asked(&shell, cx),
+        "/files/Music/Album",
+        "the reveal lists the file's own folder"
+    );
+    let mut back = entry("track-60.flac", FILE);
+    back.icon = "audio-x-generic".into();
+    land(&shell, cx, "/files/Music/Album", vec![entry("sleeve.png", FILE), back], 30);
+    shell.read_with(cx, |shell, _| {
+        let host = shell.panes[0].as_ref().unwrap();
+        assert_eq!(host.pane.cursor, 1, "the revealed file lands selected");
+        assert_eq!(host.pane.held.row(1).unwrap().name, "track-60.flac");
+        assert!(!host.search.owner.active(), "the walk is closed");
+        assert!(!shell.menu_opened(), "the menu retired");
+    });
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}

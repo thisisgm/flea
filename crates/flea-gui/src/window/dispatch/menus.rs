@@ -35,6 +35,12 @@ pub(super) fn run(
                     || (!chosen.captured.rows.is_empty()
                         && chosen.leaf != flea::ui_logic_mn1::rows::OPEN_WITH_OTHER))
         }
+        // The search results' own reveal: one captured row, taken to its folder the way o and Enter do.
+        "goToLocation" => {
+            chosen.captured.ready
+                && !chosen.captured.background
+                && !chosen.captured.rows.is_empty()
+        }
         "selectAll" | "invertSelection" | "toggleHidden" | "toggleLangMarks" | "settings"
         | "updateFlea" | "extThumbs" | "addFavourite" => true,
         _ => false,
@@ -81,6 +87,18 @@ pub(super) fn run(
                 let refusal = shell.locale.catalog.tr("dialogs.file.open.unlisted");
                 shell.menu_notice(chosen.captured.side, refusal, cx);
             }
+        }
+        // The search results' own reveal: the row the menu captured, the same step o and Enter make.
+        "goToLocation" => {
+            let side = chosen.captured.side;
+            let focused = std::mem::replace(&mut shell.focus_side, side);
+            if let Some(&row) = chosen.captured.rows.first() {
+                if let Some(host) = shell.panes[side].as_mut() {
+                    host.pane.cursor = row;
+                }
+            }
+            shell.search_action("reveal", window, cx);
+            shell.focus_side = focused;
         }
         // Marks.js selectAll and invert: the rows the listing draws, so a filter narrows them.
         "selectAll" | "invertSelection" => {

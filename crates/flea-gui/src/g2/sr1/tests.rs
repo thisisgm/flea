@@ -360,8 +360,8 @@ fn the_sheet_and_pointer_tables_name_search_and_reveal() {
             .find(|binding| binding.place == place && binding.press == press && binding.row == row)
             .map(|binding| binding.effect)
     };
-    // A result reveals on one click and on a double click; a neighbour folder reveals on one.
-    assert_eq!(pointer("listing", "left", "result"), Some("reveal"));
+    // A result selects on one click and goes to the file on a double click; a neighbour folder reveals on one.
+    assert_eq!(pointer("listing", "left", "result"), Some("selectOnly"));
     assert_eq!(pointer("listing", "left x2", "result"), Some("reveal"));
     assert_eq!(pointer("neighbour", "left", "dir"), Some("reveal"));
     // Only a standing query turns a row activation into a reveal.

@@ -198,7 +198,9 @@ fn a_second_tap_of_a_shift_click_keeps_the_landing(cx: &mut TestAppContext) {
 
 // A search result reveals on a tap; this pane's landing is armed by hand on the results' listing.
 #[gpui::test]
-fn a_tap_that_reveals_a_search_result_keeps_the_landing(cx: &mut TestAppContext) {
+fn a_tap_that_selects_and_a_double_click_that_reveals_a_search_result_keeps_the_landing(
+    cx: &mut TestAppContext,
+) {
     let (shell, cx) = landed_on_beta_in(cx, rows());
     cx.update(|window, cx| shell.update(cx, |shell, cx| window.focus(&shell.focus, cx)));
     cx.simulate_keystrokes("f s");
@@ -218,21 +220,24 @@ fn a_tap_that_reveals_a_search_result_keeps_the_landing(cx: &mut TestAppContext)
         window.refresh();
         window.draw(cx).clear(cx);
     });
-    let armed = shell.update(cx, |shell, _| {
-        let host = shell.panes[0].as_mut().unwrap();
-        assert!(
-            host.search.owner.session.reveals_on_activate(),
-            "the rows are results"
-        );
-        host.nav.landed = Some((host.pane.held.listing, 1));
-        host.nav.landed
-    });
     let deep = row_point(&shell, cx, 1);
     click(&shell, cx, deep, MouseButton::Left, 1, Modifiers::none());
     assert_eq!(
         asked(&shell, cx),
+        "/files",
+        "one tap selects the result and stays among the results"
+    );
+    // The landing is armed after the selecting tap, as the original reveal-only flow had it.
+    let armed = shell.update(cx, |shell, _| {
+        let host = shell.panes[0].as_mut().unwrap();
+        host.nav.landed = Some((host.pane.held.listing, 1));
+        host.nav.landed
+    });
+    click(&shell, cx, deep, MouseButton::Left, 2, Modifiers::none());
+    assert_eq!(
+        asked(&shell, cx),
         "/files/sub",
-        "the tap reveals the result's folder"
+        "the double click reveals the result's folder"
     );
     assert_eq!(landed(&shell, cx).0, armed, "reveal keeps the landing");
     shell.update(cx, |shell, _| shell.stop_for_app_quit());

@@ -241,8 +241,8 @@ pub static SHARED_KEYS: &[Binding] = &[
 pub static POINTER: &[PointerBinding] = &[
     PointerBinding::new("listing", "left", "any", "selectOnly", "keys.label.0f5e1d3b4d07", "left", 0, 1),
     PointerBinding::new("listing", "left x2", "any", "open", "keys.label.aea63c219a1f", "left", 0, 2),
-    PointerBinding::new("listing", "left", "result", "reveal", "keys.label.bfa65befcad0", "left", 0, 1),
-    PointerBinding::new("listing", "left x2", "result", "reveal", "keys.label.5b565de4e1bf", "left", 0, 2),
+    PointerBinding::new("listing", "left", "result", "selectOnly", "keys.label.a49f235542c7", "left", 0, 1),
+    PointerBinding::new("listing", "left x2", "result", "reveal", "keys.label.bfa65befcad0", "left", 0, 2),
     PointerBinding::new("listing", "ctrl left", "any", "toggleSelect", "keys.label.cbb73e0f65c2", "left", 1, 1),
     PointerBinding::new("listing", "shift left", "any", "extendSelect", "keys.label.3f2fe331c42f", "left", 2, 1),
     PointerBinding::new("listing", "ctrl left x2", "any", "toggleSelect", "keys.label.689055bb3fe6", "left", 1, 2),

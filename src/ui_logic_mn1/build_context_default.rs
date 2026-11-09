@@ -63,6 +63,7 @@ impl Default for Context {
             trash_total: 0,
             busy: false,
             recent: false,
+            searching: false,
             rail: None,
         }
     }
