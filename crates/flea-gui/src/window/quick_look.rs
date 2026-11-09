@@ -187,7 +187,7 @@ impl Shell {
     }
 
     /// One row's subject by its kind, held back until the backend answers what it still needs.
-    fn show_row(
+    pub(super) fn show_row(
         &mut self,
         side: usize,
         index: usize,
@@ -205,7 +205,13 @@ impl Shell {
             shape: Shape::unknown(state),
             body,
         };
-        if let Some(mount) = mount::Mount::of(row) {
+        // A name with no known type opens by its head (.bash_aliases, .jc141rc): as text, or as code after #!.
+        let sniff =
+            crate::window::sniff::lookup(row, &path).filter(|_| state == State::Unsupported);
+        let text = sniff.as_ref().and_then(|(_, head)| *head);
+        let mount =
+            mount::Mount::of(row).or_else(|| text?.pick(mount::Mount::Text, mount::Mount::Code));
+        if let Some(mount) = mount {
             if self.show_doc(side, index, row, &path, mount, window, cx) {
                 return;
             }
@@ -241,6 +247,10 @@ impl Shell {
         host.ask = ask;
         self.show(subject, revealed, line, window, cx);
         self.quick_look_header(token, early, cx);
+        // Unread yet, the card opens as it is and reopens by its head once read.
+        if let Some((key, None)) = sniff {
+            self.quick_look_sniff(key, token, (side, index), row.clone(), window, cx);
+        }
     }
 
     /// Opens or replaces the card's subject and sends its one ask; the card takes the keyboard.

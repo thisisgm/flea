@@ -276,7 +276,7 @@ impl Workers {
     }
 }
 
-fn read(path: &Path, limit: u64) -> Read {
+pub(super) fn read(path: &Path, limit: u64) -> Read {
     let Some(file) = flea::backend::regfile::open_regular(path) else {
         return Read::Failed;
     };
@@ -290,7 +290,7 @@ fn read(path: &Path, limit: u64) -> Read {
     if bytes.len() as u64 > limit {
         return Read::Large;
     }
-    let text: Arc<str> = String::from_utf8_lossy(&bytes).into();
+    let text: Arc<str> = flea::textdecode::decode(&bytes).into();
     let starts = Arc::new(line_starts(&text));
     Read::Text(text, starts)
 }

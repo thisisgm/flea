@@ -123,11 +123,13 @@ fn open_snapshot(target: &Path, opened: &crate::runid::Opened, ask: bool, mounts
 // Past every run decision: handed to GIO and waited on, the way the opener always did.
 fn open_normally(target: &Path, ask: bool, images: &[String]) -> i32 {
     // corner: waited for, not detached, and on an archive that wait is a cold handler start; see AGENTS.md "Opening a file".
-    let mut launcher = crate::imageopen::launcher(target, images).unwrap_or_else(|| {
-        let mut single = Command::new("gio");
-        single.arg("open").arg(target);
-        single
-    });
+    let mut launcher = crate::imageopen::launcher(target, images)
+        .or_else(|| empty_by_name(target))
+        .unwrap_or_else(|| {
+            let mut single = Command::new("gio");
+            single.arg("open").arg(target);
+            single
+        });
     prepare(&mut launcher);
     let finished = launcher
         // The handler outlives us, so an inherited pipe would kill it on its first write; see AGENTS.md "Opening a file".
@@ -154,6 +156,19 @@ fn open_normally(target: &Path, ask: bool, images: &[String]) -> i32 {
             FAILED
         }
     }
+}
+
+// GIO types every empty file application/x-zerosize, which nothing claims, so an empty notes.md opens with its name's type's default.
+fn empty_by_name(target: &Path) -> Option<Command> {
+    if !std::fs::metadata(target).is_ok_and(|meta| meta.is_file() && meta.len() == 0) {
+        return None;
+    }
+    let name = target.file_name()?.to_str()?;
+    let mime = crate::backend::mime::Db::load().lookup(name)?.to_string();
+    let app = crate::desktopid::resolve(&crate::desktopid::default_handler_gio(&mime))?;
+    let mut launcher = Command::new("gio");
+    launcher.arg("launch").arg(app).arg(target);
+    Some(launcher)
 }
 
 #[cfg(test)]

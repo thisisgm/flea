@@ -229,7 +229,13 @@ impl Subject {
         if self.selected_count > 1 {
             Kind::Multi
         } else {
-            Kind::of(&self.row)
+            match Kind::of(&self.row) {
+                // A row with no known type (.jc141rc, notes) previews as text when it reads as text, a #! script as code.
+                Kind::Facts => crate::window::sniff::lookup(&self.row, &self.path())
+                    .and_then(|(_, head)| head?.pick(Kind::Text, Kind::Code))
+                    .unwrap_or(Kind::Facts),
+                kind => kind,
+            }
         }
     }
 }

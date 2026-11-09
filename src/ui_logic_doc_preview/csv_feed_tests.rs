@@ -158,9 +158,9 @@ fn csv_feed_quick_look_grid() {
     );
 }
 
-// big.csv: the widths the first screen put are kept on a scroll and a far jump, and the last screen is one ask.
+// big.csv: a scroll and a far jump widen each column to its widest held cell, never narrower, and the last screen is one ask.
 #[test]
-fn csv_feed_big_file_keeps_its_widths_and_jumps_in_one_ask() {
+fn csv_feed_big_file_widens_to_its_held_cells_and_jumps_in_one_ask() {
     let mut text = String::from("id,name\n");
     for i in 1..50_000 {
         let name = if i == 60 {
@@ -187,7 +187,11 @@ fn csv_feed_big_file_keeps_its_widths_and_jumps_in_one_ask() {
         120,
         "the long name is held"
     );
-    assert_eq!(feed.widths, widths, "the widths did not move on scroll");
+    assert_eq!(
+        feed.widths,
+        vec![widths[0], 864.],
+        "the 120-character name widens its column on scroll"
+    );
     let asked = engine.asks.len();
     feed.set_view(22, 50_000 - 21);
     pump(&mut feed, &mut engine);
@@ -200,7 +204,12 @@ fn csv_feed_big_file_keeps_its_widths_and_jumps_in_one_ask() {
         feed.table.at_record(50_000).is_some(),
         "the last record is held"
     );
-    assert_eq!(feed.widths, widths, "a far jump preserves the widths");
+    // Five-digit ids widen the id column; the long name keeps its own, though the last screen holds none like it.
+    assert_eq!(
+        feed.widths,
+        vec![36., 864.],
+        "a far jump widens and never narrows"
+    );
     assert!(
         engine.asks.iter().all(|a| a.count <= LINE_CAP),
         "no ask names more than the cap"

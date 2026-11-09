@@ -41,11 +41,12 @@ fn pv2_review_r3_first_screen_of_multiline_records_draws_whole_cells(cx: &mut Te
     );
 }
 
-// Forty columns, 2,500 rows: the last column is short and numeric on the first screen and long text after it. After
-// scrolling down, one frame to the right measures the late columns over the first screen's 48 rows, never the held.
+// Forty columns, 2,500 rows, the far column long text past the first screen: after a scroll down, a draw to the right takes the first screen once and one bounded slice a frame.
 #[gpui::test]
 fn pv2_review_r3_sideways_after_scrolling_down_measures_the_first_screen(cx: &mut TestAppContext) {
     const COLS: usize = 40;
+    // A late column's first-screen cells: the head and the first screen's 48 rows.
+    const FIRST_SCREEN_CELLS: usize = 1 + 48;
     let mut text = (0..COLS)
         .map(|c| format!("c{c}"))
         .collect::<Vec<_>>()
@@ -75,8 +76,12 @@ fn pv2_review_r3_sideways_after_scrolling_down_measures_the_first_screen(cx: &mu
     })
     .unwrap();
     serve(cx, view, &sent, &text);
-    let (reached, measured) = read(cx, view, |v| {
-        (v.feed.widths.len(), v.feed.counters.measured)
+    let (reached, measured, laid) = read(cx, view, |v| {
+        (
+            v.feed.widths.len(),
+            v.feed.counters.measured,
+            v.feed.counters.frames,
+        )
     });
     assert!(
         (1..COLS).contains(&reached),
@@ -88,25 +93,57 @@ fn pv2_review_r3_sideways_after_scrolling_down_measures_the_first_screen(cx: &mu
     })
     .unwrap();
     draw(cx, view);
-    let (delta, width, right) = read(cx, view, |v| {
+    let (delta, frames, width, right) = read(cx, view, |v| {
         (
             v.feed.counters.measured - measured,
+            v.feed.counters.frames - laid,
             v.feed.widths[COLS - 1],
             v.feed.rights[COLS - 1],
         )
     });
     let late = COLS - reached;
-    println!("REV-R3 sideways after scroll down: {late} late columns measured as {delta} cells; far width {width}, right {right}");
+    println!("REV-R3 sideways after scroll down: {late} late columns measured as {delta} cells in {frames} frames; far width {width}, right {right}");
+    assert!(frames >= 1, "the draw laid the table out");
     assert_eq!(
         delta,
-        late * 49,
-        "one frame to the right measures its columns over the first screen's 48 rows"
+        late * FIRST_SCREEN_CELLS + frames * WIDEN_CELLS,
+        "the draw measures its columns over the first screen once and one whole slice a frame"
     );
+    assert!(
+        width >= 22.0 && right,
+        "the far column starts from the first screen and keeps its alignment"
+    );
+    // S9G-8: later frames widen the far column to its 40-character held cells.
+    let widest = body_px(cx, view, &"y".repeat(40));
+    widen(cx, view);
+    let width = read(cx, view, |v| v.feed.widths[COLS - 1]);
     assert_eq!(
-        (width, right),
-        (22.0, true),
-        "the far column keeps the first screen's width and alignment"
+        width, widest,
+        "the far column widens to exactly its widest held cell"
     );
+}
+
+// A body cell's width as the view's measure takes it: the shaped line, never under its characters at advance('0').
+fn body_px(cx: &mut TestAppContext, view: WindowHandle<CsvView>, value: &str) -> f64 {
+    let advance = f64::from(advance_px(cx, view));
+    view.update(cx, |v, window, _| {
+        let run = gpui::TextRun {
+            len: value.len(),
+            font: v.face.font.clone(),
+            color: gpui::Hsla::default(),
+            background_color: None,
+            underline: None,
+            strikethrough: None,
+        };
+        let shaped = window
+            .text_system()
+            .layout_line(value, v.face.caption, &[run], None)
+            .width;
+        f64::from(shaped)
+            .max(value.chars().count() as f64 * advance)
+            .ceil()
+    })
+    .unwrap()
 }
 
 // Twenty rows of 2,000-character notes: every 40 px sideways step draws at most the frame's characters, and the

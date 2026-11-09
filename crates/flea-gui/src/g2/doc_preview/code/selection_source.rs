@@ -10,10 +10,12 @@ fn read(path: &str, limit: u64) -> Option<String> {
     }
     let mut bytes = Vec::new();
     file.take(limit + 1).read_to_end(&mut bytes).ok()?;
-    if bytes.len() as u64 > limit || bytes.contains(&0) {
+    if bytes.len() as u64 > limit {
         return None;
     }
-    String::from_utf8(bytes).ok()
+    // The same characters the backend drew, so a Latin-1 or UTF-16 file copies what it shows.
+    let text = flea::textdecode::decode(&bytes).into_owned();
+    (!text.contains('\0')).then_some(text)
 }
 
 impl CodeView {

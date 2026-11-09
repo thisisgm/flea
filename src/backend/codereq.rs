@@ -251,14 +251,14 @@ fn judge(data: &[u8], formatted: bool) -> Verdict {
     }
 }
 
-// At most one byte past the large mark of a file is read; a file that cannot be read has no answer.
+// At most one byte past the large mark of a file is read, as its characters (Latin-1, UTF-16, no byte order mark) unless past the mark, so a decode that shrinks it never hides a large file; a file that cannot be read has no answer.
 fn load(source: &Source) -> Option<Cow<'_, [u8]>> {
     match source {
         Source::Text { text, .. } => Some(Cow::Borrowed(text.as_bytes())),
         Source::File(path) if Path::new(path).is_absolute() => {
             let mut data = Vec::new();
             open_regular(Path::new(path))?.take(LARGE_BYTES as u64 + 1).read_to_end(&mut data).ok()?;
-            Some(Cow::Owned(data))
+            Some(Cow::Owned(if data.len() > LARGE_BYTES { data } else { flea::textdecode::into_utf8(data) }))
         }
         Source::File(_) => None,
     }

@@ -27,6 +27,7 @@ pub mod plugin_runtime;
 pub mod qscrash;
 pub mod preview_model;
 pub mod rawname;
+pub mod textdecode;
 pub mod theme;
 pub mod ui_logic_status_feedback;
 pub mod ui_logic_file_clipboard;

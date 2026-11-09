@@ -23,9 +23,10 @@ pub(super) fn root() -> PathBuf {
     crate::userfile::cache_home().join(CACHE_LEAF)
 }
 
-pub(super) fn key(font: &Path, meta: &std::fs::Metadata, ask: &Ask) -> String {
+// text is the sample drawn, which a font with no Latin letters picks for itself.
+pub(super) fn key(font: &Path, meta: &std::fs::Metadata, ask: &Ask, text: &str) -> String {
     let sizes: Vec<String> = ask.sizes.iter().map(|s| s.to_string()).collect();
-    let stamp = format!("{}\n{}.{}\n{}\n{}\n{}\n{}", uri_for(font), meta.mtime(), meta.mtime_nsec(), ask.fg, ask.bg, sizes.join(","), ask.text);
+    let stamp = format!("{}\n{}.{}\n{}\n{}\n{}\n{}", uri_for(font), meta.mtime(), meta.mtime_nsec(), ask.fg, ask.bg, sizes.join(","), text);
     md5::hex(stamp.as_bytes())
 }
 

@@ -1,4 +1,4 @@
-// Review round 3 proofs: widths and alignment take every first-screen row, a late column costs its first screen.
+// Review round 3 proofs, and S9G-8: widths and alignment start from every first-screen row, then widths widen to the held cells.
 use super::engine::*;
 use super::*;
 
@@ -113,15 +113,28 @@ fn late_setup() -> (Feed, usize, usize) {
     (feed, reached, measured)
 }
 
-// v0.3.12 freezes [22.0] [true] for the far column; measuring it over every held row reads a 40-character width.
-#[test]
-fn rev_r3_far_column_is_measured_over_the_first_screen() {
-    let (mut feed, _, _) = late_setup();
+// Measure calls, one a frame, until no held cell is left to widen by; the count of calls taken.
+fn widen_all(feed: &mut Feed) -> usize {
+    let mut frames = 1;
     feed.measure(f64::INFINITY, &mut measure);
+    while feed.widening {
+        frames += 1;
+        assert!(frames < 10_000, "the widening ends");
+        feed.measure(f64::INFINITY, &mut measure);
+    }
+    frames
+}
+
+// S9G-8 (board ql-office-sheet): the far column widens from 22 px to its 40-character held cells, its alignment kept.
+#[test]
+fn s9g8_far_column_widens_to_its_widest_held_cell() {
+    let (mut feed, _, _) = late_setup();
+    let frames = widen_all(&mut feed);
+    assert!(frames > 1, "the held rows take several frames: {frames}");
     assert_eq!(feed.widths.len(), 40, "every column is kept");
     assert_eq!(
-        feed.widths[39], 22.0,
-        "the far column takes the first screen's width"
+        feed.widths[39], 288.0,
+        "the far column takes its widest held cell"
     );
     assert!(
         feed.rights[39],
@@ -129,10 +142,9 @@ fn rev_r3_far_column_is_measured_over_the_first_screen() {
     );
 }
 
-// The deterministic per-frame cost: a column the frame reaches late is measured over the first screen's rows, never
-// over the rows the scroll has held.
+// Cost: a frame to the right takes the late columns' first screen and at most WIDEN_CELLS held cells; each held cell once in all.
 #[test]
-fn rev_r3_far_column_measure_cost_follows_the_first_screen() {
+fn s9g8_far_column_cost_is_the_first_screen_and_a_bounded_slice() {
     let (mut feed, reached, before) = late_setup();
     let first = feed
         .table
@@ -141,9 +153,68 @@ fn rev_r3_far_column_measure_cost_follows_the_first_screen() {
         .filter(|row| row.record <= feed.first_to)
         .count();
     feed.measure(f64::INFINITY, &mut measure);
+    let frame = feed.counters.measured - before;
     assert_eq!(
-        feed.counters.measured - before,
-        (40 - reached) * (first + 1),
-        "one frame to the right measures its columns over the first screen only"
+        frame,
+        (40 - reached) * (first + 1) + WIDEN_CELLS,
+        "one frame to the right measures the first screen's cells and one whole slice"
+    );
+    // The next frame resumes at the row the last one stopped on, never at the first row.
+    let resumed = feed.widen_from;
+    assert!(resumed > 0 && feed.widening, "the slice stopped part way");
+    feed.measure(f64::INFINITY, &mut measure);
+    assert!(
+        feed.widen_from > resumed,
+        "the next slice walks on from row {resumed}"
+    );
+    widen_all(&mut feed);
+    assert_eq!(
+        feed.widen_from,
+        feed.table.rows.len(),
+        "every held row is walked"
+    );
+    assert_eq!(
+        feed.counters.measured,
+        40 * (1 + feed.table.rows.len()),
+        "each head and held cell is measured once"
+    );
+}
+
+// S9G-8's long.csv: values past the first screen are wider than its own, and a scroll to the end widens all three.
+#[test]
+fn s9g8_a_scroll_past_the_first_screen_widens_to_the_wider_values() {
+    let text: String = std::iter::once("a,b,c\n".to_string())
+        .chain((0..600).map(|i| format!("{i},{},{}\n", i * 2, i * 3)))
+        .collect();
+    let (mut feed, mut engine) = open(&text, ',', look(), 24);
+    pump(&mut feed, &mut engine);
+    assert_eq!(
+        feed.widths,
+        vec![15., 15., 22.],
+        "the first screen's two- and three-digit values"
+    );
+    feed.set_view(24, 601 - 23);
+    pump(&mut feed, &mut engine);
+    widen_all(&mut feed);
+    assert_eq!(
+        feed.widths,
+        vec![22., 29., 29.],
+        "599, 1198 and 1797 set the columns"
+    );
+}
+
+// A table whose first screen is not whole measures nothing, so it never keeps the view asking for frames.
+#[test]
+fn s9g8_a_table_not_yet_frozen_is_not_widening() {
+    let (mut feed, mut engine) = open(&multiline(), ',', look(), 24);
+    let ask = feed.ask().expect("the first screen is asked");
+    let reply = engine.reply(&ask);
+    feed.sent(reply.token);
+    assert!(feed.answered(&reply), "the ask in flight takes its reply");
+    let table = feed.job().run();
+    feed.apply(table);
+    assert!(
+        !feed.frozen && !feed.widening,
+        "a partial first screen asks for no widening frame"
     );
 }

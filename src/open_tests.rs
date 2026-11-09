@@ -257,5 +257,85 @@ fn the_handler_button_launches_the_named_entry_with_the_file() {
     assert!(!std::fs::read_to_string(&log).unwrap_or_default().contains("launch"), "and nothing was launched");
 }
 
+// S1A-5: an empty notes.txt opens with text/plain's default through gio launch, never the zero-size type nothing claims; a non-empty one still goes to gio open.
+#[test]
+fn an_empty_file_opens_by_its_name_type() {
+    if !std::fs::read_to_string("/usr/share/mime/globs2")
+        .is_ok_and(|globs| globs.contains(":text/plain:*.txt"))
+    {
+        return;
+    }
+    let dir = crate::backend::testdir::TestDir::new("open-empty-by-name");
+    let empty = fixture(&dir, "notes.txt", b"", 0o644);
+    let share = handler_root(&dir, Some("Stub Editor"));
+    let (path, log) = stub_gio(&dir);
+    let env: &[(&str, &std::ffi::OsStr)] = &[
+        ("XDG_DATA_HOME", share.as_os_str()),
+        ("FLEA_STUB_TYPE", "application/x-zerosize".as_ref()),
+        ("FLEA_STUB_CLAIMED", "text/plain".as_ref()),
+        ("FLEA_STUB_HANDLER", "flea-stub.desktop".as_ref()),
+    ];
+    let out = run_child_with("FLEA_TEST_OPEN_ASK", empty.as_os_str(), path.clone(), env);
+    assert_eq!(
+        out.status.code(),
+        Some(0),
+        "the text default took it: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert!(
+        !String::from_utf8_lossy(&out.stdout).contains(r#""ask""#),
+        "no Open with was asked for"
+    );
+    let calls = std::fs::read_to_string(&log).expect("the stub logged");
+    assert!(
+        calls.contains(&format!(
+            "launch {} {}",
+            share.join("applications/flea-stub.desktop").display(),
+            empty.display()
+        )),
+        "gio launch named the text default: {calls}"
+    );
+    assert!(
+        !calls.contains(&format!("open {}", empty.display())),
+        "gio open was never asked: {calls}"
+    );
+    let full = fixture(&dir, "full.txt", b"words\n", 0o644);
+    std::fs::write(&log, b"").expect("the log is cleared");
+    let out = run_child_with(
+        "FLEA_TEST_OPEN_ASK",
+        full.as_os_str(),
+        path,
+        &[("FLEA_STUB_OPEN", "0".as_ref())],
+    );
+    assert_eq!(out.status.code(), Some(0));
+    assert!(
+        std::fs::read_to_string(&log)
+            .expect("the stub logged")
+            .contains(&format!("open {}", full.display())),
+        "a non-empty file still goes to gio open"
+    );
+}
+
+// An empty file whose name has no type keeps the old route: gio open, then Open with when nothing claims it.
+#[test]
+fn an_empty_file_with_no_name_type_still_asks_open_with() {
+    let dir = crate::backend::testdir::TestDir::new("open-empty-unnamed");
+    let empty = fixture(&dir, "blob.zzzflea", b"", 0o644);
+    let (path, log) = stub_gio(&dir);
+    let out = run_child_with(
+        "FLEA_TEST_OPEN_ASK",
+        empty.as_os_str(),
+        path,
+        &[("FLEA_STUB_TYPE", "application/x-zerosize".as_ref())],
+    );
+    assert_eq!(out.status.code(), Some(crate::runfile::ASK_OPEN_WITH));
+    assert!(
+        !std::fs::read_to_string(&log)
+            .expect("the stub logged")
+            .contains("launch"),
+        "nothing was launched"
+    );
+}
+
 #[path = "open_selection_tests.rs"]
 mod selection_tests;

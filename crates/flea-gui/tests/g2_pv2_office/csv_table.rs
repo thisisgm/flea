@@ -186,9 +186,9 @@ fn pv2_csv_never_draws_a_partial_or_refused_table(cx: &mut TestAppContext) {
     );
 }
 
-// A scroll past the first screen asks only what it lands on and keeps the first screen's widths.
+// A scroll past the first screen asks only what it lands on, and its wider cells widen their columns (S9G-8).
 #[gpui::test]
-fn pv2_csv_scroll_keeps_the_widths_and_asks_near_the_view(cx: &mut TestAppContext) {
+fn pv2_csv_scroll_widens_to_held_cells_and_asks_near_the_view(cx: &mut TestAppContext) {
     let (view, sent) = table(cx, true, 460., 600.);
     let mut text = String::from("id,name\n");
     for i in 1..5000 {
@@ -214,10 +214,11 @@ fn pv2_csv_scroll_keeps_the_widths_and_asks_near_the_view(cx: &mut TestAppContex
         1,
         "one request draws the last screen"
     );
-    assert_eq!(
-        read(cx, view, |v| v.feed.widths.clone()),
-        widths,
-        "a far jump preserves the widths"
+    widen(cx, view);
+    let jumped = read(cx, view, |v| v.feed.widths.clone());
+    assert!(
+        jumped[0] > widths[0] && jumped[1] == widths[1],
+        "a far jump widens the id column to its four-digit ids and never narrows the names: {widths:?} to {jumped:?}"
     );
     assert!(
         read(cx, view, |v| v.drawn_texts().any(|t| t == "f04999")),

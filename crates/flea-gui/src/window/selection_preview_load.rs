@@ -60,12 +60,17 @@ impl SelectionPreview {
             .class
             .as_ref()
             .is_some_and(|(_, class)| matches!(class.as_str(), "network" | "phone"));
+        // The kind reads only answers already kept, so a head read after the frame mounts it again.
+        let kind = subject.kind();
         let same = self
             .pending
             .as_ref()
             .or(self.drawn.as_ref())
             .is_some_and(|f| {
-                f.subject == subject && f.remote == remote && (f.manual == manual || force)
+                f.subject == subject
+                    && f.kind == kind
+                    && f.remote == remote
+                    && (f.manual == manual || force)
             });
         if same && !force {
             self.poll(window, cx);
@@ -83,8 +88,11 @@ impl SelectionPreview {
         self.port.hold("");
         self.port.start(false);
         let generation = token();
-        let kind = subject.kind();
         let path = subject.path();
+        // A row with no known type is read for text only when the preview may load, and off the UI thread.
+        if !manual && kind == Kind::Facts {
+            crate::window::sniff::notify_when_read(&subject.row, &path, cx);
+        }
         let theme = cx
             .try_global::<crate::palette::Theme>()
             .copied()
