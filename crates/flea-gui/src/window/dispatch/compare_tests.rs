@@ -3,7 +3,7 @@ use super::{
     preview_tests::{answer, body, close, context, drain, draw, file, opened, sent, token, Lines},
     test_shell::{land, land_on, row},
 };
-use crate::{g2::pv1::Body, state::Shell, window::u07_tests::read};
+use crate::{g2::quick_look_overlay::Body, state::Shell, window::u07_tests::read};
 use flea::{
     json::escape,
     jsondoc::{self, Json},

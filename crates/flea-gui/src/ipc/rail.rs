@@ -1,13 +1,13 @@
 //! Rail readers: the host's live placement, the producer's drawn boxes and the one rename editor, in ui/Ipc.qml's shapes.
 use super::rows::centre_of;
 use super::Adapter;
-use crate::g2::pl4::producer::Producer;
-use crate::g2::pl4::rows::LaidRow;
+use crate::g2::rail_places::producer::Producer;
+use crate::g2::rail_places::rows::LaidRow;
 use crate::rail::host::Host;
 use crate::window::composition::Geometry;
 use flea::ipc::wire::Reply;
 use flea::json::escape;
-use flea::ui_logic_pl4::rail::{Group, Kind, RailEntry};
+use flea::ui_logic_rail_places::rail::{Group, Kind, RailEntry};
 pub use network::NetworkBuilt;
 use std::time::Instant;
 
@@ -74,7 +74,7 @@ fn entry_json(entry: &RailEntry, catalog: &flea::i18n::I18n, trash_count: u64) -
     let mut fields = vec![
         format!(
             "\"label\":\"{}\"",
-            escape(&crate::g2::pl4::content::row_label(catalog, entry))
+            escape(&crate::g2::rail_places::content::row_label(catalog, entry))
         ),
         format!("\"path\":\"{}\"", escape(&entry.path)),
         format!("\"group\":\"{}\"", group_name(entry.group)),
@@ -107,8 +107,8 @@ fn entry_json(entry: &RailEntry, catalog: &flea::i18n::I18n, trash_count: u64) -
     }
     if let Some(error) = &entry.error {
         let said = match error {
-            flea::ui_logic_pl4::rail::FavouriteError::Record(record) => record.key(),
-            flea::ui_logic_pl4::rail::FavouriteError::Status(status) => status,
+            flea::ui_logic_rail_places::rail::FavouriteError::Record(record) => record.key(),
+            flea::ui_logic_rail_places::rail::FavouriteError::Status(status) => status,
         };
         fields.push(format!("\"error\":\"{}\"", escape(said)));
     }
@@ -365,7 +365,8 @@ impl Adapter for RailAdapter<'_> {
                         let label = catalog.map_or_else(
                             || entry.label.to_string(),
                             |catalog| {
-                                crate::g2::pl4::content::row_label(catalog, entry).to_string()
+                                crate::g2::rail_places::content::row_label(catalog, entry)
+                                    .to_string()
                             },
                         );
                         format!(

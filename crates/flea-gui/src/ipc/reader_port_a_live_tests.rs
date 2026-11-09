@@ -2,8 +2,8 @@
 use super::*;
 use flea::{
     jsondoc::{parse, Json},
-    ui_logic_fb1::status::Hint,
-    ui_logic_op4::{output::Kind, selection::Source},
+    ui_logic_print_convert::{output::Kind, selection::Source},
+    ui_logic_status_feedback::status::Hint,
 };
 
 pub(super) fn network(cx: &mut TestAppContext, handle: WindowHandle<Root>) {
@@ -22,7 +22,7 @@ fn convert(cx: &mut TestAppContext, handle: WindowHandle<Root>) {
     update(cx, handle, |shell, window, cx| {
         assert!(shell.open_output(
             0,
-            crate::g2::op4::model::Action::Convert,
+            crate::g2::print_convert::model::Action::Convert,
             0,
             vec![Source {
                 path: "/files/photo.png".into(),
@@ -262,7 +262,10 @@ fn ipc_status_secondary_includes_the_split_undo_link_before_extras(cx: &mut Test
                 "Done",
                 false,
                 "",
-                Hint::Note(flea::ui_logic_fb1::status::Note::Background, true),
+                Hint::Note(
+                    flea::ui_logic_status_feedback::status::Note::Background,
+                    true,
+                ),
                 now,
             );
         });

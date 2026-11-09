@@ -3,7 +3,7 @@ use super::{
     rows::{centre_of, rect_of},
     Adapter,
 };
-use crate::{g2::op4::model::Card, state::Shell};
+use crate::{g2::print_convert::model::Card, state::Shell};
 use flea::ipc::wire::Reply;
 use gpui::App;
 

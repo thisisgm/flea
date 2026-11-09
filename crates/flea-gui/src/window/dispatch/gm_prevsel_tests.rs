@@ -1,7 +1,7 @@
 //! Preview selection uses the production Columns view and Shell key delivery.
 use super::previewtypes_tests::{answer, ask, field, file, local, meta, open, pump};
 use crate::{
-    g2::pv2::code::CodeView,
+    g2::doc_preview::code::CodeView,
     state::Shell,
     window::selection_preview::{docs::Doc, Mounted},
 };
@@ -173,7 +173,7 @@ fn gm_prevsel_quick_look_escape_clears_before_closing_and_copy_keeps_the_key_tab
     cx: &mut TestAppContext,
 ) {
     use super::preview_tests as preview;
-    use crate::g2::pv1::doc::View;
+    use crate::g2::quick_look_overlay::doc::View;
     let (shell, cx, mut requests) = preview::opened(cx);
     super::test_shell::land(&shell, cx, "/files", preview::rows(), 1);
     super::test_shell::set_cursor(&shell, cx, 1);
@@ -239,7 +239,7 @@ fn gm_prevsel_quick_look_escape_clears_before_closing_and_copy_keeps_the_key_tab
 
 #[gpui::test]
 fn gm_prevsel_markdown_drag_copies_through_the_shell_in_both_views(cx: &mut TestAppContext) {
-    use crate::g2::pv2::markdown::View;
+    use crate::g2::doc_preview::markdown::View;
     let base = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .ancestors()
         .nth(2)

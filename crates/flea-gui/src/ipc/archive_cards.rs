@@ -52,7 +52,7 @@ impl Adapter for ArchiveAdapter<'_> {
             }
             // FlashHost.controlItem: flash, cancel or end, centred where the step row painted it, "" while another or none shows.
             "flashControlCentre" => {
-                use crate::g2::op2::flash::StepAction;
+                use crate::g2::archive_flash::flash::StepAction;
                 let wanted = match arguments.first().map(String::as_str) {
                     Some("flash") => Some(StepAction::Flash),
                     Some("cancel") => Some(StepAction::Cancel),

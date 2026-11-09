@@ -1,5 +1,5 @@
 use super::{graphics::{Graphics, Task}, model::Model, pane_state::Unshown, wire::Wire};
-use flea::ui_logic_pv4::{self as pv4, color::Palette, scene::Scene, wire::{Data, State as ReplyState}};
+use flea::ui_logic_model_preview::{self as pv4, color::Palette, scene::Scene, wire::{Data, State as ReplyState}};
 use std::{fs::File, io, os::unix::fs::MetadataExt, path::PathBuf, sync::{atomic::{AtomicBool, Ordering}, Arc}};
 
 const SLOT: &str = "tui-model3d";

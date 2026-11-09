@@ -2,7 +2,7 @@
 use std::{fs::File, os::unix::fs::FileExt, path::Path};
 
 pub fn real(file: &File, path: &Path, size: u64) -> bool {
-    flea::ui_logic_pv2::office_sniff::is_real_container(
+    flea::ui_logic_doc_preview::office_sniff::is_real_container(
         &path.to_string_lossy(),
         size,
         &mut |at, length| {

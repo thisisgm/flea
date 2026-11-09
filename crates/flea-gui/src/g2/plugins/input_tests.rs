@@ -1,5 +1,5 @@
 use crate::{backend::Backend, state::Shell};
-use flea::ui_logic_st2::contributions::ActionInput;
+use flea::ui_logic_plugin_settings::contributions::ActionInput;
 use gpui::{KeyDownEvent, Keystroke, TestAppContext};
 
 fn descriptor() -> ActionInput {
@@ -31,7 +31,7 @@ fn plugin_input_uses_shared_editor_and_submits_once(cx: &mut TestAppContext) {
         assert!(shell.plugin_input_layer(window, cx).is_some());
         assert_eq!(
             shell.rename.ime.owner,
-            Some(crate::g2::op1::dialog_editor::Slot::PluginAction)
+            Some(crate::g2::file_ops::dialog_editor::Slot::PluginAction)
         );
         shell.finish_plugin_input(true, window, cx);
         assert!(receiver.try_recv().is_err(), "empty field cannot submit");

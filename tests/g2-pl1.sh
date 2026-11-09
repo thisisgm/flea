@@ -25,8 +25,8 @@ run() {
         CARGO_PROFILE_TEST_DEBUG=line-tables-only CARGO_PROFILE_DEV_DEBUG=line-tables-only \
         "$@" < /dev/null
 }
-run cargo test --locked -p flea --lib -- ui_logic_pl1
-run cargo test --locked -p flea-gui --lib -- g2::pl1
+run cargo test --locked -p flea --lib -- ui_logic_device_rail
+run cargo test --locked -p flea-gui --lib -- g2::device_rail
 clippy_root=$(mktemp -d "$PWD/.superpowers/g2-pl1/clippy.XXXXXXXX")
 : > "$clippy_root/.flea-test-sandbox"
 scratch+=("$clippy_root")

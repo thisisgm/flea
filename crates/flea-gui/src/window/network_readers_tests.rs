@@ -3,14 +3,14 @@ use super::*;
 use crate::{backend::Backend, ipc::server, state::tests::shell_with};
 use flea::{
     ipc::wire,
-    ui_logic_pl1::{Group as Group1, Kind as Kind1, RailEntry as Row1},
-    ui_logic_pl4::rail::Group as Group4,
+    ui_logic_device_rail::{Group as Group1, Kind as Kind1, RailEntry as Row1},
+    ui_logic_rail_places::rail::Group as Group4,
 };
 use gpui::{AnyView, Entity, TestAppContext, VisualTestContext};
 
 fn open(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestContext) {
     cx.update(|cx| {
-        cx.set_global(crate::g2::pl1::source::fixture::Services {
+        cx.set_global(crate::g2::device_rail::source::fixture::Services {
             runner: crate::window::network::default_runner(),
             hostname: "testhost".into(),
         })

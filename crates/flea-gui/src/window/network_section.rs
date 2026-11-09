@@ -13,12 +13,12 @@ pub fn section(rows: &[RailEntry], shown: bool) -> Vec<RailSection> {
             .map(|row| rail::RailEntry {
                 group: Group::Network,
                 kind: match row.kind {
-                    flea::ui_logic_pl1::Kind::Dropbox => Kind::Dropbox,
-                    flea::ui_logic_pl1::Kind::Cloud => Kind::Cloud,
+                    flea::ui_logic_device_rail::Kind::Dropbox => Kind::Dropbox,
+                    flea::ui_logic_device_rail::Kind::Cloud => Kind::Cloud,
                     _ => Kind::Share,
                 },
                 label: row.label.clone(),
-                label_key: if row.kind == flea::ui_logic_pl1::Kind::Dropbox {
+                label_key: if row.kind == flea::ui_logic_device_rail::Kind::Dropbox {
                     "plugins.builtin.dropbox.name"
                 } else {
                     ""
@@ -26,8 +26,8 @@ pub fn section(rows: &[RailEntry], shown: bool) -> Vec<RailSection> {
                 path: row.path.clone(),
                 uri: row.uri.clone(),
                 mounted: Some(row.mounted),
-                releasable: flea::ui_logic_pl1::eject::releasable(row),
-                glyph: if row.kind == flea::ui_logic_pl1::Kind::Dropbox {
+                releasable: flea::ui_logic_device_rail::eject::releasable(row),
+                glyph: if row.kind == flea::ui_logic_device_rail::Kind::Dropbox {
                     "dropbox"
                 } else {
                     "server"

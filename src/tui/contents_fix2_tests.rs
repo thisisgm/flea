@@ -12,7 +12,7 @@ use super::{
     wire::{self, count, text},
 };
 use crate::jsondoc::Json;
-use flea::ui_logic_sr1::Scope;
+use flea::ui_logic_file_search::Scope;
 use std::time::{Duration, Instant};
 
 #[test]

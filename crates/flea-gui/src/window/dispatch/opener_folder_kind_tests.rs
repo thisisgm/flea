@@ -4,7 +4,7 @@ use crate::{
     backend::Event,
     window::dispatch::test_shell::{asked, land_on, row, set_cursor},
 };
-use flea::ui_logic_op3::runfile::IS_DIRECTORY;
+use flea::ui_logic_open_with_properties::runfile::IS_DIRECTORY;
 use gpui::TestAppContext;
 
 fn marked_archive_named_directory(cx: &mut TestAppContext, offscreen: bool) {

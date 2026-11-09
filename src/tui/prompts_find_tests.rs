@@ -45,7 +45,7 @@ fn search_results_print_their_folder_and_the_status_names_the_search() {
     m.prompts.i18n = crate::tui::contents_tests::catalog(&catalog);
     m.search = "x".into();
     m.search_query = "item".into();
-    m.find.session.scope = flea::ui_logic_sr1::Scope::Folder;
+    m.find.session.scope = flea::ui_logic_file_search::Scope::Folder;
     event(&mut m, &mut w, r#"{"t":"searching","n":80,"scanned":114}"#);
     assert_eq!(m.search, "80 found · 114 scanned");
     event(&mut m, &mut w, r#"{"t":"searched","n":80,"scanned":114}"#);

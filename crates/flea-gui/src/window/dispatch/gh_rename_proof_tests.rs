@@ -130,7 +130,7 @@ fn gh305_enter_on_edit_in_terminal_hands_the_editor_the_shown_names(cx: &mut Tes
             .unwrap()
             .card
             .focus),
-        flea::ui_logic_op3::bulkrename::Stop::Edit
+        flea::ui_logic_open_with_properties::bulkrename::Stop::Edit
     );
     cx.simulate_keystrokes("enter");
     cx.run_until_parked();
@@ -149,7 +149,7 @@ fn gh305_enter_on_edit_in_terminal_hands_the_editor_the_shown_names(cx: &mut Tes
     // Edit, Cancel, Rename: Right twice reaches Rename, and Enter sends the editor's names for the marked paths.
     cx.simulate_keystrokes("right right enter");
     let out = sent(&mut lines);
-    let request = flea::ui_logic_op3::bulkrename::request(
+    let request = flea::ui_logic_open_with_properties::bulkrename::request(
         &paths,
         &["one.txt".into(), "two.txt".into(), "three.txt".into()],
     )
@@ -248,7 +248,7 @@ fn gh305_a_click_on_a_disabled_rename_leaves_the_focus_put(cx: &mut TestAppConte
     };
     assert_eq!(
         focus(&shell, cx),
-        flea::ui_logic_op3::bulkrename::Stop::Find
+        flea::ui_logic_open_with_properties::bulkrename::Stop::Find
     );
     // A presented frame, which is the one debug_bounds reads.
     cx.update(|window, _| window.refresh());
@@ -265,7 +265,7 @@ fn gh305_a_click_on_a_disabled_rename_leaves_the_focus_put(cx: &mut TestAppConte
     cx.run_until_parked();
     assert_eq!(
         focus(&shell, cx),
-        flea::ui_logic_op3::bulkrename::Stop::Find,
+        flea::ui_logic_open_with_properties::bulkrename::Stop::Find,
         "a click on the disabled Rename moved the focus"
     );
     assert_eq!(

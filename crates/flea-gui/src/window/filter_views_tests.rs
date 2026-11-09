@@ -4,7 +4,7 @@ use crate::{
     state::{tests::shell_with, Shell},
     window::{root::Root, startup::View},
 };
-use flea::ui_logic_sr1::Mode;
+use flea::ui_logic_file_search::Mode;
 use gpui::{AppContext, Context, TestAppContext, VisualTestContext, Window, WindowHandle};
 
 #[path = "filter_views_columns_tests.rs"]

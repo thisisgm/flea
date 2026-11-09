@@ -87,7 +87,10 @@ impl Shell {
             host.input.selection.sync(&host.selected);
             let named: Vec<&str> = paths.iter().map(String::as_str).collect();
             *host.retry_line.borrow_mut() = Some(RetryLine {
-                text: flea::ui_logic_op1::lines::retry_selection_line(&self.locale.catalog, &named),
+                text: flea::ui_logic_file_ops::lines::retry_selection_line(
+                    &self.locale.catalog,
+                    &named,
+                ),
                 path: host.path.clone(),
                 selected: host.selected.clone(),
                 cursor: host.pane.cursor,

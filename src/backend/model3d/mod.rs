@@ -21,7 +21,7 @@ mod zip;
 
 use std::collections::BTreeMap;
 
-#[path = "../../ui_logic_pv4/model_wire_types.rs"]
+#[path = "../../ui_logic_model_preview/model_wire_types.rs"]
 mod cache_types;
 pub use cache_types::*;
 pub const MAX_INPUT: usize = 128 * 1024 * 1024;

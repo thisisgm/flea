@@ -17,8 +17,8 @@ run() {
 }
 # A filter matching nothing passes with zero, so the largest "test result: ok. 24 passed; 0 failed" count must reach this unit's cases.
 count() { sed -n 's/^test result: ok\. \([0-9]*\) passed; 0 failed.*/\1/p' "$1" | sort -n | tail -1; }
-run -p flea-gui --lib g2::sr2 > "$unit_root/gui.log" 2>&1 || { tail -40 "$unit_root/gui.log" >&2; exit 1; }
-run -p flea --lib -- ui_logic_sr2 > "$unit_root/core.log" 2>&1 || { tail -40 "$unit_root/core.log" >&2; exit 1; }
+run -p flea-gui --lib g2::listing_filter > "$unit_root/gui.log" 2>&1 || { tail -40 "$unit_root/gui.log" >&2; exit 1; }
+run -p flea --lib -- ui_logic_listing_filter > "$unit_root/core.log" 2>&1 || { tail -40 "$unit_root/core.log" >&2; exit 1; }
 run -p flea-gui --lib window::filter > "$unit_root/consumer.log" 2>&1 || { tail -40 "$unit_root/consumer.log" >&2; exit 1; }
 run -p flea --bin flea -- backend::filter > "$unit_root/producer.log" 2>&1 || { tail -40 "$unit_root/producer.log" >&2; exit 1; }
 gui=$(count "$unit_root/gui.log"); core=$(count "$unit_root/core.log")

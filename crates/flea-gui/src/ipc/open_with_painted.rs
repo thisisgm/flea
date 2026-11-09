@@ -1,7 +1,9 @@
 //! Open With's painted parts as openWithState reports them: the rects the card recorded in its last frame and the board tokens at the window's scale, so the design CI asserts the openwith board's layout.
 use crate::{
-    g2::op1::measured::{rect, Frame, Part},
-    g2::op3::shell::{APP_ROW, EYEBROW, FIRST_EYEBROW_AIR, GAP, LATER_EYEBROW_AIR},
+    g2::file_ops::measured::{rect, Frame, Part},
+    g2::open_with_properties::shell::{
+        APP_ROW, EYEBROW, FIRST_EYEBROW_AIR, GAP, LATER_EYEBROW_AIR,
+    },
     window::open_with::Open,
 };
 use flea::i18n::I18n;
@@ -19,7 +21,7 @@ fn numbered(frame: &Frame, kind: &str) -> String {
 pub(super) fn fields(open: &Open, scale: f32, i18n: &I18n) -> String {
     let frame = &open.frame;
     let part = |name: &str| rect(frame.part(name).as_ref());
-    let no_match = flea::ui_logic_op3::openwith::no_match(i18n, &open.card.query);
+    let no_match = flea::ui_logic_open_with_properties::openwith::no_match(i18n, &open.card.query);
     let note: Option<Part> = frame.part(&format!("note:{no_match}"));
     format!(
         r#""rect":"{}","titleRuleRect":"{}","searchRect":"{}","listRect":"{}","groupRuleRect":"{}","listRuleRect":"{}","rowRect":"{}","eyebrowRects":{},"rowRects":{},"noMatchRect":"{}","rowHeight":{},"eyebrowHeight":{},"gap":{},"searchTrail":{},"eyebrowAir":[{},{}]"#,

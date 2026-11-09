@@ -1,10 +1,10 @@
 //! The unlock card's window owner: a locked rail row opens UnlockView over the panes, as ui/js/Unlock.js did in v0.3.12.
-use crate::g2::pl1::host::Effect;
-use crate::g2::pl1::seams::RailView;
-use crate::g2::pl1::view::{HostEvent, UnlockView};
+use crate::g2::device_rail::host::Effect;
+use crate::g2::device_rail::seams::RailView;
+use crate::g2::device_rail::view::{HostEvent, UnlockView};
 use crate::state::Shell;
 use crate::window::navigate::Step;
-use flea::ui_logic_pl4::rail::Group;
+use flea::ui_logic_rail_places::rail::Group;
 use gpui::{div, prelude::*, AnyElement, App, Context, Entity, KeyDownEvent, Subscription, Window};
 
 #[cfg(test)]
@@ -183,13 +183,13 @@ impl Shell {
                 }
             }
             Effect::Say(note, error) => {
-                let text = crate::g2::pl1::words::say(&self.locale.catalog, note);
+                let text = crate::g2::device_rail::words::say(&self.locale.catalog, note);
                 self.status_messages(cx, |messages, now| {
                     messages.say(
                         &text,
                         *error,
                         "",
-                        flea::ui_logic_fb1::status::Hint::None,
+                        flea::ui_logic_status_feedback::status::Hint::None,
                         now,
                     )
                 });

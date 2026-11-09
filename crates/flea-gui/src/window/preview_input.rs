@@ -2,7 +2,7 @@
 use super::selection_preview::{Mounted, Subject};
 use crate::{state::Shell, window::input::ActionEvent};
 use flea::jsondoc::Json;
-use flea::ui_logic_pv2::viewer::Action;
+use flea::ui_logic_doc_preview::viewer::Action;
 use gpui::{Context, Window};
 
 /// The preview keys that act on a shown preview only.
@@ -148,7 +148,7 @@ impl Shell {
 pub(crate) fn column_pdf(
     preview: &gpui::Entity<super::selection_preview::SelectionPreview>,
     cx: &gpui::App,
-) -> Option<gpui::Entity<crate::g2::pv2::PdfView>> {
+) -> Option<gpui::Entity<crate::g2::doc_preview::PdfView>> {
     preview
         .read(cx)
         .mounted_kind()

@@ -162,7 +162,7 @@ fn tui_preview_words_cover_every_kind_and_failure() {
         archive.preview_state.unshown.as_ref().unwrap().sentence,
         archive.i18n.tr("preview.archiveUnreadable")
     );
-    use flea::ui_logic_pv2::office::{Reason, State as OfficeState};
+    use flea::ui_logic_doc_preview::office::{Reason, State as OfficeState};
     for (state, expected) in [
         (OfficeState::Converting, None),
         (OfficeState::Cancelled, None),
@@ -247,16 +247,16 @@ fn tui_preview_words_keep_file_content_literal() {
     assert!(!m.preview_reader.outstanding(generation));
     let mut model3d = model(&root, "kit.3mf", "application-x-generic");
     model3d.preview_path = model3d.current_path().unwrap();
-    let raw = flea::ui_logic_pv4::wire::Data {
+    let raw = flea::ui_logic_model_preview::wire::Data {
         format: "3mf".into(),
-        facts: flea::ui_logic_pv4::wire::Facts {
+        facts: flea::ui_logic_model_preview::wire::Facts {
             dimensions_mm: Some([110., 96., 40.]),
             triangles: Some(1204),
             objects: Some(2),
             plates: Some(2),
             ..Default::default()
         },
-        slicer: flea::ui_logic_pv4::wire::Slicer {
+        slicer: flea::ui_logic_model_preview::wire::Slicer {
             printer: Some("Printer · Pages %1".into()),
             filament: Some("تقرير PLA 2025".into()),
             ..Default::default()
@@ -447,7 +447,7 @@ fn tui_preview_mixed_rtl_facts_stay_in_columns() {
     let original_name = m.rows[&0].name.clone();
     m.rows.get_mut(&0).unwrap().name = "تقرير 2025.3mf".into();
     m.preview_path = m.current_path().unwrap();
-    m.model3d.data = Some(Box::new(flea::ui_logic_pv4::wire::Data {
+    m.model3d.data = Some(Box::new(flea::ui_logic_model_preview::wire::Data {
         plates: vec![Default::default(); 10],
         ..Default::default()
     }));

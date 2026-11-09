@@ -73,33 +73,39 @@ fn a_mirrored_window_reads_left_and_right_the_other_way_where_they_navigate() {
 
 #[test]
 fn mirrored_cards_swap_navigation_and_keep_typed_characters() {
-    use crate::g2::{op2, op3};
+    use crate::g2::{archive_flash, open_with_properties};
     let left = press("left", None, None, Modifiers::none());
     let right = press("right", None, None, Modifiers::none());
     let letter = press("h", Some("h"), Some("h"), Modifiers::none());
     assert_eq!(
-        op2::keys::key_of(&left).unwrap().read(true),
-        op2::keys::Key::Right
+        archive_flash::keys::key_of(&left).unwrap().read(true),
+        archive_flash::keys::Key::Right
     );
     assert_eq!(
-        op2::keys::key_of(&right).unwrap().read(true),
-        op2::keys::Key::Left
+        archive_flash::keys::key_of(&right).unwrap().read(true),
+        archive_flash::keys::Key::Left
     );
     assert_eq!(
-        op2::keys::key_of(&letter).unwrap().read(true),
-        op2::keys::Key::Text("h".into())
+        archive_flash::keys::key_of(&letter).unwrap().read(true),
+        archive_flash::keys::Key::Text("h".into())
     );
     assert_eq!(
-        op3::keys::key_of(&left).unwrap().read(true),
-        op3::keys::Key::Right
+        open_with_properties::keys::key_of(&left)
+            .unwrap()
+            .read(true),
+        open_with_properties::keys::Key::Right
     );
     assert_eq!(
-        op3::keys::key_of(&right).unwrap().read(true),
-        op3::keys::Key::Left
+        open_with_properties::keys::key_of(&right)
+            .unwrap()
+            .read(true),
+        open_with_properties::keys::Key::Left
     );
     assert_eq!(
-        op3::keys::key_of(&letter).unwrap().read(true),
-        op3::keys::Key::Text("h".into())
+        open_with_properties::keys::key_of(&letter)
+            .unwrap()
+            .read(true),
+        open_with_properties::keys::Key::Text("h".into())
     );
 }
 

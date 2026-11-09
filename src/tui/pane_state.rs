@@ -1,7 +1,7 @@
 use super::model::{Model, Row};
 use super::wire::{count, flag, text};
 use crate::jsondoc::Json;
-use flea::ui_logic_pv2::office::Group;
+use flea::ui_logic_doc_preview::office::Group;
 use std::path::{Component, Path, PathBuf};
 
 // What the preview knows beyond its row: an archive's contents, a can't-show sentence, syntax runs and a half-block picture.

@@ -1,7 +1,7 @@
 //! ui/Ipc.qml cohesionControls over the main window: the toolbar, the crumbs and the rail rows it drew, and the list row holding the keyboard.
 use super::{path::PathAdapter, Adapter};
 use crate::{
-    g2::pl4::rows::Laid,
+    g2::rail_places::rows::Laid,
     path::chrome::{Control, Frame},
 };
 use flea::{ipc::wire::Reply, jsondoc::Json};

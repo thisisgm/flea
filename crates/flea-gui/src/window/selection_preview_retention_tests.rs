@@ -1,6 +1,6 @@
 //! Count the atlas resources retained by each playback-to-selection transition, independent of RSS.
 use super::*;
-use crate::{g2::pv3::engine, list::Typeface};
+use crate::{g2::media_preview::engine, list::Typeface};
 use gpui::{AppContext, TestAppContext};
 
 struct UnusedDecoder;

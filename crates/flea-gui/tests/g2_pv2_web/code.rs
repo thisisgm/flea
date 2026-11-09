@@ -1,8 +1,8 @@
 //! The code view (quicklook-code.qml, codelines.js, CodeRefusal.qml): one ask per screen and margin, each line shaped
 //! once while in view, wrap keeping the top line, and every refusal class drawing its fixed sentence or frame.
 use super::parts::{catalog, draw, mark, palette, typeface, with, Calls, METRICS};
-use flea::ui_logic_pv2::code_view::{Answer, Ask, Reply, Runs, BYTE_GATE, LINE_CAP};
-use flea_gui::g2::pv2::code::{shape, CodeHost, CodeView};
+use flea::ui_logic_doc_preview::code_view::{Answer, Ask, Reply, Runs, BYTE_GATE, LINE_CAP};
+use flea_gui::g2::doc_preview::code::{shape, CodeHost, CodeView};
 use gpui::{TestAppContext, WindowHandle};
 
 struct Host(Calls<Ask>);

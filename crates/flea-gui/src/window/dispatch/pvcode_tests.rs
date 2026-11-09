@@ -2,8 +2,8 @@
 use super::previewtypes_tests::{answer, ask, field, file, local, meta, open, pump};
 use crate::{
     g2::{
-        pv1::{doc::View, Body},
-        pv2::code::CodeView,
+        doc_preview::code::CodeView,
+        quick_look_overlay::{doc::View, Body},
     },
     state::Shell,
     window::{
@@ -213,7 +213,7 @@ fn pvcode_quick_look_pitch_tracks_the_body_font_before_and_after_wrapping(cx: &m
             } else {
                 assert_eq!(code.rows_of(0), 1, "unwrapped source stays on one row");
             }
-            let run = crate::g2::pv2::code::shape::glyphs(
+            let run = crate::g2::doc_preview::code::shape::glyphs(
                 window,
                 "0",
                 &code.typeface.font,
@@ -222,7 +222,7 @@ fn pvcode_quick_look_pitch_tracks_the_body_font_before_and_after_wrapping(cx: &m
             let pitch = f32::from(run.line().ascent + run.line().descent).ceil();
             assert_eq!(
                 code.metrics.row,
-                pitch.max(crate::g2::pv1::look::TEXT_LINE),
+                pitch.max(crate::g2::quick_look_overlay::look::TEXT_LINE),
                 "the body font fits inside the board pitch, wrap={wrap}"
             );
         });
@@ -270,11 +270,11 @@ fn pvcode_columns_end_on_a_whole_line_at_rest_and_after_paging(cx: &mut TestAppC
 
 #[gpui::test]
 fn pvcode_focused_column_pdf_h_and_left_return_to_page_one(cx: &mut TestAppContext) {
-    crate::g2::pv2::render::without_threads(|| pdf_keys(cx));
+    crate::g2::doc_preview::render::without_threads(|| pdf_keys(cx));
 }
 
 fn pdf_keys(cx: &mut TestAppContext) {
-    use crate::g2::pv2::{render::Reply, surface::Surface};
+    use crate::g2::doc_preview::{render::Reply, surface::Surface};
     let (shell, cx) = open(cx, "/files");
     super::test_shell::land(
         &shell,

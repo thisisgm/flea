@@ -1,7 +1,7 @@
 //! A server's share browser gives its pane back when navigation leaves it.
 use super::*;
 use crate::window::{dispatch::test_shell::land, navigate::Step};
-use flea::ui_logic_pl4::{
+use flea::ui_logic_rail_places::{
     order::{Heading, RailSection},
     rail::RailEntry as Place,
 };
@@ -99,8 +99,8 @@ fn show_server(shell: &Entity<Shell>, recorder: &Recorder, cx: &mut VisualTestCo
             Some(vec![RailEntry {
                 uri: SERVER.into(),
                 label: "NAS".into(),
-                group: flea::ui_logic_pl1::Group::Network,
-                kind: flea::ui_logic_pl1::Kind::Share,
+                group: flea::ui_logic_device_rail::Group::Network,
+                kind: flea::ui_logic_device_rail::Kind::Share,
                 glyph: "server".into(),
                 ..Default::default()
             }]),

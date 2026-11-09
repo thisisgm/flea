@@ -2,7 +2,7 @@
 use super::super::gh_preview_proof_tests::opened_at;
 use super::super::preview_tests::{answer, body, close, draw, file, press, sent, token};
 use super::super::test_shell::{land, set_cursor};
-use crate::g2::pv1::Body;
+use crate::g2::quick_look_overlay::Body;
 use gpui::{px, TestAppContext};
 
 fn image(cx: &mut TestAppContext, linked: bool) {

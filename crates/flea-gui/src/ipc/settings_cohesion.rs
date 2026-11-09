@@ -1,8 +1,8 @@
 //! ui/js/ControlReader.js over the open Settings card: the keyboard rests on the panel's own item, every drawn row is a SettingsRow.
-use crate::g2::st1::view::SettingsView;
+use crate::g2::settings_pages::view::SettingsView;
 use flea::{
     jsondoc::Json,
-    ui_logic_st1::rows::{Kind, Row},
+    ui_logic_settings_pages::rows::{Kind, Row},
 };
 use gpui::{Bounds, Pixels};
 

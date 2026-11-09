@@ -5,18 +5,18 @@ use super::{
 };
 use crate::{
     backend::Event as BackendEvent,
-    g2::pv1::{
+    g2::doc_preview::code::Mark,
+    g2::quick_look_overlay::{
         doc::{Doc, View},
         glyph::Glyph,
         Body, Subject,
     },
-    g2::pv2::code::Mark,
     state::Shell,
 };
 use flea::{
     jsondoc::Json,
     protocol::RowFacts,
-    ui_logic_pv1::kinds::{self, State},
+    ui_logic_preview_core::kinds::{self, State},
 };
 use gpui::{App, Context, Window};
 
@@ -54,7 +54,7 @@ impl Mount {
         ) {
             return Some(Mount::Model);
         }
-        if flea::ui_logic_pv2::office::Group::of(name).is_some() {
+        if flea::ui_logic_doc_preview::office::Group::of(name).is_some() {
             return Some(Mount::Office);
         }
         if kinds::is_markdown(name) {
@@ -175,7 +175,7 @@ impl Shell {
         super::docs::wrap_saved(&doc.view, &self.launch.settings.data, cx);
         self.lend_quick_prepared(side, index, row, &doc, cx);
         if was_prepared {
-            if let crate::g2::pv1::doc::View::Markdown(view) = &doc.view {
+            if let crate::g2::quick_look_overlay::doc::View::Markdown(view) = &doc.view {
                 let wire = self.quick_look.as_ref().unwrap().wire.clone();
                 view.update(cx, |view, cx| {
                     view.rewind(cx);
@@ -225,7 +225,7 @@ impl Shell {
         let view = host.view.read(cx);
         let doc = view.subject()?.body.doc()?;
         if let View::Code(code) = &doc.view {
-            use flea::ui_logic_pv2::refusal::Refusal;
+            use flea::ui_logic_doc_preview::refusal::Refusal;
             let key = match code.read(cx).refusal() {
                 Some(Refusal::TooLarge) => Some("preview.too_large"),
                 Some(Refusal::Binary) => Some("preview.unsupported"),
@@ -352,7 +352,9 @@ pub(crate) fn on_line(
         (View::Pdf(view), "pdfcopied") => {
             let text = |key| json.get(key).and_then(Json::as_str).unwrap_or("");
             let id = json.get("id").and_then(Json::as_f64).unwrap_or(0.) as u64;
-            if id == 0 || view.read(cx).surface.fetch != flea::ui_logic_pv2::pdf::Fetch::Waiting(id)
+            if id == 0
+                || view.read(cx).surface.fetch
+                    != flea::ui_logic_doc_preview::pdf::Fetch::Waiting(id)
             {
                 return false;
             }
@@ -368,13 +370,13 @@ pub(crate) fn on_line(
 
 /// The card's meta answer for a mounted view: an archive's index, or what the media probe found.
 pub(crate) fn on_meta(doc: &mut Doc, line: &str, cx: &mut App) -> bool {
-    let Some(meta) = flea::ui_logic_pv1::meta::parse(line) else {
+    let Some(meta) = flea::ui_logic_preview_core::meta::parse(line) else {
         return false;
     };
     match &mut doc.view {
         View::Archive(view) => {
             let names = meta.names.into_iter().map(|e| (e.name, e.is_dir)).collect();
-            let archive = flea::ui_logic_pv2::archive::Meta {
+            let archive = flea::ui_logic_doc_preview::archive::Meta {
                 entries: meta.entries.unwrap_or(0),
                 unpacked: meta.unpacked,
                 failed: meta.archive_failed,

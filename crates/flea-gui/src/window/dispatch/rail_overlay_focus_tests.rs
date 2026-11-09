@@ -32,7 +32,7 @@ fn fix_views_2_ey358_settings_and_the_key_sheet_close_back_to_the_rail_row(
             // Settings' keyboard row queues Close then OpenSheet, as panel.rs does.
             let view = shell.read_with(cx, |shell, _| shell.settings.panel.clone().unwrap());
             view.update(cx, |view, cx| {
-                let row = flea::ui_logic_st1::rows::Row::action(
+                let row = flea::ui_logic_settings_pages::rows::Row::action(
                     "keyboardSheet",
                     "settings.title",
                     "",

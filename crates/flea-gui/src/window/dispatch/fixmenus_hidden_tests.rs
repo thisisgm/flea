@@ -8,7 +8,7 @@ use crate::{
     state::Shell,
     window::{navigate::Step, startup::View, u07_tests::read},
 };
-use flea::ui_logic_st1::pages;
+use flea::ui_logic_settings_pages::pages;
 use gpui::{Entity, TestAppContext, VisualTestContext};
 
 const FILE: u32 = 0o100644;

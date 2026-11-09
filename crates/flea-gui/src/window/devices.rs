@@ -1,7 +1,7 @@
 //! The window side of a device release: Ctrl+E, the eject mark and the quiesce that comes before the release child.
 use crate::state::Shell;
-use flea::ui_logic_pl1::mounts::inside;
-use flea::ui_logic_pl4::rail::{Group, RailEntry};
+use flea::ui_logic_device_rail::mounts::inside;
+use flea::ui_logic_rail_places::rail::{Group, RailEntry};
 use gpui::{Context, Window};
 
 impl Shell {
@@ -49,15 +49,16 @@ impl Shell {
     fn release_share(&mut self, side: usize, share: &RailEntry, cx: &mut Context<Self>) {
         let row = self
             .network_row(share)
-            .filter(|row| row.mounted && row.kind == flea::ui_logic_pl1::Kind::Share);
+            .filter(|row| row.mounted && row.kind == flea::ui_logic_device_rail::Kind::Share);
         if let Some(row) = row {
             let origin = self.network_origin(side);
             self.network_unmount(&row, origin, cx);
             return;
         }
-        let note = flea::ui_logic_pl1::Note::new("device.nothing_to_release", &[&share.label]);
-        let text = crate::g2::pl1::words::say(&self.locale.catalog, &note);
-        let hint = flea::ui_logic_fb1::status::Hint::None;
+        let note =
+            flea::ui_logic_device_rail::Note::new("device.nothing_to_release", &[&share.label]);
+        let text = crate::g2::device_rail::words::say(&self.locale.catalog, &note);
+        let hint = flea::ui_logic_status_feedback::status::Hint::None;
         self.status_messages(cx, |messages, now| {
             messages.say(&text, false, "", hint, now)
         });
@@ -119,7 +120,13 @@ impl Shell {
         // A failed quiesce or move is said, and the release still runs, as v0.3.12 never held it back.
         for text in failed {
             self.status_messages(cx, |messages, now| {
-                messages.say(&text, true, "", flea::ui_logic_fb1::status::Hint::None, now)
+                messages.say(
+                    &text,
+                    true,
+                    "",
+                    flea::ui_logic_status_feedback::status::Hint::None,
+                    now,
+                )
             });
         }
         if let Some(join) = &self.rail {
@@ -132,18 +139,18 @@ impl Shell {
     pub(crate) fn open_phone(
         &mut self,
         side: usize,
-        phone: &flea::ui_logic_pl1::RailEntry,
+        phone: &flea::ui_logic_device_rail::RailEntry,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
         self.ensure_network(window, cx);
         let origin = self.network_origin(side);
-        match crate::g2::pl2::menus::activate(phone, origin) {
-            crate::g2::pl2::menus::Open::Direct { path, .. } => {
+        match crate::g2::network_shares::menus::activate(phone, origin) {
+            crate::g2::network_shares::menus::Open::Direct { path, .. } => {
                 // OpenPlace never refuses: it supersedes a busy pane (no Busy) and reads no row (no NotLoaded).
                 let _ = self.step(side, super::navigate::Step::OpenPlace(path), window, cx);
             }
-            crate::g2::pl2::menus::Open::Remote(request) => {
+            crate::g2::network_shares::menus::Open::Remote(request) => {
                 let Some(network) = self.network() else {
                     return;
                 };

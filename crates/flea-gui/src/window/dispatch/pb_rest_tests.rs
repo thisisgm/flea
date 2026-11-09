@@ -9,7 +9,7 @@ thread_local! {
     static OPENED: RefCell<Vec<String>> = const { RefCell::new(Vec::new()) };
 }
 
-fn record(argv: &[String]) -> crate::g2::op3::lane::Exit {
+fn record(argv: &[String]) -> crate::g2::open_with_properties::lane::Exit {
     OPENED.with(|opened| opened.borrow_mut().push(argv[2..].join(" ")));
     (Some(0), String::new())
 }

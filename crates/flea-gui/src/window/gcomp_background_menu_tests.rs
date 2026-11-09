@@ -93,7 +93,7 @@ fn background(cx: &mut TestAppContext, handle: Handle, at: Point<Pixels>) -> Vec
         assert!(capture.rows.is_empty());
         assert_eq!(capture.path, shell.panes[0].as_ref().unwrap().path);
         let menu = shell.menu.menu.borrow();
-        assert_eq!(menu.face, crate::g2::mn1::menu::Face::Background);
+        assert_eq!(menu.face, crate::g2::context_menus::menu::Face::Background);
         let card = menu.card.as_ref().expect("background menu is painted");
         assert_eq!(card.frame.x, f32::from(at.x), "menu anchors at pointer x");
         assert!(

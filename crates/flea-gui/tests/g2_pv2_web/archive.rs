@@ -1,10 +1,10 @@
 //! The archive page (ql-archive, Preview.qml archivePane): one meta ask per path, the rows the frame has room for, the
 //! "+ N more" line counting every entry not named, and a failed index drawing one sentence.
 use super::parts::{catalog, draw, mark, with, Calls};
-use flea::ui_logic_pv2::archive::Meta;
-use flea::ui_logic_pv2::refusal::Refusal;
-use flea_gui::g2::pv2::archive::{ArchiveHost, ArchiveView, Metrics, Palette};
-use flea_gui::g2::pv2::code::shape;
+use flea::ui_logic_doc_preview::archive::Meta;
+use flea::ui_logic_doc_preview::refusal::Refusal;
+use flea_gui::g2::doc_preview::archive::{ArchiveHost, ArchiveView, Metrics, Palette};
+use flea_gui::g2::doc_preview::code::shape;
 use gpui::AppContext as _;
 use gpui::{px, TestAppContext, WindowHandle};
 

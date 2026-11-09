@@ -1,9 +1,9 @@
 //! Mounted Settings search acceptance through the real keyboard, pointer and session store.
 use super::configured;
-use crate::{backend::Backend, g2::st1::Panel};
+use crate::{backend::Backend, g2::settings_pages::Panel};
 use flea::{
     jsondoc::Json,
-    ui_logic_st1::{pages::SECTIONS, rows::Kind, search::Run},
+    ui_logic_settings_pages::{pages::SECTIONS, rows::Kind, search::Run},
 };
 use gpui::{Modifiers, TestAppContext};
 

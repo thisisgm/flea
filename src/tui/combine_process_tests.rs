@@ -318,7 +318,7 @@ fn jpeg(root: &Path) {
     assert_eq!(f.format, "jpg");
     assert_eq!(
         f.settings.background,
-        flea::ui_logic_op4::composition::Background::White
+        flea::ui_logic_print_convert::composition::Background::White
     );
     assert!(f.name.ends_with(".jpg"));
     assert!(!combine::geometry(&m)

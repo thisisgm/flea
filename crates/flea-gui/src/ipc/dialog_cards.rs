@@ -1,15 +1,15 @@
 //! Dialog readers distinguish observable closed cards from unavailable window owners.
 use super::Adapter;
-use crate::g2::op1::{host::Overlay, model::Dialog, press::Press};
+use crate::g2::file_ops::{host::Overlay, model::Dialog, press::Press};
 use crate::visual::{number, object};
 use crate::{
-    g2::op3::openwith::{OpenWith, Stop},
+    g2::open_with_properties::openwith::{OpenWith, Stop},
     state::Shell,
 };
 use flea::ipc::wire::Reply;
 use flea::jsondoc::Json;
-use flea::ui_logic_op1::{confirm::Source, trash::Button};
-use flea::ui_logic_op3::openwith::{self as logic, Catalogue, Row as Seat};
+use flea::ui_logic_file_ops::{confirm::Source, trash::Button};
+use flea::ui_logic_open_with_properties::openwith::{self as logic, Catalogue, Row as Seat};
 use gpui::{App, Bounds, Pixels};
 
 pub(crate) struct DialogAdapter<'a> {
@@ -70,7 +70,7 @@ impl Adapter for DialogAdapter<'_> {
                     &super::open_with_painted::fields(
                         open,
                         f32::from(self.shell.active_typeface().body)
-                            / crate::g2::op3::shell::BOARD_BODY,
+                            / crate::g2::open_with_properties::shell::BOARD_BODY,
                         &self.shell.locale.catalog,
                     ),
                     &self.shell.locale.catalog,
@@ -291,11 +291,13 @@ fn menu_delete_state(overlay: &Overlay) -> Option<String> {
                 ("destructiveFocus", Json::Bool(*focus == Button::Delete)),
                 (
                     "title",
-                    Json::Str(crate::g2::op1::view::delete_title(catalog, review, *busy)),
+                    Json::Str(crate::g2::file_ops::view::delete_title(
+                        catalog, review, *busy,
+                    )),
                 ),
                 (
                     "body",
-                    Json::Str(crate::g2::op1::view::delete_body(
+                    Json::Str(crate::g2::file_ops::view::delete_body(
                         catalog, review, *scope, *busy,
                     )),
                 ),

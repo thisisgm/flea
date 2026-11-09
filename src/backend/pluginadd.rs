@@ -1,9 +1,9 @@
 // Add from a Git URL or a local folder, and Update from Git; both land a whole folder or nothing.
 use super::plugins::{self, Env};
 use super::{pluginfs, plugingit};
-use flea::ui_logic_st2::manifest::{self, Invalid, Manifest};
-use flea::ui_logic_st2::wire::Source;
-use flea::ui_logic_st2::{builtin, store};
+use flea::ui_logic_plugin_settings::manifest::{self, Invalid, Manifest};
+use flea::ui_logic_plugin_settings::wire::Source;
+use flea::ui_logic_plugin_settings::{builtin, store};
 use std::fs;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicUsize, Ordering};

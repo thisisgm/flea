@@ -3,7 +3,7 @@ use super::{
     wire::{count, text, Wire},
 };
 use crate::jsondoc::{self, Json};
-use flea::ui_logic_sr1::{parse_line, ContentsMatch, Line, Request, Scope, Session};
+use flea::ui_logic_file_search::{parse_line, ContentsMatch, Line, Request, Scope, Session};
 use std::{collections::BTreeMap, io, path::PathBuf};
 
 mod failure;
@@ -25,7 +25,7 @@ struct Block {
 #[derive(Default)]
 pub(super) struct State {
     pub mode: bool,
-    pub session: flea::ui_logic_sr1::Session,
+    pub session: flea::ui_logic_file_search::Session,
     next: usize,
     pub waiting: bool,
     pub cancelling: bool,

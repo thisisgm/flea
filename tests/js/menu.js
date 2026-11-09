@@ -217,7 +217,7 @@ function run(check) {
     check("inside Dropbox replaces move with share link", entry(inside, "dropbox").action + "|" + entry(inside, "sharelink").action, "undefined|sharelink")
     check("hidden capability rows leave no doubled separators", separated(Menu.listingEntries(state({ hiddenActions: ["compress", "convert", "taildrop", "dropbox"] }))), true)
     check("Open cannot be hidden", Menu.isHidden(["open"], "open"), false)
-    // src/ui_logic_mn1/build.rs BACKGROUND_KEEPS: the view rows' switches take them off the file menu, and the background keeps them.
+    // src/ui_logic_context_menus/build.rs BACKGROUND_KEEPS: the view rows' switches take them off the file menu, and the background keeps them.
     var viewHidden = ["toggleHidden", "toggleLangMarks", "openTerminal"]
     check("Settings > Menus takes the view rows off the file menu",
           actions(Menu.listingEntries(state({ hiddenActions: viewHidden }))).indexOf("toggle") >= 0, false)
@@ -289,7 +289,7 @@ function run(check) {
           actions(LockedMenu.lockedEntries({ lockedMode: 0o040000, hiddenActions: ["openTerminal", "permissions"] })), "copypath")
     check("and it refuses nothing then",
           LockedMenu.lockedRefusal({ lockedMode: 0o040000, hiddenActions: ["openTerminal", "permissions"] }), "")
-    // src/ui_logic_mn1/places.rs locked_notice: Permissions alone shown opens the tile and names the other two.
+    // src/ui_logic_context_menus/places.rs locked_notice: Permissions alone shown opens the tile and names the other two.
     var currentHidden = ["delete", "openTerminal", "placeMenu", "runScript", "moveto", "copyto", "copyAs", "pasteAs",
         "invertSelection", "extThumbs", "run", "openAsText", "openAgent", "toggleHidden", "toggleLangMarks"]
     check("the current shipped set leaves the Locked tile Permissions alone",

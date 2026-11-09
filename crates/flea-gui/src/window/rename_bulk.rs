@@ -1,7 +1,9 @@
 //! The bulk rename card for a multi-selection: Pane.qml openBulkRename, its paths round trip, the card's keys and effects, and its done line.
 use super::Shell;
-use crate::g2::op3::{bulkrename::BulkRename, keys::key_of, lane, shell::StandIn, Effect};
-use flea::ui_logic_op1::lines;
+use crate::g2::open_with_properties::{
+    bulkrename::BulkRename, keys::key_of, lane, shell::StandIn, Effect,
+};
+use flea::ui_logic_file_ops::lines;
 use gpui::{div, prelude::*, AnyElement, Context, KeyDownEvent, MouseButton, Window};
 
 /// The open card and the side whose selection it renames.
@@ -209,35 +211,35 @@ impl Shell {
             .unwrap_or_default();
         let palette = crate::list::Palette::inherited(&window.text_style(), theme);
         let mut card = open.card.card(&self.locale.catalog);
-        self.rename.ime.palette = Some(crate::g2::op1::palette::CardPalette::from_list(
+        self.rename.ime.palette = Some(crate::g2::file_ops::palette::CardPalette::from_list(
             &palette,
             self.corner,
         ));
         self.rename.ime.error_ink = false;
         for block in &mut card.body {
-            use crate::g2::op3::shell::Block;
+            use crate::g2::open_with_properties::shell::Block;
             match block {
                 Block::Fields(a, b) => {
                     if a.focused
                         && self.rename.ime.owner
-                            == Some(crate::g2::op1::dialog_editor::Slot::BulkFind)
+                            == Some(crate::g2::file_ops::dialog_editor::Slot::BulkFind)
                     {
                         a.input = Some(cx.entity());
                     }
                     if b.focused
                         && self.rename.ime.owner
-                            == Some(crate::g2::op1::dialog_editor::Slot::BulkReplace)
+                            == Some(crate::g2::file_ops::dialog_editor::Slot::BulkReplace)
                     {
                         b.input = Some(cx.entity());
                     }
                 }
                 Block::Names { new, .. } => {
-                    if let Some(crate::g2::op1::dialog_editor::Slot::BulkLine(at)) =
+                    if let Some(crate::g2::file_ops::dialog_editor::Slot::BulkLine(at)) =
                         self.rename.ime.owner
                     {
                         if let Some(line) = new.get_mut(at) {
                             self.rename.ime.error_ink =
-                                line.ink == crate::g2::op3::shell::Ink::Error;
+                                line.ink == crate::g2::open_with_properties::shell::Ink::Error;
                             line.input = Some(cx.entity());
                         }
                     }
@@ -264,7 +266,7 @@ impl Shell {
             if let Some(open) = shell.rename.bulk.as_mut() {
                 let effects = open
                     .card
-                    .press(flea::ui_logic_op3::bulkrename::Stop::Cancel);
+                    .press(flea::ui_logic_open_with_properties::bulkrename::Stop::Cancel);
                 shell.bulk_rename_effects(effects, cx);
             }
         });
@@ -279,7 +281,7 @@ impl Shell {
                 .occlude()
                 .bg(palette
                     .background
-                    .opacity(flea::ui_logic_op1::card::scrim_alpha(0)))
+                    .opacity(flea::ui_logic_file_ops::card::scrim_alpha(0)))
                 .on_mouse_down(MouseButton::Left, scrim)
                 .child(
                     div()

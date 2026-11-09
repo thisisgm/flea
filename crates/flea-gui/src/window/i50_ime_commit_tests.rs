@@ -3,7 +3,7 @@ use super::*;
 
 #[gpui::test]
 fn i50_ime_root_find_tab_commits(cx: &mut TestAppContext) {
-    use flea::{json, ui_logic_sr1::Scope};
+    use flea::{json, ui_logic_file_search::Scope};
     let (handle, mut read) = mounted(cx);
     let home = std::env::var("HOME").expect("HOME");
     let folder = format!("{}/i50-ime-scope", home.trim_end_matches('/'));

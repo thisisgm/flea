@@ -1,5 +1,5 @@
 //! Card readers observe laid-out boxes and pointer events without carrying field contents.
-use crate::g2::st1::probe::Probe;
+use crate::g2::settings_pages::probe::Probe;
 use flea::jsondoc::Json;
 use gpui::{div, prelude::*, Div, MouseButton, Stateful};
 use std::{cell::RefCell, collections::BTreeMap, rc::Rc};

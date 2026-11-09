@@ -13,7 +13,7 @@ use std::{cell::RefCell, time::Duration};
 thread_local! {
     static OPENED: RefCell<Vec<Vec<String>>> = const { RefCell::new(Vec::new()) };
 }
-fn record(argv: &[String]) -> crate::g2::op3::lane::Exit {
+fn record(argv: &[String]) -> crate::g2::open_with_properties::lane::Exit {
     OPENED.with(|paths| paths.borrow_mut().push(argv.to_vec()));
     (Some(0), String::new())
 }

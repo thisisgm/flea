@@ -5,7 +5,7 @@ use gpui::{AppContext, TestAppContext, VisualTestContext};
 
 #[gpui::test]
 fn vf_readers_compress_reports_matched_fields_without_their_contents(cx: &mut TestAppContext) {
-    use crate::g2::op2::{
+    use crate::g2::archive_flash::{
         compress::{Compress, Stop},
         keys::Key,
     };
@@ -61,7 +61,7 @@ fn vf_readers_compress_reports_matched_fields_without_their_contents(cx: &mut Te
 fn vf_readers_properties_folder_tail_tracks_the_real_contents_walk(cx: &mut TestAppContext) {
     let handle = open(cx);
     update(cx, handle, |shell, window, cx| {
-        let capture = crate::g2::mn1::join::Captured {
+        let capture = crate::g2::context_menus::join::Captured {
             side: 0,
             listing: 1,
             rows: vec![0],
@@ -131,7 +131,7 @@ fn vf_readers_properties_folder_tail_tracks_the_real_contents_walk(cx: &mut Test
 
 #[gpui::test]
 fn vf_readers_permissions_reports_the_painted_checkbox_focus(cx: &mut TestAppContext) {
-    use crate::g2::op3::permissions::{host::View, Permissions, Stop};
+    use crate::g2::open_with_properties::permissions::{host::View, Permissions, Stop};
     let handle = open(cx);
     update(cx, handle, |shell, window, cx| {
         let (model, _) = Permissions::open(1, vec!["/files/item".into()], "Text");
@@ -167,7 +167,7 @@ fn vf_readers_permissions_reports_the_painted_checkbox_focus(cx: &mut TestAppCon
 
 #[gpui::test]
 fn vf_readers_permissions_reports_the_painted_mixed_selection(cx: &mut TestAppContext) {
-    use crate::g2::op3::permissions::{host::View, Permissions, Stop};
+    use crate::g2::open_with_properties::permissions::{host::View, Permissions, Stop};
     let handle = open(cx);
     let mut mixed_note = String::new();
     update(cx, handle, |shell, window, cx| {
@@ -181,7 +181,8 @@ fn vf_readers_permissions_reports_the_painted_mixed_selection(cx: &mut TestAppCo
         let view = cx.new(|cx| View::new(model, catalog, 4., cx));
         view.update(cx, |view, cx| {
             for (at, mode) in ["0644", "0444"].iter().enumerate() {
-                let id = flea::ui_logic_op3::permissions::INSPECT_STRIDE + at as u64;
+                let id =
+                    flea::ui_logic_open_with_properties::permissions::INSPECT_STRIDE + at as u64;
                 let reply = jsondoc::parse(&format!(
                     r#"{{"id":{id},"op":"inspect","ok":true,"mode":"{mode}"}}"#,
                 ))

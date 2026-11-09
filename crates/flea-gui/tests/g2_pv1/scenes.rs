@@ -1,8 +1,8 @@
 //! The boards' own subjects, scene by scene (g2.pv1.<board>.primary), with the strings each board draws.
 use super::repo;
 use flea::i18n::I18n;
-use flea::ui_logic_pv1::{compare, kinds::State, meta::CompareState, rect::Shape};
-use flea_gui::g2::pv1::{glyph::Glyph, Body, Control, Subject};
+use flea::ui_logic_preview_core::{compare, kinds::State, meta::CompareState, rect::Shape};
+use flea_gui::g2::quick_look_overlay::{glyph::Glyph, Body, Control, Subject};
 
 const FILE: u32 = 0o100644;
 const LINK: u32 = 0o120777;

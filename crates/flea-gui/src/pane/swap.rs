@@ -310,7 +310,7 @@ impl super::Pane {
             && self.path() == pending.path
             && self.state.query == pending.options.kept_query;
         let kept = reanswer.then(|| self.held.row(self.cursor)).flatten();
-        flea::ui_logic_sr1::Session::kept_index(
+        flea::ui_logic_file_search::Session::kept_index(
             kept.map(|row| row.name.as_str()),
             held.rows.iter().map(|row| row.name.as_str()),
             held.start,

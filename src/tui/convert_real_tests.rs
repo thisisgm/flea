@@ -28,7 +28,10 @@ pub fn formats(root: &Path, w: &mut Wire) {
         String::from_utf8_lossy(&tool(&["magick", "-version"]))
     );
     let mut codec_errors = Vec::new();
-    for (choice, format) in flea::ui_logic_op4::output::IMAGE_FORMATS.iter().enumerate() {
+    for (choice, format) in flea::ui_logic_print_convert::output::IMAGE_FORMATS
+        .iter()
+        .enumerate()
+    {
         let mut m = open(&files, w, &["photo.png"]);
         for _ in 0..choice {
             press(&mut m, w, Key::character('j', ""));
@@ -41,7 +44,9 @@ pub fn formats(root: &Path, w: &mut Wire) {
         }
         submit(&mut m, w);
         assert!(m.error.is_empty(), "{format}: {}", m.error);
-        let output = files.join(flea::ui_logic_op4::output::converted_name(&source, format));
+        let output = files.join(flea::ui_logic_print_convert::output::converted_name(
+            &source, format,
+        ));
         let bytes = std::fs::read(&output).unwrap();
         assert_ne!(
             bytes, original,
@@ -83,7 +88,10 @@ pub fn pages(root: &Path, w: &mut Wire) {
     let files = root.join("files");
     let source = pdf(&files, "report.pdf");
     let original = std::fs::read(&source).unwrap();
-    for (choice, format) in flea::ui_logic_op4::output::PDF_FORMATS.iter().enumerate() {
+    for (choice, format) in flea::ui_logic_print_convert::output::PDF_FORMATS
+        .iter()
+        .enumerate()
+    {
         let mut m = open(&files, w, &["report.pdf"]);
         until(&mut m, w, |m| {
             m.converting

@@ -1,7 +1,7 @@
 //! Network mount aliases follow persisted bookmark and favourite labels, never live provider labels.
 use super::crumbs::{relabel_aliases, remember_alias};
 use crate::state::Shell;
-use flea::{jsondoc::Json, ui_logic_pl1::mounts};
+use flea::{jsondoc::Json, ui_logic_device_rail::mounts};
 use std::collections::HashMap;
 
 pub(crate) fn saved_labels(bookmarks: &str) -> HashMap<String, String> {

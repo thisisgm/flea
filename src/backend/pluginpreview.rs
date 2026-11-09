@@ -4,8 +4,8 @@ use super::plugins::{self, Env, Installed};
 use super::{mime, sandbox};
 use flea::jsondoc::Json;
 use flea::plugin_runtime::{protocol, Reply};
-use flea::ui_logic_mn2::plugins::mime_match;
-use flea::ui_logic_st2::manifest::{Invalid, Manifest};
+use flea::ui_logic_custom_actions::plugins::mime_match;
+use flea::ui_logic_plugin_settings::manifest::{Invalid, Manifest};
 use std::io::{BufRead, Read, Write};
 use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
 use std::os::unix::fs::DirBuilderExt;
@@ -236,7 +236,11 @@ fn run(
     let work = Work::new(&limits.root)?;
     let mut jailed = spawn(&folder, &entry, input, &work.0, &[])?;
     let mut lines = vec![plugins::hello(env, manifest)];
-    lines.extend(request.as_ref().map(flea::ui_logic_st2::wire::compact));
+    lines.extend(
+        request
+            .as_ref()
+            .map(flea::ui_logic_plugin_settings::wire::compact),
+    );
     let answers = exchange(
         &mut jailed,
         lines,

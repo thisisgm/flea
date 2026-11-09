@@ -55,9 +55,9 @@ impl Typeface {
     /// This face at a text size, its tokens derived as an explicit text size derives them.
     pub fn at_base(mut self, base: u32) -> Self {
         self.base = px(base as f32);
-        self.body = px(flea::ui_logic_st1::textsize::body(base) as f32);
-        self.body_small = px(flea::ui_logic_st1::textsize::body_small(base) as f32);
-        self.caption = px(flea::ui_logic_st1::textsize::caption(base) as f32);
+        self.body = px(flea::ui_logic_settings_pages::textsize::body(base) as f32);
+        self.body_small = px(flea::ui_logic_settings_pages::textsize::body_small(base) as f32);
+        self.caption = px(flea::ui_logic_settings_pages::textsize::caption(base) as f32);
         self
     }
 }

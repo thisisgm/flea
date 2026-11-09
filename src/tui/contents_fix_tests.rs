@@ -12,7 +12,9 @@ use super::{
     wire::{self, count, text},
 };
 use crate::jsondoc::Json;
-use flea::ui_logic_sr1::{scope_label, ContentsMatch, ContentsMatches, Kind, Scope, Session};
+use flea::ui_logic_file_search::{
+    scope_label, ContentsMatch, ContentsMatches, Kind, Scope, Session,
+};
 use std::{io::Write, process::Stdio, time::Duration};
 
 pub(super) fn names(m: &mut Model, wire: &mut wire::Wire) {

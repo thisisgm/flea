@@ -1,6 +1,6 @@
 //! Typed place operations retain the originating listing and menu confirmation.
 use super::{place::refusal, place_model::*};
-use flea::{jsondoc::Json, ui_logic_mn1::build};
+use flea::{jsondoc::Json, ui_logic_context_menus::build};
 
 pub(super) enum Completion {
     List,

@@ -1,12 +1,12 @@
 //! Every operation-card owner mounts as production does: op1 and op4 retain a palette, the archive layer reads one each render.
 use super::{frames, mounted};
 use crate::{
-    g2::{op1, op2, op4},
+    g2::{archive_flash, file_ops, print_convert},
     state::Shell,
 };
 use flea::{
-    ui_logic_op1::{collide, trash},
-    ui_logic_op4::{
+    ui_logic_file_ops::{collide, trash},
+    ui_logic_print_convert::{
         output::Kind,
         selection::{Selection, Source},
     },
@@ -20,7 +20,7 @@ const CARD_WINDOW: (f32, f32) = (1100., 800.);
 const OUTPUT_WINDOW: (f32, f32) = (1100., 900.);
 
 fn operations(cx: &mut TestAppContext) {
-    use op1::model::{CopyFocus, Dialog};
+    use file_ops::model::{CopyFocus, Dialog};
     let cards = [
         (
             "new-file",
@@ -48,7 +48,7 @@ fn operations(cx: &mut TestAppContext) {
             "collision",
             Dialog::Collide {
                 title: "File exists".into(),
-                names: vec![flea::ui_logic_op1::Collision {
+                names: vec![flea::ui_logic_file_ops::Collision {
                     name: "notes.txt".into(),
                     dir: false,
                     icon: "text-plain".into(),
@@ -62,7 +62,7 @@ fn operations(cx: &mut TestAppContext) {
             "fat-names",
             Dialog::Fat {
                 title: "Names on this drive".into(),
-                renames: vec![flea::ui_logic_op1::Rename {
+                renames: vec![flea::ui_logic_file_ops::Rename {
                     old: "a:b".into(),
                     new: "a_b".into(),
                     dir: false,
@@ -108,10 +108,13 @@ fn operations(cx: &mut TestAppContext) {
     for (name, dialog) in cards {
         let (shell, view, cx) = mounted(cx, ROUNDED, |shell, window, cx| {
             let theme = super::theme();
-            let palette =
-                op1::palette::CardPalette::from_theme(&window.text_style(), theme, shell.corner);
+            let palette = file_ops::palette::CardPalette::from_theme(
+                &window.text_style(),
+                theme,
+                shell.corner,
+            );
             let catalog = shell.locale.catalog.clone();
-            let view = cx.new(|_| op1::host::Overlay::new(catalog, palette, "default"));
+            let view = cx.new(|_| file_ops::host::Overlay::new(catalog, palette, "default"));
             shell.overlay = Some(view.clone());
             view
         });
@@ -147,7 +150,7 @@ fn archive_card(cx: &mut TestAppContext, name: &'static str, open: impl FnOnce(&
 
 fn archives(cx: &mut TestAppContext) {
     archive_card(cx, "compress-password", |shell| {
-        let (compress, _) = op2::compress::Compress::open(
+        let (compress, _) = archive_flash::compress::Compress::open(
             vec!["/files/a".into()],
             "/files",
             "files",
@@ -167,18 +170,18 @@ fn archives(cx: &mut TestAppContext) {
 
 fn outputs(cx: &mut TestAppContext) {
     for (name, action) in [
-        ("print", op4::model::Action::Print),
-        ("convert", op4::model::Action::Convert),
-        ("combine", op4::model::Action::Combine),
+        ("print", print_convert::model::Action::Print),
+        ("convert", print_convert::model::Action::Convert),
+        ("combine", print_convert::model::Action::Combine),
     ] {
         let (shell, view, cx) = mounted(cx, ROUNDED, |shell, window, cx| {
-            let palette = op1::palette::CardPalette::from_theme(
+            let palette = file_ops::palette::CardPalette::from_theme(
                 &window.text_style(),
                 super::theme(),
                 shell.corner,
             );
             let catalog = shell.locale.catalog.clone();
-            let view = cx.new(|cx| op4::host::OutputView::new(catalog, palette, cx));
+            let view = cx.new(|cx| print_convert::host::OutputView::new(catalog, palette, cx));
             shell.output.view = Some(view.clone());
             view
         });

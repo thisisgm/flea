@@ -1,7 +1,7 @@
 //! FIX-READERS3 (EY-228): readers v0.3.12 answers that GPUI used to refuse, reached through the production Root dispatch.
 use crate::{
     backend::Backend,
-    g2::op3::openwith::OpenWith,
+    g2::open_with_properties::openwith::OpenWith,
     state::{tests::shell_with, Shell},
     window::{open_with::Open as OpenWithOpen, root::Root},
 };

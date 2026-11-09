@@ -1,8 +1,8 @@
 //! IpcPreviewState.previewScrollY and previewTable read the shown Markdown view in Quick Look.
 use super::Adapter;
 use crate::g2::{
-    pv1::{doc::View, QuickLook},
-    pv2::markdown,
+    doc_preview::markdown,
+    quick_look_overlay::{doc::View, QuickLook},
 };
 use flea::ipc::wire::Reply;
 use gpui::App;

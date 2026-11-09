@@ -207,7 +207,7 @@ impl Shell {
         let hit = state.tile_at(f32::from(at.x), f32::from(at.y));
         if event.button == gpui::MouseButton::Left && state.bounds.contains(&event.position) {
             if let Some(carrying) = cx
-                .try_global::<crate::g2::dg1::carry::Carrying>()
+                .try_global::<crate::g2::file_clipboard::carry::Carrying>()
                 .filter(|carrying| carrying.carry.active())
             {
                 // Owned copy first: the cx borrow must end before stop_propagation.
@@ -223,7 +223,7 @@ impl Shell {
                 if hit.is_some() && row.is_none_or(|row| host.pane.held.row(row).is_none()) {
                     return;
                 }
-                let dest = crate::g2::dg2::join::row_spot(host, row, &carried);
+                let dest = crate::g2::drag_drop::join::row_spot(host, row, &carried);
                 drop(state);
                 self.carry_land(
                     side,

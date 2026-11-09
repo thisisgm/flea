@@ -3,8 +3,8 @@ use crate::state::Shell;
 use flea::{
     jsondoc::Json,
     keys::user::{self, UserBinding},
-    ui_logic_st1::pages::{user_binding_refusals, UserKeyFacts},
-    ui_logic_st2::{contributions, store, wire::Plugin},
+    ui_logic_plugin_settings::{contributions, store, wire::Plugin},
+    ui_logic_settings_pages::pages::{user_binding_refusals, UserKeyFacts},
 };
 use gpui::{Context, KeyDownEvent, Modifiers, Task, Window};
 use std::{io::Read, os::unix::fs::MetadataExt, path::PathBuf, time::Duration};
@@ -96,7 +96,13 @@ pub(crate) fn plugin_actions(plugins: &[Plugin], data: &Json) -> Vec<(String, St
             p.enabled && p.failure.is_none() && store::enabled(data, &p.manifest.id, p.enabled)
         })
         .flat_map(|p| contributions::menu_actions(&p.manifest).unwrap_or_default())
-        .map(|c| (flea::ui_logic_mn2::plugins::leaf(&c), c.label, c.glyph))
+        .map(|c| {
+            (
+                flea::ui_logic_custom_actions::plugins::leaf(&c),
+                c.label,
+                c.glyph,
+            )
+        })
         .collect()
 }
 
@@ -138,7 +144,7 @@ impl Shell {
                         &hint,
                         false,
                         "",
-                        flea::ui_logic_fb1::status::Hint::None,
+                        flea::ui_logic_status_feedback::status::Hint::None,
                         now,
                     )
                 });
@@ -149,14 +155,14 @@ impl Shell {
     }
 
     pub(crate) fn user_keys_listed(&mut self, line: &str) {
-        if let Ok(flea::ui_logic_st2::wire::Reply::Listing(list)) =
-            flea::ui_logic_st2::wire::parse(line)
+        if let Ok(flea::ui_logic_plugin_settings::wire::Reply::Listing(list)) =
+            flea::ui_logic_plugin_settings::wire::parse(line)
         {
             self.user_keys.facts.catalog = Some(
                 list.plugins
                     .iter()
                     .flat_map(|p| contributions::menu_actions(&p.manifest).unwrap_or_default())
-                    .map(|c| flea::ui_logic_mn2::plugins::leaf(&c))
+                    .map(|c| flea::ui_logic_custom_actions::plugins::leaf(&c))
                     .collect(),
             );
         }

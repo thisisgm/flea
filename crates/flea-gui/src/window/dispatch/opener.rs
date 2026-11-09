@@ -1,15 +1,15 @@
 //! The opener family: Enter, l, a double click and the menu's Open on a file hand it to flea --open, and its exit picks the next step.
 use super::Order;
 use crate::{
-    g2::op3::lane,
+    g2::open_with_properties::lane,
     navigation::history::join,
     state::Shell,
     window::{input::ActionEvent, navigate::Step},
 };
 use flea::{
     keys::Context as Keys,
-    ui_logic_op3::opener::{busy_text, failed_text, Opened, Opener},
-    ui_logic_pv1::kinds::{quick_look_kind, State},
+    ui_logic_open_with_properties::opener::{busy_text, failed_text, Opened, Opener},
+    ui_logic_preview_core::kinds::{quick_look_kind, State},
 };
 use gpui::{Context, EventEmitter, Task, Window};
 #[path = "opener_subject.rs"]
@@ -158,7 +158,7 @@ pub(super) fn run(
 // A claimed row closes its producer snapshot; false when another family already took it.
 fn menu_claim(
     shell: &mut Shell,
-    chosen: &crate::g2::mn1::join::Chosen,
+    chosen: &crate::g2::context_menus::join::Chosen,
     cx: &mut Context<Shell>,
 ) -> bool {
     if !chosen.claim() {
@@ -336,7 +336,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        use flea::ui_logic_op3::runfile::{exit_outcome, Action, Exit};
+        use flea::ui_logic_open_with_properties::runfile::{exit_outcome, Action, Exit};
         if self.opener[side].text.is_some() {
             let busy = self.locale.catalog.tr("dialogs.file.run.busy");
             self.opener_say(side, busy, false, cx);
@@ -376,7 +376,7 @@ impl Shell {
                 &sentence,
                 error,
                 "",
-                flea::ui_logic_fb1::status::Hint::None,
+                flea::ui_logic_status_feedback::status::Hint::None,
                 now,
             )
         });

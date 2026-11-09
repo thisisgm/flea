@@ -9,7 +9,7 @@ use gpui::{Entity, TestAppContext, VisualTestContext};
 fn markdown(
     shell: &Entity<crate::state::Shell>,
     cx: &VisualTestContext,
-) -> Option<Entity<crate::g2::pv2::markdown::MarkdownView>> {
+) -> Option<Entity<crate::g2::doc_preview::markdown::MarkdownView>> {
     shell.read_with(cx, |shell, cx| {
         match &shell.selection_preview(0)?.read(cx).drawn.as_ref()?.mounted {
             Mounted::Doc(Doc::Markdown(markdown)) => Some(markdown.clone()),
@@ -34,7 +34,7 @@ fn columns_text_reader_preserves_the_native_too_large_sentinel(cx: &mut TestAppC
         };
         assert_eq!(
             code.read(cx).refusal(),
-            Some(flea::ui_logic_pv2::refusal::Refusal::TooLarge)
+            Some(flea::ui_logic_doc_preview::refusal::Refusal::TooLarge)
         );
     });
     assert_eq!(read(&shell, cx, "columnTextLines", &[]), "too large");
@@ -89,7 +89,7 @@ fn pb_columns2_markdown_reader_reads_the_mounted_document_and_source(cx: &mut Te
     assert_eq!(read(&shell, cx, "columnMarkdownView", &[]), "rendered");
     let view = markdown(&shell, cx).unwrap();
     view.update(cx, |view, cx| {
-        view.set_view(crate::g2::pv2::markdown::View::Source, cx)
+        view.set_view(crate::g2::doc_preview::markdown::View::Source, cx)
     });
     assert_eq!(read(&shell, cx, "columnMarkdownView", &[]), "source");
     assert_eq!(
@@ -218,7 +218,7 @@ fn columns_play_button_keeps_listing_keys_and_selection_retires_the_player(
     cx: &mut TestAppContext,
 ) {
     use super::quick_look_body_tests::{Fake, Script};
-    use flea::ui_logic_pv3::frame::Event;
+    use flea::ui_logic_media_preview::frame::Event;
     use std::rc::Rc;
 
     let (shell, cx) = host::open(cx, "/files");

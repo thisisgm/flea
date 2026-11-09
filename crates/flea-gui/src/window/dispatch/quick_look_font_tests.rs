@@ -3,8 +3,8 @@ use super::preview_tests::{body, close, draw, file, opened, sent};
 use super::test_shell::{land, set_cursor};
 use crate::{
     g2::{
-        pv1::{doc::View, Body, Look},
-        pv2::markdown::style::hex,
+        doc_preview::markdown::style::hex,
+        quick_look_overlay::{doc::View, Body, Look},
     },
     palette::Theme,
     presentation::Fonts,

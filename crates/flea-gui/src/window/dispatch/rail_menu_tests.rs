@@ -2,7 +2,7 @@
 use super::menus_tests::{choose, home, settle};
 use super::test_shell::{land, open_root_with};
 use crate::{state::Shell, window::u07_tests::read};
-use flea::{jsondoc, ui_logic_pl4::rail::Kind};
+use flea::{jsondoc, ui_logic_rail_places::rail::Kind};
 use gpui::{
     point, px, Entity, Modifiers, MouseButton, MouseDownEvent, MouseUpEvent, TestAppContext,
     VisualTestContext,
@@ -22,7 +22,7 @@ pub(super) fn open(cx: &mut TestAppContext, full: bool) -> (Entity<Shell>, &mut 
     cx.update(|window, cx| {
         shell.update(cx, |shell, cx| {
             let mut state = shell.launch.settings.data.clone();
-            crate::g2::st1::seams::merge(
+            crate::g2::settings_pages::seams::merge(
                 &mut state,
                 &jsondoc::parse(r#"{"places":{"favourites":[{"label":"Docs","path":"/docs"}]}}"#)
                     .unwrap(),
@@ -177,8 +177,8 @@ fn pb_rail_2_quiet_default_keeps_the_remove_only_favourite_menu(cx: &mut TestApp
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
-// BLOCKED-LEASE g2/pl4 (I50-16 owns g2/pl4/**): the favourite inspection needs producer.rs and service.rs. Draft: .superpowers/PB-RAIL-2/producer-inspect.rs.pending.
-#[ignore = "BLOCKED-LEASE g2/pl4: favourite inspection, see RESULT.md"]
+// BLOCKED-LEASE g2/rail_places (I50-16 owns g2/rail_places/**): the favourite inspection needs producer.rs and service.rs. Draft: .superpowers/PB-RAIL-2/producer-inspect.rs.pending.
+#[ignore = "BLOCKED-LEASE g2/rail_places: favourite inspection, see RESULT.md"]
 #[gpui::test]
 fn pb_rail_2_visible_favourite_is_inspected_and_carries_the_diagnostic(cx: &mut TestAppContext) {
     use std::os::unix::fs::PermissionsExt;
@@ -201,7 +201,7 @@ printf '%s\n' '{"statuses":[{"index":0,"record":{"label":"Missing","path":"/gone
     cx.update(|window, cx| {
         shell.update(cx, |shell, cx| {
             let mut state = shell.launch.settings.data.clone();
-            crate::g2::st1::seams::merge(
+            crate::g2::settings_pages::seams::merge(
                 &mut state,
                 &jsondoc::parse(
                     r#"{"places":{"favourites":[{"label":"Missing","path":"/gone"}]}}"#,
@@ -277,7 +277,7 @@ fn pb_rail_2_changed_favourite_refuses_remove_from_an_old_menu(cx: &mut TestAppC
     cx.update(|window, cx| {
         shell.update(cx, |shell, cx| {
             let mut state = shell.launch.settings.data.clone();
-            crate::g2::st1::seams::merge(
+            crate::g2::settings_pages::seams::merge(
                 &mut state,
                 &jsondoc::parse(r#"{"places":{"favourites":[{"label":"Other","path":"/other"}]}}"#)
                     .unwrap(),
@@ -311,7 +311,7 @@ fn ey358_escape_on_an_auto_hidden_favourite_menu_returns_to_the_rail_row(cx: &mu
     cx.update(|window, cx| {
         shell.update(cx, |shell, cx| {
             let mut state = shell.launch.settings.data.clone();
-            crate::g2::st1::seams::merge(
+            crate::g2::settings_pages::seams::merge(
                 &mut state,
                 &jsondoc::parse(r#"{"places":{"autoHide":true}}"#).unwrap(),
             );

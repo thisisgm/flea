@@ -21,9 +21,9 @@ run() {
 # Reads cargo's summary line, for example "test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 70 filtered out; finished in 0.01s".
 count() { sed -n 's/^test result: ok\. \([0-9]*\) passed; 0 failed.*/\1/p' "$1" | head -1; }
 set +e
-run "$unit_root/core.log" -p flea --lib ui_logic_sr1
+run "$unit_root/core.log" -p flea --lib ui_logic_file_search
 core_rc=$?
-run "$unit_root/gui.log" -p flea-gui --lib g2::sr1
+run "$unit_root/gui.log" -p flea-gui --lib g2::file_search
 gui_rc=$?
 set -e
 [ "$core_rc" -eq 0 ] || { tail -40 "$unit_root/core.log" >&2; printf 'g2-sr1: FAIL core tests exited %s\n' "$core_rc"; exit 1; }

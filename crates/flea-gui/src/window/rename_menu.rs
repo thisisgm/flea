@@ -1,11 +1,11 @@
 //! The rename entry uses the shared menu card and its normal keyboard and pointer routing.
 use crate::{
-    g2::mn1::menu::{Face, Outcome},
+    g2::context_menus::menu::{Face, Outcome},
     state::Shell,
 };
 use flea::{
     keys,
-    ui_logic_mn1::{fit::Rect, Entry, Text},
+    ui_logic_context_menus::{fit::Rect, Entry, Text},
 };
 use gpui::{ClipboardItem, Context, MouseDownEvent, Window};
 

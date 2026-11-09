@@ -4,7 +4,7 @@ use super::{
     test_shell::{asked, land, open_root_with, row},
 };
 use crate::{state::Shell, window::u07_tests::read};
-use flea::ui_logic_pl4::{
+use flea::ui_logic_rail_places::{
     order::{Heading, RailSection},
     rail::{Group, Kind, RailEntry},
 };

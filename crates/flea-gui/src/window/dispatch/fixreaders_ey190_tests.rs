@@ -152,7 +152,7 @@ fn fixreaders_ey190_picture_and_surface_rects_read_the_open_quick_look(cx: &mut 
     let [zx, zy, zw, zh] = edges(&rect(surface));
     assert_eq!(
         [zx, zy, zw, zh],
-        [sx, sy, sw, sh - crate::g2::pv1::look::BAR],
+        [sx, sy, sw, sh - crate::g2::quick_look_overlay::look::BAR],
         "the caption bar takes only the card's foot"
     );
     // A closed Quick Look answers no box, never the last one drawn.

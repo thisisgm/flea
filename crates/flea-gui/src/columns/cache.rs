@@ -101,7 +101,8 @@ impl Prepared {
     pub fn prepare_cursor(&self, font: &Font, body: Pixels, window: &Window) {
         for name in self.matches.iter().flatten() {
             name.bold.get_or_init(|| {
-                let runs = crate::g2::sr1::run::text_runs(&name.label, Some(name.run), true, font);
+                let runs =
+                    crate::g2::file_search::run::text_runs(&name.label, Some(name.run), true, font);
                 GlyphRun::new(
                     window
                         .text_system()
@@ -112,7 +113,7 @@ impl Prepared {
     }
 
     pub fn wash_span(&self, chevron: bool, cursor: bool) -> Option<(Pixels, Pixels)> {
-        crate::g2::sr1::run::wash_span(
+        crate::g2::file_search::run::wash_span(
             self.name(chevron).line(),
             Some(self.matched(chevron)?.run),
             cursor,
@@ -206,13 +207,17 @@ fn prepare(
     };
     let path = row.name();
     let name = if shaping.locating {
-        flea::ui_logic_sr1::base(path)
+        flea::ui_logic_file_search::base(path)
     } else {
         path
     };
     let location_label = if shaping.locating {
-        let location =
-            crate::g2::sr1::run::location(path, "", "", flea::ui_logic_sr1::Scope::Folder);
+        let location = crate::g2::file_search::run::location(
+            path,
+            "",
+            "",
+            flea::ui_logic_file_search::Scope::Folder,
+        );
         // The location leaves the clip slot, its own gap and one cell of name before the mark.
         let cells = (shaping.plain_cells / 2).min(plain_cells.saturating_sub(take + 2));
         if cells == 0 {
@@ -229,7 +234,7 @@ fn prepare(
         location_label.chars().map(row::cells_of).sum::<usize>() + 1
     };
     let budget = |cells: usize| cells.saturating_sub(take).saturating_sub(reserved);
-    let run = crate::g2::sr1::run::run_in(name, &shaping.query);
+    let run = crate::g2::file_search::run::run_in(name, &shaping.query);
     let elide_at = |cells: usize| match run {
         Some(run) => {
             let (label, (start, end)) = row::elide_around(name, cells, run);

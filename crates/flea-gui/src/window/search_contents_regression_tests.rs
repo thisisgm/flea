@@ -1,6 +1,6 @@
 //! G12 review regressions through the mounted search, painter and local opener.
 use super::*;
-use crate::g2::sr1::contents::BLOCK_H;
+use crate::g2::file_search::contents::BLOCK_H;
 use gpui::{div, prelude::*, px, size, Context, IntoElement, Render, Window};
 use std::cell::RefCell;
 
@@ -151,7 +151,7 @@ fn g12_vfix_marked_blocks_paint_above_the_opaque_contents_ground() {
 
 struct Overlay {
     host: crate::window::pane::PaneHost,
-    held: std::rc::Rc<crate::g2::sr1::contents::Held>,
+    held: std::rc::Rc<crate::g2::file_search::contents::Held>,
     rows: crate::list::RowStates,
 }
 
@@ -176,7 +176,7 @@ thread_local! {
     static LAUNCHED: RefCell<Vec<Vec<String>>> = const { RefCell::new(Vec::new()) };
 }
 
-fn record(argv: &[String]) -> crate::g2::op3::lane::Exit {
+fn record(argv: &[String]) -> crate::g2::open_with_properties::lane::Exit {
     LAUNCHED.with(|seen| seen.borrow_mut().push(argv.to_vec()));
     (Some(0), String::new())
 }

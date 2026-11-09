@@ -5,8 +5,8 @@ use super::{
 };
 use crate::{
     g2::{
-        pv1::{doc::Chrome, Body},
-        pv2::markdown::{Status, View},
+        doc_preview::markdown::{Status, View},
+        quick_look_overlay::{doc::Chrome, Body},
     },
     state::Shell,
     window::locale::Snapshot,
@@ -128,7 +128,7 @@ fn sol_live_md_chrome_markdown_relabels_without_reloading_or_scrolling(cx: &mut 
     let Some(Body::Doc(doc)) = body(&shell, cx) else {
         panic!("mounted document")
     };
-    let crate::g2::pv1::doc::View::Markdown(markdown) = &doc.view else {
+    let crate::g2::quick_look_overlay::doc::View::Markdown(markdown) = &doc.view else {
         panic!("Markdown view")
     };
     let text: Arc<str> = "A document line\n".repeat(481).into();
@@ -141,7 +141,7 @@ fn sol_live_md_chrome_markdown_relabels_without_reloading_or_scrolling(cx: &mut 
         view.doc.height = 4000.;
         view.source.set_text(
             text.clone(),
-            Arc::new(crate::g2::pv2::markdown::line_starts(&text)),
+            Arc::new(crate::g2::doc_preview::markdown::line_starts(&text)),
         );
         view.wrap = true;
         view.close_focused = true;
@@ -198,8 +198,8 @@ fn sol_live_md_chrome_markdown_relabels_without_reloading_or_scrolling(cx: &mut 
 
 #[gpui::test]
 fn sol_live_md_chrome_code_and_html_bars_follow_the_host_catalog(cx: &mut TestAppContext) {
-    use crate::g2::pv1::doc::View as Mounted;
-    use flea::ui_logic_pv2::{code_view::Answer, html::View as Html};
+    use crate::g2::quick_look_overlay::doc::View as Mounted;
+    use flea::ui_logic_doc_preview::{code_view::Answer, html::View as Html};
 
     let catalogs = Catalogs::new();
     let (shell, cx, _requests, _script) = mounted(cx);
@@ -267,7 +267,7 @@ fn sol_live_md_chrome_shown_and_pending_columns_refresh_cached_words(cx: &mut Te
     let Some(Body::Doc(doc)) = body(&shell, cx) else {
         panic!("mounted document")
     };
-    let crate::g2::pv1::doc::View::Markdown(markdown) = doc.view else {
+    let crate::g2::quick_look_overlay::doc::View::Markdown(markdown) = doc.view else {
         panic!("Markdown view")
     };
     markdown.update(cx, |view, _| view.scroll = 270.);

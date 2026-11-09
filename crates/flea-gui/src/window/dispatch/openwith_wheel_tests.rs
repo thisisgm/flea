@@ -1,7 +1,7 @@
 //! Open With folds native wheel and touchpad input like the shipped menu list.
 use super::menus_tests::settle;
 use super::openwith_controls_tests::prepared;
-use crate::g2::op3::openwith::Stop;
+use crate::g2::open_with_properties::openwith::Stop;
 use gpui::{point, px, ScrollDelta, ScrollWheelEvent, TestAppContext, TouchPhase};
 
 fn applications() -> String {
@@ -53,7 +53,7 @@ fn openwith_wheel_steps_only_the_list_and_reveals_the_highlight(cx: &mut TestApp
                 );
             }
             if cursor == 8 {
-                use crate::g2::op3::shell::{AppRow, Block};
+                use crate::g2::open_with_properties::shell::{AppRow, Block};
                 let card = open.card.card(&shell.locale.catalog);
                 let rows = card
                     .body

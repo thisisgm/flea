@@ -116,7 +116,7 @@ fn glass_visual_secondary_inks_hold_over_selected_dark_and_bright_backdrops() {
 
 #[gpui::test]
 fn glass_rail_highlight_fills_keep_the_original_palette(cx: &mut TestAppContext) {
-    use crate::g2::pl4::producer::Producer;
+    use crate::g2::rail_places::producer::Producer;
     use gpui::prelude::*;
     for (name, colors) in [
         (

@@ -8,7 +8,7 @@ use super::{
     theme::Theme,
     wire::{self, count, text},
 };
-use flea::ui_logic_sr1::{ContentsMatch, ContentsMatches};
+use flea::ui_logic_file_search::{ContentsMatch, ContentsMatches};
 use std::time::Duration;
 
 #[test]
@@ -51,7 +51,10 @@ fn tui_contents_replacement_is_coherent_and_scope_switch_is_generation_safe() {
     );
     press(&mut m, &mut w, Key::character('g', "ctrl"));
     press(&mut m, &mut w, Key::named("Tab", ""));
-    assert_eq!(m.find.session.scope, flea::ui_logic_sr1::Scope::Home);
+    assert_eq!(
+        m.find.session.scope,
+        flea::ui_logic_file_search::Scope::Home
+    );
     m.editor.as_mut().unwrap().replace("other".into());
     press(&mut m, &mut w, Key::named("Enter", ""));
     let sent = super::action_key_tests::drain(&mut w);
@@ -79,7 +82,7 @@ fn tui_contents_replacement_is_coherent_and_scope_switch_is_generation_safe() {
         ),
     );
     assert!(
-        m.find.session.scope == flea::ui_logic_sr1::Scope::Folder,
+        m.find.session.scope == flea::ui_logic_file_search::Scope::Folder,
         "failed Home request keeps the held Here scope"
     );
     assert_eq!(m.search_query, "needle");
@@ -353,7 +356,7 @@ fn tui_contents_here_scope_matches_the_header_home_abbreviation() {
     m.path = home.join("Docs");
     let catalog = super::contents_process_tests::Root::new();
     m.prompts.i18n = super::contents_tests::catalog(&catalog);
-    m.find.session.scope = flea::ui_logic_sr1::Scope::Folder;
+    m.find.session.scope = flea::ui_logic_file_search::Scope::Folder;
     m.editor = Some(super::editor::Editor::new(
         "search",
         String::new(),

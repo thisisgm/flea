@@ -1,9 +1,9 @@
 // The plugins request: list, enable, disable, set, add, update, remove and validate; see docs/protocol.md "plugins".
 use super::{pluginfs, plugingit, pluginops};
 use flea::jsondoc::{self, Json};
-use flea::ui_logic_st2::manifest::{self, Invalid, Manifest};
-use flea::ui_logic_st2::wire::{self, Listing, Outcome, Plugin, Source};
-use flea::ui_logic_st2::{builtin, schema, shelf, store};
+use flea::ui_logic_plugin_settings::manifest::{self, Invalid, Manifest};
+use flea::ui_logic_plugin_settings::wire::{self, Listing, Outcome, Plugin, Source};
+use flea::ui_logic_plugin_settings::{builtin, schema, shelf, store};
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};

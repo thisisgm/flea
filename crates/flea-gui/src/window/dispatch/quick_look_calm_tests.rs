@@ -4,7 +4,7 @@ use super::{
     test_shell::{land, row, set_cursor},
 };
 use crate::{
-    g2::pv1::{Body, Hit},
+    g2::quick_look_overlay::{Body, Hit},
     state::Shell,
     window::u07_tests::read,
 };
@@ -154,7 +154,7 @@ fn open_with_on_the_calm_card_opens_the_chooser_for_its_file(cx: &mut TestAppCon
         "the snapshot names the one row, at the file's index"
     );
     assert_eq!(snapshot.get("cursor").and_then(Json::as_f64), Some(1.));
-    let catalog = crate::g2::op3::tests::english();
+    let catalog = crate::g2::open_with_properties::tests::english();
     assert_eq!(
         shell.read_with(cx, |shell, _| shell
             .open_with
@@ -235,7 +235,7 @@ fn an_unsupported_office_file_draws_the_calm_card(cx: &mut TestAppContext) {
         );
         set_cursor(&shell, cx, 1);
         // The office view's PDF renderer starts no thread, so no reply reaches the scheduler from outside it.
-        crate::g2::pv2::render::without_threads(|| press(cx, "space"));
+        crate::g2::doc_preview::render::without_threads(|| press(cx, "space"));
         let ask = sent(&mut requests, "officepdf");
         let id = ask
             .last()

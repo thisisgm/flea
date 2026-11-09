@@ -10,7 +10,7 @@ thread_local! {
     static ANSWER: RefCell<(Option<i32>, String)> = const { RefCell::new((Some(0), String::new())) };
 }
 
-fn record(argv: &[String]) -> crate::g2::op3::lane::Exit {
+fn record(argv: &[String]) -> crate::g2::open_with_properties::lane::Exit {
     LAUNCHED.with(|launched| launched.borrow_mut().push(argv.to_vec()));
     ANSWER.with(|answer| answer.borrow().clone())
 }
@@ -53,7 +53,7 @@ fn deliver(shell: &Entity<crate::state::Shell>, cx: &mut VisualTestContext, line
 }
 
 fn card_title(shell: &Entity<crate::state::Shell>, cx: &mut VisualTestContext) -> Option<String> {
-    let catalog = crate::g2::op3::tests::english();
+    let catalog = crate::g2::open_with_properties::tests::english();
     shell.read_with(cx, |shell, _| {
         shell
             .open_with
@@ -143,7 +143,7 @@ fn enter_on_an_unclaimed_file_opens_the_open_with_card(cx: &mut TestAppContext) 
         cx.debug_bounds("op3-card").is_some(),
         "the Open With card is drawn in the window"
     );
-    let catalog = crate::g2::op3::tests::english();
+    let catalog = crate::g2::open_with_properties::tests::english();
     let labels = shell.read_with(cx, |shell, _| {
         shell.open_with.as_ref().map(|open| {
             open.card
@@ -151,12 +151,13 @@ fn enter_on_an_unclaimed_file_opens_the_open_with_card(cx: &mut TestAppContext) 
                 .body
                 .iter()
                 .filter_map(|block| match block {
-                    crate::g2::op3::shell::Block::Apps(rows, _) => Some(
+                    crate::g2::open_with_properties::shell::Block::Apps(rows, _) => Some(
                         rows.iter()
                             .filter_map(|row| match row {
-                                crate::g2::op3::shell::AppRow::App { label, .. } => {
-                                    Some(label.clone())
-                                }
+                                crate::g2::open_with_properties::shell::AppRow::App {
+                                    label,
+                                    ..
+                                } => Some(label.clone()),
                                 _ => None,
                             })
                             .collect::<Vec<_>>(),
@@ -420,12 +421,13 @@ fn the_open_with_card_draws_each_applications_own_icon(cx: &mut TestAppContext) 
     let mut painted = Vec::new();
     for _ in 0..12 {
         cx.run_until_parked();
-        crate::g2::mn1::app_icons::PAINTED.with(|held| *held.borrow_mut() = Some(Vec::new()));
+        crate::g2::context_menus::app_icons::PAINTED
+            .with(|held| *held.borrow_mut() = Some(Vec::new()));
         cx.update(|window, cx| {
             window.refresh();
             window.draw(cx).clear(cx);
         });
-        painted = crate::g2::mn1::app_icons::PAINTED
+        painted = crate::g2::context_menus::app_icons::PAINTED
             .with(|held| held.borrow_mut().take().unwrap_or_default());
         if icons.iter().all(|icon| painted.contains(icon)) {
             break;

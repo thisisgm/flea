@@ -2,7 +2,7 @@
 use super::{cells::{ellipsis, fit, text_width}, editor::Editor, input::Key, model::Model, theme::Theme,
     wire::{count, flag, number, text, word, Wire}};
 use crate::jsondoc::Json;
-use flea::{i18n::I18n, ui_logic_sr1::{scope_label, Kind, Session}};
+use flea::{i18n::I18n, ui_logic_file_search::{scope_label, Kind, Session}};
 use std::{collections::BTreeSet, io, path::PathBuf, time::Duration};
 
 #[derive(Default)]

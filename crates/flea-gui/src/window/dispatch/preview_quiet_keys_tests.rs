@@ -33,7 +33,7 @@ fn quiet(shell: &Entity<Shell>, cx: &mut VisualTestContext, keys: &[&str]) {
 
 #[gpui::test]
 fn focused_column_pdf_keeps_tab_and_takes_zoom_keys_silently(cx: &mut TestAppContext) {
-    crate::g2::pv2::render::without_threads(|| {
+    crate::g2::doc_preview::render::without_threads(|| {
         let (shell, cx, _) = super::pb_preview_fixture::pdf(cx);
         cx.simulate_keystrokes("ctrl-tab");
         pump(cx);
@@ -85,7 +85,7 @@ fn focused_column_text_takes_seek_keys_silently(cx: &mut TestAppContext) {
 #[gpui::test]
 fn quick_look_html_state_follows_r_to_source(cx: &mut TestAppContext) {
     use super::document_keys_fixture as fixture;
-    crate::g2::pv2::render::without_threads(|| {
+    crate::g2::doc_preview::render::without_threads(|| {
         cx.executor().allow_parking();
         let root = fixture::Root::new();
         let dir = root.0.to_string_lossy().into_owned();
@@ -137,7 +137,7 @@ fn quick_look_html_state_follows_r_to_source(cx: &mut TestAppContext) {
 #[gpui::test]
 fn column_html_state_answers_the_column(cx: &mut TestAppContext) {
     use super::document_keys_fixture as fixture;
-    crate::g2::pv2::render::without_threads(|| {
+    crate::g2::doc_preview::render::without_threads(|| {
         cx.executor().allow_parking();
         let root = fixture::Root::new();
         let dir = root.0.to_string_lossy().into_owned();

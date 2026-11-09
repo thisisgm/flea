@@ -5,13 +5,13 @@ use super::{
 };
 use crate::{
     g2::{
-        pv1::{doc::View, Body},
-        pv2::markdown::{Status, View as Shown},
+        doc_preview::markdown::{Status, View as Shown},
+        quick_look_overlay::{doc::View, Body},
     },
     state::Shell,
     window::u07_tests::read,
 };
-use flea::{ui_logic_pv2::archive::Meta, ui_logic_pv3::frame::Event};
+use flea::{ui_logic_doc_preview::archive::Meta, ui_logic_media_preview::frame::Event};
 use gpui::{Entity, TestAppContext, VisualTestContext};
 
 fn mounted_view(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> View {
@@ -287,7 +287,7 @@ fn ey238_preview_readers_answer_on_every_kind(cx: &mut TestAppContext) {
 // EY-238: text and code, including HTML Source, count UTF-16 units from owned text or joined backend lines.
 #[gpui::test]
 fn ey238_preview_text_length_counts_utf16_on_text_code_and_html(cx: &mut TestAppContext) {
-    use flea::ui_logic_pv2::{
+    use flea::ui_logic_doc_preview::{
         code_view::{Answer, Lines, Reply},
         html::View as HtmlView,
     };
@@ -342,7 +342,7 @@ fn ey238_preview_text_length_counts_utf16_on_text_code_and_html(cx: &mut TestApp
 // EY-238: previewFigures names each top-level figure block of the open Markdown card instead of answering unported.
 #[gpui::test]
 fn ey238_preview_figures_reads_the_open_markdown_figures(cx: &mut TestAppContext) {
-    use flea::ui_logic_pv2::markdown::{
+    use flea::ui_logic_doc_preview::markdown::{
         markdown_layout::{Counter, FigureState},
         Block, Figure, FigureKind,
     };

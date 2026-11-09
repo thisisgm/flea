@@ -95,7 +95,8 @@ fn user_keys_us0_and_shift0_keep_distinct_live_dispatch(cx: &mut TestAppContext)
                 Some(Bound::Builtin(action))
             );
         }
-        let rows = flea::ui_logic_st1::pages::user_key_rows(&shell.user_keys.facts, "default");
+        let rows =
+            flea::ui_logic_settings_pages::pages::user_key_rows(&shell.user_keys.facts, "default");
         assert_eq!(
             rows[1].items.len(),
             2,
@@ -125,7 +126,10 @@ fn user_keys_uk_pound_and_shift3_refuse_later_binding_in_either_order(cx: &mut T
             );
             assert_eq!(shell.user_keys.said.len(), 1);
             assert!(shell.user_keys.said[0].contains("earlier line"));
-            let rows = flea::ui_logic_st1::pages::user_key_rows(&shell.user_keys.facts, "default");
+            let rows = flea::ui_logic_settings_pages::pages::user_key_rows(
+                &shell.user_keys.facts,
+                "default",
+            );
             assert_eq!(rows[1].items.len(), 1);
         });
     }
@@ -215,7 +219,8 @@ fn user_keys_unsupported_projection_is_explicit_and_never_fabricated(cx: &mut Te
         assert_eq!(shell.user_key("default", &event, Modifiers::none()), None);
         assert_eq!(shell.user_keys.said.len(), 1);
         assert!(shell.user_keys.said[0].contains("cannot verify"));
-        let rows = flea::ui_logic_st1::pages::user_key_rows(&shell.user_keys.facts, "default");
+        let rows =
+            flea::ui_logic_settings_pages::pages::user_key_rows(&shell.user_keys.facts, "default");
         assert!(rows.iter().all(|row| row.items.is_empty()));
     });
 }

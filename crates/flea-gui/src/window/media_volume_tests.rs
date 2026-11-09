@@ -1,5 +1,5 @@
 //! EY-399: the saved preview.volume is the level every player opens at, and a kept level is saved back.
-use crate::{backend::Backend, g2::pv3::sound::MediaSound};
+use crate::{backend::Backend, g2::media_preview::sound::MediaSound};
 use flea::jsondoc::Json;
 use gpui::TestAppContext;
 use std::sync::Arc;

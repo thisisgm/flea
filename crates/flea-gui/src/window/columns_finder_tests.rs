@@ -66,7 +66,7 @@ fn finder_active_right_click_keeps_cursor_and_selection_and_targets_its_row_or_s
 
 #[test]
 fn finder_menu_row_actions_adopt_the_right_clicked_target() {
-    use crate::{g2::mn1::join::Chosen, window::dispatch::Order};
+    use crate::{g2::context_menus::join::Chosen, window::dispatch::Order};
     use std::{cell::Cell, rc::Rc};
     for action in ["rename", "open", "run"] {
         let mut cx = host::context();

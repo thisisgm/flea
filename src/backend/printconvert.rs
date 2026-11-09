@@ -4,7 +4,7 @@ use std::path::PathBuf;
 #[cfg(test)]
 use std::path::Path;
 
-pub use flea::ui_logic_op4::output::*;
+pub use flea::ui_logic_print_convert::output::*;
 
 pub fn classify(path: &str, mime: &Db, aliases: &Aliases) -> Kind {
     if officepdf::is_office(path, mime, aliases) { return Kind::Office; }

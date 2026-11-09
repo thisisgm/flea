@@ -2,11 +2,11 @@
 use super::rail::{group_name, kind_name, RailAdapter};
 use super::rows::{centre_of, rect_of};
 use super::Adapter;
-use crate::g2::pl2::{dialog::Focus, view::NetworkView};
+use crate::g2::network_shares::{dialog::Focus, view::NetworkView};
 use flea::ipc::wire::Reply;
 use flea::json::escape;
-use flea::ui_logic_pl2::form::{Protocol, PROTOCOLS};
-use flea::ui_logic_pl4::rail::Group;
+use flea::ui_logic_network_shares::form::{Protocol, PROTOCOLS};
+use flea::ui_logic_rail_places::rail::Group;
 
 pub struct NetworkAdapter<'a> {
     pub card: Option<&'a NetworkView>,
@@ -245,8 +245,8 @@ impl NetworkAdapter<'_> {
             }
             "networkDialogMetricTargets" => format!(
                 "{}|{}",
-                round(flea::ui_logic_op1::card::PADDING),
-                round(flea::ui_logic_op1::card::GAP)
+                round(flea::ui_logic_file_ops::card::PADDING),
+                round(flea::ui_logic_file_ops::card::GAP)
             ),
             "networkChipCentre" => {
                 let name = arguments.first().map_or("", String::as_str);
@@ -276,7 +276,7 @@ impl NetworkAdapter<'_> {
         let laid = producer.laid.borrow();
         let ink = laid.headers.iter().find_map(|header| header.add)?;
         let dot = laid.row(first)?.indicator_rect;
-        Some([ink, crate::g2::pl4::rows::add_hit(ink), dot])
+        Some([ink, crate::g2::rail_places::rows::add_hit(ink), dot])
     }
 
     fn rail_value(&self, function: &str) -> Option<String> {
@@ -291,7 +291,8 @@ impl NetworkAdapter<'_> {
                         let label = catalog.map_or_else(
                             || entry.label.to_string(),
                             |catalog| {
-                                crate::g2::pl4::content::row_label(catalog, entry).to_string()
+                                crate::g2::rail_places::content::row_label(catalog, entry)
+                                    .to_string()
                             },
                         );
                         format!(
@@ -364,7 +365,7 @@ impl Adapter for NetworkAdapter<'_> {
 
 /// The NETWORK row menu answers the shared menu readers while open, ahead of the pane's own closed menu.
 pub struct NetworkMenu<'a> {
-    pub menu: Option<&'a std::cell::RefCell<crate::g2::mn1::menu::Menu>>,
+    pub menu: Option<&'a std::cell::RefCell<crate::g2::context_menus::menu::Menu>>,
     pub catalog: &'a flea::i18n::I18n,
     pub pointer: (f32, f32),
 }
@@ -375,7 +376,7 @@ impl Adapter for NetworkMenu<'_> {
         if !menu.opened() {
             return None;
         }
-        crate::g2::mn1::ipc::MenuAdapter {
+        crate::g2::context_menus::ipc::MenuAdapter {
             menu: &menu,
             origin: (0., 0.),
         }

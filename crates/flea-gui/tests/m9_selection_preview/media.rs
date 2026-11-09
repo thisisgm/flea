@@ -1,6 +1,6 @@
 //! Scripted decoder behind the real MediaPlayer entity; Drop proves lifetime, not only UI state.
-use flea::ui_logic_pv3::frame::{Command, Event};
-use flea_gui::g2::pv3::engine::{self, Backend, FeedSender, Playback, Request};
+use flea::ui_logic_media_preview::frame::{Command, Event};
+use flea_gui::g2::media_preview::engine::{self, Backend, FeedSender, Playback, Request};
 use std::sync::{
     atomic::{AtomicUsize, Ordering},
     Arc,

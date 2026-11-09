@@ -120,7 +120,7 @@ fn followup_network_result_keeps_cancelled_and_missing_credential(cx: &mut TestA
     cx.update(|_, cx| {
         service.update(cx, |service, cx| {
             service.open_share(
-                crate::g2::pl2::mount::Request {
+                crate::g2::network_shares::mount::Request {
                     id: 7,
                     uri: "sftp://user@host/".into(),
                     label: "NAS".into(),
@@ -138,7 +138,7 @@ fn followup_network_result_keeps_cancelled_and_missing_credential(cx: &mut TestA
     cx.update(|_, cx| {
         service.update(cx, |service, cx| {
             service.open_share(
-                crate::g2::pl2::mount::Request {
+                crate::g2::network_shares::mount::Request {
                     id: 8,
                     uri: "sftp://host/".into(),
                     label: "NAS".into(),
@@ -184,7 +184,7 @@ fn followup_network_result_direct_open_preserves_the_last_mount_result(cx: &mut 
                 .service
                 .clone();
             service.update(cx, |service, _| {
-                service.result = crate::g2::pl2::result::ResultState::Failed
+                service.result = crate::g2::network_shares::result::ResultState::Failed
             });
         });
         producer.update(cx, |producer, cx| {

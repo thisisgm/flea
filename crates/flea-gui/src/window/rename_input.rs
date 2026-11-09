@@ -110,7 +110,7 @@ impl EntityInputHandler for Shell {
         let entry = self.ime_entry(window)?;
         if self.dialog_showing() {
             let drawn = self.rename.ime.drawn.borrow();
-            return Some(crate::g2::op1::field_view::bounds(
+            return Some(crate::g2::file_ops::field_view::bounds(
                 self,
                 &range,
                 drawn.bounds?,
@@ -129,7 +129,7 @@ impl EntityInputHandler for Shell {
         let entry = self.ime_entry(window)?;
         if self.dialog_showing() {
             let drawn = self.rename.ime.drawn.borrow();
-            let byte = crate::g2::op1::field_view::index(self, at.x - drawn.bounds?.left());
+            let byte = crate::g2::file_ops::field_view::index(self, at.x - drawn.bounds?.left());
             return Some(entry.offset_to_utf16(byte));
         }
         let edit = self.rename.edit.as_ref()?;

@@ -97,7 +97,7 @@ fn assert_captions(view: View, theme: Theme, cx: &mut TestAppContext) {
 
 #[test]
 fn feedback_remainder_ey516_caption_lift_never_enters_the_mark_slot() {
-    use flea::ui_logic_st1::textsize::{body_small, STOPS};
+    use flea::ui_logic_settings_pages::textsize::{body_small, STOPS};
     for base in STOPS {
         let lift = super::spinner::caption_lift(px(body_small(base) as f32));
         assert!(lift <= px(super::spinner::GAP), "text {base}: {lift:?}");

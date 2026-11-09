@@ -2,13 +2,13 @@
 use super::previewtypes_tests::pump;
 use crate::{
     g2::{
-        pv1::doc::View,
-        pv2::{code::CodeView, csv::CsvView},
+        doc_preview::{code::CodeView, csv::CsvView},
+        quick_look_overlay::doc::View,
     },
     state::Shell,
     window::selection_preview::{docs::Doc, Mounted},
 };
-use flea::ui_logic_pv2::{code_view::page_step, html, office};
+use flea::ui_logic_doc_preview::{code_view::page_step, html, office};
 use gpui::{App, Entity, RenderImage, VisualTestContext};
 use std::{
     path::PathBuf,
@@ -146,11 +146,11 @@ pub(super) fn source(view: &View, text: &str, cx: &mut VisualTestContext) {
         View::Markdown(view) => view.update(cx, |view, cx| {
             view.source.set_text(
                 Arc::from(text),
-                Arc::new(crate::g2::pv2::markdown::line_starts(text)),
+                Arc::new(crate::g2::doc_preview::markdown::line_starts(text)),
             );
-            view.source.answer = crate::g2::pv2::markdown::Answer::Plain;
+            view.source.answer = crate::g2::doc_preview::markdown::Answer::Plain;
             view.source.total = text.lines().count();
-            view.set_view(crate::g2::pv2::markdown::View::Source, cx);
+            view.set_view(crate::g2::doc_preview::markdown::View::Source, cx);
         }),
         View::Html(view) => view.update(cx, |view, cx| {
             view.set_view(html::View::Source, cx);
@@ -258,7 +258,7 @@ pub(super) fn position(view: &View, cx: &mut VisualTestContext) -> f64 {
         View::Code(v) => code_position(v.read(cx)),
         View::Markdown(v) => {
             let v = v.read(cx);
-            if v.shown_view() == crate::g2::pv2::markdown::View::Source {
+            if v.shown_view() == crate::g2::doc_preview::markdown::View::Source {
                 f64::from(v.source.scroll_y())
             } else {
                 f64::from(v.scroll)
@@ -302,7 +302,7 @@ pub(super) fn step(view: &View, cx: &mut VisualTestContext) -> f64 {
         View::Code(v) => f64::from(page_step(v.read(cx).frame.1, v.read(cx).metrics.row)),
         View::Markdown(v) => {
             let v = v.read(cx);
-            if v.shown_view() == crate::g2::pv2::markdown::View::Source {
+            if v.shown_view() == crate::g2::doc_preview::markdown::View::Source {
                 f64::from(page_step(v.source.frame.height, v.source.frame.line))
             } else {
                 f64::from(v.frame.1)
@@ -332,6 +332,6 @@ pub(super) fn step(view: &View, cx: &mut VisualTestContext) -> f64 {
     })
 }
 
-fn table_step(view: &crate::g2::pv2::csv::CsvView) -> f64 {
+fn table_step(view: &crate::g2::doc_preview::csv::CsvView) -> f64 {
     view.frame.1 - view.feed.geometry.head_height
 }

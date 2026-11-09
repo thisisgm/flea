@@ -40,7 +40,7 @@ mod update_poll_tests;
 pub(crate) use store::SessionStore;
 
 use crate::{
-    g2::st1::{self, Facts, Panel, Request, SettingsView, SheetView},
+    g2::settings_pages::{self, Facts, Panel, Request, SettingsView, SheetView},
     state::Shell,
 };
 use flea::jsondoc::Json;
@@ -49,7 +49,7 @@ use gpui::{AppContext, Context, Entity, Subscription, Task, Window};
 // The Plugins page's lazy pane, the showing it last synced in, its queued backend requests and the two backends' readiness.
 #[derive(Default)]
 pub(crate) struct Plugins {
-    pub pane: Option<Entity<crate::g2::st2::view::PluginsPane>>,
+    pub pane: Option<Entity<crate::g2::plugin_settings::view::PluginsPane>>,
     pub shown: bool,
     pub queue: std::rc::Rc<std::cell::RefCell<Vec<String>>>,
     pub backends: [bool; 2],
@@ -71,8 +71,8 @@ pub(crate) struct Host {
     pub favourite_focus: Option<(u64, usize)>,
     pub network_favourite: Option<(u64, u64)>,
     pub revision: u64,
-    pub claim: st1::claim::Claim,
-    update: flea::ui_logic_st1::update::Status,
+    pub claim: settings_pages::claim::Claim,
+    update: flea::ui_logic_settings_pages::update::Status,
     updating: bool,
     poll: Option<Task<()>>,
     pub about_open: bool,
@@ -83,7 +83,7 @@ pub(crate) struct Host {
     /// Hidden changed, so the owed re-list is a fresh one back at row 0 (Pane.qml re-opens the folder).
     pub relist_fresh: [bool; 2],
     sheet_sources_subscription: Option<Subscription>,
-    pub messages: Option<Entity<crate::g2::fb1::line::MessageLine>>,
+    pub messages: Option<Entity<crate::g2::status_feedback::line::MessageLine>>,
     sheet_subscription: Option<Subscription>,
     worker: Option<store::Worker>,
     reader: Option<Task<()>>,
@@ -127,22 +127,24 @@ impl Shell {
 
     /// Seeds the media level from preview.volume; a kept level is written back as that leaf, ViewState.setMediaVolume.
     pub(crate) fn follow_media_volume(&mut self, window: &Window, cx: &mut Context<Self>) {
-        use crate::g2::pv3::sound::MediaSound;
+        use crate::g2::media_preview::sound::MediaSound;
         let shell = cx.entity().downgrade();
         let handle = window.window_handle();
-        let keep: crate::g2::pv3::sound::KeepVolume = std::rc::Rc::new(move |level, cx| {
-            let shell = shell.clone();
-            // A release lands inside a player or shell update, so the write waits for the next turn.
-            cx.defer(move |cx| {
-                let Ok(patch) = flea::jsondoc::parse(&flea::ui_logic_pv3::volume_patch(level))
-                else {
-                    return;
-                };
-                let _ = handle.update(cx, |_, window, cx| {
-                    shell.update(cx, |shell, cx| shell.change_settings(patch, window, cx))
+        let keep: crate::g2::media_preview::sound::KeepVolume =
+            std::rc::Rc::new(move |level, cx| {
+                let shell = shell.clone();
+                // A release lands inside a player or shell update, so the write waits for the next turn.
+                cx.defer(move |cx| {
+                    let Ok(patch) =
+                        flea::jsondoc::parse(&flea::ui_logic_media_preview::volume_patch(level))
+                    else {
+                        return;
+                    };
+                    let _ = handle.update(cx, |_, window, cx| {
+                        shell.update(cx, |shell, cx| shell.change_settings(patch, window, cx))
+                    });
                 });
             });
-        });
         let stored = MediaSound::stored(&self.launch.settings.data);
         MediaSound::install(stored, Some(keep), cx);
     }
@@ -205,7 +207,7 @@ impl Shell {
             let palette = crate::list::Palette::inherited(&window.text_style(), theme);
             view.update(cx, |view, cx| {
                 view.set_tokens(
-                    crate::g2::st2::seam::Tokens::on_surface(&palette, theme),
+                    crate::g2::plugin_settings::seam::Tokens::on_surface(&palette, theme),
                     corner,
                     cx,
                 );
@@ -301,7 +303,7 @@ impl Shell {
         let view = self.settings.panel.clone().expect("settings built");
         view.update(cx, |view, cx| {
             view.panel.facts.pane_path = pane_path;
-            view.panel.side = st1::Side::Pane;
+            view.panel.side = settings_pages::Side::Pane;
             view.panel.show_section(view.panel.section);
             window.focus(&view.focus, cx);
             cx.notify();

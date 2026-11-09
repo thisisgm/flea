@@ -244,13 +244,13 @@ pub(super) fn spool(bytes: &[u8], directory: Option<PathBuf>) -> io::Result<(Fil
 pub struct ModelStill {
     pub key: super::model3d::Key,
     pub image: Spooled,
-    scene: std::sync::Arc<flea::ui_logic_pv4::scene::Scene>,
-    raster: flea::ui_logic_pv4::raster::Raster,
+    scene: std::sync::Arc<flea::ui_logic_model_preview::scene::Scene>,
+    raster: flea::ui_logic_model_preview::raster::Raster,
     pub rgba: Vec<u8>,
 }
 
 pub fn render_model(held: std::sync::Arc<super::model3d::Held>, file: PathBuf, key: super::model3d::Key, old: Option<ModelStill>, directory: Option<PathBuf>, cancel: &AtomicBool) -> Result<ModelStill, String> {
-    use flea::ui_logic_pv4::{camera, control::{Surface, Viewer}, motion, raster::{Prepared, Style}, scene::{self, CPU_LIVE_TRIANGLES}};
+    use flea::ui_logic_model_preview::{camera, control::{Surface, Viewer}, motion, raster::{Prepared, Style}, scene::{self, CPU_LIVE_TRIANGLES}};
     if cancel.load(Ordering::Relaxed) || !held.fresh() { return Err("model source changed".into()); }
     let scene = match &old {
         Some(old) if old.key.path == key.path && old.key.generation == key.generation => old.scene.clone(),

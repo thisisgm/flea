@@ -1,6 +1,6 @@
 //! The network card and NETWORK rail readers answer through the live shell's IPC dispatch, read from the painted card.
 use super::*;
-use crate::g2::pl2::view::NetworkView;
+use crate::g2::network_shares::view::NetworkView;
 use crate::ipc::server;
 use flea::ipc::wire;
 use gpui::{point, px, size, Modifiers};

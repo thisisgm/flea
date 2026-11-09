@@ -5,7 +5,7 @@ use gpui::TestAppContext;
 
 #[gpui::test]
 fn pvset_repro_pdf_pages_the_viewport_without_skipping_a_tall_page(cx: &mut TestAppContext) {
-    crate::g2::pv2::render::without_threads(|| {
+    crate::g2::doc_preview::render::without_threads(|| {
         let (shell, cx, pdf) = super::pb_preview_fixture::pdf(cx);
         pdf.update(cx, |pdf, cx| {
             pdf.surface.sizes = vec![(612., 4000.); 3];

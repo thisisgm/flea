@@ -2,8 +2,8 @@
 use crate::{
     backend::Event,
     g2::{
-        mn1::join::{Captured, Chosen},
-        op3::{
+        context_menus::join::{Captured, Chosen},
+        open_with_properties::{
             permissions::{
                 host::{Changed, View},
                 Permissions,
@@ -16,7 +16,7 @@ use crate::{
 };
 use flea::{
     jsondoc::{self, Json},
-    ui_logic_op3::permissions::INSPECT_STRIDE,
+    ui_logic_open_with_properties::permissions::INSPECT_STRIDE,
 };
 use gpui::{App, AppContext, Context, Entity, FocusHandle, Subscription, Window};
 
@@ -210,7 +210,7 @@ impl Shell {
                         &text,
                         false,
                         "",
-                        flea::ui_logic_fb1::status::Hint::None,
+                        flea::ui_logic_status_feedback::status::Hint::None,
                         now,
                     )
                 });

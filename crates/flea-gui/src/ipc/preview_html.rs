@@ -2,8 +2,8 @@
 use super::Adapter;
 use crate::{
     g2::{
-        pv1::{doc::View, Hit},
-        pv2::html::HtmlView,
+        doc_preview::html::HtmlView,
+        quick_look_overlay::{doc::View, Hit},
     },
     ipc::rows::{centre_of, colour, rect_of},
     state::Shell,

@@ -5,7 +5,7 @@ use super::{
     ListState, Metrics,
 };
 use crate::palette::Theme;
-use flea::ui_logic_pl4::tags::{ROW_SLOT, SWATCH_SIZE};
+use flea::ui_logic_rail_places::tags::{ROW_SLOT, SWATCH_SIZE};
 use gpui::{point, px, Bounds, Pixels, Window};
 
 pub(super) fn reserve(mut layout: Layout, shown: bool, gap: f32) -> Layout {

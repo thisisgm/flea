@@ -1,6 +1,6 @@
 //! The window's footer joins the pane count and disk facts around fb1's message service.
 use crate::{
-    g2::fb1::{
+    g2::status_feedback::{
         line::{ArmLost, MessageLine, NoticeEnded},
         observe::Paint,
     },
@@ -11,7 +11,7 @@ use crate::{
 };
 use flea::{
     i18n::I18n,
-    ui_logic_fb1::{messages::Messages, status::Hint},
+    ui_logic_status_feedback::{messages::Messages, status::Hint},
 };
 use gpui::{div, prelude::*, px, AppContext, Context, Entity, Render, SharedString, Window};
 use std::sync::Arc;
@@ -134,7 +134,7 @@ impl Shell {
         named: &str,
         cx: &mut Context<Self>,
     ) {
-        let sentence = flea::ui_logic_fb1::errors::sentence(operation, message, named)
+        let sentence = flea::ui_logic_status_feedback::errors::sentence(operation, message, named)
             .render(&self.locale.catalog);
         self.status_messages(cx, |messages, now| {
             messages.say(&sentence, operation != "sort", "", Hint::None, now)
@@ -218,7 +218,7 @@ impl Shell {
                     |facts| facts.sentence.to_string(),
                 ),
                 host.retry_text(),
-                crate::g2::sr1::Search::status(&host.search.owner, catalog).0,
+                crate::g2::file_search::Search::status(&host.search.owner, catalog).0,
             )
         };
         let revision = self.locale.revision;

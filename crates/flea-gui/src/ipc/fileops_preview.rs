@@ -1,6 +1,6 @@
 //! The archive index of the live Quick Look subject, never the selection preview's index.
 use super::Adapter;
-use crate::{g2::pv1::doc::View, state::Shell};
+use crate::{g2::quick_look_overlay::doc::View, state::Shell};
 use flea::ipc::wire::Reply;
 use gpui::App;
 

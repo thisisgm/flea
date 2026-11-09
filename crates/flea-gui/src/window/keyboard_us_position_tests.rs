@@ -1,5 +1,5 @@
 use super::{event_input, event_lookup, position_input};
-use crate::g2::sr2::{
+use crate::g2::listing_filter::{
     filter::LineKey,
     keys::{classify, Classified},
 };
@@ -241,7 +241,10 @@ fn every_command_lookup_reads_the_us_position() {
     let sites = [
         ("rail_keys.rs", include_str!("rail_keys.rs")),
         ("network_menu.rs", include_str!("network_menu.rs")),
-        ("pl3/join_input.rs", include_str!("../g2/pl3/join_input.rs")),
+        (
+            "trash_browser/join_input.rs",
+            include_str!("../g2/trash_browser/join_input.rs"),
+        ),
     ];
     // Keyboard::lookup reads the US position and leaves AltGr text unbound, as resolve does.
     for (name, source) in sites {

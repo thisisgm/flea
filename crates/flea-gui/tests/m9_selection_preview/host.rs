@@ -223,9 +223,10 @@ pub fn mounts() {
             assert_eq!(host.call("columnPdfPages"), "3");
             keys::list_and_grid(&mut host);
         } else {
-            let reason = match flea_gui::g2::pv2::poppler::Document::open(&host.root.join("a.pdf"))
-            {
-                Err(flea_gui::g2::pv2::poppler::Failure::Library(reason)) => reason,
+            let reason = match flea_gui::g2::doc_preview::poppler::Document::open(
+                &host.root.join("a.pdf"),
+            ) {
+                Err(flea_gui::g2::doc_preview::poppler::Failure::Library(reason)) => reason,
                 Err(_) => "unreadable fixture".into(),
                 Ok(_) => "renderer failed with an available PDF library".into(),
             };
@@ -247,7 +248,7 @@ pub fn mounts() {
                     panic!("actual Model3dView mounted");
                 };
                 let model = model.read(cx);
-                assert_eq!(model.phase, flea_gui::g2::pv4::view::Phase::Ready);
+                assert_eq!(model.phase, flea_gui::g2::model_preview::view::Phase::Ready);
                 assert_eq!(
                     model
                         .live

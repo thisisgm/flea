@@ -1,9 +1,9 @@
 //! The live network join: PL2's mount service, its card, its share browser and the rail's NETWORK rows, owned per window.
-use crate::g2::op1::palette::CardPalette;
-use crate::g2::pl1::listing::Listing;
-use crate::g2::pl1::process::Runner;
-use crate::g2::pl1::secret::Secret;
-use crate::g2::pl2::{
+use crate::g2::device_rail::listing::Listing;
+use crate::g2::device_rail::process::Runner;
+use crate::g2::device_rail::secret::Secret;
+use crate::g2::file_ops::palette::CardPalette;
+use crate::g2::network_shares::{
     bookmarks,
     browser::{Activated, Closed, ShareView},
     dialog, menus,
@@ -15,9 +15,9 @@ use crate::g2::pl2::{
 use crate::list::ListState;
 use crate::state::Shell;
 use flea::jsondoc::Json;
-use flea::ui_logic_pl1::RailEntry;
-use flea::ui_logic_pl4::order::{Heading, RailSection};
-use flea::ui_logic_pl4::rail::{self as rail, Group, Kind};
+use flea::ui_logic_device_rail::RailEntry;
+use flea::ui_logic_rail_places::order::{Heading, RailSection};
+use flea::ui_logic_rail_places::rail::{self as rail, Group, Kind};
 use gpui::{AppContext, Context, Entity, Subscription, Task, Window};
 use std::cell::RefCell;
 use std::path::PathBuf;
@@ -44,7 +44,7 @@ pub struct Network {
     listing_generation: u64,
     /// The last mountinfo read was non-empty, so networkBuilt can tell a built group from an unbuilt one.
     pub mountinfo_ready: bool,
-    pub menu: Rc<RefCell<crate::g2::mn1::menu::Menu>>,
+    pub menu: Rc<RefCell<crate::g2::context_menus::menu::Menu>>,
     pub menu_row: Option<(RailEntry, u64)>,
     /// The NETWORK plus's hosts menu while it holds the shared menu, and the last request id it used.
     pub(crate) nearby: Option<nearby::Nearby>,
@@ -62,7 +62,7 @@ pub struct Network {
 /// Production runs real children; unit fixtures get a runner whose jobs never start unless a test injects its own.
 pub(crate) fn default_runner() -> Rc<dyn Runner> {
     #[cfg(not(test))]
-    return Rc::new(crate::g2::pl1::process::ThreadRunner);
+    return Rc::new(crate::g2::device_rail::process::ThreadRunner);
     #[cfg(test)]
     return Rc::new(Inert);
 }
@@ -71,8 +71,11 @@ pub(crate) fn default_runner() -> Rc<dyn Runner> {
 struct Inert;
 #[cfg(test)]
 impl Runner for Inert {
-    fn start(&self, _: crate::g2::pl1::process::Job) -> crate::g2::pl1::process::Handle {
-        crate::g2::pl1::process::Handle::detached().0
+    fn start(
+        &self,
+        _: crate::g2::device_rail::process::Job,
+    ) -> crate::g2::device_rail::process::Handle {
+        crate::g2::device_rail::process::Handle::detached().0
     }
 }
 
@@ -345,14 +348,14 @@ impl Shell {
             return;
         };
         let service = network.service.clone();
-        let request = crate::g2::pl2::mount::Request {
+        let request = crate::g2::network_shares::mount::Request {
             id: 0,
             uri: entry.path.clone(),
             label: entry.label.clone(),
             origin,
             mounted: entry.mounted == Some(true),
             authenticated: false,
-            password: crate::g2::pl1::secret::Secret::new(),
+            password: crate::g2::device_rail::secret::Secret::new(),
         };
         service.update(cx, |service, cx| {
             let now = service.now(cx);

@@ -1,12 +1,12 @@
 use super::{frames, mounted, painted};
-use crate::g2::{op1, op3::shell::*, pl1};
+use crate::g2::{device_rail, file_ops, open_with_properties::shell::*};
 use gpui::{point, prelude::*, px, AppContext, Context, Render, TestAppContext, Window};
 use std::{rc::Rc, sync::Arc};
 
 struct Idle;
-impl pl1::process::Runner for Idle {
-    fn start(&self, _: pl1::process::Job) -> pl1::process::Handle {
-        pl1::process::Handle::detached().0
+impl device_rail::process::Runner for Idle {
+    fn start(&self, _: device_rail::process::Job) -> device_rail::process::Handle {
+        device_rail::process::Handle::detached().0
     }
 }
 
@@ -71,7 +71,7 @@ fn controls() -> Card {
 
 pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
     let (shell, view, vcx) = mounted(cx, corner, |_, _, cx| {
-        cx.new(|cx| pl1::view::UnlockView::new(Arc::default(), Rc::new(Idle), cx))
+        cx.new(|cx| device_rail::view::UnlockView::new(Arc::default(), Rc::new(Idle), cx))
     });
     vcx.update(|window, cx| {
         // The card grows with the text size (#310); this window has no Shell root, so it sits at the board's 14 px body.
@@ -80,7 +80,7 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
             view.open_for("/dev/test", "Encrypted", 0, "crypto_LUKS", window, cx);
             let card = view.host.card.as_mut().unwrap();
             card.type_text("x");
-            card.focus = Some(pl1::unlock::Part::Unlock);
+            card.focus = Some(device_rail::unlock::Part::Unlock);
             cx.notify();
         })
     });
@@ -126,21 +126,24 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
         }),
         "unlock hover wash must inset and clamp the compositor radius"
     );
-    let catalog = crate::g2::op3::tests::english();
-    let (mut properties, _) = crate::g2::op3::properties::Properties::open(5, 1, &[2], 0);
+    let catalog = crate::g2::open_with_properties::tests::english();
+    let (mut properties, _) =
+        crate::g2::open_with_properties::properties::Properties::open(5, 1, &[2], 0);
     properties.reply(&catalog, &flea::jsondoc::parse(r#"{"op":"properties","id":5,"ok":true,"path":"/files/a","kind":"File","bytes":99,"modified":0,"mode":"0644","owner":"test","uid":1000,"gid":1000}"#).unwrap());
-    let run = crate::g2::op3::runcard::RunCard::open(&catalog, "flea", "/files/run.sh", r#"{"ask":"run","kind":"script","size":21,"handlerId":"","handlerName":"","dev":"8","ino":"9","mtimeS":1,"mtimeNs":2,"target":"/files/run.sh"}"#).unwrap();
-    let bulk =
-        crate::g2::op3::bulkrename::BulkRename::open(vec!["/files/a".into(), "/files/b".into()]);
+    let run = crate::g2::open_with_properties::runcard::RunCard::open(&catalog, "flea", "/files/run.sh", r#"{"ask":"run","kind":"script","size":21,"handlerId":"","handlerName":"","dev":"8","ino":"9","mtimeS":1,"mtimeNs":2,"target":"/files/run.sh"}"#).unwrap();
+    let bulk = crate::g2::open_with_properties::bulkrename::BulkRename::open(vec![
+        "/files/a".into(),
+        "/files/b".into(),
+    ]);
     let cards = [
         ("operation-fields-checkbox-ring-and-names", controls()),
         (
             "open-with",
-            crate::g2::op3::tests::open_with().card(&catalog),
+            crate::g2::open_with_properties::tests::open_with().card(&catalog),
         ),
         (
             "permissions",
-            crate::g2::op3::tests::permissions().card(&catalog),
+            crate::g2::open_with_properties::tests::permissions().card(&catalog),
         ),
         ("properties", properties.card(&catalog)),
         ("run-card", run.card(&catalog)),
@@ -159,9 +162,9 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
     let (shell, view, vcx) = mounted(cx, corner, |shell, window, cx| {
         let palette = crate::list::Palette::inherited(&window.text_style(), super::theme());
         let view = cx.new(|_| {
-            op1::host::Overlay::new(
+            file_ops::host::Overlay::new(
                 Arc::default(),
-                op1::palette::CardPalette::from_list(&palette, shell.corner),
+                file_ops::palette::CardPalette::from_list(&palette, shell.corner),
                 "default",
             )
         });
@@ -172,7 +175,7 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
     frames("copy-to-card-field-buttons", &shell, vcx, corner, &[]);
     view.update(vcx, |view, cx| {
         view.model.dialog = None;
-        view.model.jobs.update(flea::ui_logic_op1::JobRow {
+        view.model.jobs.update(flea::ui_logic_file_ops::JobRow {
             id: 1,
             state: "running".into(),
             ..Default::default()

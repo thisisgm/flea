@@ -109,9 +109,11 @@ fn ey499_a_peek_drag_pressed_with_ctrl_offers_a_copy_after_ctrl_is_released() {
             match shell.file_drag_payload(window, cx) {
                 Some(gpui::ExternalDragPayload::Mime(payload)) => payload
                     .data
-                    .get(flea::ui_logic_dg2::ROWS_MIME)
+                    .get(flea::ui_logic_drag_drop::ROWS_MIME)
                     .and_then(|bytes| {
-                        flea::ui_logic_dg2::Marker::parse(&String::from_utf8_lossy(&bytes[..]))
+                        flea::ui_logic_drag_drop::Marker::parse(&String::from_utf8_lossy(
+                            &bytes[..],
+                        ))
                     })
                     .map(|marker| marker.copy),
                 _ => None,

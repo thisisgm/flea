@@ -1,8 +1,8 @@
 //! PLUGINS.md's kind manifests, exchanges and menu marks match the examples and Flea's own plugin runtime.
 use flea::jsondoc::{self, Json};
 use flea::plugin_runtime::protocol;
-use flea::ui_logic_st2::manifest::{self, Manifest};
-use flea::ui_logic_st2::wire::compact;
+use flea::ui_logic_plugin_settings::manifest::{self, Manifest};
+use flea::ui_logic_plugin_settings::wire::compact;
 use std::io::{BufRead, BufReader, Write};
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
@@ -373,8 +373,8 @@ fn plugins_doc_kind_checks_refuse_a_wrong_answer_and_an_undeclared_request() {
 // The menu-action marks are `hash`, mn2's one handed mark, and exactly the file menu's own marks.
 #[test]
 fn plugins_doc_menu_marks_are_the_drawable_marks() {
-    use flea::ui_logic_mn1::entry::MARK_NAMES;
-    use flea::ui_logic_mn2::rows::{static_glyph, MARKS};
+    use flea::ui_logic_context_menus::entry::MARK_NAMES;
+    use flea::ui_logic_custom_actions::rows::{static_glyph, MARKS};
     // Sample input: "`hash`\nor one of the file menu's own marks (`app-window archive ... cloud-upload`)."
     let list = GUIDE
         .split("`hash`\nor one of the file menu's own marks (`")

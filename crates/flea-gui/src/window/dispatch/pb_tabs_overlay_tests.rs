@@ -97,7 +97,7 @@ fn pb_tabs_an_accepted_tab_change_closes_quick_look_from_any_source(cx: &mut Tes
 
 #[gpui::test]
 fn pb_tabs_an_accepted_tab_change_leaves_a_typed_search(cx: &mut TestAppContext) {
-    use flea::ui_logic_sr1::{Kind, Scope, Wire};
+    use flea::ui_logic_file_search::{Kind, Scope, Wire};
     // (keys, Everywhere contents, live): erased owes a relist only, Everywhere contents is live only, local x is both.
     for (keys, everywhere, live) in [
         ("x backspace", false, false),

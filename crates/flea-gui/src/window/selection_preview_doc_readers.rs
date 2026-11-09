@@ -1,6 +1,6 @@
 //! State and text readers shared by the mounted column document kinds.
 use super::docs::Doc;
-use crate::g2::pv2;
+use crate::g2::doc_preview;
 
 impl Doc {
     /// The one sentence a failed read draws in the frame's error state.
@@ -10,13 +10,13 @@ impl Doc {
             Doc::Markdown(view) => view
                 .read(cx)
                 .status_sentence()
-                .filter(|_| view.read(cx).doc.status == pv2::markdown::Status::Unreadable)
+                .filter(|_| view.read(cx).doc.status == doc_preview::markdown::Status::Unreadable)
                 .map(str::to_owned),
             Doc::Html(view) => view.read(cx).fail_sentence(catalog, cx),
             Doc::Archive(view) => view.read(cx).fail_sentence(catalog),
             Doc::Office(view) => view.read(cx).failure(catalog).map(|f| f.sentence),
             Doc::Table(view) => {
-                use flea::ui_logic_pv2::csv_feed::Answer;
+                use flea::ui_logic_doc_preview::csv_feed::Answer;
                 let key = match view.read(cx).feed.answer {
                     Answer::Large => "document.too_large",
                     Answer::Failed => "document.unreadable",

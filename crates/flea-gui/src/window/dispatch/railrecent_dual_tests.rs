@@ -4,7 +4,7 @@ use super::{
     test_shell::{asked_on, land, land_on, open_with, row},
 };
 use crate::{state::Shell, window::navigate::Step};
-use flea::ui_logic_pl4::{order::recent_entry, rail::Kind};
+use flea::ui_logic_rail_places::{order::recent_entry, rail::Kind};
 use gpui::{Entity, TestAppContext, VisualTestContext};
 
 // A Dual launch with both panes listed and the rail carrying the Recent row.

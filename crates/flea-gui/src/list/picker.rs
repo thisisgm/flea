@@ -45,7 +45,7 @@ pub fn checkbox(
                 (bounds.size.height - inset * 2.).max(px(0.)),
             ),
         );
-        if let Some((key, data)) = crate::g2::st1::glyphs::svg("check") {
+        if let Some((key, data)) = crate::g2::settings_pages::glyphs::svg("check") {
             let _ = window.paint_svg(
                 inner,
                 key,
@@ -72,7 +72,8 @@ pub(super) fn paint_check(
     let check = leading(view, &metrics);
     if check <= 0.
         || !row.is_some_and(|row| {
-            flea::ui_logic_pk2::directory(row.dir, row.mode, &row.icon) == view.picker_directory
+            flea::ui_logic_picker_listing::directory(row.dir, row.mode, &row.icon)
+                == view.picker_directory
         })
     {
         return 0;

@@ -3,10 +3,10 @@
 #[allow(dead_code)]
 mod limits;
 use limits::*;
-#[path = "ui_logic_pv4/model_wire_types.rs"]
+#[path = "ui_logic_model_preview/model_wire_types.rs"]
 mod cache_types;
 use cache_types::*;
-#[path = "ui_logic_pv4/model_wire.rs"]
+#[path = "ui_logic_model_preview/model_wire.rs"]
 mod reader;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -29,7 +29,7 @@ fn decode(input: impl std::io::Read, cancel: &AtomicBool) -> Result<Model> {
 }
 
 /// Reads only a regular cached FL3D file, never an original STL, project or toolpath.
-pub fn read(path: &std::path::Path) -> Result<crate::ui_logic_pv4::scene::Scene> {
+pub fn read(path: &std::path::Path) -> Result<crate::ui_logic_model_preview::scene::Scene> {
     read_cancellable(path, &AtomicBool::new(false))
 }
 
@@ -37,8 +37,8 @@ pub fn read(path: &std::path::Path) -> Result<crate::ui_logic_pv4::scene::Scene>
 pub fn read_cancellable(
     path: &std::path::Path,
     cancel: &AtomicBool,
-) -> Result<crate::ui_logic_pv4::scene::Scene> {
-    use crate::ui_logic_pv4::scene::{bed_from_metadata, Layer, Scene, Segment};
+) -> Result<crate::ui_logic_model_preview::scene::Scene> {
+    use crate::ui_logic_model_preview::scene::{bed_from_metadata, Layer, Scene, Segment};
     let (file, metadata) =
         crate::backend::regfile::open_if_regular_with_meta(path, crate::oflags::O_NOFOLLOW)
             .map_err(|error| error.to_string())?;

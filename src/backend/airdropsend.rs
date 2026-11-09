@@ -1,7 +1,7 @@
 // One AirDrop send: `owly send` (https://github.com/t4t5/owly, MIT) as a job with owly's byte progress, cancel and the device's answer.
 use crate::backend::menu_actions::Selected;
 use crate::backend::opsreq::OpMsg;
-use flea::ui_logic_sd1::airdrop::{self, Verdict};
+use flea::ui_logic_send_share::airdrop::{self, Verdict};
 use std::io::Read;
 use std::path::PathBuf;
 use std::process::Stdio;

@@ -3,8 +3,8 @@ use super::*;
 
 #[gpui::test]
 fn ey439_a_busy_notice_keeps_the_existing_connection_activity(cx: &mut TestAppContext) {
-    use crate::g2::pl2::mount::Effect;
-    use flea::ui_logic_pl1::Note;
+    use crate::g2::network_shares::mount::Effect;
+    use flea::ui_logic_device_rail::Note;
     let (shell, cx, _) = open(Rc::new(Recorder::default()), cx);
     cx.update(|window, cx| {
         shell.update(cx, |shell, cx| {
@@ -80,8 +80,8 @@ fn ey439_a_busy_notice_keeps_the_existing_connection_activity(cx: &mut TestAppCo
 
 #[gpui::test]
 fn ey439_an_unrelated_unmount_failure_keeps_the_connection_activity(cx: &mut TestAppContext) {
-    use crate::g2::pl2::mount::Effect;
-    use flea::ui_logic_pl1::Note;
+    use crate::g2::network_shares::mount::Effect;
+    use flea::ui_logic_device_rail::Note;
     let (shell, cx, _) = open(Rc::new(Recorder::default()), cx);
     cx.update(|window, cx| {
         shell.update(cx, |shell, cx| {

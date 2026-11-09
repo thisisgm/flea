@@ -1,5 +1,5 @@
 use crate::list::Typeface;
-use flea::{jsondoc::Json, ui_logic_st1::textsize};
+use flea::{jsondoc::Json, ui_logic_settings_pages::textsize};
 use gpui::{font, px, Global};
 use std::collections::BTreeMap;
 

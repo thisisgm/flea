@@ -2,19 +2,19 @@
 use super::Host;
 use crate::{
     g2::{
-        pv1::{
+        doc_preview::{markdown::MarkdownView, markdown::View as Shown, PdfView},
+        media_preview::{sound::MediaSound, strip::StripCache},
+        quick_look_overlay::{
             doc::{Doc, View},
             Body, Hit, QuickLook,
         },
-        pv2::{markdown::MarkdownView, markdown::View as Shown, PdfView},
-        pv3::{sound::MediaSound, strip::StripCache},
     },
     ipc::Adapter,
 };
 use flea::{
     ipc::wire::Reply,
     json::escape,
-    ui_logic_pv1::{compare::Kind, kinds::State},
+    ui_logic_preview_core::{compare::Kind, kinds::State},
 };
 use gpui::{App, Bounds, Pixels, Size};
 

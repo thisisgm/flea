@@ -1,7 +1,7 @@
 //! Pane state surfaces: the empty hero and the state message mount in a pane's state slot, built on first need.
 use super::startup::View;
 use crate::{
-    g2::fb1::{
+    g2::status_feedback::{
         hero::EmptyHero,
         state::{Facts, StateMessage, GRID, LIST},
     },

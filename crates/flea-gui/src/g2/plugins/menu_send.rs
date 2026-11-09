@@ -1,17 +1,17 @@
 //! Built-in transports and external targets enter through their declared send contribution.
 use crate::{
     g2::{
-        mn1::join::{Captured, Chosen},
-        sd1::seams::ProviderState,
+        context_menus::join::{Captured, Chosen},
+        send_share::seams::ProviderState,
     },
     state::Shell,
 };
 use flea::{
     jsondoc::Json,
-    ui_logic_mn1::{entry::Text, Entry},
-    ui_logic_mn2::rows,
-    ui_logic_sd1::providers::Role,
-    ui_logic_st2::wire::Source,
+    ui_logic_context_menus::{entry::Text, Entry},
+    ui_logic_custom_actions::rows,
+    ui_logic_plugin_settings::wire::Source,
+    ui_logic_send_share::providers::Role,
 };
 use gpui::{Context, Window};
 use std::{

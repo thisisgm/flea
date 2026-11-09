@@ -7,7 +7,7 @@ use crate::{
 use flea::{
     keys::{self, Frontend},
     protocol::Reply,
-    ui_logic_op1::{lines, trash},
+    ui_logic_file_ops::{lines, trash},
 };
 use gpui::{Entity, TestAppContext, VisualTestContext};
 use std::time::Duration;

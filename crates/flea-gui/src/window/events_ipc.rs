@@ -108,13 +108,13 @@ impl Shell {
                     strip: self.strip.frames.borrow().json(),
                 };
                 let trash_message = self.trash_message();
-                let trash = crate::g2::pl3::readers::TrashAdapter {
+                let trash = crate::g2::trash_browser::readers::TrashAdapter {
                     host: self.trash.as_ref(),
                     message: trash_message.as_deref(),
                     overlay: self.overlay.as_ref(),
                     cx,
                 };
-                let omi = crate::g2::op1::ipc::OmiAdapter {
+                let omi = crate::g2::file_ops::ipc::OmiAdapter {
                     overlay: self.overlay.as_ref().map(|overlay| overlay.read(cx)),
                 };
                 let columns = crate::window::columns::readers::Reader {
@@ -187,15 +187,15 @@ impl Shell {
                         window.mouse_position().y.into(),
                     ),
                 };
-                let menu = crate::g2::mn1::ipc::JoinedAdapter {
+                let menu = crate::g2::context_menus::ipc::JoinedAdapter {
                     joined: &self.menu,
                     identity: self.menu_identity(),
                     catalog: &self.locale.catalog,
                 };
-                let operations = crate::g2::op1::ipc::LiveOperationsAdapter {
+                let operations = crate::g2::file_ops::ipc::LiveOperationsAdapter {
                     overlay: self.overlay.as_ref().map(|view| view.read(cx)),
                 };
-                let clipboard = crate::g2::dg1::ipc::ClipboardAdapter {
+                let clipboard = crate::g2::file_clipboard::ipc::ClipboardAdapter {
                     board: &self.clipboard.board,
                 };
                 let geometry = self.geometry(window);
@@ -234,20 +234,20 @@ impl Shell {
                     built: self.network_built(),
                     rail: &rail,
                 };
-                let search = crate::g2::sr1::SearchAdapter {
+                let search = crate::g2::file_search::SearchAdapter {
                     search: &host.search.owner,
                 };
                 let query = super::super::search::QueryReader {
                     search: &host.search.owner,
                     focused: self.focus.is_focused(window) && !self.input_blocked(cx),
                 };
-                let network_result = crate::g2::pl2::result::Adapter(
+                let network_result = crate::g2::network_shares::result::Adapter(
                     self.rail
                         .as_ref()
                         .and_then(|rail| rail.network.as_ref())
                         .map(|network| network.service.read(cx)),
                 );
-                let providers = crate::g2::sd1::reader::State {
+                let providers = crate::g2::send_share::reader::State {
                     shell: self,
                     window,
                 };

@@ -1,7 +1,7 @@
 //! Validated action requests and native input continuations enter the same supervised host lane.
 use super::{contributions, prompt};
-use crate::{g2::mn1::join::Captured, state::Shell};
-use flea::{jsondoc::Json, ui_logic_mn2::plugins};
+use crate::{g2::context_menus::join::Captured, state::Shell};
+use flea::{jsondoc::Json, ui_logic_custom_actions::plugins};
 use gpui::{Context, Window};
 
 impl Shell {
@@ -86,7 +86,7 @@ impl Shell {
         cx: &mut Context<Self>,
     ) {
         let error_owner = super::verdict::owner(side, plugin, &request);
-        let envelope = flea::ui_logic_st2::wire::request_line(
+        let envelope = flea::ui_logic_plugin_settings::wire::request_line(
             u64::MAX,
             "runtime",
             plugin,

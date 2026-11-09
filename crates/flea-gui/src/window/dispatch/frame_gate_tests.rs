@@ -136,7 +136,7 @@ fn menu(cx: &mut TestAppContext, header: bool) {
             .built
             .lines
             .iter()
-            .any(|line| !matches!(line.lead, crate::g2::mn1::lines::Lead::None)));
+            .any(|line| !matches!(line.lead, crate::g2::context_menus::lines::Lead::None)));
         gpui::Bounds::new(
             gpui::point(px(card.frame.x), px(card.frame.y)),
             size(px(card.frame.w), px(card.frame.h)),

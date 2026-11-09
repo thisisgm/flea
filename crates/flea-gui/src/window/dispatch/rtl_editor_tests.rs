@@ -6,7 +6,7 @@ use crate::{
         test_shell::{land, open_root_at, row},
     },
 };
-use flea::ui_logic_op3::bulkrename::Stop;
+use flea::ui_logic_open_with_properties::bulkrename::Stop;
 use gpui::{point, px, Modifiers, PlatformWindow as _, TestAppContext};
 
 #[gpui::test]

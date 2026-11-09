@@ -34,7 +34,7 @@ impl<T> Drop for Task<T> {
 }
 
 // Read the terminal's encoded theme roles back into the shared renderer's sRGB palette.
-pub fn palette(theme: &super::theme::Theme) -> flea::ui_logic_pv4::color::Palette {
+pub fn palette(theme: &super::theme::Theme) -> flea::ui_logic_model_preview::color::Palette {
     let ground = hex(&theme.ground);
     let role = |text: &str| {
         let values: Vec<u8> = text.trim_start_matches("\x1b[").trim_end_matches('m').split(';').filter_map(|s| s.parse().ok()).collect();
@@ -53,7 +53,7 @@ pub fn palette(theme: &super::theme::Theme) -> flea::ui_logic_pv4::color::Palett
             _ => ground,
         }
     };
-    flea::ui_logic_pv4::color::Palette { ground, foreground: role(&theme.foreground), muted: role(&theme.meta), frame: role(&theme.track) }
+    flea::ui_logic_model_preview::color::Palette { ground, foreground: role(&theme.foreground), muted: role(&theme.meta), frame: role(&theme.track) }
 }
 fn hex(text: &str) -> [f32; 3] {
     let text = text.strip_prefix('#').unwrap_or("");

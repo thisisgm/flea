@@ -2,7 +2,7 @@
 use super::*;
 use crate::{
     backend::{Backend, Event},
-    g2::mn1::menu::Outcome,
+    g2::context_menus::menu::Outcome,
     state::{tests::shell_with, Shell},
     window::{pane::PaneHost, root::Root},
 };
@@ -10,7 +10,7 @@ use flea::{
     jsondoc,
     plugin_runtime::{Config, Runtime},
     protocol::{Reply, RowFacts},
-    ui_logic_st2::{
+    ui_logic_plugin_settings::{
         manifest,
         wire::{Plugin, Source},
     },
@@ -132,7 +132,7 @@ fn plugin(example: &str, root: &Path) -> (Plugin, Runtime) {
 }
 
 fn open(cx: &mut TestAppContext, root: PathBuf, plugin: Plugin) -> Fixture {
-    let mut plugins = flea::ui_logic_st2::builtin::manifests()
+    let mut plugins = flea::ui_logic_plugin_settings::builtin::manifests()
         .into_iter()
         .map(|(manifest, enabled)| Plugin {
             manifest,
@@ -225,7 +225,7 @@ impl Fixture {
         update(cx, self.handle, |shell, window, cx| {
             shell.receive(
                 0,
-                Event::Producer(flea::ui_logic_st2::wire::compact(&reply)),
+                Event::Producer(flea::ui_logic_plugin_settings::wire::compact(&reply)),
                 window,
                 cx,
             )

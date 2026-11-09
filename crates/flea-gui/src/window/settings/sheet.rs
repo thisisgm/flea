@@ -1,10 +1,10 @@
 //! The keyboard sheet reads the live rail and history, then hands each result to its original window owner.
 use crate::{
-    g2::st1::{Request, Sheet, SheetView, Sources},
+    g2::settings_pages::{Request, Sheet, SheetView, Sources},
     state::Shell,
 };
-use flea::ui_logic_pl4::rail::{Group, Kind};
-use flea::ui_logic_st1::sheet::{self, Decision, RailEntry};
+use flea::ui_logic_rail_places::rail::{Group, Kind};
+use flea::ui_logic_settings_pages::sheet::{self, Decision, RailEntry};
 use gpui::{App, AppContext, Context, Window};
 
 impl Shell {
@@ -20,7 +20,7 @@ impl Shell {
                 .entries()
                 .iter()
                 .map(|entry| RailEntry {
-                    label: crate::g2::pl4::content::row_label(&self.locale.catalog, entry)
+                    label: crate::g2::rail_places::content::row_label(&self.locale.catalog, entry)
                         .to_string(),
                     group: match entry.group {
                         Group::Favourite | Group::Favorite => "favourite",
@@ -63,8 +63,11 @@ impl Shell {
         self.settings.opened = false;
         self.settings.opened_from = self.keyboard.context;
         self.keyboard.disarm();
-        let preset =
-            flea::ui_logic_st1::pages::word(&self.launch.settings.data, &["keys"], "default");
+        let preset = flea::ui_logic_settings_pages::pages::word(
+            &self.launch.settings.data,
+            &["keys"],
+            "default",
+        );
         let mut sheet = Sheet::new(preset, self.locale.catalog.clone(), self.sheet_sources(cx));
         self.prepare_trash_sheet(&mut sheet, cx);
         let corner = self.corner;
@@ -90,7 +93,7 @@ impl Shell {
             });
             producer.update(cx, |producer, cx| {
                 producer.load_places(cx);
-                let path = flea::ui_logic_pl4::recent::history_path(
+                let path = flea::ui_logic_rail_places::recent::history_path(
                     &std::env::var("XDG_DATA_HOME").unwrap_or_default(),
                     &std::env::var("HOME").unwrap_or_default(),
                 );

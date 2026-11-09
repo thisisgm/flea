@@ -1,17 +1,17 @@
 //! The live rail join: one lazy host and one places producer per window, and the producer's requests routed to the shell.
-use crate::g2::pl1::{
+use crate::g2::device_rail::{
     process::Runner,
     source::{Activation, Request as DeviceRequest, Source},
 };
-pub use crate::g2::pl4::producer::Request;
-use crate::g2::pl4::producer::{Event, Producer};
+pub use crate::g2::rail_places::producer::Request;
+use crate::g2::rail_places::producer::{Event, Producer};
 use crate::rail::host::{self, Host};
 use crate::rail::{geometry, Mode};
 use crate::state::Shell;
 use crate::window::dispatch::Order;
 use crate::window::navigate::Step;
 use flea::jsondoc::Json;
-use flea::{i18n::I18n, ui_logic_pl4::placeview::View};
+use flea::{i18n::I18n, ui_logic_rail_places::placeview::View};
 use gpui::{AnyView, AppContext, Context, Entity, EventEmitter, Subscription, Window};
 use std::rc::Rc;
 use std::sync::Arc;
@@ -39,7 +39,7 @@ pub struct Join {
     _trash: Subscription,
     /// The NETWORK service, card and rows, built on the first frame that can carry them.
     pub(crate) network: Option<crate::window::network::Network>,
-    pub(crate) network_runner: std::rc::Rc<dyn crate::g2::pl1::process::Runner>,
+    pub(crate) network_runner: std::rc::Rc<dyn crate::g2::device_rail::process::Runner>,
     /// The unlock card over a locked row, built on its first open; its children run on the device runner.
     pub(crate) unlock: Option<crate::window::unlock::Unlock>,
     pub(crate) device_runner: Rc<dyn Runner>,
@@ -137,14 +137,14 @@ impl Shell {
         for Request { side, id, event } in events {
             match event {
                 Event::Activate(entry)
-                    if entry.kind == flea::ui_logic_pl4::rail::Kind::PluginRow =>
+                    if entry.kind == flea::ui_logic_rail_places::rail::Kind::PluginRow =>
                 {
                     cx.defer_in(window, move |shell, window, cx| {
                         shell.plugin_rail_activate(side, &entry, window, cx)
                     });
                 }
                 Event::Activate(entry)
-                    if entry.group == flea::ui_logic_pl4::rail::Group::Network =>
+                    if entry.group == flea::ui_logic_rail_places::rail::Group::Network =>
                 {
                     let keyboard = side == self.focus_side
                         && self.dual_focus.rail.contains_focused(window, cx)
@@ -157,13 +157,15 @@ impl Shell {
                     }
                     self.network_activate(side, &entry, window, cx);
                 }
-                Event::Menu(entry) if entry.group == flea::ui_logic_pl4::rail::Group::Network => {
+                Event::Menu(entry)
+                    if entry.group == flea::ui_logic_rail_places::rail::Group::Network =>
+                {
                     self.network_menu(side, &entry, window, cx);
                 }
                 Event::Rename { entry, label }
-                    if entry.group == flea::ui_logic_pl4::rail::Group::Network =>
+                    if entry.group == flea::ui_logic_rail_places::rail::Group::Network =>
                 {
-                    let edit = crate::g2::pl2::bookmarks::Edit::Rename {
+                    let edit = crate::g2::network_shares::bookmarks::Edit::Rename {
                         uri: entry.uri.clone(),
                         label,
                     };
@@ -204,7 +206,7 @@ impl Shell {
                 }
                 // The device source's notify is lost inside Shell::render, so its events would wait for an unrelated frame.
                 Event::Activate(entry)
-                    if entry.group == flea::ui_logic_pl4::rail::Group::Device =>
+                    if entry.group == flea::ui_logic_rail_places::rail::Group::Device =>
                 {
                     if let Some(join) = &mut self.rail {
                         join.focus_on_open = (side == self.focus_side
@@ -220,8 +222,8 @@ impl Shell {
                 Event::Activate(entry)
                     if matches!(
                         entry.kind,
-                        flea::ui_logic_pl4::rail::Kind::Favourite
-                            | flea::ui_logic_pl4::rail::Kind::Favorite
+                        flea::ui_logic_rail_places::rail::Kind::Favourite
+                            | flea::ui_logic_rail_places::rail::Kind::Favorite
                     ) && entry.path.contains("://")
                         && !entry.path.starts_with("file://") =>
                 {
@@ -316,5 +318,5 @@ mod network_readers;
 #[path = "rail_reveal_tests.rs"]
 mod reveal_tests;
 
-#[path = "../g2/pl1/rail_events.rs"]
+#[path = "../g2/device_rail/rail_events.rs"]
 mod device_events;

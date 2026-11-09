@@ -24,11 +24,11 @@ fn choose(shell: &Entity<Shell>, keys: &str, cx: &mut VisualTestContext) {
 
 // Opens the device menu by `keys` and asserts its rows were painted in a native frame.
 fn open_painted(shell: &Entity<Shell>, keys: &str, cx: &mut VisualTestContext) -> Vec<String> {
-    crate::g2::mn1::element::PAINTED.with(|painted| painted.borrow_mut().clear());
+    crate::g2::context_menus::element::PAINTED.with(|painted| painted.borrow_mut().clear());
     cx.simulate_keystrokes(keys);
     native_frames(cx);
     assert!(
-        crate::g2::mn1::element::PAINTED.with(|painted| !painted.borrow().is_empty()),
+        crate::g2::context_menus::element::PAINTED.with(|painted| !painted.borrow().is_empty()),
         "{keys} paints the device menu"
     );
     menu_rows(shell, cx)
@@ -77,7 +77,7 @@ fn raildrive_flash_image_takes_the_keys_and_up_reaches_the_image_row(cx: &mut Te
     frame(cx);
     assert_eq!(
         shell.read_with(cx, |shell, _| shell.operations.archive.flash.park()),
-        crate::g2::op2::flash::Seat::Image,
+        crate::g2::archive_flash::flash::Seat::Image,
         "Up from the drive reaches Choose an image… before an image is chosen"
     );
     shell.update(cx, |shell, _| shell.stop_for_app_quit());

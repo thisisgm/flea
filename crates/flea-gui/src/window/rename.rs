@@ -1,6 +1,6 @@
 //! The inline rename editor and the bulk rename card's opening: Ops.js startRename and commitRename, Pane.qml openBulkRename and PaneWire.qml's rename replies.
 use crate::{path::entry::Entry, state::Shell};
-use flea::{json::escape, ui_logic_fb1::status::Hint, ui_logic_op1::lines};
+use flea::{json::escape, ui_logic_file_ops::lines, ui_logic_status_feedback::status::Hint};
 use gpui::{ClipboardItem, Context, KeyDownEvent, Window};
 
 #[path = "rename_bulk.rs"]
@@ -39,7 +39,7 @@ pub(crate) struct Edit {
 
 #[derive(Default)]
 pub(crate) struct Join {
-    pub(crate) ime: crate::g2::op1::dialog_editor::DialogEditor,
+    pub(crate) ime: crate::g2::file_ops::dialog_editor::DialogEditor,
     pub edit: Option<Edit>,
     pub(crate) neighbour: Option<(String, String)>,
     pub bulk: Option<bulk::Open>,
@@ -391,5 +391,5 @@ fn parent(path: &str) -> &str {
 }
 
 #[cfg(test)]
-#[path = "../g2/op1/i50_dialog_tests.rs"]
+#[path = "../g2/file_ops/i50_dialog_tests.rs"]
 mod i50_dialog_tests;

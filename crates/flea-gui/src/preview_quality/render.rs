@@ -1,6 +1,6 @@
 //! Refinement uses the same codecs and sandboxes as existing previews.
 use super::Request;
-use crate::g2::{pv1, pv2::poppler};
+use crate::g2::{doc_preview::poppler, quick_look_overlay};
 use gpui::{RenderImage, SvgRenderer};
 use std::sync::{atomic::Ordering, Arc};
 
@@ -20,16 +20,16 @@ pub(super) fn run(request: &Request, renderer: SvgRenderer) -> Result<Arc<Render
         .and_then(|ext| ext.to_str())
         .unwrap_or_default()
         .to_ascii_lowercase();
-    if flea::ui_logic_pv1::pixels::is_host_decoded(name) {
-        let job = pv1::raster::Job {
+    if flea::ui_logic_preview_core::pixels::is_host_decoded(name) {
+        let job = quick_look_overlay::raster::Job {
             path: request.path.clone(),
             size: request.size,
             epoch: 1,
             latest: Arc::new(std::sync::atomic::AtomicU64::new(1)),
-            raster: pv1::raster::for_path(&request.path, renderer),
+            raster: quick_look_overlay::raster::for_path(&request.path, renderer),
         };
-        return match pv1::raster::run(&job) {
-            pv1::raster::RasterOutcome::Raster(image) if current() => Ok(image),
+        return match quick_look_overlay::raster::run(&job) {
+            quick_look_overlay::raster::RasterOutcome::Raster(image) if current() => Ok(image),
             _ => Err(()),
         };
     }
@@ -42,7 +42,9 @@ pub(super) fn run(request: &Request, renderer: SvgRenderer) -> Result<Arc<Render
             image::RgbaImage::from_raw(raster.width, raster.height, raster.bgra).ok_or(())?;
         return Ok(Arc::new(RenderImage::new(vec![image::Frame::new(pixels)])));
     }
-    if let Ok(image) = pv1::photo::decode_sharp(&request.path, request.size, &current) {
+    if let Ok(image) =
+        quick_look_overlay::photo::decode_sharp(&request.path, request.size, &current)
+    {
         return Ok(image);
     }
     if !current() {
@@ -71,7 +73,7 @@ fn decoded_thumbnail(
         .into_decoder()
         .map_err(|_| ())?;
     let (w, h) = decoder.dimensions();
-    if u64::from(w) * u64::from(h) > flea::ui_logic_pv1::pixels::MAX_SOURCE_PIXELS {
+    if u64::from(w) * u64::from(h) > flea::ui_logic_preview_core::pixels::MAX_SOURCE_PIXELS {
         return Err(());
     }
     let source = image::DynamicImage::from_decoder(decoder)
@@ -84,7 +86,7 @@ fn decoded_thumbnail(
         (w as f64 * ratio).ceil() as u32,
         (h as f64 * ratio).ceil() as u32,
     );
-    let mut pixels = pv1::photo_frames::resized_bgra(source, size);
+    let mut pixels = quick_look_overlay::photo_frames::resized_bgra(source, size);
     if let Some(seed) = seed {
         super::frame_edges::preserve(&mut pixels, &seed);
     }

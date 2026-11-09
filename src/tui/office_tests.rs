@@ -10,7 +10,7 @@ use crate::{
         wire::{self, Wire},
     },
 };
-use flea::ui_logic_pv2::office::State as Subject;
+use flea::ui_logic_doc_preview::office::State as Subject;
 use std::{
     path::{Path, PathBuf},
     time::{Duration, Instant},

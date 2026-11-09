@@ -1,9 +1,9 @@
 //! Send with rclone (#176) against a fake backend that speaks the int4 rclone producer's lines.
 use flea::i18n::{I18n, Paths};
-use flea::ui_logic_sd2::present::Bar;
-use flea_gui::g2::sd2::seams::Wire;
-use flea_gui::g2::sd2::sweep::{Sweep, SweepBar, BOARD_AT, HEIGHT};
-use flea_gui::g2::sd2::RcloneSend;
+use flea::ui_logic_rclone_send::present::Bar;
+use flea_gui::g2::rclone_send::seams::Wire;
+use flea_gui::g2::rclone_send::sweep::{Sweep, SweepBar, BOARD_AT, HEIGHT};
+use flea_gui::g2::rclone_send::RcloneSend;
 use flea_gui::palette::Theme;
 use gpui::{
     div, px, AppContext, Context, IntoElement, ParentElement, Render, Styled, TestAppContext,

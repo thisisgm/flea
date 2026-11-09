@@ -1,10 +1,10 @@
 //! railEntries adds v0.3.12 device facts from the source that built each row.
 use super::Adapter;
-use crate::g2::pl1::source::Source;
+use crate::g2::device_rail::source::Source;
 use flea::ipc::wire::Reply;
 use flea::json::escape;
 use flea::jsondoc::{self, Json};
-use flea::ui_logic_pl1::Kind;
+use flea::ui_logic_device_rail::Kind;
 
 pub(crate) struct RailDeviceFacts<'a> {
     pub rail: &'a dyn Adapter,

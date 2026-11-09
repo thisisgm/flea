@@ -15,7 +15,7 @@ isolated() {
         CARGO_PROFILE_TEST_DEBUG=line-tables-only CARGO_PROFILE_DEV_DEBUG=line-tables-only \
         "$@" < /dev/null
 }
-isolated cargo test --locked -p flea --lib -- ui_logic_pv2::markdown
+isolated cargo test --locked -p flea --lib -- ui_logic_doc_preview::markdown
 isolated cargo test --locked -p flea-gui --test g2_pv2_md
 clippy_root=$(mktemp -d "$PWD/.superpowers/g2-pv2-md/clippy.XXXXXXXX")
 : > "$clippy_root/.flea-test-sandbox"

@@ -2,7 +2,7 @@
 use super::preview_tests::{draw, file, opened};
 use super::test_shell::{land, set_cursor};
 use crate::{
-    g2::pv1::{doc::View, Body},
+    g2::quick_look_overlay::{doc::View, Body},
     palette::Theme,
     state::Shell,
 };

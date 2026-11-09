@@ -280,7 +280,7 @@ fn tui_print_fix_mime_is_lazy_and_first_print_initializes_once() {
 fn tui_print_fix_copies_respect_shared_limits() {
     let (mut w, reader) = wire::echo_wire();
     let mut m = ready(&mut w);
-    let max = flea::ui_logic_op4::printing::MAX_COPIES;
+    let max = flea::ui_logic_print_convert::printing::MAX_COPIES;
     let f = m.printing.card.as_mut().unwrap();
     f.focus = 1;
     f.copies = max.to_string();

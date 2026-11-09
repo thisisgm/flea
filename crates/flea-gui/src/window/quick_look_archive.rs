@@ -1,8 +1,8 @@
 //! Archive mounting for the Quick Look document factory.
 use super::Look;
 use crate::g2::{
-    pv1::look as card,
-    pv2::archive::{ArchiveView, Metrics, Palette},
+    doc_preview::archive::{ArchiveView, Metrics, Palette},
+    quick_look_overlay::look as card,
 };
 use crate::window::quick_look::wire::Wire;
 use flea::i18n::I18n;

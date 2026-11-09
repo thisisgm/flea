@@ -159,7 +159,7 @@ impl Render for Strip {
                     .shell
                     .update(cx, |shell, cx| shell.end_tab_drag(window, cx));
             }))
-            .on_drop::<crate::g2::dg2::join::Seed>(cx.listener(|strip, _, window, cx| {
+            .on_drop::<crate::g2::drag_drop::join::Seed>(cx.listener(|strip, _, window, cx| {
                 let _ = strip.shell.update(cx, |shell, cx| {
                     shell.land_own_drag(shell.focus_side, window, cx);
                 });

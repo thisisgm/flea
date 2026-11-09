@@ -163,7 +163,7 @@ fn each_pane_keeps_its_own_bulk_rename_done_line(cx: &mut TestAppContext) {
         "the right request is out"
     );
     let done = shell.read_with(cx, |shell, _| {
-        flea::ui_logic_op1::lines::bulk_done_line(&shell.locale.catalog, "default", 2)
+        flea::ui_logic_file_ops::lines::bulk_done_line(&shell.locale.catalog, "default", 2)
     });
     let marked = |shell: &Entity<Shell>, cx: &mut VisualTestContext, side: usize| {
         shell.read_with(cx, |shell, _| {

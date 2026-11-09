@@ -319,7 +319,7 @@ fn railnet_older_bridge_open_cannot_take_new_origin_claim(cx: &mut TestAppContex
     let bridge = service.read_with(cx, |service, _| {
         format!(
             "{}/smb-share:server=fixture,share=share",
-            flea::ui_logic_pl2::bridge::bridge_dir(&service.runtime_dir)
+            flea::ui_logic_network_shares::bridge::bridge_dir(&service.runtime_dir)
         )
     });
     answer_mount(&recorder, &bridge, cx);
@@ -358,7 +358,7 @@ fn railnet_older_bridge_open_cannot_take_new_origin_claim(cx: &mut TestAppContex
 
 #[gpui::test]
 fn railnet_a_bridge_starting_note_keeps_the_rail_open_claim(cx: &mut TestAppContext) {
-    use crate::g2::pl2::mount::Effect;
+    use crate::g2::network_shares::mount::Effect;
     let recorder = Rc::new(Recorder::default());
     let (shell, cx, _lines) = root(recorder.clone(), cx);
     publish(&shell, false, cx);
@@ -366,7 +366,7 @@ fn railnet_a_bridge_starting_note_keeps_the_rail_open_claim(cx: &mut TestAppCont
     let (_, origin) = flight(&shell, cx);
     cx.update(|window, cx| {
         shell.update(cx, |shell, cx| {
-            let note = flea::ui_logic_pl1::Note::new("network.bridge_starting", &["share"]);
+            let note = flea::ui_logic_device_rail::Note::new("network.bridge_starting", &["share"]);
             shell.network_service(&Effect::Say { note, origin }, window, cx);
         })
     });

@@ -1,6 +1,6 @@
 //! Replace a column's first thumbnail in place with pixels for the actual device rect.
 use super::*;
-use flea::ui_logic_pv1::{pixels::is_vector_name, thumbs};
+use flea::ui_logic_preview_core::{pixels::is_vector_name, thumbs};
 use gpui::Window;
 
 impl SelectionPreview {

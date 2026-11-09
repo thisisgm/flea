@@ -3,7 +3,7 @@ pub(super) use super::previewtypes_fixture_tests::{
     answer, ask, field, file, local, meta, open, open_at, open_with_preview, pump, thumbed,
 };
 use crate::{
-    g2::pv3::{
+    g2::media_preview::{
         engine::{self, FeedSender, Playback, Request},
         sound::MediaSound,
     },
@@ -13,7 +13,7 @@ use crate::{
         u07_tests::{press, read},
     },
 };
-use flea::ui_logic_pv3::frame::{Command, Event};
+use flea::ui_logic_media_preview::frame::{Command, Event};
 use gpui::{Entity, TestAppContext, VisualTestContext};
 use std::{cell::RefCell, rc::Rc, sync::Arc};
 

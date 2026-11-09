@@ -1,5 +1,5 @@
 use super::*;
-use flea::ui_logic_st2::wire;
+use flea::ui_logic_plugin_settings::wire;
 use std::time::Instant;
 
 #[path = "menu_notice_tests.rs"]

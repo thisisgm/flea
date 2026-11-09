@@ -2,7 +2,7 @@
 use super::opener_tests::{home, launched, looking, quit, shell};
 use super::test_shell::{asked, asked_on, land, land_on, row, set_cursor};
 use super::Order;
-use crate::g2::mn1::join::{Captured, Chosen};
+use crate::g2::context_menus::join::{Captured, Chosen};
 use gpui::{Entity, TestAppContext, VisualTestContext};
 use std::rc::Rc;
 

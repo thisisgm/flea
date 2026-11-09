@@ -11,7 +11,10 @@ impl Shell {
         row: &RowFacts,
         path: &str,
         cx: &gpui::App,
-    ) -> Option<(flea::ui_logic_pv1::meta::Meta, Arc<gpui::RenderImage>)> {
+    ) -> Option<(
+        flea::ui_logic_preview_core::meta::Meta,
+        Arc<gpui::RenderImage>,
+    )> {
         let host = self.panes.get(side)?.as_ref()?;
         let preview = host.preview.as_ref()?.read(cx);
         let frame = preview.drawn.as_ref()?;

@@ -117,7 +117,7 @@ fn owner_parity_update_poll_child(cx: &mut TestAppContext) {
         .update(cx, |root, _, cx| {
             assert_eq!(
                 root.shell.read(cx).settings.update.state,
-                flea::ui_logic_st1::update::State::Idle
+                flea::ui_logic_settings_pages::update::State::Idle
             );
         })
         .unwrap();
@@ -130,9 +130,9 @@ fn owner_parity_update_poll_child(cx: &mut TestAppContext) {
             assert_eq!(
                 shell.settings.update.state,
                 if automatic {
-                    flea::ui_logic_st1::update::State::Failed
+                    flea::ui_logic_settings_pages::update::State::Failed
                 } else {
-                    flea::ui_logic_st1::update::State::Idle
+                    flea::ui_logic_settings_pages::update::State::Idle
                 }
             );
         })

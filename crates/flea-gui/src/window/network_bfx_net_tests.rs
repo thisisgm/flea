@@ -1,6 +1,6 @@
 //! A timed-out listing must retire before a later quiet answer can clear its cached rows.
 use super::*;
-use crate::g2::pl1::bfx_net_tests::Root;
+use crate::g2::device_rail::bfx_net_tests::Root;
 use std::time::Duration;
 
 #[gpui::test]

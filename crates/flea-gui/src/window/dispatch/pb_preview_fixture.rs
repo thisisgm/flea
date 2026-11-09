@@ -1,7 +1,7 @@
 //! Mounted PDF fixture using the renderer's ordinary replies and the production column.
 use super::previewtypes_tests::{file, local, meta, open, pump};
 use crate::{
-    g2::pv2::{render::Reply, surface::Surface, PdfView},
+    g2::doc_preview::{render::Reply, surface::Surface, PdfView},
     state::Shell,
     window::selection_preview::Mounted,
 };

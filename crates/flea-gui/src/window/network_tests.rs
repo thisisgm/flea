@@ -1,7 +1,7 @@
 //! The live rail row reaches PL2's service, and its mount reply navigates only the pane that asked.
 use super::*;
 use crate::backend::Backend;
-use crate::g2::pl1::process::{Event as Proc, Handle, Job, Outcome};
+use crate::g2::device_rail::process::{Event as Proc, Handle, Job, Outcome};
 use crate::state::tests::shell_with;
 use crate::window::rail::{mount, mount_with_source};
 use gpui::{AnyView, TestAppContext, VisualTestContext};
@@ -140,8 +140,8 @@ fn share() -> RailEntry {
     RailEntry {
         uri: "sftp://user@host/folder".into(),
         label: "NAS".into(),
-        group: flea::ui_logic_pl1::Group::Network,
-        kind: flea::ui_logic_pl1::Kind::Share,
+        group: flea::ui_logic_device_rail::Group::Network,
+        kind: flea::ui_logic_device_rail::Kind::Share,
         glyph: "server".into(),
         ..RailEntry::default()
     }

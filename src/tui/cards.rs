@@ -242,8 +242,8 @@ pub fn properties(value: &Json, i18n: &I18n) -> Vec<(String, String)> {
     let fact = |key: &str, value: String| (i18n.tr(key), value);
     let bytes = count(value, "bytes");
     let kind = match text(value, "kind") {
-        "File" | "Directory" | "Symbolic link" | "Special file" => flea::ui_logic_op3::properties::kind_word(
-            i18n, &flea::ui_logic_op3::properties::Facts {
+        "File" | "Directory" | "Symbolic link" | "Special file" => flea::ui_logic_open_with_properties::properties::kind_word(
+            i18n, &flea::ui_logic_open_with_properties::properties::Facts {
                 kind: text(value, "kind").into(), directory: flag(value, "directory"), ..Default::default()
             }, text(value, "mimeKind")),
         description => description.into(),
@@ -335,7 +335,7 @@ mod corner_tests;
 impl Model {
     /// A catalog string as a heading in capitals, cased the way the active language writes them (Turkish dotted I).
     pub fn heading(&self, key: &str) -> String {
-        flea::ui_logic_st1::caps::heading(&self.i18n.tr(key), self.i18n.language())
+        flea::ui_logic_settings_pages::caps::heading(&self.i18n.tr(key), self.i18n.language())
     }
 }
 #[cfg(test)]

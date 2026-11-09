@@ -182,7 +182,7 @@ fn u08_fix1_click_away_cancels_without_committing_and_other_row_still_activates(
                 glyph: "server",
                 ..RailEntry::default()
             },
-            flea::ui_logic_pl4::order::trash_entry(),
+            flea::ui_logic_rail_places::order::trash_entry(),
         ],
         cx,
     );

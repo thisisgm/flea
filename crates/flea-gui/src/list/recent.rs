@@ -1,6 +1,6 @@
 //! Main-window Recent uses the existing metadata slot as fixed Location, and dates come from visits.
 use super::{columns, ListState, ListView, Tokens};
-use flea::ui_logic_pl4::{recent, recentmode::Visits};
+use flea::ui_logic_rail_places::{recent, recentmode::Visits};
 
 // Theme.qml location in v0.3.12: Recent's fixed Location column, shared by the header and the rows.
 const LOCATION_WIDTH: f32 = 150.;

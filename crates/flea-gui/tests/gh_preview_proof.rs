@@ -1,6 +1,6 @@
 //! GH-PREVIEW-PROOF #347: the real Poppler render thread under 200 replacements across 20 documents.
-use flea_gui::g2::pv2::poppler;
-use flea_gui::g2::pv2::render::{DocId, Renderer, Reply};
+use flea_gui::g2::doc_preview::poppler;
+use flea_gui::g2::doc_preview::render::{DocId, Renderer, Reply};
 use std::{
     collections::{HashMap, HashSet},
     path::PathBuf,

@@ -1,9 +1,9 @@
 //! The NETWORK plus with List nearby hosts: off it opens the 0.4.0 card unchanged; on it lists hosts and a pick only fills the card.
 use super::*;
 use crate::backend::Event as BackendEvent;
-use crate::g2::mn1::menu::Outcome;
-use crate::g2::pl2::{dialog::Focus, nearby};
-use flea::ui_logic_pl2::form::{Form, Protocol, PROTOCOLS};
+use crate::g2::context_menus::menu::Outcome;
+use crate::g2::network_shares::{dialog::Focus, nearby};
+use flea::ui_logic_network_shares::form::{Form, Protocol, PROTOCOLS};
 
 const FOUND: &str = r#"{"t":"nearby","id":1,"state":"found","message":"","rows":[{"name":"backup","source":"mdns","uri":"smb://backup.local/","scheme":"smb","protocol":"smb","host":"backup.local","port":445,"user":"","domain":"","path":"/","tls":false},{"name":"east","source":"tailscale","uri":"sftp://east.tail.ts.net/","scheme":"sftp","protocol":"sftp","host":"east.tail.ts.net","port":22,"user":"","domain":"","path":"/","tls":false}],"errors":[]}"#;
 
@@ -23,7 +23,7 @@ fn tick(shell: &Entity<Shell>, cx: &mut VisualTestContext, on: bool) {
 fn card(
     shell: &Entity<Shell>,
     cx: &mut VisualTestContext,
-) -> Entity<crate::g2::pl2::view::NetworkView> {
+) -> Entity<crate::g2::network_shares::view::NetworkView> {
     cx.update(|_, cx| {
         shell
             .read(cx)
@@ -243,7 +243,7 @@ fn n343_the_card_keeps_its_five_protocols_and_their_fields() {
             "network.nfs"
         ]
     );
-    let mut d = crate::g2::pl2::dialog::Dialog::default();
+    let mut d = crate::g2::network_shares::dialog::Dialog::default();
     d.open();
     assert_eq!(
         d.ring(),

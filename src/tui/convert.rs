@@ -9,7 +9,7 @@ use super::{
 };
 use crate::jsondoc::Json;
 pub use card::draw;
-use flea::ui_logic_op4::{
+use flea::ui_logic_print_convert::{
     output::{self, Kind},
     pages::Pages,
 };
@@ -235,7 +235,7 @@ pub fn poll(m: &mut Model) {
                     .and_then(|s| s.trim().parse::<u32>().ok())
             })
         })
-        .filter(|n| (1..=flea::ui_logic_op4::pages::MAX_PAGES).contains(n));
+        .filter(|n| (1..=flea::ui_logic_print_convert::pages::MAX_PAGES).contains(n));
     if f.count.is_none() {
         Held::set(
             &mut f.error,

@@ -1,7 +1,9 @@
 //! The dd pair and where a trash key goes: Trash, the permanent review where there is none, or a refusal in a read-only folder.
 use super::ARM_OWNER;
 use crate::state::Shell;
-use flea::{keys::sequence::Seat, ui_logic_fb1::status::Hint, ui_logic_op1::trash};
+use flea::{
+    keys::sequence::Seat, ui_logic_file_ops::trash, ui_logic_status_feedback::status::Hint,
+};
 use gpui::Context;
 
 impl Shell {
@@ -53,7 +55,10 @@ impl Shell {
             .as_ref()
             .and_then(|host| host.backend.as_ref())
             .is_none_or(|backend| backend.dir_writable(base));
-        trash::delete_route(flea::ui_logic_pl1::mounts::trashable(base, None), writable)
+        trash::delete_route(
+            flea::ui_logic_device_rail::mounts::trashable(base, None),
+            writable,
+        )
     }
 
     // Focus.js trashRefused: the key refuses in the error role before arming, naming the key that still deletes.

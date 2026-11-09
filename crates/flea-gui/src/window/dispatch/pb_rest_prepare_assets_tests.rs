@@ -31,7 +31,7 @@ fn pb_rest_prepare_refuses_a_file_that_grew_past_64_kib_after_listing(cx: &mut T
                     return false;
                 };
                 let view = view.read(cx);
-                view.doc.status == crate::g2::pv2::markdown::Status::TooLarge
+                view.doc.status == crate::g2::doc_preview::markdown::Status::TooLarge
                     && view.counts.parsed_bytes == 0
                     && view.doc.text.is_none()
             })

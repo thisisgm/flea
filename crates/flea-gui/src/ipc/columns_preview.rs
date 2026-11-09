@@ -31,7 +31,7 @@ impl Adapter for ColumnsPreview<'_, '_> {
                 let markdown = markdown.read(self.preview.cx);
                 markdown_text(
                     markdown.doc.text.as_deref().unwrap_or_default(),
-                    markdown.shown_view() == crate::g2::pv2::markdown::View::Source,
+                    markdown.shown_view() == crate::g2::doc_preview::markdown::View::Source,
                 )
             }
             ("columnMarkdownView", Some(Mounted::Doc(Doc::Markdown(markdown)))) => {
@@ -40,8 +40,8 @@ impl Adapter for ColumnsPreview<'_, '_> {
                     String::new()
                 } else {
                     match markdown.shown_view() {
-                        crate::g2::pv2::markdown::View::Rendered => "rendered",
-                        crate::g2::pv2::markdown::View::Source => "source",
+                        crate::g2::doc_preview::markdown::View::Rendered => "rendered",
+                        crate::g2::doc_preview::markdown::View::Source => "source",
                     }
                     .to_owned()
                 }

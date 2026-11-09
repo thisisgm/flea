@@ -1,5 +1,5 @@
 //! Contributions extend the existing archive and sharing groups without regrouping native rows.
-use flea::ui_logic_mn1::{inventory, Entry};
+use flea::ui_logic_context_menus::{inventory, Entry};
 
 fn group(row: &Entry) -> &str {
     inventory::spec_of(&row.id).map_or("", |spec| spec.group)
@@ -53,7 +53,7 @@ pub(super) fn insert_sends(entries: &mut Vec<Entry>, rows: Vec<Entry>) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use flea::ui_logic_mn1::entry::Text;
+    use flea::ui_logic_context_menus::entry::Text;
 
     #[test]
     fn sol_menu_order_plugin_groups_precede_trash_when_other_groups_are_hidden() {

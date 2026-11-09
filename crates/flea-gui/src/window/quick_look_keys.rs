@@ -8,7 +8,7 @@ use flea::{
     i18n::I18n,
     jsondoc::Json,
     keys::Context as Keys,
-    ui_logic_pv1::{keys::Command, kinds::State, meta::Meta},
+    ui_logic_preview_core::{keys::Command, kinds::State, meta::Meta},
 };
 use gpui::{Context, KeyDownEvent, Window};
 use std::path::PathBuf;

@@ -3,7 +3,7 @@ use super::{
     Ask, Outcome, Snapshot,
 };
 use crate::backend::{jail, sandbox, sort::name_order};
-use flea::ui_logic_sr1::ContentsMatch;
+use flea::ui_logic_file_search::ContentsMatch;
 use std::collections::{HashMap, HashSet};
 use std::io::Read;
 use std::os::fd::AsRawFd;

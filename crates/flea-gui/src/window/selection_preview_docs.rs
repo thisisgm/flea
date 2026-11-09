@@ -1,7 +1,7 @@
 //! The per-type views the preview column mounts (PreviewColumn.qml): code and text, Markdown, CSV, HTML, archives and office documents.
 use super::wire::{code_reply, html_reply, markdown_answer, Wire, SLOT};
 use super::*;
-use crate::g2::pv2::{
+use crate::g2::doc_preview::{
     self,
     archive::ArchiveView,
     code::{CodeView, Mark},
@@ -43,18 +43,18 @@ mod visual_geometry_code_tests;
 
 impl Look {
     fn row(&self) -> f32 {
-        pv2::line_pitch(f32::from(self.face.caption))
+        doc_preview::line_pitch(f32::from(self.face.caption))
     }
     pub(super) fn code(&self, numbered: bool) -> CodeView {
         let m = &self.metrics;
         let mut view = CodeView::new(
             SLOT,
-            pv2::code::Typeface {
+            doc_preview::code::Typeface {
                 font: self.face.font.clone(),
                 body: self.face.caption,
                 caption: self.face.caption,
             },
-            pv2::code::Palette {
+            doc_preview::code::Palette {
                 foreground: self.theme.foreground,
                 muted: self.muted,
                 muted_frame: self.theme.muted_frame,
@@ -64,7 +64,7 @@ impl Look {
                     [self.theme.foreground, i[0], i[1], i[2], i[3], i[4], i[5]]
                 },
             },
-            pv2::code::Metrics {
+            doc_preview::code::Metrics {
                 inset: m.gap,
                 top: m.gap,
                 right: m.gap,
@@ -82,7 +82,7 @@ impl Look {
             TableFace {
                 font: self.face.font.clone(),
                 caption: self.face.caption,
-                line: pv2::table_line_pitch(f32::from(self.face.caption)),
+                line: doc_preview::table_line_pitch(f32::from(self.face.caption)),
                 row_padding_x: self.metrics.pad,
                 hairline: 1.,
             },
@@ -93,12 +93,12 @@ impl Look {
             },
         )
     }
-    fn pdf(&self) -> (pv2::Palette, pv2::Metrics) {
+    fn pdf(&self) -> (doc_preview::Palette, doc_preview::Metrics) {
         (
-            pv2::Palette {
+            doc_preview::Palette {
                 background: self.theme.background,
             },
-            pv2::Metrics {
+            doc_preview::Metrics {
                 gap: self.metrics.gap,
                 margin: 2. * self.metrics.pad,
                 row_height: self.metrics.row,
@@ -150,7 +150,7 @@ impl Doc {
                     column: true,
                 };
                 let t = &look.theme;
-                let palette = pv2::markdown::Palette {
+                let palette = doc_preview::markdown::Palette {
                     background: t.background,
                     code: t.surface,
                     surface: t.surface,
@@ -186,12 +186,12 @@ impl Doc {
             Kind::Html => Doc::Html(cx.new(|cx| {
                 let (palette, _) = look.pdf();
                 let code = look.code(true);
-                let parts = pv2::html::SourceParts {
+                let parts = doc_preview::html::SourceParts {
                     typeface: code.typeface.clone(),
                     palette: code.palette,
                     metrics: code.metrics,
                 };
-                let metrics = pv2::html::Metrics {
+                let metrics = doc_preview::html::Metrics {
                     row_height: look.row(),
                     radius: 0.,
                     round_top: true,
@@ -201,7 +201,7 @@ impl Doc {
                 view.set_hosts(
                     Some(Box::new(wire.clone())),
                     Some(Box::new(move || {
-                        Box::new(source.clone()) as Box<dyn pv2::code::CodeHost>
+                        Box::new(source.clone()) as Box<dyn doc_preview::code::CodeHost>
                     })),
                 );
                 view.set_catalog(catalog.clone(), cx);
@@ -217,12 +217,12 @@ impl Doc {
                 let file = crate::row::marks::Mark::File.svg();
                 let mut view = ArchiveView::new(
                     // PreviewArchive draws Theme.color.muted on a caption line box of 1.8, 22 px at 12 (EY-406).
-                    pv2::archive::Palette {
+                    doc_preview::archive::Palette {
                         foreground: look.theme.foreground,
                         muted: look.theme.muted,
                         muted_frame: look.theme.muted_frame,
                     },
-                    pv2::archive::Metrics {
+                    doc_preview::archive::Metrics {
                         inset: m.gap,
                         gap: m.gap,
                         row: (f32::from(look.face.caption) * 1.8).round(),
@@ -312,11 +312,11 @@ impl Doc {
             }
             (Doc::Office(view), _) => view.update(cx, |view, cx| view.reply(line, window, cx)),
             (Doc::Archive(view), "meta") => {
-                let Some(meta) = flea::ui_logic_pv1::meta::parse(line) else {
+                let Some(meta) = flea::ui_logic_preview_core::meta::parse(line) else {
                     return false;
                 };
                 let names = meta.names.into_iter().map(|e| (e.name, e.is_dir)).collect();
-                let archive = flea::ui_logic_pv2::archive::Meta {
+                let archive = flea::ui_logic_doc_preview::archive::Meta {
                     entries: meta.entries.unwrap_or(0),
                     unpacked: meta.unpacked,
                     failed: meta.archive_failed,

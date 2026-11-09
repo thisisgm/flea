@@ -1,7 +1,7 @@
 //! Mounted join: a presented submission of the search's own rows stamps its generation, an older scene never does.
 use crate::{
     backend::{Backend, Event as BackendEvent},
-    g2::sr1::SearchAdapter,
+    g2::file_search::SearchAdapter,
     ipc::Adapter,
     state::{tests::shell_with, Shell},
     window::root::Root,

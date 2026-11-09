@@ -1,13 +1,13 @@
 //! Quick Look over the window: pv1's card, built on first open, its subject read through the pane's backend.
 use crate::{
-    g2::pv1::{Body, Event, QuickLook, Subject},
+    g2::quick_look_overlay::{Body, Event, QuickLook, Subject},
     state::Shell,
 };
 use flea::keys::Context as Keys;
 use flea::{
     json::escape,
     protocol::RowFacts,
-    ui_logic_pv1::{
+    ui_logic_preview_core::{
         kinds::{self, State},
         rect::Shape,
     },
@@ -83,9 +83,9 @@ pub(crate) struct Host {
     pub wire: wire::Wire,
     pub meta: u64,
     /// The decoder media plays through; None uses the sandboxed helper.
-    pub backend: Option<std::rc::Rc<dyn crate::g2::pv3::engine::Backend>>,
+    pub backend: Option<std::rc::Rc<dyn crate::g2::media_preview::engine::Backend>>,
     /// Preview.qml markdownSource lasts until the card closes, including moves through other kinds.
-    markdown_view: crate::g2::pv2::markdown::View,
+    markdown_view: crate::g2::doc_preview::markdown::View,
     cap: Option<Task<()>>,
     _events: Subscription,
     _drain: Task<()>,

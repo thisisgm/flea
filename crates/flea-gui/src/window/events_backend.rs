@@ -20,7 +20,7 @@ impl Shell {
                 if self.trash.as_ref().is_some_and(|host| {
                     host.backend_side == side && host.pane.read(cx).view().opened
                 }) {
-                    let text = flea::ui_logic_fb1::errors::sentence("parse", "", "")
+                    let text = flea::ui_logic_status_feedback::errors::sentence("parse", "", "")
                         .render(&self.locale.catalog);
                     self.trash_say(&text, true, cx);
                     return None;

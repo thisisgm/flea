@@ -5,11 +5,11 @@ mod test_catalogs;
 // test_catalogs reaches the catalog types through super.
 use flea::i18n::{I18n, Paths};
 use flea::json::{escape, field_str, field_usize};
-use flea::ui_logic_pv2::csv::{self, records};
-use flea::ui_logic_pv2::office::State;
-use flea_gui::g2::pv2::csv::{CodeHost, CsvView, TableFace, TablePalette};
-use flea_gui::g2::pv2::office::{OfficeHost, OfficeView};
-use flea_gui::g2::pv2::{Metrics, Palette};
+use flea::ui_logic_doc_preview::csv::{self, records};
+use flea::ui_logic_doc_preview::office::State;
+use flea_gui::g2::doc_preview::csv::{CodeHost, CsvView, TableFace, TablePalette};
+use flea_gui::g2::doc_preview::office::{OfficeHost, OfficeView};
+use flea_gui::g2::doc_preview::{Metrics, Palette};
 use gpui::{font, px, size, TestAppContext, WindowHandle};
 use std::{cell::RefCell, path::PathBuf, process::Command, rc::Rc};
 
@@ -63,7 +63,9 @@ impl OfficeHost for Backend {
         let id = self.0.borrow().len() as u64 + 1;
         self.0
             .borrow_mut()
-            .push(flea::ui_logic_pv2::office::request_line(id, path, sheets));
+            .push(flea::ui_logic_doc_preview::office::request_line(
+                id, path, sheets,
+            ));
         id
     }
 }

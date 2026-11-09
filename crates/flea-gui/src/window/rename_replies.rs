@@ -1,7 +1,7 @@
 //! The rename replies: PaneWire.qml onRenamed, the refused write's reason, and the bulk card's paths, refusal and end.
 use super::{leaf, parent, Shell};
 use crate::{backend::Event as BackendEvent, window::navigate::Step};
-use flea::ui_logic_fb1::errors;
+use flea::ui_logic_status_feedback::errors;
 use gpui::{Context, Window};
 
 impl Shell {

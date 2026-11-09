@@ -5,8 +5,8 @@ use super::Adapter;
 use crate::{
     columns::TrackRows,
     g2::{
-        pv1::{doc::View as Document, QuickLook},
-        pv2::PdfView,
+        doc_preview::PdfView,
+        quick_look_overlay::{doc::View as Document, QuickLook},
     },
     state::Shell,
     window::{selection_preview::Kind, startup::View},
@@ -92,9 +92,10 @@ impl PreviewState<'_> {
                 f32::from(bounds.center().y).round()
             )
         });
-        let hovered = observed.close_hovered || look.hovered() == Some(crate::g2::pv1::Hit::Close);
-        let pressed = look.pressed() == Some(crate::g2::pv1::Hit::Close);
-        let focused = look.focused() == Some(crate::g2::pv1::Hit::Close)
+        let hovered = observed.close_hovered
+            || look.hovered() == Some(crate::g2::quick_look_overlay::Hit::Close);
+        let pressed = look.pressed() == Some(crate::g2::quick_look_overlay::Hit::Close);
+        let focused = look.focused() == Some(crate::g2::quick_look_overlay::Hit::Close)
             || doc.chrome(&look.i18n, self.cx).close_focused;
         Reply::value(format!("{{\"hovered\":{hovered},\"pressed\":{pressed},\"focused\":{focused},\"centre\":\"{centre}\"}}"))
     }

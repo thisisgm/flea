@@ -8,7 +8,7 @@ thread_local! {
     static LAUNCHED: RefCell<Vec<Vec<String>>> = const { RefCell::new(Vec::new()) };
 }
 
-fn record(argv: &[String]) -> crate::g2::op3::lane::Exit {
+fn record(argv: &[String]) -> crate::g2::open_with_properties::lane::Exit {
     LAUNCHED.with(|calls| calls.borrow_mut().push(argv.to_vec()));
     (Some(0), String::new())
 }

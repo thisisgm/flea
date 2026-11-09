@@ -112,7 +112,7 @@ pub fn match_run(hay: &str, needle: &str) -> Option<(usize, usize)> {
         }
     }
     let Some(at) = folded.find(&lower) else {
-        let close = flea::ui_logic_sr2::matcher::Matcher::new(needle)?.close(hay)?;
+        let close = flea::ui_logic_listing_filter::matcher::Matcher::new(needle)?.close(hay)?;
         let start = close.runs.first()?.start;
         let last = close.runs.last()?;
         let end = last.start + last.len;

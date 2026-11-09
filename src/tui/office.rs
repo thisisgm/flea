@@ -8,8 +8,8 @@ use super::{
     wire::{self, Wire},
 };
 use crate::jsondoc::{self, Json};
-use flea::ui_logic_pv2::office::{self as shared, Applied, Office};
-use flea::ui_logic_pv2::office_sniff;
+use flea::ui_logic_doc_preview::office::{self as shared, Applied, Office};
+use flea::ui_logic_doc_preview::office_sniff;
 use std::{
     fs::File,
     io,

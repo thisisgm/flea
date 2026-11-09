@@ -1,7 +1,7 @@
 //! Review round 1 probes for g2-sd2, kept as regressions; keys are the block keys `blocks` hands out.
 use flea::i18n::{I18n, Paths};
-use flea_gui::g2::sd2::seams::Wire;
-use flea_gui::g2::sd2::RcloneSend;
+use flea_gui::g2::rclone_send::seams::Wire;
+use flea_gui::g2::rclone_send::RcloneSend;
 use std::cell::RefCell;
 use std::path::PathBuf;
 use std::process::Command;

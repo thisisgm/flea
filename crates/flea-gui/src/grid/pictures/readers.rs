@@ -1,7 +1,7 @@
 //! The shared lender's raw source and decoder state, guarded by the current listing, facts and policy.
 use super::{Map, Pictures, Slot};
 use crate::list::pane::Held;
-use flea::ui_logic_pv1::{pixels::is_vector_name, thumbs::CACHE_SIZE};
+use flea::ui_logic_preview_core::{pixels::is_vector_name, thumbs::CACHE_SIZE};
 
 #[derive(Clone, Copy)]
 #[repr(i32)]

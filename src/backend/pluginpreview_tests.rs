@@ -140,7 +140,7 @@ fn plugin_preview_text_is_plain_and_runs_through_the_runtime_route() {
     let file = dir.file("a.txt", "hello\n");
     let line = format!(
         r#"{{"c":"plugins","op":"runtime","id":2,"plugin":"example.peek","request":{}}}"#,
-        flea::ui_logic_st2::wire::compact(&request(&file))
+        flea::ui_logic_plugin_settings::wire::compact(&request(&file))
     );
     let lines = super::plugins::handle(&line, &env);
     let reply = jsondoc::parse(&lines[0]).unwrap();

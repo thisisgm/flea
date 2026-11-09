@@ -67,7 +67,9 @@ impl TrackElement {
                                 point(x + from, y),
                                 size(to - from, line.ascent + line.descent),
                             ),
-                            palette.accent.opacity(crate::g2::sr1::run::RUN_WASH),
+                            palette
+                                .accent
+                                .opacity(crate::g2::file_search::run::RUN_WASH),
                         ));
                     }
                 }

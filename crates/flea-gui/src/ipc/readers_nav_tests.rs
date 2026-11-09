@@ -5,7 +5,7 @@ use flea::{
     ipc::wire::{Reply, Request},
     jsondoc::{self, Json},
     protocol::RowFacts,
-    ui_logic_op1::{
+    ui_logic_file_ops::{
         confirm::Source,
         trash::{Review, Scope},
     },

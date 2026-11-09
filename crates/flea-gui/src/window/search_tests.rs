@@ -84,7 +84,7 @@ pub(super) fn results(cx: &mut TestAppContext, handle: Handle) {
         shell.search_update(
             0,
             None,
-            |search, host| search.key(crate::g2::sr1::StripKey::Enter, host),
+            |search, host| search.key(crate::g2::file_search::StripKey::Enter, host),
             window,
             cx,
         )
@@ -231,7 +231,7 @@ fn mounted_ctrl_g_turns_the_strip_to_contents_and_sends_only_contents_requests(
         let session = &shell.panes[0].as_ref().unwrap().search.owner.session;
         assert_eq!(
             session.kind,
-            flea::ui_logic_sr1::Kind::Contents,
+            flea::ui_logic_file_search::Kind::Contents,
             "Ctrl+G must switch the strip to contents",
         );
     });

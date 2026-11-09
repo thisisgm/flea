@@ -66,7 +66,7 @@ fn omi_fit_draws_whole_22_pixel_grids_and_snaps_every_edge() {
         for (surface, side, want) in [
             ("loading", spinner::HERO, hero),
             ("menu", spinner::HERO, hero),
-            ("empty", crate::g2::fb1::mark::HERO, hero),
+            ("empty", crate::g2::status_feedback::mark::HERO, hero),
             ("job", f32::max(16., 22. / scale), card),
         ] {
             let slot = Bounds::new(point(px(100.3), px(200.7)), size(px(side), px(side)));
@@ -94,7 +94,7 @@ fn omi_fit_draws_whole_22_pixel_grids_and_snaps_every_edge() {
 struct Surfaces(spinner::Mode);
 impl Render for Surfaces {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        use crate::g2::op1::glyph::{Glyph, Paint};
+        use crate::g2::file_ops::glyph::{Glyph, Paint};
         div()
             .flex()
             .items_start()

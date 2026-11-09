@@ -2,7 +2,7 @@
 use super::{focus_shell, frame, marks, open, shell};
 use crate::{
     backend::{Backend, Event, Failure},
-    g2::op1::model::Dialog,
+    g2::file_ops::model::Dialog,
     window::{pane::PaneHost, startup::View},
 };
 use gpui::{Modifiers, TestAppContext, VisualTestContext, WindowHandle};

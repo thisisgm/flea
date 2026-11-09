@@ -198,7 +198,10 @@ impl Shell {
         }
         let from = host.pane.cursor;
         let before_scroll = host.pane.scroll_y;
-        let wrap = flea::ui_logic_st1::pages::is_true(&self.launch.settings.data, &["wrapAtEnds"]);
+        let wrap = flea::ui_logic_settings_pages::pages::is_true(
+            &self.launch.settings.data,
+            &["wrapAtEnds"],
+        );
         let frame = if self.view == crate::window::startup::View::Columns {
             host.columns_key_frame(self.grows[side])
         } else {

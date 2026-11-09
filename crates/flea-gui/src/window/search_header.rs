@@ -1,5 +1,5 @@
 //! The search strip and its pointer scope control.
-use crate::{g2::sr1, state::Shell, window::startup::View};
+use crate::{g2::file_search, state::Shell, window::startup::View};
 use gpui::{div, prelude::*, Context, IntoElement, MouseButton, Window};
 use std::rc::Rc;
 
@@ -46,11 +46,12 @@ impl Shell {
             .try_global::<crate::palette::Theme>()
             .copied()
             .unwrap_or_default();
-        let palette = sr1::strip::Palette::from_list(&crate::list::Palette::inherited(
+        let palette = file_search::strip::Palette::from_list(&crate::list::Palette::inherited(
             &window.text_style(),
             theme,
         ));
-        let mut element = sr1::strip::StripElement::new(words, palette, host.search.strip.clone());
+        let mut element =
+            file_search::strip::StripElement::new(words, palette, host.search.strip.clone());
         if let Some(input) = input {
             element = element.with_input(input, self.focus.clone());
         }

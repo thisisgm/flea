@@ -1,7 +1,7 @@
 //! The menus family: the context menu rows whose command lives in the window itself, from ui/PaneMenuActions.qml perform.
 use super::Order;
-use crate::{g2::mn1::join::Chosen, state::Shell};
-use flea::{jsondoc::Json, ui_logic_st1::edit};
+use crate::{g2::context_menus::join::Chosen, state::Shell};
+use flea::{jsondoc::Json, ui_logic_settings_pages::edit};
 use gpui::{Context, Window};
 
 pub(super) fn run(
@@ -33,7 +33,7 @@ pub(super) fn run(
                 && !chosen.captured.background
                 && (chosen.captured.rows.len() == 1
                     || (!chosen.captured.rows.is_empty()
-                        && chosen.leaf != flea::ui_logic_mn1::rows::OPEN_WITH_OTHER))
+                        && chosen.leaf != flea::ui_logic_context_menus::rows::OPEN_WITH_OTHER))
         }
         "selectAll" | "invertSelection" | "toggleHidden" | "toggleLangMarks" | "settings"
         | "updateFlea" | "extThumbs" | "addFavourite" => true,
@@ -43,7 +43,9 @@ pub(super) fn run(
         return false;
     }
     // PaneMenuActions.qml: an application leaf launches on the menu's own snapshot, which closes on its answer.
-    if chosen.action == "openWith" && chosen.leaf != flea::ui_logic_mn1::rows::OPEN_WITH_OTHER {
+    if chosen.action == "openWith"
+        && chosen.leaf != flea::ui_logic_context_menus::rows::OPEN_WITH_OTHER
+    {
         shell.retire_menu(window, cx);
         shell.open_with_application(chosen.captured.side, chosen.captured.id, &chosen.leaf, cx);
         return true;

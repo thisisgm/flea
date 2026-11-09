@@ -15,7 +15,7 @@ fn preview_focused(shell: &Entity<crate::state::Shell>, cx: &mut VisualTestConte
 
 #[gpui::test]
 fn pb_preview_ctrl_tab_returns_from_every_column_kind(cx: &mut TestAppContext) {
-    crate::g2::pv2::render::without_threads(|| {
+    crate::g2::doc_preview::render::without_threads(|| {
         let (shell, cx) = open(cx, "/files");
         let rows = vec![
             file("plain.bin", "application-octet-stream", "Data", 0o100644),
@@ -49,7 +49,7 @@ fn pb_preview_ctrl_tab_returns_from_every_column_kind(cx: &mut TestAppContext) {
 
 #[gpui::test]
 fn pb_preview_focused_pdf_scrolls_and_return_expands(cx: &mut TestAppContext) {
-    crate::g2::pv2::render::without_threads(|| {
+    crate::g2::doc_preview::render::without_threads(|| {
         let (shell, cx, _) = super::pb_preview_fixture::pdf(cx);
         cx.simulate_keystrokes("ctrl-tab");
         let state = |cx: &mut gpui::VisualTestContext| {

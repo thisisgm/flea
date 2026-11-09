@@ -2,7 +2,7 @@
 use crate::backend::imagesize::{self, Header};
 use crate::backend::imagevector::{gunzip, svg};
 use crate::backend::regfile::open_regular;
-use flea::ui_logic_pv1::pixels::{is_heif_name, is_host_decoded, is_vector_name};
+use flea::ui_logic_preview_core::pixels::{is_heif_name, is_host_decoded, is_vector_name};
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;

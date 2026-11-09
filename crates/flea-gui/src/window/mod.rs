@@ -126,7 +126,7 @@ pub fn open(
         }
         window.set_rem_size(crate::list::Typeface::omarchy_default().body);
         // Every menu's key hints draw the active keyboard group from the first frame.
-        crate::g2::mn1::keycaps::watch(cx);
+        crate::g2::context_menus::keycaps::watch(cx);
         let shell = cx.new(|cx| Shell::new(launch, locale, events, window, cx));
         shell.update(cx, |shell, cx| {
             shell.follow_settings(window, cx);

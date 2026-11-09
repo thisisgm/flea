@@ -10,7 +10,7 @@ use crate::{
     },
 };
 use flea::i18n::I18n;
-use flea::{jsondoc::Json, ui_logic_st1::pages};
+use flea::{jsondoc::Json, ui_logic_settings_pages::pages};
 use gpui::{Context, Window};
 
 #[derive(Default)]

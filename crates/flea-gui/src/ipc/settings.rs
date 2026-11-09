@@ -1,13 +1,13 @@
 //! Read-only settings and keyboard-sheet observations from the mounted producers.
 use super::Adapter;
 use crate::{
-    g2::st1::{panel::Side, sheet::Sheet},
+    g2::settings_pages::{panel::Side, sheet::Sheet},
     window::settings::Host,
 };
 use flea::{
     ipc::wire::Reply,
     jsondoc::{self, Json},
-    ui_logic_st1::{
+    ui_logic_settings_pages::{
         pages::SECTIONS,
         rows::{Kind, Master, Role, Row},
     },
@@ -69,7 +69,7 @@ fn row_model(row: &Row, catalog: &flea::i18n::I18n) -> Json {
         ("value", word(row.value.resolve(catalog))),
         (
             "caption",
-            if row.caption == flea::ui_logic_st1::Text::Empty {
+            if row.caption == flea::ui_logic_settings_pages::Text::Empty {
                 Json::Null
             } else {
                 word(row.caption.resolve(catalog))
@@ -176,7 +176,7 @@ pub(crate) fn sheet_rows(sheet: &Sheet) -> String {
 }
 
 // The pane's scrolled content: a standing search's results, otherwise the section's rows.
-fn pane_content(panel: &crate::g2::st1::Panel) -> f32 {
+fn pane_content(panel: &crate::g2::settings_pages::Panel) -> f32 {
     if panel
         .query
         .as_deref()
@@ -374,7 +374,7 @@ impl Adapter for SettingsAdapter<'_> {
             }
             "uiSettings" => json(self.document.clone()),
             "showHidden" => self.hidden.to_string(),
-            "keymapPreset" => flea::keys::preset(flea::ui_logic_st1::pages::word(
+            "keymapPreset" => flea::keys::preset(flea::ui_logic_settings_pages::pages::word(
                 self.document,
                 &["keys"],
                 "default",

@@ -1,6 +1,6 @@
 //! Window notes reach the message line the footer currently paints.
 use crate::state::Shell;
-use flea::ui_logic_fb1::status::Hint;
+use flea::ui_logic_status_feedback::status::Hint;
 use gpui::Context;
 
 pub(super) fn note(shell: &mut Shell, text: &str, cx: &mut Context<Shell>) {

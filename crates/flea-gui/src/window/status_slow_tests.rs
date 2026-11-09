@@ -10,7 +10,7 @@ fn m9_slow_remote_write_says_the_backend_sentence_as_a_notice(cx: &mut TestAppCo
             shell.menu.pending = Some(("rename".into(), "a.txt".into()));
             let pending = shell.menu.pending.clone();
             assert!(
-                flea::ui_logic_op1::parse(line).is_none(),
+                flea::ui_logic_file_ops::parse(line).is_none(),
                 "slow is not an operation completion"
             );
             assert!(

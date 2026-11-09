@@ -2,7 +2,7 @@
 use super::fifotest::mkfifo;
 use super::plugins_tests::{ask, code, env, get, plugin, READY};
 use super::testdir::TestDir;
-use flea::ui_logic_st2::wire::Source;
+use flea::ui_logic_plugin_settings::wire::Source;
 use std::os::unix::fs::symlink;
 use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
 use std::path::{Path, PathBuf};

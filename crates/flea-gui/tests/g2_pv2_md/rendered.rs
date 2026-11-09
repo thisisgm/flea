@@ -1,7 +1,7 @@
 //! Rendered Markdown: the first frame holds the first table, figure and picture, and the work per frame stays bounded by the frame.
 use super::harness::{catalog, draw, first_screen, open, show, until, with, Helper};
 use super::{file, root};
-use flea_gui::g2::pv2::markdown::{Effect, View, FIGURE_HOLD_MS, MAX_BYTES};
+use flea_gui::g2::doc_preview::markdown::{Effect, View, FIGURE_HOLD_MS, MAX_BYTES};
 use gpui::TestAppContext;
 use std::time::Duration;
 
@@ -265,7 +265,7 @@ fn md_a_file_too_large_or_unreadable_says_so_in_either_view(cx: &mut TestAppCont
     draw(cx, view);
     assert_eq!(
         with(cx, view, |v| v.source_refused()),
-        Some(flea_gui::g2::pv2::markdown::Answer::Large)
+        Some(flea_gui::g2::doc_preview::markdown::Answer::Large)
     );
     show(cx, view, &root.join("folder.md"));
     until(

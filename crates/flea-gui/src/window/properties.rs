@@ -2,8 +2,8 @@
 use crate::{
     backend::Failure,
     g2::{
-        mn1::join::{identity, Captured, ProducerReply},
-        op3::{
+        context_menus::join::{identity, Captured, ProducerReply},
+        open_with_properties::{
             keys::{key_of, Key},
             properties::Properties,
             shell::Probed,
@@ -22,7 +22,7 @@ pub(crate) struct Open {
     pub(crate) card: Properties,
     pub(crate) probe: crate::ipc::card_geometry::CardGeometry,
     _reply: Subscription,
-    initial: crate::g2::op3::initial::Initial,
+    initial: crate::g2::open_with_properties::initial::Initial,
 }
 
 #[cfg(test)]
@@ -122,7 +122,9 @@ impl Shell {
             card,
             probe: Default::default(),
             _reply: reply,
-            initial: crate::g2::op3::initial::Initial::at(cx.background_executor().now()),
+            initial: crate::g2::open_with_properties::initial::Initial::at(
+                cx.background_executor().now(),
+            ),
         });
         self.properties_effects(effects, window, cx);
         cx.notify();
@@ -223,10 +225,10 @@ impl Shell {
         let card = open.initial.present(
             open.card.ready(),
             open.card.card(&self.locale.catalog),
-            crate::g2::op3::initial::loading(
+            crate::g2::open_with_properties::initial::loading(
                 &self.locale.catalog,
                 "dialogs.file.properties.title",
-                crate::g2::op3::properties::WIDTH,
+                crate::g2::open_with_properties::properties::WIDTH,
             ),
             cx,
         )?;
@@ -273,7 +275,7 @@ impl Shell {
                 .occlude()
                 .bg(palette
                     .background
-                    .opacity(flea::ui_logic_op1::card::scrim_alpha(0)))
+                    .opacity(flea::ui_logic_file_ops::card::scrim_alpha(0)))
                 .on_mouse_down(MouseButton::Left, scrim)
                 .child(drawn)
                 .into_any_element(),

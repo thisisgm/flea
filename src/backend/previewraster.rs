@@ -44,7 +44,7 @@ impl Drop for Temporary {
 
 /// The caller bounds concurrency and decodes the returned PNG under its existing pixel bound.
 pub fn generate(path: &Path, size: u32) -> Option<Vec<u8>> {
-    let edge = flea::ui_logic_pv1::pixels::MAX_RASTER_EDGE;
+    let edge = flea::ui_logic_preview_core::pixels::MAX_RASTER_EDGE;
     if !(1..=edge).contains(&size) || !path.is_absolute() || !super::sandbox::available() {
         return None;
     }

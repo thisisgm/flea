@@ -45,12 +45,14 @@ fn pb_tags_rail_missing_colour_paints_the_theme_tag_square(cx: &mut TestAppConte
     rows(&shell, vec![tag], cx);
     producer(&shell, cx).update(cx, |producer, cx| {
         Rc::make_mut(&mut producer.model.borrow_mut().sections)[0].rows[0].mark =
-            crate::g2::pl4::content::RowMark::Tag(crate::g2::pl4::content::TagMark {
-                fill: None,
-                index: 0,
-                digit: "1",
-                fallback: true,
-            });
+            crate::g2::rail_places::content::RowMark::Tag(
+                crate::g2::rail_places::content::TagMark {
+                    fill: None,
+                    index: 0,
+                    digit: "1",
+                    fallback: true,
+                },
+            );
         cx.notify();
     });
     frame(cx);

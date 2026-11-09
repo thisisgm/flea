@@ -5,7 +5,7 @@ use crate::{
     presentation::{Fonts, Service, Snapshot},
     state::{labels, Shell},
 };
-use flea::ui_logic_st1::textsize;
+use flea::ui_logic_settings_pages::textsize;
 use gpui::{Context, Window};
 
 impl Shell {

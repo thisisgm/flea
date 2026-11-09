@@ -1,6 +1,6 @@
 //! The Open With card in the window: flea --open's unclaimed ask snapshots its row and opens the card, as v0.3.12 Pane.showOpenWith does.
 use crate::{
-    g2::op3::{
+    g2::open_with_properties::{
         keys::{key_of, Key},
         openwith::OpenWith,
         shell::{Block, Control, DialogShell, OpenWithShell},
@@ -19,8 +19,8 @@ pub(crate) struct Open {
     pub(crate) id: u64,
     pub(crate) card: OpenWith,
     /// The parts the card painted last, which openWithState reports.
-    pub(crate) frame: crate::g2::op1::measured::Frame,
-    pub(crate) initial: crate::g2::op3::initial::Initial,
+    pub(crate) frame: crate::g2::file_ops::measured::Frame,
+    pub(crate) initial: crate::g2::open_with_properties::initial::Initial,
 }
 
 impl Shell {
@@ -56,7 +56,7 @@ impl Shell {
     /// The row menu's Another Application leaf: the card opens on the one row the menu captured, as the opener's ask does.
     pub(crate) fn open_with_captured(
         &mut self,
-        captured: &crate::g2::mn1::join::Captured,
+        captured: &crate::g2::context_menus::join::Captured,
         cx: &mut Context<Self>,
     ) -> bool {
         if let Some(row) = &captured.target {
@@ -70,7 +70,9 @@ impl Shell {
                     id: target.id,
                     card: OpenWith::open(target.id, &row.name),
                     frame: Default::default(),
-                    initial: crate::g2::op3::initial::Initial::at(cx.background_executor().now()),
+                    initial: crate::g2::open_with_properties::initial::Initial::at(
+                        cx.background_executor().now(),
+                    ),
                 });
             }
             return true;
@@ -114,7 +116,9 @@ impl Shell {
             id,
             card: OpenWith::open(id, name),
             frame: Default::default(),
-            initial: crate::g2::op3::initial::Initial::at(cx.background_executor().now()),
+            initial: crate::g2::open_with_properties::initial::Initial::at(
+                cx.background_executor().now(),
+            ),
         });
         cx.notify();
     }
@@ -306,12 +310,12 @@ impl Shell {
             .copied()
             .unwrap_or_default();
         let palette = crate::list::Palette::inherited(&window.text_style(), theme);
-        self.rename.ime.palette = Some(crate::g2::op1::palette::CardPalette::from_list(
+        self.rename.ime.palette = Some(crate::g2::file_ops::palette::CardPalette::from_list(
             &palette,
             self.corner,
         ));
         self.rename.ime.error_ink = false;
-        if self.rename.ime.owner == Some(crate::g2::op1::dialog_editor::Slot::OpenWithSearch) {
+        if self.rename.ime.owner == Some(crate::g2::file_ops::dialog_editor::Slot::OpenWithSearch) {
             if let Some(Block::Field(search)) = card.body.first_mut() {
                 search.input = Some(cx.entity());
             }
@@ -323,12 +327,12 @@ impl Shell {
         let weak = cx.entity().downgrade();
         let wire = move |control, element: gpui::Stateful<gpui::Div>| {
             let weak = weak.clone();
-            if control == crate::g2::op3::shell::Control::Applications {
+            if control == crate::g2::open_with_properties::shell::Control::Applications {
                 return element.on_scroll_wheel(move |event, _, cx| {
                     let _ = weak.update(cx, |shell, cx| {
-                        let row = crate::g2::op3::shell::APP_ROW
+                        let row = crate::g2::open_with_properties::shell::APP_ROW
                             * f32::from(shell.active_typeface().body)
-                            / crate::g2::op3::shell::BOARD_BODY;
+                            / crate::g2::open_with_properties::shell::BOARD_BODY;
                         if let Some(open) = shell.open_with.as_mut() {
                             open.card.scroll(event, row);
                             cx.notify();
@@ -340,7 +344,9 @@ impl Shell {
             let hover = weak.clone();
             element
                 .on_mouse_move(move |_, _, cx| {
-                    if let crate::g2::op3::shell::Control::Application(at) = control {
+                    if let crate::g2::open_with_properties::shell::Control::Application(at) =
+                        control
+                    {
                         let _ = hover.update(cx, |shell, cx| {
                             if shell
                                 .open_with
@@ -381,7 +387,7 @@ impl Shell {
                 .occlude()
                 .bg(palette
                     .background
-                    .opacity(flea::ui_logic_op1::card::scrim_alpha(0)))
+                    .opacity(flea::ui_logic_file_ops::card::scrim_alpha(0)))
                 .on_mouse_down(MouseButton::Left, scrim)
                 .child(drawn)
                 .into_any_element(),

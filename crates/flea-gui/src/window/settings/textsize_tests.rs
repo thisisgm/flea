@@ -1,5 +1,5 @@
 use crate::{backend::Backend, state::Shell};
-use flea::{jsondoc::Json, ui_logic_st1::pages};
+use flea::{jsondoc::Json, ui_logic_settings_pages::pages};
 use gpui::TestAppContext;
 
 fn assert_display(

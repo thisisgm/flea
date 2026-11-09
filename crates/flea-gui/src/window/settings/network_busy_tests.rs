@@ -1,4 +1,4 @@
-use crate::{backend::Backend, g2::pl2::dialog, state::tests::shell_with};
+use crate::{backend::Backend, g2::network_shares::dialog, state::tests::shell_with};
 use gpui::TestAppContext;
 
 #[gpui::test]

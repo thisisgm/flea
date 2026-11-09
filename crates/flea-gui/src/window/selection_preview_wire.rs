@@ -1,12 +1,12 @@
 //! The backend lines the column's mounted views ask through, and the replies they read back.
 use super::*;
-use crate::g2::pv2::{
+use crate::g2::doc_preview::{
     self,
     markdown::{CodeAnswer, CodeSource, CodeState},
 };
 use flea::{
     json::escape,
-    ui_logic_pv2::code_view::{self, Answer, Source},
+    ui_logic_doc_preview::code_view::{self, Answer, Source},
 };
 pub(crate) const SLOT: &str = "column";
 
@@ -18,7 +18,7 @@ impl Wire {
         self.0.borrow_mut().push(line);
     }
 }
-impl pv2::code::CodeHost for Wire {
+impl doc_preview::code::CodeHost for Wire {
     fn ask_code(&self, slot: &str, ask: &code_view::Ask) -> u64 {
         let id = token();
         let source = match &ask.source {
@@ -38,7 +38,7 @@ impl pv2::code::CodeHost for Wire {
         id
     }
 }
-impl pv2::markdown::CodeHost for Wire {
+impl doc_preview::markdown::CodeHost for Wire {
     fn ask_code(&self, slot: &str, source: CodeSource, first: usize, count: usize) -> u64 {
         let id = token();
         let source = match source {
@@ -57,7 +57,7 @@ impl pv2::markdown::CodeHost for Wire {
         id
     }
 }
-impl pv2::csv::CodeHost for Wire {
+impl doc_preview::csv::CodeHost for Wire {
     fn code(&self, line: &dyn Fn(u64) -> String) -> u64 {
         let id = token();
         self.send(line(id));
@@ -65,13 +65,13 @@ impl pv2::csv::CodeHost for Wire {
     }
 }
 // The archive's names ride the column's own meta ask, which asks with "archive":true.
-impl pv2::archive::ArchiveHost for Wire {
+impl doc_preview::archive::ArchiveHost for Wire {
     fn ask_meta(&self, _: &str) {}
 }
-impl pv2::html::HtmlHost for Wire {
+impl doc_preview::html::HtmlHost for Wire {
     fn ask_html(&self, slot: &str, path: &str, width: u32, height: u32) -> u64 {
         let id = token();
-        let line = flea::ui_logic_pv2::html::ask_line(id, slot, path, width, height);
+        let line = flea::ui_logic_doc_preview::html::ask_line(id, slot, path, width, height);
         self.send(line);
         id
     }
@@ -83,10 +83,12 @@ impl pv2::html::HtmlHost for Wire {
         ));
     }
 }
-impl pv2::office::OfficeHost for Wire {
+impl doc_preview::office::OfficeHost for Wire {
     fn office(&self, path: &str, sheets: bool) -> u64 {
         let id = token();
-        self.send(flea::ui_logic_pv2::office::request_line(id, path, sheets));
+        self.send(flea::ui_logic_doc_preview::office::request_line(
+            id, path, sheets,
+        ));
         id
     }
 }
@@ -143,9 +145,9 @@ pub(crate) fn markdown_answer(doc: &Json) -> CodeAnswer {
 }
 
 /// Sample input: {"t":"html","slot":"column","token":3,"state":"ready","file":"/cache/x.png","total":61,"width":984,"title":"Page"}.
-pub(crate) fn html_reply(doc: &Json) -> flea::ui_logic_pv2::html::Reply {
+pub(crate) fn html_reply(doc: &Json) -> flea::ui_logic_doc_preview::html::Reply {
     let text = |key| doc.get(key).and_then(Json::as_str).unwrap_or("").to_owned();
-    flea::ui_logic_pv2::html::Reply {
+    flea::ui_logic_doc_preview::html::Reply {
         token: number(doc, "token") as u64,
         slot: text("slot"),
         state: text("state"),

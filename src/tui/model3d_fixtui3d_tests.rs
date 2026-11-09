@@ -11,7 +11,7 @@ use crate::{
         wire,
     },
 };
-use flea::ui_logic_pv4::color::Palette;
+use flea::ui_logic_model_preview::color::Palette;
 use std::{
     fs::File,
     sync::{atomic::AtomicBool, Arc},

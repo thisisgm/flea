@@ -68,7 +68,7 @@ fn shell_with_listing<'a>(
             },
             monitor: None,
         });
-        cx.set_global(crate::g2::pl1::source::fixture::Services {
+        cx.set_global(crate::g2::device_rail::source::fixture::Services {
             runner,
             hostname: "minipc\n".into(),
         });
@@ -117,7 +117,7 @@ fn row(
     shell: &Entity<Shell>,
     label: &str,
     cx: &mut VisualTestContext,
-) -> crate::g2::pl4::rows::LaidRow {
+) -> crate::g2::rail_places::rows::LaidRow {
     producer(shell, cx).read_with(cx, |producer, _| {
         producer
             .laid

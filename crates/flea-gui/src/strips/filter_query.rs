@@ -107,7 +107,7 @@ impl QueryLine {
         &self,
         laid: Laid,
         palette: &Palette,
-        input: Option<&gpui::Entity<crate::g2::sr2::input::FilterInput>>,
+        input: Option<&gpui::Entity<crate::g2::listing_filter::input::FilterInput>>,
         window: &mut Window,
         cx: &mut App,
     ) {

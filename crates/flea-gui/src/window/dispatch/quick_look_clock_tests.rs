@@ -2,7 +2,7 @@
 use super::preview_tests::{close, draw};
 use super::quick_look_body_tests::{mounted, open_kind};
 use crate::window::u07_tests::read;
-use flea::ui_logic_pv3::frame::Event;
+use flea::ui_logic_media_preview::frame::Event;
 use gpui::TestAppContext;
 
 fn clock(cx: &mut TestAppContext, name: &str, video: bool) {
@@ -63,8 +63,8 @@ fn gh364_down_starts_a_fresh_autoplay_video_and_accepts_its_picture_and_clock(
         preview_tests::{body, file},
         test_shell::{land, set_cursor},
     };
-    use crate::g2::pv1::{doc::View, Body};
-    use flea::ui_logic_pv3::player::Status;
+    use crate::g2::quick_look_overlay::{doc::View, Body};
+    use flea::ui_logic_media_preview::player::Status;
     use gpui::RenderImage;
     use std::sync::Arc;
 
@@ -144,7 +144,7 @@ fn gh364_down_starts_a_fresh_autoplay_video_and_accepts_its_picture_and_clock(
 // EY-435: an open Quick Look video reads previewMediaLoaded true, and previewPosition proves a seek key moved the clock.
 #[gpui::test]
 fn ey435_quick_look_media_loaded_and_seek_keys_move_the_position(cx: &mut TestAppContext) {
-    use flea::ui_logic_pv1::keys::SEEK_MS;
+    use flea::ui_logic_preview_core::keys::SEEK_MS;
     let (shell, cx, _requests, script) = mounted(cx);
     open_kind(&shell, cx, "clip.mp4");
     for event in [
