@@ -234,6 +234,43 @@ fn gh305_a_press_on_edit_in_terminal_hands_the_editor_the_shown_names(cx: &mut T
     close(&shell, cx);
 }
 
+// A press beside the card closes it as Delete, Properties, Run and Open With close, and renames nothing.
+#[gpui::test]
+fn a_press_on_the_scrim_cancels_the_bulk_card(cx: &mut TestAppContext) {
+    let _lane = Lane::new();
+    let (shell, cx) = rooted(cx);
+    let (shell, cx, mut lines, paths) = marks(shell, cx);
+    f2_card(&shell, cx, &mut lines, &paths);
+    cx.update(|window, _| window.refresh());
+    cx.run_until_parked();
+    let scrim = cx
+        .debug_bounds("op3-bulkrename-scrim")
+        .expect("the scrim is drawn");
+    let card = cx.debug_bounds("op3-card").expect("the card is drawn");
+    press_at(cx, card.origin + gpui::point(gpui::px(4.), gpui::px(4.)));
+    assert!(card_open(&shell, cx), "a press on the card keeps it");
+    // S12C-2's point, low on the left, where the listing's rows lie under the scrim.
+    let at = scrim.origin + gpui::point(scrim.size.width * 0.06, scrim.size.height * 0.9);
+    assert!(!card.contains(&at), "the press lands beside the card");
+    let before = cursor(&shell, cx);
+    press_at(cx, at);
+    assert!(!card_open(&shell, cx), "the scrim press cancels");
+    assert_eq!(card_names(&shell, cx), None, "the card is gone");
+    assert_eq!(sent(&mut lines), Vec::<String>::new(), "renames nothing");
+    assert_eq!(cursor(&shell, cx), before, "the press does nothing else");
+    cx.simulate_keystrokes("k");
+    cx.run_until_parked();
+    assert_ne!(cursor(&shell, cx), before, "keys go back to the listing");
+}
+
+fn press_at(cx: &mut VisualTestContext, at: gpui::Point<gpui::Pixels>) {
+    press(cx, &format!("{} {}", f32::from(at.x), f32::from(at.y)), 1);
+}
+
+fn cursor(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> usize {
+    shell.read_with(cx, |shell, _| shell.panes[0].as_ref().unwrap().pane.cursor)
+}
+
 // Rename is drawn disabled while no name has changed, so a click on it must leave the focus where it was.
 #[gpui::test]
 fn gh305_a_click_on_a_disabled_rename_leaves_the_focus_put(cx: &mut TestAppContext) {

@@ -15,6 +15,9 @@ pub(crate) fn mount<V: FieldView>(
 ) -> crate::leaf::Painted<crate::locale_geometry::Unmirrored> {
     let down = view.downgrade();
     let moved = view.downgrade();
+    let menu = view.downgrade();
+    let card =
+        crate::path::text_menu::Slot::new(view.clone(), V::field_text_menu, V::field_menu_answer);
     // An editable line keeps its text, selection, caret and placeholder together in a mirrored window.
     crate::locale_geometry::unmirrored(
         field
@@ -22,6 +25,10 @@ pub(crate) fn mount<V: FieldView>(
             .on_mouse_down(MouseButton::Left, move |event, window, cx| {
                 let _ = down.update(cx, |view, cx| view.field_press(event, window, cx));
             })
+            .on_mouse_down(MouseButton::Right, move |event, window, cx| {
+                let _ = menu.update(cx, |view, cx| view.field_menu(event, window, cx));
+            })
+            .child(card)
             .on_mouse_move(move |event, window, cx| {
                 let _ = moved.update(cx, |view, cx| view.field_drag(event, window, cx));
             })

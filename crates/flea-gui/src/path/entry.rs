@@ -225,6 +225,20 @@ impl Entry {
         self.revision += 1;
     }
 
+    /// A double click takes the word of the character at byte `at` as a text input does, and a press past the end takes the last one.
+    pub fn select_word(&mut self, at: usize) {
+        use unicode_segmentation::UnicodeSegmentation;
+        let at = at.min(self.text.len().saturating_sub(1));
+        let word = self
+            .text
+            .split_word_bound_indices()
+            .map(|(start, word)| start..start + word.len())
+            .find(|word| word.contains(&at))
+            .unwrap_or(at..at);
+        self.move_to(word.start);
+        self.select_to(word.end);
+    }
+
     fn boundary(&self, offset: usize) -> usize {
         let offset = offset.min(self.text.len());
         (0..=offset)

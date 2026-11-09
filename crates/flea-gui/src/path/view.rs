@@ -66,10 +66,12 @@ pub struct PathView {
     ranker: Box<dyn Ranker>,
     favourites: Vec<String>,
     recent: Vec<String>,
-    catalog: Arc<I18n>,
+    pub(super) catalog: Arc<I18n>,
     asks: Vec<Ask>,
     hold: Option<Task<()>>,
     _blur: Option<Subscription>,
+    /// The field's Undo, Cut, Copy, Paste and Select All card while a right press holds it open.
+    pub(crate) text_menu: super::text_menu::TextMenu,
 }
 
 impl EventEmitter<Out> for PathView {}
@@ -100,6 +102,7 @@ impl PathView {
             asks: Vec::new(),
             hold: None,
             _blur: None,
+            text_menu: Default::default(),
         }
     }
 
@@ -196,6 +199,7 @@ impl PathView {
             return;
         }
         self.jump.close();
+        self.text_menu.close();
         self.pressed_row = None;
         self.hold = None;
         cx.emit(Out::Closed);

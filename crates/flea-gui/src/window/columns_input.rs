@@ -29,6 +29,10 @@ impl Shell {
         if self.view != super::super::startup::View::Columns {
             return;
         }
+        // A typing line drawn over the track opens its own text menu.
+        if event.button == MouseButton::Right && self.text_line_at(event.position) {
+            return;
+        }
         self.columns_scroll_hold(side, event.position);
         // Carry25's card gate stops only a carry landing; a plain press keeps the gate Columns had before carry.
         let blocked = self.input_blocked(cx);

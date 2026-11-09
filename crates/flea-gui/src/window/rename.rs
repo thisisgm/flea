@@ -12,7 +12,7 @@ mod input;
 #[path = "rename_ipc.rs"]
 pub(crate) mod ipc;
 #[path = "rename_menu.rs"]
-mod menu;
+pub(crate) mod menu;
 #[path = "rename_place.rs"]
 mod place;
 #[path = "rename_replies.rs"]

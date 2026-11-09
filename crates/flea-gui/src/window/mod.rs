@@ -56,6 +56,7 @@ pub mod settings;
 pub(crate) mod sidebar_edge;
 pub mod startup;
 pub(crate) mod status;
+mod status_undo;
 pub(crate) mod surfaces;
 #[path = "../state/text_input.rs"]
 pub(crate) mod text_input;

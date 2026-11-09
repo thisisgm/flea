@@ -33,6 +33,12 @@ impl Shell {
         self.carry_land_on(side, dest, (ctrl, shift), None, window, cx)
     }
 
+    /// A carry is pending or rides, so a left press over a listing is the carry's to take.
+    pub(crate) fn carry_riding_or_pending(&self, cx: &gpui::App) -> bool {
+        cx.try_global::<Carrying>()
+            .is_some_and(|carrying| carrying.carry.active())
+    }
+
     /// A List press while a carry is pending or rides, inside the rows and off the scroll lane: true when the carry took it.
     pub(crate) fn carry_list_press(
         &mut self,
@@ -60,7 +66,12 @@ impl Shell {
         // Owned copy first: the cx borrow must end before stop_propagation.
         let carried = carrying.source_rows(window, side, host).to_vec();
         cx.stop_propagation();
-        if host.stopped || host.nav.gate.owned() {
+        // The pane element holds the pointer for this very press before asking; any other owner still refuses it.
+        let gate = crate::navigation::watch::Gate {
+            pointer_held: false,
+            ..host.nav.gate
+        };
+        if host.stopped || gate.owned() {
             return true;
         }
         let dest = drag_drop::join::pane_spot(host, event.position, &carried);

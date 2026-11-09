@@ -121,7 +121,7 @@ impl Picker {
         let key = event.keystroke.key.as_str();
         if let Some(filename) = self.browse.filename.clone() {
             if filename.read(cx).focus.is_focused(window) {
-                let result = filename.update(cx, |field, cx| field.key(event, cx));
+                let result = filename.update(cx, |field, cx| field.menu_or_key(event, window, cx));
                 match &result {
                     FieldKey::Enter => self.accept(cx),
                     FieldKey::Tab => window.focus(&self.focus, cx),

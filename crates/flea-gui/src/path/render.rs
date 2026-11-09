@@ -29,8 +29,14 @@ impl Render for PathView {
                 .track_focus(&self.focus)
                 .on_key_down(cx.listener(Self::key_down))
                 .on_mouse_down(MouseButton::Left, cx.listener(Self::field_press))
+                .on_mouse_down(MouseButton::Right, cx.listener(Self::field_menu))
                 .on_mouse_move(cx.listener(Self::field_drag))
-                .child(FieldElement::new(view.clone()));
+                .child(FieldElement::new(view.clone()))
+                .children(self.text_menu.overlay(
+                    &view,
+                    px(crate::compositor::corner(cx)),
+                    Self::text_menu_answer,
+                ));
             let root = root.child(field);
             if !self.jump.shown() {
                 self.paint.borrow_mut().drawn = 0;
@@ -144,6 +150,13 @@ fn strip(view: Entity<PathView>, place: Place, cx: &mut Context<PathView>) -> im
 
 impl PathView {
     fn key_down(&mut self, event: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
+        // The field's text menu holds the keyboard while it is open.
+        if self.text_menu.opened() {
+            let outcome = self.text_menu.key(event, window);
+            self.text_menu_answer(outcome, window, cx);
+            cx.stop_propagation();
+            return;
+        }
         let key = event.keystroke.key.as_str();
         let held = event.keystroke.modifiers;
         if self.entry.ime_key(key) {
@@ -254,6 +267,34 @@ impl PathView {
             }
             _ => self.entry.select_all(),
         }
+        cx.notify();
+    }
+
+    // A right press in the field opens its text menu, the rename field's rows, over the line as it stands.
+    fn field_menu(&mut self, event: &MouseDownEvent, window: &mut Window, cx: &mut Context<Self>) {
+        if self.entry.marked.is_none() {
+            let catalog = self.catalog.clone();
+            self.text_menu
+                .open(&self.entry, &catalog, event.position, window, cx);
+        }
+        cx.stop_propagation();
+        cx.notify();
+    }
+
+    fn text_menu_answer(
+        &mut self,
+        outcome: crate::g2::context_menus::menu::Outcome,
+        _: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if let crate::g2::context_menus::menu::Outcome::Fire { action, .. } = &outcome {
+            if super::text_menu::apply(&mut self.entry, action, cx)
+                == super::text_menu::Applied::Edited
+            {
+                self.edited(cx);
+            }
+        }
+        self.text_menu.settle(&outcome);
         cx.notify();
     }
 

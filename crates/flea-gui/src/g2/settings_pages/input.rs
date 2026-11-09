@@ -17,6 +17,8 @@ pub(crate) struct Editor {
     pub drawn: RefCell<Drawn>,
     published: String,
     pub retired: bool,
+    /// The field's Undo, Cut, Copy, Paste and Select All card while a right press holds it open.
+    pub menu: crate::path::text_menu::TextMenu,
 }
 
 #[derive(Default)]
@@ -69,6 +71,22 @@ pub(crate) trait Host: Sized + 'static {
         }
     }
 
+    /// The field's open text menu takes every key; true when it held this one.
+    fn text_menu_key(
+        &mut self,
+        event: &KeyDownEvent,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        if !self.editor().menu.opened() {
+            return false;
+        }
+        let outcome = self.editor_mut().menu.key(event, window);
+        text_menu_answer(self, outcome, window, cx);
+        cx.stop_propagation();
+        true
+    }
+
     fn accepts_input(&self, window: &Window) -> bool {
         let editor = self.editor();
         !editor.retired
@@ -76,6 +94,28 @@ pub(crate) trait Host: Sized + 'static {
             && self.input_focus(window).is_focused(window)
             && editor.drawn.borrow().line.accepts(&editor.entry)
     }
+}
+
+pub(crate) fn editor_menu<T: Host>(host: &T) -> Option<&crate::path::text_menu::TextMenu> {
+    Some(&host.editor().menu)
+}
+
+/// A chosen row runs on the line and publishes as typed text does; any end closes the card.
+pub(crate) fn text_menu_answer<T: Host>(
+    host: &mut T,
+    outcome: crate::g2::context_menus::menu::Outcome,
+    _: &mut Window,
+    cx: &mut Context<T>,
+) {
+    if let crate::g2::context_menus::menu::Outcome::Fire { action, .. } = &outcome {
+        if crate::path::text_menu::apply(&mut host.editor_mut().entry, action, cx)
+            == crate::path::text_menu::Applied::Edited
+        {
+            host.edited(cx);
+        }
+    }
+    host.editor_mut().menu.settle(&outcome);
+    cx.notify();
 }
 
 /// Types a plain key as the platform would once the key bubbles unhandled, so a parent listener never takes it first.
@@ -99,6 +139,7 @@ pub(crate) fn type_key<T: Host + gpui::EntityInputHandler>(
 impl Editor {
     pub fn retire(&mut self) {
         self.retired = true;
+        self.menu.close();
         self.entry.close();
         self.drawn.borrow_mut().line.registered = None;
     }
