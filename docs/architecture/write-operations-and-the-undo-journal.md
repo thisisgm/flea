@@ -134,7 +134,9 @@ the listing on it, so the duplicate sits on disk unmentioned until some later li
 exactly as the partial target above does. An archive compress, extract or convert publishes its staged result
 through the same path (issue 370), by `renamecompat::rename_cancellable` with the job's own cancel: a cancel during
 the copy removes the partial target and the job answers cancelled, and the copy reports no progress past the job's
-last sample. On a copy-fallback mount (`fuse.rclone`, `fuse.megafs`, a GVFS WebDAV path) those three, a combine and a
+last sample. The stage is the job's own, so that publish skips the preflight a person's move takes, and a stage
+its drive will not let go keeps the landed copy as the result under `rename-kept` even when the stage stayed whole;
+the job then clears the stage or names it. On a copy-fallback mount (`fuse.rclone`, `fuse.megafs`, a GVFS WebDAV path) those three, a combine and a
 batch convert keep their work folder on this computer instead of beside the destination (`src/backend/workhome.rs`):
 the cache's `flea/work`, then `/var/tmp`, then the temp folder, the first with room for the stage, else the job is
 refused with its size. rclone uploads a staged file while the job runs and keeps a copy of one Flea unlinks, so a stage

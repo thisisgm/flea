@@ -2,12 +2,20 @@
 use crate::backend::copyfile::{copy_any, Progress};
 use crate::backend::renamecompat;
 use crate::backend::undo::{self, ItemIdentity, Step};
-use crate::error::FleaError;
+use crate::error::{from_io, FleaError};
+use std::ffi::OsStr;
+use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 
 // How many " copy N" names duplicate will try before giving up rather than looping forever.
 pub(crate) const NAME_TRIES: usize = 999;
+// Linux NAME_MAX, the most bytes one name may hold.
+const NAME_MAX: usize = 255;
+// A UTF-8 continuation byte is 10xxxxxx, and one character has at most three of them.
+const CONTINUATION_MASK: u8 = 0xc0;
+const CONTINUATION_BITS: u8 = 0x80;
+const MAX_CONTINUATIONS: usize = 3;
 
 // A name from the client is a trust boundary: anything with a separator would move the file out of its own directory.
 pub use super::opsname::{name_refusal, name_refusal_sentence};
@@ -80,11 +88,27 @@ fn case_only_rename(path: &Path, to: &Path, before: ItemIdentity) -> Result<(Pat
 pub fn copy_name(original: &Path, word: &str, n: usize) -> Option<std::ffi::OsString> {
     let name = Path::new(original.file_name()?);
     let suffix = if n <= 1 { format!(" {}", word) } else { format!(" {} {}", word, n) };
-    let mut out = name.file_stem()?.to_os_string();
+    let stem = name.file_stem()?.as_bytes();
+    // Near NAME_MAX the stem gives up its end on a character boundary; an extension too long to keep joins the stem.
+    let found = name.extension().map(|ext| ext.as_bytes());
+    let ext = found.filter(|ext| suffix.len() + ext.len() + 1 < NAME_MAX);
+    let stem = if found.is_some() && ext.is_none() { name.as_os_str().as_bytes() } else { stem };
+    let room = NAME_MAX.checked_sub(suffix.len() + ext.map_or(0, |ext| ext.len() + 1))?;
+    // The cut backs off over the continuation bytes of one character at most; a longer run is no character and is cut where it falls.
+    let room = room.min(stem.len());
+    let starts = |end: &usize| {
+        stem.get(*end)
+            .map_or(true, |byte| byte & CONTINUATION_MASK != CONTINUATION_BITS)
+    };
+    let end = (room.saturating_sub(MAX_CONTINUATIONS)..=room)
+        .rev()
+        .find(starts)
+        .unwrap_or(room);
+    let mut out = OsStr::from_bytes(&stem[..end]).to_os_string();
     out.push(suffix);
-    if let Some(ext) = name.extension() {
+    if let Some(ext) = ext {
         out.push(".");
-        out.push(ext);
+        out.push(OsStr::from_bytes(ext));
     }
     Some(out)
 }

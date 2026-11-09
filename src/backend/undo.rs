@@ -718,7 +718,7 @@ fn remove(path: &PathBuf) -> Result<(), FleaError> {
         .symlink_metadata()
         .map_err(|e| from_io("undo", &path.to_string_lossy(), &e))?;
     let r = if meta.is_dir() && !meta.file_type().is_symlink() {
-        std::fs::remove_dir_all(path)
+        super::copyfile::deep::remove_deep(path, false)
     } else {
         std::fs::remove_file(path)
     };

@@ -137659,7 +137659,7 @@
     },
     {
       "excerpt": "const TOO_BIG: &str = \"a file of 4 GiB or more does not fit on a FAT32 drive\";",
-      "line": 330,
+      "line": 381,
       "literal": "a file of 4 GiB or more does not fit on a FAT32 drive",
       "owner": "controller",
       "path": "src/backend/copyfile.rs",
@@ -137668,7 +137668,7 @@
     },
     {
       "excerpt": "return Some(format!(\"{name} needs {}, and the drive has {} free\", format_size(size), format_size(free)));",
-      "line": 342,
+      "line": 393,
       "literal": "{name} needs {}, and the drive has {} free",
       "owner": "controller",
       "path": "src/backend/copyfile.rs",
@@ -137676,8 +137676,35 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "let e = super::unheld::marked(dst.named, if p.for_move { \"changed during the move\" } else { \"changed during the copy\" }.to_string());",
+      "line": 495,
+      "literal": "changed during the move",
+      "owner": "controller",
+      "path": "src/backend/copyfile.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "let e = super::unheld::marked(dst.named, if p.for_move { \"changed during the move\" } else { \"changed during the copy\" }.to_string());",
+      "line": 495,
+      "literal": "changed during the copy",
+      "owner": "controller",
+      "path": "src/backend/copyfile.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "_ => Unremoved::Part(FleaError { msg: format!(\"{}; part of it was removed, and the copy holds all of it\", e.msg), ..e }),",
+      "line": 722,
+      "literal": "{}; part of it was removed, and the copy holds all of it",
+      "owner": "controller",
+      "path": "src/backend/copyfile.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "msg: \"cancelled\".to_string(),",
-      "line": 788,
+      "line": 755,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/copyfile.rs",
@@ -138352,10 +138379,28 @@
     },
     {
       "excerpt": "assert!(started.elapsed() < WORKER_RELEASE_DEADLINE, \"released source readers must free their worker slots\");",
-      "line": 163,
+      "line": 218,
       "literal": "released source readers must free their worker slots",
       "owner": "controller",
       "path": "src/backend/copyread.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": ".expect(\"the walk holds its top folder\")",
+      "line": 167,
+      "literal": "the walk holds its top folder",
+      "owner": "controller",
+      "path": "src/backend/copytree.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "let level = self.levels.pop().expect(\"a level below the top\");",
+      "line": 267,
+      "literal": "a level below the top",
+      "owner": "controller",
+      "path": "src/backend/copytree.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "core/backend"
     },
@@ -138455,6 +138500,42 @@
       "literal": "non-CSV replies keep the line-only contract",
       "owner": "controller",
       "path": "src/backend/csvrange.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "io::Error::other(\"a folder was moved while it was being read\")",
+      "line": 35,
+      "literal": "a folder was moved while it was being read",
+      "owner": "controller",
+      "path": "src/backend/deeptree.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "level.fd.as_ref().expect(\"the top level is held\")",
+      "line": 66,
+      "literal": "the top level is held",
+      "owner": "controller",
+      "path": "src/backend/deeptree.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "let left = self.levels.pop().expect(\"pop below the base\");",
+      "line": 101,
+      "literal": "pop below the base",
+      "owner": "controller",
+      "path": "src/backend/deeptree.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "let child = left.fd.expect(\"the top level is held\");",
+      "line": 102,
+      "literal": "the top level is held",
+      "owner": "controller",
+      "path": "src/backend/deeptree.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "core/backend"
     },
@@ -138685,7 +138766,7 @@
     },
     {
       "excerpt": "pub const DIR_UNCONFIRMED: &str = \"copied, but the drive did not confirm the folder\";",
-      "line": 157,
+      "line": 158,
       "literal": "copied, but the drive did not confirm the folder",
       "owner": "controller",
       "path": "src/backend/durable.rs",
@@ -138694,7 +138775,7 @@
     },
     {
       "excerpt": "pub const RCLONE_NOTE: &str = \"rclone uploads them in the background\";",
-      "line": 169,
+      "line": 170,
       "literal": "rclone uploads them in the background",
       "owner": "controller",
       "path": "src/backend/durable.rs",
@@ -138703,7 +138784,7 @@
     },
     {
       "excerpt": "return Err(std::io::Error::other(\"unconfirmed batch\"));",
-      "line": 285,
+      "line": 301,
       "literal": "unconfirmed batch",
       "owner": "controller",
       "path": "src/backend/durable.rs",
@@ -138712,7 +138793,7 @@
     },
     {
       "excerpt": "return Err(std::io::Error::new(std::io::ErrorKind::Other, \"unconfirmed batch\"));",
-      "line": 291,
+      "line": 307,
       "literal": "unconfirmed batch",
       "owner": "controller",
       "path": "src/backend/durable.rs",
@@ -138721,7 +138802,7 @@
     },
     {
       "excerpt": "return Err(std::io::Error::other(\"unconfirmed batch\"));",
-      "line": 302,
+      "line": 318,
       "literal": "unconfirmed batch",
       "owner": "controller",
       "path": "src/backend/durable.rs",
@@ -138730,7 +138811,7 @@
     },
     {
       "excerpt": "return Err(std::io::Error::other(\"unconfirmed batch\"));",
-      "line": 309,
+      "line": 325,
       "literal": "unconfirmed batch",
       "owner": "controller",
       "path": "src/backend/durable.rs",
@@ -138739,7 +138820,7 @@
     },
     {
       "excerpt": "return Err(std::io::Error::new(std::io::ErrorKind::Other, \"simulated fsync failure\"));",
-      "line": 469,
+      "line": 497,
       "literal": "simulated fsync failure",
       "owner": "controller",
       "path": "src/backend/durable.rs",
@@ -138748,7 +138829,7 @@
     },
     {
       "excerpt": "return Err(std::io::Error::new(std::io::ErrorKind::Other, \"simulated fsync failure\"));",
-      "line": 494,
+      "line": 522,
       "literal": "simulated fsync failure",
       "owner": "controller",
       "path": "src/backend/durable.rs",
@@ -138757,7 +138838,7 @@
     },
     {
       "excerpt": "return Err(std::io::Error::new(std::io::ErrorKind::Other, \"simulated fsync failure\"));",
-      "line": 517,
+      "line": 545,
       "literal": "simulated fsync failure",
       "owner": "controller",
       "path": "src/backend/durable.rs",
@@ -138766,7 +138847,7 @@
     },
     {
       "excerpt": "return Err(std::io::Error::new(std::io::ErrorKind::Other, \"simulated fsync failure\"));",
-      "line": 541,
+      "line": 569,
       "literal": "simulated fsync failure",
       "owner": "controller",
       "path": "src/backend/durable.rs",
@@ -143261,6 +143342,24 @@
       "literal": "PNG image",
       "owner": "controller",
       "path": "src/backend/kind_comments.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "pub const FILE_UNCONFIRMED: &str = \"copied, but the drive did not confirm the file\";",
+      "line": 10,
+      "literal": "copied, but the drive did not confirm the file",
+      "owner": "controller",
+      "path": "src/backend/landed.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "msg: \"cancelled\".to_string(),",
+      "line": 44,
+      "literal": "cancelled",
+      "owner": "controller",
+      "path": "src/backend/landed.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "core/backend"
     },
@@ -150880,7 +150979,7 @@
     },
     {
       "excerpt": "format!(\"{msg}; the record of this copy could not be saved: {detail}\")",
-      "line": 18,
+      "line": 30,
       "literal": "{msg}; the record of this copy could not be saved: {detail}",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -150889,7 +150988,7 @@
     },
     {
       "excerpt": "format!(\"{msg}; undo cannot remove the partial copy of {}: {detail}\", partial.file_name().unwrap_or(partial.as_os_str()).to_string_lossy())",
-      "line": 23,
+      "line": 35,
       "literal": "{msg}; undo cannot remove the partial copy of {}: {detail}",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -150898,7 +150997,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: rename {} landed but the drive did not confirm the folder: {}\", to.display(), error);",
-      "line": 65,
+      "line": 77,
       "literal": "flea: rename {} landed but the drive did not confirm the folder: {}",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -150907,7 +151006,7 @@
     },
     {
       "excerpt": "None => return (Err(named(\"duplicate\", path, \"every copy name for this file is already taken\")), Vec::new()),",
-      "line": 113,
+      "line": 141,
       "literal": "every copy name for this file is already taken",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -150916,7 +151015,7 @@
     },
     {
       "excerpt": "assert_eq!(refuse_name(\"a:b\", \"vfat\", false).unwrap(), \"':' is not allowed in a name on this vfat drive\");",
-      "line": 172,
+      "line": 200,
       "literal": "':' is not allowed in a name on this vfat drive",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -150925,7 +151024,7 @@
     },
     {
       "excerpt": "assert_eq!(refuse_name(\"q?\", \"exfat\", false).unwrap(), \"'?' is not allowed in a name on this exfat drive\");",
-      "line": 173,
+      "line": 201,
       "literal": "'?' is not allowed in a name on this exfat drive",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -150934,7 +151033,7 @@
     },
     {
       "excerpt": "assert_eq!(refuse_name(\"trail.\", \"vfat\", false).unwrap(), \"a name cannot end in a dot on this vfat drive\");",
-      "line": 174,
+      "line": 202,
       "literal": "a name cannot end in a dot on this vfat drive",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -150943,7 +151042,7 @@
     },
     {
       "excerpt": "assert_eq!(refuse_name(\"trail \", \"vfat\", false).unwrap(), \"a name cannot end in a space on this vfat drive\");",
-      "line": 175,
+      "line": 203,
       "literal": "a name cannot end in a space on this vfat drive",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -150952,7 +151051,7 @@
     },
     {
       "excerpt": "assert_eq!(refuse_name(\"CON\", \"vfat\", false).unwrap(), \"'CON' is reserved on this vfat drive\");",
-      "line": 176,
+      "line": 204,
       "literal": "'CON' is reserved on this vfat drive",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -150961,7 +151060,7 @@
     },
     {
       "excerpt": "assert_eq!(refuse_name(\"con.txt\", \"vfat\", false).unwrap(), \"'CON' is reserved on this vfat drive\");",
-      "line": 177,
+      "line": 205,
       "literal": "'CON' is reserved on this vfat drive",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -150970,7 +151069,7 @@
     },
     {
       "excerpt": "assert!(refuse_name(\"a:b\", \"ntfs3\", false).is_none(), \"ntfs3 without windows_names takes a colon\");",
-      "line": 180,
+      "line": 208,
       "literal": "ntfs3 without windows_names takes a colon",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -150979,7 +151078,7 @@
     },
     {
       "excerpt": "assert!(refuse_name(\"a:b\", \"ntfs3\", true).is_some(), \"ntfs3 with windows_names refuses it\");",
-      "line": 181,
+      "line": 209,
       "literal": "ntfs3 with windows_names refuses it",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -150988,7 +151087,7 @@
     },
     {
       "excerpt": "assert!(valid_name(\"a name with spaces\"));",
-      "line": 188,
+      "line": 216,
       "literal": "a name with spaces",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -150997,7 +151096,7 @@
     },
     {
       "excerpt": "assert!(!valid_name(\"\"), \"an empty name would rename onto the parent\");",
-      "line": 189,
+      "line": 217,
       "literal": "an empty name would rename onto the parent",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151006,7 +151105,7 @@
     },
     {
       "excerpt": "assert!(!valid_name(\".\"), \"renaming to . is the directory itself\");",
-      "line": 190,
+      "line": 218,
       "literal": "renaming to . is the directory itself",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151015,7 +151114,7 @@
     },
     {
       "excerpt": "assert!(!valid_name(\"..\"), \"renaming to .. would climb out of the directory\");",
-      "line": 191,
+      "line": 219,
       "literal": "renaming to .. would climb out of the directory",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151024,7 +151123,7 @@
     },
     {
       "excerpt": "assert!(!valid_name(\"../escape\"), \"a separator moves the file out of its own directory\");",
-      "line": 192,
+      "line": 220,
       "literal": "a separator moves the file out of its own directory",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151033,7 +151132,7 @@
     },
     {
       "excerpt": "assert!(!valid_name(\"sub/child\"), \"a separator moves the file out of its own directory\");",
-      "line": 193,
+      "line": 221,
       "literal": "a separator moves the file out of its own directory",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151042,7 +151141,7 @@
     },
     {
       "excerpt": "assert!(!valid_name(\"nul\\0byte\"), \"an interior NUL truncates the path at the syscall\");",
-      "line": 194,
+      "line": 222,
       "literal": "an interior NUL truncates the path at the syscall",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151051,7 +151150,7 @@
     },
     {
       "excerpt": "assert_eq!(manifest_failed(\"permission denied\", \"no space\"), \"permission denied; the record of this copy could not be saved: no space\");",
-      "line": 199,
+      "line": 227,
       "literal": "permission denied",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151060,7 +151159,7 @@
     },
     {
       "excerpt": "assert_eq!(manifest_failed(\"permission denied\", \"no space\"), \"permission denied; the record of this copy could not be saved: no space\");",
-      "line": 199,
+      "line": 227,
       "literal": "no space",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151069,7 +151168,7 @@
     },
     {
       "excerpt": "assert_eq!(manifest_failed(\"permission denied\", \"no space\"), \"permission denied; the record of this copy could not be saved: no space\");",
-      "line": 199,
+      "line": 227,
       "literal": "permission denied; the record of this copy could not be saved: no space",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151078,7 +151177,7 @@
     },
     {
       "excerpt": "assert_eq!(unjournaled_partial(\"cancelled\", Path::new(\"/d/a.txt\"), \"the journal is full\"),",
-      "line": 200,
+      "line": 228,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151087,7 +151186,7 @@
     },
     {
       "excerpt": "assert_eq!(unjournaled_partial(\"cancelled\", Path::new(\"/d/a.txt\"), \"the journal is full\"),",
-      "line": 200,
+      "line": 228,
       "literal": "the journal is full",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151096,7 +151195,7 @@
     },
     {
       "excerpt": "\"cancelled; undo cannot remove the partial copy of a.txt: the journal is full\");",
-      "line": 201,
+      "line": 229,
       "literal": "cancelled; undo cannot remove the partial copy of a.txt: the journal is full",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151105,7 +151204,7 @@
     },
     {
       "excerpt": "let err = rename(&from, \"A.txt\").expect_err(\"a second name is a collision, not a case twin\");",
-      "line": 223,
+      "line": 251,
       "literal": "a second name is a collision, not a case twin",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151114,7 +151213,7 @@
     },
     {
       "excerpt": "assert_eq!(err.msg, \"an item with that name is already here\");",
-      "line": 225,
+      "line": 253,
       "literal": "an item with that name is already here",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151123,7 +151222,7 @@
     },
     {
       "excerpt": "assert_eq!(std::fs::read_to_string(&from).unwrap(), \"body\", \"the source is moved back, not lost\");",
-      "line": 226,
+      "line": 254,
       "literal": "the source is moved back, not lost",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151132,7 +151231,7 @@
     },
     {
       "excerpt": "assert_eq!(std::fs::read_to_string(&twin).unwrap(), \"body\", \"the twin name is never deleted\");",
-      "line": 227,
+      "line": 255,
       "literal": "the twin name is never deleted",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151141,7 +151240,7 @@
     },
     {
       "excerpt": "let from = d.file(\"source.txt\", \"source body\");",
-      "line": 233,
+      "line": 261,
       "literal": "source body",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151150,7 +151249,7 @@
     },
     {
       "excerpt": "d.file(\"target.txt\", \"target body\");",
-      "line": 234,
+      "line": 262,
       "literal": "target body",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151159,7 +151258,7 @@
     },
     {
       "excerpt": "let err = rename(&from, \"target.txt\").expect_err(\"must refuse\");",
-      "line": 235,
+      "line": 263,
       "literal": "must refuse",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151168,7 +151267,7 @@
     },
     {
       "excerpt": "\"target body\",",
-      "line": 239,
+      "line": 267,
       "literal": "target body",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151177,7 +151276,7 @@
     },
     {
       "excerpt": "\"the file that was already there is untouched\"",
-      "line": 240,
+      "line": 268,
       "literal": "the file that was already there is untouched",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151186,7 +151285,7 @@
     },
     {
       "excerpt": "assert!(from.exists(), \"the source is left where it was\");",
-      "line": 242,
+      "line": 270,
       "literal": "the source is left where it was",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151195,7 +151294,7 @@
     },
     {
       "excerpt": "let (_, steps) = rename(&from, \"same.txt\").expect(\"a no-op rename is not an error\");",
-      "line": 249,
+      "line": 277,
       "literal": "a no-op rename is not an error",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151204,7 +151303,7 @@
     },
     {
       "excerpt": "assert!(steps.is_empty(), \"nothing changed, so undo must have nothing to reverse\");",
-      "line": 250,
+      "line": 278,
       "literal": "nothing changed, so undo must have nothing to reverse",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151213,7 +151312,7 @@
     },
     {
       "excerpt": "assert_eq!(copy_name(p, \"copy\", 1).unwrap(), \"backup.tar copy.zst\");",
-      "line": 257,
+      "line": 285,
       "literal": "backup.tar copy.zst",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151222,7 +151321,7 @@
     },
     {
       "excerpt": "assert_eq!(copy_name(p, \"copy\", 2).unwrap(), \"backup.tar copy 2.zst\");",
-      "line": 258,
+      "line": 286,
       "literal": "backup.tar copy 2.zst",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151231,7 +151330,7 @@
     },
     {
       "excerpt": "assert_eq!(copy_name(Path::new(\"/x/notes\"), \"copy\", 1).unwrap(), \"notes copy\");",
-      "line": 259,
+      "line": 287,
       "literal": "notes copy",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151240,7 +151339,7 @@
     },
     {
       "excerpt": "assert_eq!(copy_name(Path::new(\"/x/.bashrc\"), \"copy\", 1).unwrap(), \".bashrc copy\");",
-      "line": 260,
+      "line": 288,
       "literal": ".bashrc copy",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151249,7 +151348,7 @@
     },
     {
       "excerpt": "\"photo copy.jpg\",",
-      "line": 263,
+      "line": 291,
       "literal": "photo copy.jpg",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151258,7 +151357,7 @@
     },
     {
       "excerpt": "\"the operations design names this exact result\"",
-      "line": 264,
+      "line": 292,
       "literal": "the operations design names this exact result",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151267,7 +151366,7 @@
     },
     {
       "excerpt": "\"convert reuses this helper with its own word, per the canvas\"",
-      "line": 269,
+      "line": 297,
       "literal": "convert reuses this helper with its own word, per the canvas",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151276,7 +151375,7 @@
     },
     {
       "excerpt": "assert_eq!(copy_name(raw, \"copy\", 1).unwrap().as_bytes(), b\"r-\\xff copy.txt\");",
-      "line": 277,
+      "line": 305,
       "literal": "r-\\xff copy.txt",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151285,7 +151384,7 @@
     },
     {
       "excerpt": "assert_eq!(free_copy_path(&original, \"copy\").unwrap(), d.join(\"doc copy.txt\"));",
-      "line": 284,
+      "line": 312,
       "literal": "doc copy.txt",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151294,7 +151393,7 @@
     },
     {
       "excerpt": "d.file(\"doc copy.txt\", \"taken\");",
-      "line": 285,
+      "line": 313,
       "literal": "doc copy.txt",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151303,7 +151402,7 @@
     },
     {
       "excerpt": "assert_eq!(free_copy_path(&original, \"copy\").unwrap(), d.join(\"doc copy 2.txt\"));",
-      "line": 286,
+      "line": 314,
       "literal": "doc copy 2.txt",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151312,7 +151411,7 @@
     },
     {
       "excerpt": "assert_eq!(dst, d.join(\"photo copy.jpg\"));",
-      "line": 295,
+      "line": 323,
       "literal": "photo copy.jpg",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151321,7 +151420,7 @@
     },
     {
       "excerpt": "assert!(original.exists(), \"the original is untouched\");",
-      "line": 297,
+      "line": 325,
       "literal": "the original is untouched",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151330,7 +151429,7 @@
     },
     {
       "excerpt": "assert_eq!(dst, d.join(\"tree copy\"));",
-      "line": 308,
+      "line": 336,
       "literal": "tree copy",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151339,7 +151438,7 @@
     },
     {
       "excerpt": "assert!(outcome.is_err(), \"the unreadable file cannot be opened, so the tree copy fails\");",
-      "line": 325,
+      "line": 353,
       "literal": "the unreadable file cannot be opened, so the tree copy fails",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151348,7 +151447,7 @@
     },
     {
       "excerpt": "let partial = d.join(\"tree copy\");",
-      "line": 326,
+      "line": 354,
       "literal": "tree copy",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151357,7 +151456,7 @@
     },
     {
       "excerpt": "assert!(partial.is_dir(), \"the failure left what it had copied\");",
-      "line": 327,
+      "line": 355,
       "literal": "the failure left what it had copied",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151366,7 +151465,7 @@
     },
     {
       "excerpt": "\"and the journal gets the partial with what it created: {:?}\", steps);",
-      "line": 329,
+      "line": 357,
       "literal": "and the journal gets the partial with what it created: {:?}",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151375,7 +151474,7 @@
     },
     {
       "excerpt": "let err = mkdir(d.path(), \"notes\").expect_err(\"a file holds the name\");",
-      "line": 345,
+      "line": 373,
       "literal": "a file holds the name",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151384,7 +151483,7 @@
     },
     {
       "excerpt": "assert_eq!(err.msg, \"a folder or file with that name already exists\");",
-      "line": 347,
+      "line": 375,
       "literal": "a folder or file with that name already exists",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151393,7 +151492,7 @@
     },
     {
       "excerpt": "assert_eq!(std::fs::read_to_string(&file).unwrap(), \"body\", \"the file that owns the name is untouched\");",
-      "line": 348,
+      "line": 376,
       "literal": "the file that owns the name is untouched",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151402,7 +151501,7 @@
     },
     {
       "excerpt": "let err = mkdir(d.path(), \"sub\").expect_err(\"a directory holds the name\");",
-      "line": 350,
+      "line": 378,
       "literal": "a directory holds the name",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151411,7 +151510,7 @@
     },
     {
       "excerpt": "assert_eq!(err.msg, \"a folder or file with that name already exists\", \"an existing directory is a collision too, never a merge\");",
-      "line": 351,
+      "line": 379,
       "literal": "a folder or file with that name already exists",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151420,7 +151519,7 @@
     },
     {
       "excerpt": "assert_eq!(err.msg, \"a folder or file with that name already exists\", \"an existing directory is a collision too, never a merge\");",
-      "line": 351,
+      "line": 379,
       "literal": "an existing directory is a collision too, never a merge",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151429,7 +151528,7 @@
     },
     {
       "excerpt": "let clause = match bad { \".\" | \"..\" => \"a name cannot be a single dot or a double dot\", \"nul\\0byte\" => \"a name cannot contain a null character\", _ => \"a name cannot contain /\" };",
-      "line": 359,
+      "line": 387,
       "literal": "a name cannot be a single dot or a double dot",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151438,7 +151537,7 @@
     },
     {
       "excerpt": "let clause = match bad { \".\" | \"..\" => \"a name cannot be a single dot or a double dot\", \"nul\\0byte\" => \"a name cannot contain a null character\", _ => \"a name cannot contain /\" };",
-      "line": 359,
+      "line": 387,
       "literal": "a name cannot contain a null character",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151447,7 +151546,7 @@
     },
     {
       "excerpt": "let clause = match bad { \".\" | \"..\" => \"a name cannot be a single dot or a double dot\", \"nul\\0byte\" => \"a name cannot contain a null character\", _ => \"a name cannot contain /\" };",
-      "line": 359,
+      "line": 387,
       "literal": "a name cannot contain /",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151456,7 +151555,7 @@
     },
     {
       "excerpt": "assert_eq!(mkdir(Path::new(\"relative\"), \"x\").unwrap_err().msg, \"a parent must be an absolute path\");",
-      "line": 362,
+      "line": 390,
       "literal": "a parent must be an absolute path",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151465,7 +151564,7 @@
     },
     {
       "excerpt": "assert_eq!(std::fs::read_dir(d.path()).unwrap().count(), 2, \"no refusal made anything\");",
-      "line": 366,
+      "line": 394,
       "literal": "no refusal made anything",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151474,7 +151573,7 @@
     },
     {
       "excerpt": "assert_eq!(mkdir(d.path(), \"\").expect(\"first\").0, d.join(\"New Folder\"));",
-      "line": 372,
+      "line": 400,
       "literal": "New Folder",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151483,7 +151582,7 @@
     },
     {
       "excerpt": "assert_eq!(mkdir(d.path(), \"\").expect(\"second\").0, d.join(\"New Folder 2\"));",
-      "line": 373,
+      "line": 401,
       "literal": "New Folder 2",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151492,7 +151591,7 @@
     },
     {
       "excerpt": "d.file(\"New Folder 3\", \"a file holds the name\");",
-      "line": 374,
+      "line": 402,
       "literal": "New Folder 3",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151501,7 +151600,7 @@
     },
     {
       "excerpt": "d.file(\"New Folder 3\", \"a file holds the name\");",
-      "line": 374,
+      "line": 402,
       "literal": "a file holds the name",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151510,7 +151609,7 @@
     },
     {
       "excerpt": "assert_eq!(mkdir(d.path(), \"\").expect(\"third\").0, d.join(\"New Folder 4\"), \"a taken name of any kind is stepped past\");",
-      "line": 375,
+      "line": 403,
       "literal": "New Folder 4",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151519,7 +151618,7 @@
     },
     {
       "excerpt": "assert_eq!(mkdir(d.path(), \"\").expect(\"third\").0, d.join(\"New Folder 4\"), \"a taken name of any kind is stepped past\");",
-      "line": 375,
+      "line": 403,
       "literal": "a taken name of any kind is stepped past",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151528,7 +151627,7 @@
     },
     {
       "excerpt": "let err = mkdir(&d.join(\"gone\"), \"x\").expect_err(\"no parent\");",
-      "line": 382,
+      "line": 410,
       "literal": "no parent",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151537,7 +151636,7 @@
     },
     {
       "excerpt": "assert_eq!(err.msg, \"item not found\");",
-      "line": 384,
+      "line": 412,
       "literal": "item not found",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151546,7 +151645,7 @@
     },
     {
       "excerpt": "assert_eq!(err.msg, \"permission denied\");",
-      "line": 389,
+      "line": 417,
       "literal": "permission denied",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151555,7 +151654,7 @@
     },
     {
       "excerpt": "assert!(refused, \"a drop onto a folder that cannot be written is refused\");",
-      "line": 401,
+      "line": 429,
       "literal": "a drop onto a folder that cannot be written is refused",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -158620,7 +158719,7 @@
     },
     {
       "excerpt": "return Err(FleaError { where_: \"rename\".to_string(), path: from.to_string_lossy().to_string(), msg: \"an item with that name is already here\".to_string() });",
-      "line": 193,
+      "line": 211,
       "literal": "an item with that name is already here",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -158629,7 +158728,7 @@
     },
     {
       "excerpt": "Err(FleaError { where_: \"rename\".to_string(), path: from.to_string_lossy().to_string(), msg: \"an item with that name is already here\".to_string() })",
-      "line": 203,
+      "line": 221,
       "literal": "an item with that name is already here",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -158638,7 +158737,7 @@
     },
     {
       "excerpt": "FleaError { where_: STRANDED.to_string(), path: from.to_string_lossy().to_string(), msg: format!(\"the file was left as {} in this folder: {}\", temp.file_name().unwrap_or_default().to_string_lossy(), back.msg) }",
-      "line": 238,
+      "line": 256,
       "literal": "the file was left as {} in this folder: {}",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -158647,7 +158746,7 @@
     },
     {
       "excerpt": "msg: format!(\"{}; the partial copy could not be removed: {}\", error.msg, cleanup.msg),",
-      "line": 298,
+      "line": 329,
       "literal": "{}; the partial copy could not be removed: {}",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -158656,7 +158755,7 @@
     },
     {
       "excerpt": "Err(cleanup) => format!(\"{}; the new copy could not be removed: {}\", crate::backend::durable::DIR_UNCONFIRMED, cleanup.msg),",
-      "line": 310,
+      "line": 341,
       "literal": "{}; the new copy could not be removed: {}",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -158665,7 +158764,7 @@
     },
     {
       "excerpt": "return Err(FleaError { where_: \"rename\".to_string(), path: to.to_string_lossy().to_string(), msg: \"test refused the take-back\".to_string() });",
-      "line": 332,
+      "line": 376,
       "literal": "test refused the take-back",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -158674,7 +158773,7 @@
     },
     {
       "excerpt": "msg: format!(\"{}; the copy left behind could not be removed: {}\", error.msg, cleanup.msg),",
-      "line": 353,
+      "line": 402,
       "literal": "{}; the copy left behind could not be removed: {}",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -158683,7 +158782,7 @@
     },
     {
       "excerpt": ".map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, \"path contains an interior NUL\"))",
-      "line": 365,
+      "line": 414,
       "literal": "path contains an interior NUL",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -158692,7 +158791,7 @@
     },
     {
       "excerpt": "\"1 0 0:1 / {} rw - fuse.rclone remote: rw\\n\",",
-      "line": 383,
+      "line": 431,
       "literal": "1 0 0:1 / {} rw - fuse.rclone remote: rw\n",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -158701,7 +158800,7 @@
     },
     {
       "excerpt": "\"1 0 0:2 / {} rw - fuse.megafs megafs rw\\n\",",
-      "line": 387,
+      "line": 435,
       "literal": "1 0 0:2 / {} rw - fuse.megafs megafs rw\n",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -158710,7 +158809,7 @@
     },
     {
       "excerpt": "let from = d.file(\"source.txt\", \"source body\");",
-      "line": 413,
+      "line": 461,
       "literal": "source body",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -158719,7 +158818,7 @@
     },
     {
       "excerpt": "let to = d.file(\"target.txt\", \"target body\");",
-      "line": 414,
+      "line": 462,
       "literal": "target body",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -158728,7 +158827,7 @@
     },
     {
       "excerpt": "let error = copy_then_remove(&from, &to).expect_err(\"the fallback must refuse an existing destination\");",
-      "line": 417,
+      "line": 465,
       "literal": "the fallback must refuse an existing destination",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -158737,7 +158836,7 @@
     },
     {
       "excerpt": "error.msg, \"already exists\",",
-      "line": 419,
+      "line": 467,
       "literal": "already exists",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -158746,7 +158845,7 @@
     },
     {
       "excerpt": "\"the exclusive create's EEXIST is what tells this refusal from any other copy failure\"",
-      "line": 420,
+      "line": 468,
       "literal": "the exclusive create's EEXIST is what tells this refusal from any other copy failure",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -158755,7 +158854,7 @@
     },
     {
       "excerpt": "assert_eq!(std::fs::read_to_string(&to).unwrap(), \"target body\");",
-      "line": 422,
+      "line": 470,
       "literal": "target body",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -158764,7 +158863,7 @@
     },
     {
       "excerpt": "assert_eq!(std::fs::read_to_string(&from).unwrap(), \"source body\");",
-      "line": 423,
+      "line": 471,
       "literal": "source body",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -158773,7 +158872,7 @@
     },
     {
       "excerpt": "std::fs::write(source.join(\"source.txt\"), \"source body\").unwrap();",
-      "line": 429,
+      "line": 477,
       "literal": "source body",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -158782,7 +158881,7 @@
     },
     {
       "excerpt": "let error = copy_then_remove(&source, &target).expect_err(\"must refuse\");",
-      "line": 433,
+      "line": 481,
       "literal": "must refuse",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -158791,7 +158890,7 @@
     },
     {
       "excerpt": "error.msg, \"already exists\",",
-      "line": 436,
+      "line": 484,
       "literal": "already exists",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -158800,7 +158899,7 @@
     },
     {
       "excerpt": "\"the directory create's EEXIST is what tells this refusal from any other copy failure\"",
-      "line": 437,
+      "line": 485,
       "literal": "the directory create's EEXIST is what tells this refusal from any other copy failure",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -158809,7 +158908,7 @@
     },
     {
       "excerpt": "assert!(source.join(\"source.txt\").is_file(), \"the source tree stays complete\");",
-      "line": 439,
+      "line": 487,
       "literal": "the source tree stays complete",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -158818,7 +158917,7 @@
     },
     {
       "excerpt": "assert!(target.is_dir(), \"the directory that owned the target name stays in place\");",
-      "line": 440,
+      "line": 488,
       "literal": "the directory that owned the target name stays in place",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -158827,7 +158926,7 @@
     },
     {
       "excerpt": "copy_then_remove(&source, &target).expect(\"rename by exclusive copy\");",
-      "line": 452,
+      "line": 500,
       "literal": "rename by exclusive copy",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -158836,7 +158935,7 @@
     },
     {
       "excerpt": "copy_then_remove(&target, &source).expect(\"undo by exclusive copy\");",
-      "line": 458,
+      "line": 506,
       "literal": "undo by exclusive copy",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -158845,7 +158944,7 @@
     },
     {
       "excerpt": "let error = copy_then_remove(&source, &target).expect_err(\"an unreadable child cannot be copied\");",
-      "line": 474,
+      "line": 522,
       "literal": "an unreadable child cannot be copied",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -158854,7 +158953,7 @@
     },
     {
       "excerpt": "assert!(child.exists(), \"the source remains after a failed copy\");",
-      "line": 475,
+      "line": 523,
       "literal": "the source remains after a failed copy",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -158863,7 +158962,7 @@
     },
     {
       "excerpt": "assert!(!target.exists(), \"the failed rename leaves no unjournaled partial target\");",
-      "line": 476,
+      "line": 524,
       "literal": "the failed rename leaves no unjournaled partial target",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -158872,7 +158971,7 @@
     },
     {
       "excerpt": "\"the copy failed on a child, so the target directory the cleanup removed had been created\"",
-      "line": 480,
+      "line": 528,
       "literal": "the copy failed on a child, so the target directory the cleanup removed had been created",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -158881,7 +158980,7 @@
     },
     {
       "excerpt": "let error = { let copied = copy_then_remove(&source, &target); FAIL_TAKE_BACK.with(|fail| fail.set(false)); copied }.expect_err(\"an unreadable child cannot be copied\");",
-      "line": 495,
+      "line": 543,
       "literal": "an unreadable child cannot be copied",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -158890,7 +158989,7 @@
     },
     {
       "excerpt": "assert!(error.msg.ends_with(\"; the partial copy could not be removed: test refused the take-back\"), \"{}\", error.msg);",
-      "line": 496,
+      "line": 544,
       "literal": "; the partial copy could not be removed: test refused the take-back",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -158899,7 +158998,7 @@
     },
     {
       "excerpt": "assert_eq!(error.path, target.to_string_lossy(), \"the leftover is named by its own path\");",
-      "line": 497,
+      "line": 545,
       "literal": "the leftover is named by its own path",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -158907,62 +159006,80 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "let error = renamed.expect_err(\"the source cannot be emptied\");",
+      "line": 564,
+      "literal": "the source cannot be emptied",
+      "owner": "controller",
+      "path": "src/backend/renamecompat.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "assert_eq!((error.where_.as_str(), error.msg.as_str()), (\"rename\", \"permission denied\"), \"refused before anything copied\");",
+      "line": 566,
+      "literal": "permission denied",
+      "owner": "controller",
+      "path": "src/backend/renamecompat.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "assert_eq!((error.where_.as_str(), error.msg.as_str()), (\"rename\", \"permission denied\"), \"refused before anything copied\");",
+      "line": 566,
+      "literal": "refused before anything copied",
+      "owner": "controller",
+      "path": "src/backend/renamecompat.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "assert!(!target.exists() && crate::backend::copyfile::test_take_buffers().is_empty(), \"nothing was read, so no copy was made\");",
+      "line": 568,
+      "literal": "nothing was read, so no copy was made",
+      "owner": "controller",
+      "path": "src/backend/renamecompat.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "let error = copy_then_remove(&source, &target).expect_err(\"the folder will not let the source go\");",
+      "line": 585,
+      "literal": "the folder will not let the source go",
+      "owner": "controller",
+      "path": "src/backend/renamecompat.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "assert_eq!((error.where_.as_str(), error.msg.as_str()), (\"rename\", \"permission denied\"));",
+      "line": 587,
+      "literal": "permission denied",
+      "owner": "controller",
+      "path": "src/backend/renamecompat.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "assert_eq!(std::fs::read_to_string(source.join(\"alpha.txt\")).unwrap(), \"alpha\", \"the source lost nothing\");",
+      "line": 588,
+      "literal": "the source lost nothing",
+      "owner": "controller",
+      "path": "src/backend/renamecompat.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "assert!(!target.exists() && crate::backend::copyfile::test_take_buffers().is_empty(), \"refused before a byte was read\");",
+      "line": 590,
+      "literal": "refused before a byte was read",
+      "owner": "controller",
+      "path": "src/backend/renamecompat.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "let error = copy_then_remove(&source, &target).expect_err(\"source removal must fail\");",
-      "line": 509,
-      "literal": "source removal must fail",
-      "owner": "controller",
-      "path": "src/backend/renamecompat.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "assert_eq!(error.where_, KEPT, \"the half-succeeded rename gets its own kind\");",
-      "line": 511,
-      "literal": "the half-succeeded rename gets its own kind",
-      "owner": "controller",
-      "path": "src/backend/renamecompat.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "\"the target stays out of the message ui/js/Errors.js pattern matches for a collision\"",
-      "line": 516,
-      "literal": "the target stays out of the message ui/js/Errors.js pattern matches for a collision",
-      "owner": "controller",
-      "path": "src/backend/renamecompat.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "let error = copy_then_remove(&source, &target).expect_err(\"source removal must fail\");",
-      "line": 534,
-      "literal": "source removal must fail",
-      "owner": "controller",
-      "path": "src/backend/renamecompat.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "assert_eq!(error.where_, KEPT, \"the half-succeeded rename keeps its own kind\");",
-      "line": 536,
-      "literal": "the half-succeeded rename keeps its own kind",
-      "owner": "controller",
-      "path": "src/backend/renamecompat.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "assert!(!source.join(\"alpha.txt\").exists(), \"the source lost a child, so it is not the whole copy\");",
-      "line": 537,
-      "literal": "the source lost a child, so it is not the whole copy",
-      "owner": "controller",
-      "path": "src/backend/renamecompat.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "let error = copy_then_remove(&source, &target).expect_err(\"source removal must fail\");",
-      "line": 553,
+      "line": 604,
       "literal": "source removal must fail",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -158971,7 +159088,7 @@
     },
     {
       "excerpt": "assert_eq!(error.where_, \"rename\", \"remove_file is atomic, so the source is provably whole\");",
-      "line": 555,
+      "line": 606,
       "literal": "remove_file is atomic, so the source is provably whole",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -158980,7 +159097,7 @@
     },
     {
       "excerpt": "error.msg, \"permission denied\",",
-      "line": 557,
+      "line": 608,
       "literal": "permission denied",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -158989,7 +159106,7 @@
     },
     {
       "excerpt": "\"the removal's EACCES is what tells this arm from a copy failure, which answers rename too\"",
-      "line": 558,
+      "line": 609,
       "literal": "the removal's EACCES is what tells this arm from a copy failure, which answers rename too",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -158998,7 +159115,7 @@
     },
     {
       "excerpt": "assert!(!target.exists(), \"the copy is taken back rather than left as an unjournalled duplicate\");",
-      "line": 561,
+      "line": 612,
       "literal": "the copy is taken back rather than left as an unjournalled duplicate",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159007,7 +159124,7 @@
     },
     {
       "excerpt": "let error = copy_then_remove(&source, &target).expect_err(\"source removal must fail\");",
-      "line": 576,
+      "line": 627,
       "literal": "source removal must fail",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159016,7 +159133,7 @@
     },
     {
       "excerpt": "assert_eq!(error.where_, \"rename\", \"one unlink removes a symlink too, so the source is provably whole\");",
-      "line": 578,
+      "line": 629,
       "literal": "one unlink removes a symlink too, so the source is provably whole",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159025,7 +159142,7 @@
     },
     {
       "excerpt": "error.msg, \"permission denied\",",
-      "line": 580,
+      "line": 631,
       "literal": "permission denied",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159034,7 +159151,7 @@
     },
     {
       "excerpt": "\"the removal's EACCES is what tells this arm from a copy failure, which answers rename too\"",
-      "line": 581,
+      "line": 632,
       "literal": "the removal's EACCES is what tells this arm from a copy failure, which answers rename too",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159043,7 +159160,7 @@
     },
     {
       "excerpt": "assert!(target.symlink_metadata().is_err(), \"the copy is taken back rather than left as an unjournalled duplicate\");",
-      "line": 584,
+      "line": 635,
       "literal": "the copy is taken back rather than left as an unjournalled duplicate",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159052,7 +159169,7 @@
     },
     {
       "excerpt": "let error = copy_then_remove(&source, &target).expect_err(\"an unconfirmed folder takes its copy back\");",
-      "line": 597,
+      "line": 648,
       "literal": "an unconfirmed folder takes its copy back",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159061,7 +159178,7 @@
     },
     {
       "excerpt": "assert_eq!(error.msg, RENAME_UNCONFIRMED, \"nothing stays copied, so the error never says copied\");",
-      "line": 601,
+      "line": 652,
       "literal": "nothing stays copied, so the error never says copied",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159070,7 +159187,7 @@
     },
     {
       "excerpt": "assert!(source.join(\"inside.txt\").is_file(), \"the whole source stays\");",
-      "line": 602,
+      "line": 653,
       "literal": "the whole source stays",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159079,7 +159196,7 @@
     },
     {
       "excerpt": "assert!(!target.exists(), \"the landed copy goes back so the tree is as before\");",
-      "line": 603,
+      "line": 654,
       "literal": "the landed copy goes back so the tree is as before",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159088,7 +159205,7 @@
     },
     {
       "excerpt": "let error = copy_then_remove(&source, &target).expect_err(\"an unconfirmed folder whose copy will not go back\");",
-      "line": 617,
+      "line": 668,
       "literal": "an unconfirmed folder whose copy will not go back",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159097,7 +159214,7 @@
     },
     {
       "excerpt": "assert_eq!(error.where_, \"rename\", \"the source is whole, so this is never rename-kept, whose sentence trusts the copy\");",
-      "line": 620,
+      "line": 671,
       "literal": "the source is whole, so this is never rename-kept, whose sentence trusts the copy",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159106,7 +159223,7 @@
     },
     {
       "excerpt": "assert!(error.msg.starts_with(crate::backend::durable::DIR_UNCONFIRMED) && error.msg.ends_with(\"; the new copy could not be removed: test refused the take-back\"), \"{}\", error.msg);",
-      "line": 621,
+      "line": 672,
       "literal": "; the new copy could not be removed: test refused the take-back",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159115,7 +159232,7 @@
     },
     {
       "excerpt": "assert!(source.join(\"inside.txt\").is_file(), \"the source was never touched\");",
-      "line": 622,
+      "line": 673,
       "literal": "the source was never touched",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159123,8 +159240,17 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "let removal = crate::backend::copyfile::remove_moved(&from).expect_err(\"a source that is not there cannot be removed\");",
+      "line": 681,
+      "literal": "a source that is not there cannot be removed",
+      "owner": "controller",
+      "path": "src/backend/renamecompat.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "assert_eq!(std::fs::read_to_string(&to).unwrap(), \"body\", \"the only complete copy stays on disk\");",
-      "line": 632,
+      "line": 683,
       "literal": "the only complete copy stays on disk",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159133,7 +159259,7 @@
     },
     {
       "excerpt": "assert_eq!(error.where_, KEPT, \"a source that proves nothing keeps the copy\");",
-      "line": 633,
+      "line": 684,
       "literal": "a source that proves nothing keeps the copy",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159141,8 +159267,71 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": ".expect_err(\"the shut folder keeps b.txt\");",
+      "line": 698,
+      "literal": "the shut folder keeps b.txt",
+      "owner": "controller",
+      "path": "src/backend/renamecompat.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "assert_eq!(error.where_, KEPT, \"a source that lost part of itself keeps the copy under its own kind: {}\", error.msg);",
+      "line": 700,
+      "literal": "a source that lost part of itself keeps the copy under its own kind: {}",
+      "owner": "controller",
+      "path": "src/backend/renamecompat.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "assert!(!error.msg.contains(&target.to_string_lossy().to_string()), \"the target stays out of the message ui/js/Errors.js pattern matches for a collision\");",
+      "line": 701,
+      "literal": "the target stays out of the message ui/js/Errors.js pattern matches for a collision",
+      "owner": "controller",
+      "path": "src/backend/renamecompat.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "assert!(!source.join(\"a.txt\").exists(), \"the removal had begun\");",
+      "line": 702,
+      "literal": "the removal had begun",
+      "owner": "controller",
+      "path": "src/backend/renamecompat.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": ".expect_err(\"a short copy never lets its source go\");",
+      "line": 713,
+      "literal": "a short copy never lets its source go",
+      "owner": "controller",
+      "path": "src/backend/renamecompat.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "assert_eq!(std::fs::read_to_string(&from).unwrap(), \"body\", \"the source stays\");",
+      "line": 715,
+      "literal": "the source stays",
+      "owner": "controller",
+      "path": "src/backend/renamecompat.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "assert!(!to.exists(), \"the short copy went back\");",
+      "line": 716,
+      "literal": "the short copy went back",
+      "owner": "controller",
+      "path": "src/backend/renamecompat.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "let from = d.file(\"source.txt\", \"source body\");",
-      "line": 640,
+      "line": 723,
       "literal": "source body",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159151,7 +159340,7 @@
     },
     {
       "excerpt": "outcome.expect(\"no hard links still renames through the plain fallback\");",
-      "line": 646,
+      "line": 729,
       "literal": "no hard links still renames through the plain fallback",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159160,7 +159349,7 @@
     },
     {
       "excerpt": "assert!(!from.exists(), \"the source goes through the fallback too\");",
-      "line": 647,
+      "line": 730,
       "literal": "the source goes through the fallback too",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159169,7 +159358,7 @@
     },
     {
       "excerpt": "assert_eq!(std::fs::read_to_string(&to).unwrap(), \"source body\");",
-      "line": 648,
+      "line": 731,
       "literal": "source body",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159178,7 +159367,7 @@
     },
     {
       "excerpt": "let from = d.file(\"source.txt\", \"source body\");",
-      "line": 655,
+      "line": 738,
       "literal": "source body",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159187,7 +159376,7 @@
     },
     {
       "excerpt": "let error = rename_noreplace(&from, &to).expect_err(\"a raced destination stays EEXIST\");",
-      "line": 659,
+      "line": 742,
       "literal": "a raced destination stays EEXIST",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159196,7 +159385,7 @@
     },
     {
       "excerpt": "assert!(from.exists(), \"the source stays when the link meets a taken name\");",
-      "line": 662,
+      "line": 745,
       "literal": "the source stays when the link meets a taken name",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159205,7 +159394,7 @@
     },
     {
       "excerpt": "assert!(to.symlink_metadata().is_err(), \"nothing is created under the taken name\");",
-      "line": 663,
+      "line": 746,
       "literal": "nothing is created under the taken name",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159214,7 +159403,7 @@
     },
     {
       "excerpt": "let error = rename_noreplace(&from, &to).expect_err(\"a copy-fallback mount keeps EINVAL\");",
-      "line": 674,
+      "line": 757,
       "literal": "a copy-fallback mount keeps EINVAL",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159223,7 +159412,7 @@
     },
     {
       "excerpt": "assert_eq!(error.raw_os_error(), Some(EINVAL), \"rclone and megafs stay on copy_then_remove\");",
-      "line": 677,
+      "line": 760,
       "literal": "rclone and megafs stay on copy_then_remove",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159232,7 +159421,7 @@
     },
     {
       "excerpt": "assert!(from.join(\"inside.txt\").is_file(), \"the source stays until the copy path runs\");",
-      "line": 678,
+      "line": 761,
       "literal": "the source stays until the copy path runs",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159241,7 +159430,7 @@
     },
     {
       "excerpt": "assert!(to.symlink_metadata().is_err(), \"the fallback creates nothing on this path\");",
-      "line": 679,
+      "line": 762,
       "literal": "the fallback creates nothing on this path",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159250,7 +159439,7 @@
     },
     {
       "excerpt": "let error = rename_path(&from, &twin).expect_err(\"a second name is a collision, not a move\");",
-      "line": 688,
+      "line": 771,
       "literal": "a second name is a collision, not a move",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159259,7 +159448,7 @@
     },
     {
       "excerpt": "assert_eq!(error.msg, \"an item with that name is already here\");",
-      "line": 689,
+      "line": 772,
       "literal": "an item with that name is already here",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159268,7 +159457,7 @@
     },
     {
       "excerpt": "assert_eq!(std::fs::read_to_string(&from).unwrap(), \"body\", \"the source is moved back, not lost\");",
-      "line": 690,
+      "line": 773,
       "literal": "the source is moved back, not lost",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159277,7 +159466,7 @@
     },
     {
       "excerpt": "assert_eq!(std::fs::read_to_string(&twin).unwrap(), \"body\", \"the twin name is never deleted\");",
-      "line": 691,
+      "line": 774,
       "literal": "the twin name is never deleted",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159286,7 +159475,7 @@
     },
     {
       "excerpt": "let error = rename_path(&from, &twin).expect_err(\"a failed move-back strands the file\");",
-      "line": 701,
+      "line": 784,
       "literal": "a failed move-back strands the file",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159295,7 +159484,7 @@
     },
     {
       "excerpt": "assert_eq!(error.where_, STRANDED, \"a stranded twin answers its own kind\");",
-      "line": 702,
+      "line": 785,
       "literal": "a stranded twin answers its own kind",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159304,7 +159493,7 @@
     },
     {
       "excerpt": "assert_eq!(error.path, from.to_string_lossy(), \"the stranded error names the source\");",
-      "line": 703,
+      "line": 786,
       "literal": "the stranded error names the source",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159313,7 +159502,7 @@
     },
     {
       "excerpt": "assert!(error.msg.starts_with(\"the file was left as .flea-case-\"), \"msg names temp leaf: {}\", error.msg);",
-      "line": 704,
+      "line": 787,
       "literal": "the file was left as .flea-case-",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159322,7 +159511,7 @@
     },
     {
       "excerpt": "assert!(error.msg.starts_with(\"the file was left as .flea-case-\"), \"msg names temp leaf: {}\", error.msg);",
-      "line": 704,
+      "line": 787,
       "literal": "msg names temp leaf: {}",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159331,7 +159520,7 @@
     },
     {
       "excerpt": "assert!(error.msg.ends_with(\"the drive could not read or write the data\"), \"msg carries move-back cause: {}\", error.msg);",
-      "line": 705,
+      "line": 788,
       "literal": "the drive could not read or write the data",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159340,7 +159529,7 @@
     },
     {
       "excerpt": "assert!(error.msg.ends_with(\"the drive could not read or write the data\"), \"msg carries move-back cause: {}\", error.msg);",
-      "line": 705,
+      "line": 788,
       "literal": "msg carries move-back cause: {}",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159349,7 +159538,7 @@
     },
     {
       "excerpt": "assert!(d.path().join(leaf).is_file(), \"the temp holds the file\");",
-      "line": 707,
+      "line": 790,
       "literal": "the temp holds the file",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159358,7 +159547,7 @@
     },
     {
       "excerpt": "let error = rename_path(&from, &to).expect_err(\"a failed forward step strands the file\");",
-      "line": 719,
+      "line": 802,
       "literal": "a failed forward step strands the file",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159367,7 +159556,7 @@
     },
     {
       "excerpt": "assert_eq!(error.where_, STRANDED, \"a stranded twin answers its own kind\");",
-      "line": 720,
+      "line": 803,
       "literal": "a stranded twin answers its own kind",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159376,7 +159565,7 @@
     },
     {
       "excerpt": "assert_eq!(error.path, from.to_string_lossy(), \"the stranded error names the source\");",
-      "line": 721,
+      "line": 804,
       "literal": "the stranded error names the source",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159385,7 +159574,7 @@
     },
     {
       "excerpt": "assert!(error.msg.starts_with(\"the file was left as .flea-case-\"), \"msg names temp leaf: {}\", error.msg);",
-      "line": 722,
+      "line": 805,
       "literal": "the file was left as .flea-case-",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159394,7 +159583,7 @@
     },
     {
       "excerpt": "assert!(error.msg.starts_with(\"the file was left as .flea-case-\"), \"msg names temp leaf: {}\", error.msg);",
-      "line": 722,
+      "line": 805,
       "literal": "msg names temp leaf: {}",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159403,7 +159592,7 @@
     },
     {
       "excerpt": "assert!(error.msg.ends_with(\"the drive could not read or write the data\"), \"msg carries move-back cause: {}\", error.msg);",
-      "line": 723,
+      "line": 806,
       "literal": "the drive could not read or write the data",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159412,7 +159601,7 @@
     },
     {
       "excerpt": "assert!(error.msg.ends_with(\"the drive could not read or write the data\"), \"msg carries move-back cause: {}\", error.msg);",
-      "line": 723,
+      "line": 806,
       "literal": "msg carries move-back cause: {}",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159421,7 +159610,7 @@
     },
     {
       "excerpt": "assert!(d.path().join(leaf).is_file(), \"the temp holds the file\");",
-      "line": 725,
+      "line": 808,
       "literal": "the temp holds the file",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159430,7 +159619,7 @@
     },
     {
       "excerpt": "assert!(to.symlink_metadata().is_err(), \"the alias names nothing once the source moved, so the forward arm ran\");",
-      "line": 726,
+      "line": 809,
       "literal": "the alias names nothing once the source moved, so the forward arm ran",
       "owner": "controller",
       "path": "src/backend/renamecompat.rs",
@@ -159592,7 +159781,7 @@
     },
     {
       "excerpt": "super::jobwork::Spec { kind: \"send\", label: \"Sending\", target: None },",
-      "line": 436,
+      "line": 449,
       "literal": "Sending",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159601,7 +159790,7 @@
     },
     {
       "excerpt": "super::jobwork::Spec { kind: \"send\", label: \"Sending\", target: None },",
-      "line": 459,
+      "line": 472,
       "literal": "Sending",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159610,7 +159799,7 @@
     },
     {
       "excerpt": "Some(\"The items changed; select them again.\".to_string())",
-      "line": 841,
+      "line": 854,
       "literal": "The items changed; select them again.",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159619,7 +159808,7 @@
     },
     {
       "excerpt": "ops.menuactions.as_ref().ok_or_else(|| \"The items changed; select them again.\".to_string())",
-      "line": 847,
+      "line": 860,
       "literal": "The items changed; select them again.",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159628,7 +159817,7 @@
     },
     {
       "excerpt": "let listed = String::from_utf8(std::mem::take(&mut out)).expect(\"the listing wire is UTF-8\");",
-      "line": 1112,
+      "line": 1125,
       "literal": "the listing wire is UTF-8",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159637,7 +159826,7 @@
     },
     {
       "excerpt": "let header = listed.lines().next().expect(\"the listing has a header\");",
-      "line": 1113,
+      "line": 1126,
       "literal": "the listing has a header",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159646,7 +159835,7 @@
     },
     {
       "excerpt": "let listed_path = crate::json::field_str(header, \"path\").expect(\"the header names its directory\");",
-      "line": 1115,
+      "line": 1128,
       "literal": "the header names its directory",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159655,7 +159844,7 @@
     },
     {
       "excerpt": "assert_eq!(listed_path.as_bytes(), REMOTE_PATH.as_bytes(), \"the listing preserves the input spelling\");",
-      "line": 1116,
+      "line": 1129,
       "literal": "the listing preserves the input spelling",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159664,7 +159853,7 @@
     },
     {
       "excerpt": "assert!(super::super::iomount::is_remote(&st.base, \"\"), \"the fixture takes the remote window branch\");",
-      "line": 1117,
+      "line": 1130,
       "literal": "the fixture takes the remote window branch",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159673,7 +159862,7 @@
     },
     {
       "excerpt": "assert!(super::super::iomount::test_calls() > calls_before, \"the window reaches the real mount bound\");",
-      "line": 1124,
+      "line": 1137,
       "literal": "the window reaches the real mount bound",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159682,7 +159871,7 @@
     },
     {
       "excerpt": "let response = String::from_utf8(out).expect(\"the error wire is UTF-8\");",
-      "line": 1125,
+      "line": 1138,
       "literal": "the error wire is UTF-8",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159691,7 +159880,7 @@
     },
     {
       "excerpt": "let error = lines.next().expect(\"the refused window emits an error\");",
-      "line": 1127,
+      "line": 1140,
       "literal": "the refused window emits an error",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159700,7 +159889,7 @@
     },
     {
       "excerpt": "assert_eq!(crate::json::field_str(error, \"where\").as_deref(), Some(\"window\"), \"the window emitter identifies its operation: {error}\");",
-      "line": 1129,
+      "line": 1142,
       "literal": "the window emitter identifies its operation: {error}",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159709,7 +159898,7 @@
     },
     {
       "excerpt": "let error_path = crate::json::field_str(error, \"path\").expect(\"the error names its directory\");",
-      "line": 1130,
+      "line": 1143,
       "literal": "the error names its directory",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159718,7 +159907,7 @@
     },
     {
       "excerpt": "assert_eq!(error_path.as_bytes(), listed_path.as_bytes(), \"the window error path must be byte-equal to the listed path; error={error_path:?}, listed={listed_path:?}\");",
-      "line": 1131,
+      "line": 1144,
       "literal": "the window error path must be byte-equal to the listed path; error={error_path:?}, listed={listed_path:?}",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159727,7 +159916,7 @@
     },
     {
       "excerpt": "assert!(crate::json::field_str(error, \"msg\").expect(\"the error carries its cause\").contains(\"not responding\"));",
-      "line": 1132,
+      "line": 1145,
       "literal": "the error carries its cause",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159736,7 +159925,7 @@
     },
     {
       "excerpt": "assert!(crate::json::field_str(error, \"msg\").expect(\"the error carries its cause\").contains(\"not responding\"));",
-      "line": 1132,
+      "line": 1145,
       "literal": "not responding",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159745,7 +159934,7 @@
     },
     {
       "excerpt": "assert!(lines.next().is_none(), \"a refused window emits no rows: {response}\");",
-      "line": 1133,
+      "line": 1146,
       "literal": "a refused window emits no rows: {response}",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159754,7 +159943,7 @@
     },
     {
       "excerpt": "let landed = rx.recv_timeout(REPLY_DEADLINE).expect(\"the released link reports through the op channel\");",
-      "line": 1171,
+      "line": 1184,
       "literal": "the released link reports through the op channel",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159763,7 +159952,7 @@
     },
     {
       "excerpt": "assert!(matches!(landed, OpMsg::Linked { .. }), \"the production link sends Linked\");",
-      "line": 1172,
+      "line": 1185,
       "literal": "the production link sends Linked",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159772,7 +159961,7 @@
     },
     {
       "excerpt": "assert_eq!(ops.journal.len(), 1, \"one journal entry covers both links\");",
-      "line": 1175,
+      "line": 1188,
       "literal": "one journal entry covers both links",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159781,7 +159970,7 @@
     },
     {
       "excerpt": "assert!(ops.live.running().is_none(), \"Linked releases the operation slot\");",
-      "line": 1176,
+      "line": 1189,
       "literal": "Linked releases the operation slot",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159790,7 +159979,7 @@
     },
     {
       "excerpt": "entered.recv_timeout(REPLY_DEADLINE).expect(\"run_link reached the handshake\");",
-      "line": 1180,
+      "line": 1193,
       "literal": "run_link reached the handshake",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159799,7 +159988,7 @@
     },
     {
       "excerpt": "backend.join().expect(\"the backend finishes after releasing the held link\");",
-      "line": 1183,
+      "line": 1196,
       "literal": "the backend finishes after releasing the held link",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159808,7 +159997,7 @@
     },
     {
       "excerpt": "let (out, running, unjournalled, no_pending) = responsive.expect(\"a held link must leave Request::Paths responsive\");",
-      "line": 1184,
+      "line": 1197,
       "literal": "a held link must leave Request::Paths responsive",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159817,7 +160006,7 @@
     },
     {
       "excerpt": "let refused = replies.next().expect(\"the second link is refused while the slot is held\");",
-      "line": 1188,
+      "line": 1201,
       "literal": "the second link is refused while the slot is held",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159826,7 +160015,7 @@
     },
     {
       "excerpt": "assert!(refused.contains(r#\"\"t\":\"error\"\"#) && refused.contains(\"an operation is already running\"), \"{refused}\");",
-      "line": 1189,
+      "line": 1202,
       "literal": "an operation is already running",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159835,7 +160024,7 @@
     },
     {
       "excerpt": "assert!(replies.next().is_none(), \"a held link emits neither slow nor a premature linked line: {lines}\");",
-      "line": 1190,
+      "line": 1203,
       "literal": "a held link emits neither slow nor a premature linked line: {lines}",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159844,7 +160033,7 @@
     },
     {
       "excerpt": "assert!(running && unjournalled && no_pending, \"the link holds the slot, with no slow claim or journal before completion\");",
-      "line": 1191,
+      "line": 1204,
       "literal": "the link holds the slot, with no slow claim or journal before completion",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159853,7 +160042,7 @@
     },
     {
       "excerpt": "assert!(std::fs::symlink_metadata(dest.join(\"a.txt\")).is_err(), \"undo removed the first link\");",
-      "line": 1192,
+      "line": 1205,
       "literal": "undo removed the first link",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159862,7 +160051,7 @@
     },
     {
       "excerpt": "assert!(std::fs::symlink_metadata(dest.join(\"b.txt\")).is_err(), \"undo removed the second link\");",
-      "line": 1193,
+      "line": 1206,
       "literal": "undo removed the second link",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159871,7 +160060,7 @@
     },
     {
       "excerpt": "assert!(a.exists() && b.exists(), \"undo preserves both sources\");",
-      "line": 1194,
+      "line": 1207,
       "literal": "undo preserves both sources",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159880,7 +160069,7 @@
     },
     {
       "excerpt": "let (metas, _) = window_metas(&mut st, 0, 10).expect(\"a local window answers\");",
-      "line": 1209,
+      "line": 1222,
       "literal": "a local window answers",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159889,7 +160078,7 @@
     },
     {
       "excerpt": "assert_eq!(metas.len(), 2, \"the window carries its rows\");",
-      "line": 1210,
+      "line": 1223,
       "literal": "the window carries its rows",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159898,7 +160087,7 @@
     },
     {
       "excerpt": "assert_eq!(crate::backend::iomount::test_calls(), 0, \"a local window takes no bound call and clones no listing\");",
-      "line": 1211,
+      "line": 1224,
       "literal": "a local window takes no bound call and clones no listing",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159907,7 +160096,7 @@
     },
     {
       "excerpt": "let (dev, writable) = search_root_info(d.path()).expect(\"a live root answers\");",
-      "line": 1219,
+      "line": 1232,
       "literal": "a live root answers",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159916,7 +160105,7 @@
     },
     {
       "excerpt": "assert_eq!(dev, crate::backend::fsinfo::dev_of(d.path()), \"the bound answers the root's own figures\");",
-      "line": 1220,
+      "line": 1233,
       "literal": "the bound answers the root's own figures",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159925,7 +160114,7 @@
     },
     {
       "excerpt": "assert!(writable, \"the sandbox is writable\");",
-      "line": 1221,
+      "line": 1234,
       "literal": "the sandbox is writable",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -159934,7 +160123,7 @@
     },
     {
       "excerpt": "assert_eq!(crate::backend::iomount::test_calls(), 1, \"the root's stat takes exactly one bound call\");",
-      "line": 1222,
+      "line": 1235,
       "literal": "the root's stat takes exactly one bound call",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -163543,7 +163732,7 @@
     },
     {
       "excerpt": "if parts.len() != 6 { return Err(Refusal::changed(\"Invalid Trash review identity.\")); }",
-      "line": 66,
+      "line": 68,
       "literal": "Invalid Trash review identity.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163552,7 +163741,7 @@
     },
     {
       "excerpt": "dev: parts[0].parse().ok().changed(\"Invalid Trash device.\")?,",
-      "line": 68,
+      "line": 70,
       "literal": "Invalid Trash device.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163561,7 +163750,7 @@
     },
     {
       "excerpt": "ino: parts[1].parse().ok().changed(\"Invalid Trash inode.\")?,",
-      "line": 69,
+      "line": 71,
       "literal": "Invalid Trash inode.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163570,7 +163759,7 @@
     },
     {
       "excerpt": "size: parts[2].parse().ok().changed(\"Invalid Trash size.\")?,",
-      "line": 70,
+      "line": 72,
       "literal": "Invalid Trash size.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163579,7 +163768,7 @@
     },
     {
       "excerpt": "mtime: parts[3].parse().ok().changed(\"Invalid Trash mtime.\")?,",
-      "line": 71,
+      "line": 73,
       "literal": "Invalid Trash mtime.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163588,7 +163777,7 @@
     },
     {
       "excerpt": "nanos: parts[4].parse().ok().changed(\"Invalid Trash nanoseconds.\")?,",
-      "line": 72,
+      "line": 74,
       "literal": "Invalid Trash nanoseconds.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163597,7 +163786,7 @@
     },
     {
       "excerpt": "mode: parts[5].parse().ok().changed(\"Invalid Trash mode.\")?,",
-      "line": 73,
+      "line": 75,
       "literal": "Invalid Trash mode.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163606,7 +163795,7 @@
     },
     {
       "excerpt": "if bytes.len() < HEADER { return Err(Refusal::changed(\"Truncated Trash node review.\")); }",
-      "line": 111,
+      "line": 113,
       "literal": "Truncated Trash node review.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163615,7 +163804,7 @@
     },
     {
       "excerpt": "return Err(Refusal::changed(\"Invalid relative Trash review path.\"));",
-      "line": 115,
+      "line": 117,
       "literal": "Invalid relative Trash review path.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163624,7 +163813,7 @@
     },
     {
       "excerpt": "if !self.deletion_identity_matches(&identity(&fd_path(parent, name)).changed(\"Trash child unreadable\")?) {",
-      "line": 129,
+      "line": 131,
       "literal": "Trash child unreadable",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163633,7 +163822,7 @@
     },
     {
       "excerpt": "return Err(Refusal::new(Outcome::ChildChanged, \"Trash child changed; remaining data was preserved.\"));",
-      "line": 130,
+      "line": 132,
       "literal": "Trash child changed; remaining data was preserved.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163642,7 +163831,7 @@
     },
     {
       "excerpt": "rename(parent, name, quarantine, claimed).map_err(|reason| Refusal::new(Outcome::ChildLeft, \"Trash child could not be claimed\").because(reason))?;",
-      "line": 134,
+      "line": 136,
       "literal": "Trash child could not be claimed",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163651,7 +163840,7 @@
     },
     {
       "excerpt": "if !self.deletion_identity_matches(&identity(&path).changed(\"Claimed Trash child unreadable\")?) {",
-      "line": 137,
+      "line": 139,
       "literal": "Claimed Trash child unreadable",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163660,7 +163849,7 @@
     },
     {
       "excerpt": "return Err(Refusal::new(Outcome::ChildChanged, \"Trash child changed while being claimed.\"));",
-      "line": 138,
+      "line": 140,
       "literal": "Trash child changed while being claimed.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163669,7 +163858,7 @@
     },
     {
       "excerpt": "std::fs::remove_dir(&path).refuse(Outcome::ChildLeft, \"Trash directory has surviving items\")",
-      "line": 142,
+      "line": 144,
       "literal": "Trash directory has surviving items",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163678,7 +163867,7 @@
     },
     {
       "excerpt": "} else { std::fs::remove_file(&path).refuse(Outcome::ChildLeft, \"Trash child could not be removed\") }",
-      "line": 143,
+      "line": 145,
       "literal": "Trash child could not be removed",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163687,7 +163876,7 @@
     },
     {
       "excerpt": "Refusal::new(Outcome::ChildLeft, format!(\"Trash child could not be put back: {reason}\")).logged();",
-      "line": 148,
+      "line": 150,
       "literal": "Trash child could not be put back: {reason}",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163695,44 +163884,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "return Ok((base.try_clone().changed(\"Could not duplicate a Trash handle\")?, root.to_os_string()));",
-      "line": 169,
-      "literal": "Could not duplicate a Trash handle",
-      "owner": "controller",
-      "path": "src/backend/trashdelete.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "let parent = relative.parent().changed(\"Missing Trash review parent.\")?;",
-      "line": 172,
-      "literal": "Missing Trash review parent.",
-      "owner": "controller",
-      "path": "src/backend/trashdelete.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "let std::path::Component::Normal(name) = component else { return Err(Refusal::changed(\"Invalid Trash review parent.\")); };",
-      "line": 174,
-      "literal": "Invalid Trash review parent.",
-      "owner": "controller",
-      "path": "src/backend/trashdelete.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "Ok((directory, relative.file_name().changed(\"Missing Trash review name.\")?.to_os_string()))",
-      "line": 177,
-      "literal": "Missing Trash review name.",
-      "owner": "controller",
-      "path": "src/backend/trashdelete.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
       "excerpt": "while let Some(bytes) = tree.next(&mut offset).changed(\"Trash review unreadable\")? {",
-      "line": 183,
+      "line": 172,
       "literal": "Trash review unreadable",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163741,7 +163894,7 @@
     },
     {
       "excerpt": "for entry in std::fs::read_dir(fd_path(&directory, OsStr::new(\".\"))).changed(\"Could not read a Trash folder\")? {",
-      "line": 192,
+      "line": 181,
       "literal": "Could not read a Trash folder",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163750,7 +163903,7 @@
     },
     {
       "excerpt": "entry.changed(\"Could not read a Trash folder entry\")?;",
-      "line": 194,
+      "line": 183,
       "literal": "Could not read a Trash folder entry",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163759,7 +163912,7 @@
     },
     {
       "excerpt": ".map_err(|e| Refusal::os(Outcome::Changed, &format!(\"Could not open Trash folder {}\", path.display()), &e))",
-      "line": 208,
+      "line": 197,
       "literal": "Could not open Trash folder {}",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163768,7 +163921,7 @@
     },
     {
       "excerpt": "let old = CString::new(old.as_bytes()).map_err(|_| (ErrorKind::InvalidInput, \"Invalid Trash filename.\".into()))?;",
-      "line": 218,
+      "line": 207,
       "literal": "Invalid Trash filename.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163777,7 +163930,7 @@
     },
     {
       "excerpt": "let new = CString::new(new.as_bytes()).map_err(|_| (ErrorKind::InvalidInput, \"Invalid quarantine filename.\".into()))?;",
-      "line": 219,
+      "line": 208,
       "literal": "Invalid quarantine filename.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163786,7 +163939,7 @@
     },
     {
       "excerpt": "result.refuse(Outcome::Prepare(Op::Delete), what).map_err(|refusal| refusal.because(\"the review could not be saved\"))",
-      "line": 251,
+      "line": 240,
       "literal": "the review could not be saved",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163795,7 +163948,7 @@
     },
     {
       "excerpt": "let files = open_dir(path.parent().changed(\"Missing Trash parent.\")?)?;",
-      "line": 256,
+      "line": 245,
       "literal": "Missing Trash parent.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163804,7 +163957,7 @@
     },
     {
       "excerpt": "let name = path.file_name().changed(\"Missing Trash filename.\")?;",
-      "line": 257,
+      "line": 246,
       "literal": "Missing Trash filename.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163813,7 +163966,7 @@
     },
     {
       "excerpt": "let mut queue = stored(Manifest::new(scratch), \"Could not start the Trash review\")?;",
-      "line": 258,
+      "line": 247,
       "literal": "Could not start the Trash review",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163822,7 +163975,7 @@
     },
     {
       "excerpt": "stored(queue.append(&Node { relative: PathBuf::new(), identity: payload.clone(), children: 0 }.encode()), \"Could not write the Trash review\")?;",
-      "line": 259,
+      "line": 248,
       "literal": "Could not write the Trash review",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163831,7 +163984,7 @@
     },
     {
       "excerpt": "while let Some(record) = stored(queue.records().next(&mut cursor), \"Could not read the Trash review\")? {",
-      "line": 264,
+      "line": 253,
       "literal": "Could not read the Trash review",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163840,7 +163993,7 @@
     },
     {
       "excerpt": "if identity(&path).changed(\"Trash item unreadable while reviewing\")? != node.identity {",
-      "line": 269,
+      "line": 258,
       "literal": "Trash item unreadable while reviewing",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163849,8 +164002,62 @@
     },
     {
       "excerpt": "return Err(Refusal::changed(\"Trash changed while reviewing its contents.\"));",
-      "line": 270,
+      "line": 259,
       "literal": "Trash changed while reviewing its contents.",
+      "owner": "controller",
+      "path": "src/backend/trashdelete.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "if Identity::of(&directory.metadata().changed(\"Trash folder unreadable while reviewing\")?) != node.identity {",
+      "line": 263,
+      "literal": "Trash folder unreadable while reviewing",
+      "owner": "controller",
+      "path": "src/backend/trashdelete.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "return Err(Refusal::changed(\"Trash directory changed while reviewing it.\"));",
+      "line": 264,
+      "literal": "Trash directory changed while reviewing it.",
+      "owner": "controller",
+      "path": "src/backend/trashdelete.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "for entry in std::fs::read_dir(fd_path(&directory, OsStr::new(\".\"))).changed(\"Could not read a Trash folder\")? {",
+      "line": 266,
+      "literal": "Could not read a Trash folder",
+      "owner": "controller",
+      "path": "src/backend/trashdelete.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "let child_name = entry.changed(\"Could not read a Trash folder entry\")?.file_name();",
+      "line": 268,
+      "literal": "Could not read a Trash folder entry",
+      "owner": "controller",
+      "path": "src/backend/trashdelete.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "identity: identity(&fd_path(&directory, &child_name)).changed(\"Trash item unreadable while reviewing\")?, children: 0 };",
+      "line": 270,
+      "literal": "Trash item unreadable while reviewing",
+      "owner": "controller",
+      "path": "src/backend/trashdelete.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "stored(queue.append(&child.encode()), \"Could not write the Trash review\")?;",
+      "line": 271,
+      "literal": "Could not write the Trash review",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -163875,62 +164082,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "for entry in std::fs::read_dir(fd_path(&directory, OsStr::new(\".\"))).changed(\"Could not read a Trash folder\")? {",
-      "line": 277,
-      "literal": "Could not read a Trash folder",
-      "owner": "controller",
-      "path": "src/backend/trashdelete.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "let child_name = entry.changed(\"Could not read a Trash folder entry\")?.file_name();",
-      "line": 279,
-      "literal": "Could not read a Trash folder entry",
-      "owner": "controller",
-      "path": "src/backend/trashdelete.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "identity: identity(&fd_path(&directory, &child_name)).changed(\"Trash item unreadable while reviewing\")?, children: 0 };",
-      "line": 281,
-      "literal": "Trash item unreadable while reviewing",
-      "owner": "controller",
-      "path": "src/backend/trashdelete.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "stored(queue.append(&child.encode()), \"Could not write the Trash review\")?;",
-      "line": 282,
-      "literal": "Could not write the Trash review",
-      "owner": "controller",
-      "path": "src/backend/trashdelete.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "if Identity::of(&directory.metadata().changed(\"Trash folder unreadable while reviewing\")?) != node.identity {",
-      "line": 285,
-      "literal": "Trash folder unreadable while reviewing",
-      "owner": "controller",
-      "path": "src/backend/trashdelete.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "return Err(Refusal::changed(\"Trash directory changed while reviewing it.\"));",
-      "line": 286,
-      "literal": "Trash directory changed while reviewing it.",
-      "owner": "controller",
-      "path": "src/backend/trashdelete.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
       "excerpt": "bytes = bytes.checked_add(node.identity.size).changed(\"Trash byte total exceeds the supported range.\")?;",
-      "line": 289,
+      "line": 278,
       "literal": "Trash byte total exceeds the supported range.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163939,7 +164092,7 @@
     },
     {
       "excerpt": "stored(manifest.append(&node.encode()), \"Could not write the Trash review\")?;",
-      "line": 291,
+      "line": 280,
       "literal": "Could not write the Trash review",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163948,7 +164101,7 @@
     },
     {
       "excerpt": "nodes = nodes.checked_add(1).changed(\"Trash file total exceeds the supported range.\")?;",
-      "line": 292,
+      "line": 281,
       "literal": "Trash file total exceeds the supported range.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163957,7 +164110,7 @@
     },
     {
       "excerpt": "let tree = stored(manifest.range(start, manifest.len()), \"Could not read the Trash review\")?;",
-      "line": 294,
+      "line": 283,
       "literal": "Could not read the Trash review",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163966,7 +164119,7 @@
     },
     {
       "excerpt": "return Err(Refusal::changed(\"Trash changed while reviewing its contents.\"));",
-      "line": 296,
+      "line": 285,
       "literal": "Trash changed while reviewing its contents.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163975,7 +164128,7 @@
     },
     {
       "excerpt": ".refuse(Outcome::Damaged, \"Could not parse Trash metadata\")?;",
-      "line": 318,
+      "line": 307,
       "literal": "Could not parse Trash metadata",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163984,7 +164137,7 @@
     },
     {
       "excerpt": "return Err(Refusal::new(Outcome::Damaged, \"Trash metadata contains a line longer than the supported filesystem path.\"));",
-      "line": 321,
+      "line": 310,
       "literal": "Trash metadata contains a line longer than the supported filesystem path.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -163993,7 +164146,7 @@
     },
     {
       "excerpt": "if line.starts_with('[') { section = line == \"[Trash Info]\"; continue; }",
-      "line": 324,
+      "line": 313,
       "literal": "[Trash Info]",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164002,7 +164155,7 @@
     },
     {
       "excerpt": "if original.is_some() { return Err(Refusal::new(Outcome::Damaged, \"Trash metadata contains duplicate original paths.\")); }",
-      "line": 327,
+      "line": 316,
       "literal": "Trash metadata contains duplicate original paths.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164011,7 +164164,7 @@
     },
     {
       "excerpt": "return Err(Refusal::new(Outcome::Damaged, \"Trash metadata contains an invalid original path.\"));",
-      "line": 330,
+      "line": 319,
       "literal": "Trash metadata contains an invalid original path.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164020,7 +164173,7 @@
     },
     {
       "excerpt": "} else { None }.refuse(Outcome::Damaged, \"Relative Trash original path has no supported volume root.\")?;",
-      "line": 337,
+      "line": 326,
       "literal": "Relative Trash original path has no supported volume root.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164029,7 +164182,7 @@
     },
     {
       "excerpt": "if path.file_name().is_none() { return Err(Refusal::new(Outcome::Damaged, \"Trash original path names a filesystem root.\")); }",
-      "line": 340,
+      "line": 329,
       "literal": "Trash original path names a filesystem root.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164038,7 +164191,7 @@
     },
     {
       "excerpt": "original.refuse(Outcome::Damaged, \"Trash metadata has no original path.\")",
-      "line": 344,
+      "line": 333,
       "literal": "Trash metadata has no original path.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164047,7 +164200,7 @@
     },
     {
       "excerpt": "\"Trash provider did not supply a supported backing path.\",",
-      "line": 373,
+      "line": 362,
       "literal": "Trash provider did not supply a supported backing path.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164056,7 +164209,7 @@
     },
     {
       "excerpt": "let name = path.file_name().changed(\"Trash filename is missing.\")?;",
-      "line": 376,
+      "line": 365,
       "literal": "Trash filename is missing.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164065,7 +164218,7 @@
     },
     {
       "excerpt": ".changed(\"Trash root is missing.\")?;",
-      "line": 380,
+      "line": 369,
       "literal": "Trash root is missing.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164074,7 +164227,7 @@
     },
     {
       "excerpt": "let payload = identity(&path).changed(\"Trash item unreadable\")?;",
-      "line": 382,
+      "line": 371,
       "literal": "Trash item unreadable",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164083,7 +164236,7 @@
     },
     {
       "excerpt": "return Err(Refusal::changed(\"Trash identity changed while reading it.\"));",
-      "line": 384,
+      "line": 373,
       "literal": "Trash identity changed while reading it.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164092,7 +164245,7 @@
     },
     {
       "excerpt": "let info_meta = info.symlink_metadata().changed(\"Trash metadata unreadable\")?;",
-      "line": 386,
+      "line": 375,
       "literal": "Trash metadata unreadable",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164101,7 +164254,7 @@
     },
     {
       "excerpt": "return Err(Refusal::changed(\"Trash metadata is not a regular file.\"));",
-      "line": 388,
+      "line": 377,
       "literal": "Trash metadata is not a regular file.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164110,7 +164263,7 @@
     },
     {
       "excerpt": "if !self.unchanged() { return Err(Refusal::changed(\"Trash changed while reviewing its contents.\").logged()); }",
-      "line": 403,
+      "line": 392,
       "literal": "Trash changed while reviewing its contents.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164119,7 +164272,7 @@
     },
     {
       "excerpt": "let tree = self.tree.as_ref().changed(\"Trash contents have not been reviewed.\").map_err(Refusal::logged)?;",
-      "line": 410,
+      "line": 399,
       "literal": "Trash contents have not been reviewed.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164128,7 +164281,7 @@
     },
     {
       "excerpt": "path: flea::bytename::exact(field_str(text, \"path\").changed(\"Missing Trash review path.\")?),",
-      "line": 420,
+      "line": 409,
       "literal": "Missing Trash review path.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164137,7 +164290,7 @@
     },
     {
       "excerpt": "info: flea::bytename::exact(field_str(text, \"info\").changed(\"Missing Trash review metadata path.\")?),",
-      "line": 421,
+      "line": 410,
       "literal": "Missing Trash review metadata path.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164146,7 +164299,7 @@
     },
     {
       "excerpt": "payload: Identity::from_saved(&field_str(text, \"payload\").changed(\"Missing Trash review identity.\")?)?,",
-      "line": 422,
+      "line": 411,
       "literal": "Missing Trash review identity.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164155,7 +164308,7 @@
     },
     {
       "excerpt": "metadata: Identity::from_saved(&field_str(text, \"metadata\").changed(\"Missing Trash metadata identity.\")?)?,",
-      "line": 423,
+      "line": 412,
       "literal": "Missing Trash metadata identity.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164164,7 +164317,7 @@
     },
     {
       "excerpt": "nodes: field_usize(text, \"nodes\").changed(\"Missing Trash review file total.\")?,",
-      "line": 424,
+      "line": 413,
       "literal": "Missing Trash review file total.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164173,7 +164326,7 @@
     },
     {
       "excerpt": "bytes: field_usize(text, \"bytes\").changed(\"Missing Trash review byte total.\")? as u64,",
-      "line": 425,
+      "line": 414,
       "literal": "Missing Trash review byte total.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164182,7 +164335,7 @@
     },
     {
       "excerpt": "tree: Some(manifest.range(field_usize(text, \"start\").changed(\"Missing Trash review start.\")? as u64,",
-      "line": 426,
+      "line": 415,
       "literal": "Missing Trash review start.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164191,7 +164344,7 @@
     },
     {
       "excerpt": "field_usize(text, \"end\").changed(\"Missing Trash review end.\")? as u64).changed(\"Invalid Trash review range\")?),",
-      "line": 427,
+      "line": 416,
       "literal": "Missing Trash review end.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164200,7 +164353,7 @@
     },
     {
       "excerpt": "field_usize(text, \"end\").changed(\"Missing Trash review end.\")? as u64).changed(\"Invalid Trash review range\")?),",
-      "line": 427,
+      "line": 416,
       "literal": "Invalid Trash review range",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164209,7 +164362,7 @@
     },
     {
       "excerpt": "let files = open_dir(self.path.parent().changed(\"Missing Trash parent.\")?)?;",
-      "line": 459,
+      "line": 448,
       "literal": "Missing Trash parent.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164218,7 +164371,7 @@
     },
     {
       "excerpt": "matches(tree, &files, self.path.file_name().changed(\"Missing Trash filename.\")?, cancel)",
-      "line": 460,
+      "line": 449,
       "literal": "Missing Trash filename.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164227,7 +164380,7 @@
     },
     {
       "excerpt": ".map_err(|e| Refusal::changed(format!(\"Could not read claimed Trash metadata: {}\", e)))?;",
-      "line": 499,
+      "line": 488,
       "literal": "Could not read claimed Trash metadata: {}",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164236,7 +164389,7 @@
     },
     {
       "excerpt": "if Identity::of(&metadata.metadata().changed(\"Claimed Trash metadata unreadable\")?) != self.metadata {",
-      "line": 500,
+      "line": 489,
       "literal": "Claimed Trash metadata unreadable",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164245,7 +164398,7 @@
     },
     {
       "excerpt": "return Err(Refusal::changed(\"Trash metadata changed after being claimed.\"));",
-      "line": 501,
+      "line": 490,
       "literal": "Trash metadata changed after being claimed.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164254,7 +164407,7 @@
     },
     {
       "excerpt": "let destination = original_path(&metadata, self.path.parent().and_then(Path::parent).changed(\"Missing Trash root.\")?)?;",
-      "line": 503,
+      "line": 492,
       "literal": "Missing Trash root.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164263,7 +164416,7 @@
     },
     {
       "excerpt": "if destination != original || Identity::of(&metadata.metadata().changed(\"Claimed Trash metadata unreadable\")?) != self.metadata {",
-      "line": 504,
+      "line": 493,
       "literal": "Claimed Trash metadata unreadable",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164272,7 +164425,7 @@
     },
     {
       "excerpt": "return Err(Refusal::new(Outcome::OriginalChanged, \"The Trash item's original location changed; refresh the selection.\"));",
-      "line": 505,
+      "line": 494,
       "literal": "The Trash item's original location changed; refresh the selection.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164281,7 +164434,7 @@
     },
     {
       "excerpt": "let parent = destination.parent().changed(\"Original parent is missing.\")?;",
-      "line": 507,
+      "line": 496,
       "literal": "Original parent is missing.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164290,7 +164443,7 @@
     },
     {
       "excerpt": ".map_err(|e| Refusal::os(Outcome::Blocked, &format!(\"Could not open original location {}\", destination.display()), &e))?;",
-      "line": 510,
+      "line": 499,
       "literal": "Could not open original location {}",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164299,7 +164452,7 @@
     },
     {
       "excerpt": "destination.file_name().changed(\"Original filename is missing.\")?)",
-      "line": 513,
+      "line": 502,
       "literal": "Original filename is missing.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164308,7 +164461,7 @@
     },
     {
       "excerpt": ".map_err(|reason| Refusal::new(Outcome::Blocked, format!(\"Could not restore {} without overwriting: {}\", destination.display(), reason)).because(reason))",
-      "line": 514,
+      "line": 503,
       "literal": "Could not restore {} without overwriting: {}",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164317,7 +164470,7 @@
     },
     {
       "excerpt": "let files = open_dir(self.path.parent().changed(\"Missing Trash parent.\")?)?;",
-      "line": 521,
+      "line": 510,
       "literal": "Missing Trash parent.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164326,7 +164479,7 @@
     },
     {
       "excerpt": "let infos = open_dir(self.info.parent().changed(\"Missing Trash metadata parent.\")?)?;",
-      "line": 522,
+      "line": 511,
       "literal": "Missing Trash metadata parent.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164335,7 +164488,7 @@
     },
     {
       "excerpt": ".changed(\"Invalid Trash filename.\")?;",
-      "line": 526,
+      "line": 515,
       "literal": "Invalid Trash filename.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164344,7 +164497,7 @@
     },
     {
       "excerpt": ".changed(\"Invalid Trash metadata name.\")?;",
-      "line": 530,
+      "line": 519,
       "literal": "Invalid Trash metadata name.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164353,7 +164506,7 @@
     },
     {
       "excerpt": "if identity(&fd_path(&files, name)).changed(\"Trash item unreadable\")? != self.payload",
-      "line": 531,
+      "line": 520,
       "literal": "Trash item unreadable",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164362,7 +164515,7 @@
     },
     {
       "excerpt": "|| identity(&fd_path(&infos, info_name)).changed(\"Trash metadata unreadable\")? != self.metadata",
-      "line": 532,
+      "line": 521,
       "literal": "Trash metadata unreadable",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164371,7 +164524,7 @@
     },
     {
       "excerpt": "return Err(Refusal::new(Outcome::ConfirmAgain, \"Trash item changed; confirm again.\"));",
-      "line": 534,
+      "line": 523,
       "literal": "Trash item changed; confirm again.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164380,7 +164533,7 @@
     },
     {
       "excerpt": ".map_err(|e| Refusal::os(Outcome::Prepare(op), \"Could not create Trash quarantine\", &e))?;",
-      "line": 545,
+      "line": 534,
       "literal": "Could not create Trash quarantine",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164389,7 +164542,7 @@
     },
     {
       "excerpt": "return Err(Refusal::new(Outcome::Prepare(op), format!(\"Could not claim Trash item: {}\", error)).because(error));",
-      "line": 560,
+      "line": 549,
       "literal": "Could not claim Trash item: {}",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164398,7 +164551,7 @@
     },
     {
       "excerpt": "Err((ErrorKind::NotFound, _)) | Ok(()) => Refusal::new(Outcome::ConfirmAgain, \"Trash changed; no operation attempted. Confirm again.\"),",
-      "line": 568,
+      "line": 557,
       "literal": "Trash changed; no operation attempted. Confirm again.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164407,7 +164560,7 @@
     },
     {
       "excerpt": "Err((_, reason)) => Refusal::new(Outcome::Prepare(op), format!(\"Could not claim Trash metadata: {reason}\")).because(reason.clone()),",
-      "line": 569,
+      "line": 558,
       "literal": "Could not claim Trash metadata: {reason}",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164416,7 +164569,7 @@
     },
     {
       "excerpt": ".map_err(|e| Refusal::os(Outcome::InfoLeft(op, recovery.clone()), \"Trash metadata cleanup after completion\", &e))?;",
-      "line": 611,
+      "line": 600,
       "literal": "Trash metadata cleanup after completion",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164425,7 +164578,7 @@
     },
     {
       "excerpt": "return Err(Refusal::changed(\"Permanent deletion requires an absolute item path; filesystem roots are refused.\").logged());",
-      "line": 628,
+      "line": 617,
       "literal": "Permanent deletion requires an absolute item path; filesystem roots are refused.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164434,7 +164587,7 @@
     },
     {
       "excerpt": "let payload = identity(&path).changed(\"Item unreadable\").map_err(Refusal::logged)?;",
-      "line": 630,
+      "line": 619,
       "literal": "Item unreadable",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164443,7 +164596,7 @@
     },
     {
       "excerpt": "let parent = open_dir(self.path.parent().changed(\"Missing deletion parent.\")?)?;",
-      "line": 637,
+      "line": 626,
       "literal": "Missing deletion parent.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164452,7 +164605,7 @@
     },
     {
       "excerpt": "matches(&self.tree, &parent, self.path.file_name().changed(\"Missing deletion filename.\")?, cancel)",
-      "line": 638,
+      "line": 627,
       "literal": "Missing deletion filename.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164461,7 +164614,7 @@
     },
     {
       "excerpt": "let parent_path = self.path.parent().changed(\"Missing deletion parent.\")?;",
-      "line": 649,
+      "line": 638,
       "literal": "Missing deletion parent.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164470,7 +164623,7 @@
     },
     {
       "excerpt": "let name = self.path.file_name().changed(\"Missing deletion filename.\")?;",
-      "line": 651,
+      "line": 640,
       "literal": "Missing deletion filename.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164479,7 +164632,7 @@
     },
     {
       "excerpt": "if identity(&fd_path(&parent, name)).changed(\"Item unreadable\")? != self.payload {",
-      "line": 652,
+      "line": 641,
       "literal": "Item unreadable",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164488,7 +164641,7 @@
     },
     {
       "excerpt": "return Err(Refusal::new(Outcome::ItemChanged, \"Item changed; confirm again.\"));",
-      "line": 653,
+      "line": 642,
       "literal": "Item changed; confirm again.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164497,7 +164650,7 @@
     },
     {
       "excerpt": ".map_err(|e| Refusal::os(Outcome::Prepare(op), \"Could not create deletion quarantine\", &e))?;",
-      "line": 658,
+      "line": 647,
       "literal": "Could not create deletion quarantine",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164506,7 +164659,7 @@
     },
     {
       "excerpt": "return Err(Refusal::new(Outcome::Prepare(op), format!(\"Could not claim item for deletion: {}\", error)).because(error));",
-      "line": 672,
+      "line": 661,
       "literal": "Could not claim item for deletion: {}",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164515,7 +164668,7 @@
     },
     {
       "excerpt": "let removal = remove_tree(&self.tree, &quarantine, Refusal::new(Outcome::ItemChanged, \"Item changed after confirmation; no deletion attempted.\"));",
-      "line": 674,
+      "line": 663,
       "literal": "Item changed after confirmation; no deletion attempted.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164564,6 +164717,60 @@
       "literal": "Trash contents changed; no deletion attempted.",
       "owner": "controller",
       "path": "src/backend/trashdelete/deletetest.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": ".changed(\"Could not duplicate a Trash handle\")?,",
+      "line": 37,
+      "literal": "Could not duplicate a Trash handle",
+      "owner": "controller",
+      "path": "src/backend/trashdelete/parents.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": ".changed(\"Missing Trash review parent.\")?",
+      "line": 44,
+      "literal": "Missing Trash review parent.",
+      "owner": "controller",
+      "path": "src/backend/trashdelete/parents.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "return Err(Refusal::changed(\"Invalid Trash review parent.\"));",
+      "line": 48,
+      "literal": "Invalid Trash review parent.",
+      "owner": "controller",
+      "path": "src/backend/trashdelete/parents.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": ".changed(\"Missing Trash review name.\")?",
+      "line": 54,
+      "literal": "Missing Trash review name.",
+      "owner": "controller",
+      "path": "src/backend/trashdelete/parents.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"Could not open Trash folder {}\",",
+      "line": 72,
+      "literal": "Could not open Trash folder {}",
+      "owner": "controller",
+      "path": "src/backend/trashdelete/parents.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "dir.changed(\"Missing Trash review parent.\")",
+      "line": 81,
+      "literal": "Missing Trash review parent.",
+      "owner": "controller",
+      "path": "src/backend/trashdelete/parents.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "core/backend"
     },
@@ -212359,7 +212566,7 @@
     },
     {
       "excerpt": "echo \"DUPLICATE ceiling: $duplicated\"",
-      "line": 351,
+      "line": 355,
       "literal": "DUPLICATE ceiling: $duplicated",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -212368,7 +212575,7 @@
     },
     {
       "excerpt": "echo \"UNREADABLE $file: cannot read it, so it has no line count\"",
-      "line": 374,
+      "line": 378,
       "literal": "UNREADABLE $file: cannot read it, so it has no line count",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -212377,7 +212584,7 @@
     },
     {
       "excerpt": "echo \"GREW      $file: $lines lines, recorded $recorded, cap $hard\"",
-      "line": 386,
+      "line": 390,
       "literal": "GREW      $file: $lines lines, recorded $recorded, cap $hard",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -212386,7 +212593,7 @@
     },
     {
       "excerpt": "echo \"GREW      $file: $lines lines, recorded $recorded, cap $hard\"",
-      "line": 391,
+      "line": 395,
       "literal": "GREW      $file: $lines lines, recorded $recorded, cap $hard",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -212395,7 +212602,7 @@
     },
     {
       "excerpt": "echo \"known     $file: $lines lines, recorded $recorded, cap $hard\"",
-      "line": 394,
+      "line": 398,
       "literal": "known     $file: $lines lines, recorded $recorded, cap $hard",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -212404,7 +212611,7 @@
     },
     {
       "excerpt": "echo \"OVER CAP  $file: $lines lines, cap $hard\"",
-      "line": 398,
+      "line": 402,
       "literal": "OVER CAP  $file: $lines lines, cap $hard",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -212413,7 +212620,7 @@
     },
     {
       "excerpt": "echo \"over soft $file: $lines lines, budget $soft, split it\"",
-      "line": 401,
+      "line": 405,
       "literal": "over soft $file: $lines lines, budget $soft, split it",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -251634,7 +251841,7 @@
     "crates/flea-gui/src/g2/file_search/mod.rs": "40e90247f8e260911ca2c51fcc7c9698c94da12f0392264c4b948c53dc3230d5",
     "crates/flea-gui/src/g2/file_search/presented.rs": "92489af341f8102d571cb8e40d069c7241f830beb71a500badbe8857dbd35517",
     "crates/flea-gui/src/g2/file_search/query.rs": "f0d213e9d3daff76e76747241e30a2c9f690f35351c8fba62d2b1651866747a5",
-    "crates/flea-gui/src/g2/file_search/query_paint.rs": "93db37fdfcfae40a84edb21cafae74292e992a4a6532b03ae84ab2dcd1c10c20",
+    "crates/flea-gui/src/g2/file_search/query_paint.rs": "18e00fea6764c135a6926e4e27dcb18175d2e9a9d1a36129ec24f58a09b82977",
     "crates/flea-gui/src/g2/file_search/run.rs": "4ac5724ce62f29019c41034da824198d0187302edfd1143d31388b045dd781a4",
     "crates/flea-gui/src/g2/file_search/strip.rs": "fab276cad36fe2ecc3290f349efb343925f2a70f4cb8361c53db860db123071d",
     "crates/flea-gui/src/g2/listing_filter/filter.rs": "522ae6166a69ac3ba1bba57a33befb078bd3aab6da6b3dfba74f60c6364b1bd9",
@@ -251785,7 +251992,7 @@
     "crates/flea-gui/src/g2/picker_portal/keys.rs": "beda6f39c2abc7c3aaf960c52abc01dc76bf7b771579bf9153371ec10fd9e4d2",
     "crates/flea-gui/src/g2/picker_portal/labels.rs": "c8503622ea8e73eb1ff69438cb7a8707643116f278e92d49c117b9da2f6ab5da",
     "crates/flea-gui/src/g2/picker_portal/launch.rs": "a1e5298bb33da791104a74a17e855c57d16d4576bb47ee53698137e2c971f02f",
-    "crates/flea-gui/src/g2/picker_portal/mod.rs": "8035194fa8d7cd9e0a8e25e12c7e820b03f69219ce15dc296ffe9a115a0ece61",
+    "crates/flea-gui/src/g2/picker_portal/mod.rs": "6f997184e0e307909f5c43b1418d62e9d9fc2df8b930d478d0238ef89b74f33b",
     "crates/flea-gui/src/g2/picker_portal/navigation.rs": "97ef52d2ff4dc1322c980a45c970c610df90945a2f9e7046a6929ed0bf506a69",
     "crates/flea-gui/src/g2/picker_portal/network.rs": "f5b4f083e0fe348161457744d097705459d7213e8b95bda266b2103ff93f7171",
     "crates/flea-gui/src/g2/picker_portal/picker.rs": "7a8d2fbe44f337212118e97395c661a2251c3cc4a943ab60ee9a8ac0e016cd20",
@@ -251799,7 +252006,7 @@
     "crates/flea-gui/src/g2/picker_portal/selection.rs": "808eb192424a8cf0ec7ee8a306808f92b8870b76618a00350d5703db644eead6",
     "crates/flea-gui/src/g2/picker_portal/settings.rs": "90f8be1e3e1ddeef6925b10ddea49ed5d76e05ea8bcc78c771b4d130b007aa90",
     "crates/flea-gui/src/g2/picker_portal/size.rs": "b9fe48835d413862da6d19642286d8c503f3704b65d3b4e3da54f58b18cae782",
-    "crates/flea-gui/src/g2/picker_portal/text.rs": "715d81f19a32af8f7c698357738ae63f951b0bd18289d87415f3f7f228e64f2f",
+    "crates/flea-gui/src/g2/picker_portal/text.rs": "2bf97a5eb36c70adcb06ac5893d53db265dc3f955e884729af3066487ba77e77",
     "crates/flea-gui/src/g2/picker_portal/view.rs": "6b441d405a854fd644738a2296e95fa5fa85d285ed35f771c466ee6f7cf4bd13",
     "crates/flea-gui/src/g2/plugin_settings/act.rs": "7886ff0bf1687271f35f9f4945363d159bcfadaf0bdab19e995527d568c5efc5",
     "crates/flea-gui/src/g2/plugin_settings/airdrop.rs": "84ea77bc04c4e3cb2b8512d3995b38a6324b61a80fcf519f5a75e3f7851f1042",
@@ -252164,7 +252371,7 @@
     "crates/flea-gui/src/path/chrome.rs": "95023402775c49b817c86e3015ae53ef3694e3cafcde03ed0f82edddcb1c119f",
     "crates/flea-gui/src/path/chrome/button.rs": "6107cf9a2f1a57dbcce39c0a8a3ded4624dab20886bd79b60ae8c57b2dd425fc",
     "crates/flea-gui/src/path/crumbs.rs": "ca81250b59b2f24f62a84344b895262ac5a0cdf123885afa4453177ee048d808",
-    "crates/flea-gui/src/path/entry.rs": "ac84a92c1549ed63dd9b41f0c17fb53e6fee1e917be2c2699871e80f201d23dd",
+    "crates/flea-gui/src/path/entry.rs": "34095c14de3d8d69d9a94a6e1a16d07269aa6371c762e5a7e98d86c2a67edf34",
     "crates/flea-gui/src/path/entry/ime.rs": "7aec7ac95b906d3532fd7a113b5fb9a377cf43c25ccb5a123fc6f531ac564faa",
     "crates/flea-gui/src/path/entry/word.rs": "9e734ae10c753195098ea1772e1937dd848a959fe414b88596864b55aa9e8340",
     "crates/flea-gui/src/path/field.rs": "6cad9deb9860508a815b917cb085da3833d995b69c67b184e03f46d25ac34e3b",
@@ -252428,7 +252635,7 @@
     "crates/flea-gui/src/window/rename.rs": "3ca3c538b28b0f4777f344f58eb311e9dcba9cc93adc739a3d926bb8a1241a15",
     "crates/flea-gui/src/window/rename_bulk.rs": "022b9196314eae8400369cf6e301ea9408487dc15a2824baa30476349ac8942b",
     "crates/flea-gui/src/window/rename_field.rs": "d535674dd3c2ee54302085bff395f999706d7048037c5e22fc9a29183429c84e",
-    "crates/flea-gui/src/window/rename_field_pointer.rs": "ce7f559ba9b2de14c079dfd7c75390e3e2f65c1ea2c60712cbf55a63eee0eed0",
+    "crates/flea-gui/src/window/rename_field_pointer.rs": "023527fb38a5e40258595d2038aac47956860c6085d2049b97c5dcdd09ee1bd0",
     "crates/flea-gui/src/window/rename_field_shaping.rs": "d50fe4108fafe674afcbc5720ee57c0fae4a1367628c96f62192aba66828fa52",
     "crates/flea-gui/src/window/rename_input.rs": "b34a72fea2759e5ce1e797d668965509923de1d69efd30bb765552c81b863217",
     "crates/flea-gui/src/window/rename_ipc.rs": "8db0119c1c6cade8b9cd38d41537cefd06e788f2bde0c424a43b81dddb303574",
@@ -252548,21 +252755,23 @@
     "src/backend/contentsworker.rs": "a6c93b8d15d0481ab32da7d4a8cff4a0e9ea704de977076c7e49ca1b06055bf5",
     "src/backend/convert.rs": "de8e7af192ea4d972d353fbc4e214248d8c9c88fc1db477df0e58717613b09a2",
     "src/backend/convertbatch.rs": "337039354d05cb3d09aa7806de040a25f950bfccd7203a64d92ece239f808af1",
-    "src/backend/copyfile.rs": "cfaf15552c6a4371d88769a0e928f81a0aa4f9f41efe9a4815b33fc66444fbe6",
+    "src/backend/copyfile.rs": "81df4a0dcc3e79a88893f61975f93ab6724ff70148b4ed180e945969a6d555ef",
     "src/backend/copymanifest.rs": "96a53c6936c0d5ab078a4d40992c5c0192a6933169bd85db08cd933ae3ff1d89",
     "src/backend/copynode.rs": "812e62829738a84e55d03dea80b5fbf9ae54ff775e01b319c3eddfa211b4411d",
-    "src/backend/copyread.rs": "345fad4c47b8a1f897f847ddfa54bcd81b4f8c31857b0d3d43670328086cab8e",
+    "src/backend/copyread.rs": "7781b9f609005a79c8d3ea6eb6839179f768cf2a5a3469495c9adaee0b91538c",
     "src/backend/copystage.rs": "733c84efd3a0817a8cc6b9df9564e4246f5c222f8d9404fe158d0dee227c7deb",
-    "src/backend/copysweep.rs": "9118749bb84c9f16ef137d92c4dcb9202831fa43c06256abf7adbcc5d3ab5599",
+    "src/backend/copysweep.rs": "d7522b1952177646ee81899dfc02632553765801dcaef7b327f4a319a90c4d1b",
+    "src/backend/copytree.rs": "6ef0ad50a44eadc823fd74ad64bb672964bceaba434cf5f61e226ff3cbfba81c",
     "src/backend/created_request.rs": "e1a5426890d42ecd67109c5e55d910fec3ca77cf39190dab733c4d62705d174d",
     "src/backend/csvrange.rs": "1b00338fd1b22d9407e2b11cc5cc497bf7b411d072a7c556297d879eb4fb566c",
+    "src/backend/deeptree.rs": "45482cf9f56ee8ee78f2a06b8e9feb15ff50f8dfd8e6e98adbf82a3e5b0605f5",
     "src/backend/devsreq.rs": "85b6f379f781e1b522f2ed9e3316a78fb7207feb29fbed046e66fc78ad1d020e",
     "src/backend/dirsize.rs": "b9c4ddd743892cfe0f38ad43178a079641dd0472e065f7d1a0b978317542d600",
     "src/backend/dirsizereq.rs": "eb8738b88445c7e4bc02db1e21636c2b7ed1214e19ac76351b9d8c334a7d09d7",
-    "src/backend/dirsizewalk.rs": "fdd1ca11c526f1f0ac3e2d67968a2d3ee82e6760a598de32d12ef37752b2bf45",
+    "src/backend/dirsizewalk.rs": "4b094e0624d009fbee008f60f0dc26f3b8289db2089866644686fd5ac73a541b",
     "src/backend/dirsizewatch.rs": "346a5a5e69b5cb1ef70e77fa09735b953d5d9edccff549837c4d6699e64cf4b5",
     "src/backend/dirsizeworker.rs": "d902e425a83cda0d74f5b2e9406e092064e9a29647abcd5e938b22a100bb2d55",
-    "src/backend/durable.rs": "be4a1ed28300db954a95c3e0a6501885806a0993a6091876eabd14f5b4c4d275",
+    "src/backend/durable.rs": "44a387df8115db14a031e6c25c0a0d37ee3b0f730c63c2dd5eb13bcaaa3c07d4",
     "src/backend/events.rs": "9088762a16fd7b53a6fec5b7d5a919a1e82436e7ea114ec3808ab0d42f8ffde3",
     "src/backend/exiffacts.rs": "ffc31ed02e73a44adab1d21385be72ee4bb0d2c8dbfe0b0c1254c5d7e4ecf8ac",
     "src/backend/extclass.rs": "8f15b54cca7b7a8cc109ba72c30f6c86c6b1c1053727ccb733b1096824f0e3ed",
@@ -252637,6 +252846,7 @@
     "src/backend/jump.rs": "4cd6727a1d7a6a39888933bf3612010dc189a56006c591fa12da82ab1e572c38",
     "src/backend/kind.rs": "29cc369380abd40ae283efe5221ce3c7d6cbddc06779bb1d7dbccecb770b1322",
     "src/backend/kind_comments.rs": "f5f621246f0a4ef50426490a0d3d24278564b5f8adfbd634ef1ae362613e35dc",
+    "src/backend/landed.rs": "723e6fde48e340644213e3b1c8ddb554af989b673f768c51e06c2b3318d523c1",
     "src/backend/lazy.rs": "7004a94fcc2c18a9f37efd26e51df054fe879b60ec9829660181b658b2dfefe6",
     "src/backend/linecount.rs": "ee7a2e74cd0adc49414e1faaf53d2017e375d1678910cccb677ca84f0d570952",
     "src/backend/link.rs": "2865e2ccbbe58915e91b75bdf7962ecc0af101fcf2c0ee6f8790978b341402ac",
@@ -252701,7 +252911,7 @@
     "src/backend/model3dcache.rs": "3e7daeb007678ba7f7115d673eda718c2c2708dd0e8a96b727e05d13ca47d771",
     "src/backend/model3dreq.rs": "c151ec9106ca958dc34989930f1754259754abac440bde132369bb26d562b598",
     "src/backend/mountinfo.rs": "1bc3a6e227a8fb965df98190d91f4e40965d2378f9c125c94a2906de7b1ca78d",
-    "src/backend/movebatch.rs": "5694149ae5d6a6a756d97c0513ce25f1bfa954bc588e1587be21078de0cc973f",
+    "src/backend/movebatch.rs": "c824360e1913fea18951f79e0bde3af13840218d50d659e353ab3c3e6566aeef",
     "src/backend/nearby.rs": "fea7787215f1d6ebceedda2a1bf77f99212d0450ea716ef40b81c069c0b961db",
     "src/backend/nearbyjson.rs": "e187519391a97e5d01747d633d817b2dfc720a2c9306b1a47d591c7e3060c282",
     "src/backend/nearbyrows.rs": "d25c0dca1fe4ef939ec93868c48b7ca0e635690371f7d9d2e4b1bd0fa13d003b",
@@ -252718,7 +252928,7 @@
     "src/backend/officepublish.rs": "df147c15f7e990474965b2ba5a7208a3d20b637b36aea8f1b2ea42887068bde6",
     "src/backend/officesheets.rs": "8d66d59e3fde19335ffcf829e45a4d3c4b172901e0cd77d3d7fb82185e105618",
     "src/backend/opmsg.rs": "7d1cb8ac0f606cbe2d27c2ab1d0686e7b2d191b0ffe84933eee16d6cee263c99",
-    "src/backend/ops.rs": "ba1fb40e5f9d10121e06f1a2de28421d221ec328ce658a4d71cba734f63ca800",
+    "src/backend/ops.rs": "f1d0cc227b74fff2d618afad466fa622ecbf5f57069392c1bcc828a4dbde4190",
     "src/backend/opscancel.rs": "9418041dfe86184e9c30bfe87a7c8bd46208e1c1d8130f52ded4ad9e8f819fd0",
     "src/backend/opsdispatch.rs": "70072495f5f66d70512e852a2bba9c36e54a91f9ae54f4aab238a0dfd39a8cf4",
     "src/backend/opsname.rs": "d6a9f806c2f6c343e6fb8e1a645556e728c229f10369214c1e50f2c0ca7ab46d",
@@ -252783,13 +252993,13 @@
     "src/backend/redo.rs": "a291913a55bc946781d7c2dea82258f1b308f2de05537df44ca1fbff11b99f80",
     "src/backend/regfile.rs": "32b63549d15ecf649c4625e65eb060d4c06d8659cf978ffdfa1f2adc4d2ff024",
     "src/backend/removable.rs": "791df6e35c10c458cc335479d77d19615d44eb4acb4aab1304138d4ceda6bd96",
-    "src/backend/renamecompat.rs": "f966c42ee17d5d6114f6260e7d5db101716d3894dfd0ebe91c1a60003ecd755e",
+    "src/backend/renamecompat.rs": "d9c8af01f5110c2454e265d0b306d7579bf793cb27b2d181b630e74c6dbb5bbb",
     "src/backend/renametiming.rs": "a5ce89173e838ebe8ab2852c26573233b45a0f7276a4bfbba8a30bdd5171c658",
     "src/backend/renamework.rs": "b067d509236a2fcf14205a816f15359bcc88e41f1798aaa6fb9d85b6b6322b36",
     "src/backend/replacedefer.rs": "90b68ef904bd7cfa4baa09354e630fbebe8267553b3008a79a1586a143a3ea09",
     "src/backend/rowguard.rs": "84350fe6ae586a34136d14bc8304211b5a26407777e12cef9031193f0ef0e361",
     "src/backend/rows.rs": "525615acb29c9c94c725616b11f796ad57ead18ec560c845205b2919f63db123",
-    "src/backend/run.rs": "db1bd876ed3ec0b0be5a8fcc5fafe88f74fd934a260444a83b810ebbb4399264",
+    "src/backend/run.rs": "28c38dfcda97dfb4258be1b712df0e39a561e3774d6d103c9019b1ffbc6ef8eb",
     "src/backend/run_rows.rs": "658281a171360ea26e46db5adf61c854f21e001ed2150ba9fe43293fb3dac696",
     "src/backend/sandbox.rs": "44faae7734a66ff427e5299d971a4160734feacdae7357d48f4eb129be975746",
     "src/backend/sandboxprobe.rs": "ef988091cec143e646df29292b0ff99f39605f25b8c5513a64b0a77b8db58d55",
@@ -252864,9 +253074,10 @@
     "src/backend/trashbrowse/details.rs": "3a96ced3090d8002c0d466e4cc6e1c0ba4629637ee093c6b942586a7f6802c65",
     "src/backend/trashbrowse/job.rs": "75b7d4bd339bcf23fe2efd1ee2d8ae106d2fda65af586d45637898e3fa5c48d2",
     "src/backend/trashdate.rs": "a6312b012015592eedd2497a52af2d53bec49e58e5deb40327ae80ce75bbd8c1",
-    "src/backend/trashdelete.rs": "4d789dd1cdc9bc04e29dc4880276b7b42333c862f342f9cf7207a69b2d01b8b2",
+    "src/backend/trashdelete.rs": "0158866611cb9ddf459c3e4b242e350e629f65c6b6daae222e64efefe78285c0",
     "src/backend/trashdelete/cancel.rs": "40ca4b37e9d0873594832957bb6e0b8db0f4f586128d6ff69cf8aceb3340cc25",
     "src/backend/trashdelete/deletetest.rs": "54dcc4855047a92d9c48829c321d246dff9a3971d4795617a214500b2ad8ecba",
+    "src/backend/trashdelete/parents.rs": "bd955bbe82831383059637f8eeff457a8d0017861799b4c76cdff6c81c7667d1",
     "src/backend/trashdelete/recovery.rs": "3e99e57e00903fd6f7f4d3ea67c8c08c7026be3a043f4e0c472260ec1b4b8e04",
     "src/backend/trashland.rs": "edc31cf5c7b08ac6373f0f241d7d260c57d0ea55a8fab590d2127d407b55caa4",
     "src/backend/trashmanifest.rs": "c2166ea8ea90f91c4979142901476d6343dd4aca2e531e94a25dd8101857e2d3",
@@ -252874,7 +253085,7 @@
     "src/backend/trashthumb.rs": "69b6a06f806224a7ca7331d316c648460182aa9e20b03cabda79570bfb37680b",
     "src/backend/trashthumbcache.rs": "c17c02aacbfcfb4f59154242df071e721fde70e32a4c7e2cd0e17cc5d412630a",
     "src/backend/tuifolders.rs": "c56c96dd31cd391c28e791b3772cdd4f7d1a3b4234d0ea03e2cb86de0e04bdf5",
-    "src/backend/undo.rs": "9ee629ec62dd30f1bdb8e626b2de6fe2c9e743d1263355dfd7275c7d192d3dcc",
+    "src/backend/undo.rs": "2cd986f10d8c7b3638d39d121d3e8f97163a00aaaa5f7fa053d134d34190e88c",
     "src/backend/undocodec.rs": "8f0fd194abadd7f9ce3b71bb65dfcf641d72c3b0729247f241eae09d8dbc0101",
     "src/backend/undodecode.rs": "b727132f2d177a3aa99bf00c725d91f4854d53ed1c34a1d651401d4f4a048fd3",
     "src/backend/undojobs.rs": "e668ccefb04e333d72716e9983ecb662ea2daff81b7782bcb66684065262901f",
@@ -253495,7 +253706,7 @@
     "tools/flea-field-nav": "36bc42104edb84c4194b4b6d28c3e67d915a2a144692aaa49953981a4a5bdbf8",
     "tools/flea-field-search": "70ec859809b73cb1bf58fccb4129b05622023a0686991fe7370aafd8fe7805a6",
     "tools/flea-figure-bench": "60d312818e6af2fa0989d50275907d2a0f9e6019787caae93e8d8a4e440dc8e7",
-    "tools/flea-file-budget": "cdc93ed2c4a587bbca90b5bb9f1d4a6dc1f15388417487c57b6f4137f766ac78",
+    "tools/flea-file-budget": "89ec847e76f5efa0752894ec0a0479a6b64917bf50f1502ac993174999baee12",
     "tools/flea-filemanager1": "ebccc20a6b2be787dcf7e817d353a21dcca5ff57de184161f12e28ee5b0322e1",
     "tools/flea-first-paint": "6b9555b0a20b6d4bec057bd9c405823a1b742c14d27304b83a5a95d801ac5526",
     "tools/flea-framecap-build": "7c9433d4c4774f8810fd4e4c8ee92d0b5810dcbc7645231205a8155d557f5f2e",
@@ -254031,13 +254242,13 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "c737d4574baebf8d9e8c7e6b81e8d59a2b3a3384",
-  "source_sha": "c737d4574baebf8d9e8c7e6b81e8d59a2b3a3384",
+  "source_ref_sha": "76050e1d97a7d3c3d35b78994c1f8a8ac19e7e12",
+  "source_sha": "76050e1d97a7d3c3d35b78994c1f8a8ac19e7e12",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1353,
-      "missing_literal_candidates": 5710,
-      "source_files": 861
+      "missing_literal_candidates": 5733,
+      "source_files": 865
     },
     "generated/tooling": {
       "keys_with_occurrences": 155,

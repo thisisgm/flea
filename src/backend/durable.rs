@@ -3,8 +3,9 @@
 use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
 #[cfg(test)]
-use std::sync::{Arc, Condvar, Mutex};
+use std::sync::Condvar;
 
 // Test builds only: forced-durable paths, injected mountinfo text, fsync fault flags, flush counts; a release build has none of it.
 #[cfg(test)]
@@ -171,7 +172,9 @@ pub const RCLONE_NOTE: &str = "rclone uploads them in the background";
 // The closes of one confirmed batch, running behind the next batch; joined before the next wave and before the result.
 #[derive(Default)]
 struct Wave {
-    closers: Vec<std::thread::JoinHandle<()>>,
+    closers: Vec<std::thread::JoinHandle<std::io::Result<()>>>,
+    // A file this wave closed inline answered its close with an error.
+    failed: bool,
     // Test builds only: the gate holding this wave's closes open until its join opens it, so a test never hangs on it.
     #[cfg(test)]
     gate: Option<Arc<Gate>>,
@@ -203,12 +206,17 @@ impl Gate {
 }
 
 impl Wave {
-    // One thread per file, so a 100 ms vfat close never waits on another; a spawn that fails drops its closure and closes that file inline.
+    // One thread per file, so a 100 ms vfat close never waits on another; a spawn that fails leaves its file to a checked close inline.
     fn start(files: Vec<std::fs::File>) -> Wave {
         #[cfg(test)]
         let gate = HOLD_WAVES.with(|v| v.get()).then(|| Arc::new(Gate::new()));
+        let checked = super::copyfile::landed::closer();
         let mut closers = Vec::with_capacity(files.len());
+        let mut failed = false;
         for file in files {
+            let slot = Arc::new(Mutex::new(Some(file)));
+            let held = Arc::clone(&slot);
+            let close_one = checked.clone();
             #[cfg(test)]
             let behind = gate.clone();
             let close = move || {
@@ -216,13 +224,14 @@ impl Wave {
                 if let Some(gate) = &behind {
                     gate.wait();
                 }
-                drop(file);
+                held.lock().unwrap_or_else(|e| e.into_inner()).take().map_or(Ok(()), close_one)
             };
-            if let Ok(closer) = std::thread::Builder::new().spawn(close) {
-                closers.push(closer);
+            match std::thread::Builder::new().spawn(close) {
+                Ok(closer) => closers.push(closer),
+                Err(_) => failed |= slot.lock().unwrap_or_else(|e| e.into_inner()).take().is_some_and(|file| checked(file).is_err()),
             }
         }
-        Wave { closers, #[cfg(test)] gate }
+        Wave { closers, failed, #[cfg(test)] gate }
     }
 }
 
@@ -236,6 +245,8 @@ pub struct Durability {
     pub rename_fat: bool,
     // A failed settle stays failed, so later confirms keep every source.
     unsettled: bool,
+    // A held file answered its close with an error, so the done line says the drive did not confirm a file.
+    closes_failed: bool,
     held: Vec<std::fs::File>,
     held_bytes: u64,
     wave: Wave,
@@ -263,7 +274,7 @@ impl Durability {
             Some(body) => batch_syncfs_for(dest, body, durable, rclone) || batch_syncfs_for(&real, body, durable, rclone),
             None => false,
         };
-        Durability { durable, rclone, file_failed: false, batch_syncfs, rename_fat: false, unsettled: false, held: Vec::new(),
+        Durability { durable, rclone, file_failed: false, batch_syncfs, rename_fat: false, unsettled: false, closes_failed: false, held: Vec::new(),
             held_bytes: 0, wave: Wave::default(), touched: HashSet::new(), last: None }
     }
 
@@ -339,8 +350,11 @@ impl Durability {
         self.wave = Wave::start(files);
     }
 
-    // A closer that panicked has nothing left to close, so its join result is dropped.
+    // A close that failed, or a closer that panicked, fails every later confirm and the done line; its batch's syncfs already confirmed its bytes.
     fn join_wave(&mut self) {
+        if std::mem::take(&mut self.wave.failed) {
+            self.close_failed();
+        }
         if self.wave.closers.is_empty() {
             return;
         }
@@ -351,9 +365,18 @@ impl Durability {
                 gate.release();
             }
         }
+        let mut closed = true;
         for closer in self.wave.closers.drain(..) {
-            let _ = closer.join();
+            closed &= matches!(closer.join(), Ok(Ok(())));
         }
+        if !closed {
+            self.close_failed();
+        }
+    }
+
+    fn close_failed(&mut self) {
+        self.unsettled = true;
+        self.closes_failed = true;
     }
 
     // Everything this operation holds is closed and joined, so an eject right after is never refused.
@@ -543,7 +566,8 @@ pub fn fsync_dir(path: &Path) -> std::io::Result<()> {
     // Logged after the counting seam, so a failed flush never reads as confirmed.
     #[cfg(test)]
     ORDER_LOG.with(|v| v.borrow_mut().push("dir".to_string()));
-    std::fs::File::open(path)?.sync_all()
+    // A folder deep in a copied tree can have a path past PATH_MAX; it is opened a stretch at a time.
+    crate::backend::copyfile::deep::open_long(path)?.sync_all()
 }
 
 // One filesystem-wide confirm on the pre-write fd, before vfat's final writable closes.
@@ -629,6 +653,10 @@ pub fn finish(id: usize, tx: &std::sync::mpsc::Sender<crate::backend::opsreq::Op
     let finished = confirm_finish(id, tx, durability, dest, landed);
     // The done line goes out after this returns, so no descriptor may stay open on the drive past it.
     durability.drain();
+    // A held file whose close failed after its batch confirmed leaves the whole result unconfirmed.
+    if durability.closes_failed {
+        return Finish { ok: false, note: super::copyfile::landed::FILE_UNCONFIRMED.to_string() };
+    }
     finished
 }
 
