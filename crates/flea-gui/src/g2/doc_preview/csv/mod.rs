@@ -101,7 +101,6 @@ pub struct CsvView {
     slots: Vec<Slot>,
     slots_for: Option<(usize, u64)>,
     digits: String,
-    landed: Option<csv::Table>,
     parse: Option<Task<()>>,
     advance: Option<(Pixels, f32)>,
     /// Frames painted, for the native run's idle count.
@@ -128,7 +127,6 @@ impl CsvView {
             slots: Vec::new(),
             slots_for: None,
             digits: String::with_capacity(24),
-            landed: None,
             parse: None,
             advance: None,
             painted: Cell::new(0),
@@ -148,7 +146,6 @@ impl CsvView {
         self.head.clear();
         self.rows.clear();
         self.slots_for = None;
-        self.landed = None;
         self.parse = None;
     }
 
@@ -185,8 +182,9 @@ impl CsvView {
                 .background_executor()
                 .spawn(async move { job.run() })
                 .await;
+            // The table lands before the next frame renders, so a host reading `first_screen` sees the frame it draws.
             let _ = this.update(cx, |view, cx| {
-                view.landed = Some(table);
+                view.feed.apply(table);
                 view.parse = None;
                 cx.notify();
             });
@@ -226,12 +224,9 @@ impl CsvView {
         cx.notify();
     }
 
-    /// Lays the table out before paint: lands a parse, measures new columns, asks what the frame needs, shapes cells.
+    /// Lays the table out before paint: measures new columns, asks what the frame needs, shapes cells.
     pub fn layout(&mut self, bounds: Bounds<Pixels>, window: &mut Window) {
         self.frame = (f64::from(bounds.size.width), f64::from(bounds.size.height));
-        if let Some(table) = self.landed.take() {
-            self.feed.apply(table);
-        }
         let g = self.feed.geometry;
         let body = (self.frame.1 - g.head_height).max(0.);
         let content = self.feed.body_rows() as f64 * g.row_height;

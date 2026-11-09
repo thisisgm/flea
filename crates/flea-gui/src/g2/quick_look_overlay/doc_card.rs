@@ -81,7 +81,10 @@ impl QuickLook {
         if matches!(action, "cursorDown" | "cursorUp") && doc.pages(cx).is_none() {
             return None;
         }
-        match doc.action(action, cx) {
+        let waiting = self.waiting(cx);
+        let outcome = doc.action(action, cx);
+        self.rearm_waiting(waiting, cx);
+        match outcome {
             Outcome::Ignored => None,
             outcome => Some(self.follow_outcome(outcome, cx)),
         }

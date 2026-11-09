@@ -88,7 +88,7 @@ pub static PRESET_KEYS: &[Binding] = &[
     Binding::new("all", "none", "Up", "up", "cursorUp", "rail,menu,panel,preview,pdf,media", "all", 0, 126, "keys.label.949098c84f5d", true),
     Binding::new("all", "text", "j", "j", "cursorDown", "rail,menu,panel,preview,media", "all", 0, 94, "keys.label.104788780cb6", true),
     Binding::new("all", "text", "p", "p", "playPause", "media", "all", 0, 64, "keys.label.a2add02280cd", true),
-    Binding::new("all", "text", "m", "m", "mute", "media", "all", 0, 64, "keys.label.8dd6857baf02", true),
+    Binding::new("all", "text", "m", "m", "mute", "media", "gui", 0, 64, "keys.label.8dd6857baf02", true),
     Binding::new("all", "text", "k", "k", "cursorUp", "rail,menu,panel,preview,media", "all", 0, 94, "keys.label.949098c84f5d", true),
     Binding::new("all", "none", "Return", "return", "open", "rail,menu,panel,preview,pdf,media", "all", 0, 126, "keys.label.ed077f3d8125", true),
     Binding::new("all", "none", "Enter", "enter", "open", "rail,menu,panel,preview,pdf,media", "all", 0, 126, "keys.label.ed077f3d8125", true),

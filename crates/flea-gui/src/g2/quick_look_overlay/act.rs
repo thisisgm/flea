@@ -13,7 +13,9 @@ impl QuickLook {
             Hit::CopyPatch => cx.emit(Event::CopyPatch),
             Hit::Word(index) => {
                 if let Some(doc) = self.subject.as_ref().and_then(|s| s.body.doc()).cloned() {
+                    let waiting = self.waiting(cx);
                     doc.word(index, cx);
+                    self.rearm_waiting(waiting, cx);
                     cx.notify();
                 }
             }

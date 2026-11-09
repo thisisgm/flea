@@ -26,6 +26,13 @@ impl QuickLook {
         }));
     }
 
+    /// A step inside the subject that takes its answer back, a sheet turn or a word, holds the mark as a new subject does.
+    pub(super) fn rearm_waiting(&mut self, waiting: bool, cx: &mut Context<Self>) {
+        if !waiting && self.waiting(cx) {
+            self.arm_waiting(cx);
+        }
+    }
+
     /// The subject has nothing of its answer yet: no lines, no picture size, no first screen, no Compare reply.
     pub fn waiting(&self, cx: &App) -> bool {
         let Some(subject) = self.subject.as_ref() else {
