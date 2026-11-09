@@ -118,11 +118,50 @@ fn u11_an_unreadable_document_reports_once_and_recovers_after_a_valid_read() {
     let path = root.0.join("ui.json");
     std::fs::write(&path, "{bad").unwrap();
     let worker = Worker::at(path.clone(), root.0.join("no-flea")).unwrap();
-    assert!(matches!(next(&worker), Update::Unreadable));
+    assert!(matches!(
+        next(&worker),
+        Update::Notice("settings.error.unreadable")
+    ));
     std::fs::write(&path, "{}").unwrap();
     assert!(matches!(next(&worker), Update::Loaded { .. }));
     std::fs::write(path, "[]").unwrap();
-    assert!(matches!(next(&worker), Update::Unreadable));
+    assert!(matches!(
+        next(&worker),
+        Update::Notice("settings.error.favourites_unread")
+    ));
+}
+
+#[test]
+fn fx_state_a_held_lock_a_fifo_or_binary_bytes_are_named_and_never_block() {
+    let root = Fixture::new();
+    let path = root.0.join("ui.json");
+    std::fs::write(&path, "{}").unwrap();
+    let lock = std::fs::File::create(root.0.join("ui.json.lock")).unwrap();
+    assert!(flea::uistore::try_lock_exclusive(&lock).unwrap());
+    let worker = Worker::at(path.clone(), root.0.join("no-flea")).unwrap();
+    assert!(matches!(
+        next(&worker),
+        Update::Notice("settings.error.save_session")
+    ));
+    assert!(matches!(next(&worker), Update::Loaded { .. }));
+    drop(lock);
+    for kind in ["fifo", "binary"] {
+        let path = root.0.join(format!("{kind}.json"));
+        if kind == "fifo" {
+            assert!(std::process::Command::new("mkfifo")
+                .arg(&path)
+                .status()
+                .unwrap()
+                .success());
+        } else {
+            std::fs::write(&path, [0xff_u8; 64]).unwrap();
+        }
+        let worker = Worker::at(path, root.0.join("no-flea")).unwrap();
+        assert!(
+            matches!(next(&worker), Update::Notice("settings.error.unreadable")),
+            "{kind}"
+        );
+    }
 }
 
 #[gpui::test]

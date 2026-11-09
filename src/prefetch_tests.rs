@@ -88,6 +88,19 @@ fn the_open_itself_refuses_what_a_swap_can_leave_at_the_path() {
 }
 
 #[test]
+fn a_fifo_left_at_the_list_path_is_never_waited_on() {
+    let dir = crate::backend::testdir::TestDir::new("prefetch-listfifo");
+    let fifo = dir.join("prefetch");
+    assert!(Command::new("mkfifo").arg(&fifo).status().unwrap().success());
+    let (done, read) = mpsc::channel();
+    // The launcher reads the list before the window, so a blocking open here is a launch with no window.
+    std::thread::spawn(move || {
+        let _ = done.send(read_bounded(&fifo).is_none());
+    });
+    assert_eq!(read.recv_timeout(Duration::from_secs(5)), Ok(true));
+}
+
+#[test]
 fn only_the_shell_the_launcher_named_records() {
     assert!(is_launch_shell(4242, Some("4242")));
     assert!(!is_launch_shell(4242, Some("4241")), "a backend under another parent");

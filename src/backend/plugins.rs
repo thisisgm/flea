@@ -12,6 +12,8 @@ use std::time::Duration;
 
 // The protocol's own deadline for an answer to hello.
 pub const READY_DEADLINE: Duration = Duration::from_secs(5);
+// Far past any pile the bar plugin writes, so a larger file reads as an empty pile.
+const MAX_PILE_BYTES: u64 = 4 << 20;
 
 pub struct Env {
     pub dir: PathBuf,
@@ -163,7 +165,8 @@ pub struct Installed {
 }
 
 fn shelf_input(state: &Json, env: &Env) -> shelf::Input {
-    let pile = fs::read_to_string(&env.pile).unwrap_or_default();
+    // The bar plugin owns this file, so a fifo or an endless file in its place reads as an empty pile.
+    let pile = super::regfile::read_text(&env.pile, MAX_PILE_BYTES).unwrap_or_default();
     shelf::input(state, shelf::pinned(&pile))
 }
 

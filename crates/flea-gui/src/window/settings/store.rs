@@ -1,9 +1,7 @@
 //! Settings writes use the core CLI's locked merge; polling and child processes stay off the UI thread.
 use crate::g2::st1::seams::Store;
 use flea::{jsondoc::Json, ui_logic_st1::Text};
-use std::{
-    cell::RefCell, io::Read, path::PathBuf, process::Command, rc::Rc, sync::mpsc, time::Duration,
-};
+use std::{cell::RefCell, path::PathBuf, process::Command, rc::Rc, sync::mpsc, time::Duration};
 
 pub type Patches = Rc<RefCell<Vec<Json>>>;
 
@@ -26,7 +24,8 @@ impl Store for SessionStore {
 
 pub enum Update {
     Corner(f32),
-    Unreadable,
+    // One footer sentence about the state file itself, by catalog key.
+    Notice(&'static str),
     Loaded {
         document: Json,
         through: u64,
@@ -124,6 +123,15 @@ impl Worker {
                 let mut through = 0;
                 let mut read_failed = false;
                 let mut initial = true;
+                let mut at_start = true;
+                // A lock another process keeps refuses every save, so the window says so before its first read.
+                if flea::uistore::lock_held_elsewhere(&path)
+                    && send
+                        .send_blocking(Update::Notice("settings.error.save_session"))
+                        .is_err()
+                {
+                    return;
+                }
                 loop {
                     let request = if std::mem::take(&mut initial) {
                         Err(mpsc::RecvTimeoutError::Timeout)
@@ -194,11 +202,18 @@ impl Worker {
                         }
                         Err(mpsc::RecvTimeoutError::Disconnected) => break,
                         Err(mpsc::RecvTimeoutError::Timeout) => {
+                            let first = std::mem::take(&mut at_start);
                             let body = match read_document(&path) {
                                 Ok(body) => body,
                                 Err(()) => {
+                                    // The first read is the one the window opened on, so it opened on the defaults.
+                                    let key = if first {
+                                        "settings.error.unreadable"
+                                    } else {
+                                        "settings.error.favourites_unread"
+                                    };
                                     if !read_failed {
-                                        let _ = send.send_blocking(Update::Unreadable);
+                                        let _ = send.send_blocking(Update::Notice(key));
                                         read_failed = true;
                                     }
                                     continue;
@@ -235,15 +250,11 @@ fn read_document(path: &std::path::Path) -> Result<Option<String>, ()> {
         Err(_) => return Err(()),
         Ok(_) => {}
     }
-    let file = flea::backend::regfile::open_regular(path).ok_or(())?;
-    let mut body = String::new();
-    file.take(4 * 1024 * 1024 + 1)
-        .read_to_string(&mut body)
-        .map_err(|_| ())?;
-    if body.len() > 4 * 1024 * 1024
-        || flea::jsondoc::parse(&body)
-            .ok()
-            .is_none_or(|value| value.as_object().is_none())
+    // The core's own bound, so a file the core reads is never one the window calls unreadable.
+    let body = flea::backend::regfile::read_text(path, flea::uistore::MAX_BYTES).map_err(|_| ())?;
+    if flea::jsondoc::parse(&body)
+        .ok()
+        .is_none_or(|value| value.as_object().is_none())
     {
         return Err(());
     }
