@@ -56,6 +56,8 @@ pub enum Dialog {
         id: u64,
         folder: String,
         name: String,
+        // The base the card suggested, so an untouched folder suggestion keeps the backend's numbering.
+        suggested: String,
         focus: CopyFocus,
         busy: bool,
         error: String,

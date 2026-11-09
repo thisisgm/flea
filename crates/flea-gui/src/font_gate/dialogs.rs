@@ -90,7 +90,7 @@ pub(super) fn check() -> Vec<String> {
             .overlay
             .as_ref()
             .unwrap()
-            .update(cx, |view, cx| view.new_file(1, "/files", cx));
+            .update(cx, |view, cx| view.new_file(1, "/files", None, cx));
     });
     for fat in [false, true] {
         surfaces::case(

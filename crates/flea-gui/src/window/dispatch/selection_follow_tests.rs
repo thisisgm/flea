@@ -1,6 +1,6 @@
 //! EY-166: the first move after creating and naming a folder keeps the selection on the cursor.
 use super::super::{
-    fileops_tests::{reply, wire},
+    fileops_tests::{create_card, refocus, reply, wire},
     key_rows_tests::state,
     menus_tests::settle,
     rename_tests::editing,
@@ -51,26 +51,25 @@ fn ey166_down_after_new_folder_moves_selection_and_footer(cx: &mut TestAppContex
     );
     land(&shell, cx, "/files", home(None), 1);
     let mut sent = wire(&shell, cx);
-    cx.simulate_keystrokes("ctrl-shift-n");
+cx.simulate_keystrokes("ctrl-shift-n");
+    // Ctrl+Shift+N opens the create card suggesting a folder; Create takes that suggestion.
+    create_card(&shell, cx);
+    let requests = sent();
     assert_eq!(
-        sent(),
+        requests,
         [r#"{"c":"mkdir","path":"/files","defaultBase":"New Folder","request":1}"#]
     );
+    let id = flea::json::field_usize(&requests[0], "request").unwrap();
+    // The card asked for the name, so the new folder lands whole and nothing renames it.
     reply(
         &shell,
         cx,
-        r#"{"t":"made","ok":true,"path":"/files/New Folder"}"#,
+        &format!(
+            r#"{{"t":"menuaction","op":"creation","id":{id},"kind":"made","ok":true,"path":"/files/New Folder"}}"#
+        ),
     );
+    refocus(&shell, cx);
     land(&shell, cx, "/files", home(Some("New Folder")), 2);
-    assert_eq!(editing(&shell, cx).unwrap().1, "New Folder");
-    cx.simulate_input("SA6 today");
-    cx.simulate_keystrokes("enter");
-    reply(
-        &shell,
-        cx,
-        r#"{"t":"renamed","ok":true,"path":"/files/SA6 today"}"#,
-    );
-    land(&shell, cx, "/files", home(Some("SA6 today")), 3);
     assert!(editing(&shell, cx).is_none());
     assert_eq!(state(&shell, cx), (8, vec![8]));
     let before = footer(&shell, cx);

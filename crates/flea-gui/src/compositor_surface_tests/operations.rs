@@ -28,6 +28,7 @@ fn operations(cx: &mut TestAppContext) {
                 id: 1,
                 folder: "/files".into(),
                 name: "notes.txt".into(),
+                suggested: String::new(),
                 focus: CopyFocus::Field,
                 busy: false,
                 error: String::new(),

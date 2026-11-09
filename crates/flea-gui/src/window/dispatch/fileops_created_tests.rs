@@ -5,7 +5,7 @@ use crate::{
     window::{
         dispatch::{
             fileops_menu_tests::opened,
-            fileops_tests::reply,
+            fileops_tests::{create_card, reply},
             test_shell::{land, row, set_cursor},
             Order,
         },
@@ -221,6 +221,10 @@ fn ey379_delayed_creation_result_preserves_later_navigation(cx: &mut TestAppCont
                 );
             })
         });
+        // New Folder now asks for the name in a card, so Create is what puts the request on the wire.
+        if action == "newFolder" {
+            create_card(&shell, cx);
+        }
         let request = sent()
             .iter()
             .find(|line| flea::json::field_str(line, "c").as_deref() == Some(command))

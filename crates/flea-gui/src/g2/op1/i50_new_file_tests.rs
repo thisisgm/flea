@@ -24,7 +24,7 @@ fn opened(
         .update(cx, |root, window, cx| {
             root.shell.update(cx, |shell, cx| {
                 let view = shell.operation_overlay(0, window, cx).expect("a pane");
-                view.update(cx, |overlay, cx| overlay.new_file(81, "/files", cx));
+                view.update(cx, |overlay, cx| overlay.new_file(81, "/files", None, cx));
                 shell.show_operation(&view, cx);
                 view
             })
@@ -131,7 +131,7 @@ fn i50_new_file_late_callback_misses_a_closed_or_reopened_card(cx: &mut TestAppC
     handle
         .update(&mut visual, |root, window, cx| {
             root.shell.update(cx, |shell, cx| {
-                view.update(cx, |overlay, cx| overlay.new_file(82, "/files", cx));
+                view.update(cx, |overlay, cx| overlay.new_file(82, "/files", None, cx));
                 shell.show_operation(&view, cx);
             });
             // Keep reopening and callbacks in one update so no frame registers the new session between them.

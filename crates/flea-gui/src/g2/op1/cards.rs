@@ -10,12 +10,18 @@ use flea::ui_logic_op1::{
 };
 
 impl Operations {
-    pub fn new_file(&mut self, catalog: &I18n, id: u64, folder: &str) {
+    pub fn new_file(&mut self, catalog: &I18n, id: u64, folder: &str, suggestion: Option<&str>) {
         self.clear_card();
+        // A folder suggestion arrives with the slash that makes Enter create a folder, as the TUI's New Folder does.
+        let (name, suggested) = match suggestion {
+            Some(base) => (format!("{base}/"), base.to_string()),
+            None => (catalog.tr("jobs.newfile.default"), String::new()),
+        };
         self.dialog = Some(Dialog::NewFile {
             id,
             folder: folder.into(),
-            name: catalog.tr("jobs.newfile.default"),
+            name,
+            suggested,
             focus: CopyFocus::Field,
             busy: false,
             error: String::new(),
@@ -138,6 +144,7 @@ impl Operations {
             id,
             folder,
             name,
+            suggested,
             busy: false,
             ..
         }) = self.dialog.clone()
@@ -161,7 +168,14 @@ impl Operations {
             error.clear();
         }
         self.changed = true;
-        let line = if folder_request {
+        let line = if folder_request && bare == suggested {
+            // An untouched suggestion names the base only, so the backend numbers a second New Folder itself.
+            format!(
+                "{{\"c\":\"mkdir\",\"path\":{},\"defaultBase\":{},\"request\":{id}}}",
+                collide::text(&folder),
+                collide::text(bare)
+            )
+        } else if folder_request {
             // The card's own request id correlates the receipt back to this card, not to a menu creation.
             format!(
                 "{{\"c\":\"mkdir\",\"path\":{},\"name\":{},\"request\":{id}}}",

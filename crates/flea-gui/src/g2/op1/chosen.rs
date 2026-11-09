@@ -36,7 +36,7 @@ impl Shell {
         let Some(id) = self.fileops_creation_requested(side, "newFile", &folder, cx) else {
             return;
         };
-        view.update(cx, |overlay, cx| overlay.new_file(id, &folder, cx));
+        view.update(cx, |overlay, cx| overlay.new_file(id, &folder, None, cx));
         self.show_operation(&view, cx);
         self.flush_operations(side, cx);
     }

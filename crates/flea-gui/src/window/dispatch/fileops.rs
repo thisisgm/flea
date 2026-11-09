@@ -79,7 +79,8 @@ pub(super) fn run(
                 "trash" => shell.fileops_trash(side, None, cx),
                 "trashArm" => shell.fileops_arm(side, event.seat, cx),
                 "deletePermanently" => shell.fileops_delete(side, None, cx),
-                "newFolder" => shell.fileops_new_folder(side, None, cx),
+                // The TUI's newFolder is this prompt too: one card, and the name decides the kind.
+                "newFolder" | "newFile" => shell.fileops_new_file(side, window, cx),
                 _ => return false,
             }
             true
@@ -264,6 +265,37 @@ impl Shell {
                 .map(|anchor| (id, anchor))
         };
         self.fileops_send(side, line, cx);
+    }
+
+    /// Ctrl+Shift+N's create card: the background menu's New File row, reached without the menu. The
+    /// suggestion is a folder's, so Enter on an untouched name still makes one, as this key always has.
+    pub(crate) fn fileops_new_file(&mut self, side: usize, window: &mut Window, cx: &mut Context<Self>) {
+        if self.recent_refuses(side, "places.recent.new_folder_refused", cx) {
+            return;
+        }
+        let Some(host) = self.panes[side].as_ref() else {
+            return;
+        };
+        if host.backend.is_none() {
+            return;
+        }
+        let folder = host.path.clone();
+        let Some(view) = self.operation_overlay(side, window, cx) else {
+            return;
+        };
+        let Some(id) = self.fileops_creation_requested(side, "newFile", &folder, cx) else {
+            return;
+        };
+        let base = self.locale.catalog.tr("prompt.newFolder");
+        view.update(cx, |overlay, cx| {
+            overlay.new_file(id, &folder, Some(&base), cx)
+        });
+        self.show_operation(&view, cx);
+        // A key-opened card takes the keyboard at once, remembering the listing so closing it gives the keys back.
+        let shell_focus = self.focus.clone();
+        window.focus(&shell_focus, cx);
+        view.update(cx, |overlay, cx| overlay.acquire_mount_focus(window, cx));
+        self.flush_operations(side, cx);
     }
 
     // The backend takes the first free name from the client catalog's suggestion.

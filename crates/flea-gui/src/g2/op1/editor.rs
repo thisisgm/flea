@@ -40,7 +40,7 @@ impl Editor {
 }
 
 impl Overlay {
-    pub(super) fn acquire_mount_focus(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+    pub(crate) fn acquire_mount_focus(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if self
             .editor
             .focus

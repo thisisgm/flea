@@ -43,7 +43,10 @@ pub(super) fn reply(shell: &Entity<Shell>, cx: &mut VisualTestContext, line: &st
     cx.update(|window, cx| {
         shell.update(cx, |shell, cx| {
             shell.receive(0, Backend::test_reply_line(line), window, cx)
-        })
+        });
+        // A closed card hands the keyboard back on the frame after its receipt.
+        window.refresh();
+        window.draw(cx).clear(cx);
     });
     cx.run_until_parked();
 }
@@ -59,6 +62,47 @@ pub(crate) fn creation_request(
         "{},\"request\":{request}}}",
         line.strip_suffix('}').unwrap()
     )
+}
+
+// Ctrl+Shift+N opens the create card; pressing Create takes the folder it suggested.
+pub(super) fn create_card(shell: &Entity<Shell>, cx: &mut VisualTestContext) {
+    shell.update(cx, |shell, cx| {
+        let view = shell.overlay.clone().expect("the create card");
+        let catalog = shell.locale.catalog.clone();
+        view.update(cx, |overlay, cx| {
+            overlay
+                .model
+                .press(&catalog, crate::g2::op1::press::Press::NewFileConfirm);
+            cx.notify();
+        });
+    });
+    cx.run_until_parked();
+    shell.update(cx, |shell, _| { let _ = shell; });
+}
+
+// The keyboard the listing had before a card took it; a real window restores this on its next paint.
+pub(super) fn refocus(shell: &Entity<Shell>, cx: &mut VisualTestContext) {
+    cx.update(|window, cx| {
+        let focus = shell.read(cx).focus.clone();
+        window.focus(&focus, cx);
+    });
+    cx.run_until_parked();
+}
+
+// The card's Cancel, so a test can put the keyboard back on the listing.
+pub(super) fn dismiss_card(shell: &Entity<Shell>, cx: &mut VisualTestContext) {
+    shell.update(cx, |shell, cx| {
+        if let Some(view) = shell.overlay.clone() {
+            let catalog = shell.locale.catalog.clone();
+            view.update(cx, |overlay, cx| {
+                overlay
+                    .model
+                    .press(&catalog, crate::g2::op1::press::Press::NewFileCancel);
+                cx.notify();
+            });
+        }
+    });
+    cx.run_until_parked();
 }
 
 // The keystroke a preset binds to an action, as the platform delivers it.
@@ -89,9 +133,12 @@ fn new_folder_and_trash_keys_send_their_requests_and_the_replies_land(cx: &mut T
     let mut sent = wire(&shell, cx);
     let catalog = catalog(&shell, cx);
     // New Folder supplies the catalog base; the backend resolves collisions.
-    cx.simulate_keystrokes("ctrl-shift-n");
+cx.simulate_keystrokes("ctrl-shift-n");
+    // Ctrl+Shift+N opens the create card suggesting a folder; Create takes that suggestion.
+    create_card(&shell, cx);
+    let requests = sent();
     assert_eq!(
-        sent(),
+        requests,
         [creation_request(
             &shell,
             cx,
@@ -99,10 +146,14 @@ fn new_folder_and_trash_keys_send_their_requests_and_the_replies_land(cx: &mut T
         )]
     );
     let before = lists(&shell, cx);
+    // The card owns this receipt, so the answer carries the request that closes it.
+    let id = flea::json::field_usize(&requests[0], "request").unwrap();
     reply(
         &shell,
         cx,
-        r#"{"t":"made","ok":true,"path":"/files/New Folder"}"#,
+        &format!(
+            r#"{{"t":"menuaction","op":"creation","id":{id},"kind":"made","ok":true,"path":"/files/New Folder"}}"#
+        ),
     );
     assert_eq!(
         notice(&shell, cx),
@@ -118,6 +169,7 @@ fn new_folder_and_trash_keys_send_their_requests_and_the_replies_land(cx: &mut T
         Some("/files/New Folder"),
         "the new folder lands under the cursor"
     );
+    refocus(&shell, cx);
     land(&shell, cx, "/files", home(), 2);
     // Ops.js trash: the marked rows, cleared once the backend answers.
     shell.update(cx, |shell, _| {
@@ -358,16 +410,20 @@ fn ey421_a_created_filename_ending_in_undo_words_stays_whole(cx: &mut TestAppCon
     let (shell, cx) = open(cx, "default");
     land(&shell, cx, "/files", home(), 1);
     let mut sent = wire(&shell, cx);
-    cx.simulate_keystrokes("ctrl-shift-n");
+cx.simulate_keystrokes("ctrl-shift-n");
+    // Ctrl+Shift+N opens the create card suggesting a folder; Create takes that suggestion.
+    create_card(&shell, cx);
     assert_eq!(
         sent(),
         [r#"{"c":"mkdir","path":"/files","defaultBase":"New Folder","request":1}"#]
     );
+    // The card owns this receipt, so it names the card's request and the card closes on it.
     reply(
         &shell,
         cx,
-        r#"{"t":"made","request":1,"ok":true,"path":"/files/notes · z undoes"}"#,
+        r#"{"t":"menuaction","op":"creation","id":1,"kind":"made","ok":true,"path":"/files/notes · z undoes"}"#,
     );
+    refocus(&shell, cx);
     let catalog = catalog(&shell, cx);
     let receipt = lines::made(&catalog, "default", "/files/notes · z undoes");
     assert_eq!(notice(&shell, cx), receipt, "wire receipt stays whole");

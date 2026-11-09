@@ -1,5 +1,6 @@
 //! The inline rename field in Columns and Grid: F2 draws the framed field over the cursor's name with its stem selected, and typing and Enter rename.
 use super::{
+    fileops_tests::create_card,
     rename_tests::{close, draw, editing, notice, ready, receive, sent},
     test_shell::set_cursor,
 };
@@ -168,7 +169,9 @@ fn new_folder_off_screen(cx: &mut TestAppContext, view: View) {
     rows.insert(110, super::test_shell::row("New Folder", true));
     switch(&shell, cx, view);
     sent(&mut lines);
-    cx.simulate_keystrokes("ctrl-shift-n");
+cx.simulate_keystrokes("ctrl-shift-n");
+    // Ctrl+Shift+N opens the create card suggesting a folder; Create takes that suggestion.
+    create_card(&shell, cx);
     assert_eq!(
         sent(&mut lines),
         [super::fileops_tests::creation_request(
