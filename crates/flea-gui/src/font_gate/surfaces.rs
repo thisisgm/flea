@@ -194,7 +194,7 @@ pub(super) fn case_with(
         "run-file" => vec!["run.sh is a program.", "Run in Terminal"],
         "confirm-delete" => vec!["Delete 2 items permanently?"],
         "confirm-empty-trash" => vec!["Empty Trash"],
-        "new-file" => vec!["New file"],
+        "new-file" => vec!["New file", "Enter name for a new file or directory (dirs end with a \"/\"):"],
         "fat-name-confirm" => vec!["Rename incompatible names"],
         "collision-confirm" => vec!["Replace existing files"],
         "compress-password" => vec!["Compress 1 Item"],
