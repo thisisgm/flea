@@ -151,10 +151,12 @@ impl Devices {
     pub(super) fn power_off_next(&mut self, now: u64) -> Vec<Effect> {
         self.power_deadline = Some(now + POWER_OFF_WAIT_MS);
         if self.power_queue.is_empty() {
+            self.power_leg.clear();
             let disk = self.power_disk.clone();
             return vec![self.start(Proc::Eject, Job::plain(&["gio", "mount", "-t", &disk]))];
         }
         let leg = self.power_queue.remove(0);
+        self.power_leg = leg.path.clone();
         vec![self.start(
             Proc::Unmount,
             Job::plain(&["gio", "mount", "-u", &leg.path]),
@@ -183,8 +185,64 @@ impl Devices {
         self.power_deadline = None;
         self.power_disk.clear();
         self.power_queue.clear();
+        self.power_leg.clear();
         self.eject_device.clear();
         self.eject_drives.clear();
+    }
+
+    /// Whether the moved panes' volume is still mounted: a leg not yet tried, or with `refused` the leg that failed.
+    pub(super) fn volume_pending(&self, refused: bool) -> bool {
+        let volume = &self.moved.0;
+        (refused && *volume == self.power_leg)
+            || self.power_queue.iter().any(|leg| leg.path == *volume)
+    }
+
+    /// Every volume the armed release takes down: the row's own and, for an eject or power-off, the rest of its drive.
+    pub fn release_volumes(&self, volume: &str) -> Vec<String> {
+        let mut volumes = vec![volume.to_owned()];
+        if !self.eject_device.is_empty() {
+            let drive = self.entries.iter().filter(|e| {
+                e.mounted
+                    && !e.path.is_empty()
+                    && e.path != volume
+                    && self.on_ejecting_drive(&e.device)
+            });
+            volumes.extend(drive.map(|e| e.path.clone()));
+        }
+        volumes
+    }
+
+    /// The panes a release moved go back only while its volume is still mounted.
+    pub(super) fn put_back(&mut self, mounted: bool) -> Vec<Effect> {
+        let moved = std::mem::take(&mut self.moved.1);
+        if mounted && !moved.is_empty() {
+            vec![Effect::Restore(moved)]
+        } else {
+            Vec::new()
+        }
+    }
+
+    /// A failed step of an eject stands as its verdict, so the next eject's verdict withdraws it.
+    pub(super) fn chain_failure(&mut self, headline: Option<Note>, stderr: &str) -> Vec<Effect> {
+        let mut out: Vec<Effect> = self
+            .last_verdict
+            .take()
+            .map(Effect::Forget)
+            .into_iter()
+            .collect();
+        self.last_verdict = headline.clone();
+        out.push(failure(headline, stderr));
+        out
+    }
+
+    /// The window refused the release before its child started, so nothing it armed stays held.
+    pub fn abandon(&mut self) {
+        self.running[Proc::Unmount as usize] = false;
+        self.running[Proc::Eject as usize] = false;
+        self.unmounting = false;
+        self.verdict_deadline = None;
+        self.end_chain();
+        self.moved.1.clear();
     }
 
     pub(super) fn power_off_expired(&mut self) -> Vec<Effect> {
@@ -202,10 +260,13 @@ impl Devices {
         };
         self.verdict_deadline = None;
         let label = self.eject_label.clone();
+        // A killed leg may have unmounted its volume already, so only legs never tried count as mounted.
+        let mounted = self.volume_pending(false);
         self.end_chain();
         let note = Note::new("device.eject_unfinished", &[&label]);
         let mut out = vec![Effect::Kill(kill)];
         out.extend(self.replace_verdict(note, true));
+        out.extend(self.put_back(mounted));
         out
     }
 
@@ -260,6 +321,7 @@ impl Devices {
         self.eject_device.clear();
         self.eject_drives.clear();
         out.extend(self.replace_verdict(note, error));
+        out.extend(self.put_back(shown == Verdict::Mounted && others.is_empty()));
         out
     }
 
@@ -273,7 +335,9 @@ impl Devices {
                 .unwrap_or_else(|| Note::new("device.eject_failed", &[&self.eject_label]));
             self.end_chain();
             self.verdict_deadline = None;
-            let mut out = vec![failure(Some(headline), &outcome.stderr)];
+            // Power-off runs once every leg is unmounted, so no volume is left to return to.
+            self.moved.1.clear();
+            let mut out = self.chain_failure(Some(headline), &outcome.stderr);
             out.extend(self.poll(now));
             return out;
         }

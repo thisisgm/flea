@@ -236,6 +236,7 @@
   "device.system_drive": "%1 je sistemski disk koji Flea nikada ne odmontira",
   "device.system_volume": "Ova je mapa na sistemskom volumenu koji Flea nikada ne odmontira",
   "device.transfer_using": "Nije moguće odmontirati %1. Možda se još koristi za prijenos.",
+  "device.transfer_running": "Kopiranje na %1 još traje. Pokušajte ponovno kada završi.",
   "device.unconfirmed": "Nije moguće potvrditi da je %1 izbačeno; još ne odspajajte uređaj.",
   "device.unlock.button": "Otključaj",
   "device.unlock.cancel": "omarchy:shell.common.cancel",

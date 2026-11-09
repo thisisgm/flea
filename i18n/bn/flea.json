@@ -226,6 +226,7 @@
   "device.system_drive": "%1 সিস্টেম ড্রাইভ, যা Flea কখনো আনমাউন্ট করে না",
   "device.system_volume": "এই ফোল্ডার সিস্টেম ভলিউমে আছে, যা Flea কখনো আনমাউন্ট করে না",
   "device.transfer_using": "%1 আনমাউন্ট করা যায়নি। কোনো স্থানান্তর এখনো এটি ব্যবহার করতে পারে।",
+  "device.transfer_running": "%1-এ একটি কপি এখনো চলছে। শেষ হলে আবার চেষ্টা করুন।",
   "device.unconfirmed": "%1 বের হয়েছে কি না নিশ্চিত করা যায়নি; এখনই সংযোগ খুলবেন না।",
   "device.unlock.button": "আনলক করুন",
   "device.unlock.cancel": "omarchy:shell.common.cancel",

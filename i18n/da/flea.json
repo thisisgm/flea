@@ -226,6 +226,7 @@
   "device.system_drive": "%1 er systemdrevet, som Flea aldrig afmonterer",
   "device.system_volume": "Mappen er på en systemdiskenhed, som Flea aldrig afmonterer",
   "device.transfer_using": "%1 kunne ikke afmonteres. En overførsel bruger det muligvis stadig.",
+  "device.transfer_running": "En kopiering på %1 kører stadig. Prøv igen, når den er færdig.",
   "device.unconfirmed": "Kunne ikke bekræfte, at %1 er skubbet ud. Vent med at frakoble det.",
   "device.unlock.button": "Lås op",
   "device.unlock.cancel": "omarchy:shell.common.cancel",

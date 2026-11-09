@@ -236,6 +236,7 @@
   "device.system_drive": "⁨%1⁩ הוא כונן המערכת, ש-⁨Flea⁩ לעולם אינו מנתק את העיגון שלו",
   "device.system_volume": "תיקייה זו נמצאת בכרך מערכת, ש-⁨Flea⁩ לעולם אינו מנתק את העיגון שלו",
   "device.transfer_using": "לא ניתן היה לנתק את העיגון של ⁨%1⁩. ייתכן שהעברה עדיין משתמשת בו.",
+  "device.transfer_running": "העתקה ב־⁨%1⁩ עדיין פועלת. נסו שוב כשתסתיים.",
   "device.unconfirmed": "לא ניתן היה לוודא ש-⁨%1⁩ הוצא; אין לנתק אותו עדיין.",
   "device.unlock.button": "ביטול נעילה",
   "device.unlock.cancel": "omarchy:shell.common.cancel",

@@ -236,6 +236,7 @@
   "device.system_drive": "%1 je systémová jednotka, ktorú Flea nikdy neodpája",
   "device.system_volume": "Tento priečinok je na systémovom zväzku, ktorý Flea nikdy neodpája",
   "device.transfer_using": "%1 sa nepodarilo odpojiť. Prenos ho možno ešte používa.",
+  "device.transfer_running": "Na %1 ešte prebieha kopírovanie. Skúste to znova po dokončení.",
   "device.unconfirmed": "Nepodarilo sa potvrdiť vysunutie %1. Zatiaľ ho neodpájajte.",
   "device.unlock.button": "Odomknúť",
   "device.unlock.cancel": "omarchy:shell.common.cancel",

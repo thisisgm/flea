@@ -375,6 +375,7 @@
   "device.no_disc": "%1에 디스크나 카드가 없습니다.",
   "device.not_mountable": "이 컴퓨터에서는 %1을(를) 마운트할 수 없습니다.",
   "device.transfer_using": "%1의 마운트를 해제할 수 없습니다. 전송 작업이 아직 사용 중일 수 있습니다.",
+  "device.transfer_running": "%1에서 복사가 아직 진행 중입니다. 완료 후 다시 시도하세요.",
   "device.system_drive": "%1은(는) 시스템 드라이브이며 Flea는 시스템 드라이브의 마운트를 해제하지 않습니다",
   "device.system_volume": "이 폴더는 시스템 볼륨에 있으며 Flea는 시스템 볼륨의 마운트를 해제하지 않습니다",
   "device.no_volume": "이 폴더는 Flea가 꺼낼 수 있는 드라이브에 있지 않습니다.",

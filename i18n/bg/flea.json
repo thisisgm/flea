@@ -226,6 +226,7 @@
   "device.system_drive": "%1 е системното устройство, което Flea никога не демонтира",
   "device.system_volume": "Тази папка е на системен том, който Flea никога не демонтира",
   "device.transfer_using": "%1 не може да бъде демонтирано. Прехвърляне може още да го използва.",
+  "device.transfer_running": "Копиране на %1 все още тече. Опитай отново, когато завърши.",
   "device.unconfirmed": "Няма потвърждение, че %1 е извадено. Все още не го разкачай.",
   "device.unlock.button": "Отключи",
   "device.unlock.cancel": "omarchy:shell.common.cancel",

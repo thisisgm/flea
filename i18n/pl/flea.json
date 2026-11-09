@@ -246,6 +246,7 @@
   "device.system_drive": "%1 jest dyskiem systemowym, którego Flea nigdy nie odmontowuje",
   "device.system_volume": "Ten folder znajduje się na woluminie systemowym, którego Flea nigdy nie odmontowuje",
   "device.transfer_using": "Nie udało się odmontować %1. Transfer może nadal z niego korzystać.",
+  "device.transfer_running": "Kopiowanie na %1 nadal trwa. Spróbuj ponownie po zakończeniu.",
   "device.unconfirmed": "Nie udało się potwierdzić wysunięcia %1. Jeszcze go nie odłączaj.",
   "device.unlock.button": "Odblokuj",
   "device.unlock.cancel": "omarchy:shell.common.cancel",

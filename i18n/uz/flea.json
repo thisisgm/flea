@@ -226,6 +226,7 @@
   "device.system_drive": "%1 tizim diski, Flea uni hech qachon fayl tizimidan ajratmaydi",
   "device.system_volume": "Bu jild tizim tomida, Flea uni hech qachon fayl tizimidan ajratmaydi",
   "device.transfer_using": "%1 ni fayl tizimidan ajratib boʻlmadi. Undan fayl uzatish amali foydalanayotgan boʻlishi mumkin.",
+  "device.transfer_running": "%1 da nusxalash hali davom etmoqda. Tugagach qayta urining.",
   "device.unconfirmed": "%1 chiqarilganini tasdiqlab boʻlmadi; hali uzmang.",
   "device.unlock.button": "Qulfni ochish",
   "device.unlock.cancel": "omarchy:shell.common.cancel",

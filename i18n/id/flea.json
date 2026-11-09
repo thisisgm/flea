@@ -377,6 +377,7 @@
   "device.no_disc": "Tidak ada cakram atau kartu di %1.",
   "device.not_mountable": "%1 tidak dapat dikaitkan di komputer ini.",
   "device.transfer_using": "Kaitan %1 tidak dapat dilepas. Transfer mungkin masih menggunakannya.",
+  "device.transfer_running": "Penyalinan di %1 masih berjalan. Coba lagi setelah selesai.",
   "device.system_drive": "%1 adalah drive sistem, yang kaitannya tidak pernah dilepas oleh Flea",
   "device.system_volume": "Folder ini berada di volume sistem, yang kaitannya tidak pernah dilepas oleh Flea",
   "device.no_volume": "Folder ini tidak berada di drive yang dapat dikeluarkan oleh Flea.",

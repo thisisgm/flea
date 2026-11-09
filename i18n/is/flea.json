@@ -226,6 +226,7 @@
   "device.system_drive": "%1 er kerfisdrifið, sem Flea aftengir aldrei",
   "device.system_volume": "Þessi mappa er á kerfisdiski, sem Flea aftengir aldrei",
   "device.transfer_using": "Ekki tókst að aftengja %1. Flutningur gæti enn verið að nota það.",
+  "device.transfer_running": "Afritun á %1 er enn í gangi. Reyndu aftur þegar henni lýkur.",
   "device.unconfirmed": "Ekki tókst að staðfesta að %1 væri kastað út; ekki aftengja það strax.",
   "device.unlock.button": "Aflæsa",
   "device.unlock.cancel": "omarchy:shell.common.cancel",

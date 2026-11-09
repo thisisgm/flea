@@ -226,6 +226,7 @@
   "device.system_drive": "Ang %1 ang system drive, na hindi kailanman ina-unmount ng Flea",
   "device.system_volume": "Nasa system volume ang folder na ito, na hindi kailanman ina-unmount ng Flea",
   "device.transfer_using": "Hindi ma-unmount ang %1. Maaaring ginagamit pa ito ng paglilipat.",
+  "device.transfer_running": "May kopya pang tumatakbo sa %1. Subukan muli kapag tapos na.",
   "device.unconfirmed": "Hindi makumpirmang na-eject ang %1; huwag muna itong tanggalin sa saksakan.",
   "device.unlock.button": "I-unlock",
   "device.unlock.cancel": "omarchy:shell.common.cancel",

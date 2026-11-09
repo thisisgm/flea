@@ -226,6 +226,7 @@
   "device.system_drive": "%1 on järjestelmäasema, jonka liitosta Flea ei koskaan irrota",
   "device.system_volume": "Kansio on järjestelmätaltiolla, jonka liitosta Flea ei koskaan irrota",
   "device.transfer_using": "Kohteen %1 liitosta ei voitu irrottaa. Tiedostosiirto saattaa yhä käyttää sitä.",
+  "device.transfer_running": "Kopiointi kohteessa %1 on vielä käynnissä. Yritä uudelleen sen valmistuttua.",
   "device.unconfirmed": "Kohteen %1 turvallista poistamista ei voitu varmistaa. Älä irrota sitä vielä.",
   "device.unlock.button": "Avaa lukitus",
   "device.unlock.cancel": "omarchy:shell.common.cancel",

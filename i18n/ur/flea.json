@@ -226,6 +226,7 @@
   "device.system_drive": "⁨%1⁩ سسٹم کی ڈرائیو ہے، جسے Flea کبھی ان ماؤنٹ نہیں کرتا",
   "device.system_volume": "یہ فولڈر سسٹم والیوم پر ہے، جسے Flea کبھی ان ماؤنٹ نہیں کرتا",
   "device.transfer_using": "⁨%1⁩ ان ماؤنٹ نہیں ہو سکا۔ کوئی منتقلی اب بھی اسے استعمال کر رہی ہو سکتی ہے۔",
+  "device.transfer_running": "⁨%1⁩ پر ایک کاپی اب بھی چل رہی ہے۔ مکمل ہونے پر دوبارہ کوشش کریں۔",
   "device.unconfirmed": "⁨%1⁩ کے اخراج کی تصدیق نہیں ہو سکی؛ ابھی اسے الگ نہ کریں۔",
   "device.unlock.button": "ان لاک کریں",
   "device.unlock.cancel": "omarchy:shell.common.cancel",

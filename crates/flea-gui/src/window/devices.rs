@@ -1,4 +1,5 @@
 //! The window side of a device release: Ctrl+E, the eject mark and the quiesce that comes before the release child.
+use crate::g2::device_rail::devices::Moved;
 use crate::state::Shell;
 use flea::ui_logic_device_rail::mounts::inside;
 use flea::ui_logic_rail_places::rail::{Group, RailEntry};
@@ -39,6 +40,13 @@ impl Shell {
             self.release_share(side, &share, cx);
             return;
         }
+        if let Some(place) = cursor
+            .as_ref()
+            .filter(|row| from_rail && row.group != Group::Device)
+        {
+            self.say_nothing_to_release(place, cx);
+            return;
+        }
         let source = join.devices.clone();
         source.update(cx, |source, cx| {
             source.release(&path, from_rail, cursor.as_ref(), system_volume, side, cx)
@@ -55,8 +63,13 @@ impl Shell {
             self.network_unmount(&row, origin, cx);
             return;
         }
-        let note =
-            flea::ui_logic_device_rail::Note::new("device.nothing_to_release", &[&share.label]);
+        self.say_nothing_to_release(share, cx);
+    }
+
+    /// A rail row with nothing to release says so by the name the rail shows for it, a built-in place included.
+    fn say_nothing_to_release(&mut self, row: &RailEntry, cx: &mut Context<Self>) {
+        let label = crate::g2::rail_places::content::row_label(&self.locale.catalog, row);
+        let note = flea::ui_logic_device_rail::Note::new("device.nothing_to_release", &[&label]);
         let text = crate::g2::device_rail::words::say(&self.locale.catalog, &note);
         let hint = flea::ui_logic_status_feedback::status::Hint::None;
         self.status_messages(cx, |messages, now| {
@@ -86,7 +99,16 @@ impl Shell {
         cx: &mut Context<Self>,
     ) {
         let side = side.min(1);
+        let source = self.rail.as_ref().map(|join| join.devices.clone());
+        if let Some(label) = self.transfer_on(volume, cx) {
+            let note = flea::ui_logic_device_rail::Note::new("device.transfer_running", &[&label]);
+            if let Some(source) = source {
+                source.update(cx, |source, cx| source.refused(note, cx));
+            }
+            return;
+        }
         let mut failed = Vec::new();
+        let mut moved = Vec::new();
         let home = std::env::var("HOME").unwrap_or_default();
         for pane_side in 0..self.panes.len() {
             let Some(host) = self.panes[pane_side].as_ref() else {
@@ -107,13 +129,23 @@ impl Shell {
                 preview.update(cx, |preview, cx| preview.hide(window, cx));
             }
             if !home.is_empty() {
-                if let Err(refusal) = self.step(
+                let from = if inside(host.pane.place(), volume) {
+                    host.pane.place().to_owned()
+                } else {
+                    host.path.clone()
+                };
+                match self.step(
                     pane_side,
                     super::navigate::Step::OpenPlace(home.clone()),
                     window,
                     cx,
                 ) {
-                    failed.push(self.locale.catalog.tr(refusal.key()));
+                    Ok(_) => moved.push(Moved {
+                        side: pane_side,
+                        from,
+                        to: home.clone(),
+                    }),
+                    Err(refusal) => failed.push(self.locale.catalog.tr(refusal.key())),
                 }
             }
         }
@@ -129,9 +161,48 @@ impl Shell {
                 )
             });
         }
-        if let Some(join) = &self.rail {
-            let source = join.devices.clone();
-            source.update(cx, |source, cx| source.quiesced(cx));
+        if let Some(source) = source {
+            source.update(cx, |source, cx| source.quiesced(volume, moved, cx));
+        }
+    }
+
+    /// The shown name of a volume the release takes down that a transfer of this window reads or writes, if any.
+    fn transfer_on(&self, volume: &str, cx: &mut Context<Self>) -> Option<String> {
+        let devices = &self.rail.as_ref()?.devices.read(cx).devices;
+        let volumes = devices.release_volumes(volume);
+        let busy = volumes.iter().find(|volume| {
+            self.panes
+                .iter()
+                .flatten()
+                .filter_map(|host| host.backend.as_ref())
+                .any(|backend| backend.transfers_on(volume))
+        })?;
+        let label = devices
+            .entries
+            .iter()
+            .find(|entry| entry.path == *busy)
+            .map(|entry| entry.label.clone());
+        Some(label.unwrap_or_else(|| busy.clone()))
+    }
+
+    /// A refused release puts each pane it moved back in the folder it left, unless the pane has been sent elsewhere since.
+    pub(crate) fn restore_moved(
+        &mut self,
+        moved: &[Moved],
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        for pane in moved {
+            let here = self
+                .panes
+                .get(pane.side)
+                .and_then(Option::as_ref)
+                .is_some_and(|host| host.pane.place() == pane.to);
+            if here {
+                let step = super::navigate::Step::OpenPlace(pane.from.clone());
+                // OpenPlace supersedes a busy pane and reads no row, so it never refuses.
+                let _ = self.step(pane.side, step, window, cx);
+            }
         }
     }
 

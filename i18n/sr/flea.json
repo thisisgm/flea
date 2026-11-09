@@ -236,6 +236,7 @@
   "device.system_drive": "%1 је системски уређај, који Flea никада не демонтира",
   "device.system_volume": "Ова фасцикла је на системском волумену, који Flea никада не демонтира",
   "device.transfer_using": "Није могуће демонтирати %1. Можда га пренос још користи.",
+  "device.transfer_running": "Копирање на %1 још траје. Покушајте поново када се заврши.",
   "device.unconfirmed": "Није могуће потврдити да је %1 избачен; још га не искључујте.",
   "device.unlock.button": "Откључај",
   "device.unlock.cancel": "omarchy:shell.common.cancel",
