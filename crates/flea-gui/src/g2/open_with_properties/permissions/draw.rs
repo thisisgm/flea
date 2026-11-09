@@ -230,7 +230,8 @@ impl Permissions {
                 },
             ]);
             body.push(Block::Stack(stack));
-            if logic::parse(&self.text).is_none() {
+            // A read-only card holds the file's own mode, a four-digit one included, so only an editable one names a typing error.
+            if self.changeable() && logic::parse(&self.text).is_none() {
                 body.push(Block::Note {
                     text: tr("dialogs.file.permissions.octal_invalid"),
                     inset: 0.,

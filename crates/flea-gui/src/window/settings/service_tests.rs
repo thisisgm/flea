@@ -118,11 +118,17 @@ fn u11_an_unreadable_document_reports_once_and_recovers_after_a_valid_read() {
     let path = root.0.join("ui.json");
     std::fs::write(&path, "{bad").unwrap();
     let worker = Worker::at(path.clone(), root.0.join("no-flea")).unwrap();
-    assert!(matches!(next(&worker), Update::Unreadable));
+    assert!(matches!(
+        next(&worker),
+        Update::Unreadable("settings.error.unreadable")
+    ));
     std::fs::write(&path, "{}").unwrap();
     assert!(matches!(next(&worker), Update::Loaded { .. }));
     std::fs::write(path, "[]").unwrap();
-    assert!(matches!(next(&worker), Update::Unreadable));
+    assert!(matches!(
+        next(&worker),
+        Update::Unreadable("settings.error.favourites_unread")
+    ));
 }
 
 #[gpui::test]

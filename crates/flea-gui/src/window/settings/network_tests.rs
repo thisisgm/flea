@@ -52,7 +52,7 @@ fn uish_misc_favourite_committed_response_never_replays_the_write(cx: &mut TestA
             if let Ok(update) = updates.try_recv() {
                 if !matches!(
                     update,
-                    Update::Corner(_) | Update::Unreadable | Update::Loaded { through: 0, .. }
+                    Update::Corner(_) | Update::Unreadable(_) | Update::Loaded { through: 0, .. }
                 ) {
                     cx.update(|window, cx| {
                         shell.update(cx, |shell, cx| shell.receive_settings(update, window, cx))
@@ -148,7 +148,7 @@ fn uish_misc_native8_network_save_keeps_the_real_writer_refusal(cx: &mut TestApp
         if let Ok(update) = updates.try_recv() {
             if !matches!(
                 update,
-                Update::Corner(_) | Update::Unreadable | Update::Loaded { through: 0, .. }
+                Update::Corner(_) | Update::Unreadable(_) | Update::Loaded { through: 0, .. }
             ) {
                 cx.update(|window, cx| {
                     shell.update(cx, |shell, cx| shell.receive_settings(update, window, cx))

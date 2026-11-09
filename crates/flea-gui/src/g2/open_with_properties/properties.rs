@@ -36,9 +36,11 @@ pub struct Properties {
     /// Set once the Properties request is out, so a repeated snapshot answer cannot ask twice.
     asked: bool,
     shown: Shown,
-    /// The facts view's extra pairs (photo, codecs) and the MIME database's kind word, filled by their own producers.
+    /// Pairs a host sets ahead of the media pairs (the window sets none) and the MIME database's kind word the host holds.
     extras: Vec<(String, String)>,
     mime_kind: String,
+    /// The facts reply's codecs, bit rate and deferred EXIF for one file, None until it lands.
+    media: Option<flea::ui_logic_preview_core::property::Facts>,
 }
 
 impl Properties {
@@ -51,6 +53,7 @@ impl Properties {
             shown: Shown::Asking,
             extras: Vec::new(),
             mime_kind: String::new(),
+            media: None,
         }
     }
 
@@ -138,12 +141,19 @@ impl Properties {
             (Some("properties"), _) => {
                 let facts = Facts::from_reply(reply);
                 let walk = facts.directory.then(|| logic::begin(&facts));
+                let media = facts.asks_media();
                 self.shown = Shown::One(facts, walk);
                 if walk.is_some() {
                     return vec![Effect::Send(logic::contents_request(self.id))];
                 }
+                // A file's codecs and deferred EXIF follow on the same id, as v0.3.12 asked them.
+                if media {
+                    return vec![Effect::Send(logic::facts_request(self.id))];
+                }
             }
             (Some("contents"), Shown::One(_, Some(walk))) => *walk = logic::next(*walk, reply),
+            // A refused or cancelled facts reply adds no pair; the properties reply's own photo stays.
+            (Some("facts"), Shown::One(_, None)) if ok => self.media = Some(logic::media(reply)),
             _ => {}
         }
         Vec::new()
@@ -151,10 +161,14 @@ impl Properties {
 
     pub fn card(&self, i18n: &I18n) -> Card {
         let (pairs, tags) = match &self.shown {
-            Shown::One(facts, walk) => (
-                logic::pairs(i18n, facts, *walk, &self.extras, &self.mime_kind),
-                facts.tags.clone(),
-            ),
+            Shown::One(facts, walk) => {
+                let mut extras = self.extras.clone();
+                extras.extend(logic::media_pairs(i18n, facts, self.media.as_ref()));
+                (
+                    logic::pairs(i18n, facts, *walk, &extras, &self.mime_kind),
+                    facts.tags.clone(),
+                )
+            }
             Shown::Several(several) => (logic::several_pairs(i18n, several), Vec::new()),
             Shown::Asking | Shown::Refused(_) => (Vec::new(), Vec::new()),
         };

@@ -26,7 +26,8 @@ impl Store for SessionStore {
 
 pub enum Update {
     Corner(f32),
-    Unreadable,
+    /// ui.json is there but cannot be read; the catalog key says what that left on screen.
+    Unreadable(&'static str),
     Loaded {
         document: Json,
         through: u64,
@@ -125,7 +126,8 @@ impl Worker {
                 let mut read_failed = false;
                 let mut initial = true;
                 loop {
-                    let request = if std::mem::take(&mut initial) {
+                    let launch = std::mem::take(&mut initial);
+                    let request = if launch {
                         Err(mpsc::RecvTimeoutError::Timeout)
                     } else {
                         queue.recv_timeout(Duration::from_millis(200))
@@ -197,8 +199,14 @@ impl Worker {
                             let body = match read_document(&path) {
                                 Ok(body) => body,
                                 Err(()) => {
+                                    // The launch read drew the shipped defaults over it; a later one keeps the list it had.
+                                    let key = if launch {
+                                        "settings.error.unreadable"
+                                    } else {
+                                        "settings.error.favourites_unread"
+                                    };
                                     if !read_failed {
-                                        let _ = send.send_blocking(Update::Unreadable);
+                                        let _ = send.send_blocking(Update::Unreadable(key));
                                         read_failed = true;
                                     }
                                     continue;
