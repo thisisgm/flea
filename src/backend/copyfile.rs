@@ -213,7 +213,7 @@ fn copy_file_at(src: At, dst: At, total: u64, p: &mut Progress, inside: bool) ->
             }
             record_open(p, dst.named, &w);
             if let Some(durability) = p.durability.as_mut() {
-                durability.hold(w);
+                durability.hold(w, if inflight.is_some() { 0 } else { done });
             }
             return Ok(());
         }
