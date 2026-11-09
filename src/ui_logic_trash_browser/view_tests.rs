@@ -102,8 +102,8 @@ pub(super) fn row(name: &str, deleted: &str) -> String {
     format!(r#"{{"uri":"trash:///{name}","original":"/home/gm/{name}","size":10,"deleted":"{deleted}","directory":false,"icon":"text-x-generic","identity":"id-{name}","bulkSelected":false,"storageClass":"","thumbnail":null}}"#)
 }
 
-fn names(view: &View) -> Vec<&str> {
-    view.rows.iter().map(|r| r.name()).collect()
+fn names(view: &View) -> Vec<String> {
+    view.rows.iter().map(|r| r.name().into_owned()).collect()
 }
 
 fn labels(items: &[Item]) -> Vec<&'static str> {

@@ -73,9 +73,9 @@ impl TrashRow {
         })
     }
 
-    /// The name the row draws: the original's last segment.
-    pub fn name(&self) -> &str {
-        self.original.rsplit('/').next().unwrap_or("")
+    /// The name the row draws: the original's last segment, without the exact tail of a name that is not UTF-8.
+    pub fn name(&self) -> std::borrow::Cow<'_, str> {
+        crate::bytename::display(self.original.rsplit('/').next().unwrap_or(""))
     }
 
     /// TrashThumbs.qml: a row the backend described an image for, unless its store is null (unclassified).

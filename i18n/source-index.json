@@ -104059,7 +104059,7 @@
       "call_sites": [
         {
           "excerpt": "2 => format!(\"{}{}\", theme.meta, ellipsis(&i18n.tr_args(\"trash.deleted\", &[&super::calendar::localized_value(&Json::Str(deleted.clone()), m.i18n.locale())]), width)),",
-          "line": 179,
+          "line": 180,
           "path": "src/tui/trashview.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -104716,7 +104716,7 @@
       "call_sites": [
         {
           "excerpt": "3 => format!(\"{}{}\", theme.meta, ellipsis(&i18n.tr_args(\"trash.original\", &[&location]), width)),",
-          "line": 180,
+          "line": 181,
           "path": "src/tui/trashview.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -104946,15 +104946,15 @@
     "trash.unknown": {
       "call_sites": [
         {
-          "excerpt": "dates::location(original, home).unwrap_or_else(|| i18n.tr(\"trash.unknown\"))",
-          "line": 169,
+          "excerpt": ".unwrap_or_else(|| i18n.tr(\"trash.unknown\"))",
+          "line": 170,
           "path": "src/ui_logic_trash_browser/words.rs",
           "surface": "core/backend",
           "usage": "translated-call"
         },
         {
           "excerpt": ".unwrap_or_else(|| i18n.tr(\"trash.unknown\"))",
-          "line": 176,
+          "line": 177,
           "path": "src/ui_logic_trash_browser/words.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -163279,7 +163279,7 @@
     },
     {
       "excerpt": "Refusal::new(Outcome::Indistinct(selecting), \"The Trash provider did not report a stable item identity.\").logged()",
-      "line": 58,
+      "line": 60,
       "literal": "The Trash provider did not report a stable item identity.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -163288,7 +163288,7 @@
     },
     {
       "excerpt": "Refusal::new(Outcome::Unchecked(op), \"The backing identity for the Trash item is unavailable.\").logged()",
-      "line": 61,
+      "line": 63,
       "literal": "The backing identity for the Trash item is unavailable.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -163297,7 +163297,7 @@
     },
     {
       "excerpt": "let output = output.map_err(|e| unreadable(format!(\"Could not start the Trash helper: {}\", e)))?;",
-      "line": 156,
+      "line": 159,
       "literal": "Could not start the Trash helper: {}",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -163306,7 +163306,7 @@
     },
     {
       "excerpt": "return Err(Refusal::new(Outcome::TookTooLong, \"The Trash helper exceeded its deadline.\").logged());",
-      "line": 159,
+      "line": 162,
       "literal": "The Trash helper exceeded its deadline.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -163315,7 +163315,7 @@
     },
     {
       "excerpt": "return Err(unreadable(String::from_utf8_lossy(&output.stderr).lines().last().unwrap_or(\"The gio Trash helper failed.\")));",
-      "line": 161,
+      "line": 164,
       "literal": "The gio Trash helper failed.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -163324,7 +163324,7 @@
     },
     {
       "excerpt": "String::from_utf8(output.stdout).map_err(|_| unreadable(\"The Trash helper returned invalid text.\"))",
-      "line": 163,
+      "line": 166,
       "literal": "The Trash helper returned invalid text.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -163333,7 +163333,7 @@
     },
     {
       "excerpt": "\"Trash left out what gio could not describe: {}\",",
-      "line": 206,
+      "line": 209,
       "literal": "Trash left out what gio could not describe: {}",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -163342,7 +163342,7 @@
     },
     {
       "excerpt": "left_out.join(\", \")",
-      "line": 207,
+      "line": 210,
       "literal": ", ",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -163351,7 +163351,7 @@
     },
     {
       "excerpt": ".ok_or_else(|| unreadable(\"The Trash helper did not report the item's size.\"))?;",
-      "line": 296,
+      "line": 301,
       "literal": "The Trash helper did not report the item's size.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -163360,7 +163360,7 @@
     },
     {
       "excerpt": "directory: attribute(text, \"standard::type\") == Some(\"2\"),",
-      "line": 321,
+      "line": 326,
       "literal": "2",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -163369,7 +163369,7 @@
     },
     {
       "excerpt": ".split(\", \")",
-      "line": 324,
+      "line": 329,
       "literal": ", ",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -163378,7 +163378,7 @@
     },
     {
       "excerpt": "return Err(selection_changed(format!(\"Trash selection changed for {}.\", item.item.uri)));",
-      "line": 369,
+      "line": 374,
       "literal": "Trash selection changed for {}.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -163387,7 +163387,7 @@
     },
     {
       "excerpt": "String::from_utf8(bytes).map_err(|_| damaged(\"Invalid text in Trash review.\"))",
-      "line": 375,
+      "line": 380,
       "literal": "Invalid text in Trash review.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -163396,7 +163396,7 @@
     },
     {
       "excerpt": "Ok(Item { uri: field_str(text, \"uri\").ok_or_else(|| damaged(\"Missing reviewed Trash URI.\"))?,",
-      "line": 378,
+      "line": 383,
       "literal": "Missing reviewed Trash URI.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -163405,7 +163405,7 @@
     },
     {
       "excerpt": "original: field_str(text, \"original\").ok_or_else(|| damaged(\"Missing reviewed original path.\"))? })",
-      "line": 379,
+      "line": 384,
       "literal": "Missing reviewed original path.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -163414,7 +163414,7 @@
     },
     {
       "excerpt": "escape(&item.identity), escape(&item.backing.as_ref().ok_or_else(|| damaged(\"Missing Trash backing review.\"))?.saved()?)));",
-      "line": 385,
+      "line": 390,
       "literal": "Missing Trash backing review.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -163423,7 +163423,7 @@
     },
     {
       "excerpt": "size: field_usize(text, \"size\").ok_or_else(|| damaged(\"Missing reviewed Trash size.\"))? as u64,",
-      "line": 391,
+      "line": 396,
       "literal": "Missing reviewed Trash size.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -163432,7 +163432,7 @@
     },
     {
       "excerpt": "identity: field_str(text, \"providerIdentity\").ok_or_else(|| damaged(\"Missing reviewed provider identity.\"))?,",
-      "line": 393,
+      "line": 398,
       "literal": "Missing reviewed provider identity.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -163441,7 +163441,7 @@
     },
     {
       "excerpt": "backing: Some(Reviewed::from_saved(&field_str(text, \"backing\").ok_or_else(|| damaged(\"Missing Trash backing review.\"))?, trees)?),",
-      "line": 396,
+      "line": 401,
       "literal": "Missing Trash backing review.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -163450,7 +163450,7 @@
     },
     {
       "excerpt": "failure(&item, \"\", \"One Trash record could not be read, so that item was left in place.\")",
-      "line": 423,
+      "line": 428,
       "literal": "One Trash record could not be read, so that item was left in place.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -163459,7 +163459,7 @@
     },
     {
       "excerpt": "failure(&Item { uri: String::new(), original: String::new() }, \"\", &format!(\"{count} Trash records could not be read, so those items were left in place.\"))",
-      "line": 427,
+      "line": 432,
       "literal": "{count} Trash records could not be read, so those items were left in place.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -163468,7 +163468,7 @@
     },
     {
       "excerpt": "_ => Err(\"Unknown Trash request.\".into()),",
-      "line": 522,
+      "line": 527,
       "literal": "Unknown Trash request.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -163477,7 +163477,7 @@
     },
     {
       "excerpt": "if self.confirmation.is_some() { return Err(\"Finish or cancel the Trash confirmation before selecting items.\".into()); }",
-      "line": 570,
+      "line": 575,
       "literal": "Finish or cancel the Trash confirmation before selecting items.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -163486,7 +163486,7 @@
     },
     {
       "excerpt": "if !same_items(&list()?, &self.items) { return Err(\"Trash changed while selecting its contents; select again.\".into()); }",
-      "line": 582,
+      "line": 587,
       "literal": "Trash changed while selecting its contents; select again.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -163495,7 +163495,7 @@
     },
     {
       "excerpt": "return Err(selection_changed(\"The reviewed identity for the Trash selection is missing.\").into());",
-      "line": 624,
+      "line": 629,
       "literal": "The reviewed identity for the Trash selection is missing.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -163504,7 +163504,7 @@
     },
     {
       "excerpt": ".ok_or_else(|| selection_changed(\"The saved Trash selection is no longer current.\"))?;",
-      "line": 637,
+      "line": 642,
       "literal": "The saved Trash selection is no longer current.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -163513,7 +163513,7 @@
     },
     {
       "excerpt": ".ok_or_else(|| selection_changed(\"The saved Trash selection is no longer current.\"))?;",
-      "line": 652,
+      "line": 657,
       "literal": "The saved Trash selection is no longer current.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -163522,7 +163522,7 @@
     },
     {
       "excerpt": "if expected.is_empty() { return Err(selection_changed(\"The reviewed identity for the Trash selection is missing.\").into()); }",
-      "line": 653,
+      "line": 658,
       "literal": "The reviewed identity for the Trash selection is missing.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -163531,7 +163531,7 @@
     },
     {
       "excerpt": "if targets.len() == 0 { return Err(if all { \"Trash is empty.\" } else { \"Select at least one Trash item.\" }.into()); }",
-      "line": 658,
+      "line": 663,
       "literal": "Trash is empty.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -163540,7 +163540,7 @@
     },
     {
       "excerpt": "if targets.len() == 0 { return Err(if all { \"Trash is empty.\" } else { \"Select at least one Trash item.\" }.into()); }",
-      "line": 658,
+      "line": 663,
       "literal": "Select at least one Trash item.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -163549,7 +163549,7 @@
     },
     {
       "excerpt": "if targets.len() == 0 { return Err(\"The selected Trash items are no longer present.\".into()); }",
-      "line": 687,
+      "line": 692,
       "literal": "The selected Trash items are no longer present.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -163558,7 +163558,7 @@
     },
     {
       "excerpt": ".ok_or(\"Trash confirmation expired; start the action again.\")?;",
-      "line": 697,
+      "line": 702,
       "literal": "Trash confirmation expired; start the action again.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -163567,7 +163567,7 @@
     },
     {
       "excerpt": "nodes = nodes.checked_add(current.backing.as_ref().unwrap().reviewed_nodes()).ok_or(\"Trash file total exceeds the supported range.\")?;",
-      "line": 721,
+      "line": 726,
       "literal": "Trash file total exceeds the supported range.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -163576,7 +163576,7 @@
     },
     {
       "excerpt": "bytes = bytes.checked_add(size).ok_or(\"Trash byte total exceeds the supported range.\")?;",
-      "line": 722,
+      "line": 727,
       "literal": "Trash byte total exceeds the supported range.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -163585,17 +163585,8 @@
     },
     {
       "excerpt": "return Err(\"Trash changed while reviewing its contents; try the action again.\".into());",
-      "line": 731,
+      "line": 740,
       "literal": "Trash changed while reviewing its contents; try the action again.",
-      "owner": "controller",
-      "path": "src/backend/trashbrowse.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "return Err(\"an operation is already running\".into());",
-      "line": 769,
-      "literal": "an operation is already running",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -163666,7 +163657,7 @@
     },
     {
       "excerpt": "field_bool(&line, \"cancelled\")",
-      "line": 174,
+      "line": 175,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/trashbrowse/job.rs",
@@ -163675,7 +163666,7 @@
     },
     {
       "excerpt": "return Err(\"an operation is already running\".into());",
-      "line": 206,
+      "line": 207,
       "literal": "an operation is already running",
       "owner": "controller",
       "path": "src/backend/trashbrowse/job.rs",
@@ -163684,7 +163675,7 @@
     },
     {
       "excerpt": "Refusal::new(Outcome::ConfirmAgain, \"Trash changed; confirm again.\").logged(),",
-      "line": 211,
+      "line": 212,
       "literal": "Trash changed; confirm again.",
       "owner": "controller",
       "path": "src/backend/trashbrowse/job.rs",
@@ -163693,10 +163684,64 @@
     },
     {
       "excerpt": ".ok_or(\"Trash confirmation expired.\")?;",
-      "line": 218,
+      "line": 219,
       "literal": "Trash confirmation expired.",
       "owner": "controller",
       "path": "src/backend/trashbrowse/job.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "return Err(\"an operation is already running\".into());",
+      "line": 11,
+      "literal": "an operation is already running",
+      "owner": "controller",
+      "path": "src/backend/trashbrowse/restore.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "return Some(\"its Trash's files folder cannot be read\");",
+      "line": 80,
+      "literal": "its Trash's files folder cannot be read",
+      "owner": "controller",
+      "path": "src/backend/trashbrowse/sweep.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": ".then_some(\"a claim's quarantine is in its Trash\")",
+      "line": 85,
+      "literal": "a claim's quarantine is in its Trash",
+      "owner": "controller",
+      "path": "src/backend/trashbrowse/sweep.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"Empty Trash left {} in place: {why}\",",
+      "line": 89,
+      "literal": "Empty Trash left {} in place: {why}",
+      "owner": "controller",
+      "path": "src/backend/trashbrowse/sweep.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"Empty Trash could not list the Trash's backing files through gio: {}\",",
+      "line": 119,
+      "literal": "Empty Trash could not list the Trash's backing files through gio: {}",
+      "owner": "controller",
+      "path": "src/backend/trashbrowse/sweep.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "skipped(&orphan.path, \"it changed\");",
+      "line": 223,
+      "literal": "it changed",
+      "owner": "controller",
+      "path": "src/backend/trashbrowse/sweep.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "core/backend"
     },
@@ -164755,7 +164800,7 @@
     },
     {
       "excerpt": "const FINISHED: &[u8] = b\"flea recovery complete 1\";",
-      "line": 11,
+      "line": 14,
       "literal": "flea recovery complete 1",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -164764,7 +164809,7 @@
     },
     {
       "excerpt": "Refusal::new(Outcome::NoRecord(Op::Delete), detail).because(\"the recovery record could not be written\")",
-      "line": 23,
+      "line": 26,
       "literal": "the recovery record could not be written",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -164773,7 +164818,7 @@
     },
     {
       "excerpt": "if !root.is_absolute() { return Err(unkept(\"Recovery storage requires an absolute folder.\").because(\"the recovery folder is not valid\")); }",
-      "line": 41,
+      "line": 44,
       "literal": "Recovery storage requires an absolute folder.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -164782,7 +164827,7 @@
     },
     {
       "excerpt": "if !root.is_absolute() { return Err(unkept(\"Recovery storage requires an absolute folder.\").because(\"the recovery folder is not valid\")); }",
-      "line": 41,
+      "line": 44,
       "literal": "the recovery folder is not valid",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -164791,7 +164836,7 @@
     },
     {
       "excerpt": ".map_err(|e| Refusal::os(Outcome::NoRecord(Op::Delete), &format!(\"Could not create recovery folder {}\", root.display()), &e))?;",
-      "line": 43,
+      "line": 46,
       "literal": "Could not create recovery folder {}",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -164800,7 +164845,7 @@
     },
     {
       "excerpt": "let name = quarantine_path.file_name().ok_or_else(|| unkept(\"Missing quarantine name.\"))?.to_string_lossy();",
-      "line": 45,
+      "line": 48,
       "literal": "Missing quarantine name.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -164809,7 +164854,7 @@
     },
     {
       "excerpt": "let mut record = written(Manifest::create(&path), \"Could not start the recovery record\")?;",
-      "line": 47,
+      "line": 50,
       "literal": "Could not start the recovery record",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -164818,7 +164863,7 @@
     },
     {
       "excerpt": "Identity::of(&parent.metadata().refuse(Outcome::NoRecord(Op::Delete), \"Trash metadata folder unreadable\")?).saved()),",
-      "line": 50,
+      "line": 53,
       "literal": "Trash metadata folder unreadable",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -164827,7 +164872,7 @@
     },
     {
       "excerpt": "Identity::of(&parent.metadata().refuse(Outcome::NoRecord(Op::Delete), \"Trash folder unreadable\")?).saved(), payload.saved(),",
-      "line": 55,
+      "line": 58,
       "literal": "Trash folder unreadable",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -164836,7 +164881,7 @@
     },
     {
       "excerpt": "Identity::of(&quarantine.metadata().refuse(Outcome::NoRecord(Op::Delete), \"Quarantine unreadable\")?).saved(),",
-      "line": 57,
+      "line": 60,
       "literal": "Quarantine unreadable",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -164845,7 +164890,7 @@
     },
     {
       "excerpt": "written(record.append(text.as_bytes()), \"Could not write the recovery record\")?;",
-      "line": 59,
+      "line": 62,
       "literal": "Could not write the recovery record",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -164854,7 +164899,7 @@
     },
     {
       "excerpt": "while let Some(bytes) = written(tree.next(&mut offset), \"Could not read the Trash review\")? {",
-      "line": 62,
+      "line": 65,
       "literal": "Could not read the Trash review",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -164863,7 +164908,7 @@
     },
     {
       "excerpt": "written(record.append(&bytes), \"Could not write the recovery record\")?;",
-      "line": 63,
+      "line": 66,
       "literal": "Could not write the recovery record",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -164872,7 +164917,7 @@
     },
     {
       "excerpt": "written(record.sync(), \"Could not sync the recovery record\")?;",
-      "line": 66,
+      "line": 69,
       "literal": "Could not sync the recovery record",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -164881,7 +164926,7 @@
     },
     {
       "excerpt": "directory.sync_all().map_err(|e| Refusal::os(Outcome::NoRecord(Op::Delete), \"Could not sync recovery folder\", &e))?;",
-      "line": 67,
+      "line": 70,
       "literal": "Could not sync recovery folder",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -164890,7 +164935,7 @@
     },
     {
       "excerpt": "if identity(&self.path).refuse(Outcome::RecordLeft(None), \"Recovery record unreadable\")?",
-      "line": 71,
+      "line": 74,
       "literal": "Recovery record unreadable",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -164899,7 +164944,7 @@
     },
     {
       "excerpt": "!= Identity::of(&self.record.file().metadata().refuse(Outcome::RecordLeft(None), \"Recovery record unreadable\")?) {",
-      "line": 72,
+      "line": 75,
       "literal": "Recovery record unreadable",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -164908,7 +164953,7 @@
     },
     {
       "excerpt": "return Err(left(\"Recovery record changed; it was preserved.\", \"the record changed\"));",
-      "line": 73,
+      "line": 76,
       "literal": "Recovery record changed; it was preserved.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -164917,7 +164962,7 @@
     },
     {
       "excerpt": "return Err(left(\"Recovery record changed; it was preserved.\", \"the record changed\"));",
-      "line": 73,
+      "line": 76,
       "literal": "the record changed",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -164926,7 +164971,7 @@
     },
     {
       "excerpt": ".map_err(|e| Refusal::os(Outcome::RecordLeft(None), &format!(\"Could not finish recovery record {}\", self.path.display()), &e))?;",
-      "line": 76,
+      "line": 79,
       "literal": "Could not finish recovery record {}",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -164934,8 +164979,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "open_dir(self.path.parent().refuse(Outcome::RecordUnconfirmed(None), \"Missing recovery folder.\")?)",
-      "line": 77,
+      "excerpt": "let folder = self.path.parent().refuse(Outcome::RecordUnconfirmed(None), \"Missing recovery folder.\")?;",
+      "line": 80,
       "literal": "Missing recovery folder.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -164944,7 +164989,7 @@
     },
     {
       "excerpt": ".map_err(|e| Refusal::os(Outcome::RecordUnconfirmed(None), \"Could not sync completed recovery record\", &e))",
-      "line": 79,
+      "line": 85,
       "literal": "Could not sync completed recovery record",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -164953,51 +164998,6 @@
     },
     {
       "excerpt": "if !same_node(&identity(path).refuse(Outcome::RecordLeft(None), \"Quarantine unreadable\")?,",
-      "line": 83,
-      "literal": "Quarantine unreadable",
-      "owner": "controller",
-      "path": "src/backend/trashdelete/recovery.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "&Identity::of(&quarantine.metadata().refuse(Outcome::RecordLeft(None), \"Quarantine unreadable\")?)) {",
-      "line": 84,
-      "literal": "Quarantine unreadable",
-      "owner": "controller",
-      "path": "src/backend/trashdelete/recovery.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "return Err(left(\"Recovery quarantine changed before cleanup; it was preserved.\", \"the temporary folder changed\"));",
-      "line": 85,
-      "literal": "Recovery quarantine changed before cleanup; it was preserved.",
-      "owner": "controller",
-      "path": "src/backend/trashdelete/recovery.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "return Err(left(\"Recovery quarantine changed before cleanup; it was preserved.\", \"the temporary folder changed\"));",
-      "line": 85,
-      "literal": "the temporary folder changed",
-      "owner": "controller",
-      "path": "src/backend/trashdelete/recovery.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "let mut entries = std::fs::read_dir(fd_path(quarantine, OsStr::new(\".\"))).refuse(Outcome::RecordLeft(None), \"Quarantine unreadable\")?;",
-      "line": 87,
-      "literal": "Quarantine unreadable",
-      "owner": "controller",
-      "path": "src/backend/trashdelete/recovery.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "entry.refuse(Outcome::RecordLeft(None), \"Quarantine unreadable\")?;",
       "line": 89,
       "literal": "Quarantine unreadable",
       "owner": "controller",
@@ -165006,8 +165006,53 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "return Err(Refusal::new(Outcome::Held(path.to_path_buf()), format!(\"Recovery data remains at {}; no cleanup was recorded.\", path.display())).because(\"it still holds items\"));",
+      "excerpt": "&Identity::of(&quarantine.metadata().refuse(Outcome::RecordLeft(None), \"Quarantine unreadable\")?)) {",
       "line": 90,
+      "literal": "Quarantine unreadable",
+      "owner": "controller",
+      "path": "src/backend/trashdelete/recovery.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "return Err(left(\"Recovery quarantine changed before cleanup; it was preserved.\", \"the temporary folder changed\"));",
+      "line": 91,
+      "literal": "Recovery quarantine changed before cleanup; it was preserved.",
+      "owner": "controller",
+      "path": "src/backend/trashdelete/recovery.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "return Err(left(\"Recovery quarantine changed before cleanup; it was preserved.\", \"the temporary folder changed\"));",
+      "line": 91,
+      "literal": "the temporary folder changed",
+      "owner": "controller",
+      "path": "src/backend/trashdelete/recovery.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "let mut entries = std::fs::read_dir(fd_path(quarantine, OsStr::new(\".\"))).refuse(Outcome::RecordLeft(None), \"Quarantine unreadable\")?;",
+      "line": 93,
+      "literal": "Quarantine unreadable",
+      "owner": "controller",
+      "path": "src/backend/trashdelete/recovery.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "entry.refuse(Outcome::RecordLeft(None), \"Quarantine unreadable\")?;",
+      "line": 95,
+      "literal": "Quarantine unreadable",
+      "owner": "controller",
+      "path": "src/backend/trashdelete/recovery.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "return Err(Refusal::new(Outcome::Held(path.to_path_buf()), format!(\"Recovery data remains at {}; no cleanup was recorded.\", path.display())).because(\"it still holds items\"));",
+      "line": 96,
       "literal": "Recovery data remains at {}; no cleanup was recorded.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165016,7 +165061,7 @@
     },
     {
       "excerpt": "return Err(Refusal::new(Outcome::Held(path.to_path_buf()), format!(\"Recovery data remains at {}; no cleanup was recorded.\", path.display())).because(\"it still holds items\"));",
-      "line": 90,
+      "line": 96,
       "literal": "it still holds items",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165025,7 +165070,7 @@
     },
     {
       "excerpt": "quarantine.sync_all().map_err(|e| cleanup(\"Could not sync empty recovery quarantine\", &e))?;",
-      "line": 92,
+      "line": 98,
       "literal": "Could not sync empty recovery quarantine",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165034,7 +165079,7 @@
     },
     {
       "excerpt": "self.record.append(FINISHED).and_then(|_| self.record.sync()).map_err(|e| left(&e, \"the recovery record could not be written\"))?;",
-      "line": 93,
+      "line": 99,
       "literal": "the recovery record could not be written",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165043,7 +165088,7 @@
     },
     {
       "excerpt": "std::fs::remove_dir(path).map_err(|e| cleanup(&format!(\"Could not remove empty recovery quarantine {}\", path.display()), &e))?;",
-      "line": 94,
+      "line": 100,
       "literal": "Could not remove empty recovery quarantine {}",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165052,7 +165097,7 @@
     },
     {
       "excerpt": "parent.sync_all().map_err(|e| cleanup(\"Could not sync recovery quarantine removal\", &e))",
-      "line": 95,
+      "line": 102,
       "literal": "Could not sync recovery quarantine removal",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165061,7 +165106,7 @@
     },
     {
       "excerpt": ".changed(\"Recovery record unreadable\")?",
-      "line": 110,
+      "line": 117,
       "literal": "Recovery record unreadable",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165070,7 +165115,7 @@
     },
     {
       "excerpt": ".changed(\"Recovery record has no header.\")?;",
-      "line": 111,
+      "line": 118,
       "literal": "Recovery record has no header.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165079,7 +165124,7 @@
     },
     {
       "excerpt": ".changed(\"Recovery header is not valid text.\")?;",
-      "line": 114,
+      "line": 121,
       "literal": "Recovery header is not valid text.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165088,7 +165133,7 @@
     },
     {
       "excerpt": "return Err(Refusal::changed(\"Unsupported recovery record version.\"));",
-      "line": 116,
+      "line": 123,
       "literal": "Unsupported recovery record version.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165097,7 +165142,7 @@
     },
     {
       "excerpt": "field_str(&header, key).changed(&format!(\"Recovery record has no {}.\", key))?,",
-      "line": 120,
+      "line": 127,
       "literal": "Recovery record has no {}.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165106,7 +165151,7 @@
     },
     {
       "excerpt": "\"Recovery record has an invalid {} path.\",",
-      "line": 129,
+      "line": 136,
       "literal": "Recovery record has an invalid {} path.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165115,7 +165160,7 @@
     },
     {
       "excerpt": "let expected = |key: &str| Identity::from_saved(&field_str(&header, key).changed(&format!(\"Recovery record has no {} identity.\", key))?);",
-      "line": 135,
+      "line": 142,
       "literal": "Recovery record has no {} identity.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165124,7 +165169,7 @@
     },
     {
       "excerpt": "let quarantine_name = quarantine_path.file_name().changed(\"Missing quarantine name.\")?.to_string_lossy();",
-      "line": 138,
+      "line": 145,
       "literal": "Missing quarantine name.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165133,7 +165178,7 @@
     },
     {
       "excerpt": "return Err(Refusal::changed(\"Recovery record does not name its own quarantine.\"));",
-      "line": 142,
+      "line": 149,
       "literal": "Recovery record does not name its own quarantine.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165142,7 +165187,7 @@
     },
     {
       "excerpt": "let parent = open_dir(source.parent().changed(\"Missing recovery source parent.\")?)?;",
-      "line": 144,
+      "line": 151,
       "literal": "Missing recovery source parent.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165151,7 +165196,7 @@
     },
     {
       "excerpt": "if !same_node(&Identity::of(&parent.metadata().changed(\"Recovery source folder unreadable\")?), &expected(\"parent\")?) {",
-      "line": 145,
+      "line": 152,
       "literal": "Recovery source folder unreadable",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165160,7 +165205,7 @@
     },
     {
       "excerpt": "return Err(Refusal::changed(\"Recovery source folder changed; no item was moved.\"));",
-      "line": 146,
+      "line": 153,
       "literal": "Recovery source folder changed; no item was moved.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165169,7 +165214,7 @@
     },
     {
       "excerpt": "if records.previous(&mut end).changed(\"Recovery record unreadable\")?.as_deref() == Some(FINISHED) { return Ok(()); }",
-      "line": 153,
+      "line": 160,
       "literal": "Recovery record unreadable",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165178,7 +165223,7 @@
     },
     {
       "excerpt": "return Err(Refusal::changed(\"Recovery quarantine is missing without a completion record; the journal was preserved.\"));",
-      "line": 154,
+      "line": 161,
       "literal": "Recovery quarantine is missing without a completion record; the journal was preserved.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165187,7 +165232,7 @@
     },
     {
       "excerpt": "if !same_node(&Identity::of(&quarantine.metadata().changed(\"Recovery quarantine unreadable\")?), &expected(\"quarantineIdentity\")?) {",
-      "line": 160,
+      "line": 167,
       "literal": "Recovery quarantine unreadable",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165196,7 +165241,7 @@
     },
     {
       "excerpt": "return Err(Refusal::changed(format!(\"Recovery quarantine changed; data preserved at {}.\", quarantine_path.display())));",
-      "line": 161,
+      "line": 168,
       "literal": "Recovery quarantine changed; data preserved at {}.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165205,7 +165250,7 @@
     },
     {
       "excerpt": "let name = source.file_name().changed(\"Missing recovery source name.\")?;",
-      "line": 164,
+      "line": 171,
       "literal": "Missing recovery source name.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165214,7 +165259,7 @@
     },
     {
       "excerpt": "if !payload.matches_survivor(&current) { return Err(Refusal::changed(\"Recovery payload identity changed.\")); }",
-      "line": 167,
+      "line": 174,
       "literal": "Recovery payload identity changed.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165223,7 +165268,7 @@
     },
     {
       "excerpt": "return Err(Refusal::changed(\"Returned recovery payload changed; metadata was preserved.\"));",
-      "line": 170,
+      "line": 177,
       "literal": "Returned recovery payload changed; metadata was preserved.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165232,7 +165277,7 @@
     },
     {
       "excerpt": "if current != expected(\"metadata\")? { return Err(Refusal::changed(\"Recovery Trash metadata changed.\")); }",
-      "line": 175,
+      "line": 182,
       "literal": "Recovery Trash metadata changed.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165241,7 +165286,7 @@
     },
     {
       "excerpt": ".changed(\"Unrecognized recovery data; no item was moved.\")?;",
-      "line": 182,
+      "line": 189,
       "literal": "Unrecognized recovery data; no item was moved.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165250,7 +165295,7 @@
     },
     {
       "excerpt": "let mut offset = tree_start.checked_add(offset).changed(\"Invalid recovery child offset.\")?;",
-      "line": 183,
+      "line": 190,
       "literal": "Invalid recovery child offset.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165259,7 +165304,7 @@
     },
     {
       "excerpt": "let record = records.next(&mut offset).changed(\"Recovery record unreadable\")?.changed(\"Recovery child has no review record.\")?;",
-      "line": 184,
+      "line": 191,
       "literal": "Recovery record unreadable",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165268,7 +165313,7 @@
     },
     {
       "excerpt": "let record = records.next(&mut offset).changed(\"Recovery record unreadable\")?.changed(\"Recovery child has no review record.\")?;",
-      "line": 184,
+      "line": 191,
       "literal": "Recovery child has no review record.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165277,7 +165322,7 @@
     },
     {
       "excerpt": "for entry in std::fs::read_dir(fd_path(&quarantine, OsStr::new(\".\"))).changed(\"Recovery quarantine unreadable\")? {",
-      "line": 188,
+      "line": 195,
       "literal": "Recovery quarantine unreadable",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165286,33 +165331,6 @@
     },
     {
       "excerpt": "let claimed_name = entry.changed(\"Recovery quarantine unreadable\")?.file_name();",
-      "line": 189,
-      "literal": "Recovery quarantine unreadable",
-      "owner": "controller",
-      "path": "src/backend/trashdelete/recovery.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "if !node.identity.matches_survivor(&identity(&fd_path(&quarantine, &claimed_name)).changed(\"Claimed recovery child unreadable\")?) {",
-      "line": 191,
-      "literal": "Claimed recovery child unreadable",
-      "owner": "controller",
-      "path": "src/backend/trashdelete/recovery.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "return Err(Refusal::changed(\"Claimed recovery child changed; no item was moved.\"));",
-      "line": 192,
-      "literal": "Claimed recovery child changed; no item was moved.",
-      "owner": "controller",
-      "path": "src/backend/trashdelete/recovery.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "for entry in std::fs::read_dir(fd_path(&quarantine, OsStr::new(\".\"))).changed(\"Recovery quarantine unreadable\")? {",
       "line": 196,
       "literal": "Recovery quarantine unreadable",
       "owner": "controller",
@@ -165321,17 +165339,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "let entry = entry.changed(\"Recovery quarantine unreadable\")?;",
-      "line": 197,
-      "literal": "Recovery quarantine unreadable",
-      "owner": "controller",
-      "path": "src/backend/trashdelete/recovery.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
       "excerpt": "if !node.identity.matches_survivor(&identity(&fd_path(&quarantine, &claimed_name)).changed(\"Claimed recovery child unreadable\")?) {",
-      "line": 200,
+      "line": 198,
       "literal": "Claimed recovery child unreadable",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165340,7 +165349,43 @@
     },
     {
       "excerpt": "return Err(Refusal::changed(\"Claimed recovery child changed; no item was moved.\"));",
-      "line": 201,
+      "line": 199,
+      "literal": "Claimed recovery child changed; no item was moved.",
+      "owner": "controller",
+      "path": "src/backend/trashdelete/recovery.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "for entry in std::fs::read_dir(fd_path(&quarantine, OsStr::new(\".\"))).changed(\"Recovery quarantine unreadable\")? {",
+      "line": 203,
+      "literal": "Recovery quarantine unreadable",
+      "owner": "controller",
+      "path": "src/backend/trashdelete/recovery.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "let entry = entry.changed(\"Recovery quarantine unreadable\")?;",
+      "line": 204,
+      "literal": "Recovery quarantine unreadable",
+      "owner": "controller",
+      "path": "src/backend/trashdelete/recovery.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "if !node.identity.matches_survivor(&identity(&fd_path(&quarantine, &claimed_name)).changed(\"Claimed recovery child unreadable\")?) {",
+      "line": 207,
+      "literal": "Claimed recovery child unreadable",
+      "owner": "controller",
+      "path": "src/backend/trashdelete/recovery.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "return Err(Refusal::changed(\"Claimed recovery child changed; no item was moved.\"));",
+      "line": 208,
       "literal": "Claimed recovery child changed; no item was moved.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165349,7 +165394,7 @@
     },
     {
       "excerpt": "if !payload.matches_survivor(&identity(&fd_path(&parent, name)).changed(\"Recovery payload unreadable\")?) { return Err(Refusal::changed(\"Recovery payload is unavailable.\")); }",
-      "line": 206,
+      "line": 213,
       "literal": "Recovery payload unreadable",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165358,7 +165403,7 @@
     },
     {
       "excerpt": "if !payload.matches_survivor(&identity(&fd_path(&parent, name)).changed(\"Recovery payload unreadable\")?) { return Err(Refusal::changed(\"Recovery payload is unavailable.\")); }",
-      "line": 206,
+      "line": 213,
       "literal": "Recovery payload is unavailable.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165367,7 +165412,7 @@
     },
     {
       "excerpt": ".map_err(|e| Refusal::changed(format!(\"Could not return interrupted child without overwriting: {}\", e)))?;",
-      "line": 210,
+      "line": 217,
       "literal": "Could not return interrupted child without overwriting: {}",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165376,7 +165421,7 @@
     },
     {
       "excerpt": "if !payload.matches_survivor(&Identity::of(&metadata)) { return Err(Refusal::changed(\"Recovery payload identity changed.\")); }",
-      "line": 214,
+      "line": 221,
       "literal": "Recovery payload identity changed.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165385,7 +165430,7 @@
     },
     {
       "excerpt": ".map_err(|e| Refusal::changed(format!(\"Could not return interrupted item without overwriting: {}\", e)))?;",
-      "line": 216,
+      "line": 223,
       "literal": "Could not return interrupted item without overwriting: {}",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165394,7 +165439,7 @@
     },
     {
       "excerpt": "\"Could not inspect interrupted Trash metadata: {}\",",
-      "line": 227,
+      "line": 234,
       "literal": "Could not inspect interrupted Trash metadata: {}",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165403,7 +165448,7 @@
     },
     {
       "excerpt": "return Err(Refusal::changed(\"Recovery Trash metadata changed.\"));",
-      "line": 234,
+      "line": 241,
       "literal": "Recovery Trash metadata changed.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165412,7 +165457,7 @@
     },
     {
       "excerpt": "let infos = open_dir(info.parent().changed(\"Missing Trash metadata parent.\")?)?;",
-      "line": 242,
+      "line": 249,
       "literal": "Missing Trash metadata parent.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165421,7 +165466,7 @@
     },
     {
       "excerpt": ".changed(\"Trash metadata folder unreadable\")?,",
-      "line": 247,
+      "line": 254,
       "literal": "Trash metadata folder unreadable",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165430,7 +165475,7 @@
     },
     {
       "excerpt": "\"Recovery Trash metadata folder changed; metadata was preserved.\",",
-      "line": 252,
+      "line": 259,
       "literal": "Recovery Trash metadata folder changed; metadata was preserved.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165439,7 +165484,7 @@
     },
     {
       "excerpt": "info.file_name().changed(\"Missing Trash metadata name.\")?,",
-      "line": 259,
+      "line": 266,
       "literal": "Missing Trash metadata name.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165448,7 +165493,7 @@
     },
     {
       "excerpt": "\"Could not return interrupted Trash metadata without overwriting: {}\",",
-      "line": 263,
+      "line": 270,
       "literal": "Could not return interrupted Trash metadata without overwriting: {}",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165457,7 +165502,7 @@
     },
     {
       "excerpt": "\"Interrupted restore has no verified destination; metadata was preserved.\",",
-      "line": 275,
+      "line": 282,
       "literal": "Interrupted restore has no verified destination; metadata was preserved.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165466,7 +165511,7 @@
     },
     {
       "excerpt": ".changed(\"Could not clean completed Trash metadata\")?;",
-      "line": 279,
+      "line": 286,
       "literal": "Could not clean completed Trash metadata",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165475,7 +165520,7 @@
     },
     {
       "excerpt": "Err(error) => Err(Refusal::changed(format!(\"Could not inspect recovery item {}: {}\", path.display(), error))),",
-      "line": 293,
+      "line": 300,
       "literal": "Could not inspect recovery item {}: {}",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165484,7 +165529,7 @@
     },
     {
       "excerpt": "return Ok((base.try_clone().changed(\"Could not duplicate a recovery handle\")?, root.to_os_string()));",
-      "line": 300,
+      "line": 307,
       "literal": "Could not duplicate a recovery handle",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165493,7 +165538,7 @@
     },
     {
       "excerpt": "if !payload.matches_survivor(&Identity::of(&directory.metadata().changed(\"Recovery payload unreadable\")?)) {",
-      "line": 303,
+      "line": 310,
       "literal": "Recovery payload unreadable",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165502,7 +165547,7 @@
     },
     {
       "excerpt": "return Err(Refusal::changed(\"Recovery payload changed before returning its child.\"));",
-      "line": 304,
+      "line": 311,
       "literal": "Recovery payload changed before returning its child.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165511,7 +165556,7 @@
     },
     {
       "excerpt": "for component in relative.parent().changed(\"Missing recovery child parent.\")?.components() {",
-      "line": 308,
+      "line": 315,
       "literal": "Missing recovery child parent.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165520,7 +165565,7 @@
     },
     {
       "excerpt": "let std::path::Component::Normal(name) = component else { return Err(Refusal::changed(\"Invalid recovery child parent.\")); };",
-      "line": 309,
+      "line": 316,
       "literal": "Invalid recovery child parent.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165529,7 +165574,7 @@
     },
     {
       "excerpt": "let record = records.next(&mut cursor).changed(\"Recovery record unreadable\")?.changed(\"Recovery ancestor has no review record.\")?;",
-      "line": 313,
+      "line": 320,
       "literal": "Recovery record unreadable",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165538,7 +165583,7 @@
     },
     {
       "excerpt": "let record = records.next(&mut cursor).changed(\"Recovery record unreadable\")?.changed(\"Recovery ancestor has no review record.\")?;",
-      "line": 313,
+      "line": 320,
       "literal": "Recovery ancestor has no review record.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165547,7 +165592,7 @@
     },
     {
       "excerpt": "if !reviewed.identity.matches_survivor(&Identity::of(&next.metadata().changed(\"Recovery child folder unreadable\")?)) {",
-      "line": 318,
+      "line": 325,
       "literal": "Recovery child folder unreadable",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165556,7 +165601,7 @@
     },
     {
       "excerpt": "return Err(Refusal::changed(\"Recovery child folder changed; no child was moved.\"));",
-      "line": 319,
+      "line": 326,
       "literal": "Recovery child folder changed; no child was moved.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165565,7 +165610,7 @@
     },
     {
       "excerpt": "Ok((directory, relative.file_name().changed(\"Missing recovery child name.\")?.to_os_string()))",
-      "line": 323,
+      "line": 330,
       "literal": "Missing recovery child name.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165574,7 +165619,7 @@
     },
     {
       "excerpt": "if !root.is_absolute() { return Err(Refusal::new(Outcome::NothingMoved, \"Recovery storage requires an absolute folder.\").logged()); }",
-      "line": 332,
+      "line": 339,
       "literal": "Recovery storage requires an absolute folder.",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165583,7 +165628,7 @@
     },
     {
       "excerpt": "Err(error) => return Err(Refusal::os(Outcome::NothingMoved, &format!(\"Could not read recovery folder {}\", root.display()), &error).logged()),",
-      "line": 336,
+      "line": 343,
       "literal": "Could not read recovery folder {}",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165592,7 +165637,7 @@
     },
     {
       "excerpt": "Refusal::os(Outcome::RecoveryUnreadable(root.to_path_buf()), \"Could not read the recovery folder\", &error).logged()));",
-      "line": 347,
+      "line": 354,
       "literal": "Could not read the recovery folder",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
@@ -165601,10 +165646,19 @@
     },
     {
       "excerpt": "let Some(record) = Manifest::open_inactive(&path).refuse(Outcome::NothingMoved, \"Could not open the recovery record\")? else { return Ok(false); };",
-      "line": 355,
+      "line": 362,
       "literal": "Could not open the recovery record",
       "owner": "controller",
       "path": "src/backend/trashdelete/recovery.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "crate::backend::trashmanifest::log(&format!(\"Could not sync {}: {}\", dir.display(), e));",
+      "line": 49,
+      "literal": "Could not sync {}: {}",
+      "owner": "controller",
+      "path": "src/backend/trashdelete/syncs.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "core/backend"
     },
@@ -212545,7 +212599,7 @@
     },
     {
       "excerpt": "echo \"DUPLICATE ceiling: $duplicated\"",
-      "line": 354,
+      "line": 350,
       "literal": "DUPLICATE ceiling: $duplicated",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -212554,7 +212608,7 @@
     },
     {
       "excerpt": "echo \"UNREADABLE $file: cannot read it, so it has no line count\"",
-      "line": 377,
+      "line": 373,
       "literal": "UNREADABLE $file: cannot read it, so it has no line count",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -212563,7 +212617,7 @@
     },
     {
       "excerpt": "echo \"GREW      $file: $lines lines, recorded $recorded, cap $hard\"",
-      "line": 389,
+      "line": 385,
       "literal": "GREW      $file: $lines lines, recorded $recorded, cap $hard",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -212572,7 +212626,7 @@
     },
     {
       "excerpt": "echo \"GREW      $file: $lines lines, recorded $recorded, cap $hard\"",
-      "line": 394,
+      "line": 390,
       "literal": "GREW      $file: $lines lines, recorded $recorded, cap $hard",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -212581,7 +212635,7 @@
     },
     {
       "excerpt": "echo \"known     $file: $lines lines, recorded $recorded, cap $hard\"",
-      "line": 397,
+      "line": 393,
       "literal": "known     $file: $lines lines, recorded $recorded, cap $hard",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -212590,7 +212644,7 @@
     },
     {
       "excerpt": "echo \"OVER CAP  $file: $lines lines, cap $hard\"",
-      "line": 401,
+      "line": 397,
       "literal": "OVER CAP  $file: $lines lines, cap $hard",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -212599,7 +212653,7 @@
     },
     {
       "excerpt": "echo \"over soft $file: $lines lines, budget $soft, split it\"",
-      "line": 404,
+      "line": 400,
       "literal": "over soft $file: $lines lines, budget $soft, split it",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -253059,19 +253113,22 @@
     "src/backend/transferitem.rs": "c7e13c100c83409b646457b2691caa7f2561473c1190fd6e0a96a53c1e6c7f0d",
     "src/backend/transferstart.rs": "f85f95cb0a6e248ce1f4c751a114e605d9bfffae50f9b3fac2e28de1cbf0016b",
     "src/backend/trash.rs": "773955f0c978f8fd20c37244c11ff082d3416c572a2cb156eebc88662cc106b1",
-    "src/backend/trashbrowse.rs": "9c4be9590f7ea5e8c32861bb41ab5a2e31dcd8ed68241f5b37701c378647b67b",
+    "src/backend/trashbrowse.rs": "d8e62cbdd9e612a1c7fa5bb1d0bb8334acc47cd340a88ba97f8873a93f7d8ec1",
     "src/backend/trashbrowse/details.rs": "3a96ced3090d8002c0d466e4cc6e1c0ba4629637ee093c6b942586a7f6802c65",
-    "src/backend/trashbrowse/job.rs": "75b7d4bd339bcf23fe2efd1ee2d8ae106d2fda65af586d45637898e3fa5c48d2",
+    "src/backend/trashbrowse/job.rs": "5ddb1626071aa87e6ac6368087ee506d7816748d10ea50e400badf61e4976eeb",
+    "src/backend/trashbrowse/restore.rs": "1c93b22f7ac2f93a5b9a70f5320ded8c4ec0d8ff7ea1ff8124cb1bdecb546bc0",
+    "src/backend/trashbrowse/sweep.rs": "b4a286641f77a4136ffdc0db197eaca4d9fed61511b5eb56738cf8b2e5dfb647",
     "src/backend/trashdate.rs": "a6312b012015592eedd2497a52af2d53bec49e58e5deb40327ae80ce75bbd8c1",
-    "src/backend/trashdelete.rs": "0158866611cb9ddf459c3e4b242e350e629f65c6b6daae222e64efefe78285c0",
+    "src/backend/trashdelete.rs": "905a866b1f98e87064a410fa62187dcd532c9e184dc2eeb88124c94d9f6bfca4",
     "src/backend/trashdelete/cancel.rs": "40ca4b37e9d0873594832957bb6e0b8db0f4f586128d6ff69cf8aceb3340cc25",
     "src/backend/trashdelete/deletetest.rs": "54dcc4855047a92d9c48829c321d246dff9a3971d4795617a214500b2ad8ecba",
     "src/backend/trashdelete/parents.rs": "bd955bbe82831383059637f8eeff457a8d0017861799b4c76cdff6c81c7667d1",
-    "src/backend/trashdelete/recovery.rs": "3e99e57e00903fd6f7f4d3ea67c8c08c7026be3a043f4e0c472260ec1b4b8e04",
+    "src/backend/trashdelete/recovery.rs": "c6d44885ce7c021d446d2d9800e940a92a49523a249092d81f7794bd585a2090",
+    "src/backend/trashdelete/syncs.rs": "b140d06a91b8d35420b1ef1cdd892cc3750942effa7544ce9ba8af826605f9d5",
     "src/backend/trashland.rs": "edc31cf5c7b08ac6373f0f241d7d260c57d0ea55a8fab590d2127d407b55caa4",
     "src/backend/trashmanifest.rs": "c2166ea8ea90f91c4979142901476d6343dd4aca2e531e94a25dd8101857e2d3",
     "src/backend/trashmanifest/anonymous.rs": "4364fa44a764bb8c1306b5d266b11ac33364b071047360005a488fe31ede5bbf",
-    "src/backend/trashthumb.rs": "69b6a06f806224a7ca7331d316c648460182aa9e20b03cabda79570bfb37680b",
+    "src/backend/trashthumb.rs": "bd853f11b31c93eecbd5c4aab4b3df324361352927dd4f0683978d4bc9d9b678",
     "src/backend/trashthumbcache.rs": "c17c02aacbfcfb4f59154242df071e721fde70e32a4c7e2cd0e17cc5d412630a",
     "src/backend/tuifolders.rs": "c56c96dd31cd391c28e791b3772cdd4f7d1a3b4234d0ea03e2cb86de0e04bdf5",
     "src/backend/undo.rs": "2cd986f10d8c7b3638d39d121d3e8f97163a00aaaa5f7fa053d134d34190e88c",
@@ -253299,7 +253356,7 @@
     "src/tui/terminal_suspend_fixture.rs": "ad6be04a4087cca37e4c4da82e36d75feb01f274897ff3f3a01f29d1c317f2df",
     "src/tui/theme.rs": "76adc30629062fa41519f2bad1cf04ea43d82be990b9771eeeed4089e3fb755c",
     "src/tui/tmux.rs": "54f48512fd40051fc430fb8459c32ba6579ba5ff60918337558f0392ff0c6a1e",
-    "src/tui/trashview.rs": "fbc006b1a55421242e920b5186fe98d3cff714ffa4331eb9582c8e0372a81b0a",
+    "src/tui/trashview.rs": "47d342f84b4329e014360ee403aac7dc228d767b3a373585f32c8c06706a5573",
     "src/tui/visual.rs": "8cf13e1f95c65db49ab567b97fb551eb87355c6ecb79a0c3993f093bf6014648",
     "src/tui/wait.rs": "f54f0e8409eeb694985ecb5134a8f8a4ba179ff5a72d353d1654c2f6ddd0125a",
     "src/tui/warm.rs": "570e7ede28f3d3acbec35de19986deb31a11f25ca5552e56ea608fb8b8c2da6c",
@@ -253641,13 +253698,13 @@
     "src/ui_logic_trash_browser/dropping.rs": "8f296a04dea4814263d67a742a3b0bb468215c8ed11878802f4870dcf52b7cad",
     "src/ui_logic_trash_browser/host.rs": "723614cc0ce4b90625a8e8bd590574fc9564980130ccaf2261a5db50f72d2f34",
     "src/ui_logic_trash_browser/monitor.rs": "207f1bd2f044e2d7794abb004f13155d2ea911811e3f361183ae80b5cfc117c4",
-    "src/ui_logic_trash_browser/rows.rs": "03fc2c2dbe92bf2f82cdb702bee7f770a1f51c32b671ac27394043760c4fb260",
+    "src/ui_logic_trash_browser/rows.rs": "79fa70f125356c4c8c83f6a04665277e9ef1a5123ab24e9ca45847fb4e4faf76",
     "src/ui_logic_trash_browser/selection.rs": "ece1e3be68ac89077b152e927b19d2ec389c45b84db88d109b7f108947c8b5c2",
     "src/ui_logic_trash_browser/thumbs.rs": "2c2f7f57836149c4bbe6a33a154d124a65fc8c2898ac53f9ebb98f486f8f8811",
     "src/ui_logic_trash_browser/view.rs": "64ccd76b259057921a177e49c2374ef26a655015d28c69aaa5c38987e49275a9",
     "src/ui_logic_trash_browser/view_ops.rs": "5216f5ae42adb1302b2426fe99e32340165c5c39d0e084fc6a65757d533d410c",
     "src/ui_logic_trash_browser/view_reply.rs": "1f13793fc7451c363d82d44599f5decccf3fcbce640f5b1e732fddb5b2e478e2",
-    "src/ui_logic_trash_browser/words.rs": "ede6b177d8244a9e2624ed49a539ad35b5bc1d44fb2709f07c6668560453ff4d",
+    "src/ui_logic_trash_browser/words.rs": "9afe09b9b2513c052ff4c2930570a4080815ceb515937d860f9d7e4ee1adc033",
     "src/uimigrate.rs": "b9058d067dc758d77f67a5204621c21863178071a3701d01b0874c0e72888203",
     "src/uiplugins.rs": "1086f1baed33a410a40c71f3c733b4c5496955da2afb5284d92a56609a74ec32",
     "src/uischema.rs": "627966dc0cfe23348dafbe53bd0cd8d50e05943f9f144764c4401de38b368bed",
@@ -253695,7 +253752,7 @@
     "tools/flea-field-nav": "36bc42104edb84c4194b4b6d28c3e67d915a2a144692aaa49953981a4a5bdbf8",
     "tools/flea-field-search": "70ec859809b73cb1bf58fccb4129b05622023a0686991fe7370aafd8fe7805a6",
     "tools/flea-figure-bench": "60d312818e6af2fa0989d50275907d2a0f9e6019787caae93e8d8a4e440dc8e7",
-    "tools/flea-file-budget": "6347e5468ae23a24d65c3daa6a41c9f4305d4d9b01d1627035a268369e6d2fec",
+    "tools/flea-file-budget": "8a224895c117ea3581ad22f56348eddf5095a87308454b638747bb0a5be5aa68",
     "tools/flea-filemanager1": "ebccc20a6b2be787dcf7e817d353a21dcca5ff57de184161f12e28ee5b0322e1",
     "tools/flea-first-paint": "6b9555b0a20b6d4bec057bd9c405823a1b742c14d27304b83a5a95d801ac5526",
     "tools/flea-framecap-build": "7c9433d4c4774f8810fd4e4c8ee92d0b5810dcbc7645231205a8155d557f5f2e",
@@ -254231,13 +254288,13 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "e6dd0916a1141f73b5cf1ffced6d779902567785",
-  "source_sha": "e6dd0916a1141f73b5cf1ffced6d779902567785",
+  "source_ref_sha": "d1f8720fbc715d746ca49d25e10d1fee09f1eb36",
+  "source_sha": "d1f8720fbc715d746ca49d25e10d1fee09f1eb36",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1355,
-      "missing_literal_candidates": 5740,
-      "source_files": 865
+      "missing_literal_candidates": 5746,
+      "source_files": 868
     },
     "generated/tooling": {
       "keys_with_occurrences": 156,

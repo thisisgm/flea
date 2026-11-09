@@ -20,10 +20,45 @@ fn an_escaped_original_reads_back_as_its_own_bytes() {
         "/tmp/a\\",
         "/tmp/a\\y41",
         "/tmp/a\\xzz",
-        "/tmp/caf\\xe9.txt",
+        "/tmp/a\\x00b",
+        // A NUL would let a record spell the exact tail of another name, here /tmp/x<0xff>.
+        "/tmp/x\\xef\\xbf\\xbd\\x0078ff",
     ] {
         assert_eq!(unescape(broken), None, "{broken}");
     }
+}
+// gio 2.90.1 on minipc printed Path=/tmp/caf%E9 %5Cx41.txt as this line; a folder that is not UTF-8 is carried the same way.
+#[test]
+fn an_original_that_is_not_utf8_lists_as_its_exact_text_and_names_its_raw_bytes() {
+    let text = "trash:///bad.txt\t4\t(regular)\ttrash::orig-path=/tmp/caf\\xe9 \\x5cx41.txt\ntrash:///d\t4\t(regular)\ttrash::orig-path=/tmp/d\\xff/a.txt\n";
+    let items = parse_list(text);
+    let originals: Vec<_> = items.iter().map(|item| item.original.as_str()).collect();
+    assert_eq!(
+        originals,
+        [
+            "/tmp/caf\u{fffd} \\x41.txt\u{0}636166e9205c7834312e747874",
+            "/tmp/d\u{fffd}\u{0}64ff/a.txt"
+        ]
+    );
+    let raw: Vec<_> = items
+        .iter()
+        .map(|item| {
+            flea::bytename::exact(&item.original)
+                .into_os_string()
+                .into_encoded_bytes()
+        })
+        .collect();
+    assert_eq!(
+        raw,
+        [
+            b"/tmp/caf\xe9 \\x41.txt".to_vec(),
+            b"/tmp/d\xff/a.txt".to_vec()
+        ]
+    );
+    assert_eq!(
+        flea::bytename::display(&items[0].original),
+        "/tmp/caf\u{fffd} \\x41.txt"
+    );
 }
 #[test]
 fn listing_is_newest_deleted_first_and_ties_break_by_uri() {
@@ -153,7 +188,7 @@ fn refreshed_confirmation_keeps_its_uri_set_without_rewriting_selection() {
     targets.append(br#"{"uri":"trash:///a","original":"/old/a","identity":"old-inode"}"#).unwrap();
     targets.append(br#"{"uri":"trash:///gone","original":"/old/gone","identity":"gone-inode"}"#).unwrap();
     let confirmation = Confirmation { token: 3, items: Manifest::new(d.path()).unwrap(),
-        trees: Manifest::new(d.path()).unwrap(), listing: Vec::new(), targets, count: 0, nodes: 0, all: false };
+        trees: Manifest::new(d.path()).unwrap(), listing: Vec::new(), targets, count: 0, nodes: 0, all: false, sweep: Default::default() };
     let session = Session { items: listed("trash:///a\t/new/a\ntrash:///new\t/new\n"),
         scratch: d.path().to_path_buf(), ..Session::default() };
     let refreshed = session.refreshed_targets(&confirmation).unwrap();
@@ -283,7 +318,7 @@ fn restore_and_delete_wait_on_a_pending_mount_and_run_elsewhere() {
     targets.append(format!(r#"{{"uri":"trash:///a.txt","original":"{}/a.txt","identity":""}}"#,
         remote.path().to_string_lossy()).as_bytes()).unwrap();
     let confirmation = Confirmation { token: 7, items: Manifest::new(remote.path()).unwrap(),
-        trees: Manifest::new(remote.path()).unwrap(), listing: Vec::new(), targets, count: 0, nodes: 0, all: false };
+        trees: Manifest::new(remote.path()).unwrap(), listing: Vec::new(), targets, count: 0, nodes: 0, all: false, sweep: Default::default() };
     let delete = r#"{"c":"trashbrowse","op":"delete","id":9,"token":7}"#;
     let mut held = Session { confirmation: Some(confirmation), scratch: remote.path().to_path_buf(),
         pending: vec![remote.path().to_path_buf()], body, ..Session::default() };
@@ -295,7 +330,7 @@ fn restore_and_delete_wait_on_a_pending_mount_and_run_elsewhere() {
     targets.append(format!(r#"{{"uri":"trash:///a.txt","original":"{}/a.txt","identity":""}}"#,
         remote.path().to_string_lossy()).as_bytes()).unwrap();
     let confirmation = Confirmation { token: 7, items: Manifest::new(remote.path()).unwrap(),
-        trees: Manifest::new(remote.path()).unwrap(), listing: Vec::new(), targets, count: 0, nodes: 0, all: false };
+        trees: Manifest::new(remote.path()).unwrap(), listing: Vec::new(), targets, count: 0, nodes: 0, all: false, sweep: Default::default() };
     let mut free = Session { confirmation: Some(confirmation), scratch: remote.path().to_path_buf(), ..Session::default() };
     let past = free.handle(delete);
     assert!(!past.contains("already running"), "a delete elsewhere runs past the gate: {}", past);

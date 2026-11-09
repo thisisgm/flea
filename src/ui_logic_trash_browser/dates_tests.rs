@@ -51,6 +51,11 @@ fn trashdates_location_is_home_relative_and_unknown_without_a_folder() {
     assert_eq!(at("/photo.png"), "/", "root location");
     assert_eq!(at("photo.png"), "Unknown", "missing location is honest");
     assert_eq!(location("/home/gm/a.txt", ""), Some("/home/gm".into()), "no home leaves the folder absolute");
+    // The backend's exact text for /home/gm/d<0xff>/caf<0xe9>.txt: a person reads each name without its tail.
+    let exact = "/home/gm/d\u{fffd}\u{0}64ff/caf\u{fffd}.txt\u{0}636166e92e747874";
+    assert_eq!(at(exact), "~/d\u{fffd}", "a folder that is not UTF-8 draws its lossy spelling");
+    let row = super::rows::TrashRow { original: exact.into(), ..Default::default() };
+    assert_eq!(row.name(), "caf\u{fffd}.txt", "and so does the row's name");
 }
 
 #[test]

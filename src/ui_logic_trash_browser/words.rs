@@ -164,9 +164,10 @@ pub fn recovered(i18n: &I18n, count: i64) -> String {
     i18n.trn("trash.recovered", count)
 }
 
-/// A row's Original Location cell.
+/// A row's Original Location cell, as a person reads a folder that is not UTF-8.
 pub fn location_text(i18n: &I18n, original: &str, home: &str) -> String {
-    dates::location(original, home).unwrap_or_else(|| i18n.tr("trash.unknown"))
+    dates::location(&crate::bytename::display(original), home)
+        .unwrap_or_else(|| i18n.tr("trash.unknown"))
 }
 
 /// A row's Deleted cell, the product's one date form.

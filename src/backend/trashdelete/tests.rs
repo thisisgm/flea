@@ -310,3 +310,55 @@ fn iterative_review_deletes_deep_trees_without_following_symlinks() {
     assert!(!root.exists());
     assert_eq!(std::fs::read_to_string(outside).unwrap(), "keep");
 }
+// The Trash view's Restore all holds every claim's folder syncs to one per folder at the batch's close, as undo's home restore does.
+#[test]
+fn a_restore_batch_syncs_each_folder_once_at_its_close() {
+    let d = TestDir::new("trash-restore-syncs");
+    d.dir("files");
+    d.dir("info");
+    let (back, recovery) = (d.dir("back"), d.dir("recovery"));
+    let reviewed: Vec<_> = (0..3)
+        .map(|i| {
+            let path = d.file(&format!("files/item{i}"), "payload");
+            d.file(
+                &format!("info/item{i}.trashinfo"),
+                &format!(
+                    "[Trash Info]\nPath={}\n",
+                    back.join(format!("item{i}")).display()
+                ),
+            );
+            let meta = path.symlink_metadata().unwrap();
+            Reviewed::inspect(path, &format!("l{}:{}", meta.dev(), meta.ino())).unwrap()
+        })
+        .collect();
+    FolderSyncs::take_synced();
+    let batch = FolderSyncs::open();
+    for (i, item) in reviewed.iter().enumerate() {
+        item.restore(&back.join(format!("item{i}")), &recovery)
+            .unwrap();
+        FolderSyncs::restored(&back);
+    }
+    assert!(
+        FolderSyncs::take_synced().is_empty(),
+        "no folder syncs before the batch closes"
+    );
+    drop(batch);
+    let mut once = vec![
+        back.clone(),
+        std::fs::canonicalize(d.join("files")).unwrap(),
+        recovery.clone(),
+    ];
+    once.sort();
+    assert_eq!(
+        FolderSyncs::take_synced(),
+        once,
+        "the destination, files and recovery folders sync once each"
+    );
+    assert!(
+        (0..3).all(|i| back.join(format!("item{i}")).is_file())
+            && !d.join("info/item0.trashinfo").exists()
+    );
+    // With no batch open, a lone restore's folder syncs at once.
+    FolderSyncs::restored(&back);
+    assert_eq!(FolderSyncs::take_synced(), [back]);
+}

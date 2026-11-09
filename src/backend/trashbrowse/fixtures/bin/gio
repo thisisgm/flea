@@ -6,8 +6,14 @@ files = root / 'data/Trash/files'
 names = sorted(p.name for p in files.iterdir() if p.is_file())
 args = sys.argv[1:]
 def uri(name): return 'trash:///' + urllib.parse.quote(name)
+# As gio 2.90.1 does, an item with no record, or a record with no Path line, lists with no orig-path.
+def described(name):
+    record = root / 'data/Trash/info' / (name + '.trashinfo')
+    return record.is_file() and 'Path=' in record.read_text()
 if args[0] == 'list' and 'trash::orig-path' in args:
-    for name in names: print(uri(name) + '\t1\t(regular)\ttrash::orig-path=' + str(root / 'original' / name))
+    for name in names: print(uri(name) + '\t1\t(regular)' + ('\ttrash::orig-path=' + str(root / 'original' / name) if described(name) else ''))
+elif args[0] == 'list' and 'standard::target-uri' in args:
+    for name in names: print(uri(name) + '\t1\t(regular)\tstandard::target-uri=' + (files / name).as_uri())
 elif args[0] == 'list':
     for name in names: print(uri(name) + '  trash::deletion-date=2026-10-18T09:00:00')
 elif args[0] == 'info':

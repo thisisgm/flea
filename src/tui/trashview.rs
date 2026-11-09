@@ -162,7 +162,8 @@ pub fn preview(m: &Model, y: usize, width: usize, theme: &Theme) -> Option<Strin
     let view = m.prompts.trash.as_ref()?;
     let (Some(row), Some((original, deleted, _))) = (m.rows.get(&m.cursor), view.items.get(&m.cursor)) else { return Some(fit("", width)); };
     let i18n = &m.prompts.i18n;
-    let location = std::path::Path::new(original).parent().map(|parent| {
+    let original = flea::bytename::display(original);
+    let location = std::path::Path::new(original.as_ref()).parent().map(|parent| {
         let home = std::env::var_os("HOME").filter(|home| !home.is_empty()).map(PathBuf::from);
         match home.as_ref().and_then(|home| parent.strip_prefix(home).ok()) {
             Some(tail) if tail.as_os_str().is_empty() => "~".into(),

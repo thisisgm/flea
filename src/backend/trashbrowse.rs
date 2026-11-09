@@ -12,6 +12,8 @@ use std::time::{Duration, Instant};
 
 mod job;
 mod details;
+mod restore;
+mod sweep;
 #[cfg(test)]
 mod queue_tests;
 pub(crate) use job::request;
@@ -85,6 +87,7 @@ struct Confirmation {
     count: usize,
     nodes: usize,
     all: bool,
+    sweep: sweep::Sweep,
 }
 struct Selection {
     token: usize,
@@ -209,7 +212,7 @@ fn parse_list(text: &str) -> Vec<Item> {
     }
     items
 }
-// Sample input: "/tmp/a\\x0ab.txt" is the original "/tmp/a\nb.txt"; None for a broken escape or an original that is not UTF-8.
+// Sample input: "/tmp/a\\x0ab.txt" is the original "/tmp/a\nb.txt"; "/tmp/caf\\xe9" is its exact text (docs/architecture/exact-names.md); None for a broken escape.
 fn unescape(value: &str) -> Option<String> {
     let mut bytes = Vec::with_capacity(value.len());
     let mut rest = value.as_bytes();
@@ -223,7 +226,9 @@ fn unescape(value: &str) -> Option<String> {
             bytes.push(byte);
         }
     }
-    String::from_utf8(bytes).ok()
+    // No path holds a NUL, and a decoded one could spell another name's exact tail.
+    if bytes.contains(&0) { return None; }
+    Some(flea::bytename::path_text(std::path::Path::new(<std::ffi::OsStr as std::os::unix::ffi::OsStrExt>::from_bytes(&bytes))).into_owned())
 }
 // The gio list line for each "uri<TAB>original" pair, so a test names its items the way they read.
 #[cfg(test)]
@@ -398,7 +403,7 @@ fn load_detail(text: &str, trees: &Manifest) -> Result<Detail, Refusal> {
 }
 fn failure(item: &Item, expected: &str, error: &str) -> String {
     format!(r#"{{"uri":"{}","name":"{}","identity":"{}","error":"{}"}}"#,
-        escape(&item.uri), escape(item.original.rsplit('/').next().unwrap_or(&item.original)), escape(expected), escape(error))
+        escape(&item.uri), escape(flea::bytename::display(&item.original).rsplit('/').next().unwrap_or("")), escape(expected), escape(error))
 }
 // Purge once on request exit, including a partial restore that stops on an unreadable target record.
 struct ThumbnailPurge(Vec<String>);
@@ -724,8 +729,12 @@ impl Session {
                 count += 1;
             }
         }
+        // Empty Trash also reviews what the listing leaves out; the count and bytes stay the listed items'.
+        let sweep = if all && field_bool(line, "emptyTrash") {
+            sweep::Sweep::review(&self.items, &mut trees, &self.scratch, &self.cancellation, gio)?
+        } else { sweep::Sweep::default() };
         self.next_token += 1;
-        self.confirmation = Some(Confirmation { token: self.next_token, items, trees, listing: self.items.clone(), targets, count, nodes, all });
+        self.confirmation = Some(Confirmation { token: self.next_token, items, trees, listing: self.items.clone(), targets, count, nodes, all, sweep });
         if !self.valid(self.next_token)? {
             self.confirmation = None;
             return Err("Trash changed while reviewing its contents; try the action again.".into());
@@ -740,6 +749,7 @@ impl Session {
         };
         self.cancellation.check()?;
         if !same_items(&list()?, &confirmation.listing) { return Ok(false); }
+        if !confirmation.sweep.unchanged(&self.cancellation)? { return Ok(false); }
         let mut cursor = 0;
         let mut checked = 0;
         loop {
@@ -760,42 +770,6 @@ impl Session {
         }
         Ok(true)
     }
-    fn restore(&mut self, line: &str) -> Result<String, String> {
-        let mut thumbnails = ThumbnailPurge(Vec::new());
-        if field_bool(line, "all") { self.items = list()?; }
-        let targets = self.targets(line)?;
-        // A target whose original sits on a pending mount waits, so the late write lands first.
-        if self.targets_blocked(&targets)? {
-            return Err("an operation is already running".into());
-        }
-        let mut done = 0;
-        let mut failures = Vec::new();
-        let mut cursor = 0;
-        while let Some(bytes) = targets.records().next(&mut cursor)? {
-            let text = record_text(bytes)?;
-            let item = record_item(&text)?;
-            let mut retained = field_str(&text, "identity").unwrap_or_default();
-            let restored = detail(&item).map_err(String::from).and_then(|current| {
-                if !field_bool(line, "all") {
-                    require_selected_identity(&current, &field_str(&text, "identity").unwrap_or_default())?;
-                }
-                let backing = current.backing.as_ref().ok_or_else(|| unchecked(Op::Restore))?;
-                let result = backing.restore(&flea::bytename::exact(&item.original), &crate::backend::trashdelete::recovery_root()?);
-                thumbnails.record(backing, &result);
-                let result = result.map_err(String::from);
-                if result.is_err() { retained = surviving_identity(&current); }
-                result
-            });
-            match restored {
-                Ok(_) => done += 1,
-                Err(error) => failures.push(failure(&item, &retained, &error)),
-            }
-        }
-        self.confirmation = None;
-        self.selection = None;
-        Ok(format!(r#""done":{},"failed":{},"failures":[{}]"#, done, failures.len(), failures.join(",")))
-    }
-
 }
 
 #[cfg(test)]
