@@ -169,6 +169,13 @@ key off a cursor step past an end clamps, and with it on a step taken from an en
 key exists because issue 27 asked for the wrap, and it ships off because a second user reported
 that same jump past the top as a bug.
 
+**`wrapGridRows` continues Left and Right across grid rows.** It ships off, and its row sits
+directly under Wrap at list ends. With it on, Right on the last cell of a row moves to the first
+cell of the next row, and Left on the first cell of a row moves to the last cell of the previous
+one. The first and last cells of the listing still hold. `wrapAtEnds` does not do this: a row edge
+holds even when list navigation wraps. `ui/js/Grid.js` `arrow` and
+`crates/flea-gui/src/grid/mod.rs` `arrow` are the two readers.
+
 **`pickerView` is the file chooser's own last-used view and nothing else.** It is `"list"` or
 `"grid"`, default `"list"`, deliberately separate from the main window's `view`, so a grid
 picker never flips the browser and a list browser never flips the picker. The picker reads it

@@ -69,6 +69,8 @@ FocusScope {
     onBackendChanged: Ops.checkZip(root)
     // Issue 27's state-file key: with it on a cursor step past an end comes round; ui/js/Focus.js step is the only reader.
     readonly property bool wrapAtEnds: ViewState.state.wrapAtEnds === true
+    // Issue 434, off by default. ui/js/Grid.js arrow is the reader: Left and Right continue across rows.
+    readonly property bool wrapGridRows: ViewState.state.wrapGridRows === true
     // ClickAndRefresh under Settings, View: Escape climbs, one tap opens, and the slow click renames.
     readonly property bool escapeUp: ViewState.state.escapeUp === true
     readonly property bool singleClick: ViewState.state.openMode === "single"

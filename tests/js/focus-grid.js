@@ -87,6 +87,31 @@ function run(check) {
               gridPane.cursorIndex, walk[3])
     }
 
+    // Issue 434. The option ships off, so a row edge still holds. On, Left and Right continue.
+    var across = pane("grid")
+    across.cursorIndex = 2
+    Grid.arrow(key(Qt.Key_Right, "", none), "cursorRight", across)
+    check("right at a row end holds while row wrap is off", across.cursorIndex, 2)
+    across.wrapGridRows = true
+    across.cursorIndex = 2
+    Grid.arrow(key(Qt.Key_Right, "", none), "cursorRight", across)
+    check("right at a row end continues onto the next row", across.cursorIndex, 3)
+    across.cursorIndex = 5
+    Grid.arrow(lPress, "cursorRight", across)
+    check("l at a row end continues the same way", across.cursorIndex, 6)
+    across.cursorIndex = 6
+    Grid.arrow(key(Qt.Key_Right, "", none), "cursorRight", across)
+    check("right on the last cell of the listing still holds", across.cursorIndex, 6)
+    across.cursorIndex = 3
+    Grid.arrow(key(Qt.Key_Left, "", none), "cursorLeft", across)
+    check("left at a row start continues onto the previous row", across.cursorIndex, 2)
+    across.cursorIndex = 6
+    Grid.arrow(hPress, "cursorLeft", across)
+    check("h at a row start continues onto the previous row", across.cursorIndex, 5)
+    across.cursorIndex = 0
+    Grid.arrow(key(Qt.Key_Left, "", none), "cursorLeft", across)
+    check("left on the first cell still holds", across.cursorIndex, 0)
+
     // The horizontal pair keeps its action guard: a foreign action behind h or Left falls through.
     gridPane.cursorIndex = 3
     check("h with a foreign action falls through", Grid.arrow(hPress, "parent", gridPane), false)

@@ -360,6 +360,8 @@ function viewRows(state) {
           on: data.rememberSort !== false },
         { kind: "group", label: "Cursor" },
         { kind: "check", id: "wrapAtEnds", label: "Wrap at list ends", caption: "arrow-up at the top", glyph: "arrow-up", on: data.wrapAtEnds === true },
+        // Issue 434: off, a grid row edge holds. On, Left and Right continue onto the neighbouring row.
+        { kind: "check", id: "wrapGridRows", label: "Continue onto the next row", caption: "right at a row's end", on: data.wrapGridRows === true },
         // Issue 29: Escape climbs to the parent while on, and stays put while off, which is 0.3.4.
         { kind: "check", id: "escapeUp", label: "Escape goes up a folder", caption: "with nothing to close", on: data.escapeUp === true },
         { kind: "group", label: "Opening" },

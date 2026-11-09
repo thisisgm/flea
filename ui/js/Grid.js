@@ -12,7 +12,9 @@ function sideways(event) {
          : event.key === Qt.Key_Right || event.text === "l" ? 1 : 0
 }
 
-// Arrow and letter actions share visual cells; absent neighbours clamp even when list navigation wraps.
+// Arrow and letter actions share visual cells. A row edge holds even when list navigation wraps,
+// unless wrapGridRows is on: Right then continues to the next row and Left to the previous one.
+// The first and last cells of the listing still hold.
 function arrow(event, action, root) {
     if (root.viewMode !== "grid") return false
     var columns = root.cursorStride
@@ -24,9 +26,10 @@ function arrow(event, action, root) {
     if (!delta) return false
     var index = Filter.viewOf(root.shown, root.cursorIndex)
     var nextIndex = index + delta
+    var atRowEdge = (across < 0 && index % columns === 0)
+            || (across > 0 && nextIndex % columns === 0)
     if (nextIndex < 0 || nextIndex >= root.shownTotal
-            || (across < 0 && index % columns === 0)
-            || (across > 0 && nextIndex % columns === 0)) return true
+            || (atRowEdge && root.wrapGridRows !== true)) return true
     if (action === "extendDown" || action === "extendUp") root.extendSelection(delta)
     else { Filter.moveCursor(root, delta); Marks.follow(root) }
     return true

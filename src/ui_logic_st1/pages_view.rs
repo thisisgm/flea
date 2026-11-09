@@ -41,6 +41,7 @@ pub fn view_rows(state: &State<'_>) -> Vec<Row> {
         check("rememberSort", "settings.row.remember_sort", "sort", not_false(data, &["rememberSort"])),
         Row::group("settings.group.cursor"),
         Row { caption: Text::Key("settings.caption.wrap"), ..check("wrapAtEnds", "settings.row.wrap", "arrow-up", is_true(data, &["wrapAtEnds"])) },
+        Row { caption: Text::Key("settings.caption.wrap_grid"), ..check("wrapGridRows", "settings.row.wrap_grid", "", is_true(data, &["wrapGridRows"])) },
         Row { caption: Text::Key("settings.caption.escape_up"), ..check("escapeUp", "settings.row.escape_up", "", is_true(data, &["escapeUp"])) },
         Row::group("settings.group.opening"),
         choice("startIn", "settings.row.start_in", "house", &["home", "last", "folder"],

@@ -24,6 +24,7 @@ pub const DEFAULTS: &str = r#"{
   "showGitStatus": false,
   "highlightToday": false,
   "wrapAtEnds": false,
+  "wrapGridRows": false,
   "escapeUp": false,
   "openMode": "double",
   "clickRename": true,
@@ -215,6 +216,8 @@ pub const SCHEMA: &[(&str, Rule)] = &[
     ("showGitStatus", Rule::Bool),
     ("highlightToday", Rule::Bool),
     ("wrapAtEnds", Rule::Bool),
+    // Issue 434: Left and Right continue across grid rows. Off, a row edge holds.
+    ("wrapGridRows", Rule::Bool),
     // ClickAndRefresh: Escape climbs when on, the pointer's open mode, and the
     // slow-click rename it greys. Single click and Escape-up ship off, slow click ships on.
     ("escapeUp", Rule::Bool),
@@ -313,6 +316,7 @@ mod tests {
                 "showGitStatus",
                 "highlightToday",
                 "wrapAtEnds",
+                "wrapGridRows",
                 "escapeUp",
                 "openMode",
                 "clickRename",
@@ -340,6 +344,7 @@ mod tests {
         assert_eq!(d.get("showGitStatus").and_then(Json::as_bool), Some(false));
         assert_eq!(d.get("highlightToday").and_then(Json::as_bool), Some(false));
         assert_eq!(d.get("wrapAtEnds").and_then(Json::as_bool), Some(false));
+        assert_eq!(d.get("wrapGridRows").and_then(Json::as_bool), Some(false));
         // Escape stays put and a double click opens as in 0.3.4; slow click renames, on by the defaults ledger.
         assert_eq!(d.get("escapeUp").and_then(Json::as_bool), Some(false));
         assert_eq!(d.get("openMode").and_then(Json::as_str), Some("double"));

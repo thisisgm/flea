@@ -1,9 +1,9 @@
 {
-  "catalog_file_sha256": "bbd4424e8ae76d318ab9f772198648b9be60cc81d7135ae1c19cd51556f0c5e6",
-  "catalog_sha256": "6088e663a756a95c831cd23e457d94ad733bcce4a0fc898cb4ff8808041d1122",
+  "catalog_file_sha256": "d84feff72982d31986440429803ffa54fd705c4067c8af83374f876b51c262cd",
+  "catalog_sha256": "178d7cfcb173c1acd09232e60fea4aae25d34c3000df9e698a7cfde64c866338",
   "counts": {
     "direct_references": 0,
-    "keys": 2274,
+    "keys": 2276,
     "plurals": 106
   },
   "direct_references": {},
@@ -95617,6 +95617,28 @@
       "resolved_source_hash": "60a7048a4b96",
       "source_hash": "60a7048a4b96"
     },
+    "settings.caption.wrap_grid": {
+      "call_sites": [
+        {
+          "excerpt": "Row { caption: Text::Key(\"settings.caption.wrap_grid\"), ..check(\"wrapGridRows\", \"settings.row.wrap_grid\", \"\", is_true(data, &[\"wrapGridRows\"])) },",
+          "line": 44,
+          "path": "src/ui_logic_st1/pages_view.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "settings.caption.wrap_grid: src/ui_logic_st1/pages_view.rs:44",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "right at a row's end",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "right at a row's end",
+      "resolved_sha256": "94b5375e835bf5c44868d36922f41cf6859808d7881f609b35df1017b5fcc8a4",
+      "resolved_source_hash": "5e9a8d1b2eec",
+      "source_hash": "5e9a8d1b2eec"
+    },
     "settings.choice.automatic": {
       "call_sites": [
         {
@@ -100450,6 +100472,28 @@
       "resolved_sha256": "4ab1d4e69b8bc114bd69c6d510af280eb31fdb2fd3eed073ee47825791a2a5c0",
       "resolved_source_hash": "24e2f0f1d3d3",
       "source_hash": "24e2f0f1d3d3"
+    },
+    "settings.row.wrap_grid": {
+      "call_sites": [
+        {
+          "excerpt": "Row { caption: Text::Key(\"settings.caption.wrap_grid\"), ..check(\"wrapGridRows\", \"settings.row.wrap_grid\", \"\", is_true(data, &[\"wrapGridRows\"])) },",
+          "line": 44,
+          "path": "src/ui_logic_st1/pages_view.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "settings.row.wrap_grid: src/ui_logic_st1/pages_view.rs:44",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "Continue onto the next row",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "Continue onto the next row",
+      "resolved_sha256": "0ab69f9d99c5f71b67fbaa1cd29290d0b7f2ce317622f5bf97f46dc8c12f3453",
+      "resolved_source_hash": "40a4ecb31ccf",
+      "source_hash": "40a4ecb31ccf"
     },
     "settings.section.about": {
       "call_sites": [

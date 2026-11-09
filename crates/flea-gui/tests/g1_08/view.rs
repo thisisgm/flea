@@ -213,7 +213,7 @@ fn a_filter_maps_views_to_rows_and_asks_no_window() {
         "a filtered-away cursor moves nothing"
     );
     assert_eq!(
-        arrow(6, shown.view_of(44), shown.total(), Arrow::Down),
+        arrow(6, shown.view_of(44), shown.total(), Arrow::Down, false),
         None
     );
     assert_eq!(Shown::Only(&[]).span(0, 5), None);
@@ -222,7 +222,7 @@ fn a_filter_maps_views_to_rows_and_asks_no_window() {
 #[test]
 fn arrows_step_by_tiles_and_hold_at_row_edges_and_listing_ends() {
     let columns = 6;
-    let at = |view: usize, step: Arrow| arrow(columns, Some(view), 20, step);
+    let at = |view: usize, step: Arrow| arrow(columns, Some(view), 20, step, false);
     assert_eq!(
         (
             at(7, Arrow::Down),

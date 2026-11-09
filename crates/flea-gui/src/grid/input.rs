@@ -41,6 +41,9 @@ impl Shell {
         if self.view != View::Grid || self.keyboard.context != flea::keys::Context::Listing {
             return false;
         }
+        // Issue 434. Read before the pane borrow: Left and Right continue across rows only when this is on.
+        let wrap_rows =
+            flea::ui_logic_st1::pages::is_true(&self.launch.settings.data, &["wrapGridRows"]);
         let Some(host) = self.panes[self.focus_side].as_mut() else {
             return false;
         };
@@ -60,7 +63,7 @@ impl Shell {
             _ => None,
         };
         let next = if let Some(step) = step {
-            arrow(layout.columns, Some(cursor), total, step)
+            arrow(layout.columns, Some(cursor), total, step, wrap_rows)
         } else {
             let page = page_items(host.pane.visible_rows());
             match action {

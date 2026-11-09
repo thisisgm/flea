@@ -293,6 +293,11 @@ function runCompletionRows(check) {
     check("Preview rail mark differs from the three-column view", Settings.SECTIONS[Settings.sectionIndex("preview")].glyph, "preview")
     check("grouping explains the categories before it is enabled", find(view, "groupByKind").caption, "folders, photos, files")
     check("wrapping explains the boundary before it is enabled", find(view, "wrapAtEnds").caption, "arrow-up at the top")
+    check("grid row wrap ships off beside it",
+          find(view, "wrapGridRows").label + "|" + find(view, "wrapGridRows").on + "|" + find(view, "wrapGridRows").caption,
+          "Continue onto the next row|false|right at a row's end")
+    check("and a stored on reads back on",
+          find(Settings.rows("view", { data: { wrapGridRows: true } }), "wrapGridRows").on, true)
     // Issue 29 and ClickAndRefresh: Escape stays put until switched on, one tap opens only in
     // single mode, and the slow click renames while double mode is on.
     check("Escape goes up a folder ships off", find(view, "escapeUp").label + "|" + find(view, "escapeUp").on,

@@ -32,6 +32,8 @@ mod rev_u10_r1_tests;
 mod rev_u10_r2_tests;
 #[cfg(test)]
 mod rev_u10_r3_tests;
+#[cfg(test)]
+mod row_wrap_tests;
 mod scrollbar;
 mod tile;
 mod transition;
@@ -96,17 +98,31 @@ pub enum Arrow {
     ExtendDown,
 }
 
-/// Grid.js arrow: the view position an arrow lands on, None when it is held at a row edge or a listing end, where the key is still taken.
-pub fn arrow(columns: usize, view: Option<usize>, total: usize, step: Arrow) -> Option<usize> {
+/// Grid.js arrow: the view position an arrow lands on.
+/// None where the key is held: a row edge while `wrap_rows` is off, or either end of the listing.
+pub fn arrow(
+    columns: usize,
+    view: Option<usize>,
+    total: usize,
+    step: Arrow,
+    wrap_rows: bool,
+) -> Option<usize> {
     let (view, columns) = (view?, columns.max(1));
     let next = match step {
         Arrow::Down | Arrow::ExtendDown => view.checked_add(columns)?,
         Arrow::Up | Arrow::ExtendUp => view.checked_sub(columns)?,
-        Arrow::Left if view % columns == 0 => return None,
+        Arrow::Left if view % columns == 0 => {
+            if wrap_rows {
+                view.checked_sub(1)?
+            } else {
+                return None;
+            }
+        }
         Arrow::Left => view - 1,
         Arrow::Right => view + 1,
     };
-    (next < total && !(step == Arrow::Right && next % columns == 0)).then_some(next)
+    let held_edge = !wrap_rows && step == Arrow::Right && next % columns == 0;
+    (next < total && !held_edge).then_some(next)
 }
 
 /// Why the view moved or asked, counted so tests and the IPC seam can read the policy back.
