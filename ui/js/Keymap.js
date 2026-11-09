@@ -385,7 +385,7 @@ function hintsFor(name, group) {
     var hints = {}, ranks = {}, rows = bindingRows(name, "gui", group)
     for (var i = 0; i < rows.length; i++) {
         var row = rows[i]
-        if (row.mods !== "text" && row.mods !== "none" && row.mods !== "shift") continue
+        if (["text", "none", "shift"].indexOf(row.mods) < 0 && !(row.mods === "ctrl" && actionGroup(row.action) === "print")) continue  // src/keys/presentation.rs CHORD_HINTS: only Print shows its Ctrl chord.
         var action = actionGroup(row.action), rank = (row.preset === name ? 0 : 2) + (row.mods === "text" ? 0 : row.mods === "none" ? 1 : 4)
         if (ranks[action] !== undefined && ranks[action] <= rank) continue
         // A menu hint is the key the operator presses: Menus.html and the OpenWith board

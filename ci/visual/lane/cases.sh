@@ -1,5 +1,39 @@
 # Source after the shared flea-ci-visual lane cases to register the plugin SOURCE regression and the AirDrop plugin.
 CASES+=("settings-plugin-source-row 1100x700 surface:SettingsPanel")
+# Print and print-no-printer boards: Ctrl+P opens the real card with fixture CUPS replies.
+CASES+=("print-card 1100x700 key:print"
+        "print-no-printer 1100x700 key:print")
+
+print_card() {
+    local mode=$1 bin=$C/print/bin attempt
+    mkdir -p "$bin" || return 1
+    export VISUAL_PRINT_MODE=$mode VISUAL_PRINT_QUERY_DONE=$C/print/query-done
+    printf '%s\n' '#!/bin/sh' 'case "$1" in' \
+        '-e) [ "$VISUAL_PRINT_MODE" = none ] || echo Brother ;;' \
+        '-d) if [ "$VISUAL_PRINT_MODE" = none ]; then : > "$VISUAL_PRINT_QUERY_DONE"; else echo "system default destination: Brother"; fi ;;' \
+        '-l) printf "printer Brother is idle.\\n\\tDescription: Brother HL-L3270CDW\\n"; : > "$VISUAL_PRINT_QUERY_DONE" ;;' \
+        '*) exit 1 ;;' 'esac' > "$bin/lpstat" || return 1
+    printf '%s\n' '#!/bin/sh' \
+        'printf "%s\\n" "Duplex/Two-sided: *None DuplexNoTumble" "ColorModel/Color: *RGB Gray"' \
+        > "$bin/lpoptions" || return 1
+    chmod +x "$bin/lpstat" "$bin/lpoptions" || return 1
+    export PATH="$bin:$PATH"
+    launch list "$W/Docs" || return 1
+    cursor_to notes.txt || return 1
+    key -M ctrl p -m ctrl || return 1
+    for attempt in $(seq 1 60); do
+        [ -f "$VISUAL_PRINT_QUERY_DONE" ] && break
+        sleep 0.1
+    done
+    [ -f "$VISUAL_PRINT_QUERY_DONE" ] || { state_failure "Ctrl+P never queried printer options"; return 1; }
+    # The last CUPS reply travels back to the card before its entrance settles.
+    sleep 0.3
+    snap
+}
+
+case_print_card() ( [ "$VISUAL_FRONTEND" = gpui ] || return 77; print_card ready )
+case_print_no_printer() ( [ "$VISUAL_FRONTEND" = gpui ] || return 77; print_card none )
+
 # F16 (0.4.1): boards 0401-airdrop-menu and 0401-airdrop-page, with a stand-in owly on PATH; the page's two refusals.
 CASES+=("airdrop-menu-off 1100x700 surface:IpcMenuState"
         "airdrop-menu-devices 1100x700 surface:IpcMenuState"
