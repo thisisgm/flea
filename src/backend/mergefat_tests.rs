@@ -83,3 +83,26 @@ fn a_renamed_name_that_meets_an_existing_one_gets_the_second_cards_question() {
     assert_eq!(text(&to.join("trip/clip_ x.mp4")), "there", "the name there is kept");
     assert_eq!(std::fs::read_dir(to.join("trip")).unwrap().count(), 2, "the second card's Keep both landed the other beside it");
 }
+
+// Sample input: trip merges into to/trip while a.txt and A.txt take one name in a folding to, which the first card asked about.
+#[test]
+fn the_merge_card_keeps_the_twins_the_first_card_asked_about() {
+    let d = TestDir::new("merge-case-twins");
+    let to = d.dir("to");
+    let trip = d.dir("from/trip");
+    d.file("from/trip/ok.txt", "yours");
+    d.dir("to/trip");
+    let (lower, upper) = (d.file("from/a.txt", "lower"), d.file("from/A.txt", "UPPER"));
+    crate::backend::fatnames::casefold::test_stand_folding(&to, true);
+    let (tx, rx) = channel();
+    let mut ops = Ops::new(tx);
+    let (db, icons) = (Arc::new(crate::backend::mime::Db::load()), Arc::new(crate::backend::icons::Names::load()));
+    let (dest, paths) = (to.to_string_lossy().to_string(), owned(&[&trip, &lower, &upper]));
+    crate::backend::collide::ask_beside(&mut ops, 9, 0, paths.clone(), &dest, None, (&db, &icons));
+    next_line(&mut ops, &rx);
+    ask_beside(&mut ops, 9, 0, paths, &dest, &db, &icons);
+    next_line(&mut ops, &rx);
+    crate::backend::fatnames::casefold::test_stand_folding(&to, false);
+    let question = ops.question.take().expect("the merge card's question");
+    assert_eq!(question.twins.iter().collect::<Vec<_>>(), vec![&upper], "the merge card answers the twin too");
+}

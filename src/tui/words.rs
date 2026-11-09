@@ -10,6 +10,8 @@ pub enum Text {
     Count(usize),
     Size(usize),
     Joined(Vec<Text>),
+    // A backend cause set inside another sentence: a fixed one reads in the current language, anything else as the backend said it.
+    Cause(String),
 }
 impl Text {
     pub fn render(&self, i18n: &I18n) -> String {
@@ -30,6 +32,7 @@ impl Text {
                 .format_count((*count).min(i64::MAX as usize) as i64),
             Self::Size(bytes) => i18n.locale().format_size(*bytes as u64),
             Self::Joined(parts) => parts.iter().map(|part| part.render(i18n)).collect(),
+            Self::Cause(words) => flea::ui_logic_status_feedback::errors::clause(words, i18n),
         }
     }
 }

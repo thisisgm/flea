@@ -2266,6 +2266,13 @@ The two lines together take the `bytes` line to 1598292.
 
 The tall Quick Look rect (`ui/js/QuickLookRect.js`) moves `ui/Preview.qml` from 740 to 773 lines for the card's `shape`, the next card's `shapeNext` and `panes` size, the size reply, the image meta ask for every row and the image pane built after that reply, and `ui/Theme.qml` from 443 to 445 for `preview.edge`, and takes the `bytes` line of `tests/startup-units.txt` to 1598459 over the same 170 units. The card draws `shape`, which takes `shapeNext` only while no swap holds a picture, so a held picture is never stretched, while `panes` already has the next card's size, so the preview built under the hold is whole when the card changes size in the swap's release frame; a reply that comes after the reveal cap leaves the card at today's 82% by 82%. A PDF followed from a PDF holds the old picture until the new document's first page lands, because `lookReady` reads `ui/PdfViewer.qml`'s `opened` against the shown path, so the page-size reply arrives while the swap still holds and the card never draws the unknown shape.
 
+### Case twins are matched by lower case, and a cifs share is not read as folding
+
+`src/backend/casefold.rs` decides which folders fold case from the filesystem type: the FAT family and exFAT always, ext4 and f2fs only inside a folder carrying the casefold flag (`FS_IOC_GETFLAGS`), every other type never. Where a folder folds, two names are twins when their lower cases match (`casefold::key`). The collisions question (`collide.rs` `ask`), the merge card and the extract refusal (`extractnames.rs`) all use that key.
+
+- The kernel folds more widely than lower case. exFAT reads its own up-case table and ext4 casefold compares Unicode-normalized folded names, so two names that differ only in Unicode normalization (NFC against NFD) or in a fold that lower case does not make are not seen as twins in advance. A copy or move of such a pair still never writes one over the other: the second name finds the first entry when it lands and is refused with `already exists`, since the collisions question never counted it. An extract of such a pair is not refused up front and lands as the extract tool writes it.
+- A cifs or smb3 mount reads as not folding. A Samba or Windows share folds case on the server, under a rule the client cannot read, so twins sent to a share are found only when they land, with the same `already exists` refusal, and the collisions question does not count them beforehand.
+
 ---
 
 Navigation: [architecture index](README.md),

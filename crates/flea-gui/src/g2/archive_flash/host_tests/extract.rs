@@ -155,3 +155,50 @@ fn an_extract_card_keeps_its_backend_when_the_other_side_needs_a_password() {
         "side 0's password never goes to side 1: {right:?}"
     );
 }
+
+// The shipped catalogs with German chosen, from a marked mktemp root that holds only the roster and the language file.
+fn shipped_german() -> flea::i18n::I18n {
+    let repo = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let parent = repo.join(".superpowers/fx-case-gui");
+    std::fs::create_dir_all(&parent).unwrap();
+    let made = std::process::Command::new("mktemp")
+        .arg("-d")
+        .arg(parent.join("de.XXXXXXXX"))
+        .output()
+        .unwrap();
+    let root = std::path::PathBuf::from(String::from_utf8(made.stdout).unwrap().trim());
+    assert!(made.status.success() && root.is_absolute());
+    std::fs::write(root.join(".flea-test-sandbox"), "fx-case gui\n").unwrap();
+    std::fs::create_dir_all(root.join("omarchy/default/i18n")).unwrap();
+    std::fs::write(
+        root.join("omarchy/default/i18n/locales.json"),
+        include_str!("../../../../../../src/i18n/fixtures/locales.json"),
+    )
+    .unwrap();
+    std::fs::write(root.join("language"), "de\n").unwrap();
+    flea::i18n::I18n::load(flea::i18n::Paths {
+        omarchy: root.join("omarchy"),
+        language_file: root.join("language"),
+        catalogs: vec![repo.join("i18n")],
+    })
+}
+
+#[test]
+fn an_extract_refusal_reads_in_the_window_language() {
+    let mut cx = crate::list::bench::real_cx();
+    let (handle, _requests, _other) = start(&mut cx);
+    edit(&mut cx, handle, |shell, _, _| {
+        shell.locale.catalog = std::sync::Arc::new(shipped_german());
+    });
+    receive(
+        &mut cx,
+        handle,
+        0,
+        r#"{"t":"archivedone","id":9,"ok":false,"verified":true,"err":"'a.txt' and 'A.txt' would take one name on this drive, so nothing was extracted"}"#,
+    );
+    let status = footer(&mut cx, handle);
+    assert!(
+        status.contains("a.txt") && status.contains("denselben Namen, daher wurde nichts entpackt"),
+        "the refusal is said in German: {status}"
+    );
+}

@@ -117,6 +117,8 @@
   "archive.compressing": "%1 á chomhbhrú go .%2",
   "archive.confirm": "Deimhnigh",
   "archive.done.cancelled": "Cealaíodh an t-eastóscadh.",
+  "archive.done.name_refused": "Ní féidir “%1” a eastóscadh ar an tiomántán seo: %2.",
+  "archive.done.twins": "Gheobhadh “%1” agus “%2” an t-ainm céanna ar an tiomántán seo, mar sin níor eastóscadh aon rud.",
   "archive.done.unverified": "Eastósctha. Níorbh fhéidir innéacs na cartlainne a léamh, mar sin níor fíoraíodh é seo.",
   "archive.done.written": "Scríobhadh an chartlann.",
   "archive.encrypt_names": "Criptigh ainmneacha comhaid",

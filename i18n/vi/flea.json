@@ -48,6 +48,8 @@
   "archive.compressing": "Đang nén %1 thành .%2",
   "archive.confirm": "Xác nhận",
   "archive.done.cancelled": "Đã hủy giải nén.",
+  "archive.done.name_refused": "Không thể giải nén “%1” vào ổ đĩa này: %2.",
+  "archive.done.twins": "“%1” và “%2” sẽ có cùng một tên trên ổ đĩa này, nên không có gì được giải nén.",
   "archive.done.unverified": "Đã giải nén. Không thể đọc chỉ mục tệp nén nên chưa xác minh được kết quả.",
   "archive.done.written": "Đã ghi tệp nén.",
   "archive.encrypt_names": "Mã hóa tên tệp",

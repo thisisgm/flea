@@ -153,6 +153,10 @@ pub(crate) fn extract_reporting(
         if let Some(sentence) = archivefree::check(&leaf, index.space, dest) {
             return Err(op_err("archive", &archive.to_string_lossy(), &sentence));
         }
+        // A name the drive refuses or a case twin it would fold onto another fails or loses data mid-extract, so it is refused here.
+        if let Some(sentence) = extractnames::refusal(index.members.keys(), &extractnames::Rules::of(dest.parent().unwrap_or(Path::new("/")))) {
+            return Err(op_err("archive", &leaf, &sentence));
+        }
     }
     if cancel.load(Ordering::Relaxed) {
         return Err(op_err("archive", &archive.to_string_lossy(), "cancelled"));
@@ -317,6 +321,8 @@ pub fn split_paths(paths: &[String]) -> Option<(PathBuf, Vec<String>)> {
 
 #[path = "archivezip.rs"]
 pub(crate) mod zipplan;
+#[path = "extractnames.rs"]
+mod extractnames;
 
 #[cfg(test)]
 #[path = "archiveops_tests.rs"]

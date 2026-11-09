@@ -49,6 +49,8 @@
   "archive.compressing": "Inafinyaza %1 kuwa .%2",
   "archive.confirm": "Thibitisha",
   "archive.done.cancelled": "Utoaji umeghairiwa.",
+  "archive.done.name_refused": "“%1” haiwezi kutolewa kwenye kiendeshi hiki: %2.",
+  "archive.done.twins": "“%1” na “%2” zingechukua jina moja kwenye kiendeshi hiki, kwa hivyo hakuna kilichotolewa.",
   "archive.done.unverified": "Imetolewa. Fahirisi ya jalada haikuweza kusomwa, kwa hivyo matokeo hayajathibitishwa.",
   "archive.done.written": "Jalada limeandikwa.",
   "archive.encrypt_names": "Simba majina ya faili kwa njia fiche",

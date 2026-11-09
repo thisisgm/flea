@@ -3,7 +3,7 @@ use crate::backend::collide::{MenuCapture, Place, Policy, Question, SHOWN};
 use crate::backend::fatnames::{self, Choice};
 use crate::backend::undo::ItemIdentity;
 use crate::json::escape;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 
@@ -198,10 +198,11 @@ pub(crate) fn ask_beside(
         let inner = walk(&paths, Path::new(&dest), fat);
         let total = inner.len();
         let names = names_line(&inner, &mime, &icons);
-        let mut question = Question { id, dest: PathBuf::from(&dest), seen: HashMap::new(), menu: None, fat };
-        if let Some((dest, seen, menu)) = base {
+        let mut question = Question { id, dest: PathBuf::from(&dest), seen: HashMap::new(), twins: Default::default(), menu: None, fat };
+        if let Some((dest, seen, twins, menu)) = base {
             question.dest = dest;
             question.seen = seen;
+            question.twins = twins;
             question.menu = menu;
             question = combine(question, inner);
         }
@@ -210,9 +211,12 @@ pub(crate) fn ask_beside(
     });
 }
 
+// The first card's destination, seen names, twins and menu capture, which the merge card's question carries on.
+pub(crate) type WalkBase = (PathBuf, HashMap<PathBuf, ItemIdentity>, HashSet<PathBuf>, Option<MenuCapture>);
+
 // The walk's inputs packaged for its thread, so the question arm keeps one call.
-pub(crate) fn walk_base(outer: Option<&Question>) -> Option<(PathBuf, HashMap<PathBuf, ItemIdentity>, Option<MenuCapture>)> {
-    outer.map(|q| (q.dest.clone(), q.seen.clone(), q.menu.clone()))
+pub(crate) fn walk_base(outer: Option<&Question>) -> Option<WalkBase> {
+    outer.map(|q| (q.dest.clone(), q.seen.clone(), q.twins.clone(), q.menu.clone()))
 }
 
 // A merge choice that reaches placement lands without replacing: the fold answers folder pairs before this runs.

@@ -143,6 +143,8 @@
   "archive.compressing": "Mengompres %1 ke .%2",
   "archive.confirm": "Konfirmasi",
   "archive.done.cancelled": "Ekstraksi dibatalkan.",
+  "archive.done.name_refused": "“%1” tidak dapat diekstrak ke drive ini: %2.",
+  "archive.done.twins": "“%1” dan “%2” akan memakai satu nama di drive ini, jadi tidak ada yang diekstrak.",
   "archive.done.unverified": "Selesai diekstrak. Indeks arsip tidak dapat dibaca, sehingga hasilnya belum diverifikasi.",
   "jobs.done.extract_unverified": "Selesai diekstrak. Indeks arsip tidak dapat dibaca, sehingga hasilnya belum diverifikasi.",
   "archive.done.written": "Arsip selesai ditulis.",

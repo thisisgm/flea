@@ -201,7 +201,7 @@ pub fn receipt(m: &mut Model, value: &Json) -> String {
                 let why = text(value, "err").trim_end_matches('.');
                 let sentence = if why.is_empty() { i18n.trn("trash.failed", failed as i64) } else { i18n.trn_args("trash.failedWhy", failed as i64, &[why]) };
                 let _ = sentence;
-                m.fail_text(super::words::Text::Plural(if why.is_empty() { "trash.failed" } else { "trash.failedWhy" }, failed, if why.is_empty() { vec![] } else { vec![why.into()] }));
+                m.fail_text(super::words::Text::Plural(if why.is_empty() { "trash.failed" } else { "trash.failedWhy" }, failed, if why.is_empty() { vec![] } else { vec![super::words::Text::Cause(why.into())] }));
             }
             // An answer whose request this client no longer waits on records nothing, so no undo step is taken twice.
             if !m.prompts.trashing.remove(&count(value, "id")) || ok == 0 { return String::new(); }

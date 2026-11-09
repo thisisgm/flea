@@ -48,6 +48,8 @@
   "archive.compressing": "正在將 %1 壓縮為 .%2",
   "archive.confirm": "確認",
   "archive.done.cancelled": "已取消解壓縮。",
+  "archive.done.name_refused": "無法將「%1」解壓縮到此磁碟機：%2。",
+  "archive.done.twins": "「%1」和「%2」在此磁碟機上會使用同一個名稱，因此未解壓縮任何內容。",
   "archive.done.unverified": "已解壓縮。無法讀取封存檔索引，因此未經驗證。",
   "archive.done.written": "封存檔已寫入。",
   "archive.encrypt_names": "加密檔名",

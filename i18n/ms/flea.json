@@ -97,6 +97,8 @@
   "archive.compressing": "Memampatkan %1 ke .%2",
   "archive.confirm": "Sahkan",
   "archive.done.cancelled": "Pengekstrakan dibatalkan.",
+  "archive.done.name_refused": "“%1” tidak boleh diekstrak ke pemacu ini: %2.",
+  "archive.done.twins": "“%1” dan “%2” akan berkongsi satu nama pada pemacu ini, jadi tiada apa-apa diekstrak.",
   "archive.done.unverified": "Diekstrak. Indeks arkib tidak dapat dibaca, jadi hasil ini tidak disahkan.",
   "archive.done.written": "Arkib ditulis.",
   "archive.encrypt_names": "Sulitkan nama fail",

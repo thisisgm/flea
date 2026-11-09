@@ -50,6 +50,8 @@
   "archive.compressing": "Se comprimă %1 în .%2",
   "archive.confirm": "Confirmă",
   "archive.done.cancelled": "Extragere anulată.",
+  "archive.done.name_refused": "„%1” nu poate fi extras pe această unitate: %2.",
+  "archive.done.twins": "„%1” și „%2” ar avea același nume pe această unitate, așa că nu s-a extras nimic.",
   "archive.done.unverified": "Extragere terminată. Indexul arhivei nu a putut fi citit, deci rezultatul nu a fost verificat.",
   "archive.done.written": "Arhiva a fost scrisă.",
   "archive.encrypt_names": "Criptează numele fișierelor",

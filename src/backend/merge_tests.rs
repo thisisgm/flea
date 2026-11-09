@@ -86,7 +86,7 @@ fn question_for(id: usize, paths: &[&Path], dest: &Path) -> Question {
             seen.insert(src.to_path_buf(), there);
         }
     }
-    let outer = Question { id, dest: dest.to_path_buf(), seen, menu: None, fat: None };
+    let outer = Question { id, dest: dest.to_path_buf(), seen, twins: Default::default(), menu: None, fat: None };
     combine(outer, walk(&owned(paths), dest, None))
 }
 

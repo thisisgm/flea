@@ -50,6 +50,8 @@
   "archive.compressing": "Komprimování %1 do .%2",
   "archive.confirm": "Potvrdit",
   "archive.done.cancelled": "Rozbalování bylo zrušeno.",
+  "archive.done.name_refused": "„%1“ nelze na tento disk rozbalit: %2.",
+  "archive.done.twins": "„%1“ a „%2“ by na tomto disku měly stejný název, proto nebylo nic rozbaleno.",
   "archive.done.unverified": "Rozbaleno. Seznam obsahu archivu nelze načíst, výsledek proto nebyl ověřen.",
   "archive.done.written": "Archiv byl zapsán.",
   "archive.encrypt_names": "Šifrovat názvy souborů",

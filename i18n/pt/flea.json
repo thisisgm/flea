@@ -107,6 +107,8 @@
   "archive.compressing": "A comprimir %1 para .%2",
   "archive.confirm": "Confirmar",
   "archive.done.cancelled": "Extração cancelada.",
+  "archive.done.name_refused": "«%1» não pode ser extraído nesta unidade: %2.",
+  "archive.done.twins": "«%1» e «%2» ficariam com o mesmo nome nesta unidade, por isso nada foi extraído.",
   "archive.done.unverified": "Extraído. Não foi possível ler o índice do arquivo, por isso a extração não foi verificada.",
   "archive.done.written": "Arquivo gravado.",
   "archive.encrypt_names": "Encriptar nomes de ficheiros",

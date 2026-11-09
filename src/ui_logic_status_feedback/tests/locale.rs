@@ -1,10 +1,11 @@
 use super::root;
 use crate::i18n::{I18n, Paths};
 use crate::ui_logic_status_feedback::empty::PHRASES;
-use crate::ui_logic_status_feedback::errors::sentence;
+use crate::ui_logic_status_feedback::errors::{extract_refusal, sentence};
 use crate::ui_logic_status_feedback::messages::Messages;
 use crate::ui_logic_status_feedback::reload_line;
 use crate::ui_logic_status_feedback::status::Hint;
+use crate::ui_logic_file_ops::lines::trashed;
 
 /// One witness for the unit's strings: German, a key German lacks, plural and arguments, and a live switch back.
 #[test]
@@ -53,4 +54,41 @@ fn feedback_follows_a_live_language_change_with_per_string_fallback() {
     assert!(catalog.poll_changed());
     assert_eq!(named.render(&catalog), "Fotos could not be read.");
     assert_eq!(bar.line(&catalog, "").undo, "z undoes");
+}
+
+/// The shipped German catalog says the extract refusals and a trash cause the backend words in English.
+#[test]
+fn new_extract_refusals_and_a_trash_cause_read_in_the_shipped_german() {
+    let root = root();
+    std::fs::create_dir_all(root.join("omarchy/default/i18n")).unwrap();
+    root.file(
+        "omarchy/default/i18n/locales.json",
+        include_str!("../../i18n/fixtures/locales.json"),
+    );
+    for (code, text) in [
+        ("en", include_str!("../../../i18n/en/flea.json")),
+        ("de", include_str!("../../../i18n/de/flea.json")),
+    ] {
+        std::fs::create_dir_all(root.join(format!("catalog/{code}"))).unwrap();
+        root.file(&format!("catalog/{code}/flea.json"), text);
+    }
+    root.file("language", "de");
+    let german = I18n::load(Paths {
+        omarchy: root.join("omarchy"),
+        language_file: root.join("language"),
+        catalogs: vec![root.join("catalog")],
+    });
+    let refused = |message: &str| extract_refusal(message).unwrap().render(&german);
+    assert_eq!(
+        refused("'clip/Readme' and 'clip/README' would take one name on this drive, so nothing was extracted"),
+        "„clip/Readme“ und „clip/README“ hätten auf diesem Laufwerk denselben Namen, daher wurde nichts entpackt."
+    );
+    assert_eq!(
+        refused("'set/clip: final.txt' cannot be extracted onto this drive: ':' is not allowed in a name on this vfat drive"),
+        "„set/clip: final.txt“ kann nicht auf dieses Laufwerk entpackt werden: ':' is not allowed in a name on this vfat drive."
+    );
+    assert_eq!(
+        trashed(&german, "default", 0, 1, "the drive is read-only"),
+        "Das Element konnte nicht in den Papierkorb verschoben werden: Das Laufwerk ist schreibgeschützt."
+    );
 }
