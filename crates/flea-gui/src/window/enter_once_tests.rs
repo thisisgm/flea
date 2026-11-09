@@ -1,8 +1,34 @@
-//! One Enter on the f and / query lines commits the line and acts on the highlighted row: a file reveals, a folder opens.
+//! One Enter on the f and / query lines commits the line and acts on the highlighted row: a file opens in its default app, a folder opens.
 use super::tests::{edit, frame, key, open, reply, Handle};
 use crate::{backend::Event as BackendEvent, state::Shell, window::dispatch::test_shell::land};
 use flea::protocol::RowFacts;
 use gpui::{TestAppContext, VisualTestContext};
+use std::cell::RefCell;
+
+thread_local! {
+    static OPENED: RefCell<Vec<Vec<String>>> = const { RefCell::new(Vec::new()) };
+}
+
+// The test launcher: records the argv the opener hands flea --open, never starting a process.
+fn record(argv: &[String]) -> crate::g2::open_with_properties::lane::Exit {
+    OPENED.with(|opened| opened.borrow_mut().push(argv.to_vec()));
+    (Some(0), String::new())
+}
+
+// The paths the default app was handed since the last call.
+fn launched(cx: &mut TestAppContext) -> Vec<String> {
+    cx.run_until_parked();
+    OPENED
+        .with(|opened| std::mem::take(&mut *opened.borrow_mut()))
+        .into_iter()
+        .map(|argv| argv[2..].join(" "))
+        .collect()
+}
+
+fn recorded(cx: &mut TestAppContext, handle: Handle) {
+    OPENED.with(|opened| opened.borrow_mut().clear());
+    edit(cx, handle, |shell, _, _| shell.opener[0].launch = record);
+}
 
 fn file(name: &str) -> RowFacts {
     RowFacts {
@@ -36,6 +62,7 @@ fn named_listing(cx: &mut TestAppContext) -> (Handle, impl FnMut() -> Option<Str
         vec![file("notes.txt"), folder("nodes"), file("zeta.txt")],
         LISTING,
     );
+    recorded(cx, handle);
     while read().is_some() {}
     (handle, read)
 }
@@ -43,6 +70,7 @@ fn named_listing(cx: &mut TestAppContext) -> (Handle, impl FnMut() -> Option<Str
 fn plain_listing(cx: &mut TestAppContext) -> (Handle, impl FnMut() -> Option<String>) {
     let (handle, mut read) = open(cx);
     frame(cx, handle);
+    recorded(cx, handle);
     while read().is_some() {}
     (handle, read)
 }
@@ -93,19 +121,21 @@ fn revealed(cx: &mut TestAppContext, handle: Handle) -> (bool, Option<String>) {
     })
 }
 
+// S11J-1, board 0401-find-results: one Enter opens a file in its default app and never reveals it in its folder.
 #[gpui::test]
-fn one_enter_on_the_filter_line_reveals_the_highlighted_file(cx: &mut TestAppContext) {
+fn one_enter_on_the_filter_line_opens_the_highlighted_file(cx: &mut TestAppContext) {
     let (handle, mut read) = named_listing(cx);
     filter_typed(cx, handle, &mut read);
     filter_answer(cx, handle);
     key(cx, handle, "enter", None);
     let lines = drain(&mut read);
+    assert_eq!(launched(cx), ["/files/notes.txt"], "{lines:?}");
     assert_eq!(
         revealed(cx, handle),
-        (false, Some("/files/notes.txt".into())),
-        "the filter drops and the file is selected in its folder: {lines:?}"
+        (true, None),
+        "the filter stands and nothing is revealed: {lines:?}"
     );
-    assert!(lists(&lines, "/files"), "{lines:?}");
+    assert!(!lists(&lines, "/files"), "{lines:?}");
 }
 
 #[gpui::test]
@@ -133,11 +163,8 @@ fn an_enter_ahead_of_the_filter_answer_acts_when_it_lands(cx: &mut TestAppContex
     });
     filter_answer(cx, handle);
     let lines = drain(&mut read);
-    assert_eq!(
-        revealed(cx, handle),
-        (false, Some("/files/notes.txt".into())),
-        "{lines:?}"
-    );
+    assert_eq!(launched(cx), ["/files/notes.txt"], "{lines:?}");
+    assert_eq!(revealed(cx, handle), (true, None), "{lines:?}");
 }
 
 #[gpui::test]
@@ -154,6 +181,7 @@ fn a_key_after_a_waiting_filter_enter_takes_the_keyboard_back(cx: &mut TestAppCo
         assert_eq!(host.nav.pending_select, None);
     });
     assert!(!lists(&lines, "/files"), "{lines:?}");
+    assert!(launched(cx).is_empty(), "the dropped Enter opens nothing");
 }
 
 fn search_typed(cx: &mut TestAppContext, handle: Handle) -> usize {
@@ -205,18 +233,21 @@ fn search_left(cx: &mut TestAppContext, handle: Handle) -> (bool, Option<String>
 }
 
 #[gpui::test]
-fn one_enter_on_the_search_line_reveals_the_highlighted_file(cx: &mut TestAppContext) {
+fn one_enter_on_the_search_line_opens_the_highlighted_file(cx: &mut TestAppContext) {
     let (handle, mut read) = plain_listing(cx);
     let generation = search_typed(cx, handle);
     search_answer(cx, handle, generation);
     drain(&mut read);
     key(cx, handle, "enter", None);
     let lines = drain(&mut read);
-    assert_eq!(
-        search_left(cx, handle),
-        (true, Some("/files/notes.txt".into())),
-        "the result's folder opens with the file selected: {lines:?}"
-    );
+    assert_eq!(launched(cx), ["/files/notes.txt"], "{lines:?}");
+    edit(cx, handle, |shell, _, _| {
+        let owner = &shell.panes[0].as_ref().unwrap().search.owner;
+        assert!(
+            owner.active() && !owner.typing() && !owner.session.leaving,
+            "the results stay, so the next hit is one key away: {lines:?}"
+        );
+    });
 }
 
 #[gpui::test]
@@ -245,11 +276,8 @@ fn an_enter_ahead_of_the_search_rows_acts_when_they_land(cx: &mut TestAppContext
     });
     search_answer(cx, handle, generation);
     let lines = drain(&mut read);
-    assert_eq!(
-        search_left(cx, handle),
-        (true, Some("/files/notes.txt".into())),
-        "{lines:?}"
-    );
+    assert_eq!(launched(cx), ["/files/notes.txt"], "{lines:?}");
+    assert_eq!(search_left(cx, handle), (false, None), "{lines:?}");
 }
 
 #[gpui::test]

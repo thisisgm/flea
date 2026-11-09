@@ -64,7 +64,7 @@ impl Shell {
                 && ((forward && self.focus_side == 0) || (!forward && self.focus_side == 1))
             {
                 self.focus_side = 1 - self.focus_side;
-                window.focus(&self.focus, cx);
+                window.focus(&self.overlay_return_focus(cx), cx);
             } else if let Some(stop) = self.input.step(current, forward) {
                 window.focus(&stop.handle, cx);
                 self.keyboard.context = stop.context;
@@ -77,7 +77,8 @@ impl Shell {
                 }
             } else {
                 self.focus_side = usize::from(dual && !forward);
-                window.focus(&self.focus, cx);
+                // The list stop is the page covering the folder when one does, so its keys never reach the folder.
+                window.focus(&self.overlay_return_focus(cx), cx);
                 self.keyboard.context = flea::keys::Context::Listing;
             }
             self.keyboard.disarm();
@@ -85,7 +86,7 @@ impl Shell {
             return true;
         }
         if action == "escape" && !matches!(self.focus_view(window, cx), "" | "list") {
-            window.focus(&self.focus, cx);
+            window.focus(&self.overlay_return_focus(cx), cx);
             self.keyboard.context = flea::keys::Context::Listing;
             cx.notify();
             return true;

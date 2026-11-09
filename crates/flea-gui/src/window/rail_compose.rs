@@ -131,7 +131,7 @@ impl Shell {
         if join.host.read(cx).rail.mode() == Mode::Hidden {
             self.input.remove("rail");
             if self.dual_focus.rail.contains_focused(window, cx) {
-                window.focus(&self.focus, cx);
+                window.focus(&self.overlay_return_focus(cx), cx);
                 self.keyboard.context = flea::keys::Context::Listing;
             }
             return;

@@ -260,6 +260,7 @@ impl Render for TrashPane {
         // Every Trash label draws in the system font the list follows, never a family fixed at mount.
         let face = crate::list::Typeface::for_window(window, cx);
         self.set_face(&face, cx);
+        self.sync_keys_away(window, cx);
         let ink = self.paint.borrow().ink;
         if self.presentation_loading {
             self.loading_at

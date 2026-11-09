@@ -36,7 +36,7 @@ impl Shell {
                 && self.focus.is_focused(window)
                 && self.keyboard.context == flea::keys::Context::Listing
             {
-                return self.filter_reveal_enter(window, cx);
+                return self.filter_enter_held();
             }
             if !(plain && event.keystroke.key == "escape") {
                 return false;
@@ -134,7 +134,7 @@ impl Shell {
             && self.keyboard.context == flea::keys::Context::Listing
     }
 
-    // The committed line's Enter, run again through the listing so a file reveals and a folder enters as they always do.
+    // The committed line's Enter, run again through the listing so a file opens in its default app and a folder goes in.
     fn filter_enter_row(
         &mut self,
         event: &KeyDownEvent,
@@ -159,32 +159,11 @@ impl Shell {
         self.key(event, window, cx);
     }
 
-    fn filter_reveal_enter(&mut self, window: &mut Window, cx: &mut Context<Self>) -> bool {
-        let side = self.focus_side;
-        let Some(host) = self.panes[side].as_ref() else {
-            return false;
-        };
-        if host.pane.busy() || host.stopped || host.filter.owner.asked().is_some() {
-            return true;
-        }
-        if !flea::ui_logic_listing_filter::cursor_shown(
-            host.filter.shown.as_deref(),
-            Some(host.pane.cursor),
-        ) || !host.pane.held.row(host.pane.cursor).is_some_and(|row| {
-            !flea::ui_logic_picker_portal::directory(row.dir, row.mode, &row.icon)
-        }) {
-            return false;
-        }
-        self.filter_update(
-            side,
-            |filter, pane| {
-                filter.close(pane);
-                None
-            },
-            cx,
-        );
-        self.recent_reveal(side, window, cx);
-        true
+    /// A standing filter's Enter waits out a listing or an answer in flight; otherwise the listing's Enter opens the row.
+    fn filter_enter_held(&self) -> bool {
+        self.panes[self.focus_side].as_ref().is_some_and(|host| {
+            host.pane.busy() || host.stopped || host.filter.owner.asked().is_some()
+        })
     }
 
     /// A `filtered` line for this pane: the answer in force lands whole, a stale one is dropped, a broken one is a protocol error.

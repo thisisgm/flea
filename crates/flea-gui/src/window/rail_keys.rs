@@ -90,7 +90,8 @@ impl Shell {
                 self.release_device(false, cx);
             } else if action == "escape" {
                 self.rail_focus(false, cx);
-                window.focus(&self.focus, cx);
+                // The list stop is the page covering the folder when one does (S11J-7).
+                window.focus(&self.overlay_return_focus(cx), cx);
                 self.keyboard.context = flea::keys::Context::Listing;
                 // v0.3.12 FlashView.qml: Escape closes a flash covering this pane even after Tab gave the rail its keys.
                 let side = self.operations.archive.flash_side;

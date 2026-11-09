@@ -304,7 +304,8 @@ impl Render for Overlay {
         self.progress.observe(&self.model, now);
         self.progress.commit(now);
         self.sync_editor(window, cx);
-        if let Some(focus) = &self.editor.focus {
+        // Only a modal card holds the editor's focus; a retained session would take it on any stray press (S9G-3).
+        if let Some(focus) = self.editor.focus.as_ref().filter(|_| self.modal(cx)) {
             root = root.track_focus(focus);
         }
         self.schedule(cx);

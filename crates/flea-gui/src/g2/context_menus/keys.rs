@@ -11,12 +11,8 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> bool {
-        if (self.menu_opened() || self.menu.presentation.at.is_some())
-            && matches!(event.keystroke.key.as_str(), "tab" | "backtab")
-        {
-            cx.stop_propagation();
-            return true;
-        }
+        let held = event.keystroke.modifiers;
+        let tab = matches!(event.keystroke.key.as_str(), "tab" | "backtab");
         if self.menu.presentation.at.is_some() {
             if event.keystroke.key == "escape" {
                 self.retire_menu(window, cx);
@@ -32,13 +28,24 @@ impl Shell {
                 .get("keys")
                 .and_then(Json::as_str)
                 .unwrap_or("default");
-            let action = self.keyboard.resolve(
-                preset,
-                event,
-                window.modifiers(),
-                window.layout_mirrored(),
-                Default::default(),
-            );
+            // Tab and Shift+Tab walk the rows as Down and Up do; a modified Tab does nothing, and the menu keeps the keyboard.
+            let action = if tab && (held.control || held.alt || held.platform) {
+                Dispatch::Unbound
+            } else if tab {
+                Dispatch::Action(if held.shift || event.keystroke.key == "backtab" {
+                    "focusPrevious"
+                } else {
+                    "focusNext"
+                })
+            } else {
+                self.keyboard.resolve(
+                    preset,
+                    event,
+                    window.modifiers(),
+                    window.layout_mirrored(),
+                    Default::default(),
+                )
+            };
             if let Dispatch::Action(action) = action {
                 let side = self
                     .menu

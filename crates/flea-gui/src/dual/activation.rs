@@ -33,6 +33,12 @@ impl Shell {
         self.dual_pending = false;
         self.view = View::Dual;
         self.focus_side = self.dual_focus.last_side;
+        // A toolbar glyph that switched the view keeps the keys, as List, Columns and Grid do (S9G-2).
+        if self.dual_focus.chrome.contains_focused(window, cx) {
+            self.remember_dual();
+            cx.notify();
+            return;
+        }
         // WindowBody.focusPane: the focused side's list takes the keys and the rail lets go.
         self.keyboard.context = flea::keys::Context::Listing;
         self.focus_rail(false, cx);

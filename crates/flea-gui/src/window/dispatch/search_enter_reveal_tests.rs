@@ -1,9 +1,9 @@
-//! GM's recorded nested FLAC result must reveal without opening an application or a preview.
+//! S11J-1, board 0401-find-results: one Enter on GM's nested FLAC result opens it in its default app, never revealing it.
 use super::{
     search_open_tests::answer,
     test_shell::{asked, land, open_in, row, sent},
 };
-use crate::{columns::geometry::Slot, state::Shell, window::startup::View};
+use crate::state::Shell;
 use gpui::{Entity, TestAppContext, VisualTestContext};
 use std::cell::RefCell;
 
@@ -42,49 +42,16 @@ fn no_open(shell: &Entity<Shell>, cx: &mut VisualTestContext) {
     });
 }
 
-fn landed(shell: &Entity<Shell>, cx: &mut VisualTestContext, path: &str, listing: usize) {
-    let rows = (0..80)
-        .map(|at| row(&format!("track-{at:02}.flac"), false))
-        .collect();
-    land(shell, cx, path, rows, listing);
-    shell.read_with(cx, |shell, _| {
-        let host = shell.panes[0].as_ref().unwrap();
-        assert_eq!(host.pane.cursor, 60);
-        assert_eq!(host.pane.held.row(60).unwrap().name, "track-60.flac");
-        assert!(
-            !host.search.owner.active(),
-            "search is closed after landing"
-        );
-        assert!(!host.filter.owner.up(), "filter is closed after landing");
-        let visible = match shell.view {
-            View::Grid => host
-                .grid
-                .as_ref()
-                .unwrap()
-                .state
-                .borrow()
-                .drawn_row(60)
-                .is_some(),
-            View::Columns => host
-                .columns
-                .as_ref()
-                .unwrap()
-                .painters
-                .get(Slot::Active)
-                .unwrap()
-                .borrow()
-                .visible()
-                .any(|at| at == 60),
-            _ => host
-                .list
-                .borrow()
-                .visible()
-                .iter()
-                .any(|row| row.index == 60),
-        };
-        assert!(visible, "the selected file is painted in {:?}", shell.view);
+// The one launch Enter made: the default app on that file, with no preview or opener card in between.
+fn opened(shell: &Entity<Shell>, cx: &mut VisualTestContext, path: &str) {
+    cx.run_until_parked();
+    let argv = OPENED.with(|opened| std::mem::take(&mut *opened.borrow_mut()));
+    assert_eq!(argv.len(), 1, "one Enter opens once: {argv:?}");
+    assert_eq!(argv[0][2..].join(" "), path, "{argv:?}");
+    shell.read_with(cx, |shell, cx| {
+        assert!(!shell.quick_look_open(cx), "Enter created a preview card");
+        assert!(shell.overlay.is_none(), "Enter created an opener card");
     });
-    no_open(shell, cx);
 }
 
 fn search(cx: &mut TestAppContext, view: &str) {
@@ -104,10 +71,20 @@ fn search(cx: &mut TestAppContext, view: &str) {
     });
     sent();
     cx.simulate_keystrokes("enter");
-    no_open(&shell, cx);
-    assert_eq!(asked(&shell, cx), "/files/Music/Album");
-    assert!(sent().iter().any(|line| line.contains("\"searchclose\"")));
-    landed(&shell, cx, "/files/Music/Album", 30);
+    opened(&shell, cx, "/files/Music/Album/track-60.flac");
+    assert_eq!(
+        asked(&shell, cx),
+        "/files",
+        "Enter does not reveal the file"
+    );
+    assert!(!sent().iter().any(|line| line.contains("\"searchclose\"")));
+    shell.read_with(cx, |shell, _| {
+        let search = &shell.panes[0].as_ref().unwrap().search.owner;
+        assert!(
+            search.active() && !search.session.leaving,
+            "the results stay"
+        );
+    });
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
@@ -165,55 +142,57 @@ fn filter(cx: &mut TestAppContext, view: &str, multiple: bool) {
         assert_eq!(pane.held.row(pane.cursor).unwrap().name, "track-60.flac");
     });
     cx.simulate_keystrokes("enter");
-    no_open(&shell, cx);
+    opened(&shell, cx, "/files/Music/Album/track-60.flac");
     assert_eq!(asked(&shell, cx), "/files/Music/Album");
     shell.read_with(cx, |shell, _| {
-        assert!(!shell.panes[0].as_ref().unwrap().filter.owner.up())
+        assert!(
+            shell.panes[0].as_ref().unwrap().filter.owner.up(),
+            "the filter stands over the folder it opened from"
+        )
     });
-    landed(&shell, cx, "/files/Music/Album", 30);
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
 #[gpui::test]
-fn search_enter_reveal_list_audio(cx: &mut TestAppContext) {
+fn search_enter_opens_list_audio(cx: &mut TestAppContext) {
     search(cx, "list");
 }
 #[gpui::test]
-fn search_enter_reveal_columns_audio(cx: &mut TestAppContext) {
+fn search_enter_opens_columns_audio(cx: &mut TestAppContext) {
     search(cx, "columns");
 }
 #[gpui::test]
-fn search_enter_reveal_grid_audio(cx: &mut TestAppContext) {
+fn search_enter_opens_grid_audio(cx: &mut TestAppContext) {
     search(cx, "grid");
 }
 #[gpui::test]
-fn search_enter_reveal_filter_list(cx: &mut TestAppContext) {
+fn search_enter_opens_filter_list(cx: &mut TestAppContext) {
     filter(cx, "list", false);
 }
 #[gpui::test]
-fn search_enter_reveal_filter_columns(cx: &mut TestAppContext) {
+fn search_enter_opens_filter_columns(cx: &mut TestAppContext) {
     filter(cx, "columns", false);
 }
 #[gpui::test]
-fn search_enter_reveal_filter_grid(cx: &mut TestAppContext) {
+fn search_enter_opens_filter_grid(cx: &mut TestAppContext) {
     filter(cx, "grid", false);
 }
 
 #[gpui::test]
-fn search_enter_reveal_standing_filter_list(cx: &mut TestAppContext) {
+fn search_enter_opens_standing_filter_list(cx: &mut TestAppContext) {
     filter(cx, "list", true);
 }
 #[gpui::test]
-fn search_enter_reveal_standing_filter_columns(cx: &mut TestAppContext) {
+fn search_enter_opens_standing_filter_columns(cx: &mut TestAppContext) {
     filter(cx, "columns", true);
 }
 #[gpui::test]
-fn search_enter_reveal_standing_filter_grid(cx: &mut TestAppContext) {
+fn search_enter_opens_standing_filter_grid(cx: &mut TestAppContext) {
     filter(cx, "grid", true);
 }
 
 #[gpui::test]
-fn search_enter_reveal_standing_filter_keeps_rail_enter(cx: &mut TestAppContext) {
+fn search_enter_standing_filter_keeps_rail_enter(cx: &mut TestAppContext) {
     let (shell, cx) = ready(cx, "list");
     cx.simulate_keystrokes("/ t enter tab");
     cx.update(|window, cx| {

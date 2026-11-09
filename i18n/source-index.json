@@ -1105,7 +1105,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
-      "line": 186,
+      "line": 189,
       "path": "crates/flea-gui/src/g2/trash_browser/pane.rs",
       "pattern": null,
       "possible_keys": [],
@@ -1115,7 +1115,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "if snapshot.all {\n                \"trash.confirm.empty_button\"\n            } else {\n                \"trash.confirm.delete_button\"\n            }",
-      "line": 398,
+      "line": 401,
       "path": "crates/flea-gui/src/g2/trash_browser/pane.rs",
       "pattern": null,
       "possible_keys": [],
@@ -103755,7 +103755,7 @@
       "call_sites": [
         {
           "excerpt": "cancel: self.catalog.tr(\"trash.confirm.cancel\"),",
-          "line": 403,
+          "line": 406,
           "path": "crates/flea-gui/src/g2/trash_browser/pane.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -103777,7 +103777,7 @@
       "call_sites": [
         {
           "excerpt": "\"trash.confirm.delete_button\"",
-          "line": 401,
+          "line": 404,
           "path": "crates/flea-gui/src/g2/trash_browser/pane.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -103866,7 +103866,7 @@
       "call_sites": [
         {
           "excerpt": "\"trash.confirm.empty_button\"",
-          "line": 399,
+          "line": 402,
           "path": "crates/flea-gui/src/g2/trash_browser/pane.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -104682,7 +104682,7 @@
         },
         {
           "excerpt": "Some((self.catalog.tr(\"trash.reading\"), false))",
-          "line": 269,
+          "line": 270,
           "path": "crates/flea-gui/src/g2/trash_browser/strip.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -108830,7 +108830,7 @@
         },
         {
           "excerpt": "key: \"window.backend_protocol\",",
-          "line": 215,
+          "line": 194,
           "path": "crates/flea-gui/src/window/filter_input.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -113395,7 +113395,7 @@
     },
     {
       "excerpt": ".unwrap_or(\"default\");",
-      "line": 34,
+      "line": 30,
       "literal": "default",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/context_menus/keys.rs",
@@ -113404,7 +113404,7 @@
     },
     {
       "excerpt": ".expect(\"the menu's pane\")",
-      "line": 50,
+      "line": 57,
       "literal": "the menu's pane",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/context_menus/keys.rs",
@@ -124204,7 +124204,7 @@
     },
     {
       "excerpt": ".unwrap_or(\"default\");",
-      "line": 72,
+      "line": 77,
       "literal": "default",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/trash_browser/join_input.rs",
@@ -126220,7 +126220,7 @@
     },
     {
       "excerpt": "window.focus(&keep.expect(\"activated glyph\"), cx);",
-      "line": 144,
+      "line": 168,
       "literal": "activated glyph",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/path/focus.rs",
@@ -129478,7 +129478,7 @@
     },
     {
       "excerpt": ".unwrap_or(\"default\");",
-      "line": 261,
+      "line": 250,
       "literal": "default",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/search.rs",
@@ -138784,7 +138784,7 @@
     },
     {
       "excerpt": "return Err(std::io::Error::other(\"unconfirmed batch\"));",
-      "line": 301,
+      "line": 296,
       "literal": "unconfirmed batch",
       "owner": "controller",
       "path": "src/backend/durable.rs",
@@ -138793,7 +138793,7 @@
     },
     {
       "excerpt": "return Err(std::io::Error::new(std::io::ErrorKind::Other, \"unconfirmed batch\"));",
-      "line": 307,
+      "line": 302,
       "literal": "unconfirmed batch",
       "owner": "controller",
       "path": "src/backend/durable.rs",
@@ -138802,7 +138802,7 @@
     },
     {
       "excerpt": "return Err(std::io::Error::other(\"unconfirmed batch\"));",
-      "line": 318,
+      "line": 313,
       "literal": "unconfirmed batch",
       "owner": "controller",
       "path": "src/backend/durable.rs",
@@ -138811,7 +138811,7 @@
     },
     {
       "excerpt": "return Err(std::io::Error::other(\"unconfirmed batch\"));",
-      "line": 325,
+      "line": 320,
       "literal": "unconfirmed batch",
       "owner": "controller",
       "path": "src/backend/durable.rs",
@@ -138820,7 +138820,7 @@
     },
     {
       "excerpt": "return Err(std::io::Error::new(std::io::ErrorKind::Other, \"simulated fsync failure\"));",
-      "line": 497,
+      "line": 492,
       "literal": "simulated fsync failure",
       "owner": "controller",
       "path": "src/backend/durable.rs",
@@ -138829,7 +138829,7 @@
     },
     {
       "excerpt": "return Err(std::io::Error::new(std::io::ErrorKind::Other, \"simulated fsync failure\"));",
-      "line": 522,
+      "line": 517,
       "literal": "simulated fsync failure",
       "owner": "controller",
       "path": "src/backend/durable.rs",
@@ -138838,7 +138838,7 @@
     },
     {
       "excerpt": "return Err(std::io::Error::new(std::io::ErrorKind::Other, \"simulated fsync failure\"));",
-      "line": 545,
+      "line": 540,
       "literal": "simulated fsync failure",
       "owner": "controller",
       "path": "src/backend/durable.rs",
@@ -138847,7 +138847,7 @@
     },
     {
       "excerpt": "return Err(std::io::Error::new(std::io::ErrorKind::Other, \"simulated fsync failure\"));",
-      "line": 569,
+      "line": 564,
       "literal": "simulated fsync failure",
       "owner": "controller",
       "path": "src/backend/durable.rs",
@@ -150979,7 +150979,7 @@
     },
     {
       "excerpt": "format!(\"{msg}; the record of this copy could not be saved: {detail}\")",
-      "line": 30,
+      "line": 26,
       "literal": "{msg}; the record of this copy could not be saved: {detail}",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -150988,7 +150988,7 @@
     },
     {
       "excerpt": "format!(\"{msg}; undo cannot remove the partial copy of {}: {detail}\", partial.file_name().unwrap_or(partial.as_os_str()).to_string_lossy())",
-      "line": 35,
+      "line": 31,
       "literal": "{msg}; undo cannot remove the partial copy of {}: {detail}",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -150997,7 +150997,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: rename {} landed but the drive did not confirm the folder: {}\", to.display(), error);",
-      "line": 77,
+      "line": 73,
       "literal": "flea: rename {} landed but the drive did not confirm the folder: {}",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151006,7 +151006,7 @@
     },
     {
       "excerpt": "None => return (Err(named(\"duplicate\", path, \"every copy name for this file is already taken\")), Vec::new()),",
-      "line": 141,
+      "line": 137,
       "literal": "every copy name for this file is already taken",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151015,7 +151015,7 @@
     },
     {
       "excerpt": "assert_eq!(refuse_name(\"a:b\", \"vfat\", false).unwrap(), \"':' is not allowed in a name on this vfat drive\");",
-      "line": 200,
+      "line": 196,
       "literal": "':' is not allowed in a name on this vfat drive",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151024,7 +151024,7 @@
     },
     {
       "excerpt": "assert_eq!(refuse_name(\"q?\", \"exfat\", false).unwrap(), \"'?' is not allowed in a name on this exfat drive\");",
-      "line": 201,
+      "line": 197,
       "literal": "'?' is not allowed in a name on this exfat drive",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151033,7 +151033,7 @@
     },
     {
       "excerpt": "assert_eq!(refuse_name(\"trail.\", \"vfat\", false).unwrap(), \"a name cannot end in a dot on this vfat drive\");",
-      "line": 202,
+      "line": 198,
       "literal": "a name cannot end in a dot on this vfat drive",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151042,7 +151042,7 @@
     },
     {
       "excerpt": "assert_eq!(refuse_name(\"trail \", \"vfat\", false).unwrap(), \"a name cannot end in a space on this vfat drive\");",
-      "line": 203,
+      "line": 199,
       "literal": "a name cannot end in a space on this vfat drive",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151051,7 +151051,7 @@
     },
     {
       "excerpt": "assert_eq!(refuse_name(\"CON\", \"vfat\", false).unwrap(), \"'CON' is reserved on this vfat drive\");",
-      "line": 204,
+      "line": 200,
       "literal": "'CON' is reserved on this vfat drive",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151060,7 +151060,7 @@
     },
     {
       "excerpt": "assert_eq!(refuse_name(\"con.txt\", \"vfat\", false).unwrap(), \"'CON' is reserved on this vfat drive\");",
-      "line": 205,
+      "line": 201,
       "literal": "'CON' is reserved on this vfat drive",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151069,7 +151069,7 @@
     },
     {
       "excerpt": "assert!(refuse_name(\"a:b\", \"ntfs3\", false).is_none(), \"ntfs3 without windows_names takes a colon\");",
-      "line": 208,
+      "line": 204,
       "literal": "ntfs3 without windows_names takes a colon",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151078,7 +151078,7 @@
     },
     {
       "excerpt": "assert!(refuse_name(\"a:b\", \"ntfs3\", true).is_some(), \"ntfs3 with windows_names refuses it\");",
-      "line": 209,
+      "line": 205,
       "literal": "ntfs3 with windows_names refuses it",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151087,7 +151087,7 @@
     },
     {
       "excerpt": "assert!(valid_name(\"a name with spaces\"));",
-      "line": 216,
+      "line": 212,
       "literal": "a name with spaces",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151096,7 +151096,7 @@
     },
     {
       "excerpt": "assert!(!valid_name(\"\"), \"an empty name would rename onto the parent\");",
-      "line": 217,
+      "line": 213,
       "literal": "an empty name would rename onto the parent",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151105,7 +151105,7 @@
     },
     {
       "excerpt": "assert!(!valid_name(\".\"), \"renaming to . is the directory itself\");",
-      "line": 218,
+      "line": 214,
       "literal": "renaming to . is the directory itself",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151114,7 +151114,7 @@
     },
     {
       "excerpt": "assert!(!valid_name(\"..\"), \"renaming to .. would climb out of the directory\");",
-      "line": 219,
+      "line": 215,
       "literal": "renaming to .. would climb out of the directory",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151123,7 +151123,7 @@
     },
     {
       "excerpt": "assert!(!valid_name(\"../escape\"), \"a separator moves the file out of its own directory\");",
-      "line": 220,
+      "line": 216,
       "literal": "a separator moves the file out of its own directory",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151132,7 +151132,7 @@
     },
     {
       "excerpt": "assert!(!valid_name(\"sub/child\"), \"a separator moves the file out of its own directory\");",
-      "line": 221,
+      "line": 217,
       "literal": "a separator moves the file out of its own directory",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151141,7 +151141,7 @@
     },
     {
       "excerpt": "assert!(!valid_name(\"nul\\0byte\"), \"an interior NUL truncates the path at the syscall\");",
-      "line": 222,
+      "line": 218,
       "literal": "an interior NUL truncates the path at the syscall",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151150,7 +151150,7 @@
     },
     {
       "excerpt": "assert_eq!(manifest_failed(\"permission denied\", \"no space\"), \"permission denied; the record of this copy could not be saved: no space\");",
-      "line": 227,
+      "line": 223,
       "literal": "permission denied",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151159,7 +151159,7 @@
     },
     {
       "excerpt": "assert_eq!(manifest_failed(\"permission denied\", \"no space\"), \"permission denied; the record of this copy could not be saved: no space\");",
-      "line": 227,
+      "line": 223,
       "literal": "no space",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151168,7 +151168,7 @@
     },
     {
       "excerpt": "assert_eq!(manifest_failed(\"permission denied\", \"no space\"), \"permission denied; the record of this copy could not be saved: no space\");",
-      "line": 227,
+      "line": 223,
       "literal": "permission denied; the record of this copy could not be saved: no space",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151177,7 +151177,7 @@
     },
     {
       "excerpt": "assert_eq!(unjournaled_partial(\"cancelled\", Path::new(\"/d/a.txt\"), \"the journal is full\"),",
-      "line": 228,
+      "line": 224,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151186,7 +151186,7 @@
     },
     {
       "excerpt": "assert_eq!(unjournaled_partial(\"cancelled\", Path::new(\"/d/a.txt\"), \"the journal is full\"),",
-      "line": 228,
+      "line": 224,
       "literal": "the journal is full",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151195,7 +151195,7 @@
     },
     {
       "excerpt": "\"cancelled; undo cannot remove the partial copy of a.txt: the journal is full\");",
-      "line": 229,
+      "line": 225,
       "literal": "cancelled; undo cannot remove the partial copy of a.txt: the journal is full",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151204,7 +151204,7 @@
     },
     {
       "excerpt": "let err = rename(&from, \"A.txt\").expect_err(\"a second name is a collision, not a case twin\");",
-      "line": 251,
+      "line": 247,
       "literal": "a second name is a collision, not a case twin",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151213,7 +151213,7 @@
     },
     {
       "excerpt": "assert_eq!(err.msg, \"an item with that name is already here\");",
-      "line": 253,
+      "line": 249,
       "literal": "an item with that name is already here",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151222,7 +151222,7 @@
     },
     {
       "excerpt": "assert_eq!(std::fs::read_to_string(&from).unwrap(), \"body\", \"the source is moved back, not lost\");",
-      "line": 254,
+      "line": 250,
       "literal": "the source is moved back, not lost",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151231,7 +151231,7 @@
     },
     {
       "excerpt": "assert_eq!(std::fs::read_to_string(&twin).unwrap(), \"body\", \"the twin name is never deleted\");",
-      "line": 255,
+      "line": 251,
       "literal": "the twin name is never deleted",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151240,7 +151240,7 @@
     },
     {
       "excerpt": "let from = d.file(\"source.txt\", \"source body\");",
-      "line": 261,
+      "line": 257,
       "literal": "source body",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151249,7 +151249,7 @@
     },
     {
       "excerpt": "d.file(\"target.txt\", \"target body\");",
-      "line": 262,
+      "line": 258,
       "literal": "target body",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151258,7 +151258,7 @@
     },
     {
       "excerpt": "let err = rename(&from, \"target.txt\").expect_err(\"must refuse\");",
-      "line": 263,
+      "line": 259,
       "literal": "must refuse",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151267,7 +151267,7 @@
     },
     {
       "excerpt": "\"target body\",",
-      "line": 267,
+      "line": 263,
       "literal": "target body",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151276,7 +151276,7 @@
     },
     {
       "excerpt": "\"the file that was already there is untouched\"",
-      "line": 268,
+      "line": 264,
       "literal": "the file that was already there is untouched",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151285,7 +151285,7 @@
     },
     {
       "excerpt": "assert!(from.exists(), \"the source is left where it was\");",
-      "line": 270,
+      "line": 266,
       "literal": "the source is left where it was",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151294,7 +151294,7 @@
     },
     {
       "excerpt": "let (_, steps) = rename(&from, \"same.txt\").expect(\"a no-op rename is not an error\");",
-      "line": 277,
+      "line": 273,
       "literal": "a no-op rename is not an error",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151303,7 +151303,7 @@
     },
     {
       "excerpt": "assert!(steps.is_empty(), \"nothing changed, so undo must have nothing to reverse\");",
-      "line": 278,
+      "line": 274,
       "literal": "nothing changed, so undo must have nothing to reverse",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151312,7 +151312,7 @@
     },
     {
       "excerpt": "assert_eq!(copy_name(p, \"copy\", 1).unwrap(), \"backup.tar copy.zst\");",
-      "line": 285,
+      "line": 281,
       "literal": "backup.tar copy.zst",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151321,7 +151321,7 @@
     },
     {
       "excerpt": "assert_eq!(copy_name(p, \"copy\", 2).unwrap(), \"backup.tar copy 2.zst\");",
-      "line": 286,
+      "line": 282,
       "literal": "backup.tar copy 2.zst",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151330,7 +151330,7 @@
     },
     {
       "excerpt": "assert_eq!(copy_name(Path::new(\"/x/notes\"), \"copy\", 1).unwrap(), \"notes copy\");",
-      "line": 287,
+      "line": 283,
       "literal": "notes copy",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151339,7 +151339,7 @@
     },
     {
       "excerpt": "assert_eq!(copy_name(Path::new(\"/x/.bashrc\"), \"copy\", 1).unwrap(), \".bashrc copy\");",
-      "line": 288,
+      "line": 284,
       "literal": ".bashrc copy",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151348,7 +151348,7 @@
     },
     {
       "excerpt": "\"photo copy.jpg\",",
-      "line": 291,
+      "line": 287,
       "literal": "photo copy.jpg",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151357,7 +151357,7 @@
     },
     {
       "excerpt": "\"the operations design names this exact result\"",
-      "line": 292,
+      "line": 288,
       "literal": "the operations design names this exact result",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151366,7 +151366,7 @@
     },
     {
       "excerpt": "\"convert reuses this helper with its own word, per the canvas\"",
-      "line": 297,
+      "line": 293,
       "literal": "convert reuses this helper with its own word, per the canvas",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151375,7 +151375,7 @@
     },
     {
       "excerpt": "assert_eq!(copy_name(raw, \"copy\", 1).unwrap().as_bytes(), b\"r-\\xff copy.txt\");",
-      "line": 305,
+      "line": 301,
       "literal": "r-\\xff copy.txt",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151384,7 +151384,7 @@
     },
     {
       "excerpt": "assert_eq!(free_copy_path(&original, \"copy\").unwrap(), d.join(\"doc copy.txt\"));",
-      "line": 312,
+      "line": 308,
       "literal": "doc copy.txt",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151393,7 +151393,7 @@
     },
     {
       "excerpt": "d.file(\"doc copy.txt\", \"taken\");",
-      "line": 313,
+      "line": 309,
       "literal": "doc copy.txt",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151402,7 +151402,7 @@
     },
     {
       "excerpt": "assert_eq!(free_copy_path(&original, \"copy\").unwrap(), d.join(\"doc copy 2.txt\"));",
-      "line": 314,
+      "line": 310,
       "literal": "doc copy 2.txt",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151411,7 +151411,7 @@
     },
     {
       "excerpt": "assert_eq!(dst, d.join(\"photo copy.jpg\"));",
-      "line": 323,
+      "line": 319,
       "literal": "photo copy.jpg",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151420,7 +151420,7 @@
     },
     {
       "excerpt": "assert!(original.exists(), \"the original is untouched\");",
-      "line": 325,
+      "line": 321,
       "literal": "the original is untouched",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151429,7 +151429,7 @@
     },
     {
       "excerpt": "assert_eq!(dst, d.join(\"tree copy\"));",
-      "line": 336,
+      "line": 332,
       "literal": "tree copy",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151438,7 +151438,7 @@
     },
     {
       "excerpt": "assert!(outcome.is_err(), \"the unreadable file cannot be opened, so the tree copy fails\");",
-      "line": 353,
+      "line": 349,
       "literal": "the unreadable file cannot be opened, so the tree copy fails",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151447,7 +151447,7 @@
     },
     {
       "excerpt": "let partial = d.join(\"tree copy\");",
-      "line": 354,
+      "line": 350,
       "literal": "tree copy",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151456,7 +151456,7 @@
     },
     {
       "excerpt": "assert!(partial.is_dir(), \"the failure left what it had copied\");",
-      "line": 355,
+      "line": 351,
       "literal": "the failure left what it had copied",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151465,7 +151465,7 @@
     },
     {
       "excerpt": "\"and the journal gets the partial with what it created: {:?}\", steps);",
-      "line": 357,
+      "line": 353,
       "literal": "and the journal gets the partial with what it created: {:?}",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151474,7 +151474,7 @@
     },
     {
       "excerpt": "let err = mkdir(d.path(), \"notes\").expect_err(\"a file holds the name\");",
-      "line": 373,
+      "line": 369,
       "literal": "a file holds the name",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151483,7 +151483,7 @@
     },
     {
       "excerpt": "assert_eq!(err.msg, \"a folder or file with that name already exists\");",
-      "line": 375,
+      "line": 371,
       "literal": "a folder or file with that name already exists",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151492,7 +151492,7 @@
     },
     {
       "excerpt": "assert_eq!(std::fs::read_to_string(&file).unwrap(), \"body\", \"the file that owns the name is untouched\");",
-      "line": 376,
+      "line": 372,
       "literal": "the file that owns the name is untouched",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151501,7 +151501,7 @@
     },
     {
       "excerpt": "let err = mkdir(d.path(), \"sub\").expect_err(\"a directory holds the name\");",
-      "line": 378,
+      "line": 374,
       "literal": "a directory holds the name",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151510,7 +151510,7 @@
     },
     {
       "excerpt": "assert_eq!(err.msg, \"a folder or file with that name already exists\", \"an existing directory is a collision too, never a merge\");",
-      "line": 379,
+      "line": 375,
       "literal": "a folder or file with that name already exists",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151519,7 +151519,7 @@
     },
     {
       "excerpt": "assert_eq!(err.msg, \"a folder or file with that name already exists\", \"an existing directory is a collision too, never a merge\");",
-      "line": 379,
+      "line": 375,
       "literal": "an existing directory is a collision too, never a merge",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151528,7 +151528,7 @@
     },
     {
       "excerpt": "let clause = match bad { \".\" | \"..\" => \"a name cannot be a single dot or a double dot\", \"nul\\0byte\" => \"a name cannot contain a null character\", _ => \"a name cannot contain /\" };",
-      "line": 387,
+      "line": 383,
       "literal": "a name cannot be a single dot or a double dot",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151537,7 +151537,7 @@
     },
     {
       "excerpt": "let clause = match bad { \".\" | \"..\" => \"a name cannot be a single dot or a double dot\", \"nul\\0byte\" => \"a name cannot contain a null character\", _ => \"a name cannot contain /\" };",
-      "line": 387,
+      "line": 383,
       "literal": "a name cannot contain a null character",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151546,7 +151546,7 @@
     },
     {
       "excerpt": "let clause = match bad { \".\" | \"..\" => \"a name cannot be a single dot or a double dot\", \"nul\\0byte\" => \"a name cannot contain a null character\", _ => \"a name cannot contain /\" };",
-      "line": 387,
+      "line": 383,
       "literal": "a name cannot contain /",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151555,7 +151555,7 @@
     },
     {
       "excerpt": "assert_eq!(mkdir(Path::new(\"relative\"), \"x\").unwrap_err().msg, \"a parent must be an absolute path\");",
-      "line": 390,
+      "line": 386,
       "literal": "a parent must be an absolute path",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151564,7 +151564,7 @@
     },
     {
       "excerpt": "assert_eq!(std::fs::read_dir(d.path()).unwrap().count(), 2, \"no refusal made anything\");",
-      "line": 394,
+      "line": 390,
       "literal": "no refusal made anything",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151573,7 +151573,7 @@
     },
     {
       "excerpt": "assert_eq!(mkdir(d.path(), \"\").expect(\"first\").0, d.join(\"New Folder\"));",
-      "line": 400,
+      "line": 396,
       "literal": "New Folder",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151582,7 +151582,7 @@
     },
     {
       "excerpt": "assert_eq!(mkdir(d.path(), \"\").expect(\"second\").0, d.join(\"New Folder 2\"));",
-      "line": 401,
+      "line": 397,
       "literal": "New Folder 2",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151591,7 +151591,7 @@
     },
     {
       "excerpt": "d.file(\"New Folder 3\", \"a file holds the name\");",
-      "line": 402,
+      "line": 398,
       "literal": "New Folder 3",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151600,7 +151600,7 @@
     },
     {
       "excerpt": "d.file(\"New Folder 3\", \"a file holds the name\");",
-      "line": 402,
+      "line": 398,
       "literal": "a file holds the name",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151609,7 +151609,7 @@
     },
     {
       "excerpt": "assert_eq!(mkdir(d.path(), \"\").expect(\"third\").0, d.join(\"New Folder 4\"), \"a taken name of any kind is stepped past\");",
-      "line": 403,
+      "line": 399,
       "literal": "New Folder 4",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151618,7 +151618,7 @@
     },
     {
       "excerpt": "assert_eq!(mkdir(d.path(), \"\").expect(\"third\").0, d.join(\"New Folder 4\"), \"a taken name of any kind is stepped past\");",
-      "line": 403,
+      "line": 399,
       "literal": "a taken name of any kind is stepped past",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151627,7 +151627,7 @@
     },
     {
       "excerpt": "let err = mkdir(&d.join(\"gone\"), \"x\").expect_err(\"no parent\");",
-      "line": 410,
+      "line": 406,
       "literal": "no parent",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151636,7 +151636,7 @@
     },
     {
       "excerpt": "assert_eq!(err.msg, \"item not found\");",
-      "line": 412,
+      "line": 408,
       "literal": "item not found",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151645,7 +151645,7 @@
     },
     {
       "excerpt": "assert_eq!(err.msg, \"permission denied\");",
-      "line": 417,
+      "line": 413,
       "literal": "permission denied",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -151654,7 +151654,7 @@
     },
     {
       "excerpt": "assert!(refused, \"a drop onto a folder that cannot be written is refused\");",
-      "line": 429,
+      "line": 425,
       "literal": "a drop onto a folder that cannot be written is refused",
       "owner": "controller",
       "path": "src/backend/ops.rs",
@@ -212566,7 +212566,7 @@
     },
     {
       "excerpt": "echo \"DUPLICATE ceiling: $duplicated\"",
-      "line": 355,
+      "line": 351,
       "literal": "DUPLICATE ceiling: $duplicated",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -212575,7 +212575,7 @@
     },
     {
       "excerpt": "echo \"UNREADABLE $file: cannot read it, so it has no line count\"",
-      "line": 378,
+      "line": 374,
       "literal": "UNREADABLE $file: cannot read it, so it has no line count",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -212584,7 +212584,7 @@
     },
     {
       "excerpt": "echo \"GREW      $file: $lines lines, recorded $recorded, cap $hard\"",
-      "line": 390,
+      "line": 386,
       "literal": "GREW      $file: $lines lines, recorded $recorded, cap $hard",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -212593,7 +212593,7 @@
     },
     {
       "excerpt": "echo \"GREW      $file: $lines lines, recorded $recorded, cap $hard\"",
-      "line": 395,
+      "line": 391,
       "literal": "GREW      $file: $lines lines, recorded $recorded, cap $hard",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -212602,7 +212602,7 @@
     },
     {
       "excerpt": "echo \"known     $file: $lines lines, recorded $recorded, cap $hard\"",
-      "line": 398,
+      "line": 394,
       "literal": "known     $file: $lines lines, recorded $recorded, cap $hard",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -212611,7 +212611,7 @@
     },
     {
       "excerpt": "echo \"OVER CAP  $file: $lines lines, cap $hard\"",
-      "line": 402,
+      "line": 398,
       "literal": "OVER CAP  $file: $lines lines, cap $hard",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -212620,7 +212620,7 @@
     },
     {
       "excerpt": "echo \"over soft $file: $lines lines, budget $soft, split it\"",
-      "line": 405,
+      "line": 401,
       "literal": "over soft $file: $lines lines, budget $soft, split it",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -251577,9 +251577,9 @@
     "crates/flea-gui/src/compositor_surface_tests/pictures.rs": "d1248d5740d6de84696122d5ac423cb9d0559f8d4384c1bd3e82320a9f5b30b4",
     "crates/flea-gui/src/compositor_surface_tests/settings.rs": "baeb14b2a235d8d26f920bf83c319bbd6d11d32d7af6c6258f6c32db9b8859bb",
     "crates/flea-gui/src/driver_notice.rs": "8714b4a2d74f5f3d4004355ba36baf34ace1dd31d704cab66ec43505e97b8557",
-    "crates/flea-gui/src/dual/activation.rs": "705f426b4fa88e845bcba7918c1332cbc232ee474d2ce57f2d587b4fa39458ee",
+    "crates/flea-gui/src/dual/activation.rs": "c33eecc8aaba17f3821e0fe237742bb065d06f63f968335a795bbc7786f7510f",
     "crates/flea-gui/src/dual/element.rs": "d98523e6ed9a19b562fd8c282f0302e6ea2e30085fcde07b0b32cac1409946cc",
-    "crates/flea-gui/src/dual/focus.rs": "aaa3f39efa3fc02effe6816a6b00c50ac2ecf273fdd035e8cd5383fb1b4fb890",
+    "crates/flea-gui/src/dual/focus.rs": "302836497834c275576906cc10a5017965aa60b405c4e8865566b4f5ba4026e1",
     "crates/flea-gui/src/dual/layout.rs": "50c14ce2423f91eb39913ab753114d259fd8758938ecf662ff98aae391460b00",
     "crates/flea-gui/src/dual/mod.rs": "7910611c56d0f9bbf84639fd28c557229db0c8e391d5b8e007361679b94d75fe",
     "crates/flea-gui/src/dual/selection.rs": "d1dc1fd6d2c04c68bad53b2deb3fc431b38d5448001969205b06261d65b64158",
@@ -251647,7 +251647,7 @@
     "crates/flea-gui/src/g2/context_menus/join.rs": "998725eec6b3b8e0f9df2ff0337a284dfd0c3286c33fbe26fcbb927cf2cfeb78",
     "crates/flea-gui/src/g2/context_menus/join_target.rs": "e162e3e101eac9aea84293e270ba362923b672b239fb5a2b1b3ba65bac97f15b",
     "crates/flea-gui/src/g2/context_menus/keycaps.rs": "b1640917fd128787e69dc780af8de79cca23c5e463c8cd0e7d92bf27f8851823",
-    "crates/flea-gui/src/g2/context_menus/keys.rs": "9ca32ceefdaa947ae2f54ad71248e4b19f614c66f2ad0b35dcc19502320ab69d",
+    "crates/flea-gui/src/g2/context_menus/keys.rs": "10dc8ce2ec5d950f164f9c618eee4fc0368bb1d9c128c69a8b9dcfe201f59bc0",
     "crates/flea-gui/src/g2/context_menus/lines.rs": "4b3ee367df05c9fc98d710222cb09375c89cb83a2e0c4864a3116bbde726f37b",
     "crates/flea-gui/src/g2/context_menus/makeexec.rs": "e7c8d67faeab93ff5199fac51d9424b6c11fa3e9065d23ff0d8a398042af8acd",
     "crates/flea-gui/src/g2/context_menus/makeexec_backend.rs": "aafb76480aa19a8567231772f27e2a2bbc7399e41284ce0362047011f73bcbc2",
@@ -251817,7 +251817,7 @@
     "crates/flea-gui/src/g2/file_ops/focus.rs": "7d4e2a5a07a42e4caf7b7400783b4b8e1d88fb3ade6e2b7d659ad5c61eb42b10",
     "crates/flea-gui/src/g2/file_ops/geometry.rs": "c236f12a2d2d1064bccb6a4cb1f1be5adf6dc108ce729b9f421b6aae4d993c43",
     "crates/flea-gui/src/g2/file_ops/glyph.rs": "1c695af773ce65f853363074f761fb003332bef9f86796a1817789cdde173182",
-    "crates/flea-gui/src/g2/file_ops/host.rs": "a488230fe0a84a4c93f27694f30cc3f3f3dd001cf3d658f6c6dc45eb841e7dc7",
+    "crates/flea-gui/src/g2/file_ops/host.rs": "f1936ea90bfb9f1624376770041c8f3da1c4f0c7e4ffc1a983b9a76bd98048cd",
     "crates/flea-gui/src/g2/file_ops/host_input.rs": "610a2d2dc115399913dce162e25ea60484bef3eaae1a04dab1cbc37cd6984bb3",
     "crates/flea-gui/src/g2/file_ops/input.rs": "7b7f94c8af33632d2d4085d32dc2af3f7c932cacebcf7a4bb2bb70bdd8369c57",
     "crates/flea-gui/src/g2/file_ops/ipc.rs": "9d87aa541f531ef6a8f87c38db72cf7ae4137d07789114486a6e4d03029a0f7f",
@@ -252183,24 +252183,24 @@
     "crates/flea-gui/src/g2/trash_browser/join.rs": "dc1bf55a5614df92c3d7ce5e9b89b33b7baa199476f2179e5e9b061db159ea7c",
     "crates/flea-gui/src/g2/trash_browser/join_atomic.rs": "f77214343965fc19fe619afbad8dabf9a4c33fb7a956677f593a057f33a0ec2d",
     "crates/flea-gui/src/g2/trash_browser/join_cards.rs": "c5bfbb277b9261f31de4f6d9661070f30d47b255203deb7fda3fc37d69e139be",
-    "crates/flea-gui/src/g2/trash_browser/join_input.rs": "69792d55afbeb67d6f785cf29276f6620382c3d9fa40bd0aeaf86e5ba8f88d18",
+    "crates/flea-gui/src/g2/trash_browser/join_input.rs": "a087d23e4e0f10ffdc902e334d416ead5955e7515249cc4d2e6dc397b560ab01",
     "crates/flea-gui/src/g2/trash_browser/join_ipc.rs": "1cff192b0a254859b32f0a1acdb8546118ebe192d4685326536cb4ca300be0eb",
     "crates/flea-gui/src/g2/trash_browser/join_menu.rs": "45608c6d542cd516c900fe7dc165e5c087a55c8fadfb854be7cf1662cb5634fe",
     "crates/flea-gui/src/g2/trash_browser/join_sheet.rs": "53c39a92a173fa8a59f18010d65c89b6774e08ce9fcdff8d088fa5117879fdf6",
     "crates/flea-gui/src/g2/trash_browser/join_status.rs": "0b2a2883852259888dff17b291910172f0760c5878df5c916c65bc6f884ab12d",
     "crates/flea-gui/src/g2/trash_browser/join_sweep.rs": "835d88d863130143919ea7d204ee8b01a52eb6b62dc845862e94129671d98dfe",
     "crates/flea-gui/src/g2/trash_browser/list.rs": "aae76d9366dfa7557fb45124d34b76133ac330a7b9becf990c8a5af7faf11347",
-    "crates/flea-gui/src/g2/trash_browser/mod.rs": "ade39a2e5a0126496736da1d66867e1391b58607544bf599c59799c080eef966",
+    "crates/flea-gui/src/g2/trash_browser/mod.rs": "4e5ec24a004c9af7b5fe194cd2bd351968a998905be0dc2e198d4f223dad01f5",
     "crates/flea-gui/src/g2/trash_browser/monitor.rs": "3003d9d9378f306e07966e09f6e9a67ca40262c0e867167746927bbc3ef88746",
-    "crates/flea-gui/src/g2/trash_browser/paint_sync.rs": "4945175adef6ec652f6dcbbfb36be18c60834753853bdbdcbcdb91a46382ffb1",
-    "crates/flea-gui/src/g2/trash_browser/pane.rs": "966bbfb067d3d3ade0c5d1a376d7e8287df34978dd1ff815ba696a64776b6c49",
+    "crates/flea-gui/src/g2/trash_browser/paint_sync.rs": "7dd41a118d316a4e90be0919bdb400c41e19c6ed5586c220aad4167e90f1fbb4",
+    "crates/flea-gui/src/g2/trash_browser/pane.rs": "10918c169f2168abb1965ae94baf554b8848b5687abaf5da658d7ee83b2c55b5",
     "crates/flea-gui/src/g2/trash_browser/pane_input.rs": "b46faac18bfc56727431527417ae0a181b8c14b18ed936029315a4643bff8a24",
     "crates/flea-gui/src/g2/trash_browser/presentation.rs": "624cc7daa0eee513714d4f7f2a480b699354a93217aa881ac0b864e726d22fc7",
     "crates/flea-gui/src/g2/trash_browser/readers.rs": "317ccb3197f9d5783d8840ebd826694d73a367eb51027feecdd2d57699db8a0e",
     "crates/flea-gui/src/g2/trash_browser/readers_controls.rs": "4706e73ead55096dc6b19e98add62bc2e5c7ac10e84bac96cdf99321aaa7e518",
     "crates/flea-gui/src/g2/trash_browser/scrollbar.rs": "3b76f49af12a31c3713b146cb35bbd6b2a18aac9b2800c3244ef9484cb817980",
     "crates/flea-gui/src/g2/trash_browser/seams.rs": "93639fac84ee4fa4d0eae5acbcb0e8e494969c6dc2a3cb9ea3171d9d2b2b8411",
-    "crates/flea-gui/src/g2/trash_browser/strip.rs": "396893b0264849af81a0128c267d562ce451c1f24a67c4c54ceb3b21ca3420f9",
+    "crates/flea-gui/src/g2/trash_browser/strip.rs": "93921b713dacf95c24caef0a7289007c4be1dc656ee837447660acf867fd256e",
     "crates/flea-gui/src/grid/anchor.rs": "e56e853e7e52acdada15332d3d20f9e38a34f3b091fa38d1472c0670779e31a0",
     "crates/flea-gui/src/grid/captions.rs": "9f1dc8715d806c0998d53f0e1f376a94eeac47636fa909171416324f6a4d6671",
     "crates/flea-gui/src/grid/element.rs": "079c6d5f3a189f6c65fe71d1921eb6abfd723923dfb63e3bb6afa143c56c9213",
@@ -252235,7 +252235,7 @@
     "crates/flea-gui/src/grid/tile.rs": "360c1638bf4309dba845e69f865d636eb7e6043e83197b9d1cb361acf554d52a",
     "crates/flea-gui/src/grid/transition.rs": "9f3395db13eb91250d5f3d69fe736c26b004085693c29bf2aef44f52fe6c0673",
     "crates/flea-gui/src/grid/zoom.rs": "02f800b6f0688d458b5c8fe123b55d6a365805140d81ad3e5d6168ec0f345dbd",
-    "crates/flea-gui/src/input/actions.rs": "f0f32973197db0c48fcbda8f6fed23b481e22975d347b172defdf331847f5138",
+    "crates/flea-gui/src/input/actions.rs": "69d3eddf16677a86998a6cf08e4413bc35b8bc2775b64b3abc1b8c37b3f7eb75",
     "crates/flea-gui/src/input/band.rs": "c3f803690fc32446ef0b77a3d44ae345d9e7c0e4df48fbee72ddaa366e37cfbd",
     "crates/flea-gui/src/input/band/delta.rs": "dcad8148e593adbf08dafd733a5673e949032a6d0e6392282c88e80bf5ee6658",
     "crates/flea-gui/src/input/element.rs": "e20646b7df9578d30409ac84254690b1be1eef10dc64dac0798555b5504b99b4",
@@ -252377,10 +252377,10 @@
     "crates/flea-gui/src/path/field.rs": "6cad9deb9860508a815b917cb085da3833d995b69c67b184e03f46d25ac34e3b",
     "crates/flea-gui/src/path/field/ime.rs": "acefdf0715cc76faa351fec1d28eeb99c62b04d987ce2380111891792869943b",
     "crates/flea-gui/src/path/field/marks.rs": "36393b37f2627eb51a1a909ca35906ff46a09c681ffe86b96f022ffff396f3ca",
-    "crates/flea-gui/src/path/focus.rs": "98c9c7c7f25012d0be1ecccbce380e16ee553e47ce6a5d380d0eb136e2c9d11e",
+    "crates/flea-gui/src/path/focus.rs": "13313b471fd7ea62ecd14554f5a3eaae09f2c00f613e29527ef89ad958321899",
     "crates/flea-gui/src/path/history.rs": "978942fd352e9712c635d3db7bf1d9e72d3c6939f8675c97e5c3c929dacc1b87",
     "crates/flea-gui/src/path/input.rs": "841b7e1f75ffcf7e58d1cc30e8f5b724ed23093e36261d82085f3c48a3a0d2db",
-    "crates/flea-gui/src/path/join.rs": "fd17cc1f512921be37c24a99562d3b278543f0b8355105c95f1f02e549b4ae2b",
+    "crates/flea-gui/src/path/join.rs": "59bf313294a0e26944e3f4e05208d7236496cc28111bb35a8ac840d210eeed9b",
     "crates/flea-gui/src/path/mark.rs": "c1202bced8248fff3945882a7f2a08d284a13db5b71b8d2a63dd72526b54d52f",
     "crates/flea-gui/src/path/menu.rs": "5618be153e8faf8f2d2cb7fd25e907c0b95a9a4e9a0257b79d6d66b353bc12bf",
     "crates/flea-gui/src/path/mod.rs": "5b5666c56305206b51042c1784e3d3fc7819bc3e3bc78358fa3e0bcf63adadde",
@@ -252550,7 +252550,7 @@
     "crates/flea-gui/src/window/external_action.rs": "2be6479990a62f61103f4c69c784c5f4ba3fc1d25261a2fbfbe24981596122a5",
     "crates/flea-gui/src/window/external_action_ipc.rs": "0bab120db83d19ee17f70d4deb3d18b268798d3336754c761971b1a1345464c5",
     "crates/flea-gui/src/window/filter.rs": "4708b96f4ba33dde2f4128cde23245d94245ca592bbe19e561db6d5eb0b7f39b",
-    "crates/flea-gui/src/window/filter_input.rs": "dfb6834589c0190e2ee12644b13c4f1f93ee72f9a05903b405362e62410cea30",
+    "crates/flea-gui/src/window/filter_input.rs": "bc9b89534e3bbd18eddd99ecbd93f65de74d2eb51c33e64ca378e4d909f2ac0d",
     "crates/flea-gui/src/window/folder_follow.rs": "3e018f6ba1e50ada2328b60202f7426e8e6cb5cf8a8bd78968227f9c759580e3",
     "crates/flea-gui/src/window/frame_feedback.rs": "68861c8cbce401638e873554a22e84e4b07b89777bf5ee0696c9718416544a20",
     "crates/flea-gui/src/window/frame_feedback/activity.rs": "6576d8076e25165ef1da3634c1179bffb3f9e25a294a6cd6ca1e26b51e459548",
@@ -252628,8 +252628,8 @@
     "crates/flea-gui/src/window/quick_look_warm.rs": "09618700798fee4ce3caaa409871be8434ec7718505a7d01903d63a0e30c86fa",
     "crates/flea-gui/src/window/quick_look_wire.rs": "d9c1bb85023f9fab1017cdc0a607e3326cc1b7c287df436247cd0f51527b6693",
     "crates/flea-gui/src/window/rail.rs": "4d5629bd83909939e9d0b63426d73105a0e42391b686596bdd80a67eb6500043",
-    "crates/flea-gui/src/window/rail_compose.rs": "a0b70cb526399fc9c438e71b5503d7172ce0b55ef6869946faecee35aa1d414f",
-    "crates/flea-gui/src/window/rail_keys.rs": "d6196037609514abef6472aafcfb45df084599cd041c4d6903a594c0f263c7b0",
+    "crates/flea-gui/src/window/rail_compose.rs": "59a98fb0d4740b66d2f06f10316cd39e8e6f8f5ae48481f66cf00a013aa4e367",
+    "crates/flea-gui/src/window/rail_keys.rs": "7fe88775a37a64b9dadcc3e84a107a949c7376b6165324946e53e31d0d9983ce",
     "crates/flea-gui/src/window/rail_state.rs": "b160194dd17a0c2f59f37e1a083fb6e09a11de16da61ef6410576a93c1f16913",
     "crates/flea-gui/src/window/recent.rs": "42bfdcff3b3c996ae2299de6cc148a523bfa210a228117746e7e19a90d0b6234",
     "crates/flea-gui/src/window/rename.rs": "3ca3c538b28b0f4777f344f58eb311e9dcba9cc93adc739a3d926bb8a1241a15",
@@ -252650,7 +252650,7 @@
     "crates/flea-gui/src/window/retry.rs": "47e28348d173fb17751a0bbec862d77ff370e9c88d7c190c9489c2dad3b1e8b9",
     "crates/flea-gui/src/window/root.rs": "a681345ded3631e1bc392b279c9ac13ff87446783e9f79cbe59c22ab36c5f006",
     "crates/flea-gui/src/window/run_card.rs": "eceed40e05a8ffb658a226d39ec62f849d41ae60f00dc5f6b77a5079ba35c21b",
-    "crates/flea-gui/src/window/search.rs": "22b5adb5fe3c1328ef1a9668d32ee7a4d91e81e206f619fc45ada191230ea506",
+    "crates/flea-gui/src/window/search.rs": "877b01f3d9571fa976ea643c4dcb1066afa872a06da03f36c7b8ea13a9989bd0",
     "crates/flea-gui/src/window/search_contents.rs": "dbe4b29bbebcc96a65994afa1b8ab580d41a1d351c232e742fe0d5d09b3d4671",
     "crates/flea-gui/src/window/search_density_guards.rs": "8a03b5ebcf7f65277fa1e4fdd864d5378addc2b152c3b3a1d362ae62f93b492d",
     "crates/flea-gui/src/window/search_empty.rs": "b2adc6cc0568042e3aadf58a32857e4dd36ea20abf2a4f50cc22e4f28c5b80e1",
@@ -252771,7 +252771,7 @@
     "src/backend/dirsizewalk.rs": "4b094e0624d009fbee008f60f0dc26f3b8289db2089866644686fd5ac73a541b",
     "src/backend/dirsizewatch.rs": "346a5a5e69b5cb1ef70e77fa09735b953d5d9edccff549837c4d6699e64cf4b5",
     "src/backend/dirsizeworker.rs": "d902e425a83cda0d74f5b2e9406e092064e9a29647abcd5e938b22a100bb2d55",
-    "src/backend/durable.rs": "44a387df8115db14a031e6c25c0a0d37ee3b0f730c63c2dd5eb13bcaaa3c07d4",
+    "src/backend/durable.rs": "ece28e628d0e1ba00c6b0abfb45438206c6eb30c11abe28a4c7b706aac5b50e1",
     "src/backend/events.rs": "9088762a16fd7b53a6fec5b7d5a919a1e82436e7ea114ec3808ab0d42f8ffde3",
     "src/backend/exiffacts.rs": "ffc31ed02e73a44adab1d21385be72ee4bb0d2c8dbfe0b0c1254c5d7e4ecf8ac",
     "src/backend/extclass.rs": "8f15b54cca7b7a8cc109ba72c30f6c86c6b1c1053727ccb733b1096824f0e3ed",
@@ -252928,7 +252928,7 @@
     "src/backend/officepublish.rs": "df147c15f7e990474965b2ba5a7208a3d20b637b36aea8f1b2ea42887068bde6",
     "src/backend/officesheets.rs": "8d66d59e3fde19335ffcf829e45a4d3c4b172901e0cd77d3d7fb82185e105618",
     "src/backend/opmsg.rs": "7d1cb8ac0f606cbe2d27c2ab1d0686e7b2d191b0ffe84933eee16d6cee263c99",
-    "src/backend/ops.rs": "f1d0cc227b74fff2d618afad466fa622ecbf5f57069392c1bcc828a4dbde4190",
+    "src/backend/ops.rs": "3774a82aa692962da696dbe3978c9e9fecfbbc3c793bf32b5bc6f6967f57e9e1",
     "src/backend/opscancel.rs": "9418041dfe86184e9c30bfe87a7c8bd46208e1c1d8130f52ded4ad9e8f819fd0",
     "src/backend/opsdispatch.rs": "70072495f5f66d70512e852a2bba9c36e54a91f9ae54f4aab238a0dfd39a8cf4",
     "src/backend/opsname.rs": "d6a9f806c2f6c343e6fb8e1a645556e728c229f10369214c1e50f2c0ca7ab46d",
@@ -253706,7 +253706,7 @@
     "tools/flea-field-nav": "36bc42104edb84c4194b4b6d28c3e67d915a2a144692aaa49953981a4a5bdbf8",
     "tools/flea-field-search": "70ec859809b73cb1bf58fccb4129b05622023a0686991fe7370aafd8fe7805a6",
     "tools/flea-figure-bench": "60d312818e6af2fa0989d50275907d2a0f9e6019787caae93e8d8a4e440dc8e7",
-    "tools/flea-file-budget": "89ec847e76f5efa0752894ec0a0479a6b64917bf50f1502ac993174999baee12",
+    "tools/flea-file-budget": "aca16f530a922f3e16d33828f4d6504e9d4ab5910819aae47e388b8a3b4d5b87",
     "tools/flea-filemanager1": "ebccc20a6b2be787dcf7e817d353a21dcca5ff57de184161f12e28ee5b0322e1",
     "tools/flea-first-paint": "6b9555b0a20b6d4bec057bd9c405823a1b742c14d27304b83a5a95d801ac5526",
     "tools/flea-framecap-build": "7c9433d4c4774f8810fd4e4c8ee92d0b5810dcbc7645231205a8155d557f5f2e",
@@ -254242,8 +254242,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "76050e1d97a7d3c3d35b78994c1f8a8ac19e7e12",
-  "source_sha": "76050e1d97a7d3c3d35b78994c1f8a8ac19e7e12",
+  "source_ref_sha": "480847cde5ad7e5d7a3ae8b9713b62c330a8aa7b",
+  "source_sha": "480847cde5ad7e5d7a3ae8b9713b62c330a8aa7b",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1353,
