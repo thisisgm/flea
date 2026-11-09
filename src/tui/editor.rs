@@ -74,7 +74,13 @@ impl Editor {
         }
     }
     fn fail_key(&mut self, key: &'static str, i18n: &crate::i18n::I18n) {
-        let text = super::words::Text::Key(key);
+        self.fail_text(super::words::Text::Key(key), i18n);
+    }
+    // The backend's refusal of this edit: a drive's name refusal follows the language, anything else stays as sent.
+    pub fn fail_said(&mut self, message: &str, i18n: &crate::i18n::I18n) {
+        self.fail_text(super::words::said(message), i18n);
+    }
+    fn fail_text(&mut self, text: super::words::Text, i18n: &crate::i18n::I18n) {
         self.error = text.render(i18n);
         self.error_text = Some((text, self.error.clone()));
     }

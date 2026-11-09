@@ -5,7 +5,7 @@ use crate::ui_logic_status_feedback::errors::{extract_refusal, sentence};
 use crate::ui_logic_status_feedback::messages::Messages;
 use crate::ui_logic_status_feedback::reload_line;
 use crate::ui_logic_status_feedback::status::Hint;
-use crate::ui_logic_file_ops::lines::trashed;
+use crate::ui_logic_file_ops::lines::{transfer_failure, trashed};
 
 /// One witness for the unit's strings: German, a key German lacks, plural and arguments, and a live switch back.
 #[test]
@@ -56,7 +56,7 @@ fn feedback_follows_a_live_language_change_with_per_string_fallback() {
     assert_eq!(bar.line(&catalog, "").undo, "z undoes");
 }
 
-/// The shipped German catalog says the extract refusals and a trash cause the backend words in English.
+/// The shipped German catalog says the extract refusals, a trash cause and a drive's name refusals the backend words in English.
 #[test]
 fn new_extract_refusals_and_a_trash_cause_read_in_the_shipped_german() {
     let root = root();
@@ -85,10 +85,24 @@ fn new_extract_refusals_and_a_trash_cause_read_in_the_shipped_german() {
     );
     assert_eq!(
         refused("'set/clip: final.txt' cannot be extracted onto this drive: ':' is not allowed in a name on this vfat drive"),
-        "„set/clip: final.txt“ kann nicht auf dieses Laufwerk entpackt werden: ':' is not allowed in a name on this vfat drive."
+        "„set/clip: final.txt“ kann nicht auf dieses Laufwerk entpackt werden: „:“ ist in einem Namen auf diesem vfat-Laufwerk nicht erlaubt."
     );
     assert_eq!(
         trashed(&german, "default", 0, 1, "the drive is read-only"),
         "Das Element konnte nicht in den Papierkorb verschoben werden: Das Laufwerk ist schreibgeschützt."
+    );
+    // A drive's name refusal reads whole in German wherever rename, mkdir, paste or extract says it.
+    for (place, message, german_words) in [
+        ("rename", "':' is not allowed in a name on this vfat drive", "„:“ ist in einem Namen auf diesem vfat-Laufwerk nicht erlaubt."),
+        ("mkdir", "a name cannot hold control character U+0001 on this exfat drive", "Ein Name darf auf diesem exfat-Laufwerk kein Steuerzeichen U+0001 enthalten."),
+        ("rename", "a name cannot end in a dot on this vfat drive", "Ein Name darf auf diesem vfat-Laufwerk nicht mit einem Punkt enden."),
+        ("rename", "a name cannot end in a space on this exfat drive", "Ein Name darf auf diesem exfat-Laufwerk nicht mit einem Leerzeichen enden."),
+        ("mkdir", "'CON' is reserved on this ntfs3 drive", "„CON“ ist auf diesem ntfs3-Laufwerk ein reservierter Name."),
+    ] {
+        assert_eq!(sentence(place, message, "").render(&german), german_words);
+    }
+    assert_eq!(
+        transfer_failure(&german, false, "a?b", "'?' is not allowed in a name on this exfat drive"),
+        "Kopieren fehlgeschlagen: a?b · „?“ ist in einem Namen auf diesem exfat-Laufwerk nicht erlaubt"
     );
 }

@@ -1,5 +1,6 @@
 //! Renames the window cannot make: a row it has not read, and a bulk card whose backend cannot take the request.
 use super::{
+    previewtypes_kinds_tests::Root,
     rename_tests::{close, draw, editing, notice, ready, receive, sent, Lines},
     test_shell::{land_on, open, row, set_cursor},
 };
@@ -89,6 +90,54 @@ fn several_marked_rows_with_no_backend_say_the_backend_stopped(cx: &mut TestAppC
     cx.simulate_keystrokes("f2");
     assert_eq!(shell.read_with(cx, |shell, _| shell.rename.paths), None);
     assert_eq!(pane_error(&shell, cx), Some(stopped(&shell, cx)));
+    close(&shell, cx);
+}
+
+// The shipped German catalog, read under a sandbox root that holds only its roster and language file.
+fn shipped_german(root: &Root) -> std::sync::Arc<flea::i18n::I18n> {
+    let locale = root.0.join("locale");
+    std::fs::create_dir_all(locale.join("default/i18n")).unwrap();
+    std::fs::write(
+        locale.join("default/i18n/locales.json"),
+        include_str!("../../../../../src/i18n/fixtures/locales.json"),
+    )
+    .unwrap();
+    std::fs::write(locale.join("language"), "de").unwrap();
+    std::sync::Arc::new(flea::i18n::I18n::load(flea::i18n::Paths {
+        omarchy: locale.clone(),
+        language_file: locale.join("language"),
+        catalogs: vec![std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../i18n")],
+    }))
+}
+
+#[gpui::test]
+fn a_drive_name_refusal_under_the_draft_reads_in_the_window_language(cx: &mut TestAppContext) {
+    let root = Root::new("rename-de");
+    let (shell, cx, mut lines) = ready(cx, "default");
+    shell.update(cx, |shell, _| shell.locale.catalog = shipped_german(&root));
+    cx.simulate_keystrokes("f2");
+    draw(cx);
+    cx.simulate_input(":");
+    cx.simulate_keystrokes("enter");
+    assert_eq!(sent(&mut lines).len(), 1);
+    receive(
+        &shell,
+        cx,
+        BackendEvent::Refused {
+            operation: "rename".into(),
+            path: "/files/notes.txt".into(),
+            message: "':' is not allowed in a name on this vfat drive".into(),
+            mode: 0,
+        },
+    );
+    let reason = shell.read_with(cx, |shell, _| {
+        shell.rename.edit.as_ref().unwrap().error.clone()
+    });
+    assert_eq!(
+        reason,
+        "„:“ ist in einem Namen auf diesem vfat-Laufwerk nicht erlaubt."
+    );
+    assert_eq!(editing(&shell, cx).unwrap().1, ":.txt", "the draft stays");
     close(&shell, cx);
 }
 

@@ -202,3 +202,46 @@ fn an_extract_refusal_reads_in_the_window_language() {
         "the refusal is said in German: {status}"
     );
 }
+
+#[test]
+fn a_drive_name_refusal_reads_in_the_window_language_for_extract() {
+    let mut cx = crate::list::bench::real_cx();
+    let (handle, _requests, _other) = start(&mut cx);
+    edit(&mut cx, handle, |shell, _, _| {
+        shell.locale.catalog = std::sync::Arc::new(shipped_german());
+    });
+    receive(
+        &mut cx,
+        handle,
+        0,
+        r#"{"t":"archivedone","id":9,"ok":false,"verified":true,"err":"'set/clip: final.txt' cannot be extracted onto this drive: ':' is not allowed in a name on this vfat drive"}"#,
+    );
+    let status = footer(&mut cx, handle);
+    assert!(
+        status.contains(
+            "entpackt werden: „:“ ist in einem Namen auf diesem vfat-Laufwerk nicht erlaubt."
+        ),
+        "the drive's reason is said in German: {status}"
+    );
+}
+
+#[test]
+fn a_drive_name_refusal_reads_in_the_window_language_for_rename() {
+    let mut cx = crate::list::bench::real_cx();
+    let (handle, _requests, _other) = start(&mut cx);
+    edit(&mut cx, handle, |shell, _, _| {
+        shell.locale.catalog = std::sync::Arc::new(shipped_german());
+    });
+    receive(
+        &mut cx,
+        handle,
+        0,
+        r#"{"t":"error","where":"rename","path":"/files/notes.txt","msg":"a name cannot end in a space on this exfat drive"}"#,
+    );
+    let status = footer(&mut cx, handle);
+    assert!(
+        status
+            .contains("Ein Name darf auf diesem exfat-Laufwerk nicht mit einem Leerzeichen enden."),
+        "the rename refusal is said in German: {status}"
+    );
+}

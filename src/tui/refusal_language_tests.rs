@@ -49,3 +49,54 @@ fn an_extract_refusal_and_a_read_only_trash_cause_read_in_german() {
         .collect::<Vec<_>>();
     assert!(said.contains(&"1 Element konnte nicht in den Papierkorb verschoben werden: Das Laufwerk ist schreibgeschützt."), "{said:?}");
 }
+
+// A drive's name refusal reads in German in the rename editor, the footer, a failed paste and a failed extract.
+#[test]
+fn a_drive_name_refusal_reads_in_german_wherever_the_terminal_says_it() {
+    let (root, german) = german();
+    let (mut wire, reader) = crate::tui::wire::echo_wire();
+    let mut m = Model::new(PathBuf::from("/listing"), &Json::Null);
+    m.i18n = german.clone();
+    m.prompts.i18n = german;
+    let mut editor =
+        crate::tui::editor::Editor::new("rename", "a:b".into(), PathBuf::from("/listing/ab"));
+    editor.pending = true;
+    m.editor = Some(editor);
+    let refusal = r#"{"t":"error","where":"rename","path":"/listing/ab","msg":"':' is not allowed in a name on this vfat drive"}"#;
+    m.receive(parse(refusal).unwrap(), &mut wire).unwrap();
+    let editor = m.editor.as_ref().unwrap();
+    assert!(!editor.pending);
+    assert_eq!(
+        editor.error,
+        "„:“ ist in einem Namen auf diesem vfat-Laufwerk nicht erlaubt."
+    );
+    m.receive(parse(r#"{"t":"error","where":"mkdir","path":"/listing","msg":"'CON' is reserved on this exfat drive"}"#).unwrap(), &mut wire).unwrap();
+    assert_eq!(
+        m.error,
+        "mkdir: „CON“ ist auf diesem exfat-Laufwerk ein reservierter Name"
+    );
+    // The language file changing after both refusals landed says them again in English, through the model's own switch.
+    root.file("language", "en");
+    assert!(m.refresh_locale(&[]));
+    assert_eq!(
+        m.editor.as_ref().unwrap().error,
+        "':' is not allowed in a name on this vfat drive."
+    );
+    assert_eq!(m.error, "mkdir: 'CON' is reserved on this exfat drive");
+    root.file("language", "de");
+    assert!(m.refresh_locale(&[]));
+    m.editor = None;
+    m.errors.clear();
+    m.error.clear();
+    m.receive(parse(r#"{"t":"transferitem","id":1,"index":0,"name":"trail.","ok":false,"err":"a name cannot end in a dot on this vfat drive"}"#).unwrap(), &mut wire).unwrap();
+    assert_eq!(
+        m.error,
+        "trail.: Ein Name darf auf diesem vfat-Laufwerk nicht mit einem Punkt enden"
+    );
+    m.errors.clear();
+    m.error.clear();
+    let extract = r#"{"t":"job","job":{"id":5,"kind":"extract","state":"failed","reason":"'set/clip: final.txt' cannot be extracted onto this drive: ':' is not allowed in a name on this vfat drive"},"unfinished":0}"#;
+    super::receive(&mut m, &parse(extract).unwrap());
+    assert_eq!(m.error, "„set/clip: final.txt“ kann nicht auf dieses Laufwerk entpackt werden: „:“ ist in einem Namen auf diesem vfat-Laufwerk nicht erlaubt.");
+    crate::tui::wire::finish(wire, reader);
+}
