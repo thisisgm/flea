@@ -65,8 +65,8 @@ class Host:
             directory = self.root / name
             directory.mkdir(mode=0o700)
             environment[key] = str(directory)
-        target = Path(os.environ.get("CARGO_TARGET_DIR", REPO / "target")).resolve()
-        binary = Path(os.environ.get("FLEA_BIN", target / "debug/flea")).resolve(strict=True)
+        # The driver is target/<profile>/deps/<test>, so the flea beside it shares its profile, debug or release.
+        binary = Path(os.environ.get("FLEA_BIN", driver.parent.parent / "flea")).resolve(strict=True)
         if not os.access(binary, os.X_OK):
             raise TransportError("build the production flea binary first")
         environment["FLEA_BIN"] = str(binary)

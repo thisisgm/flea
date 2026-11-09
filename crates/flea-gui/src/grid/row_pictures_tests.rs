@@ -93,6 +93,17 @@ fn open(
     settings: &str,
 ) -> (WindowHandle<Shell>, impl FnMut() -> Option<String>) {
     let (backend, lines) = Backend::test_lines();
+    // Dual's second pane starts its own backend: a test channel, never a flea --backend from PATH.
+    cx.update(|cx| {
+        cx.set_global(crate::state::constructor_fixture::Services {
+            backend: |_, cx| {
+                let (backend, requests) = Backend::test_channel();
+                cx.on_release(move |_, _| drop(requests)).detach();
+                Ok(backend)
+            },
+            monitor: None,
+        })
+    });
     let settings = flea::jsondoc::parse(settings).unwrap();
     let handle = cx.open_window(size(px(1400.), px(700.)), |window, cx| {
         let mut shell = named_shell(backend, cx);
