@@ -21,7 +21,7 @@ pub(crate) const IN_MOVE_SELF: u32 = 0x0000_0800;
 pub(crate) const IN_DELETE_SELF: u32 = 0x0000_0400;
 // The mount went away: the pane leaves the volume instead of re-listing a vanished path.
 pub(crate) const IN_UNMOUNT: u32 = 0x0000_2000;
-// IN_IGNORED on the open watch re-lists; IN_Q_OVERFLOW arrives on wd -1 and is_current drops it.
+// IN_IGNORED on the open watch is the folder going, answered by its path; IN_Q_OVERFLOW arrives on wd -1 and is_current drops it.
 pub(crate) const IN_Q_OVERFLOW: u32 = 0x0000_4000;
 pub(crate) const IN_MODIFY: u32 = 0x0000_0002;
 pub(crate) const IN_IGNORED: u32 = 0x0000_8000;
@@ -59,7 +59,12 @@ pub struct Watch {
     incoming: c_int,
     mount: std::path::PathBuf,
     incoming_mount: std::path::PathBuf,
+    // The listed folder and every folder above it, so a delete or move anywhere on its path moves the pane.
+    pub(crate) ancestry: ancestry::Ancestry,
 }
+
+#[path = "ancestry.rs"]
+pub mod ancestry;
 
 // Sample mountinfo: "30 1 8:17 / /media/stick rw - vfat /dev/sdb1 rw" keys "/media/stick".
 pub(crate) fn live_mount_of(path: &Path) -> std::path::PathBuf {
@@ -69,7 +74,8 @@ pub(crate) fn live_mount_of(path: &Path) -> std::path::PathBuf {
 impl Watch {
     // A box with no inotify still gets a file manager, as live as 0.1.4's was, and is told once.
     pub fn start(tx: Sender<Event>) -> Watch {
-        Watch { outline: Vec::new(), fd: std::sync::OnceLock::new(), events: tx, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() }
+        let ancestry = ancestry::Ancestry::new(tx.clone());
+        Watch { outline: Vec::new(), fd: std::sync::OnceLock::new(), events: tx, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new(), ancestry }
     }
 
     // Armed beside the current watch once a pending one goes, so a scan that fails costs the open folder nothing.
@@ -108,6 +114,7 @@ impl Watch {
         self.abandon();
         self.commit(Vec::new());
         self.mount = std::path::PathBuf::new();
+        self.ancestry.forget();
     }
 
     // Sample input: open "/media/stick/photos" with mount "/media/stick" starts "/media".
@@ -208,14 +215,12 @@ fn pump(fd: c_int, tx: Sender<Event>) {
         if n == 0 {
             return;
         }
-        let (changed, unmounted) = classify_burst(&buf[..n as usize]);
-        for wd in changed {
-            if tx.send(Event::Changed(wd)).is_err() {
-                return;
-            }
-        }
-        for wd in unmounted {
-            if tx.send(Event::Unmounted(wd)).is_err() {
+        let (changed, unmounted, vanished) = classify_burst(&buf[..n as usize]);
+        let events = changed.into_iter().map(Event::Changed)
+            .chain(unmounted.into_iter().map(Event::Unmounted))
+            .chain(vanished.into_iter().map(Event::Vanished));
+        for event in events {
+            if tx.send(event).is_err() {
                 return;
             }
         }
@@ -223,22 +228,28 @@ fn pump(fd: c_int, tx: Sender<Event>) {
     }
 }
 
-// Sample input: one IN_CREATE on wd 3 plus one IN_UNMOUNT on wd 4 answers ([3], [4]).
-pub(crate) fn classify_burst(buf: &[u8]) -> (Vec<i32>, Vec<i32>) {
-    let mut changed: Vec<i32> = Vec::new();
-    let mut unmounted: Vec<i32> = Vec::new();
+// Sample input: IN_CREATE on wd 3, IN_UNMOUNT on wd 4 and IN_DELETE_SELF on wd 5 answer ([3], [4], [5]).
+pub(crate) fn classify_burst(buf: &[u8]) -> (Vec<i32>, Vec<i32>, Vec<i32>) {
+    let (mut changed, mut unmounted, mut vanished) = (Vec::new(), Vec::new(), Vec::new());
     each_event(buf, |wd, mask| {
-        if mask & IN_UNMOUNT != 0 {
-            if !unmounted.contains(&wd) {
-                unmounted.push(wd);
-            }
-        } else if mask & (MASK | IN_DELETE_SELF | IN_Q_OVERFLOW | IN_IGNORED) != 0 && !changed.contains(&wd) {
-            changed.push(wd);
+        let into = if mask & IN_UNMOUNT != 0 {
+            &mut unmounted
+        } else if mask & (IN_DELETE_SELF | IN_MOVE_SELF | IN_IGNORED) != 0 {
+            // The watched folder itself went or moved, which the loop answers by its path and not by a re-list.
+            &mut vanished
+        } else if mask & (MASK | IN_Q_OVERFLOW) != 0 {
+            &mut changed
+        } else {
+            return;
+        };
+        if !into.contains(&wd) {
+            into.push(wd);
         }
     });
     // A vanished path never answers changed: IN_IGNORED follows IN_UNMOUNT on the same wd.
-    changed.retain(|wd| !unmounted.contains(wd));
-    (changed, unmounted)
+    vanished.retain(|wd| !unmounted.contains(wd));
+    changed.retain(|wd| !unmounted.contains(wd) && !vanished.contains(wd));
+    (changed, unmounted, vanished)
 }
 
 // Which watches this burst touched, each once; nothing past the descriptor is ever read.
@@ -255,6 +266,11 @@ pub fn changed_line(path: &Path) -> String {
 // Sample output: {"t":"unmounted","path":"/media/stick","parent":"/media"}; parent is nearest existing.
 pub fn unmounted_line(path: &Path, parent: &Path) -> String {
     format!(r#"{{"t":"unmounted","path":"{}","parent":"{}"}}"#, escape(&path.to_string_lossy()), escape(&parent.to_string_lossy()))
+}
+
+// Sample output: {"t":"gone","path":"/w/p/open-me","parent":"/w"}; the folder was deleted or moved away, parent is nearest existing.
+pub fn gone_line(path: &Path, parent: &Path) -> String {
+    format!(r#"{{"t":"gone","path":"{}","parent":"{}"}}"#, escape(&path.to_string_lossy()), escape(&parent.to_string_lossy()))
 }
 
 // Climbs until exists() holds, so an ejected stick lands on its mountpoint's parent, never /.

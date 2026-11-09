@@ -222,8 +222,12 @@ fn dispatch_inner<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tabl
                 say(out, &fsinfo_line(&info, &st.base.to_string_lossy(), crate::backend::fsinforeq::slow_class(&st.base), fsinfo.tagable_shown(&st.base), false));
             }
         }
+        // The open folder itself went or moved: the follower decides by its path, off the loop; an expanded child's re-lists.
+        Event::Vanished(wd) if watch.is_open_folder(wd) => watch.ancestry.check(),
+        Event::Gone(gone) if gate.holds() => gate.hold(Event::Gone(gone)),
+        Event::Gone(gone) => super::unmount::leave_gone(out, st, watch, poller, gone),
         // The one line no client asked for, and only ever for the directory being listed now.
-        Event::Changed(wd) => {
+        Event::Changed(wd) | Event::Vanished(wd) => {
             #[cfg(test)]
             super::renametiming::mark("watch_begin");
             // The current descriptor is unknown while a scan is out, so the burst waits for the scan's answer.
@@ -316,7 +320,7 @@ fn land<W: Write>(out: &mut W, st: &mut State, tb: &Tables, pool: &Pool, watch: 
     }
     // Fresh figures and the poll belong to a listing that landed, never one that failed.
     let path = landed.job.path.clone();
-    if listwork::finish(out, st, tb, pool, watch, landed) {
+    if listwork::finish(out, st, tb, pool, watch, poller, landed) {
         // After the rows, because a statfs beside gio's own listing slows it on the share.
         fsinfo.list_arrived(Path::new(&path), &st.listing);
         // Every open outline folder uses the same remote poll path as its root.

@@ -309,7 +309,7 @@ pub fn cursor_file(pane: &dyn Live) -> String {
         .unwrap_or_default()
 }
 
-fn join(folder: &str, name: &str) -> String {
+pub(super) fn join(folder: &str, name: &str) -> String {
     if folder == "/" {
         format!("/{name}")
     } else {

@@ -72,9 +72,9 @@ pub(crate) fn pump(fd: c_int, tx: Sender<Event>, stop: c_int) {
             return;
         }
         let burst = &buf[..n as usize];
-        // An unmounted column re-asks like a deleted one, so classify_burst's unmounted watches are named changed too.
-        let (mut changed, unmounted) = classify_burst(burst);
-        changed.extend(unmounted);
+        // An unmounted or deleted column re-asks, so classify_burst's unmounted and vanished watches are named changed too.
+        let (mut changed, unmounted, vanished) = classify_burst(burst);
+        changed.extend(unmounted.into_iter().chain(vanished));
         let events = changed.into_iter().map(Event::PeekChanged).chain(dropped_in(burst).into_iter().map(Event::PeekGone));
         for event in events {
             if tx.send(event).is_err() {

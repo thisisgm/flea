@@ -26,6 +26,7 @@ pub(crate) mod cells;
 mod filter;
 mod finder;
 mod parity17;
+mod gone;
 mod layout;
 mod look;
 mod pane;
@@ -342,6 +343,8 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
 
 #[cfg(test)]
 mod parity17_tests;
+#[cfg(test)]
+mod gone_tests;
 
 #[cfg(test)]
 mod cells_hig_tests;

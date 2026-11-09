@@ -781,6 +781,7 @@ impl Model {
     }
     fn receive_reply(&mut self, value: Json, wire: &mut Wire) -> io::Result<()> {
         if super::parity17::receive(self, &value, wire)? { return Ok(()); }
+        if super::gone::receive(self, &value, wire)? { return Ok(()); }
         if super::combine::receive(self, &value, wire)? { return Ok(()); }
         if super::convert::receive(self, &value, wire)? { return Ok(()); }
         if super::print::receive(self, &value, wire)? { return Ok(()); }
