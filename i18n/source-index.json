@@ -136392,7 +136392,7 @@
     },
     {
       "excerpt": "(message.contains(\"Path contains '..'\") || message.contains(\"Cannot extract through symlink\"))",
-      "line": 249,
+      "line": 248,
       "literal": "Path contains '..'",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -136401,7 +136401,7 @@
     },
     {
       "excerpt": "(message.contains(\"Path contains '..'\") || message.contains(\"Cannot extract through symlink\"))",
-      "line": 249,
+      "line": 248,
       "literal": "Cannot extract through symlink",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -136410,7 +136410,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"convert\", &dest.to_string_lossy(), \"that destination already exists\"));",
-      "line": 295,
+      "line": 291,
       "literal": "that destination already exists",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -136419,7 +136419,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"convert\", &dest.to_string_lossy(), \"cancelled\"));",
-      "line": 303,
+      "line": 299,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -136428,7 +136428,7 @@
     },
     {
       "excerpt": "return Err(op_err(\"convert\", &name, \"the converter wrote nothing\"));",
-      "line": 315,
+      "line": 307,
       "literal": "the converter wrote nothing",
       "owner": "controller",
       "path": "src/backend/archiveops.rs",
@@ -137193,16 +137193,7 @@
     },
     {
       "excerpt": "return Err(\"cancelled\".into());",
-      "line": 81,
-      "literal": "cancelled",
-      "owner": "controller",
-      "path": "src/backend/combine.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "if cancel.load(Ordering::Relaxed) { return Err(\"cancelled\".into()); }",
-      "line": 85,
+      "line": 80,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/combine.rs",
@@ -138669,7 +138660,7 @@
     },
     {
       "excerpt": "pub const DIR_UNCONFIRMED: &str = \"copied, but the drive did not confirm the folder\";",
-      "line": 152,
+      "line": 157,
       "literal": "copied, but the drive did not confirm the folder",
       "owner": "controller",
       "path": "src/backend/durable.rs",
@@ -138678,7 +138669,7 @@
     },
     {
       "excerpt": "pub const RCLONE_NOTE: &str = \"rclone uploads them in the background\";",
-      "line": 162,
+      "line": 169,
       "literal": "rclone uploads them in the background",
       "owner": "controller",
       "path": "src/backend/durable.rs",
@@ -138687,7 +138678,7 @@
     },
     {
       "excerpt": "return Err(std::io::Error::other(\"unconfirmed batch\"));",
-      "line": 276,
+      "line": 285,
       "literal": "unconfirmed batch",
       "owner": "controller",
       "path": "src/backend/durable.rs",
@@ -138696,7 +138687,7 @@
     },
     {
       "excerpt": "return Err(std::io::Error::new(std::io::ErrorKind::Other, \"unconfirmed batch\"));",
-      "line": 282,
+      "line": 291,
       "literal": "unconfirmed batch",
       "owner": "controller",
       "path": "src/backend/durable.rs",
@@ -138705,7 +138696,7 @@
     },
     {
       "excerpt": "return Err(std::io::Error::other(\"unconfirmed batch\"));",
-      "line": 293,
+      "line": 302,
       "literal": "unconfirmed batch",
       "owner": "controller",
       "path": "src/backend/durable.rs",
@@ -138714,7 +138705,7 @@
     },
     {
       "excerpt": "return Err(std::io::Error::other(\"unconfirmed batch\"));",
-      "line": 300,
+      "line": 309,
       "literal": "unconfirmed batch",
       "owner": "controller",
       "path": "src/backend/durable.rs",
@@ -138723,7 +138714,7 @@
     },
     {
       "excerpt": "return Err(std::io::Error::new(std::io::ErrorKind::Other, \"simulated fsync failure\"));",
-      "line": 459,
+      "line": 469,
       "literal": "simulated fsync failure",
       "owner": "controller",
       "path": "src/backend/durable.rs",
@@ -138732,7 +138723,7 @@
     },
     {
       "excerpt": "return Err(std::io::Error::new(std::io::ErrorKind::Other, \"simulated fsync failure\"));",
-      "line": 484,
+      "line": 494,
       "literal": "simulated fsync failure",
       "owner": "controller",
       "path": "src/backend/durable.rs",
@@ -138741,7 +138732,7 @@
     },
     {
       "excerpt": "return Err(std::io::Error::new(std::io::ErrorKind::Other, \"simulated fsync failure\"));",
-      "line": 507,
+      "line": 517,
       "literal": "simulated fsync failure",
       "owner": "controller",
       "path": "src/backend/durable.rs",
@@ -138750,7 +138741,7 @@
     },
     {
       "excerpt": "return Err(std::io::Error::new(std::io::ErrorKind::Other, \"simulated fsync failure\"));",
-      "line": 531,
+      "line": 541,
       "literal": "simulated fsync failure",
       "owner": "controller",
       "path": "src/backend/durable.rs",
@@ -138813,7 +138804,7 @@
     },
     {
       "excerpt": "assert!(magic_is_network(magic), \"0x{:x} is a network filesystem\", magic);",
-      "line": 223,
+      "line": 227,
       "literal": "0x{:x} is a network filesystem",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -138822,7 +138813,7 @@
     },
     {
       "excerpt": "assert!(!magic_is_network(magic), \"0x{:x} is local or decided elsewhere\", magic);",
-      "line": 226,
+      "line": 230,
       "literal": "0x{:x} is local or decided elsewhere",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -138831,7 +138822,7 @@
     },
     {
       "excerpt": "assert!(refuses_folder_sizes(\"network\") && refuses_folder_sizes(\"phone\"));",
-      "line": 232,
+      "line": 236,
       "literal": "network",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -138840,7 +138831,7 @@
     },
     {
       "excerpt": "assert!(refuses_folder_sizes(\"network\") && refuses_folder_sizes(\"phone\"));",
-      "line": 232,
+      "line": 236,
       "literal": "phone",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -138849,7 +138840,7 @@
     },
     {
       "excerpt": "assert!(!refuses_folder_sizes(\"usb\") && !refuses_folder_sizes(\"\"), \"a local or removable disk still sizes\");",
-      "line": 233,
+      "line": 237,
       "literal": "a local or removable disk still sizes",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -138858,7 +138849,7 @@
     },
     {
       "excerpt": "assert_eq!(gvfs_class(Path::new(path)), Some(\"phone\"), \"{} is a phone\", path);",
-      "line": 243,
+      "line": 247,
       "literal": "phone",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -138867,7 +138858,7 @@
     },
     {
       "excerpt": "assert_eq!(gvfs_class(Path::new(path)), Some(\"network\"), \"{} is network\", path);",
-      "line": 251,
+      "line": 255,
       "literal": "network",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -138876,7 +138867,7 @@
     },
     {
       "excerpt": "assert_eq!(gvfs_class(Path::new(path)), Some(\"network\"), \"{} is network\", path);",
-      "line": 251,
+      "line": 255,
       "literal": "{} is network",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -138885,7 +138876,7 @@
     },
     {
       "excerpt": "assert_eq!(gvfs_class(Path::new(path)), None, \"{} is not a gvfs share\", path);",
-      "line": 254,
+      "line": 258,
       "literal": "{} is not a gvfs share",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -138894,7 +138885,7 @@
     },
     {
       "excerpt": "assert_eq!(classify_parts(Path::new(\"/media/nas\"), Some(\"cifs\"), Some(0xFF534D42), false), \"network\");",
-      "line": 260,
+      "line": 264,
       "literal": "network",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -138903,7 +138894,7 @@
     },
     {
       "excerpt": "assert_eq!(classify_parts(Path::new(\"/media/nas\"), None, Some(0xFE534D42), false), \"network\");",
-      "line": 261,
+      "line": 265,
       "literal": "network",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -138912,7 +138903,7 @@
     },
     {
       "excerpt": "assert_eq!(classify_parts(Path::new(\"/run/user/1000/gvfs/mtp:host=X\"), Some(\"ext4\"), Some(0xEF53), true), \"phone\");",
-      "line": 262,
+      "line": 266,
       "literal": "phone",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -138921,7 +138912,7 @@
     },
     {
       "excerpt": "assert_eq!(classify_parts(Path::new(\"/run/user/1000/gvfs/smb-share:server=n\"), None, None, false), \"network\");",
-      "line": 263,
+      "line": 267,
       "literal": "network",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -138930,7 +138921,7 @@
     },
     {
       "excerpt": "assert_eq!(gvfs_root(share).as_deref(), Some(share), \"the share itself is its own root\");",
-      "line": 273,
+      "line": 277,
       "literal": "the share itself is its own root",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -138939,7 +138930,7 @@
     },
     {
       "excerpt": "assert_eq!(gvfs_root(Path::new(\"/run/user/1000/gvfs\")), None, \"the gvfs mount alone names no share\");",
-      "line": 274,
+      "line": 278,
       "literal": "the gvfs mount alone names no share",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -138948,7 +138939,7 @@
     },
     {
       "excerpt": "assert_eq!(gvfs_root(Path::new(\"/home/gm/gvfs/x\")), None, \"a local folder named gvfs is not a share\");",
-      "line": 275,
+      "line": 279,
       "literal": "a local folder named gvfs is not a share",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -138957,7 +138948,7 @@
     },
     {
       "excerpt": "let link = d.path().join(\"link\");",
-      "line": 305,
+      "line": 309,
       "literal": "link",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -138966,7 +138957,7 @@
     },
     {
       "excerpt": "assert_eq!(resolved_in(&link, local), target, \"a symlink answers its target\");",
-      "line": 308,
+      "line": 312,
       "literal": "a symlink answers its target",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -138975,7 +138966,7 @@
     },
     {
       "excerpt": "assert_eq!(resolved_in(&d.join(\"never-existed\"), local), d.join(\"never-existed\"), \"a failure keeps today's path\");",
-      "line": 309,
+      "line": 313,
       "literal": "a failure keeps today's path",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -138984,7 +138975,7 @@
     },
     {
       "excerpt": "let link = d.path().join(\"link\");",
-      "line": 316,
+      "line": 320,
       "literal": "link",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -138993,7 +138984,7 @@
     },
     {
       "excerpt": "let body = format!(\"1 0 0:30 / / rw - ext4 /dev/a rw\\n30 1 0:9 / {} rw - cifs //nas/media rw\\n\", target.display());",
-      "line": 318,
+      "line": 322,
       "literal": "1 0 0:30 / / rw - ext4 /dev/a rw\n30 1 0:9 / {} rw - cifs //nas/media rw\n",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -139002,7 +138993,7 @@
     },
     {
       "excerpt": "assert_eq!(classify_in(&link, &body), \"network\", \"a symlink into a cifs mount is network, not local\");",
-      "line": 319,
+      "line": 323,
       "literal": "network",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -139011,7 +139002,7 @@
     },
     {
       "excerpt": "assert_eq!(classify_in(&link, &body), \"network\", \"a symlink into a cifs mount is network, not local\");",
-      "line": 319,
+      "line": 323,
       "literal": "a symlink into a cifs mount is network, not local",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -139020,7 +139011,7 @@
     },
     {
       "excerpt": "assert_eq!(classify_in(&link, &plain), \"\", \"the same link stays local when its target is local\");",
-      "line": 321,
+      "line": 325,
       "literal": "the same link stays local when its target is local",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -139029,7 +139020,7 @@
     },
     {
       "excerpt": "let (link, gone) = (d.path().join(\"link\"), d.path().join(\"gone\"));",
-      "line": 330,
+      "line": 334,
       "literal": "link",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -139038,7 +139029,7 @@
     },
     {
       "excerpt": "std::os::unix::fs::symlink(share.join(\"missing\").join(\"deep\"), &gone).unwrap();",
-      "line": 332,
+      "line": 336,
       "literal": "missing",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -139047,7 +139038,7 @@
     },
     {
       "excerpt": "let body = format!(\"1 0 0:30 / / rw - ext4 /dev/a rw\\n30 1 0:9 / {} rw - cifs //nas/media rw\\n\", share.display());",
-      "line": 333,
+      "line": 337,
       "literal": "1 0 0:30 / / rw - ext4 /dev/a rw\n30 1 0:9 / {} rw - cifs //nas/media rw\n",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -139056,7 +139047,7 @@
     },
     {
       "excerpt": "assert_eq!(classify_in(&link.join(\"sub\"), &body), \"network\", \"a link into a share is network\");",
-      "line": 334,
+      "line": 338,
       "literal": "network",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -139065,7 +139056,7 @@
     },
     {
       "excerpt": "assert_eq!(classify_in(&link.join(\"sub\"), &body), \"network\", \"a link into a share is network\");",
-      "line": 334,
+      "line": 338,
       "literal": "a link into a share is network",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -139074,7 +139065,7 @@
     },
     {
       "excerpt": "assert_eq!(classify_in(&gone, &body), \"network\", \"a link to a path the share cannot show is network too\");",
-      "line": 335,
+      "line": 339,
       "literal": "network",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -139083,7 +139074,7 @@
     },
     {
       "excerpt": "assert_eq!(classify_in(&gone, &body), \"network\", \"a link to a path the share cannot show is network too\");",
-      "line": 335,
+      "line": 339,
       "literal": "a link to a path the share cannot show is network too",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -139092,7 +139083,7 @@
     },
     {
       "excerpt": "assert!(reads.contains(&link) && reads.contains(&gone), \"the links themselves are read, so the hook sees the walk: {:?}\", reads);",
-      "line": 337,
+      "line": 341,
       "literal": "the links themselves are read, so the hook sees the walk: {:?}",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -139101,7 +139092,7 @@
     },
     {
       "excerpt": "assert!(reads.iter().all(|p| !p.starts_with(&share)), \"no syscall reaches the share: {:?}\", reads);",
-      "line": 338,
+      "line": 342,
       "literal": "no syscall reaches the share: {:?}",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -139110,7 +139101,7 @@
     },
     {
       "excerpt": "assert_eq!(classify_entry(Path::new(\"/media/nas/photos\"), Some(&entry)), \"network\");",
-      "line": 346,
+      "line": 350,
       "literal": "network",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -139119,7 +139110,7 @@
     },
     {
       "excerpt": "assert_eq!(crate::backend::fsinfo::statfs_calls(), 0, \"classify_entry itself decides on the fstype\");",
-      "line": 347,
+      "line": 351,
       "literal": "classify_entry itself decides on the fstype",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -139128,7 +139119,7 @@
     },
     {
       "excerpt": "let body = \"1 0 0:30 / / rw - ext4 /dev/a rw\\n\\\n            31 1 0:27 / /mnt/cifs rw - cifs //nas/media rw\\n\\\n            32 1 0:28 / /mnt/nfs rw - nfs4 nas:/export rw\\n\\\n            33 1 0:29 / /mnt/smb rw - smb3 //nas/media rw\\n\\\n            34 1 0:40 / /mnt/sshfs rw - fuse.sshfs me@nas:/ rw\\n\\\n            35 1 0:41 / /mnt/rclone rw - fuse.rclone remote: rw\\n\\\n            36 1 0:42 / /mnt/s3 rw - fuse.s3fs bucket rw\\n\\\n            37 1 0:43 / /mnt/local-fuse rw - fuse.mergerfs a:b rw\\n\";",
-      "line": 353,
+      "line": 357,
       "literal": "1 0 0:30 / / rw - ext4 /dev/a rw\\n\\\n            31 1 0:27 / /mnt/cifs rw - cifs //nas/media rw\\n\\\n            32 1 0:28 / /mnt/nfs rw - nfs4 nas:/export rw\\n\\\n            33 1 0:29 / /mnt/smb rw - smb3 //nas/media rw\\n\\\n            34 1 0:40 / /mnt/sshfs rw - fuse.sshfs me@nas:/ rw\\n\\\n            35 1 0:41 / /mnt/rclone rw - fuse.rclone remote: rw\\n\\\n            36 1 0:42 / /mnt/s3 rw - fuse.s3fs bucket rw\\n\\\n            37 1 0:43 / /mnt/local-fuse rw - fuse.mergerfs a:b rw\\n",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -139137,7 +139128,7 @@
     },
     {
       "excerpt": "assert_eq!(classify_in(Path::new(&path), body), \"network\", \"{} reaches the class Quick Look refuses\", mount);",
-      "line": 363,
+      "line": 367,
       "literal": "network",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -139146,7 +139137,7 @@
     },
     {
       "excerpt": "assert_eq!(classify_in(Path::new(&path), body), \"network\", \"{} reaches the class Quick Look refuses\", mount);",
-      "line": 363,
+      "line": 367,
       "literal": "{} reaches the class Quick Look refuses",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -139155,7 +139146,7 @@
     },
     {
       "excerpt": "assert_eq!(classify_in(Path::new(\"/mnt/local-fuse/README.md\"), body), \"\", \"an unlisted FUSE type is local, as netfs.rs pins\");",
-      "line": 365,
+      "line": 369,
       "literal": "an unlisted FUSE type is local, as netfs.rs pins",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -139164,7 +139155,7 @@
     },
     {
       "excerpt": "let body = \"31 23 0:27 / /media/nas rw - cifs //nas/media rw\\n\";",
-      "line": 371,
+      "line": 375,
       "literal": "31 23 0:27 / /media/nas rw - cifs //nas/media rw\n",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -139173,7 +139164,7 @@
     },
     {
       "excerpt": "assert_eq!(classify_in(Path::new(\"/media/nas/photos\"), body), \"network\");",
-      "line": 372,
+      "line": 376,
       "literal": "network",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -139182,7 +139173,7 @@
     },
     {
       "excerpt": "assert_eq!(crate::backend::fsinfo::statfs_calls(), 0, \"fstype already decided; no statfs for nothing\");",
-      "line": 373,
+      "line": 377,
       "literal": "fstype already decided; no statfs for nothing",
       "owner": "controller",
       "path": "src/backend/extclass.rs",
@@ -212343,7 +212334,7 @@
     },
     {
       "excerpt": "echo \"DUPLICATE ceiling: $duplicated\"",
-      "line": 351,
+      "line": 355,
       "literal": "DUPLICATE ceiling: $duplicated",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -212352,7 +212343,7 @@
     },
     {
       "excerpt": "echo \"UNREADABLE $file: cannot read it, so it has no line count\"",
-      "line": 374,
+      "line": 378,
       "literal": "UNREADABLE $file: cannot read it, so it has no line count",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -212361,7 +212352,7 @@
     },
     {
       "excerpt": "echo \"GREW      $file: $lines lines, recorded $recorded, cap $hard\"",
-      "line": 386,
+      "line": 390,
       "literal": "GREW      $file: $lines lines, recorded $recorded, cap $hard",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -212370,7 +212361,7 @@
     },
     {
       "excerpt": "echo \"GREW      $file: $lines lines, recorded $recorded, cap $hard\"",
-      "line": 391,
+      "line": 395,
       "literal": "GREW      $file: $lines lines, recorded $recorded, cap $hard",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -212379,7 +212370,7 @@
     },
     {
       "excerpt": "echo \"known     $file: $lines lines, recorded $recorded, cap $hard\"",
-      "line": 394,
+      "line": 398,
       "literal": "known     $file: $lines lines, recorded $recorded, cap $hard",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -212388,7 +212379,7 @@
     },
     {
       "excerpt": "echo \"OVER CAP  $file: $lines lines, cap $hard\"",
-      "line": 398,
+      "line": 402,
       "literal": "OVER CAP  $file: $lines lines, cap $hard",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -212397,7 +212388,7 @@
     },
     {
       "excerpt": "echo \"over soft $file: $lines lines, budget $soft, split it\"",
-      "line": 401,
+      "line": 405,
       "literal": "over soft $file: $lines lines, budget $soft, split it",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -252502,7 +252493,7 @@
     "src/backend/archivefree.rs": "638f57994a455989818c9bb5a7864a46dfe77185e5ba934c0a0da3d859cab242",
     "src/backend/archivelist.rs": "6ba21fc9307cb234bd29cca714cbb7c5689facfe07ee12171c9846e404c01a5a",
     "src/backend/archivename.rs": "b93d576ac1aa0021660c80fb23e611cf93082d7c7c769e86cded12d79812d1a7",
-    "src/backend/archiveops.rs": "26ea4f75391185956c7b2db23856200ffaac685c54b4c605e53033eb49587da1",
+    "src/backend/archiveops.rs": "557c502657ca6673b09308d911843e232f748013c58b4d567fe2b1517d9bdf0f",
     "src/backend/archivepass.rs": "f5a9605108c809f5b322a34713009db6f554af2e6a60fe94bade702776924eba",
     "src/backend/archivereq.rs": "5d90dfc9fa727e47c1aa70c20fa656e4c3ce2d5fc31a49c85abd2839749d8e89",
     "src/backend/archivespec.rs": "9569e3ab8cc5fa96ddbfd9e245a6ce757399de7fe7b289f97962b443cf13f99a",
@@ -252518,7 +252509,7 @@
     "src/backend/collide_ask.rs": "439bf0a2bc60e92dfa0db0f16c476cfe41dba40346cf0e8ca476d69af9f969e1",
     "src/backend/collide_table.rs": "d4825b13dd94d559374746652be6ef476f019cd91b939d98d96d5b119bb3c335",
     "src/backend/collidelink.rs": "13a50bae82bdc2b0a9193e5d2760044201d5ebdfebb1716154da3b8fdcaf8e07",
-    "src/backend/combine.rs": "816bbd9d2170c07efa3eaaebaa92ba3746bc19caf3c5dbb9eafabc3464773479",
+    "src/backend/combine.rs": "4551e9c84be751c98f737cf99c9a9a60f25efd8b8bb40dfbebbfe44c59ca650e",
     "src/backend/compare.rs": "7f6e2130e1a40284ff5525e35be4bc4a4d46a5644645acb63a444fc476df7a63",
     "src/backend/contents.rs": "87bcc782b28b7f2419a752cf900b9b606efead235880ce4281f0b132aab0153d",
     "src/backend/contentsguard.rs": "702ebe85958d25c3a3f4253237a4cc728b969e84d9766a9d218c8745f1fff789",
@@ -252528,7 +252519,7 @@
     "src/backend/contentsworker.rs": "a6c93b8d15d0481ab32da7d4a8cff4a0e9ea704de977076c7e49ca1b06055bf5",
     "src/backend/convert.rs": "de8e7af192ea4d972d353fbc4e214248d8c9c88fc1db477df0e58717613b09a2",
     "src/backend/convertbatch.rs": "337039354d05cb3d09aa7806de040a25f950bfccd7203a64d92ece239f808af1",
-    "src/backend/copyfile.rs": "8268ded64c9cbebc63053530912f730a99b511a2d18de318caf882e30279a1ba",
+    "src/backend/copyfile.rs": "cfaf15552c6a4371d88769a0e928f81a0aa4f9f41efe9a4815b33fc66444fbe6",
     "src/backend/copymanifest.rs": "96a53c6936c0d5ab078a4d40992c5c0192a6933169bd85db08cd933ae3ff1d89",
     "src/backend/copynode.rs": "812e62829738a84e55d03dea80b5fbf9ae54ff775e01b319c3eddfa211b4411d",
     "src/backend/copyread.rs": "345fad4c47b8a1f897f847ddfa54bcd81b4f8c31857b0d3d43670328086cab8e",
@@ -252542,10 +252533,10 @@
     "src/backend/dirsizewalk.rs": "fdd1ca11c526f1f0ac3e2d67968a2d3ee82e6760a598de32d12ef37752b2bf45",
     "src/backend/dirsizewatch.rs": "346a5a5e69b5cb1ef70e77fa09735b953d5d9edccff549837c4d6699e64cf4b5",
     "src/backend/dirsizeworker.rs": "d902e425a83cda0d74f5b2e9406e092064e9a29647abcd5e938b22a100bb2d55",
-    "src/backend/durable.rs": "53a5f85d1b85ad7e9eea8b2ca25ddfc457f15e6b820834c03bd6281aba581cf7",
+    "src/backend/durable.rs": "be4a1ed28300db954a95c3e0a6501885806a0993a6091876eabd14f5b4c4d275",
     "src/backend/events.rs": "9088762a16fd7b53a6fec5b7d5a919a1e82436e7ea114ec3808ab0d42f8ffde3",
     "src/backend/exiffacts.rs": "ffc31ed02e73a44adab1d21385be72ee4bb0d2c8dbfe0b0c1254c5d7e4ecf8ac",
-    "src/backend/extclass.rs": "075bd0cb395fdcbe0924bad0ad21a94a5483059fdb3258bb669d19e302f729d2",
+    "src/backend/extclass.rs": "8f15b54cca7b7a8cc109ba72c30f6c86c6b1c1053727ccb733b1096824f0e3ed",
     "src/backend/extractindex.rs": "3b2a19b3487ae145f9dadfb0259b9c378f718840176f7d4e661af488f667c5fe",
     "src/backend/extractnames.rs": "a59b8733144cc5782f090a1d84ee6a243c7460c626ed47f79e6e7a41643a01ff",
     "src/backend/extractprogress.rs": "7f76d940b6a22a1c0ef0ecf4d28b3aeb24c026bee5470cda1780654fc861085c",
@@ -252762,6 +252753,7 @@
     "src/backend/reaphold.rs": "edbe93a4b6a8e716f0f7a7684db570d6fa53af551495fa7179c1cbfdaf860617",
     "src/backend/redo.rs": "a291913a55bc946781d7c2dea82258f1b308f2de05537df44ca1fbff11b99f80",
     "src/backend/regfile.rs": "32b63549d15ecf649c4625e65eb060d4c06d8659cf978ffdfa1f2adc4d2ff024",
+    "src/backend/removable.rs": "791df6e35c10c458cc335479d77d19615d44eb4acb4aab1304138d4ceda6bd96",
     "src/backend/renamecompat.rs": "f966c42ee17d5d6114f6260e7d5db101716d3894dfd0ebe91c1a60003ecd755e",
     "src/backend/renametiming.rs": "a5ce89173e838ebe8ab2852c26573233b45a0f7276a4bfbba8a30bdd5171c658",
     "src/backend/renamework.rs": "b067d509236a2fcf14205a816f15359bcc88e41f1798aaa6fb9d85b6b6322b36",
@@ -253474,7 +253466,7 @@
     "tools/flea-field-nav": "36bc42104edb84c4194b4b6d28c3e67d915a2a144692aaa49953981a4a5bdbf8",
     "tools/flea-field-search": "70ec859809b73cb1bf58fccb4129b05622023a0686991fe7370aafd8fe7805a6",
     "tools/flea-figure-bench": "60d312818e6af2fa0989d50275907d2a0f9e6019787caae93e8d8a4e440dc8e7",
-    "tools/flea-file-budget": "1a91dd003181ef421ddf8c8e20af8375bf1fe82a144f31298b1866ed9322f41f",
+    "tools/flea-file-budget": "6c81a7d167b4963960030d23fa38f8e41172d48c6f44aeaf1c1d34f5089c1ec3",
     "tools/flea-filemanager1": "ebccc20a6b2be787dcf7e817d353a21dcca5ff57de184161f12e28ee5b0322e1",
     "tools/flea-first-paint": "6b9555b0a20b6d4bec057bd9c405823a1b742c14d27304b83a5a95d801ac5526",
     "tools/flea-framecap-build": "7c9433d4c4774f8810fd4e4c8ee92d0b5810dcbc7645231205a8155d557f5f2e",
@@ -254010,13 +254002,13 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "157e44fb6b35070b77c1c12cd58db45293eb0d62",
-  "source_sha": "157e44fb6b35070b77c1c12cd58db45293eb0d62",
+  "source_ref_sha": "9975cec3467da306c5df4ba3ba264e592a98dbb7",
+  "source_sha": "9975cec3467da306c5df4ba3ba264e592a98dbb7",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1353,
-      "missing_literal_candidates": 5711,
-      "source_files": 860
+      "missing_literal_candidates": 5710,
+      "source_files": 861
     },
     "generated/tooling": {
       "keys_with_occurrences": 155,

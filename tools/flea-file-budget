@@ -129,7 +129,7 @@ src/backend/searchtags.rs 478
 src/backend/searchtags_tests.rs 519
 src/backend/tagsreq_tests.rs 383
 src/backend/copyfile_tests.rs 694
-src/backend/durable.rs 810
+src/backend/durable.rs 823
 src/backend/dirsize.rs 422
 src/backend/durable_tests.rs 1396
 src/backend/jump_tests.rs 487

@@ -104,7 +104,7 @@ pub fn dest_is_rclone(dest: &Path) -> bool {
     })
 }
 
-// True when the destination needs its bytes confirmed: usb, phone, network, or vfat/exfat/ntfs.
+// True when the destination needs its bytes confirmed: usb, phone, network, a removable disk, or vfat/exfat/ntfs.
 pub fn dest_is_durable(dest: &Path) -> bool {
     if forced(dest) {
         return true;
@@ -114,7 +114,7 @@ pub fn dest_is_durable(dest: &Path) -> bool {
     }
     if let Ok(body) = std::fs::read_to_string("/proc/self/mountinfo") {
         if let Some(e) = crate::backend::mountinfo::mount_entry_in(dest, &body) {
-            if fat_name_is_durable(&e.fstype) {
+            if entry_is_durable_under(Path::new("/sys"), Path::new("/dev"), &e) {
                 return true;
             }
         }
@@ -126,6 +126,11 @@ pub fn dest_is_durable(dest: &Path) -> bool {
         return true;
     }
     false
+}
+
+// A FAT name or a pull-out disk under these sysfs and dev roots; tests pass their own sample roots.
+pub(crate) fn entry_is_durable_under(sys: &Path, dev: &Path, e: &crate::backend::mountinfo::MountEntry) -> bool {
+    fat_name_is_durable(&e.fstype) || crate::backend::extclass::removable::removable_under(sys, dev, e)
 }
 
 // Sample input: "/dev/sda1" trues, "remote:" falses.
@@ -153,6 +158,8 @@ pub const DIR_UNCONFIRMED: &str = "copied, but the drive did not confirm the fol
 
 // 64 held files bound one unconfirmed batch, the same bound movebatch closes on.
 pub(crate) const HELD_CAP: usize = 64;
+// One confirm slice of held bytes closes a batch early, so files just under a slice never count far ahead of the drive.
+pub(crate) const HELD_BYTES: u64 = crate::backend::copyfile::CONFIRM_BYTES;
 
 // One batch being copied and confirmed plus the wave still closing behind it, the most descriptors a move holds open.
 #[cfg(test)]
@@ -230,6 +237,7 @@ pub struct Durability {
     // A failed settle stays failed, so later confirms keep every source.
     unsettled: bool,
     held: Vec<std::fs::File>,
+    held_bytes: u64,
     wave: Wave,
     touched: HashSet<PathBuf>,
     last: Option<PathBuf>,
@@ -256,13 +264,14 @@ impl Durability {
             None => false,
         };
         Durability { durable, rclone, file_failed: false, batch_syncfs, rename_fat: false, unsettled: false, held: Vec::new(),
-            wave: Wave::default(), touched: HashSet::new(), last: None }
+            held_bytes: 0, wave: Wave::default(), touched: HashSet::new(), last: None }
     }
 
-    // A landed file stays open until its batch confirms, so 64 closes land with one syncfs.
-    pub fn hold(&mut self, file: std::fs::File) {
+    // A landed file stays open until its batch confirms; 64 closes or one slice of still unconfirmed bytes land with one syncfs.
+    pub fn hold(&mut self, file: std::fs::File, unconfirmed: u64) {
+        self.held_bytes += unconfirmed;
         self.held.push(file);
-        if self.held.len() >= HELD_CAP {
+        if self.held.len() >= HELD_CAP || self.held_bytes >= HELD_BYTES {
             // Never more than one batch ahead of the drive; a failed settle stays sticky inside settle_held.
             let _ = self.settle_held();
         }
@@ -321,6 +330,7 @@ impl Durability {
         }
         self.join_wave();
         let files: Vec<std::fs::File> = std::mem::take(&mut self.held);
+        self.held_bytes = 0;
         #[cfg(test)]
         {
             RELEASES.with(|v| v.set(v.get() + files.len()));
@@ -807,3 +817,7 @@ pub fn test_mark_durable(path: &Path) {
 #[cfg(test)]
 #[path = "durable_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "durable_bytes_tests.rs"]
+mod bytes_tests;

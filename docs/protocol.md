@@ -1027,7 +1027,9 @@ destination it is still confirmed before `transferdone`. At the top of the selec
 the item's own failure with the reason as its `err`. Each entry is named on `transferdone`'s `refused`.
 
 **Copies onto removable, phone and network targets are durable before "done".** When the
-destination classes usb, phone or network, or its filesystem is vfat, exfat or ntfs, each file is
+destination classes usb, phone or network, sits on a disk that can be pulled out which that class does not
+name (an SD card in a PCI reader, a drive behind a Thunderbolt or USB4 port, a btrfs or dm-crypt stick,
+see `src/backend/removable.rs`), or its filesystem is vfat, exfat or ntfs, each file is
 fsync'd after its last write and every directory Flea created or wrote into is fsync'd before the
 transfer reports done. An rclone mount is the exception: the copy lands in rclone's cache first,
 so no fsync forces its upload and the done line names the background upload instead. Local btrfs and ext4 targets keep today's behaviour. A failed file fsync fails
