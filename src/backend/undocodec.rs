@@ -1,4 +1,5 @@
 // The shared journal's wire form, both directions; a Copied nonce reattaches only in its recorder.
+use flea::bytename::ExactText as _;
 use super::undoshare::StoredRedo;
 #[cfg(test)]
 use super::undoshare::Doc;
@@ -69,41 +70,104 @@ fn link_kind(kind: &super::link::LinkKind) -> &'static str {
 
 fn step(step: &Step) -> Json {
     match step {
-        Step::Moved { from, to, before, after, rename_fat } => obj(super::fatnames::mark_renamed(vec![
-            ("k", s("m")), ("from", s(&from.to_string_lossy())), ("to", s(&to.to_string_lossy())),
-            ("before", identity(before)), ("after", identity(after)),
-        ], *rename_fat)),
-        Step::Created { path } => obj(vec![("k", s("c")), ("path", s(&path.to_string_lossy()))]),
-        Step::Linked { path, identity: id, source, kind } => obj(vec![
-            ("k", s("l")), ("path", s(&path.to_string_lossy())), ("id", identity(id)),
-            ("src", s(&source.to_string_lossy())), ("kind", s(link_kind(kind))),
+        Step::Moved {
+            from,
+            to,
+            before,
+            after,
+            rename_fat,
+        } => obj(super::fatnames::mark_renamed(
+            vec![
+                ("k", s("m")),
+                ("from", s(&from.exact_text())),
+                ("to", s(&to.exact_text())),
+                ("before", identity(before)),
+                ("after", identity(after)),
+            ],
+            *rename_fat,
+        )),
+        Step::Created { path } => obj(vec![("k", s("c")), ("path", s(&path.exact_text()))]),
+        Step::Linked {
+            path,
+            identity: id,
+            source,
+            kind,
+        } => obj(vec![
+            ("k", s("l")),
+            ("path", s(&path.exact_text())),
+            ("id", identity(id)),
+            ("src", s(&source.exact_text())),
+            ("kind", s(link_kind(kind))),
         ]),
         // Sample input: {"k":"cp","from":"/a","to":"/b","src":{...},"made":{...},"nonce":7}.
-        Step::Copied { from, to, source, created, manifest_nonce, merge, rename_fat, .. } => {
+        Step::Copied {
+            from,
+            to,
+            source,
+            created,
+            manifest_nonce,
+            merge,
+            rename_fat,
+            ..
+        } => {
             let mut pairs = vec![
-                ("k", s("cp")), ("from", s(&from.to_string_lossy())), ("to", s(&to.to_string_lossy())),
-                ("src", identity(source)), ("made", identity(created)),
+                ("k", s("cp")),
+                ("from", s(&from.exact_text())),
+                ("to", s(&to.exact_text())),
+                ("src", identity(source)),
+                ("made", identity(created)),
             ];
             if let Some(nonce) = manifest_nonce {
                 pairs.push(("nonce", n(nonce)));
             }
-            obj(super::fatnames::mark_renamed(super::mergeapply::mark_merge(pairs, *merge), *rename_fat))
+            obj(super::fatnames::mark_renamed(
+                super::mergeapply::mark_merge(pairs, *merge),
+                *rename_fat,
+            ))
         }
         Step::MadeDir { path, identity: id } => obj(vec![
-            ("k", s("md")), ("path", s(&path.to_string_lossy())), ("id", identity(id)),
+            ("k", s("md")),
+            ("path", s(&path.exact_text())),
+            ("id", identity(id)),
         ]),
         Step::MadeFile { path, identity: id } => obj(vec![
-            ("k", s("mf")), ("path", s(&path.to_string_lossy())), ("id", identity(id)),
+            ("k", s("mf")),
+            ("path", s(&path.exact_text())),
+            ("id", identity(id)),
         ]),
         Step::RemovedEmptyDir { path, mode } => super::mergeapply::encode_emptied(path, *mode),
         Step::Trashed(entry) => super::trash::encode_step(entry),
-        Step::Mode { path, before, after, dev, ino, born, generation } => obj(super::filegen::with_generation(vec![
-            ("k", s("pm")), ("path", s(&path.to_string_lossy())), ("before", n(before)), ("after", n(after)),
-            ("dev", n(dev)), ("ino", n(ino)), ("born", born_json(*born)),
-        ], *generation)),
+        Step::Mode {
+            path,
+            before,
+            after,
+            dev,
+            ino,
+            born,
+            generation,
+        } => obj(super::filegen::with_generation(
+            vec![
+                ("k", s("pm")),
+                ("path", s(&path.exact_text())),
+                ("before", n(before)),
+                ("after", n(after)),
+                ("dev", n(dev)),
+                ("ino", n(ino)),
+                ("born", born_json(*born)),
+            ],
+            *generation,
+        )),
         // Sample input: {"k":"barrier"}.
         Step::Barrier => obj(vec![("k", s("barrier"))]),
-        Step::Tags { path, before, after, dev, ino, born, generation } => super::tagsundo::encode(path, before, after, *dev, *ino, (*born, *generation)),
+        Step::Tags {
+            path,
+            before,
+            after,
+            dev,
+            ino,
+            born,
+            generation,
+        } => super::tagsundo::encode(path, before, after, *dev, *ino, (*born, *generation)),
     }
 }
 
@@ -121,7 +185,7 @@ fn replay_step(st: &Step, input: &Option<ItemIdentity>, parent: &Option<(PathBuf
         None => pairs.push(("in", Json::Null)),
     }
     match parent {
-        Some((path, id)) => pairs.push(("parent", arr(vec![s(&path.to_string_lossy()), identity(id)]))),
+        Some((path, id)) => pairs.push(("parent", arr(vec![s(&path.exact_text()), identity(id)]))),
         None => pairs.push(("parent", Json::Null)),
     }
     obj(pairs)
@@ -184,8 +248,12 @@ pub(crate) fn parse_u32(value: &Json) -> Option<u32> {
 // Absolute paths only: a relative one names the reader's own directory, so it is foreign.
 pub(crate) fn checked_path(value: &Json) -> Option<PathBuf> {
     match value {
-        Json::Str(text) if !text.is_empty() && text.len() <= MAX_PATH
-            && text.starts_with('/') && !text.contains('\0') => Some(PathBuf::from(text)),
+        // The bound and the NUL check meet the decoded bytes, where a canonical exact spelling leaves no NUL.
+        Json::Str(text) if !text.is_empty() && text.starts_with('/') => {
+            let path = flea::bytename::exact(text);
+            let bytes = std::os::unix::ffi::OsStrExt::as_bytes(path.as_os_str());
+            (bytes.len() <= MAX_PATH && !bytes.contains(&0)).then_some(path)
+        }
         _ => None,
     }
 }
@@ -208,3 +276,7 @@ fn checked_op(value: &Json) -> Option<String> {
         _ => None,
     }
 }
+
+#[cfg(test)]
+#[path = "undocodec_exact_tests.rs"]
+mod exact_tests;

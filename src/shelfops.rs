@@ -177,7 +177,7 @@ pub fn send(rest: &[String]) -> i32 {
     };
     let finished = std::process::Command::new("omarchy-tailscale-send")
         .arg(peer)
-        .args(&paths)
+        .args(flea::bytename::args(&paths))
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())

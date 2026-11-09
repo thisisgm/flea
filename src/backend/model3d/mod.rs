@@ -40,7 +40,12 @@ pub struct Facts {
 }
 
 pub fn supported(name: &str) -> Option<&'static str> {
-    match name.rsplit_once('.')?.1.to_ascii_lowercase().as_str() {
+    match flea::bytename::display(name)
+        .rsplit_once('.')?
+        .1
+        .to_ascii_lowercase()
+        .as_str()
+    {
         "stl" => Some("stl"),
         "3mf" => Some("3mf"),
         "obj" => Some("obj"),

@@ -1,4 +1,5 @@
 //! Convert's format cursor, option row and output line follow the supplied cell boards.
+use flea::bytename::ExactText as _;
 use super::*;
 use crate::tui::{
     cells::{fit, text_width, Wrapped},
@@ -64,13 +65,13 @@ pub fn output_paths(f: &Form) -> Vec<String> {
         };
         let mut result = vec![parent
             .join(output::page_name(path, pages[0], f.format()))
-            .to_string_lossy()
+            .exact_text()
             .into_owned()];
         if pages.len() > 1 {
             result.push(
                 parent
                     .join(output::page_name(path, *pages.last().unwrap(), f.format()))
-                    .to_string_lossy()
+                    .exact_text()
                     .into_owned(),
             );
         }
@@ -86,7 +87,7 @@ pub fn output_paths(f: &Form) -> Vec<String> {
             .map(|source| {
                 parent
                     .join(output::converted_name(Path::new(source), f.format()))
-                    .to_string_lossy()
+                    .exact_text()
                     .into_owned()
             })
             .collect()
@@ -176,7 +177,7 @@ fn body(m: &Model, width: usize) -> Vec<Line> {
 fn last_name(path: &str) -> String {
     std::path::Path::new(path).file_name().map_or_else(
         || path.to_owned(),
-        |name| name.to_string_lossy().into_owned(),
+        |name| flea::bytename::display(&name.to_string_lossy()).into_owned(),
     )
 }
 pub fn geometry(m: &Model) -> Card {

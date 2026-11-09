@@ -3,6 +3,7 @@ use crate::backend::opsreq::{op_err, usable_dest, OpMsg};
 use crate::backend::proto::{error_line, error_line_with_code};
 use crate::backend::undo::{Entry, Step};
 use crate::json::field_str;
+use flea::bytename::ExactText as _;
 use std::io::{Read, Write};
 use std::os::unix::fs::OpenOptionsExt;
 use std::path::Path;
@@ -149,7 +150,7 @@ fn execute(dest: &Path, name: &str, argv: &[String]) -> (String, Option<Entry>) 
             return fail(&msg);
         }
     };
-    let line = super::opsreq::made_line(true, &target.to_string_lossy());
+    let line = super::opsreq::made_line(true, &target.exact_text());
     (line, Some(Entry { op: "paste".to_string(), steps: vec![Step::Created { path: target }] }))
 }
 

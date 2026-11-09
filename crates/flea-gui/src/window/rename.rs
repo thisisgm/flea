@@ -82,7 +82,8 @@ impl Shell {
             return true;
         };
         let source = join(host.pane.path(), &row.name);
-        let name = leaf(&row.name).to_owned();
+        // A name that is not UTF-8 is edited as its lossy spelling; the source keeps its exact bytes.
+        let name = flea::bytename::display(leaf(&row.name)).into_owned();
         let mut entry = Entry::default();
         entry.begin(&name);
         // The stem alone, which is the part a rename usually changes.

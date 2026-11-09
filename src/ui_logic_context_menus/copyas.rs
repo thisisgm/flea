@@ -54,7 +54,9 @@ pub fn dirpath(path: &str) -> &str {
 // encodeURI's reserved and unreserved sets, then # and ? escaped so a name never reads as a fragment or query.
 pub fn file_uri(path: &str) -> String {
     let mut out = String::from("file://");
-    for byte in path.bytes() {
+    for &byte in
+        std::os::unix::ffi::OsStrExt::as_bytes(crate::bytename::text_path(path).as_os_str())
+    {
         let keep = byte.is_ascii_alphanumeric() || b";,/:@&=+$-_.!~*'()".contains(&byte);
         if keep {
             out.push(byte as char);
@@ -82,17 +84,41 @@ pub fn relative(path: &str, base: &str) -> String {
     }
 }
 
-// Only Relative reads base, the folder the pane lists.
+// Only Relative reads base; text forms read a name that is not UTF-8 by its lossy spelling, Uri and Quoted by its bytes.
 pub fn one(path: &str, format: Format, base: &str) -> String {
+    let (shown, base) = (
+        crate::bytename::display(path),
+        crate::bytename::display(base),
+    );
     match format {
-        Format::Path => path.to_owned(),
-        Format::Relative => relative(path, base),
-        Format::Name => leaf(path).to_owned(),
-        Format::Stem => stem(path).to_owned(),
-        Format::Dirpath => dirpath(path).to_owned(),
+        Format::Path => shown.into_owned(),
+        Format::Relative => relative(&shown, &base),
+        Format::Name => leaf(&shown).to_owned(),
+        Format::Stem => stem(&shown).to_owned(),
+        Format::Dirpath => dirpath(&shown).to_owned(),
         Format::Uri => file_uri(path),
+        Format::Quoted if crate::bytename::is_exact(path) => quoted_bytes(path),
         Format::Quoted => format!("'{}'", path.replace('\'', "'\\''")),
     }
+}
+
+// Sample input: the text of /d/col<0xff> answers $'/d/col\xff'; every byte outside printable ASCII is escaped.
+fn quoted_bytes(path: &str) -> String {
+    let mut out = String::from("$'");
+    for &byte in
+        std::os::unix::ffi::OsStrExt::as_bytes(crate::bytename::text_path(path).as_os_str())
+    {
+        match byte {
+            b'\'' | b'\\' => {
+                out.push('\\');
+                out.push(byte as char);
+            }
+            0x20..=0x7e => out.push(byte as char),
+            _ => out.push_str(&format!("\\x{byte:02x}")),
+        }
+    }
+    out.push('\'');
+    out
 }
 
 pub fn lines(paths: &[&str], format: Format, base: &str) -> String {

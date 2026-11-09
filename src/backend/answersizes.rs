@@ -67,7 +67,7 @@ pub fn fill(st: &mut State, start: usize, count: usize) {
         if !st.listing.is_dir(row) {
             continue;
         }
-        let path = st.base.join(st.listing.name(row));
+        let path = st.listing.path(&st.base, row);
         match sizes.known.get(&path) {
             Some(&bytes) => {
                 st.dirsizes.insert(row, (bytes, false));
@@ -120,7 +120,10 @@ pub fn learn(st: &mut State, row: usize, size: DirSize) {
         return;
     }
     if let Some(session) = st.search_session.as_mut() {
-        session.sizes.known.insert(st.base.join(st.listing.name(row)), size.bytes);
+        session
+            .sizes
+            .known
+            .insert(st.listing.path(&st.base, row), size.bytes);
     }
 }
 

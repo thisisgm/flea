@@ -5,6 +5,7 @@ use crate::backend::run::{forget_rows, write_window};
 use crate::backend::searchreq::finish_search;
 use crate::backend::state::{Held, State, Tables};
 use crate::backend::thumbs::Pool;
+use flea::bytename::ExactText as _;
 use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
@@ -32,8 +33,11 @@ pub fn listing_of(paths: &[String]) -> (Listing, f64) {
         }
         // The link's own type, the same rule scan() reads off d_type: a symlink to a directory is
         // listed as a file, and a symlink to nothing is still an entry the user put here.
-        let owned = path.clone();
-        let meta = match super::iomount::call(std::path::Path::new(path), &body, "listpaths", move || fs::symlink_metadata(&owned)) {
+        let exact = flea::bytename::exact(path);
+        let owned = exact.clone();
+        let meta = match super::iomount::call(&exact, &body, "listpaths", move || {
+            fs::symlink_metadata(&owned)
+        }) {
             Ok(Ok(meta)) => meta,
             _ => continue,
         };
@@ -68,8 +72,19 @@ pub fn answer(
     st.held = Held::ListPaths;
     forget_rows(st, pool);
     // The sort figure is always zero: nothing here is sorted, see docs/protocol.md "listpaths".
-    let listed = listed_line(st.listing.len(), read_ms, 0.0, dev_of(&st.base), &st.base.to_string_lossy(), crate::backend::ops::dir_writable(&st.base));
-    let listed = if recheck { super::proto::with_changed(&listed, changed) } else { listed };
+    let listed = listed_line(
+        st.listing.len(),
+        read_ms,
+        0.0,
+        dev_of(&st.base),
+        &st.base.exact_text(),
+        crate::backend::ops::dir_writable(&st.base),
+    );
+    let listed = if recheck {
+        super::proto::with_changed(&listed, changed)
+    } else {
+        listed
+    };
     writeln!(out, "{}", listed).ok();
     // Rides along unasked, the same first-paint saving a list makes.
     write_window(out, st, 0, first, tb);

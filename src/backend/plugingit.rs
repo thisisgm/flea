@@ -1,4 +1,5 @@
 // Git for plugins added from a URL: a clone, and an Update that pulls only into a plain repository.
+use flea::bytename::ExactText as _;
 use super::pluginfs::finish;
 use super::regfile;
 use crate::oflags::O_NOFOLLOW;
@@ -49,7 +50,7 @@ pub fn clone(url: &str, to: &Path, deadline: Duration) -> Result<(), String> {
             "--quiet",
             "--",
             url,
-            &to.to_string_lossy(),
+            &to.exact_text(),
         ],
         deadline,
     )
@@ -127,7 +128,7 @@ pub fn pull(folder: &Path, deadline: Duration) -> Result<(), String> {
             &dir,
             &tree,
             "-C",
-            &folder.to_string_lossy(),
+            &folder.exact_text(),
             "pull",
             "--ff-only",
             "--quiet",

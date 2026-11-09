@@ -1,7 +1,7 @@
 use super::*;
 use crate::backend::testdir::TestDir;
 use std::sync::atomic::AtomicUsize;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Mutex, MutexGuard};
 
 // zoxide runs one at a time, so the tests that run one take turns under SERIAL.

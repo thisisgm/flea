@@ -1,4 +1,5 @@
 //! Follow-on yazi actions share the existing listing, operation and terminal lifecycles.
+use flea::bytename::ExactText as _;
 use super::{
     model::Model,
     wire::{count, flag, number, text, word, Wire},
@@ -74,7 +75,7 @@ pub fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<bool> {
                 w.send(vec![
                     ("c", word("linktarget")),
                     ("target", word(&row.link)),
-                    ("path", word(&path.to_string_lossy())),
+                    ("path", word(&path.exact_text())),
                     ("id", number(m.action_id)),
                 ])?;
                 m.parity17.follow = Some((m.action_id, path, w.listing));
@@ -99,11 +100,11 @@ pub fn receive(m: &mut Model, value: &Json, w: &mut Wire) -> io::Result<bool> {
         }
         if let Some((id, path, listing)) = m.parity17.follow.take() {
             if id == count(value, "id")
-                && path.to_string_lossy() == text(value, "path")
+                && path.exact_text() == text(value, "path")
                 && listing == w.listing
                 && m.pending.is_none()
             {
-                let folder = PathBuf::from(text(value, "directory"));
+                let folder = flea::bytename::exact(text(value, "directory"));
                 let name = text(value, "name");
                 // A broken link says so; a link to / opens / itself, which has no folder to show it in.
                 if folder.is_absolute() && folder.join(name).symlink_metadata().is_err() {
@@ -219,7 +220,7 @@ fn stale(m: &Model, value: &Json, w: &Wire) -> bool {
 }
 pub fn copy_text(paths: &[String], form: &str, cwd: &std::path::Path) -> String {
     use flea::ui_logic_context_menus::copyas;
-    let mut paths: Vec<PathBuf> = paths.iter().map(PathBuf::from).collect();
+    let mut paths: Vec<PathBuf> = paths.iter().map(flea::bytename::exact).collect();
     if paths.is_empty() && matches!(form, "dirpath" | "dirurl") {
         paths.push(cwd.join("placeholder"));
     }
@@ -231,7 +232,7 @@ pub fn copy_text(paths: &[String], form: &str, cwd: &std::path::Path) -> String 
                 _ => path.as_path(),
             };
             match form {
-                "url" | "dirurl" => uri(&chosen.to_string_lossy()),
+                "url" | "dirurl" => uri(chosen),
                 "filename" => path
                     .file_name()
                     .unwrap_or_default()
@@ -243,17 +244,18 @@ pub fn copy_text(paths: &[String], form: &str, cwd: &std::path::Path) -> String 
                     .to_string_lossy()
                     .into_owned(),
                 // The window's Copy As forms: from the listed folder, and one shell word.
-                "relative" => copyas::relative(&chosen.to_string_lossy(), &cwd.to_string_lossy()),
-                "quoted" => copyas::one(&chosen.to_string_lossy(), copyas::Format::Quoted, ""),
+                "relative" => copyas::one(&chosen.exact_text(), copyas::Format::Relative, &cwd.exact_text()),
+                "quoted" => copyas::one(&chosen.exact_text(), copyas::Format::Quoted, ""),
                 _ => chosen.to_string_lossy().into_owned(),
             }
         })
         .collect::<Vec<_>>()
         .join("\n")
 }
-fn uri(path: &str) -> String {
+// Text forms read a name that is not UTF-8 by its lossy spelling; the URI escapes the file's own bytes.
+fn uri(path: &std::path::Path) -> String {
     let mut out = String::from("file://");
-    for b in path.bytes() {
+    for &b in std::os::unix::ffi::OsStrExt::as_bytes(path.as_os_str()) {
         if b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_' | b'.' | b'~' | b'/') {
             out.push(b as char);
         } else {

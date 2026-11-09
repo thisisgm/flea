@@ -1,7 +1,7 @@
 //! A matching mounted column image supplies first paint, then the card decodes its original.
 use super::*;
 use crate::window::selection_preview::{Kind, Mounted};
-use std::{path::PathBuf, sync::Arc};
+use std::sync::Arc;
 
 impl Shell {
     fn column_picture(
@@ -101,7 +101,7 @@ impl Shell {
         self.quick_look_header(token, early, cx);
         if let (Some((_, image)), Some(host)) = (interim, self.quick_look.as_ref()) {
             host.view.update(cx, |view, cx| {
-                view.picture_interim(PathBuf::from(path), image, cx);
+                view.picture_interim(flea::bytename::exact(path), image, cx);
             });
         }
     }

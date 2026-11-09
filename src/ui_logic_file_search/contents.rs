@@ -94,16 +94,16 @@ impl ContentsMatches {
                 return Err("contents path must stay relative to its scope".into());
             }
             let path = text(value, "path")?;
-            if String::from_utf8_lossy(&path_bytes) != path {
+            let exact = crate::bytename::path_text(std::path::Path::new(
+                <std::ffi::OsStr as std::os::unix::ffi::OsStrExt>::from_bytes(&path_bytes),
+            ));
+            if exact != path {
                 return Err("contents display does not match its identity".into());
             }
             let operable = value
                 .get("operable")
                 .and_then(Json::as_bool)
                 .ok_or("operable must be a boolean")?;
-            if operable && std::str::from_utf8(&path_bytes).is_err() {
-                return Err("a raw filename cannot be operable".into());
-            }
             let line_no = uint(value, "lineNo")?;
             if line_no == 0 {
                 return Err("lineNo must be positive".into());

@@ -1,4 +1,5 @@
 //! The file menu's keys, pointer and rows at work: opening it, stepping it, and each row's request and answer.
+use flea::bytename::ExactText as _;
 use super::menu_layout::{entries, hit, place, Entry, Sub};
 use crate::tui::{input::{Key, Pointer, WHEEL_DOWN, WHEEL_UP}, keymap::Map, model::Model, wire::{count, flag, number, text, word, Wire}};
 use crate::jsondoc::Json;
@@ -32,16 +33,38 @@ pub fn open(m: &mut Model, w: &mut Wire) -> io::Result<()> {
     m.action_id = m.action_id.wrapping_add(1).max(1);
     m.menu_view.request = m.action_id;
     w.send(vec![("c", word("formats")), ("id", number(m.action_id))])?;
-    if rows.is_empty() { return Ok(()); }
+    if rows.is_empty() {
+        return Ok(());
+    }
     let targets = &rows[..m.menu_count];
-    m.menu_directory = targets.iter().filter_map(|index| m.selected_rows.get(index).or_else(|| m.rows.get(index))).any(|row| row.directory);
-    m.menu_view.paths = targets.iter().filter_map(|index| m.selected_rows.get(index).or_else(|| m.rows.get(index))).map(|row| m.row_path(row).to_string_lossy().into_owned()).collect();
+    m.menu_directory = targets
+        .iter()
+        .filter_map(|index| m.selected_rows.get(index).or_else(|| m.rows.get(index)))
+        .any(|row| row.directory);
+    m.menu_view.paths = targets
+        .iter()
+        .filter_map(|index| m.selected_rows.get(index).or_else(|| m.rows.get(index)))
+        .map(|row| m.row_path(row).exact_text().into_owned())
+        .collect();
     // A single target is what the menu acts on, so a selected folder under a file cursor is the target.
-    if let [only] = m.menu_view.paths.as_slice() { m.menu_path = only.into(); }
+    if let [only] = m.menu_view.paths.as_slice() {
+        m.menu_path = flea::bytename::exact(only);
+    }
     let paths = Json::Arr(m.menu_view.paths.iter().map(|path| word(path)).collect());
-    w.send(vec![("c", word("actions")), ("op", word("list")), ("id", number(m.action_id)), ("paths", paths)])?;
+    w.send(vec![
+        ("c", word("actions")),
+        ("op", word("list")),
+        ("id", number(m.action_id)),
+        ("paths", paths),
+    ])?;
     m.menu_action = "menu".into();
-    w.send(vec![("c", word("menuaction")), ("op", word("snapshot")), ("id", number(m.action_id)), ("rows", Json::Arr(rows.into_iter().map(number).collect())), ("cursor", number(m.cursor))])
+    w.send(vec![
+        ("c", word("menuaction")),
+        ("op", word("snapshot")),
+        ("id", number(m.action_id)),
+        ("rows", Json::Arr(rows.into_iter().map(number).collect())),
+        ("cursor", number(m.cursor)),
+    ])
 }
 // The snapshot answered: one item also asks for its Open With registry, as the window does.
 pub fn ready(m: &mut Model, w: &mut Wire) -> io::Result<()> {
@@ -226,17 +249,48 @@ pub fn reply(m: &mut Model, value: &Json, w: &mut Wire) -> io::Result<bool> {
         }
         ("activate", "compress") => {
             m.menu_action.clear();
-            let paths: Vec<String> = value.get("paths").and_then(Json::as_array).unwrap_or(&[]).iter().filter_map(Json::as_str).map(str::to_owned).collect();
-            let format = text(value, "action").strip_prefix("compress:").unwrap_or_default().to_owned();
-            let name = |path: &str| path.rsplit('/').next().unwrap_or_default().to_owned();
+            let paths: Vec<String> = value
+                .get("paths")
+                .and_then(Json::as_array)
+                .unwrap_or(&[])
+                .iter()
+                .filter_map(Json::as_str)
+                .map(str::to_owned)
+                .collect();
+            let format = text(value, "action")
+                .strip_prefix("compress:")
+                .unwrap_or_default()
+                .to_owned();
+            let name = |path: &str| {
+                flea::bytename::display(path.rsplit('/').next().unwrap_or_default()).into_owned()
+            };
             let stem = match paths.as_slice() {
-                [one] => { let leaf = name(one); leaf.rfind('.').filter(|cut| *cut > 0).map_or(leaf.clone(), |cut| leaf[..cut].to_owned()) }
-                _ => m.menu_view.folder.file_name().map_or("archive".into(), |leaf| leaf.to_string_lossy().into_owned()),
+                [one] => {
+                    let leaf = name(one);
+                    leaf.rfind('.')
+                        .filter(|cut| *cut > 0)
+                        .map_or(leaf.clone(), |cut| leaf[..cut].to_owned())
+                }
+                _ => m
+                    .menu_view
+                    .folder
+                    .file_name()
+                    .map_or("archive".into(), |leaf| leaf.to_string_lossy().into_owned()),
             };
             let dest = m.menu_view.folder.join(format!("{stem}.{format}"));
-            m.say_text(crate::tui::words::Text::Plural("menu.compressing", paths.len(), vec![format.clone().into()]));
-            w.send(vec![("c", word("archive")), ("op", word("compress")), ("paths", Json::Arr(paths.iter().map(|p| word(p)).collect())),
-                ("dest", word(&dest.to_string_lossy())), ("format", word(&format)), ("menuId", number(m.action_id))])?;
+            m.say_text(crate::tui::words::Text::Plural(
+                "menu.compressing",
+                paths.len(),
+                vec![format.clone().into()],
+            ));
+            w.send(vec![
+                ("c", word("archive")),
+                ("op", word("compress")),
+                ("paths", Json::Arr(paths.iter().map(|p| word(p)).collect())),
+                ("dest", word(&dest.exact_text())),
+                ("format", word(&format)),
+                ("menuId", number(m.action_id)),
+            ])?;
         }
         _ => return Ok(false),
     }

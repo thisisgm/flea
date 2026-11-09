@@ -234,3 +234,21 @@ fn a_zip_is_probed_and_unlocked_by_7z_while_its_plain_extract_stays_with_bsdtar(
     let tar_only = Formats::from_tools(true, false);
     assert!(tar_only.technical_list_argv(zip).is_none() && !reads_password(&tar_only, zip), "no 7z, no password route");
 }
+
+#[test]
+fn a_raw_named_archive_is_read_by_its_shown_suffix() {
+    use std::os::unix::ffi::OsStrExt;
+    let both = Formats::from_tools(true, true);
+    let seven = Path::new(std::ffi::OsStr::from_bytes(b"/d/a\xff.7z"));
+    assert_eq!(both.reader_for(seven), Some(Reader::SevenZip));
+    let tar = Path::new(std::ffi::OsStr::from_bytes(b"/d/b\xfe.tar.gz"));
+    assert_eq!(both.reader_for(tar), Some(Reader::Bsdtar));
+    let argv = both
+        .extract_argv(tar, Path::new("/out"))
+        .expect("a raw-named tar extracts");
+    assert!(
+        argv.iter()
+            .any(|arg| flea::bytename::text_path(arg).as_os_str().as_bytes() == b"/d/b\xfe.tar.gz"),
+        "{argv:?}"
+    );
+}

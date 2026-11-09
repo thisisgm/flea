@@ -339,7 +339,7 @@ pub(super) fn handle_stream(
         "add" => super::pluginadd::add(env, &text("source")).map(|m| (m.id, m.version)),
         "update" => super::pluginadd::update(env, &plugin),
         "remove" => pluginops::remove(env, &plugin),
-        _ => pluginops::validate(Path::new(&text("source"))),
+        _ => pluginops::validate(&flea::bytename::view(&text("source"))),
     };
     let (named, error, version) = match result {
         Ok((named, version)) => (named, None, version),

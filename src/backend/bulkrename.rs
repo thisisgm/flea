@@ -3,6 +3,7 @@ use crate::backend::ops::valid_name;
 use crate::backend::renamecompat;
 use crate::backend::undo::{Entry, ItemIdentity, Step};
 use crate::error::{from_io, FleaError};
+use flea::bytename::ExactText as _;
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -40,7 +41,7 @@ fn plan(paths: &[String], names: &[String]) -> Result<(Vec<Item>, usize), FleaEr
     if paths.is_empty() || paths.len() != names.len() {
         return Err(refused("Bulk rename needs the same number of names as items."));
     }
-    let sources: Vec<PathBuf> = paths.iter().map(PathBuf::from).collect();
+    let sources: Vec<PathBuf> = paths.iter().map(flea::bytename::exact).collect();
     let unique: BTreeSet<&PathBuf> = sources.iter().collect();
     if unique.len() != sources.len() || sources.iter().any(|p| !p.is_absolute()) {
         return Err(refused("Bulk rename needs unique absolute paths."));
@@ -74,7 +75,7 @@ fn plan(paths: &[String], names: &[String]) -> Result<(Vec<Item>, usize), FleaEr
         }
         items.push(Item { source, dest, before: identity });
     }
-    let sources_now: BTreeSet<PathBuf> = paths.iter().map(PathBuf::from).collect();
+    let sources_now: BTreeSet<PathBuf> = paths.iter().map(flea::bytename::exact).collect();
     for item in &items {
         match item.dest.symlink_metadata() {
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
@@ -195,22 +196,50 @@ pub(crate) fn do_bulkrename(out: &mut impl Write, ops: &mut super::opsdispatch::
         out.flush().ok();
         return Vec::new();
     }
-    let sources: Vec<PathBuf> = paths.iter().map(PathBuf::from).collect();
-    let folder = paths.first().and_then(|first| Path::new(first).parent().map(Path::to_path_buf)).unwrap_or_else(|| PathBuf::from("/"));
+    let sources: Vec<PathBuf> = paths.iter().map(flea::bytename::exact).collect();
+    let folder = paths
+        .first()
+        .and_then(|first| flea::bytename::view(first).parent().map(Path::to_path_buf))
+        .unwrap_or_else(|| PathBuf::from("/"));
     // A source or the folder on a pending mount waits, so the late journal lands first.
-    if super::opsdispatch::pending_busy_for(out, ops, "bulkrename", &sources, std::slice::from_ref(&folder)) {
+    if super::opsdispatch::pending_busy_for(
+        out,
+        ops,
+        "bulkrename",
+        &sources,
+        std::slice::from_ref(&folder),
+    ) {
         return Vec::new();
     }
     let body = super::iomount::mount_body();
     let key = folder.clone();
-    match super::iomount::slow_write_with(&key, &body, "bulkrename", super::iomount::CALL_DEADLINE, move || Ok(bulk_work(paths, names))) {
+    match super::iomount::slow_write_with(
+        &key,
+        &body,
+        "bulkrename",
+        super::iomount::CALL_DEADLINE,
+        move || Ok(bulk_work(paths, names)),
+    ) {
         super::iomount::SlowWrite::Ready(outcome) => land_bulkrename(out, ops, outcome),
         super::iomount::SlowWrite::Slow { mount, rx } => {
-            writeln!(out, "{}", super::proto::slow_line("bulkrename", &key.to_string_lossy(), &super::iomount::slow_sentence(&mount, super::iomount::SLOW_BULK_RENAME))).ok();
+            writeln!(
+                out,
+                "{}",
+                super::proto::slow_line(
+                    "bulkrename",
+                    &key.exact_text(),
+                    &super::iomount::slow_sentence(&mount, super::iomount::SLOW_BULK_RENAME)
+                )
+            )
+            .ok();
             out.flush().ok();
             // The pending id is only a number: the slot stays with whatever holds it, so a transfer beside this write keeps its id and its cancel.
             let id = ops.claim_id();
-            ops.pending.push(super::opsdispatch::SlowClaim { id, path: key.to_string_lossy().to_string(), mount });
+            ops.pending.push(super::opsdispatch::SlowClaim {
+                id,
+                path: key.exact_text().to_string(),
+                mount,
+            });
             let tx = ops.tx.clone();
             let failed = super::iomount::internal_failure("bulkrename", &key);
             std::thread::spawn(move || {

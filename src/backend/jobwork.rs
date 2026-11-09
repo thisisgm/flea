@@ -1,4 +1,5 @@
 // Work descriptions stay beside their jobs so a retry retains the original arguments and selection.
+use flea::bytename::ExactText as _;
 use super::archive::Formats;
 use super::collide::Policy;
 use super::menu_actions::Selected;
@@ -71,7 +72,7 @@ impl Work {
                 if *compressing {
                     paths.clone()
                 } else {
-                    vec![archive.to_string_lossy().into()]
+                    vec![archive.exact_text().into()]
                 }
             }
         }
@@ -99,7 +100,11 @@ impl Work {
                     archive.clone()
                 }
             }
-            _ => self.paths().first().map(PathBuf::from).unwrap_or_default(),
+            _ => self
+                .paths()
+                .first()
+                .map(flea::bytename::exact)
+                .unwrap_or_default(),
         };
         path.file_name()
             .unwrap_or_default()
@@ -115,7 +120,7 @@ impl Work {
             if !identity.same_item(&current) {
                 return Err("A failed item changed; it was not retried.".into());
             }
-            paths.push(path.to_string_lossy().to_string());
+            paths.push(path.exact_text().to_string());
         }
         if paths.is_empty() {
             return Err("No unchanged failed items can be retried.".into());
@@ -256,7 +261,7 @@ impl Work {
                     let sources = if compressing {
                         paths.clone()
                     } else {
-                        vec![archive.to_string_lossy().into_owned()]
+                        vec![archive.exact_text().into_owned()]
                     };
                     let items = selection
                         .map(pin_selection)
@@ -322,7 +327,7 @@ impl Work {
                     (peer.clone(), paths.clone(), *request, selection.clone());
                 std::thread::spawn(move || {
                     let items = selection.unwrap_or_else(|| capture(&paths));
-                    let source_paths: Vec<_> = paths.iter().map(PathBuf::from).collect();
+                    let source_paths: Vec<_> = paths.iter().map(flea::bytename::exact).collect();
                     let result = super::menu_actions::validate_sources(Some(&items), &source_paths)
                         .and_then(|()| super::localsend::send_cancelled(&peer, &paths, &cancel));
                     let error = result.err().unwrap_or_default();
@@ -367,9 +372,9 @@ pub(crate) fn capture(paths: &[String]) -> Vec<Selected> {
     paths
         .iter()
         .filter_map(|path| {
-            ItemIdentity::inspect_in(std::path::Path::new(path), &body)
+            ItemIdentity::inspect_in(&flea::bytename::view(path), &body)
                 .ok()
-                .map(|identity| Selected::retry_item(PathBuf::from(path), identity))
+                .map(|identity| Selected::retry_item(flea::bytename::exact(path), identity))
         })
         .collect()
 }

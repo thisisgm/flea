@@ -1,3 +1,4 @@
+use flea::bytename::ExactText as _;
 use super::{
     input::Key,
     model::Model,
@@ -66,7 +67,7 @@ pub fn edit(m: &mut Model, key: &Key, w: &mut Wire) -> io::Result<()> {
             "rename" => {
                 w.send(vec![
                     ("c", word("rename")),
-                    ("path", word(&editor.path.to_string_lossy())),
+                    ("path", word(&editor.path.exact_text())),
                     ("to", word(value)),
                 ])?;
             }
@@ -79,7 +80,7 @@ pub fn edit(m: &mut Model, key: &Key, w: &mut Wire) -> io::Result<()> {
                     ("c", word(kind)),
                     ("op", word("newFile")),
                     ("id", super::wire::number(m.action_id)),
-                    ("path", word(&editor.path.to_string_lossy())),
+                    ("path", word(&editor.path.exact_text())),
                     (
                         "name",
                         word(if default_base.is_some() { "" } else { value }),

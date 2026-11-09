@@ -1,10 +1,10 @@
 // A preview action sees one cursor file in the existing read-only jail and returns code-renderer text.
+use flea::bytename::ExactText as _;
 use super::actions::Action;
 use super::codereq::Ticket;
 use super::opsreq::OpMsg;
 use crate::json::{escape, field_usize};
 use std::io::Read;
-use std::path::Path;
 use std::process::Stdio;
 use std::sync::mpsc::Sender;
 use std::time::{Duration, Instant};
@@ -31,7 +31,8 @@ pub(crate) fn answer(
         if ticket.superseded() {
             return Err("Preview superseded.".into());
         }
-        let path = Path::new(&paths[0]);
+        let path = flea::bytename::view(&paths[0]);
+        let path = &*path;
         let metadata = path.symlink_metadata().map_err(|e| e.to_string())?;
         if !metadata.is_file() {
             return Err("Preview actions require a regular cursor file.".into());
@@ -43,16 +44,13 @@ pub(crate) fn answer(
             .canonicalize()
             .map_err(|_| "Preview program is unavailable.".to_string())?;
         let mut argv = argv;
-        argv[0] = executable.to_string_lossy().into();
+        argv[0] = executable.exact_text().into();
         let mut full = super::sandbox::wrap_readonly_extra(&argv, &[path, &executable]);
         super::sandbox::add_status(&mut full, argv.len());
         // bwrap cannot bind onto a symlink, so it runs the resolved file under the alias name instead.
         if invoked != executable {
             let at = full.len() - argv.len();
-            full.splice(
-                at..at,
-                ["--argv0".to_string(), invoked.to_string_lossy().into()],
-            );
+            full.splice(at..at, ["--argv0".to_string(), invoked.exact_text().into()]);
         }
         let mut jailed = super::jail::spawn_jailed(&full, |c| {
             c.stdin(Stdio::null())
@@ -109,14 +107,12 @@ pub(crate) fn answer(
 
 // A multicall tool picks its behaviour from argv[0], so only the directory resolves and the alias name stays.
 fn program(name: &str) -> Option<std::path::PathBuf> {
-    let candidate = if Path::new(name).is_absolute() {
-        std::path::PathBuf::from(name)
+    let candidate = if flea::bytename::view(name).is_absolute() {
+        flea::bytename::exact(name)
     } else {
-        std::env::var_os("PATH")?
-            .to_string_lossy()
-            .split(':')
-            .filter(|p| !p.is_empty())
-            .map(|p| Path::new(p).join(name))
+        std::env::split_paths(&std::env::var_os("PATH")?)
+            .filter(|p| !p.as_os_str().is_empty())
+            .map(|p| p.join(name))
             .find(|p| p.is_file())?
     };
     if !candidate.is_file() {

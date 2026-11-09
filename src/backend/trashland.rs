@@ -3,36 +3,62 @@ use crate::backend::opsdispatch::Ops;
 use crate::backend::opsreq::{op_err, trashed_line, OpMsg};
 use crate::backend::trash;
 use crate::backend::undo::{Entry, Step};
+use flea::bytename::ExactText as _;
 use std::io::Write;
 use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 
 pub(crate) fn run_trash(id: usize, request: usize, paths: Vec<String>, tx: Sender<OpMsg>, selection: Option<Vec<super::menu_actions::Selected>>) {
-    let owned: Vec<PathBuf> = paths.iter().map(PathBuf::from).collect();
+    let owned: Vec<PathBuf> = paths.iter().map(flea::bytename::exact).collect();
     // Undo and redo name this path while the batch's entry is pending; a leading empty path is a drag marker, not an item.
     let first = paths.iter().find(|p| !p.is_empty()).cloned().unwrap_or_default();
     let mut announced = false;
     let early = tx.clone();
     let mut announce = |moved: &[PathBuf], failed: usize, reason: &str| {
         let reason = read_only_reason(&owned, moved, failed, reason);
-        let moved: Vec<String> = moved.iter().map(|path| path.to_string_lossy().into_owned()).collect();
+        let moved: Vec<String> = moved
+            .iter()
+            .map(|path| path.exact_text().into_owned())
+            .collect();
         let ok = moved.len();
-        announced = early.send(OpMsg::TrashAnnounced { id, request, path: first.clone(), ok, failed, reason, moved }).is_ok();
+        announced = early
+            .send(OpMsg::TrashAnnounced {
+                id,
+                request,
+                path: first.clone(),
+                ok,
+                failed,
+                reason,
+                moved,
+            })
+            .is_ok();
     };
-    let (entries, failed, reason) = match trash::trash_announcing(&owned, selection.as_deref(), &mut announce) {
-        Ok(result) => result,
-        Err(error) => {
-            let line = super::proto::error_line(&op_err("trash", "", &error));
-            let _ = tx.send(OpMsg::Meta { line });
-            (Vec::new(), owned.len(), error)
-        }
-    };
+    let (entries, failed, reason) =
+        match trash::trash_announcing(&owned, selection.as_deref(), &mut announce) {
+            Ok(result) => result,
+            Err(error) => {
+                let line = super::proto::error_line(&op_err("trash", "", &error));
+                let _ = tx.send(OpMsg::Meta { line });
+                (Vec::new(), owned.len(), error)
+            }
+        };
     let ok = entries.len();
     let gone: Vec<PathBuf> = entries.iter().map(|entry| entry.original.clone()).collect();
     let reason = read_only_reason(&owned, &gone, failed, &reason);
     let steps = entries.into_iter().map(Step::Trashed).collect();
-    let entry = Entry { op: "trash".to_string(), steps };
-    let _ = tx.send(OpMsg::Trashed { id, request, ok, failed, entry, reason, announced });
+    let entry = Entry {
+        op: "trash".to_string(),
+        steps,
+    };
+    let _ = tx.send(OpMsg::Trashed {
+        id,
+        request,
+        ok,
+        failed,
+        entry,
+        reason,
+        announced,
+    });
 }
 
 // linux/errno.h's read-only filesystem, whose sentence src/error.rs already holds.
@@ -66,13 +92,30 @@ pub(crate) fn land(out: &mut impl Write, ops: &mut Ops, msg: OpMsg) {
             ops.settling.push((id, path));
             ops.journal.reserve(id);
             ops.live.finished_if(id);
-            writeln!(out, "{}", trashed_line(request, ok, failed, &reason, &moved)).ok();
+            writeln!(
+                out,
+                "{}",
+                trashed_line(request, ok, failed, &reason, &moved)
+            )
+            .ok();
         }
-        OpMsg::Trashed { id, request, ok, failed, entry, reason, announced } => {
-            let moved: Vec<String> = entry.steps.iter().filter_map(|step| match step {
-                Step::Trashed(gone) => Some(gone.original.to_string_lossy().into_owned()),
-                _ => None,
-            }).collect();
+        OpMsg::Trashed {
+            id,
+            request,
+            ok,
+            failed,
+            entry,
+            reason,
+            announced,
+        } => {
+            let moved: Vec<String> = entry
+                .steps
+                .iter()
+                .filter_map(|step| match step {
+                    Step::Trashed(gone) => Some(gone.original.exact_text().into_owned()),
+                    _ => None,
+                })
+                .collect();
             super::renamework::publish(ops, super::renamework::Publication::Fill(id, entry));
             ops.settling.retain(|(held, _)| *held != id);
             ops.live.finished_if(id);

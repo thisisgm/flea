@@ -143,3 +143,38 @@ fn a_history_listing_hides_relative_path_and_keeps_path() {
         leaf_ids(&copy_as_entries()),
     );
 }
+
+#[test]
+fn a_raw_name_copies_lossy_as_text_and_exact_as_a_uri_or_a_quoted_path() {
+    use std::os::unix::ffi::OsStrExt;
+    let raw = crate::bytename::path_text(std::path::Path::new(std::ffi::OsStr::from_bytes(
+        b"/d/r\xff.txt",
+    )))
+    .into_owned();
+    let copy = |format: Format| lines(&[raw.as_str()], format, "/d");
+    check(
+        "the path reads lossy",
+        copy(Format::Path),
+        "/d/r\u{fffd}.txt".to_string(),
+    );
+    check(
+        "the name reads lossy",
+        copy(Format::Name),
+        "r\u{fffd}.txt".to_string(),
+    );
+    check(
+        "relative reads lossy",
+        copy(Format::Relative),
+        "r\u{fffd}.txt".to_string(),
+    );
+    check(
+        "the URI escapes the raw byte",
+        copy(Format::Uri),
+        "file:///d/r%FF.txt".to_string(),
+    );
+    check(
+        "the quoted form names the raw file for a shell",
+        copy(Format::Quoted),
+        "$'/d/r\\xff.txt'".to_string(),
+    );
+}

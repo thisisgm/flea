@@ -329,3 +329,37 @@ fn the_size_cell_prints_the_list_text_under_localized_words() {
         );
     }
 }
+
+#[test]
+fn a_raw_named_hit_draws_its_lossy_name_and_folder_and_never_the_exact_tail() {
+    let mut cx = real_cx();
+    let name = flea::bytename::name_text(b"r\xff.txt").into_owned();
+    let location = flea::bytename::name_text(b"d\xfe").into_owned();
+    let held = Rc::new(Held {
+        listing: 1,
+        total: 1,
+        start: 0,
+        blocks: vec![Block {
+            row: flea::protocol::RowFacts {
+                name,
+                mode: 0o100644,
+                ..Default::default()
+            },
+            location,
+            line_no: 1,
+            line: "needle".into(),
+        }],
+    });
+    let (window, state) = open(&mut cx, held, 1.);
+    frame(&mut cx, window, 0.);
+    let shown = Rc::clone(&state.borrow().visible[0].1);
+    assert_eq!(
+        shown.name.line().len,
+        "r\u{fffd}.txt ".len(),
+        "the name draws without its exact tail"
+    );
+    assert!(
+        prints(&mut cx, window, &shown.location, "d\u{fffd}"),
+        "the folder draws its lossy spelling"
+    );
+}

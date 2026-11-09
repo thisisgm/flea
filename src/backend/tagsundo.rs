@@ -1,4 +1,5 @@
 // The Tags journal step's codec and replay, so undo.rs, redo.rs and undocodec.rs each carry it with one call.
+use flea::bytename::ExactText as _;
 use super::undocodec::{arr, checked_path, get, n, obj, parse_u32, parse_u64, s};
 use super::filegen::Birth;
 use super::undo::Step;
@@ -8,12 +9,26 @@ use std::os::unix::fs::MetadataExt;
 use std::path::Path;
 
 // Sample input: {"k":"tg","path":"/a","before":[82,101,100],"after":null,"dev":2049,"ino":77,"born":[1791833358,458890562],"gen":12345}.
-pub(crate) fn encode(path: &Path, before: &Option<Vec<u8>>, after: &Option<Vec<u8>>, dev: u64, ino: u64, (born, generation): Birth) -> Json {
-    obj(super::filegen::with_generation(vec![
-        ("k", s("tg")), ("path", s(&path.to_string_lossy())),
-        ("before", raw_bytes(before)), ("after", raw_bytes(after)), ("dev", n(dev)), ("ino", n(ino)),
-        ("born", super::undocodec::born_json(born)),
-    ], generation))
+pub(crate) fn encode(
+    path: &Path,
+    before: &Option<Vec<u8>>,
+    after: &Option<Vec<u8>>,
+    dev: u64,
+    ino: u64,
+    (born, generation): Birth,
+) -> Json {
+    obj(super::filegen::with_generation(
+        vec![
+            ("k", s("tg")),
+            ("path", s(&path.exact_text())),
+            ("before", raw_bytes(before)),
+            ("after", raw_bytes(after)),
+            ("dev", n(dev)),
+            ("ino", n(ino)),
+            ("born", super::undocodec::born_json(born)),
+        ],
+        generation,
+    ))
 }
 
 // A raw attribute value is bytes, so it rides as byte numbers under the cap read_raw reads to.

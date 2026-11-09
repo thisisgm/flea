@@ -19,6 +19,8 @@ mod contents_process_tests;
 #[cfg(test)]
 mod contents_state_tests;
 #[cfg(test)]
+mod contents_exact_tests;
+#[cfg(test)]
 mod contents_fix_tests;
 #[cfg(test)]
 mod contents_fix2_tests;

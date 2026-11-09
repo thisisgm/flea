@@ -328,10 +328,9 @@ mod tests {
         assert_eq!(empty.len(), 0);
     }
 
-    // A name that is not UTF-8 never reaches this comparator: the arena is a String and scan.rs:16
-    // already converts lossily at the readdir, with its own corner tag there. What does reach it is
-    // a multi-byte UTF-8 name, and above ASCII there is no case folding and no collation, which is
-    // exactly what the comparator's corner tag promises.
+    // A name that is not UTF-8 reaches this comparator as its exact text, see src/bytename.rs. What
+    // this pins is a multi-byte UTF-8 name: above ASCII there is no case folding and no collation,
+    // which is exactly what the comparator's corner tag promises.
     #[test]
     fn a_name_above_ascii_orders_by_code_point_and_sorts_after_every_ascii_letter() {
         assert_eq!(ordered(&["\u{e9}clair.txt", "apple.txt", "Zebra.txt"]),

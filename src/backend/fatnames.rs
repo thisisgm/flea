@@ -122,7 +122,12 @@ pub fn map_dst(choice: Choice, fs_fat: bool, dst: &Path) -> Mapped {
     if !fs_fat {
         return Mapped::Same;
     }
-    let leaf = dst.file_name().and_then(|n| n.to_str()).unwrap_or("");
+    // A name that is not text keeps it, as inside_leaf keeps the names below it.
+    let leaf = match dst.file_name().map(|n| n.to_str()) {
+        Some(Some(text)) => text,
+        Some(None) => return Mapped::Same,
+        None => "",
+    };
     if !needs_rename(leaf) {
         return Mapped::Same;
     }
@@ -144,7 +149,7 @@ pub fn apply_dst(fat: Option<Choice>, fs_fat: bool, dst: PathBuf, here: bool) ->
 
 // One question leaf under the same answer: renamed leaves ask under their new name, skips ask nothing.
 pub fn ask_leaf(fat: Option<Choice>, fs_fat: bool, dest: &Path, name: &str) -> Option<(PathBuf, String)> {
-    let first = dest.join(name);
+    let first = dest.join(flea::bytename::view(name));
     let Some(choice) = fat else { return Some((first, name.to_string())) };
     match map_dst(choice, fs_fat, &first) {
         Mapped::Same => Some((first, name.to_string())),
@@ -157,15 +162,20 @@ pub fn ask_leaf(fat: Option<Choice>, fs_fat: bool, dest: &Path, name: &str) -> O
 fn rename_rows(paths: &[String], body: &str, mime: &super::mime::Db, icons: &super::icons::Names) -> Vec<String> {
     let mut shown = Vec::new();
     for raw in paths {
-        let Some(leaf) = Path::new(raw).file_name().and_then(|n| n.to_str()) else { continue };
+        let src = flea::bytename::view(raw);
+        let Some(leaf) = src.file_name().and_then(|n| n.to_str()) else {
+            continue;
+        };
         if !needs_rename(leaf) {
             continue;
         }
-        let (dir, mode, dev) = std::fs::symlink_metadata(raw).map(|m| (m.is_dir(), m.mode(), m.dev())).unwrap_or((false, 0, 0));
+        let (dir, mode, dev) = std::fs::symlink_metadata(&src)
+            .map(|m| (m.is_dir(), m.mode(), m.dev()))
+            .unwrap_or((false, 0, 0));
         // The mode is the source's own stat, so its execute bits count only where the source's mount keeps modes.
-        let real_modes = super::gvfsroot::gvfs_modes_are_real(Path::new(raw))
+        let real_modes = super::gvfsroot::gvfs_modes_are_real(&src)
             .or_else(|| super::mountinfo::modes_are_real_for_dev(dev, body))
-            .unwrap_or_else(|| super::mountinfo::modes_are_real(Path::new(raw), body));
+            .unwrap_or_else(|| super::mountinfo::modes_are_real(&src, body));
         let mode = if real_modes { mode } else { mode & !super::icons::ANY_EXECUTE_BIT };
         let new = sanitize(leaf);
         shown.push(format!(r#"{{"old":"{}","new":"{}","d":{},"i":"{}"}}"#,
@@ -183,7 +193,7 @@ pub fn answer(id: usize, paths: &[String], dest: &str, mime: &super::mime::Db, i
 
 // The answer against a given mount table, so a suite can stand a FAT mount where it cannot make one.
 fn answer_in(body: &str, id: usize, paths: &[String], dest: &str, mime: &super::mime::Db, icons: &super::icons::Names) -> Option<String> {
-    let entry = super::mountinfo::mount_entry_in(Path::new(dest), body).filter(|entry| is_fat_fstype(&entry.fstype))?;
+    let entry = super::mountinfo::mount_entry_in(&flea::bytename::view(dest), body).filter(|entry| is_fat_fstype(&entry.fstype))?;
     let shown = rename_rows(paths, body, mime, icons);
     let volume = entry.mount.file_name().and_then(|n| n.to_str()).unwrap_or_default();
     (!shown.is_empty()).then(|| format!(r#"{{"t":"fatnames","id":{},"fstype":"{}","volume":"{}","renames":[{}]}}"#,
@@ -363,5 +373,21 @@ mod tests {
         assert_eq!(ask_leaf(Some(Choice::Rename), false, dest, "clip: x"), Some((dest.join("clip: x"), "clip: x".to_string())));
         assert_eq!(ask_leaf(Some(Choice::Skip), true, dest, "clip: x"), None);
         assert_eq!(ask_leaf(Some(Choice::Skip), true, dest, "fine"), Some((dest.join("fine"), "fine".to_string())));
+    }
+
+    #[test]
+    fn a_raw_leaf_keeps_its_own_bytes_and_asks_under_them() {
+        use flea::bytename::ExactText as _;
+        use std::os::unix::ffi::OsStrExt;
+        let raw = Path::new(std::ffi::OsStr::from_bytes(b"/mnt/128GB/clip: \xff"));
+        assert!(
+            matches!(map_dst(Choice::Rename, true, raw), Mapped::Same),
+            "a raw leaf is never renamed to an underscore"
+        );
+        let name = raw.file_name().unwrap().exact_text().into_owned();
+        assert_eq!(
+            ask_leaf(Some(Choice::Rename), true, Path::new("/mnt/128GB"), &name),
+            Some((raw.to_path_buf(), name.clone()))
+        );
     }
 }

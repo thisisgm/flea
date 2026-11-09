@@ -99,7 +99,12 @@ pub(crate) fn open_argv(directory: &std::path::Path, argv: &[String]) -> std::io
     dir.push(target);
     let mut terminal = Command::new("xdg-terminal-exec");
     detach(&mut terminal);
-    terminal.arg(dir).arg("--").args(argv).spawn().map(|_| ())
+    terminal
+        .arg(dir)
+        .arg("--")
+        .args(flea::bytename::args(argv))
+        .spawn()
+        .map(|_| ())
 }
 
 // The guards every program Flea starts and does not wait for carries; src/update.rs hands its updater the same.

@@ -17,7 +17,7 @@ pub fn sort(
     let start = Instant::now();
     let born: Vec<_> = if by == "btime" {
         (0..l.len())
-            .map(|i| birthtime::get(&base.join(l.name(i))))
+            .map(|i| birthtime::get(&l.path(base, i)))
             .collect()
     } else {
         Vec::new()

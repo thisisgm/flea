@@ -16,7 +16,9 @@ fn encode_uri(path: &str) -> String {
         Some((id, relative)) => (format!("plugin://{id}"), relative),
         None => (String::from("file://"), path),
     };
-    for byte in path.as_bytes() {
+    // The exact bytes are encoded, so a name that is not UTF-8 names itself and not its lossy twin.
+    for byte in std::os::unix::ffi::OsStrExt::as_bytes(crate::bytename::text_path(path).as_os_str())
+    {
         if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b'~' | b'/') {
             out.push(*byte as char);
         } else {
@@ -56,7 +58,10 @@ fn decode_uri(uri: &[u8]) -> Option<String> {
     if raw.contains(&0) {
         return None;
     }
-    let path = String::from_utf8(raw).ok()?;
+    let path = crate::bytename::path_text(std::path::Path::new(
+        <std::ffi::OsStr as std::os::unix::ffi::OsStrExt>::from_bytes(&raw),
+    ))
+    .into_owned();
     if !path.starts_with('/') || path.split('/').any(|part| part == "." || part == "..") {
         return None;
     }
@@ -125,7 +130,12 @@ pub fn parse_urilist(bytes: &[u8]) -> (Vec<String>, usize) {
 
 // The absolute paths, one a line, the form ui/js/Drag.js offers beside its uri-list.
 pub fn build_plain(paths: &[String]) -> Vec<u8> {
-    paths.join("\n").into_bytes()
+    paths
+        .iter()
+        .map(|path| crate::bytename::display(path))
+        .collect::<Vec<_>>()
+        .join("\n")
+        .into_bytes()
 }
 
 pub fn build_kde_cut() -> Vec<u8> {

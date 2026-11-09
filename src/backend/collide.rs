@@ -4,12 +4,12 @@ use crate::backend::menu_actions::Selected;
 use crate::backend::mime::Db;
 use crate::backend::ops::free_copy_path;
 use crate::backend::opsdispatch::Ops;
-use crate::backend::opsreq::{usable_dest, OpMsg, ALREADY_THERE};
+use crate::backend::opsreq::{OpMsg, ALREADY_THERE};
 use crate::backend::undo::{ItemIdentity, Step};
-use crate::json::{escape, field_str, field_usize};
+use crate::json::{field_str, field_usize};
+use flea::bytename::ExactText as _;
 use std::cell::OnceCell;
 use std::collections::{HashMap, HashSet};
-use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -109,18 +109,18 @@ impl Ask {
 
 // The selection a menu transfer runs on: the one its question captured, else the menu's live one.
 pub(crate) fn menu_sources(ops: &Ops, id: usize, dest: &str, collide: &Ask) -> Result<(Vec<Selected>, Option<Selected>), String> {
-    let captured = ops.question.as_ref().filter(|q| collide.answers(q, Path::new(dest))).and_then(|q| q.menu.as_ref());
+    let captured = ops.question.as_ref().filter(|q| collide.answers(q, &flea::bytename::view(dest))).and_then(|q| q.menu.as_ref());
     if let Some(menu) = captured.filter(|menu| menu.id == id) {
         return Ok((menu.items.clone(), menu.destination.clone()));
     }
     ops.menuactions.as_ref().ok_or_else(|| super::menu_actions::SELECTION_CHANGED.to_string())
-        .and_then(|menu| Ok((menu.selection(id)?, menu.provider_destination(id, Path::new(dest))?)))
+        .and_then(|menu| Ok((menu.selection(id)?, menu.provider_destination(id, &flea::bytename::view(dest))?)))
 }
 
 // An expired selection captures nothing, so the question answers no collision and the transfer its own error.
 fn capture(ops: &Ops, id: usize, dest: &str) -> Option<MenuCapture> {
     let menu = ops.menuactions.as_ref()?;
-    Some(MenuCapture { id, items: menu.selection(id).ok()?, destination: menu.provider_destination(id, Path::new(dest)).ok()? })
+    Some(MenuCapture { id, items: menu.selection(id).ok()?, destination: menu.provider_destination(id, &flea::bytename::view(dest)).ok()? })
 }
 
 // No choice at all is today's transfer exactly; any choice also turns on the same-folder rule.
@@ -150,7 +150,7 @@ impl Policy {
     // Replace checks each item against the whole batch, so the batch is kept only when there is a Replace to check.
     pub fn for_batch(mut self, paths: &[String]) -> Policy {
         if self.choice == Some(Collide::Replace) || self.choice == Some(Collide::Merge) {
-            self.batch = paths.iter().map(PathBuf::from).collect();
+            self.batch = paths.iter().map(flea::bytename::exact).collect();
         }
         self
     }
@@ -272,10 +272,10 @@ pub fn already_there(src: &Path, name: &str, dst: &Path, dest_real: &Path) -> bo
 
 pub(crate) fn already_there_in(src: &Path, name: &str, dst: &Path, dest_real: &Path, parents: &mut Parents) -> bool {
     let src_here = match src.parent() {
-        Some(parent) => parents.resolve(parent).join(name),
+        Some(parent) => parents.resolve(parent).join(flea::bytename::view(name)),
         None => src.to_path_buf(),
     };
-    dst == src || dest_real.join(name) == src_here
+    dst == src || dest_real.join(flea::bytename::view(name)) == src_here
 }
 
 // The put-back gate without the restore, so a deferred batch marks now and restores at settle.
@@ -286,54 +286,6 @@ pub(crate) fn put_back_vacant(dst: &Path, steps: &[Step], at: usize) -> bool {
 // A cancel, bare or with the put-back that failed after it: either way the batch stops, and only the bare one is a skip.
 pub(crate) fn cancelled(msg: &str) -> bool {
     msg.strip_prefix(CANCELLED).is_some_and(|rest| rest.is_empty() || rest.starts_with(STILL_IN_TRASH))
-}
-
-// One colliding source as the card draws it: its name, and the kind its mark is chosen from.
-struct Shown {
-    name: String,
-    dir: bool,
-    mode: u32,
-}
-
-// The question itself, read-only: which sources would land on a name dest already holds, under their FAT-renamed names.
-fn ask(id: usize, paths: &[String], dest: &str, fat: Option<super::fatnames::Choice>) -> (Question, Vec<Shown>) {
-    let mut question = Question { id, dest: PathBuf::from(dest), seen: HashMap::new(), twins: HashSet::new(), menu: None, fat };
-    let mut shown = Vec::new();
-    // An unusable destination asks nothing: the transfer that follows answers its own error.
-    let Ok(dest_path) = usable_dest(dest) else { return (question, shown) };
-    let on_fat = super::fatnames::answered_on_fat(fat, &dest_path);
-    let dest_real = dest_path.canonicalize().unwrap_or_else(|_| dest_path.clone());
-    let (mut parents, table, mut claimed) = (Parents::default(), Table::read(&dest_path), super::fatnames::casefold::Claimed::new(&dest_path));
-    for raw in paths {
-        let src = Path::new(raw);
-        if !src.is_absolute() {
-            continue;
-        }
-        let Some(name) = src.file_name().and_then(|n| n.to_str()) else { continue };
-        let Ok(meta) = src.symlink_metadata() else { continue };
-        let Some((dst, leaf)) = super::fatnames::ask_leaf(fat, on_fat, &dest_path, name) else { continue };
-        // Same-folder items never ask: a copy keeps both and a move stays put, see Policy::place.
-        if already_there_in(src, &leaf, &dst, &dest_real, &mut parents) {
-            continue;
-        }
-        let twin = claimed.taken(&leaf);
-        let fresh = match identity_in(&dst, &table) {
-            Ok(there) => question.seen.insert(src.to_path_buf(), there).is_none(),
-            Err(_) if twin => question.twins.insert(src.to_path_buf()),
-            Err(_) => continue,
-        };
-        if fresh && shown.len() < SHOWN {
-            shown.push(Shown { name: leaf, dir: meta.is_dir(), mode: meta.mode() });
-        }
-    }
-    (question, shown)
-}
-
-// Sample output: {"t":"collisions","id":7,"total":1,"names":[{"n":"a.png","d":false,"i":"image-x-generic"}],"mergeable":false}
-fn collisions_line(id: usize, total: usize, shown: &[Shown], mergeable: bool, mime: &Db, icons: &Names) -> String {
-    let names: Vec<String> = shown.iter().map(|s| format!(r#"{{"n":"{}","d":{},"i":"{}"}}"#,
-        escape(&s.name), s.dir, escape(icons.icon_for(mime.lookup(&s.name), s.dir, s.mode)))).collect();
-    format!(r#"{{"t":"collisions","id":{},"total":{},"names":[{}],"mergeable":{}}}"#, id, total, names.join(","), mergeable)
 }
 
 // A test's hold on the next question's thread, released once the requests that must come first are sent.
@@ -347,7 +299,7 @@ pub(crate) fn ask_beside(ops: &mut Ops, id: usize, menu_id: usize, named: Vec<St
     // Captured here and not on the thread, because the close that expires the live selection may be the very next request.
     let menu = if menu_id == 0 { None } else { capture(ops, menu_id, dest) };
     let paths = match (&menu, menu_id) {
-        (Some(menu), _) => menu.items.iter().map(|item| item.path.to_string_lossy().to_string()).collect(),
+        (Some(menu), _) => menu.items.iter().map(|item| item.path.exact_text().to_string()).collect(),
         (None, 0) => named,
         (None, _) => Vec::new(),
     };
@@ -379,6 +331,10 @@ pub(crate) fn landed(ops: &mut Ops, turn: usize, question: Question) -> bool {
     }
     latest
 }
+
+#[path = "collide_ask.rs"]
+mod ask;
+use ask::{ask, collisions_line};
 
 #[path = "collide_table.rs"]
 mod table;

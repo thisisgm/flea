@@ -113,9 +113,16 @@ impl Gate {
         self.fate = Arc::clone(&fate);
         let run: Work = Box::new(move || {
             let result = catch_unwind(AssertUnwindSafe(|| work(loop_tx))).unwrap_or_else(|_| {
-                Err(ListErr { error: internal_failure("scan", Path::new(&path)), mode: 0, watch_wd: -1 })
+                Err(ListErr {
+                    error: internal_failure("scan", &flea::bytename::view(&path)),
+                    mode: 0,
+                    watch_wd: -1,
+                })
             });
-            if fate.compare_exchange(READING, ANSWERED, Ordering::SeqCst, Ordering::SeqCst).is_ok() {
+            if fate
+                .compare_exchange(READING, ANSWERED, Ordering::SeqCst, Ordering::SeqCst)
+                .is_ok()
+            {
                 let _ = answers.send(Event::List(Done { result }));
                 return;
             }
@@ -242,7 +249,7 @@ pub fn start(out: &mut impl Write, st: &mut State, pool: &Pool, watch: &mut Watc
         forget_rows(st, pool);
     }
     let body = super::iomount::mount_body();
-    if !threaded(Path::new(&job.path), &job.line, &body) {
+    if !threaded(&flea::bytename::view(&job.path), &job.line, &body) {
         // A local scan runs inline and a panic ends the process, as v0.3.8 did.
         let fd = watch.raw_fd();
         let tx = gate.answers();
@@ -261,7 +268,7 @@ pub fn start(out: &mut impl Write, st: &mut State, pool: &Pool, watch: &mut Watc
 pub fn finish<W: Write>(out: &mut W, st: &mut State, tb: &Tables, pool: &Pool, watch: &mut Watch, poller: &Poller, landed: Landed) -> bool {
     let Landed { job, done } = landed;
     let Job { path, first: _, line: _, hidden: _, want_changed, session: _ } = job;
-    if super::unmount::crossed_answers(out, watch, Path::new(&path), &done.result) {
+    if super::unmount::crossed_answers(out, watch, &flea::bytename::view(&path), &done.result) {
         out.flush().ok();
         return false;
     }
@@ -281,7 +288,7 @@ pub fn finish<W: Write>(out: &mut W, st: &mut State, tb: &Tables, pool: &Pool, w
         Err(failed) => {
             // The listing did not move, so the loop removes the watch the failed scan armed.
             watch.abandon_wd(failed.watch_wd);
-            if !super::unmount::gone_answers(out, st, watch, poller, Path::new(&path), &failed) {
+            if !super::unmount::gone_answers(out, st, watch, poller, &flea::bytename::view(&path), &failed) {
                 say_failed(out, &failed);
             }
             false
@@ -293,11 +300,19 @@ pub fn finish<W: Write>(out: &mut W, st: &mut State, tb: &Tables, pool: &Pool, w
 }
 
 // An empty query's folder answer, written only while its session still stands at the gen it claimed.
-pub fn finish_session<W: Write>(out: &mut W, st: &mut State, tb: &Tables, pool: &Pool, watch: &mut Watch,
-                                landed: Landed, scan: ForSession) {
+pub fn finish_session<W: Write>(
+    out: &mut W,
+    st: &mut State,
+    tb: &Tables,
+    pool: &Pool,
+    watch: &mut Watch,
+    landed: Landed,
+    scan: ForSession,
+) {
     let Landed { job, done } = landed;
-    let current = st.search_session.as_ref()
-        .is_some_and(|session| session.last_answered_gen == scan.gen && session.folder == Path::new(&job.path));
+    let current = st.search_session.as_ref().is_some_and(|session| {
+        session.last_answered_gen == scan.gen && session.folder == *flea::bytename::view(&job.path)
+    });
     match done.result {
         Ok(listed) => {
             // The folder's own listing answers, so the armed watch the scan added goes back.

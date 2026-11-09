@@ -29,9 +29,16 @@ fn opening_asks_for_the_rows_facts_and_one_item_asks_for_its_registry() {
     let values = drain(&mut w);
     assert_eq!(count(sent(&values, "formats", "")[0], "id"), m.action_id);
     let list = sent(&values, "actions", "list");
-    assert_eq!(list[0].get("paths").and_then(Json::as_array).unwrap()[0].as_str(), Some("/fx/v/work/notes.txt"));
+    assert_eq!(
+        list[0].get("paths").and_then(Json::as_array).unwrap()[0].as_str(),
+        Some("/fx/v/work/notes.txt")
+    );
     assert_eq!(sent(&values, "menuaction", "snapshot").len(), 1);
-    answer(&mut m, &mut w, r#"{"t":"menuaction","op":"snapshot","id":ID,"ok":true}"#);
+    answer(
+        &mut m,
+        &mut w,
+        r#"{"t":"menuaction","op":"snapshot","id":ID,"ok":true}"#,
+    );
     assert!(m.menu_ready);
     assert_eq!(sent(&drain(&mut w), "menuaction", "applications").len(), 1);
     press(&mut m, Key::named("Return", ""), &mut w);
@@ -44,8 +51,15 @@ fn opening_asks_for_the_rows_facts_and_one_item_asks_for_its_registry() {
     m.selected = [7, 8].into_iter().collect();
     press(&mut m, Key::character('m', ""), &mut w);
     drain(&mut w);
-    answer(&mut m, &mut w, r#"{"t":"menuaction","op":"snapshot","id":ID,"ok":true}"#);
-    assert!(sent(&drain(&mut w), "menuaction", "applications").is_empty(), "two items have no registry");
+    answer(
+        &mut m,
+        &mut w,
+        r#"{"t":"menuaction","op":"snapshot","id":ID,"ok":true}"#,
+    );
+    assert!(
+        sent(&drain(&mut w), "menuaction", "applications").is_empty(),
+        "two items have no registry"
+    );
     wire::finish(w, reader);
 }
 
@@ -143,8 +157,18 @@ fn a_selected_folder_is_the_target_not_the_cursor_file() {
     m.selected = [1].into_iter().collect();
     press(&mut m, Key::character('m', ""), &mut w);
     drain(&mut w);
-    answer(&mut m, &mut w, r#"{"t":"menuaction","op":"snapshot","id":ID,"ok":true}"#);
-    assert!(!entries(&m, &Map::load()).iter().flatten().any(|row| row.id == "print"), "a folder target has no Print");
+    answer(
+        &mut m,
+        &mut w,
+        r#"{"t":"menuaction","op":"snapshot","id":ID,"ok":true}"#,
+    );
+    assert!(
+        !entries(&m, &Map::load())
+            .iter()
+            .flatten()
+            .any(|row| row.id == "print"),
+        "a folder target has no Print"
+    );
     wire::finish(w, reader);
 }
 // The same folder target leaves Taildrop unavailable, red with no state word (GM 2026-10-29), because a folder cannot be sent.
@@ -155,11 +179,26 @@ fn a_selected_folder_makes_taildrop_unavailable() {
     m.selected = [1].into_iter().collect();
     press(&mut m, Key::character('m', ""), &mut w);
     drain(&mut w);
-    answer(&mut m, &mut w, r#"{"t":"menuaction","op":"snapshot","id":ID,"ok":true}"#);
-    answer(&mut m, &mut w, r#"{"t":"formats","id":ID,"archive":["zip"],"providers":{"taildrop":{"installed":true}}}"#);
+    answer(
+        &mut m,
+        &mut w,
+        r#"{"t":"menuaction","op":"snapshot","id":ID,"ok":true}"#,
+    );
+    answer(
+        &mut m,
+        &mut w,
+        r#"{"t":"formats","id":ID,"archive":["zip"],"providers":{"taildrop":{"installed":true}}}"#,
+    );
     let rows = entries(&m, &Map::load());
-    let taildrop = rows.iter().flatten().find(|row| row.id == "taildrop").expect("Taildrop is offered");
-    assert_eq!((taildrop.ink, taildrop.trail.as_str(), taildrop.chevron), (crate::tui::render::menu_layout::Ink::Unavailable, "", false));
+    let taildrop = rows
+        .iter()
+        .flatten()
+        .find(|row| row.id == "taildrop")
+        .expect("Taildrop is offered");
+    assert_eq!(
+        (taildrop.ink, taildrop.trail.as_str(), taildrop.chevron),
+        (crate::tui::render::menu_layout::Ink::Unavailable, "", false)
+    );
     wire::finish(w, reader);
 }
 // The Dropbox move is judged on the target: a file outside the root stays movable under a cursor on the root folder.
@@ -173,9 +212,23 @@ fn the_dropbox_move_judges_the_target_not_a_cursor_on_the_root() {
     m.selected = [7].into_iter().collect();
     press(&mut m, Key::character('m', ""), &mut w);
     drain(&mut w);
-    answer(&mut m, &mut w, r#"{"t":"menuaction","op":"snapshot","id":ID,"ok":true}"#);
-    answer(&mut m, &mut w, r#"{"t":"formats","id":ID,"archive":["zip"],"providers":{"taildrop":{"installed":false},"dropbox":{"installed":true},"dropboxInfo":"{\"personal\":{\"path\":\"/home/gm/Dropbox\"}}","dropboxError":""}}"#);
-    assert!(entries(&m, &Map::load()).iter().flatten().any(|row| row.id == "dropbox"), "notes.txt is outside the root");
+    answer(
+        &mut m,
+        &mut w,
+        r#"{"t":"menuaction","op":"snapshot","id":ID,"ok":true}"#,
+    );
+    answer(
+        &mut m,
+        &mut w,
+        r#"{"t":"formats","id":ID,"archive":["zip"],"providers":{"taildrop":{"installed":false},"dropbox":{"installed":true},"dropboxInfo":"{\"personal\":{\"path\":\"/home/gm/Dropbox\"}}","dropboxError":""}}"#,
+    );
+    assert!(
+        entries(&m, &Map::load())
+            .iter()
+            .flatten()
+            .any(|row| row.id == "dropbox"),
+        "notes.txt is outside the root"
+    );
     wire::finish(w, reader);
 }
 // The archive lands beside the folder the menu opened on, even after the user navigates before the answer.
@@ -216,5 +269,47 @@ fn copy_as_letters_copy_the_targets_and_relative_reads_from_the_listed_folder() 
     drain(&mut w);
     press(&mut m, Key::character('r', ""), &mut w);
     assert!(sent(&drain(&mut w), "paths", "").is_empty() && m.menu_view.queued.as_deref() == Some("copyRelative"), "Copy Relative waits for the registry answer");
+    wire::finish(w, reader);
+}
+
+#[test]
+fn a_raw_named_folder_opens_from_the_menu_by_its_own_bytes() {
+    use std::os::unix::ffi::OsStrExt;
+    let (mut w, reader) = wire::echo_wire();
+    let mut m = model();
+    m.rows.get_mut(&0).unwrap().name = flea::bytename::name_text(b"r\xff").into_owned();
+    m.cursor = 0;
+    m.menu_view.hidden.push("openwith".into());
+    press(&mut m, Key::character('m', ""), &mut w);
+    drain(&mut w);
+    answer(
+        &mut m,
+        &mut w,
+        r#"{"t":"menuaction","op":"snapshot","id":ID,"ok":true}"#,
+    );
+    let raw = std::path::Path::new(std::ffi::OsStr::from_bytes(b"/fx/v/work/r\xff"));
+    assert_eq!(
+        m.menu_path, raw,
+        "the single target is the raw folder, not its exact spelling"
+    );
+    drain(&mut w);
+    select(&mut m, "open");
+    press(&mut m, Key::named("Return", ""), &mut w);
+    assert_eq!(
+        text(sent(&drain(&mut w), "menuaction", "validate")[0], "action"),
+        "open"
+    );
+    answer(
+        &mut m,
+        &mut w,
+        r#"{"t":"menuaction","op":"validate","action":"open","id":ID,"ok":true,"paths":["/fx/v/work/r\ufffd\u000072ff"]}"#,
+    );
+    let list = drain(&mut w);
+    assert_eq!(
+        text(sent(&list, "list", "")[0], "path"),
+        "/fx/v/work/r\u{fffd}\u{0}72ff",
+        "Open lists the raw folder"
+    );
+    assert_eq!(m.pending.as_deref(), Some(raw));
     wire::finish(w, reader);
 }

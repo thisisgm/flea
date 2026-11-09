@@ -8,7 +8,6 @@ use super::{
     theme::Theme,
     wire::{self, count, text},
 };
-use flea::ui_logic_file_search::{ContentsMatch, ContentsMatches};
 use std::time::Duration;
 
 #[test]
@@ -89,59 +88,6 @@ fn tui_contents_replacement_is_coherent_and_scope_switch_is_generation_safe() {
         "failed Home request keeps the held Here scope"
     );
     assert_eq!(m.search_query, "needle");
-    wire::finish(w, reader);
-}
-#[test]
-fn tui_contents_raw_identity_and_operations_fail_closed() {
-    let (mut w, reader) = wire::echo_wire();
-    let mut m = listing(&mut w, "default");
-    let gen = enter(&mut m, &mut w, "needle");
-    let hit = ContentsMatch {
-        row: 0,
-        path: "bad�.txt".into(),
-        path_bytes: b"bad\xff.txt".to_vec(),
-        line_no: 3,
-        line: "needle".into(),
-        operable: false,
-    };
-    receive(
-        &mut m,
-        &mut w,
-        &ContentsMatches {
-            gen: gen as u64,
-            listing: 51,
-            start: 0,
-            matches: vec![hit],
-        }
-        .line(),
-    );
-    listed(&mut m, &mut w, gen, 51, 1);
-    rows(&mut m, &mut w, gen, 51, 0, &["bad�.txt"]);
-    receive(
-        &mut m,
-        &mut w,
-        &format!(r#"{{"t":"searched","gen":{gen},"n":1,"scanned":1,"ms":1.0}}"#),
-    );
-    assert!(m.current_path().is_none());
-    for action in [
-        "open",
-        "preview",
-        "copy",
-        "cut",
-        "rename",
-        "trash",
-        "reveal",
-        "editFile",
-        "menu",
-        "properties",
-    ] {
-        super::actions::act(&mut m, action, &mut w).unwrap();
-        assert!(
-            super::action_key_tests::drain(&mut w).is_empty(),
-            "unsafe {action} reached an external path"
-        );
-    }
-    assert!(!m.find.matches[&0].operable);
     wire::finish(w, reader);
 }
 #[test]

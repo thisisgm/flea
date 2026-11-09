@@ -168,3 +168,34 @@ fn a_gone_line_for_another_folder_or_while_leaving_for_one_moves_nothing() {
     assert_eq!(m.pending.as_deref(), Some(Path::new("/x")));
     wire::finish(wire, reader);
 }
+
+// A folder whose name is not UTF-8 goes by its exact text, so the pane and its tabs still find it.
+#[test]
+fn a_gone_folder_whose_name_is_not_utf8_lands_the_pane_and_its_tabs() {
+    use std::os::unix::ffi::OsStrExt;
+    let raw = Path::new("/w").join(std::ffi::OsStr::from_bytes(b"r\xff"));
+    let (mut wire, reader) = wire::echo_wire();
+    let mut m = Model::new(raw.clone(), &Json::Null);
+    m.open(raw.clone(), &mut wire).unwrap();
+    drain(&mut wire);
+    m.receive(
+        jsondoc::parse(r#"{"t":"listed","n":0}"#).unwrap(),
+        &mut wire,
+    )
+    .unwrap();
+    drain(&mut wire);
+    m.tabs.push(Tab {
+        path: raw.join("in"),
+        cursor: 1,
+        back: Vec::new(),
+        forward: Vec::new(),
+    });
+    let sent = receive(
+        &mut m,
+        &mut wire,
+        r#"{"t":"gone","path":"/w/r�\u000072ff","parent":"/w"}"#,
+    );
+    assert_eq!(lists(&sent), vec!["/w".to_string()]);
+    assert_eq!(m.tabs[1].path, Path::new("/w"));
+    wire::finish(wire, reader);
+}

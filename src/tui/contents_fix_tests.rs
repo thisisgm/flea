@@ -141,7 +141,7 @@ fn tui_contents_fix1_failed_navigation_keeps_refusal_identity() {
             start: 0,
             matches: vec![ContentsMatch {
                 row: 0,
-                path: "bad\u{fffd}.txt".into(),
+                path: "bad\u{fffd}.txt\u{0}626164ff2e747874".into(),
                 path_bytes: b"bad\xff.txt".to_vec(),
                 line_no: 1,
                 line: "needle".into(),
@@ -151,7 +151,14 @@ fn tui_contents_fix1_failed_navigation_keeps_refusal_identity() {
         .line(),
     );
     super::contents_tests::listed(&mut m, &mut wire, gen, 51, 1);
-    super::contents_tests::rows(&mut m, &mut wire, gen, 51, 0, &["bad\u{fffd}.txt"]);
+    super::contents_tests::rows(
+        &mut m,
+        &mut wire,
+        gen,
+        51,
+        0,
+        &["bad\u{fffd}.txt\u{0}626164ff2e747874"],
+    );
     assert!(m.current_path().is_none() && contents::guarded(&m));
     m.open("/absent-tui-08-fixture".into(), &mut wire).unwrap();
     receive(

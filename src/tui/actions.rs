@@ -1,3 +1,4 @@
+use flea::bytename::ExactText as _;
 use super::{
     editor::Editor,
     input::Key,
@@ -439,7 +440,7 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
             if let Some(path) = m.current_path() {
                 if m.rows.get(&m.cursor).is_some_and(|r| r.folder()) {
                     navigate(m, path, w)?;
-                } else if crate::open::open(&path.to_string_lossy()) != 0 {
+                } else if crate::open::open(&path.exact_text()) != 0 {
                     m.fail_key("tui.model.could_not_open_selected_file");
                 }
             }
@@ -495,7 +496,7 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
         "reload" => m.refresh(w)?,
         "goHome" | "goConfig" | "goDownloads" => {
             let home = std::env::var_os("HOME")
-                .map(PathBuf::from)
+                .map(flea::bytename::exact)
                 .filter(|p| p.is_absolute());
             if let Some(home) = home {
                 let path = match action {
@@ -599,7 +600,7 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
                 let path = m.row_path(&row);
                 w.send(vec![
                     ("c", word("duplicate")),
-                    ("path", word(&path.to_string_lossy())),
+                    ("path", word(&path.exact_text())),
                 ])?;
             } else {
                 m.fail_key("tui.actions.select_one_available_item_to_duplicate");
@@ -848,11 +849,7 @@ fn push_tab(m: &mut Model, path: std::path::PathBuf, w: &mut Wire) -> io::Result
 // The folders the other tabs show, so the backend keeps their settled sizes across this listing.
 pub(super) fn other_tabs(m: &Model) -> Json {
     let paths = m.tabs.iter().enumerate().filter(|&(i, _)| i != m.tab);
-    Json::Arr(
-        paths
-            .map(|(_, tab)| word(&tab.path.to_string_lossy()))
-            .collect(),
-    )
+    Json::Arr(paths.map(|(_, tab)| word(&tab.path.exact_text())).collect())
 }
 fn tab(m: &mut Model, index: usize, w: &mut Wire) -> io::Result<()> {
     if m.pending.is_some() || index >= m.tabs.len() || index == m.tab {
@@ -923,7 +920,7 @@ pub(super) fn send_find(
         super::contents::send(
             wire,
             Request::Contents {
-                path: ask.root.to_string_lossy().into_owned(),
+                path: ask.root.exact_text().into_owned(),
                 query: ask.query.clone(),
                 hidden: m.hidden,
                 gen: ask.gen as u64,
@@ -934,8 +931,8 @@ pub(super) fn send_find(
         super::contents::send(
             wire,
             Request::Open {
-                scope: ask.root.to_string_lossy().into_owned(),
-                folder: folder.to_string_lossy().into_owned(),
+                scope: ask.root.exact_text().into_owned(),
+                folder: folder.exact_text().into_owned(),
                 hidden: m.hidden,
             },
         )?;

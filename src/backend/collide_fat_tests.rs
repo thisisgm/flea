@@ -235,3 +235,32 @@ fn redo_of_a_cross_device_move_writes_the_names_the_move_was_made_with() {
     assert!(to.join("trip/sub_ a/late: y.txt").symlink_metadata().is_err(), "no raw name landed");
     crate::backend::copyfile::test_force_exdev(false);
 }
+
+// A name that is not text is asked about under its own bytes, never skipped and never matched to its U+FFFD twin.
+#[test]
+fn a_raw_named_source_asks_about_its_own_name_and_shows_its_display_spelling() {
+    use flea::bytename::ExactText as _;
+    use std::os::unix::ffi::OsStrExt;
+    let d = TestDir::new("collide-raw-name");
+    let to = d.dir("to");
+    let raw = std::ffi::OsStr::from_bytes(b"clip-\xff.txt");
+    let src = d.dir("from").join(raw);
+    std::fs::write(&src, "yours").unwrap();
+    std::fs::write(to.join(raw), "there").unwrap();
+    d.file("to/clip-\u{fffd}.txt", "the twin");
+    let (question, shown) = crate::backend::collide::ask(
+        7,
+        &[src.exact_text().into_owned()],
+        &to.to_string_lossy(),
+        None,
+    );
+    assert_eq!(
+        shown.iter().map(|s| s.name.as_str()).collect::<Vec<_>>(),
+        ["clip-\u{fffd}.txt"]
+    );
+    let there = crate::backend::undo::ItemIdentity::inspect(&to.join(raw)).unwrap();
+    assert!(
+        question.seen[&src].same_item(&there),
+        "the raw file is the one asked about, never its twin"
+    );
+}

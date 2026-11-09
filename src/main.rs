@@ -99,14 +99,10 @@ pub(crate) fn flash_picker(args: &[String]) -> bool {
 mod copysrc_tests;
 
 fn main() {
-    // args() panics on a non-UTF-8 argument and a Linux filename is any bytes, so refuse instead.
-    let args: Vec<String> = match std::env::args_os().map(|a| a.into_string()).collect() {
-        Ok(v) => v,
-        Err(bad) => {
-            eprintln!("flea: {} is not valid UTF-8, and Flea takes text paths", bad.to_string_lossy());
-            exit(2);
-        }
-    };
+    // args() panics on a non-UTF-8 argument and a Linux filename is any bytes, so each argument is carried as its exact text.
+    let args: Vec<String> = std::env::args_os()
+        .map(|a| flea::bytename::path_text(std::path::Path::new(&a)).into_owned())
+        .collect();
     if args.get(1).map(String::as_str) == Some("--plugin-host") {
         exit(backend::pluginhost::run());
     }

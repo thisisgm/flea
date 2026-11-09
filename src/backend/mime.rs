@@ -85,6 +85,9 @@ impl Db {
             Some(cut) => &name[cut + 1..],
             None => name,
         };
+        // A name that is not UTF-8 is typed by its shown spelling, where its extension is.
+        let shown = flea::bytename::display(name);
+        let name = &*shown;
         let lower = name.to_lowercase();
         if let Some((_, mime)) = self.by_name_cs.get(name) {
             return Some(camera_type(mime, name));

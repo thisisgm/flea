@@ -530,20 +530,19 @@ names have twins carrying the same MIME type.
   silently wrong order.
 - `prewarm.rs`: see Predictable path writes above; the pid in the temp file name and
   the unlink-both-on-failure contract both live there rather than being repeated here.
-- `scan.rs`: a non-UTF8 filename goes lossy in phase 1 and then cannot be stat'd, so
-  it reports zeroes. The fix is a byte arena and belongs to a later plan. **The thumbnail
-  path inherits it**: two names in one directory that differ only in their invalid bytes
-  collapse to the same lossy string, so `State::asked` sees one path where the client named
-  two rows, the dedupe swallows the second and that row is answered only when the listing is
-  replaced or the process drains. Not fixed here, because the fix is the same byte arena and
-  it is a whole plan's worth of change through `Listing`, `stat_range` and the wire.
-- `main.rs`: a non-UTF-8 argv byte is refused rather than carried, and that refusal is the corner.
-  `std::env::args_os()` is converted once above every mode, and a byte that is not valid UTF-8
-  answers `flea: <name> is not valid UTF-8, and Flea takes text paths` on stderr with status 2, so
-  `--open`, `--terminal` and a bare path all answer 2 where `std::env::args()` used to panic with
-  101. Only a shell or a `.desktop` file can produce such an argv and the window cannot, because
-  `scan.rs` goes lossy in phase 1 and `Pane`'s `join` only ever sees that lossy name. Opening such a
-  path at all needs the byte arena in the entry above, so this stays a refusal until that lands.
+- `scan.rs`: a name that is not UTF-8 is no longer lossy anywhere a file is reached. Since 0.4.2
+  the row carries its exact bytes in its text and every path built from it uses them, see "A name
+  that is not UTF-8 is carried exactly". Before that a row named the sibling with the U+FFFD
+  spelling, so trash, copy, move and permanent delete acted on that sibling. **The corner that
+  remains is display**: the name draws its lossy spelling, a text clipboard (Copy As path, name,
+  stem, folder or relative) holds that spelling, and a surface the conversion has not reached
+  draws the exact tail as it is and refuses its writes, which the kernel rejects for the NUL.
+- `main.rs`: `std::env::args_os()` is converted once above every mode, and since 0.4.2 an argument
+  that is not UTF-8 is carried as its exact text, the form the entry above describes, where it used
+  to be refused with status 2 (and `std::env::args()` before that panicked with 101). The window's
+  own `flea --open` passes a row's exact text, which the launcher turns back into the raw bytes, so
+  Open reaches such a file. A mode that does not decode the text fails on its NUL rather than
+  reaching the lossy twin.
 - `open.rs`: between `canonicalize`, `is_dir` and `spawn` a path that vanishes or is swapped
   for a directory changes the answer, which a concurrent `rm` in the user's own session on
   this single-user machine can produce and which is not exploitable, since no shell and no

@@ -11,7 +11,6 @@ use flea::{
     ui_logic_preview_core::{keys::Command, kinds::State, meta::Meta},
 };
 use gpui::{Context, KeyDownEvent, Window};
-use std::path::PathBuf;
 
 /// Focus.js lookup: the open card's kind picks the pdf, media or preview context.
 pub(super) fn context(subject: &Subject) -> Keys {
@@ -47,7 +46,7 @@ pub(super) fn picture(meta: &Meta, path: String, link: Option<&str>, catalog: &I
             &[&raw.w.to_string(), &raw.h.to_string()],
         );
         return Body::Raw {
-            path: PathBuf::from(&raw.file),
+            path: flea::bytename::exact(&raw.file),
             w,
             h,
             caption,

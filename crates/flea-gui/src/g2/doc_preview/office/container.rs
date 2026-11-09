@@ -2,7 +2,7 @@
 use super::OfficeView;
 use flea::ui_logic_doc_preview::office_sniff;
 use gpui::Context;
-use std::{os::unix::fs::FileExt, path::Path};
+use std::os::unix::fs::FileExt;
 
 impl OfficeView {
     /// A new subject: the last one's request is left, and a container kind's bytes are checked before it is asked.
@@ -55,7 +55,7 @@ impl OfficeView {
 
 // A regular file's head and tail checked; anything else keeps the conversion's answer, since the backend checks only the name.
 fn container_file(path: &str) -> bool {
-    let Some(file) = flea::backend::regfile::open_regular(Path::new(path)) else {
+    let Some(file) = flea::backend::regfile::open_regular(&flea::bytename::view(path)) else {
         return true;
     };
     let size = file.metadata().map_or(0, |m| m.len());

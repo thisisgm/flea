@@ -134,7 +134,7 @@ fn open(rest: &[String]) -> i32 {
     // Detached, because the card's own process is not the window's parent: it asked for it and goes.
     match Command::new(exe)
         .arg("--gui")
-        .arg(path)
+        .arg(flea::bytename::text_name(path))
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())

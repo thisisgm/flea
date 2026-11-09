@@ -1,4 +1,5 @@
 //! Session expansions compose ordinary directory listings into one row numbering.
+use flea::bytename::ExactText as _;
 use super::{dirsize::DirSize, listing::Listing, state::State};
 use crate::jsondoc::Json;
 use std::{
@@ -43,7 +44,7 @@ impl Session {
         } else {
             self.open
                 .iter()
-                .map(|path| Json::Str(path.to_string_lossy().into_owned()))
+                .map(|path| Json::Str(path.exact_text().into_owned()))
                 .collect()
         };
         set(&mut fields, "outlinePaths", Json::Arr(paths));
@@ -87,7 +88,7 @@ pub fn request(
             return Err(format!("row {named} is not a folder in this listing"));
         };
         for &row in &folders {
-            let path = st.base.join(st.listing.name(row));
+            let path = st.listing.path(&st.base, row);
             if open {
                 st.outline.open.insert(path);
             } else {
@@ -115,7 +116,7 @@ pub fn request(
     set(
         &mut fields,
         "path",
-        Json::Str(st.base.to_string_lossy().into_owned()),
+        Json::Str(st.base.exact_text().into_owned()),
     );
     set(&mut fields, "first", Json::Num(first.to_string()));
     // The last listing's select is stale here, and a select starts the first window at its row.
@@ -124,7 +125,7 @@ pub fn request(
         set(
             &mut fields,
             "select",
-            Json::Str(anchor.to_string_lossy().into_owned()),
+            Json::Str(anchor.exact_text().into_owned()),
         );
     }
     Ok(encode(fields))
@@ -162,7 +163,7 @@ pub fn expand(
     // Sample input: {"c":"list","path":"/home/gm","outlinePaths":["/home/gm/A","/home/gm/A/B","/srv/C"]}
     let paths: BTreeSet<PathBuf> = crate::json::field_str_array(line, "outlinePaths")
         .into_iter()
-        .map(PathBuf::from)
+        .map(flea::bytename::exact)
         .collect();
     // The session remembers folders open elsewhere, and a listing holding none of them is left as it was read.
     if !paths.iter().any(|path| path.parent() == Some(base)) {
@@ -173,12 +174,12 @@ pub fn expand(
     out.base_dev = listing.base_dev;
     for index in 0..listing.len() {
         append(&mut out, listing, index, "");
-        let path = base.join(listing.name(index));
+        let path = listing.path(base, index);
         if !listing.is_dir(index) || !paths.contains(&path) {
             continue;
         }
         match super::iomount::list_dir(
-            path.to_string_lossy().into_owned(),
+            path.exact_text().into_owned(),
             hidden,
             0,
             line.to_owned(),

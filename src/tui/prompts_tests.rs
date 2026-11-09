@@ -1,5 +1,6 @@
 // The status-row prompts, receipts and paste question against the boards' cells, through the real key and receive paths.
 use super::*;
+use super::super::input::Key;
 #[path = "prompts_find_tests.rs"]
 mod find_tests;
 #[path = "prompts_collision_tests.rs"]

@@ -1,4 +1,5 @@
 use super::*;
+use std::path::Path;
 use crate::backend::gitfixture::Fixture;
 use crate::json::{field_bool, field_str, field_usize};
 

@@ -3,7 +3,6 @@
 # Never allow whole groups and never suppress Rust 1.77 findings: incompatible_msrv and zombie_processes stay denied.
 clippy::bool_assert_comparison|style|10
 clippy::cloned_ref_to_slice_refs|perf|15
-clippy::cmp_owned|perf|1
 clippy::collapsible_match|style|1
 clippy::comparison_to_empty|style|2
 clippy::field_reassign_with_default|style|1

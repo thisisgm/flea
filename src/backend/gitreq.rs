@@ -1,9 +1,9 @@
 // One ordered worker owns the snapshot; navigation, refresh and visible-row requests cannot race it.
+use flea::bytename::ExactText as _;
 use super::events::Event;
 use super::gitprobe::{self, Repository};
 use super::gitstatus::Snapshot;
 use crate::json::{field_bool, field_str, field_str_array, field_usize};
-use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::mpsc::{self, Sender};
 use std::sync::Arc;
@@ -147,7 +147,7 @@ impl Session {
             return Err(error.clone());
         }
         if let Some(snapshot) = &self.snapshot {
-            let root = self.repo.as_ref().unwrap().root.to_string_lossy();
+            let root = self.repo.as_ref().unwrap().root.exact_text();
             Ok(format!(
                 "\"enabled\":true,\"root\":{},\"branch\":{},\"label\":{},\"changed\":{}",
                 quote(&root),
@@ -166,7 +166,7 @@ impl Session {
     }
 
     fn reload(&mut self, path: &str, cancelled: &dyn Fn() -> bool) -> Result<(), String> {
-        let target = Path::new(path).to_path_buf();
+        let target = flea::bytename::view(path).to_path_buf();
         let directory = target.clone();
         self.repo = super::iomount::call(
             &target,
@@ -194,7 +194,8 @@ impl Session {
         let mut marks = Vec::with_capacity(paths.len());
         for path in paths {
             // A row inside a folder opened in place is a descendant; nothing may climb out of the directory.
-            let file = Path::new(&path);
+            let file = flea::bytename::view(&path);
+            let file = &*file;
             let name = file
                 .strip_prefix(&self.path)
                 .ok()
@@ -233,11 +234,11 @@ impl Session {
                 let original = change
                     .original
                     .as_ref()
-                    .map(|path| path.to_string_lossy().into_owned())
+                    .map(|path| path.exact_text().into_owned())
                     .unwrap_or_default();
                 format!(
                     "{{\"path\":{},\"status\":{},\"original\":{},\"deleted\":{}}}",
-                    quote(&change.path.to_string_lossy()),
+                    quote(&change.path.exact_text()),
                     quote(&change.status.to_string()),
                     quote(&original),
                     change.status == 'D'
@@ -246,7 +247,7 @@ impl Session {
             .collect();
         Ok(format!(
             "\"root\":{},\"label\":{},\"total\":{},\"start\":{start},\"entries\":[{}]",
-            quote(&self.repo.as_ref().unwrap().root.to_string_lossy()),
+            quote(&self.repo.as_ref().unwrap().root.exact_text()),
             quote(&snapshot.label()),
             snapshot.changes.len(),
             entries.join(",")
