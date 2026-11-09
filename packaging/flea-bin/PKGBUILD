@@ -4,7 +4,7 @@
 # The release workflow's prebuilt binaries, for installers that build from a release; the root PKGBUILD is the published recipe.
 pkgname=flea-bin
 _pkgname=flea
-pkgver=0.4.1
+pkgver=0.4.2
 pkgrel=1
 pkgdesc='Fast, keyboard-first file manager for Omarchy (prebuilt binary)'
 arch=('x86_64' 'aarch64')
