@@ -127,6 +127,7 @@ impl StripElement {
         draw.line.borrow_mut().registered = if active { session } else { None };
         if active {
             window.handle_input(focus, ElementInputHandler::new(bounds, input.clone()), cx);
+            crate::strips::query_input::on_press(input.clone(), bounds, window);
         }
         true
     }

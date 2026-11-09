@@ -2,3 +2,5 @@
 pub mod filter_host;
 pub mod query_input;
 pub mod status_host;
+#[cfg(test)]
+mod word_click_tests;

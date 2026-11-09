@@ -248,9 +248,11 @@ impl FieldView for Shell {
         let drawn = self.rename.ime.drawn.borrow();
         let left = drawn.bounds.map_or(gpui::px(0.), |b| b.left());
         let at = super::field_view::index(self, event.position.x - left);
-        drop(drawn);
-        if event.click_count > 1 {
+        let x = event.position.x - left + drawn.line.scroll;
+        if event.click_count > 2 {
             self.rename.ime.entry.select_all();
+        } else if event.click_count == 2 {
+            self.rename.ime.entry.select_word_under(&drawn.line, x);
         } else if event.modifiers.shift {
             self.rename.ime.entry.select_to(at);
         } else {

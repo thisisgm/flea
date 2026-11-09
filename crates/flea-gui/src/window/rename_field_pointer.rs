@@ -4,17 +4,6 @@ use gpui::{
     Bounds, DispatchPhase, Entity, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent,
     Pixels, Window,
 };
-use std::ops::Range;
-use unicode_segmentation::UnicodeSegmentation;
-
-/// A double-click takes the word of the character at byte `at` as a text input does, and a press past the end takes the last one.
-fn word(text: &str, at: usize) -> Range<usize> {
-    let at = at.min(text.len().saturating_sub(1));
-    text.split_word_bound_indices()
-        .map(|(start, word)| start..start + word.len())
-        .find(|word| word.contains(&at))
-        .unwrap_or(at..at)
-}
 
 /// Captures filename selection drags and retires them on release, a menu, or an inactive editor.
 pub(super) fn register(
@@ -55,14 +44,7 @@ pub(super) fn register(
             match event.click_count {
                 1 if event.modifiers.shift => edit.entry.select_to(at),
                 1 => edit.entry.move_to(at),
-                2 => {
-                    // The word is the glyph's under the pointer, not the nearer caret edge's.
-                    let run = edit.line.line.run.as_ref();
-                    let under = run.and_then(|run| run.line().index_for_x(x));
-                    let word = word(&edit.entry.text, under.unwrap_or(edit.entry.text.len()));
-                    edit.entry.move_to(word.start);
-                    edit.entry.select_to(word.end);
-                }
+                2 => edit.entry.select_word_under(&edit.line.line, x),
                 _ => edit.entry.select_all(),
             }
             cx.stop_propagation();

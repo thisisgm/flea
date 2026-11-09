@@ -43,3 +43,5 @@ mod ime;
 
 #[cfg(test)]
 mod i50_dialog_tests;
+#[cfg(test)]
+mod word_click_tests;

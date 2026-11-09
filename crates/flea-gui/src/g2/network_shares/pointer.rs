@@ -12,9 +12,7 @@ impl NetworkView {
         else {
             return 0;
         };
-        let byte = text.run.line().closest_index_for_x(
-            at.x - self.input_origin.get().x - gpui::px(drawn.origin.0 + text.rect.x),
-        );
+        let byte = text.run.line().closest_index_for_x(self.run_x(text, at));
         if self.model.focus == Focus::Password {
             super::secret_edit::units_at_display_index(
                 &self.model.password,
@@ -25,11 +23,33 @@ impl NetworkView {
             self.input.offset_to_utf16(byte)
         }
     }
+    fn run_x(&self, text: &super::drawing::Text, at: Point<Pixels>) -> Pixels {
+        let origin = self.drawn.borrow().origin.0;
+        at.x - self.input_origin.get().x - gpui::px(origin + text.rect.x)
+    }
+    // A double-click selects the word of the glyph under the pointer, a third click or any click in the password the whole line.
+    fn select_word(&mut self, at: Point<Pixels>, clicks: usize, cx: &mut Context<Self>) {
+        let drawn = self.drawn.borrow();
+        let text = drawn
+            .text
+            .iter()
+            .find(|text| text.field == Some(self.model.focus));
+        let under = text.and_then(|text| text.run.line().index_for_x(self.run_x(text, at)));
+        drop(drawn);
+        if clicks == 2 && self.model.focus != Focus::Password {
+            self.input
+                .select_word(under.map_or(self.input.text.len(), |at| self.input.from_display(at)));
+        } else {
+            self.input.select_all();
+        }
+        self.sync_password_state();
+        self.paint_changed(cx);
+    }
     pub(super) fn text_down(
         &mut self,
         focus: Focus,
         at: Point<Pixels>,
-        shift: bool,
+        (shift, clicks): (bool, usize),
         cx: &mut Context<Self>,
     ) -> bool {
         if super::drawing::field(focus).is_none()
@@ -44,6 +64,11 @@ impl NetworkView {
             self.model.focus = focus;
             self.load_input();
             self.changed(cx);
+        }
+        if clicks > 1 {
+            self.selecting = None;
+            self.select_word(at, clicks, cx);
+            return true;
         }
         let at = self.point_units(at);
         let anchor = if shift {

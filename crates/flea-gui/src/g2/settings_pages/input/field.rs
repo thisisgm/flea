@@ -33,10 +33,17 @@ impl<T: Host + EntityInputHandler> Field<T> {
                     }
                     window.focus(view.input_focus(window), cx);
                     let at = index(view, event.position.x);
-                    if event.modifiers.shift {
-                        view.editor_mut().entry.select_to(at);
-                    } else {
-                        view.editor_mut().entry.move_to(at);
+                    let editor = view.editor_mut();
+                    match event.click_count {
+                        1 if event.modifiers.shift => editor.entry.select_to(at),
+                        1 => editor.entry.move_to(at),
+                        2 => {
+                            let drawn = editor.drawn.borrow();
+                            let left = drawn.bounds.map_or(px(0.), |bounds| bounds.left());
+                            let x = event.position.x - left + drawn.line.scroll;
+                            editor.entry.select_word_under(&drawn.line, x);
+                        }
+                        _ => editor.entry.select_all(),
                     }
                     cx.notify();
                 });

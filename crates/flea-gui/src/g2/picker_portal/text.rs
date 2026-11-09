@@ -2,9 +2,10 @@
 use crate::list::{Palette, Typeface};
 use crate::path::{entry::Entry, field::Line};
 use gpui::{
-    fill, point, px, relative, size, AnyElement, App, Bounds, ContentMask, Context, Element,
-    ElementId, ElementInputHandler, Entity, EntityInputHandler, FocusHandle, GlobalElementId,
-    GlyphRun, InspectorElementId, IntoElement, LayoutId, Pixels, Style, Window,
+    fill, point, px, relative, size, AnyElement, App, Bounds, ContentMask, Context, DispatchPhase,
+    Element, ElementId, ElementInputHandler, Entity, EntityInputHandler, FocusHandle,
+    GlobalElementId, GlyphRun, InspectorElementId, IntoElement, LayoutId, MouseButton,
+    MouseDownEvent, Pixels, Style, Window,
 };
 use std::{cell::RefCell, rc::Rc};
 
@@ -253,6 +254,32 @@ impl<T: EntryHost> Element for Input<T> {
                 ElementInputHandler::new(bounds, self.host.clone()),
                 cx,
             );
+            // A double-click selects the word under the pointer and a third click the whole line, as every text field does.
+            let host = self.host.clone();
+            window.on_mouse_event(move |event: &MouseDownEvent, phase, _, cx| {
+                if phase != DispatchPhase::Bubble
+                    || event.button != MouseButton::Left
+                    || event.click_count < 2
+                    || !bounds.contains(&event.position)
+                {
+                    return;
+                }
+                host.update(cx, |host, cx| {
+                    let at = {
+                        let drawn = host.drawn().borrow();
+                        let line = &drawn.line;
+                        host.entry()
+                            .word_index(line, event.position.x - bounds.left() + line.scroll)
+                    };
+                    let entry = host.entry_mut();
+                    if event.click_count == 2 {
+                        entry.select_word(at);
+                    } else {
+                        entry.select_all();
+                    }
+                    cx.notify();
+                });
+            });
         }
     }
 }

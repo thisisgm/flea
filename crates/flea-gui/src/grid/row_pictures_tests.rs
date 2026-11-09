@@ -244,6 +244,8 @@ fn painted(shell: &Shell, view: View) -> usize {
 mod asks;
 #[path = "row_pictures_tests/capture.rs"]
 mod capture;
+#[path = "row_pictures_tests/columns_density.rs"]
+mod columns_density;
 #[path = "row_pictures_tests/draws.rs"]
 mod draws;
 #[path = "row_pictures_tests/fix_preview_2.rs"]

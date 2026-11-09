@@ -48,6 +48,8 @@ mod runtime_tests;
 mod store_tests;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod word_click_tests;
 
 mod input;
 mod keys;

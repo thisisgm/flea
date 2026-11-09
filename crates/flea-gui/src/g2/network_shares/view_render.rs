@@ -102,7 +102,13 @@ impl Render for NetworkView {
                                 return;
                             }
                             if focus.is_some_and(|focus| {
-                                this.text_down(focus, event.position, event.modifiers.shift, cx)
+                                let clicks = event.click_count;
+                                this.text_down(
+                                    focus,
+                                    event.position,
+                                    (event.modifiers.shift, clicks),
+                                    cx,
+                                )
                             }) {
                                 this.pressed = None;
                                 return;
