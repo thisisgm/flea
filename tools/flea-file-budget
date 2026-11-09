@@ -34,7 +34,7 @@ crates/flea-gui/src/window/events_ipc.rs 425
 crates/flea-gui/src/window/network.rs 408
 crates/flea-gui/src/window/status.rs 408
 crates/flea-gui/src/g2/mn1/delivery.rs 415
-src/backend/mod.rs 407
+src/backend/mod.rs 408
 crates/flea-gui/src/window/columns_render.rs 407
 crates/flea-gui/src/window/composition.rs 401
 crates/flea-gui/src/g2/dg1/join_tests.rs 447
@@ -319,7 +319,8 @@ tests/unlock-stdin.qml 483
 src/backend/searchindex.rs 401
 tests/gridjump.qml 516
 tests/gridbare.qml 426
-src/backend/trash.rs 406
+src/backend/trash.rs 421
+src/backend/mountinfo.rs 420
 src/backend/trash_tests.rs 423
 tests/permissions-adv.qml 402
 tests/quicklook-code.qml 463

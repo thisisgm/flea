@@ -279,6 +279,7 @@ pub mod trash;
 pub mod hometrash;
 pub(crate) mod trashdate;
 pub(crate) mod homerestore;
+pub(crate) mod topdirtrash;
 pub mod undo;
 pub mod undoshare;
 pub mod undocodec;
