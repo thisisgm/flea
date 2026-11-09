@@ -162,9 +162,9 @@ src/backend/undoshare_tests.rs 574
 src/backend/collide_replace_tests.rs 492
 src/backend/sandbox.rs 410
 src/backend/thumbworker.rs 974
-src/backend/trashbrowse.rs 1055
+src/backend/trashbrowse.rs 1109
 src/backend/rawpreview_tests.rs 427
-src/backend/trashdelete.rs 1011
+src/backend/trashdelete.rs 1012
 src/clip/watch_end_tests.rs 405
 src/gvfsprefetch_tests.rs 398
 src/gui.rs 480

@@ -505,7 +505,9 @@ impl Reviewed {
             if destination != original || Identity::of(&metadata.metadata().changed("Claimed Trash metadata unreadable")?) != self.metadata {
                 return Err(Refusal::new(Outcome::OriginalChanged, "The Trash item's original location changed; refresh the selection."));
             }
-            let destination_parent = destination.parent().changed("Original parent is missing.")?.canonicalize()
+            let parent = destination.parent().changed("Original parent is missing.")?;
+            // A gone original folder is recreated first, as undo and gio restore do.
+            let destination_parent = std::fs::create_dir_all(parent).and_then(|()| parent.canonicalize())
                 .map_err(|e| Refusal::os(Outcome::Blocked, &format!("Could not open original location {}", destination.display()), &e))?;
             let destination_directory = open_dir(&destination_parent).map_err(|refusal| refusal.wrap(Outcome::Blocked))?;
             rename(quarantine, OsStr::new("payload"), &destination_directory,
@@ -759,19 +761,22 @@ mod tests {
         assert!(d.join("info/item.trashinfo").exists());
     }
     #[test]
-    fn restore_missing_parent_and_mismatched_original_preserve_trash() {
+    fn restore_recreates_a_missing_parent_and_a_mismatched_original_preserves_trash() {
         let d = TestDir::new("trash-restore-path");
-        let original = d.join("missing/restored");
+        let original = d.join("missing/deeper/restored");
         let (path, reviewed) = restore_fixture(&d, &original);
         guard(&d, &path);
         guard(&d, &original);
-        assert!(reviewed.restore(&original, d.path()).is_err());
         let wrong = d.join("wrong");
         guard(&d, &wrong);
-        assert!(reviewed.restore(&wrong, d.path()).is_err());
-        assert!(!wrong.exists());
-        assert_eq!(std::fs::read_to_string(path).unwrap(), "payload");
+        assert!(reviewed.restore(&wrong, d.path()).is_err() && !wrong.exists());
+        std::fs::write(d.join("missing"), "a file where the folder was").unwrap();
+        assert!(reviewed.restore(&original, d.path()).is_err() && path.exists());
         assert!(d.join("info/item.trashinfo").exists());
+        std::fs::remove_file(d.join("missing")).unwrap();
+        reviewed.restore(&original, d.path()).unwrap();
+        assert_eq!(std::fs::read_to_string(&original).unwrap(), "payload");
+        assert!(!path.exists() && !d.join("info/item.trashinfo").exists());
     }
     #[test]
     fn original_paths_decode_escaping_and_volume_relative_metadata() {
