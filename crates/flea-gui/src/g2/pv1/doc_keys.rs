@@ -4,7 +4,7 @@ use crate::g2::pv2::PdfView;
 use flea::ui_logic_pv1::keys::SEEK_MS;
 use flea::ui_logic_pv2::{
     html::View as Shown,
-    viewer::{page_direction, Action, Effect, CONTROLS},
+    viewer::{Action, CONTROLS, Effect, page_direction},
 };
 use flea::ui_logic_pv3::player::MediaKey;
 use gpui::{App, Entity};
@@ -53,7 +53,7 @@ fn pdf_press(pdf: &Entity<PdfView>, index: usize, cx: &mut App) -> Outcome {
         match effect {
             Effect::Turn(delta) => pdf.turn(delta, cx),
             Effect::Zoom(_) => {
-                pdf.pan = (0., 0.);
+                pdf.centre_zoom();
                 cx.notify();
             }
             _ => cx.notify(),

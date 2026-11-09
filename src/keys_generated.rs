@@ -132,8 +132,9 @@ pub static PRESET_KEYS: &[Binding] = &[
     Binding::new("all", "text", "0", "0", "zoomFit", "preview", "all", 0, 16, "keys.label.7099df1aef55", true),
     Binding::new("all", "text", "e", "e", "expand", "pdf", "all", 0, 32, "keys.label.07548c2c6511", true),
     Binding::new("all", "none", "Escape", "escape", "escape", "editor", "all", 0, 128, "keys.label.bd0b7be215ce", true),
-    Binding::new("all", "text", "F", "F", "previewPageForward", "listing,preview,pdf", "gui", 0, 49, "keys.action.previewPageForward", true),
-    Binding::new("all", "text", "B", "B", "previewPageBack", "listing,preview,pdf", "gui", 0, 49, "keys.action.previewPageBack", true),
+    Binding::new("all", "text", "F", "F", "previewPageForward", "listing", "gui", 0, 1, "keys.action.previewPageForward", true),
+    Binding::new("all", "text", "B", "B", "previewPageBack", "listing", "gui", 0, 1, "keys.action.previewPageBack", true),
+    Binding::new("all", "text", "F", "F", "toggleFilmstrip", "preview,pdf", "gui", 0, 48, "keys.label.428764e903b0", true),
     Binding::new("all", "ctrl", "D", "ctrl-d", "pageDown", "preview,pdf", "gui", 1, 48, "keys.label.72a825fc6b84", true),
     Binding::new("all", "ctrl", "U", "ctrl-u", "pageUp", "preview,pdf", "gui", 1, 48, "keys.label.43f41b59d842", true),
     Binding::new("all", "none", "PageDown", "pagedown", "pageDown", "preview,pdf", "gui", 0, 48, "keys.label.72a825fc6b84", true),
@@ -310,7 +311,7 @@ pub static BASE_SHEET: &[SheetBinding] = &[
 #[rustfmt::skip]
 pub static SHEET_GROUPS: &[SheetGroup] = &[
     SheetGroup { id: "move", label_key: "keys.group.move", actions: &["cursorDown", "cursorUp", "cursorFirst", "cursorLast", "pageDown", "pageUp", "open", "parent", "pageForward", "historyBack", "historyForward", "focusNext", "focusPrevious", "focusPreview", "tabNew", "openTab", "tabClose", "tabNext", "tabPrevious", "tabMoveLeft", "tabMoveRight", "windowNew", "escape", "carry"] },
-    SheetGroup { id: "look", label_key: "keys.group.look", actions: &["viewList", "viewColumns", "viewGrid", "viewDual", "togglePreview", "factsToggle", "loadPreview", "preview", "previewPageForward", "previewPageBack", "toggleHidden", "sidebar", "zoomIn", "zoomOut", "expand", "openInPlace", "closeInPlace", "mute", "textSizeUp", "textSizeDown", "textSizeReset", "keymapSheet"] },
+    SheetGroup { id: "look", label_key: "keys.group.look", actions: &["viewList", "viewColumns", "viewGrid", "viewDual", "togglePreview", "factsToggle", "loadPreview", "preview", "toggleFilmstrip", "previewPageForward", "previewPageBack", "toggleHidden", "sidebar", "zoomIn", "zoomOut", "expand", "openInPlace", "closeInPlace", "mute", "textSizeUp", "textSizeDown", "textSizeReset", "keymapSheet"] },
     SheetGroup { id: "find", label_key: "keys.group.find", actions: &["filter", "search", "searchContents", "reveal", "sortNext", "sortReverse", "pathBar", "reload"] },
     SheetGroup { id: "change", label_key: "keys.group.change", actions: &["copy", "cut", "paste", "movePaste", "duplicate", "rename", "trash", "deletePermanently", "undo", "redo", "newFolder", "copydirpath", "copyPath", "openAgent", "toggleSelect", "selectAll", "extendDown", "extendUp", "menu", "properties", "addNetwork", "eject", "openTerminal", "settings", "autofitColumns", "copyAs", "pasteAs", "invertSelection", "tags"] },
 ];

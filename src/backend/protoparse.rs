@@ -281,6 +281,7 @@ pub fn parse_request(line: &str) -> Request {
             row: field_usize(line, "row").unwrap_or(0),
             token: field_usize(line, "token").unwrap_or(0),
         },
+        Some("previewmeta") => Request::PreviewMeta { line: line.to_owned() },
         Some("meta") => Request::Meta {
             token: field_usize(line, "token").unwrap_or(0),
             row: field_usize(line, "row").unwrap_or(0),

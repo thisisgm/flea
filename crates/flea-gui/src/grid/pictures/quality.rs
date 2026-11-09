@@ -24,6 +24,9 @@ pub(super) fn refine(
         .policy
         .zip(map.class_for(&host.path))
         .is_some_and(|(policy, class)| !policy.cache_only(class));
+    if !active && allowed {
+        return;
+    }
     let wanted = if active && allowed {
         drawn_rows(host, Surface::Grid).map_or_else(Vec::new, |want| want.rows())
     } else {

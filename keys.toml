@@ -762,7 +762,7 @@ move = ["cursorDown", "cursorUp", "cursorFirst", "cursorLast", "pageDown", "page
         "parent", "pageForward", "historyBack", "historyForward", "focusNext", "focusPrevious", "focusPreview",
         "tabNew", "openTab", "tabClose", "tabNext", "tabPrevious", "tabMoveLeft", "tabMoveRight", "windowNew", "escape",
         "carry"]
-look = ["viewList", "viewColumns", "viewGrid", "viewDual", "togglePreview", "factsToggle", "loadPreview", "preview", "previewPageForward", "previewPageBack",
+look = ["viewList", "viewColumns", "viewGrid", "viewDual", "togglePreview", "factsToggle", "loadPreview", "preview", "toggleFilmstrip", "previewPageForward", "previewPageBack",
         "toggleHidden", "sidebar", "zoomIn", "zoomOut", "expand", "openInPlace", "closeInPlace", "mute", "textSizeUp", "textSizeDown",
         "textSizeReset", "keymapSheet"]
 find = ["filter", "search", "searchContents", "reveal", "sortNext", "sortReverse", "pathBar", "reload"]
@@ -2631,7 +2631,7 @@ keys = "F"
 action = "previewPageForward"
 label = "Page preview forward"
 frontend = "gui"
-context = "listing,preview,pdf"
+context = "listing"
 
 [[preset]]
 name = "all"
@@ -2641,7 +2641,17 @@ keys = "B"
 action = "previewPageBack"
 label = "Page preview back"
 frontend = "gui"
-context = "listing,preview,pdf"
+context = "listing"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "F"
+keys = "F"
+action = "toggleFilmstrip"
+label = "Toggle filmstrip"
+frontend = "gui"
+context = "preview,pdf"
 
 # The focused document owns its paging keys; the listing keeps its shared bindings.
 [[preset]]

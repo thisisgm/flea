@@ -234,6 +234,9 @@ impl Shell {
     }
 
     pub(crate) fn stop_selection_previews(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.quick_look.as_ref().is_some_and(|h| h.custom.window.is_some()) {
+            self.quick_look_tab_switch(window, cx);
+        }
         for host in self.panes.iter().flatten() {
             if let Some(preview) = &host.preview {
                 preview.update(cx, |preview, cx| preview.hide(window, cx));

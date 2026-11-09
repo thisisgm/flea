@@ -50,7 +50,10 @@ pub const DEFAULTS: &str = r#"{
     "column": true, "loadOn": "automatic",
     "thumbnails": "media", "thumbSize": "medium",
     "thumbNetwork": false, "thumbPhone": false, "thumbUsb": true,
-    "ctrlZoom": true, "volume": 100, "width": 0, "tracks": [], "wrap": false
+    "prefetchOnHover": false,
+    "ctrlZoom": true, "volume": 100, "width": 0, "tracks": [], "wrap": false,
+    "preloadAdjacent": true, "mediaControls": true,
+    "infoPanel": false, "hideNavbarFullscreen": true, "navbarHideMs": 4000
   },
   "previewFacts": "compact",
   "keys": "default",
@@ -158,23 +161,9 @@ pub const SHELF: &[(&str, Rule)] = &[
     ("recent", Rule::Count(0.0, 6.0)),
 ];
 
-pub const PREVIEW: &[(&str, Rule)] = &[
-    ("column", Rule::Bool),
-    ("loadOn", Rule::Word(&["automatic", "manual"])),
-    ("thumbnails", Rule::Word(&["off", "images", "media"])),
-    ("thumbSize", Rule::Word(&["small", "medium", "large", "xlarge", "huge", "largest"])),
-    // ExtThumbs: one switch per storage class beside the segment they depend on.
-    ("thumbNetwork", Rule::Bool),
-    ("thumbPhone", Rule::Bool),
-    ("thumbUsb", Rule::Bool),
-    ("ctrlZoom", Rule::Bool),
-    ("volume", Rule::Count(0.0, 100.0)),
-    ("width", Rule::Count(0.0, 100.0)),
-    // Columns: each column's share of the room left of the preview, left to right, [] for equal columns.
-    ("tracks", Rule::Tracks),
-    // Quick Look's w: wraps long lines in a code or text file; off until pressed.
-    ("wrap", Rule::Bool),
-];
+#[path = "uipreview_schema.rs"]
+mod preview_schema;
+pub use preview_schema::PREVIEW;
 
 // mode is "system" or one stop, so there is nowhere to put a free number; see the handoff's Display row.
 pub const TEXT_SIZE: &[(&str, Rule)] = &[("mode", Rule::TextSize)];

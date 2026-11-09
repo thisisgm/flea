@@ -1,12 +1,12 @@
 //! A mounted view's 27 px bar: the row's mark, the name and its tail, the pager and its counter, the view words, the tools and close.
 use super::{
-    bar::{bar_mark, click, name_parts, press, ring_slot, Name},
+    Hit, QuickLook,
+    bar::{Name, bar_mark, click, name_parts, press, ring_slot},
     doc::{Chrome, StripItem},
     glyph::Glyph,
     look::{self, Look},
-    Hit, QuickLook,
 };
-use gpui::{div, prelude::*, px, AnyElement, Context, MouseButton, SharedString};
+use gpui::{AnyElement, Context, MouseButton, SharedString, div, prelude::*, px};
 
 fn strip_slot(
     item: &StripItem,
@@ -166,7 +166,12 @@ pub fn bar(
         closed |= item.glyph == Glyph::Close;
         group = group.child(strip_slot(item, look, state, cx));
     }
-    if !closed {
+    let pdf = state
+        .subject
+        .as_ref()
+        .and_then(|subject| subject.body.doc())
+        .is_some_and(|doc| doc.kind() == "pdf");
+    if !closed && !pdf {
         let ring = chrome.close_focused || state.focused == Some(Hit::Close);
         group = group.child(ring_slot(
             Glyph::Close,

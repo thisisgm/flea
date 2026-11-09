@@ -17,6 +17,7 @@ use crate::error::FleaError;
 pub const TRANSFER_CANCEL: &str = "transfercancel";
 
 pub enum Request {
+    PreviewMeta { line: String },
     Rclone {
         line: String,
     },

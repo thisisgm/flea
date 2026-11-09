@@ -233,8 +233,10 @@ impl Live {
         if state.ground != self.theme.ground { state.ground = self.theme.ground.clone(); }
         if model.quicklook != state.probed { state.probed = model.quicklook; if model.quicklook { super::render::cards::probe(&model.rounded); } }
         model.request_sizes(wire, Instant::now())?;
+        super::custom_preview::settle(model, wire)?;
         super::preview::load(model, false);
         super::preview::poll(model);
+        super::custom_preview::prepare(model);
         super::preview::request(model, wire)?;
         super::preview::layout(model);
         Ok(())

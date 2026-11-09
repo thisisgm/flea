@@ -1,5 +1,11 @@
 //! Quick Look (pv1): the overlay's state, its ground policy and the card it draws over the listing.
 mod act;
+pub(crate) mod custom;
+mod custom_chrome;
+mod custom_thumbnails;
+mod custom_preload;
+#[cfg(test)]
+mod custom_tests;
 pub mod bar;
 pub mod body;
 pub mod button;
@@ -77,6 +83,9 @@ pub enum Event {
     OpenWith,
     CopyPatch,
     Follow(i32),
+    Navigate(usize),
+    OpenDefault,
+    Fullscreen,
 }
 
 /// A control on the card that takes the pointer and the keyboard.
@@ -115,6 +124,7 @@ impl SvgPicture {
 }
 
 pub struct QuickLook {
+    pub(crate) custom: Option<custom::Custom>,
     pub(crate) motion: crate::reveal::Reveal,
     pub(crate) closing: Option<Subject>,
     held: Option<hold::Held>,
@@ -167,6 +177,7 @@ impl EventEmitter<Event> for QuickLook {}
 impl QuickLook {
     pub fn new(i18n: Arc<I18n>) -> Self {
         Self {
+            custom: None,
             motion: Default::default(),
             closing: None,
             held: None,
@@ -357,6 +368,9 @@ impl QuickLook {
 
     /// The card's window rect for a window of this size, the same arithmetic as Theme.qml.
     pub fn card(&self, window: gpui::Size<Pixels>) -> Bounds<Pixels> {
+        if let Some(custom) = &self.custom {
+            return custom.card(window);
+        }
         let (w, h) = (
             f64::from(f32::from(window.width)),
             f64::from(f32::from(window.height)),

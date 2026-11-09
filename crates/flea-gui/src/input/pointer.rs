@@ -70,6 +70,7 @@ impl Shell {
             if let Some(columns) = host.columns.as_mut() {
                 columns.hover = None;
             }
+            self.folder_prefetch_hover(side, None, cx);
             return;
         }
         if host.pane.busy() {
@@ -127,6 +128,12 @@ impl Shell {
                 columns.hover = hover;
             }
         }
+        let folder = host
+            .input
+            .hovered
+            .and_then(|index| host.pane.held.row(index))
+            .filter(|row| row.dir && row.link.is_none())
+            .map(|row| crate::navigation::history::join(&host.path, &row.name));
         // Only a changed hover, lane or live gesture draws differently, so other motion repaints nothing.
         let drawn = before
             != (
@@ -143,6 +150,7 @@ impl Shell {
             self.arm_input_tick(side, window, cx);
             cx.notify();
         }
+        self.folder_prefetch_hover(side, folder, cx);
     }
     pub(crate) fn pointer_up(
         &mut self,

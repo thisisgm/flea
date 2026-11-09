@@ -143,6 +143,7 @@ impl Viewer {
     pub fn visible(control: Control, count: usize) -> bool {
         match control {
             Control::Previous | Control::Next => count > 1,
+            Control::Close => false,
             _ => true,
         }
     }

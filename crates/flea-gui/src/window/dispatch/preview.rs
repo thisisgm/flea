@@ -49,6 +49,9 @@ pub(super) fn run(
         match (event.action, file) {
             // PreviewKeys.open: Space on a file opens Quick Look; on a folder or no loaded row it is quiet.
             ("preview", Some(true)) => return shell.open_quick_look(side, window, cx),
+            ("preview", _) if super::super::quick_look::custom::enabled() => {
+                return shell.open_quick_look(side, window, cx);
+            }
             ("preview", _) => return true,
             // Focus.js lookup: pageForward on a file row is the preview action.
             ("pageForward", Some(true)) => return shell.open_quick_look(side, window, cx),

@@ -60,6 +60,7 @@ impl Render for Root {
             .read(cx)
             .quick_look
             .as_ref()
+            .filter(|host| !host.custom.detached)
             .map(|host| host.view.clone())
             .filter(|view| view.read(cx).visible())
             .map(|view| deferred(div().absolute().top_0().left_0().size_full().child(view)));

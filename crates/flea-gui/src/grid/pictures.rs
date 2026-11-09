@@ -274,6 +274,23 @@ impl Map {
         pending
     }
 
+    // A hidden surface keeps ready pictures for the next view mode but drops work that is still in flight.
+    fn suspend(&mut self) -> Vec<usize> {
+        let pending = self.pending().collect();
+        self.key = None;
+        self.settle = None;
+        let rows: Vec<_> = self.order.iter().copied().collect();
+        for row in rows {
+            if matches!(
+                self.slots.get(&row),
+                Some(Slot::Asked { .. } | Slot::Decoding { .. })
+            ) {
+                self.forget(row);
+            }
+        }
+        pending
+    }
+
     fn clear(&mut self) -> Vec<usize> {
         self.traces.clear();
         self.bases.clear();

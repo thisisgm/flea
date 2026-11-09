@@ -53,7 +53,7 @@ pub fn card(m: &Model, theme: &Theme, columns: usize) -> String {
         let inner = match r {
             1 => format!("{base}{pad}{}{base}{pad}", bar(m, area.width(), theme)),
             2 => format!("{base}{pad}{}{}{base}{pad}", theme.rule, "─".repeat(area.width())),
-            3 => format!("{base}{}", " ".repeat(area.columns)),
+            3 => format!("{base}{pad}{}{base}{pad}", super::custom_preview::strip(m, area.width(), theme)),
             _ => super::pane::body(m, r - ABOVE, &area, theme),
         };
         out.push_str(&format!("\x1b[{};{}H{base}{}│{inner}{base}{}│{base}", BODY_ROW + r, x + 1, theme.frame, theme.frame));

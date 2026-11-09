@@ -35,6 +35,7 @@ pub(crate) struct PaneHost {
     /// Ascending, unique row indices; producers normalize once when the selection changes.
     pub selected: Vec<usize>,
     pub sizes: crate::list::sizes::State,
+    pub folder_prefetch: Option<(String, Task<()>)>,
     pub input: crate::input::PaneInput,
     pub select: Option<String>,
     pub error: Option<String>,
@@ -98,6 +99,7 @@ impl PaneHost {
             transition_at: None,
             selected: Vec::new(),
             sizes: Default::default(),
+            folder_prefetch: None,
             input: Default::default(),
             error: None,
             failure: None,

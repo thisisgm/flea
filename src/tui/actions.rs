@@ -82,6 +82,7 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
     // Leaving Trash empties the listing before its re-list arrives, so a key in between hands the keys back too.
     super::layout::release_preview_focus(model);
     if model.preview_focus || model.quicklook {
+        if super::custom_preview::key(model, key, wire)? { return Ok(()); }
         let context = if model.pdf.is_some() {
             "pdf"
         } else if model.player.is_some() {
@@ -94,9 +95,11 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
             return Ok(());
         }
         if matches!(action.as_str(), "tabNext" | "tabPrevious") {
+            if model.custom_preview.enabled && model.quicklook { return Ok(()); }
             return act(model, &action, wire);
         }
         if action == "escape" || action == "focusPreview" {
+            if model.custom_preview.enabled && model.quicklook { return super::custom_preview::close(model, wire); }
             model.preview_focus = false;
             model.quicklook = false;
             if let Some(pdf) = &mut model.pdf {
@@ -665,6 +668,7 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
             }
         }
         "preview" => {
+            super::custom_preview::open(m, w)?;
             m.quicklook = true;
             super::preview::load(m, true);
         }

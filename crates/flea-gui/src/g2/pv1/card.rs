@@ -150,6 +150,9 @@ impl Render for QuickLook {
             .absolute()
             .size_full(),
         );
+        if self.custom.is_some() {
+            overlay = overlay.bg(look.background).children(self.custom_chrome(window, cx));
+        }
         overlay.into_any_element()
     }
 }

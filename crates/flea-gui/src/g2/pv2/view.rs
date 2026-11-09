@@ -99,6 +99,27 @@ impl Surface {
 }
 
 impl PdfView {
+    pub(crate) fn centre_zoom(&mut self) {
+        let (_, content) = self.zoomed();
+        self.pan = (
+            ((content.0 - self.frame.0) / 2.).max(0.),
+            ((content.1 - self.frame.1) / 2.).max(0.),
+        );
+    }
+
+    pub(crate) fn pinch_by(&mut self, delta: f32, cx: &mut Context<Self>) {
+        let Some(viewer) = self.viewer.as_mut() else {
+            return;
+        };
+        viewer.zoom = (viewer.zoom * (1. + f64::from(delta))).clamp(
+            flea::ui_logic_pv2::pdf::ZOOM_MIN,
+            flea::ui_logic_pv2::pdf::ZOOM_MAX,
+        );
+        self.centre_zoom();
+        self.flush(cx);
+        cx.notify();
+    }
+
     /// A surface with its own render thread; replies land on the foreground as they come.
     pub fn new(
         continuous: bool,
@@ -257,12 +278,14 @@ impl PdfView {
     /// One renderer reply, applied on the foreground outside any window's update, so what it releases leaves every atlas now.
     pub fn apply(&mut self, reply: Reply, cx: &mut Context<Self>) {
         let now = self.now(cx);
-        self.surface.reply(reply, now);
+        let visible = self.surface.reply(reply, now);
         for image in self.surface.cache.take_released() {
             cx.drop_image(image, None);
         }
         self.flush(cx);
-        cx.notify();
+        if visible {
+            cx.notify();
+        }
     }
 
     /// The host's copy reply for a slow document.
@@ -331,7 +354,7 @@ impl PdfView {
             viewer::Effect::Turn(delta) => self.turn(delta, cx),
             viewer::Effect::Scroll(rows) => self.scroll_rows(rows, cx),
             viewer::Effect::Zoom(_) => {
-                self.pan = (0., 0.);
+                self.centre_zoom();
                 cx.notify();
             }
             _ => cx.notify(),

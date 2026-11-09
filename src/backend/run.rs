@@ -787,6 +787,7 @@ fn handle_line(
             let path = (row < st.listing.len()).then(|| st.base.join(st.listing.name(row)));
             super::owner::spawn(row, path, token, ops.tx.clone());
         }
+        Request::PreviewMeta { line } => super::previewmeta::spawn(&line, Arc::clone(&tb.formats), ops.tx.clone()),
         Request::Meta { row, text, media, archive, token } => {
             if row < st.listing.len() {
                 let want = if archive { Some(Arc::clone(&tb.formats)) } else { None };

@@ -43,6 +43,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> bool {
+        self.custom_preview_reply(side, event, window, cx);
         if matches!(event, BackendEvent::Failed(_) | BackendEvent::Drained) {
             self.quick_look_code_lost(side, cx);
             self.quick_look_lost(side, cx);

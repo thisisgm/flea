@@ -1,15 +1,15 @@
 //! The card's surface for a mounted view: media fills the card under its strip; every other kind sits under the chrome bar.
 use super::{
+    Body, Outcome, QuickLook, Subject,
     card::recipe,
     chrome,
     doc::{Doc, View},
     look::{self, Look},
-    Body, Outcome, QuickLook, Subject,
 };
 use crate::g2::pv3::{self, ink::MediaInk};
 use flea::ui_logic_pv1::keys::Command;
 use flea::ui_logic_pv3::player::Playback;
-use gpui::{div, prelude::*, AnyElement, App, Context, Window};
+use gpui::{AnyElement, App, Context, Window, div, prelude::*};
 
 impl Doc {
     pub fn element(&self) -> AnyElement {
@@ -95,8 +95,13 @@ impl QuickLook {
                 Command::Close
             }
             Outcome::Expand(on) => {
-                self.expanded = on;
-                Command::ToggleExpand
+                if self.custom.is_some() {
+                    cx.emit(super::Event::Fullscreen);
+                    Command::Nothing
+                } else {
+                    self.expanded = on;
+                    Command::ToggleExpand
+                }
             }
             Outcome::Taken | Outcome::Ignored => Command::Nothing,
         }
@@ -150,21 +155,27 @@ impl QuickLook {
                 ink: MediaInk::inherited(&window.text_style(), theme),
                 typeface: media.typeface.clone(),
                 caches: &media.caches,
-                strip_shown: self.strip_shown || paused,
+                strip_shown: (self.strip_shown || paused)
+                    && self
+                        .custom
+                        .as_ref()
+                        .is_none_or(|c| c.options.media_controls),
                 touched: Some(std::rc::Rc::new(move |_, cx| {
                     let _ = weak.update(cx, |look, cx| look.reveal_strip(cx));
                 })),
             }
             .build(cx);
-            return vec![div()
-                .debug_selector(|| "pv1-media".into())
-                .size_full()
-                .child(card)
-                .child(super::observations::bounds(
-                    &self.observations,
-                    |observed, bounds| observed.surface = Some(bounds),
-                ))
-                .into_any_element()];
+            return vec![
+                div()
+                    .debug_selector(|| "pv1-media".into())
+                    .size_full()
+                    .child(card)
+                    .child(super::observations::bounds(
+                        &self.observations,
+                        |observed, bounds| observed.surface = Some(bounds),
+                    ))
+                    .into_any_element(),
+            ];
         }
         // ql-archive: no bar over the card; its own heading opens it, and a failure recipe sits at the top.
         let is_archive = matches!(doc.view, View::Archive(_));
@@ -211,6 +222,10 @@ impl QuickLook {
             self,
             cx,
         );
-        vec![bar, body]
+        if self.custom.is_some() && matches!(&doc.view, View::Pdf(_) | View::Office(_)) {
+            vec![body]
+        } else {
+            vec![bar, body]
+        }
     }
 }

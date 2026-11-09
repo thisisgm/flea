@@ -97,6 +97,7 @@ pub(super) fn rows_needed(request: &Request) -> usize {
         | Request::ClipWatch
         | Request::Quit
         | Request::Git { .. }
+        | Request::PreviewMeta { .. }
         | Request::Unknown => 0,
     }
 }
