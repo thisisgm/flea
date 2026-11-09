@@ -27,6 +27,7 @@ mod filter;
 mod finder;
 mod parity17;
 mod gone;
+mod claims;
 mod layout;
 mod look;
 mod pane;

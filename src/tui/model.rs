@@ -784,12 +784,7 @@ impl Model {
         replied.and_then(|()| super::editor_input::enter_once::landed(self, wire))
     }
     fn receive_reply(&mut self, value: Json, wire: &mut Wire) -> io::Result<()> {
-        if super::parity17::receive(self, &value, wire)? { return Ok(()); }
-        if super::gone::receive(self, &value, wire)? { return Ok(()); }
-        if super::combine::receive(self, &value, wire)? { return Ok(()); }
-        if super::convert::receive(self, &value, wire)? { return Ok(()); }
-        if super::print::receive(self, &value, wire)? { return Ok(()); }
-        if super::contents::receive(self, &value, wire)? { return Ok(()); }
+        if super::claims::receive(self, &value, wire)? { return Ok(()); }
         match text(&value, "t") {
             "jobs" | "job" => super::jobstatus::receive(self, &value),
             "code" => super::syntax::receive(self, &value),
