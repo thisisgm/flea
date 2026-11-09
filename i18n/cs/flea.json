@@ -829,6 +829,36 @@
   "jobs.failed.compress": "Komprese selhala",
   "jobs.failed.copy": "Kopírování selhalo",
   "jobs.failed.emptyTrash": "Vyprázdnění koše selhalo",
+  "jobs.head.send_waiting": "Odesílání",
+  "jobs.head.copying": "Kopírování %1 z %2 do %3",
+  "jobs.head.moving": "Přesouvání %1 z %2 do %3",
+  "jobs.head.sending": "Odesílání %1 z %2 na %3",
+  "jobs.head.action": "%1 · %2 z %3",
+  "jobs.head.checking": {
+    "one": "Kontrola %1 položky na %2",
+    "few": "Kontrola %1 položek na %2",
+    "other": "Kontrola %1 položek na %2"
+  },
+  "jobs.head.copy_waiting": {
+    "one": "Kopírovat %1 položku do %2",
+    "few": "Kopírovat %1 položky do %2",
+    "other": "Kopírovat %1 položek do %2"
+  },
+  "jobs.head.move_waiting": {
+    "one": "Přesunout %1 položku do %2",
+    "few": "Přesunout %1 položky do %2",
+    "other": "Přesunout %1 položek do %2"
+  },
+  "jobs.head.compress_waiting": {
+    "one": "Komprimovat %1 položku do %2",
+    "few": "Komprimovat %1 položky do %2",
+    "other": "Komprimovat %1 položek do %2"
+  },
+  "jobs.head.compressing": {
+    "one": "Komprimování %1 položky",
+    "few": "Komprimování %1 položek",
+    "other": "Komprimování %1 položek"
+  },
   "jobs.failed.extract": "Rozbalení selhalo",
   "jobs.failed.move": "Přesun selhal",
   "jobs.failed.send": "Odeslání selhalo",
@@ -2138,6 +2168,7 @@
   "settings.hint.thumbs_kept": "I při vypnutí se zobrazují již vytvořené miniatury.",
   "settings.keys.move_cursor": "Pohyb kurzoru",
   "settings.keys.move_open_up": "Pohyb, otevření, výše",
+  "settings.keys.arrows": "šipky",
   "settings.list.separator": ", ",
   "settings.menus.compress": "Komprimovat",
   "settings.menus.convert": "Převést",

@@ -789,6 +789,31 @@
   "jobs.failed.compress": "Komprimering mislykkedes",
   "jobs.failed.copy": "Kopiering mislykkedes",
   "jobs.failed.emptyTrash": "Tømning af papirkurven mislykkedes",
+  "jobs.head.send_waiting": "Sender",
+  "jobs.head.copying": "Kopierer %1 af %2 til %3",
+  "jobs.head.moving": "Flytter %1 af %2 til %3",
+  "jobs.head.sending": "Sender %1 af %2 til %3",
+  "jobs.head.action": "%1 · %2 af %3",
+  "jobs.head.checking": {
+    "one": "Kontrollerer %1 element på %2",
+    "other": "Kontrollerer %1 elementer på %2"
+  },
+  "jobs.head.copy_waiting": {
+    "one": "Kopier %1 element til %2",
+    "other": "Kopier %1 elementer til %2"
+  },
+  "jobs.head.move_waiting": {
+    "one": "Flyt %1 element til %2",
+    "other": "Flyt %1 elementer til %2"
+  },
+  "jobs.head.compress_waiting": {
+    "one": "Komprimer %1 element til %2",
+    "other": "Komprimer %1 elementer til %2"
+  },
+  "jobs.head.compressing": {
+    "one": "Komprimerer %1 element",
+    "other": "Komprimerer %1 elementer"
+  },
   "jobs.failed.extract": "Udpakning mislykkedes",
   "jobs.failed.move": "Flytning mislykkedes",
   "jobs.failed.send": "Afsendelse mislykkedes",
@@ -1584,7 +1609,7 @@
   "plugins.airdrop.adapter.missing": "Kræver pakken owly",
   "plugins.airdrop.adapter.no_card": "Ingen Wi-Fi-adapter, som owly kan bruge",
   "plugins.airdrop.adapter.works": "%1, virker med AirDrop",
-  "plugins.airdrop.adapter.broken": "%1, virker ikke med AirDrop",
+  "plugins.airdrop.adapter.broken": "%1, understøtter ikke AirDrop",
   "plugins.airdrop.adapter.untested": "%1, ikke testet",
   "plugins.airdrop.adapter.no_service": "%1, kræver owlyd",
   "plugins.airdrop.adapter.not_ready": "%1, ikke klar",
@@ -2053,6 +2078,7 @@
   "settings.hint.thumbs_kept": "Fra viser stadig miniaturer, der allerede er lavet.",
   "settings.keys.move_cursor": "Flyt markør",
   "settings.keys.move_open_up": "Flyt, åbn, op",
+  "settings.keys.arrows": "pile",
   "settings.list.separator": ", ",
   "settings.menus.compress": "Komprimer",
   "settings.menus.convert": "Konverter",

@@ -80,7 +80,7 @@ crates/flea-gui/src/g2/device_rail/view_quad_tests.rs 517
 crates/flea-gui/src/g2/model_preview/frame_tests.rs 512
 crates/flea-gui/src/g2/model_preview/tests.rs 410
 crates/flea-gui/src/g2/settings_pages/board_strings.rs 893
-crates/flea-gui/src/g2/settings_pages/draw.rs 646
+crates/flea-gui/src/g2/settings_pages/draw.rs 648
 crates/flea-gui/src/g2/settings_pages/tests.rs 459
 crates/flea-gui/src/g2/settings_pages/view.rs 493
 crates/flea-gui/src/g2/plugin_settings/page_tests.rs 596

@@ -829,6 +829,36 @@
   "jobs.failed.compress": "Saspiešana neizdevās",
   "jobs.failed.copy": "Kopēšana neizdevās",
   "jobs.failed.emptyTrash": "Atkritnes iztukšošana neizdevās",
+  "jobs.head.send_waiting": "Nosūta",
+  "jobs.head.copying": "Kopē %1 no %2 uz %3",
+  "jobs.head.moving": "Pārvieto %1 no %2 uz %3",
+  "jobs.head.sending": "Nosūta %1 no %2 uz %3",
+  "jobs.head.action": "%1 · %2 no %3",
+  "jobs.head.checking": {
+    "zero": "Pārbauda %1 vienumu vietā %2",
+    "one": "Pārbauda %1 vienumu vietā %2",
+    "other": "Pārbauda %1 vienumus vietā %2"
+  },
+  "jobs.head.copy_waiting": {
+    "zero": "Kopēt %1 vienumu uz %2",
+    "one": "Kopēt %1 vienumu uz %2",
+    "other": "Kopēt %1 vienumus uz %2"
+  },
+  "jobs.head.move_waiting": {
+    "zero": "Pārvietot %1 vienumu uz %2",
+    "one": "Pārvietot %1 vienumu uz %2",
+    "other": "Pārvietot %1 vienumus uz %2"
+  },
+  "jobs.head.compress_waiting": {
+    "zero": "Saspiest %1 vienumu failā %2",
+    "one": "Saspiest %1 vienumu failā %2",
+    "other": "Saspiest %1 vienumus failā %2"
+  },
+  "jobs.head.compressing": {
+    "zero": "Saspiež %1 vienumu",
+    "one": "Saspiež %1 vienumu",
+    "other": "Saspiež %1 vienumus"
+  },
   "jobs.failed.extract": "Atarhivēšana neizdevās",
   "jobs.failed.move": "Pārvietošana neizdevās",
   "jobs.failed.send": "Nosūtīšana neizdevās",
@@ -2138,6 +2168,7 @@
   "settings.hint.thumbs_kept": "Izslēgtā režīmā joprojām rāda jau izveidotos sīktēlus.",
   "settings.keys.move_cursor": "Pārvietot kursoru",
   "settings.keys.move_open_up": "Pārvietoties, atvērt, augšup",
+  "settings.keys.arrows": "bultiņas",
   "settings.list.separator": ", ",
   "settings.menus.compress": "Saspiest",
   "settings.menus.convert": "Pārveidot",

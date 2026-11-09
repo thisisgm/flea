@@ -789,6 +789,31 @@
   "jobs.failed.compress": "Nabigo ang pag-compress",
   "jobs.failed.copy": "Nabigo ang pagkopya",
   "jobs.failed.emptyTrash": "Nabigo ang pag-alis ng laman ng Basurahan",
+  "jobs.head.send_waiting": "Ipinapadala",
+  "jobs.head.copying": "Kinokopya ang %1 sa %2 papunta sa %3",
+  "jobs.head.moving": "Inililipat ang %1 sa %2 papunta sa %3",
+  "jobs.head.sending": "Ipinapadala ang %1 sa %2 papunta sa %3",
+  "jobs.head.action": "%1 · %2 sa %3",
+  "jobs.head.checking": {
+    "one": "Sinusuri ang %1 item sa %2",
+    "other": "Sinusuri ang %1 item sa %2"
+  },
+  "jobs.head.copy_waiting": {
+    "one": "Kopyahin ang %1 item sa %2",
+    "other": "Kopyahin ang %1 item sa %2"
+  },
+  "jobs.head.move_waiting": {
+    "one": "Ilipat ang %1 item sa %2",
+    "other": "Ilipat ang %1 item sa %2"
+  },
+  "jobs.head.compress_waiting": {
+    "one": "I-compress ang %1 item sa %2",
+    "other": "I-compress ang %1 item sa %2"
+  },
+  "jobs.head.compressing": {
+    "one": "Kino-compress ang %1 item",
+    "other": "Kino-compress ang %1 item"
+  },
   "jobs.failed.extract": "Nabigo ang pag-extract",
   "jobs.failed.move": "Nabigo ang paglipat",
   "jobs.failed.send": "Nabigo ang pagpapadala",
@@ -2053,6 +2078,7 @@
   "settings.hint.thumbs_kept": "Ipinapakita pa rin ng Naka-off ang mga thumbnail na nagawa na.",
   "settings.keys.move_cursor": "Ilipat ang cursor",
   "settings.keys.move_open_up": "Ilipat, buksan, pataas",
+  "settings.keys.arrows": "mga arrow",
   "settings.list.separator": ", ",
   "settings.menus.compress": "I-compress",
   "settings.menus.convert": "I-convert",

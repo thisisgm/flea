@@ -786,6 +786,7 @@
   "settings.display.not_reported": "pole teatatud",
   "settings.keys.move_cursor": "Liiguta kursorit",
   "settings.keys.move_open_up": "Liigu, ava, üles",
+  "settings.keys.arrows": "nooled",
   "settings.places.add_folder": "Lisa see kaust",
   "settings.places.home": "Kodu",
   "settings.places.recent": "Hiljutised",
@@ -1134,6 +1135,31 @@
   "jobs.failed.extract": "Lahtipakkimine ebaõnnestus",
   "jobs.failed.send": "Saatmine ebaõnnestus",
   "jobs.failed.emptyTrash": "Prügikasti tühjendamine ebaõnnestus",
+  "jobs.head.send_waiting": "Saatmine",
+  "jobs.head.copying": "Kopeerimine sihtkohta %3: %1 / %2",
+  "jobs.head.moving": "Teisaldamine sihtkohta %3: %1 / %2",
+  "jobs.head.sending": "Saatmine sihtkohta %3: %1 / %2",
+  "jobs.head.action": "%1 · %2 / %3",
+  "jobs.head.checking": {
+    "one": "%1 üksuse kontrollimine asukohas %2",
+    "other": "%1 üksuse kontrollimine asukohas %2"
+  },
+  "jobs.head.copy_waiting": {
+    "one": "Kopeeri %1 üksus sihtkohta %2",
+    "other": "Kopeeri %1 üksust sihtkohta %2"
+  },
+  "jobs.head.move_waiting": {
+    "one": "Teisalda %1 üksus sihtkohta %2",
+    "other": "Teisalda %1 üksust sihtkohta %2"
+  },
+  "jobs.head.compress_waiting": {
+    "one": "Paki %1 üksus faili %2",
+    "other": "Paki %1 üksust faili %2"
+  },
+  "jobs.head.compressing": {
+    "one": "%1 üksuse pakkimine",
+    "other": "%1 üksuse pakkimine"
+  },
   "jobs.error.retry": "Uuesti saab proovida ainult ebaõnnestunud tööd.",
   "jobs.error.dismiss": "Sulgeda saab ainult lõpetatud või ebaõnnestunud tööd.",
   "jobs.error.undo": "Seda tööd ei saa enam tagasi võtta.",

@@ -829,6 +829,36 @@
   "jobs.failed.compress": "La compressió ha fallat",
   "jobs.failed.copy": "La còpia ha fallat",
   "jobs.failed.emptyTrash": "No s'ha pogut buidar la paperera",
+  "jobs.head.send_waiting": "S'està enviant",
+  "jobs.head.copying": "S'està copiant %1 de %2 a %3",
+  "jobs.head.moving": "S'està movent %1 de %2 a %3",
+  "jobs.head.sending": "S'està enviant %1 de %2 a %3",
+  "jobs.head.action": "%1 · %2 de %3",
+  "jobs.head.checking": {
+    "one": "S'està comprovant %1 element a %2",
+    "many": "S'estan comprovant %1 elements a %2",
+    "other": "S'estan comprovant %1 elements a %2"
+  },
+  "jobs.head.copy_waiting": {
+    "one": "Copia %1 element a %2",
+    "many": "Copia %1 elements a %2",
+    "other": "Copia %1 elements a %2"
+  },
+  "jobs.head.move_waiting": {
+    "one": "Mou %1 element a %2",
+    "many": "Mou %1 elements a %2",
+    "other": "Mou %1 elements a %2"
+  },
+  "jobs.head.compress_waiting": {
+    "one": "Comprimeix %1 element a %2",
+    "many": "Comprimeix %1 elements a %2",
+    "other": "Comprimeix %1 elements a %2"
+  },
+  "jobs.head.compressing": {
+    "one": "S'està comprimint %1 element",
+    "many": "S'estan comprimint %1 elements",
+    "other": "S'estan comprimint %1 elements"
+  },
   "jobs.failed.extract": "L'extracció ha fallat",
   "jobs.failed.move": "El moviment ha fallat",
   "jobs.failed.send": "L'enviament ha fallat",
@@ -2138,6 +2168,7 @@
   "settings.hint.thumbs_kept": "Desactivat continua mostrant les miniatures ja generades.",
   "settings.keys.move_cursor": "Mou el cursor",
   "settings.keys.move_open_up": "Mou, obre, puja",
+  "settings.keys.arrows": "fletxes",
   "settings.list.separator": ", ",
   "settings.menus.compress": "Comprimeix",
   "settings.menus.convert": "Converteix",

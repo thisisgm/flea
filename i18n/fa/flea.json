@@ -789,6 +789,31 @@
   "jobs.failed.compress": "فشرده‌سازی ناموفق بود",
   "jobs.failed.copy": "کپی ناموفق بود",
   "jobs.failed.emptyTrash": "خالی کردن سطل زباله ناموفق بود",
+  "jobs.head.send_waiting": "در حال ارسال",
+  "jobs.head.copying": "در حال کپی ⁨%1⁩ از ⁨%2⁩ به ⁨%3⁩",
+  "jobs.head.moving": "در حال انتقال ⁨%1⁩ از ⁨%2⁩ به ⁨%3⁩",
+  "jobs.head.sending": "در حال ارسال ⁨%1⁩ از ⁨%2⁩ به ⁨%3⁩",
+  "jobs.head.action": "⁨%1⁩ · ⁨%2⁩ از ⁨%3⁩",
+  "jobs.head.checking": {
+    "one": "در حال بررسی ⁨%1⁩ مورد در ⁨%2⁩",
+    "other": "در حال بررسی ⁨%1⁩ مورد در ⁨%2⁩"
+  },
+  "jobs.head.copy_waiting": {
+    "one": "کپی ⁨%1⁩ مورد به ⁨%2⁩",
+    "other": "کپی ⁨%1⁩ مورد به ⁨%2⁩"
+  },
+  "jobs.head.move_waiting": {
+    "one": "انتقال ⁨%1⁩ مورد به ⁨%2⁩",
+    "other": "انتقال ⁨%1⁩ مورد به ⁨%2⁩"
+  },
+  "jobs.head.compress_waiting": {
+    "one": "فشرده‌سازی ⁨%1⁩ مورد در ⁨%2⁩",
+    "other": "فشرده‌سازی ⁨%1⁩ مورد در ⁨%2⁩"
+  },
+  "jobs.head.compressing": {
+    "one": "در حال فشرده‌سازی ⁨%1⁩ مورد",
+    "other": "در حال فشرده‌سازی ⁨%1⁩ مورد"
+  },
   "jobs.failed.extract": "استخراج ناموفق بود",
   "jobs.failed.move": "انتقال ناموفق بود",
   "jobs.failed.send": "ارسال ناموفق بود",
@@ -1584,7 +1609,7 @@
   "plugins.airdrop.adapter.missing": "به بستهٔ owly نیاز دارد",
   "plugins.airdrop.adapter.no_card": "هیچ آداپتور Wi-Fi که owly بتواند استفاده کند وجود ندارد",
   "plugins.airdrop.adapter.works": "⁨%1⁩، با AirDrop کار می‌کند",
-  "plugins.airdrop.adapter.broken": "⁨%1⁩، با AirDrop کار نمی‌کند",
+  "plugins.airdrop.adapter.broken": "⁨%1⁩، از AirDrop پشتیبانی نمی‌کند",
   "plugins.airdrop.adapter.untested": "⁨%1⁩، آزمایش نشده",
   "plugins.airdrop.adapter.no_service": "⁨%1⁩، به owlyd نیاز دارد",
   "plugins.airdrop.adapter.not_ready": "⁨%1⁩، آماده نیست",
@@ -2053,6 +2078,7 @@
   "settings.hint.thumbs_kept": "حالت خاموش همچنان بندانگشتی‌های ساخته‌شده را نشان می‌دهد.",
   "settings.keys.move_cursor": "حرکت نشانگر",
   "settings.keys.move_open_up": "حرکت، باز کردن، بالا",
+  "settings.keys.arrows": "پیکان‌ها",
   "settings.list.separator": "، ",
   "settings.menus.compress": "فشرده‌سازی",
   "settings.menus.convert": "تبدیل",

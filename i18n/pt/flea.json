@@ -802,6 +802,7 @@
   "settings.display.not_reported": "não indicado",
   "settings.keys.move_cursor": "Mover cursor",
   "settings.keys.move_open_up": "Mover, abrir, subir",
+  "settings.keys.arrows": "setas",
   "settings.places.add_folder": "Adicionar esta pasta",
   "settings.places.home": "Pasta pessoal",
   "settings.places.recent": "Recentes",
@@ -1165,6 +1166,36 @@
   "jobs.failed.extract": "A extração falhou",
   "jobs.failed.send": "O envio falhou",
   "jobs.failed.emptyTrash": "O esvaziamento do Lixo falhou",
+  "jobs.head.send_waiting": "A enviar",
+  "jobs.head.copying": "A copiar %1 de %2 para %3",
+  "jobs.head.moving": "A mover %1 de %2 para %3",
+  "jobs.head.sending": "A enviar %1 de %2 para %3",
+  "jobs.head.action": "%1 · %2 de %3",
+  "jobs.head.checking": {
+    "one": "A verificar %1 item em %2",
+    "many": "A verificar %1 itens em %2",
+    "other": "A verificar %1 itens em %2"
+  },
+  "jobs.head.copy_waiting": {
+    "one": "Copiar %1 item para %2",
+    "many": "Copiar %1 itens para %2",
+    "other": "Copiar %1 itens para %2"
+  },
+  "jobs.head.move_waiting": {
+    "one": "Mover %1 item para %2",
+    "many": "Mover %1 itens para %2",
+    "other": "Mover %1 itens para %2"
+  },
+  "jobs.head.compress_waiting": {
+    "one": "Comprimir %1 item para %2",
+    "many": "Comprimir %1 itens para %2",
+    "other": "Comprimir %1 itens para %2"
+  },
+  "jobs.head.compressing": {
+    "one": "A comprimir %1 item",
+    "many": "A comprimir %1 itens",
+    "other": "A comprimir %1 itens"
+  },
   "jobs.error.retry": "Só é possível repetir uma tarefa que falhou.",
   "jobs.error.dismiss": "Só é possível dispensar uma tarefa terminada ou com falha.",
   "jobs.error.undo": "Já não é possível anular essa tarefa.",

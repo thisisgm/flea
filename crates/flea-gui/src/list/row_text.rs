@@ -55,7 +55,7 @@ pub fn drawn_letters(
         shaping.name_cells
     };
     let budget = extra.drop.map_or(budget, |drop| drop.min(budget));
-    let letters = format::match_letters(&display.name, query);
+    let letters = format::match_letters(&row::shown_name(&display.name), query);
     let run = letters
         .first()
         .zip(letters.last())

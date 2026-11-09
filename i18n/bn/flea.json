@@ -800,6 +800,31 @@
   "jobs.failed.compress": "সংকোচন ব্যর্থ হয়েছে",
   "jobs.failed.copy": "কপি ব্যর্থ হয়েছে",
   "jobs.failed.emptyTrash": "ট্র্যাশ খালি করা ব্যর্থ হয়েছে",
+  "jobs.head.send_waiting": "পাঠানো হচ্ছে",
+  "jobs.head.copying": "%2-এর মধ্যে %1 %3-এ কপি হচ্ছে",
+  "jobs.head.moving": "%2-এর মধ্যে %1 %3-এ সরানো হচ্ছে",
+  "jobs.head.sending": "%2-এর মধ্যে %1 %3-এ পাঠানো হচ্ছে",
+  "jobs.head.action": "%1 · %3-এর মধ্যে %2",
+  "jobs.head.checking": {
+    "one": "%2-এ %1টি আইটেম পরীক্ষা হচ্ছে",
+    "other": "%2-এ %1টি আইটেম পরীক্ষা হচ্ছে"
+  },
+  "jobs.head.copy_waiting": {
+    "one": "%1টি আইটেম %2-এ কপি করুন",
+    "other": "%1টি আইটেম %2-এ কপি করুন"
+  },
+  "jobs.head.move_waiting": {
+    "one": "%1টি আইটেম %2-এ সরান",
+    "other": "%1টি আইটেম %2-এ সরান"
+  },
+  "jobs.head.compress_waiting": {
+    "one": "%1টি আইটেম %2-এ সংকুচিত করুন",
+    "other": "%1টি আইটেম %2-এ সংকুচিত করুন"
+  },
+  "jobs.head.compressing": {
+    "one": "%1টি আইটেম সংকুচিত হচ্ছে",
+    "other": "%1টি আইটেম সংকুচিত হচ্ছে"
+  },
   "jobs.failed.extract": "আর্কাইভ থেকে বের করা ব্যর্থ হয়েছে",
   "jobs.failed.move": "সরানো ব্যর্থ হয়েছে",
   "jobs.failed.send": "পাঠানো ব্যর্থ হয়েছে",
@@ -2092,6 +2117,7 @@
   "settings.hint.thumbs_kept": "বন্ধ থাকলেও আগে তৈরি থাম্বনেইল দেখা যায়।",
   "settings.keys.move_cursor": "কার্সর সরান",
   "settings.keys.move_open_up": "সরান, খুলুন, উপরে যান",
+  "settings.keys.arrows": "তীরচিহ্ন",
   "settings.list.separator": ", ",
   "settings.menus.compress": "সংকুচিত করুন",
   "settings.menus.convert": "রূপান্তর করুন",

@@ -789,6 +789,31 @@
   "jobs.failed.compress": "Þjöppun mistókst",
   "jobs.failed.copy": "Afritun mistókst",
   "jobs.failed.emptyTrash": "Tæming rusls mistókst",
+  "jobs.head.send_waiting": "Sendi",
+  "jobs.head.copying": "Afrita %1 af %2 í %3",
+  "jobs.head.moving": "Færi %1 af %2 í %3",
+  "jobs.head.sending": "Sendi %1 af %2 til %3",
+  "jobs.head.action": "%1 · %2 af %3",
+  "jobs.head.checking": {
+    "one": "Athuga %1 atriði á %2",
+    "other": "Athuga %1 atriði á %2"
+  },
+  "jobs.head.copy_waiting": {
+    "one": "Afrita %1 atriði í %2",
+    "other": "Afrita %1 atriði í %2"
+  },
+  "jobs.head.move_waiting": {
+    "one": "Færa %1 atriði í %2",
+    "other": "Færa %1 atriði í %2"
+  },
+  "jobs.head.compress_waiting": {
+    "one": "Þjappa %1 atriði í %2",
+    "other": "Þjappa %1 atriðum í %2"
+  },
+  "jobs.head.compressing": {
+    "one": "Þjappa %1 atriði",
+    "other": "Þjappa %1 atriðum"
+  },
   "jobs.failed.extract": "Afþjöppun mistókst",
   "jobs.failed.move": "Flutningur mistókst",
   "jobs.failed.send": "Sending mistókst",
@@ -2053,6 +2078,7 @@
   "settings.hint.thumbs_kept": "Þótt slökkt sé á smámyndum birtast þær sem voru þegar búnar til.",
   "settings.keys.move_cursor": "Færa bendil",
   "settings.keys.move_open_up": "Færa, opna, upp",
+  "settings.keys.arrows": "örvar",
   "settings.list.separator": ", ",
   "settings.menus.compress": "Þjappa",
   "settings.menus.convert": "Umbreyta",

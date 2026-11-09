@@ -23,6 +23,8 @@ pub use measure::Density;
 pub use metrics::Metrics;
 pub(crate) use metrics::{mark_bounds_at, CONTROL_PADDING_Y, MARK_RATIO, STOCK_BASE};
 #[cfg(test)]
+mod bidi_name_tests;
+#[cfg(test)]
 mod fixlist_mark_ink_tests;
 #[cfg(test)]
 mod gh315_filter_tests;

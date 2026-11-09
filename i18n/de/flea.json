@@ -720,7 +720,7 @@
   "settings.row.hyprland_icons": "Symbole an Hyprland anpassen",
   "settings.row.preset": "Tastenkürzel-Voreinstellung",
   "settings.caption.group_by_kind": "Ordner, Fotos, Dateien",
-  "settings.caption.wrap": "up ganz oben",
+  "settings.caption.wrap": "Pfeil hoch ganz oben",
   "settings.caption.escape_up": "wenn nichts offen ist",
   "settings.caption.permanently": "endgültig",
   "settings.hint.compact_default": "Kompakt bleibt der Standard.",
@@ -786,6 +786,7 @@
   "settings.display.not_reported": "nicht gemeldet",
   "settings.keys.move_cursor": "Cursor bewegen",
   "settings.keys.move_open_up": "Bewegen, öffnen, aufwärts",
+  "settings.keys.arrows": "Pfeile",
   "settings.places.add_folder": "Diesen Ordner hinzufügen",
   "settings.places.home": "Benutzerordner",
   "settings.places.recent": "Zuletzt verwendet",
@@ -1134,6 +1135,31 @@
   "jobs.failed.extract": "Entpacken fehlgeschlagen",
   "jobs.failed.send": "Senden fehlgeschlagen",
   "jobs.failed.emptyTrash": "Leeren des Papierkorbs fehlgeschlagen",
+  "jobs.head.send_waiting": "Senden",
+  "jobs.head.copying": "Kopieren nach %3: %1 von %2",
+  "jobs.head.moving": "Verschieben nach %3: %1 von %2",
+  "jobs.head.sending": "Senden an %3: %1 von %2",
+  "jobs.head.action": "%1 · %2 von %3",
+  "jobs.head.checking": {
+    "one": "%1 Element auf %2 wird geprüft",
+    "other": "%1 Elemente auf %2 werden geprüft"
+  },
+  "jobs.head.copy_waiting": {
+    "one": "%1 Element nach %2 kopieren",
+    "other": "%1 Elemente nach %2 kopieren"
+  },
+  "jobs.head.move_waiting": {
+    "one": "%1 Element nach %2 verschieben",
+    "other": "%1 Elemente nach %2 verschieben"
+  },
+  "jobs.head.compress_waiting": {
+    "one": "%1 Element als %2 komprimieren",
+    "other": "%1 Elemente als %2 komprimieren"
+  },
+  "jobs.head.compressing": {
+    "one": "%1 Element wird komprimiert",
+    "other": "%1 Elemente werden komprimiert"
+  },
   "jobs.error.retry": "Nur ein fehlgeschlagener Auftrag kann erneut versucht werden.",
   "jobs.error.dismiss": "Nur ein abgeschlossener oder fehlgeschlagener Auftrag kann geschlossen werden.",
   "jobs.error.undo": "Dieser Auftrag kann nicht mehr rückgängig gemacht werden.",

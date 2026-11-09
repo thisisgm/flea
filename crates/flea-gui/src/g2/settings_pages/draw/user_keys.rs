@@ -1,23 +1,44 @@
 //! The built-in and user-bound key previews share one row recipe.
 use super::*;
+use flea::i18n::I18n;
+use flea::ui_logic_settings_pages::rows::KeyItem;
 use gpui::TextRun;
 
 pub(in crate::g2::settings_pages) fn measure(
     line: &mut Line<'_>,
     typeface: &crate::list::Typeface,
+    catalog: &I18n,
     window: &gpui::Window,
 ) {
-    if line.row.id == flea::ui_logic_settings_pages::pages::USER_KEYS {
-        line.keys_w = keys_width(line.row, typeface, window);
+    // The built-in examples keep the board's column for their chords; only a translated word may widen it.
+    let user = line.row.id == flea::ui_logic_settings_pages::pages::USER_KEYS;
+    if user || line.row.kind == Kind::KeyPreview {
+        line.keys_w = keys_width(line.row, user, typeface, catalog, window);
     }
 }
 
-/// The user chords' key column: the board's 48 unless a chord such as ctrl-shift-k shapes wider.
-fn keys_width(row: &Row, typeface: &crate::list::Typeface, window: &gpui::Window) -> f32 {
+/// What an example's key cell draws: its keys, or the catalog's word for keys that are prose.
+fn keys_text(item: &KeyItem, catalog: &I18n) -> String {
+    if item.word.is_empty() {
+        item.keys.clone()
+    } else {
+        item.word.resolve(catalog)
+    }
+}
+
+/// The key column: the board's 48 unless a chord such as ctrl-shift-k or a translated word shapes wider.
+fn keys_width(
+    row: &Row,
+    user: bool,
+    typeface: &crate::list::Typeface,
+    catalog: &I18n,
+    window: &gpui::Window,
+) -> f32 {
     row.items
         .iter()
+        .filter(|item| user || !item.word.is_empty())
         .fold(Scale::at(typeface).of(super::KEYS_W), |widest, item| {
-            let text = SharedString::from(item.keys.clone());
+            let text = SharedString::from(keys_text(item, catalog));
             let run = TextRun {
                 len: text.len(),
                 font: typeface.font.clone(),
@@ -65,7 +86,10 @@ impl Rows<'_> {
                             .flex()
                             .justify_end()
                             .text_color(ink.foreground)
-                            .child(SharedString::from(item.keys.clone())),
+                            .child(SharedString::from(keys_text(
+                                item,
+                                &self.view.panel.catalog,
+                            ))),
                     )
                     .when(!item.glyph.is_empty(), |cell| {
                         cell.child(mark(item.glyph, s.of(16.), ink.muted_frame))

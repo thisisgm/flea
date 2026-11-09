@@ -786,6 +786,7 @@
   "settings.display.not_reported": "nincs megadva",
   "settings.keys.move_cursor": "Kurzor mozgatása",
   "settings.keys.move_open_up": "Mozgatás, megnyitás, fel",
+  "settings.keys.arrows": "nyilak",
   "settings.places.add_folder": "Aktuális mappa hozzáadása",
   "settings.places.home": "Saját mappa",
   "settings.places.recent": "Legutóbbiak",
@@ -1134,6 +1135,31 @@
   "jobs.failed.extract": "Kibontás sikertelen",
   "jobs.failed.send": "Küldés sikertelen",
   "jobs.failed.emptyTrash": "Kuka ürítése sikertelen",
+  "jobs.head.send_waiting": "Küldés",
+  "jobs.head.copying": "Másolás ide: %3 · %1 / %2",
+  "jobs.head.moving": "Áthelyezés ide: %3 · %1 / %2",
+  "jobs.head.sending": "Küldés ide: %3 · %1 / %2",
+  "jobs.head.action": "%1 · %2 / %3",
+  "jobs.head.checking": {
+    "one": "%1 elem ellenőrzése itt: %2",
+    "other": "%1 elem ellenőrzése itt: %2"
+  },
+  "jobs.head.copy_waiting": {
+    "one": "%1 elem másolása ide: %2",
+    "other": "%1 elem másolása ide: %2"
+  },
+  "jobs.head.move_waiting": {
+    "one": "%1 elem áthelyezése ide: %2",
+    "other": "%1 elem áthelyezése ide: %2"
+  },
+  "jobs.head.compress_waiting": {
+    "one": "%1 elem tömörítése ide: %2",
+    "other": "%1 elem tömörítése ide: %2"
+  },
+  "jobs.head.compressing": {
+    "one": "%1 elem tömörítése",
+    "other": "%1 elem tömörítése"
+  },
   "jobs.error.retry": "Csak sikertelen feladat próbálható újra.",
   "jobs.error.dismiss": "Csak befejezett vagy sikertelen feladat zárható be.",
   "jobs.error.undo": "A feladat már nem vonható vissza.",

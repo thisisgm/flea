@@ -840,6 +840,36 @@
   "jobs.failed.compress": "Паковање није успело",
   "jobs.failed.copy": "Копирање није успело",
   "jobs.failed.emptyTrash": "Пражњење корпе није успело",
+  "jobs.head.send_waiting": "Шаље се",
+  "jobs.head.copying": "Копира се %1 од %2 у %3",
+  "jobs.head.moving": "Премешта се %1 од %2 у %3",
+  "jobs.head.sending": "Шаље се %1 од %2 на %3",
+  "jobs.head.action": "%1 · %2 од %3",
+  "jobs.head.checking": {
+    "one": "Проверава се %1 ставка на %2",
+    "few": "Проверавају се %1 ставке на %2",
+    "other": "Проверава се %1 ставки на %2"
+  },
+  "jobs.head.copy_waiting": {
+    "one": "Копирај %1 ставку у %2",
+    "few": "Копирај %1 ставке у %2",
+    "other": "Копирај %1 ставки у %2"
+  },
+  "jobs.head.move_waiting": {
+    "one": "Премести %1 ставку у %2",
+    "few": "Премести %1 ставке у %2",
+    "other": "Премести %1 ставки у %2"
+  },
+  "jobs.head.compress_waiting": {
+    "one": "Запакуј %1 ставку у %2",
+    "few": "Запакуј %1 ставке у %2",
+    "other": "Запакуј %1 ставки у %2"
+  },
+  "jobs.head.compressing": {
+    "one": "Пакује се %1 ставка",
+    "few": "Пакују се %1 ставке",
+    "other": "Пакује се %1 ставки"
+  },
   "jobs.failed.extract": "Распаковање није успело",
   "jobs.failed.move": "Премештање није успело",
   "jobs.failed.send": "Слање није успело",
@@ -2178,6 +2208,7 @@
   "settings.hint.thumbs_kept": "Искључено и даље приказује већ направљене сличице.",
   "settings.keys.move_cursor": "Помери курсор",
   "settings.keys.move_open_up": "Кретање, отварање, нагоре",
+  "settings.keys.arrows": "стрелице",
   "settings.list.separator": ", ",
   "settings.menus.compress": "Запакуј",
   "settings.menus.convert": "Претвори",

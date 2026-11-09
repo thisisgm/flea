@@ -51,6 +51,12 @@ pub struct JobRow {
     pub output: Vec<String>,
     pub undo: bool,
     pub cancelled: bool,
+    // The structured head: absent from an older backend's line, which then keeps its English head.
+    pub at: Option<u64>,
+    pub target: String,
+    pub label: String,
+    pub phase: String,
+    pub receipt: String,
 }
 
 // A reply to a Trash or menu request the confirmation card sent: delete, check, prepare, validate, close or cancel.
@@ -223,6 +229,11 @@ fn job(doc: &Json) -> Option<JobRow> {
         output: strings(doc, "output"),
         undo: flag(doc, "undo"),
         cancelled: flag(doc, "cancelled"),
+        at: need(doc, "at"),
+        target: text(doc, "target"),
+        label: text(doc, "label"),
+        phase: text(doc, "phase"),
+        receipt: text(doc, "receipt"),
     })
 }
 

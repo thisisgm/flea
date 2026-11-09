@@ -79,9 +79,9 @@ fn label_of(preset: &str, action: &str) -> Text {
 pub fn key_preview(preset: &str) -> Vec<KeyItem> {
     let enter = lookup(preset, Context::Listing, Frontend::Gui, Input { key: "Return", text: "", modifiers: 0 }).action();
     let mut items = vec![
-        KeyItem { keys: "arrows".into(), label: Text::Key(if preset == "mac" { "settings.keys.move_open_up" } else { "settings.keys.move_cursor" }), glyph: "" },
-        KeyItem { keys: "enter".into(), label: label_of(preset, enter), glyph: "" },
-        KeyItem { keys: "space".into(), label: Text::Key("keys.action.preview"), glyph: "" },
+        KeyItem { keys: "arrows".into(), word: Text::Key("settings.keys.arrows"), label: Text::Key(if preset == "mac" { "settings.keys.move_open_up" } else { "settings.keys.move_cursor" }), glyph: "" },
+        KeyItem { keys: "enter".into(), label: label_of(preset, enter), glyph: "", ..KeyItem::default() },
+        KeyItem { keys: "space".into(), label: Text::Key("keys.action.preview"), glyph: "", ..KeyItem::default() },
     ];
     for action in ["copy", "paste", "trash"] {
         let mods = match (preset, action) {
@@ -92,7 +92,7 @@ pub fn key_preview(preset: &str) -> Vec<KeyItem> {
         };
         if let Some(binding) = binding_rows(preset, Frontend::Gui).find(|row| action_group(row.action) == action && row.mods == mods) {
             let glyph = match action { "copy" => "copy", "paste" => "clipboard", _ => "" };
-            items.push(KeyItem { keys: binding.keys.into(), label: Text::Key(binding.label_key), glyph });
+            items.push(KeyItem { keys: binding.keys.into(), label: Text::Key(binding.label_key), glyph, ..KeyItem::default() });
         }
     }
     items
@@ -262,6 +262,7 @@ pub fn user_key_rows(facts: &UserKeyFacts, preset: &str) -> Vec<Row> {
                 keys: binding.keys(),
                 label,
                 glyph,
+                ..KeyItem::default()
             }
         })
         .collect();

@@ -49,14 +49,7 @@ impl Job {
                 _ => self.label.clone(),
             };
         }
-        let at = if self.state == State::Done {
-            self.done
-        } else {
-            self.index
-                .map(|i| i + 1)
-                .unwrap_or(self.done)
-                .min(self.total)
-        };
+        let at = self.at();
         match self.kind.as_str() {
             "copy" => format!("Copying {} of {} to {}", at, self.total, self.target),
             "move" => format!("Moving {} of {} to {}", at, self.total, self.target),
@@ -67,6 +60,19 @@ impl Job {
         }
     }
 
+    // The item a running head counts to, one-based; a done job counts what it finished.
+    fn at(&self) -> usize {
+        if self.state == State::Done {
+            self.done
+        } else {
+            self.index
+                .map(|i| i + 1)
+                .unwrap_or(self.done)
+                .min(self.total)
+        }
+    }
+
+    // The head stays for readers without a catalog; target, at and label let a front end build it in its own language.
     pub fn json(&self) -> String {
         let state = match self.state {
             State::Waiting => "waiting",
@@ -81,7 +87,7 @@ impl Job {
             .collect();
         let bytes = !matches!(self.kind.as_str(), "action" | "emptyTrash");
         format!(
-            r#"{{"id":{},"kind":"{}","head":"{}","file":"{}","done":{},"total":{},"bytes":{},"totalBytes":{},"itemBytes":{},"rate":{},"left":{},"state":"{}","reason":"{}","output":[{}],"undo":{},"cancelled":{},"phase":"{}","check":"{}","receipt":"{}","note":"{}"}}"#,
+            r#"{{"id":{},"kind":"{}","head":"{}","file":"{}","done":{},"total":{},"bytes":{},"totalBytes":{},"itemBytes":{},"rate":{},"left":{},"state":"{}","reason":"{}","output":[{}],"undo":{},"cancelled":{},"phase":"{}","check":"{}","receipt":"{}","note":"{}","target":"{}","at":{},"label":"{}"}}"#,
             self.id,
             escape(&self.kind),
             escape(&self.head()),
@@ -115,7 +121,14 @@ impl Job {
                 "not checked"
             } else {
                 ""
-            }
+            },
+            escape(&self.target),
+            self.at(),
+            escape(&self.label)
         )
     }
 }
+
+#[cfg(test)]
+#[path = "jobview_tests.rs"]
+mod tests;

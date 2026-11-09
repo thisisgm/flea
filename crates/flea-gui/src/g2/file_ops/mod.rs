@@ -40,6 +40,8 @@ mod fix9_tests;
 #[cfg(test)]
 mod font_tests;
 #[cfg(test)]
+mod held_head_tests;
+#[cfg(test)]
 mod join_tests;
 #[cfg(test)]
 mod line_tests;

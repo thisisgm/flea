@@ -800,6 +800,31 @@
   "jobs.failed.compress": "Siqish bajarilmadi",
   "jobs.failed.copy": "Nusxalash bajarilmadi",
   "jobs.failed.emptyTrash": "Chiqindini boʻshatib boʻlmadi",
+  "jobs.head.send_waiting": "Yuborilmoqda",
+  "jobs.head.copying": "%3 ga nusxalanmoqda: %1 / %2",
+  "jobs.head.moving": "%3 ga koʻchirilmoqda: %1 / %2",
+  "jobs.head.sending": "%3 ga yuborilmoqda: %1 / %2",
+  "jobs.head.action": "%1 · %2 / %3",
+  "jobs.head.checking": {
+    "one": "%2 ichida %1 ta obyekt tekshirilmoqda",
+    "other": "%2 ichida %1 ta obyekt tekshirilmoqda"
+  },
+  "jobs.head.copy_waiting": {
+    "one": "%1 ta obyektni %2 ga nusxalash",
+    "other": "%1 ta obyektni %2 ga nusxalash"
+  },
+  "jobs.head.move_waiting": {
+    "one": "%1 ta obyektni %2 ga koʻchirish",
+    "other": "%1 ta obyektni %2 ga koʻchirish"
+  },
+  "jobs.head.compress_waiting": {
+    "one": "%1 ta obyektni %2 ga siqish",
+    "other": "%1 ta obyektni %2 ga siqish"
+  },
+  "jobs.head.compressing": {
+    "one": "%1 ta obyekt siqilmoqda",
+    "other": "%1 ta obyekt siqilmoqda"
+  },
   "jobs.failed.extract": "Arxivdan chiqarish bajarilmadi",
   "jobs.failed.move": "Koʻchirish bajarilmadi",
   "jobs.failed.send": "Yuborish bajarilmadi",
@@ -2092,6 +2117,7 @@
   "settings.hint.thumbs_kept": "Oʻchirilgan holatda ham avval yaratilgan kichik rasmlar koʻrsatiladi.",
   "settings.keys.move_cursor": "Kursorni siljitish",
   "settings.keys.move_open_up": "Siljitish, ochish, yuqoriga",
+  "settings.keys.arrows": "strelkalar",
   "settings.list.separator": ", ",
   "settings.menus.compress": "Siqish",
   "settings.menus.convert": "Aylantirish",

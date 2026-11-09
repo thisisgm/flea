@@ -796,6 +796,7 @@
   "settings.display.not_reported": "not reported",
   "settings.keys.move_cursor": "Move cursor",
   "settings.keys.move_open_up": "Move, open, up",
+  "settings.keys.arrows": "arrows",
   "settings.places.add_folder": "Add This Folder",
   "settings.places.home": "Home",
   "settings.places.recent": "Recent",
@@ -1150,6 +1151,31 @@
   "jobs.failed.extract": "Extraction failed",
   "jobs.failed.send": "Send failed",
   "jobs.failed.emptyTrash": "Emptying Trash failed",
+  "jobs.head.send_waiting": "Sending",
+  "jobs.head.copying": "Copying %1 of %2 to %3",
+  "jobs.head.moving": "Moving %1 of %2 to %3",
+  "jobs.head.sending": "Sending %1 of %2 to %3",
+  "jobs.head.action": "%1 · %2 of %3",
+  "jobs.head.checking": {
+    "one": "Checking %1 item on %2",
+    "other": "Checking %1 items on %2"
+  },
+  "jobs.head.copy_waiting": {
+    "one": "Copy %1 item to %2",
+    "other": "Copy %1 items to %2"
+  },
+  "jobs.head.move_waiting": {
+    "one": "Move %1 item to %2",
+    "other": "Move %1 items to %2"
+  },
+  "jobs.head.compress_waiting": {
+    "one": "Compress %1 item to %2",
+    "other": "Compress %1 items to %2"
+  },
+  "jobs.head.compressing": {
+    "one": "Compressing %1 item",
+    "other": "Compressing %1 items"
+  },
   "jobs.error.retry": "Only a failed job can be retried.",
   "jobs.error.dismiss": "Only a finished or failed job can be dismissed.",
   "jobs.error.undo": "That job can no longer be undone.",

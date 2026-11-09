@@ -35,6 +35,8 @@ pub struct Line<'a> {
     pub keys_w: f32,
     /// A control row's value and caption caps from shaped widths, so the drawn label keeps the room it was measured in.
     pub room: Option<g::Room>,
+    /// A wrapping hint's units as the pane places them, packed at the measured width.
+    pub units: Vec<String>,
 }
 
 impl<'a> Line<'a> {
@@ -49,6 +51,7 @@ impl<'a> Line<'a> {
             segment: false,
             keys_w: KEYS_W,
             room: None,
+            units: Vec::new(),
         }
     }
 
@@ -63,6 +66,7 @@ impl<'a> Line<'a> {
             segment: false,
             keys_w: KEYS_W,
             room: None,
+            units: Vec::new(),
         }
     }
 

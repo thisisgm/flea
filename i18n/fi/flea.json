@@ -789,6 +789,31 @@
   "jobs.failed.compress": "Pakkaaminen epäonnistui",
   "jobs.failed.copy": "Kopiointi epäonnistui",
   "jobs.failed.emptyTrash": "Roskakorin tyhjentäminen epäonnistui",
+  "jobs.head.send_waiting": "Lähetetään",
+  "jobs.head.copying": "Kopioidaan kohteeseen %3: %1/%2",
+  "jobs.head.moving": "Siirretään kohteeseen %3: %1/%2",
+  "jobs.head.sending": "Lähetetään kohteeseen %3: %1/%2",
+  "jobs.head.action": "%1 · %2/%3",
+  "jobs.head.checking": {
+    "one": "Tarkistetaan %1 kohde kohteessa %2",
+    "other": "Tarkistetaan %1 kohdetta kohteessa %2"
+  },
+  "jobs.head.copy_waiting": {
+    "one": "Kopioi %1 kohde kohteeseen %2",
+    "other": "Kopioi %1 kohdetta kohteeseen %2"
+  },
+  "jobs.head.move_waiting": {
+    "one": "Siirrä %1 kohde kohteeseen %2",
+    "other": "Siirrä %1 kohdetta kohteeseen %2"
+  },
+  "jobs.head.compress_waiting": {
+    "one": "Pakkaa %1 kohde tiedostoon %2",
+    "other": "Pakkaa %1 kohdetta tiedostoon %2"
+  },
+  "jobs.head.compressing": {
+    "one": "Pakataan %1 kohde",
+    "other": "Pakataan %1 kohdetta"
+  },
   "jobs.failed.extract": "Purkaminen epäonnistui",
   "jobs.failed.move": "Siirto epäonnistui",
   "jobs.failed.send": "Lähetys epäonnistui",
@@ -2053,6 +2078,7 @@
   "settings.hint.thumbs_kept": "Pois näyttää silti jo luodut pienoiskuvat.",
   "settings.keys.move_cursor": "Siirrä kohdistinta",
   "settings.keys.move_open_up": "Siirry, avaa, ylös",
+  "settings.keys.arrows": "nuolet",
   "settings.list.separator": ", ",
   "settings.menus.compress": "Pakkaa",
   "settings.menus.convert": "Muunna",

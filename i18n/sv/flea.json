@@ -800,6 +800,31 @@
   "jobs.failed.compress": "Komprimeringen misslyckades",
   "jobs.failed.copy": "Kopieringen misslyckades",
   "jobs.failed.emptyTrash": "Tömningen av papperskorgen misslyckades",
+  "jobs.head.send_waiting": "Skickar",
+  "jobs.head.copying": "Kopierar %1 av %2 till %3",
+  "jobs.head.moving": "Flyttar %1 av %2 till %3",
+  "jobs.head.sending": "Skickar %1 av %2 till %3",
+  "jobs.head.action": "%1 · %2 av %3",
+  "jobs.head.checking": {
+    "one": "Kontrollerar %1 objekt på %2",
+    "other": "Kontrollerar %1 objekt på %2"
+  },
+  "jobs.head.copy_waiting": {
+    "one": "Kopiera %1 objekt till %2",
+    "other": "Kopiera %1 objekt till %2"
+  },
+  "jobs.head.move_waiting": {
+    "one": "Flytta %1 objekt till %2",
+    "other": "Flytta %1 objekt till %2"
+  },
+  "jobs.head.compress_waiting": {
+    "one": "Komprimera %1 objekt till %2",
+    "other": "Komprimera %1 objekt till %2"
+  },
+  "jobs.head.compressing": {
+    "one": "Komprimerar %1 objekt",
+    "other": "Komprimerar %1 objekt"
+  },
   "jobs.failed.extract": "Uppackningen misslyckades",
   "jobs.failed.move": "Flytten misslyckades",
   "jobs.failed.send": "Sändningen misslyckades",
@@ -2092,6 +2117,7 @@
   "settings.hint.thumbs_kept": "Av visar fortfarande miniatyrer som redan har skapats.",
   "settings.keys.move_cursor": "Flytta markören",
   "settings.keys.move_open_up": "Flytta, öppna, uppåt",
+  "settings.keys.arrows": "pilar",
   "settings.list.separator": ", ",
   "settings.menus.compress": "Komprimera",
   "settings.menus.convert": "Konvertera",

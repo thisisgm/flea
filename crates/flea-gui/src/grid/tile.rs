@@ -121,7 +121,7 @@ pub fn prepare(
     } else {
         per_line as f64
     };
-    let shown = flea::bytename::display(&row.name);
+    let shown = crate::row::shown_name(&row.name);
     let caption = captions::grid_caption(&shown, budget, count as f64).into_owned();
     let mut lines = Vec::with_capacity(count);
     let mut at = 0;
