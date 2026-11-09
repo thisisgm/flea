@@ -95,7 +95,7 @@ impl Shell {
             self.chrome.view = Some(view);
         }
         let chrome = self.chrome.view.clone().expect("mounted chrome");
-        self.sync_chrome_stops(window);
+        self.sync_chrome_stops(window, cx);
         let path = chrome.read_with(cx, |view, _| view.path.clone());
         let host = self.panes[side].as_ref().expect("focused pane");
         let path_inputs = super::view::Inputs {
@@ -235,7 +235,8 @@ impl Shell {
             }
             Out::Closed => {
                 self.focus_pane(self.focus_side, cx);
-                window.focus(&self.focus, cx);
+                // Under a covering page (Trash) the keys go back to that page's list, never the hidden folder's.
+                window.focus(&self.overlay_return_focus(cx), cx);
                 self.check_history(cx);
             }
             Out::Send { side, line } => {

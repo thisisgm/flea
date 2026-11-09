@@ -236,18 +236,7 @@ impl Shell {
             return false;
         }
         let key = StripKey::from_event(event);
-        // Enter on a file result uses the same reveal as o; query Enter still commits the line.
-        if !host.search.owner.typing()
-            && matches!(key, StripKey::Enter)
-            && crate::window::input::modifiers(event.keystroke.modifiers) == 0
-            && !host.pane.busy()
-            && !host.search.owner.session.leaving
-            && host.pane.held.row(host.pane.cursor).is_some_and(|row| {
-                !flea::ui_logic_picker_portal::directory(row.dir, row.mode, &row.icon)
-            })
-        {
-            return self.search_action("reveal", window, cx);
-        }
+        // Enter on a result is the listing's: a file opens in its default app and a folder goes in; o reveals.
         if !host.search.owner.typing() && !matches!(key, StripKey::Escape) {
             return false;
         }
@@ -310,7 +299,7 @@ impl Shell {
         }
     }
 
-    // The committed line's Enter, run again through the listing so a file reveals and a folder opens as they always do.
+    // The committed line's Enter, run again through the listing so a file opens in its default app and a folder goes in.
     fn search_enter_row(
         &mut self,
         side: usize,

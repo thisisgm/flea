@@ -344,6 +344,14 @@ fn key_delivery_state_reads_history_and_preview(cx: &mut TestAppContext) {
 #[gpui::test]
 fn key_delivery_state_counts_chrome_and_strip_outside_the_pane(cx: &mut TestAppContext) {
     let (handle, _lines) = open(cx);
+    // An undrawn stop hands the keys to the list (S11J-3), so the strip needs a second tab to be drawn.
+    edit(cx, handle, |shell, window, cx| {
+        shell.tab_tap_hit(crate::tabs::bar::Hit::New, false, window, cx)
+    });
+    frame(cx, handle);
+    edit(cx, handle, |shell, _, _| {
+        assert!(shell.slots.tabs.is_some(), "two tabs draw the strip")
+    });
     for (stop, name) in [(0, "chrome"), (1, "strip")] {
         edit(cx, handle, |shell, window, cx| {
             let target = if stop == 0 {
@@ -357,7 +365,8 @@ fn key_delivery_state_counts_chrome_and_strip_outside_the_pane(cx: &mut TestAppC
         let read = state(cx, handle);
         assert_eq!(
             field(&read, "activeFocusItem"),
-            &Json::Str("QQuickItem".into())
+            &Json::Str("QQuickItem".into()),
+            "{name}"
         );
         assert_eq!(
             edit(cx, handle, |shell, window, cx| shell.focus_view(window, cx)),

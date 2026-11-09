@@ -8,8 +8,9 @@ use gpui::{KeyDownEvent, Keystroke, Modifiers, TestAppContext};
 
 const FILE: u32 = 0o100644;
 
+// S11J-5: Tab and Shift+Tab move the menu highlight as Down and Up do, and the menu keeps the keyboard.
 #[gpui::test]
-fn ey151_tab_shift_tab_and_backtab_leave_the_menu_cursor_on_copy(cx: &mut TestAppContext) {
+fn s11j5_tab_shift_tab_and_backtab_walk_the_menu_rows(cx: &mut TestAppContext) {
     let (shell, cx) = open_root_with(cx, r#""keys":"default","view":"list""#, None);
     land(&shell, cx, "/files", vec![entry("notes.txt", FILE)], 1);
     cx.simulate_keystrokes("m");
@@ -25,8 +26,18 @@ fn ey151_tab_shift_tab_and_backtab_leave_the_menu_cursor_on_copy(cx: &mut TestAp
     {
         cx.simulate_keystrokes("down");
     }
-    let before = read(&shell, cx, "menuState", &[]);
-    for (key, shift) in [("tab", false), ("tab", true), ("backtab", true)] {
+    let cursor = |cx: &mut gpui::VisualTestContext| read(&shell, cx, "contextMenuCursor", &[]);
+    cx.simulate_keystrokes("down");
+    let below = cursor(cx);
+    cx.simulate_keystrokes("up up");
+    let above = cursor(cx);
+    cx.simulate_keystrokes("down");
+    assert_eq!(cursor(cx), copy.to_string());
+    for (key, shift, want) in [
+        ("tab", false, below),
+        ("tab", true, copy.to_string()),
+        ("backtab", true, above),
+    ] {
         cx.simulate_event(KeyDownEvent {
             keystroke: Keystroke {
                 key: key.into(),
@@ -40,12 +51,41 @@ fn ey151_tab_shift_tab_and_backtab_leave_the_menu_cursor_on_copy(cx: &mut TestAp
             prefer_character_input: false,
         });
         settle(cx);
-        assert_eq!(
-            read(&shell, cx, "contextMenuCursor", &[]),
-            copy.to_string(),
-            "{key}, shift={shift}"
-        );
-        assert_eq!(read(&shell, cx, "menuState", &[]), before);
+        assert_eq!(cursor(cx), want, "{key}, shift={shift}");
+        assert_eq!(read(&shell, cx, "contextMenuVisible", &[]), "true");
+    }
+    // A modified Tab moves nothing and leaves the menu holding the keyboard.
+    let (menu, stop) = (
+        read(&shell, cx, "menuState", &[]),
+        read(&shell, cx, "focusStop", &[]),
+    );
+    for modifiers in [
+        Modifiers {
+            control: true,
+            ..Modifiers::none()
+        },
+        Modifiers {
+            alt: true,
+            ..Modifiers::none()
+        },
+        Modifiers {
+            control: true,
+            shift: true,
+            ..Modifiers::none()
+        },
+    ] {
+        cx.simulate_event(KeyDownEvent {
+            keystroke: Keystroke {
+                key: "tab".into(),
+                modifiers,
+                ..Keystroke::default()
+            },
+            is_held: false,
+            prefer_character_input: false,
+        });
+        settle(cx);
+        assert_eq!(read(&shell, cx, "menuState", &[]), menu, "{modifiers:?}");
+        assert_eq!(read(&shell, cx, "focusStop", &[]), stop, "{modifiers:?}");
     }
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }

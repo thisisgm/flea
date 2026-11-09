@@ -60,6 +60,8 @@ mod join_atomic_tests;
 mod gcomp_join_tests;
 
 #[cfg(test)]
+mod cover_focus_tests;
+#[cfg(test)]
 mod parity_input_tests;
 #[cfg(test)]
 mod parity_sweep_tests;

@@ -78,3 +78,53 @@ fn a_refused_review_says_why_and_closes_its_snapshot(cx: &mut TestAppContext) {
     assert!(!shell.read_with(cx, |shell, cx| shell.card_holds_keyboard(cx)));
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
+
+// S9G-3: once the permanent card has closed, a press on a surface that takes no focus (the status bar) keeps the list's keys.
+#[gpui::test]
+fn a_press_on_the_status_bar_after_a_closed_card_keeps_the_list_keys(cx: &mut TestAppContext) {
+    // The window root draws the card layer over the panes, so a stray press reaches it as on the desktop.
+    let (shell, cx) = super::super::test_shell::open_root(cx, "default");
+    land(&shell, cx, "/files", home(), 1);
+    let mut sent = wire(&shell, cx);
+    cx.simulate_keystrokes("shift-delete");
+    let id = flea::json::field_usize(&sent()[0], "id").unwrap();
+    reply(
+        &shell,
+        cx,
+        &format!(r#"{{"t":"menuaction","id":{id},"op":"snapshot","ok":true,"kinds":[32768]}}"#),
+    );
+    reply(
+        &shell,
+        cx,
+        &format!(
+            r#"{{"t":"menuaction","id":{id},"op":"prepareDelete","ok":true,"token":77,"count":1,"bytes":12}}"#
+        ),
+    );
+    assert!(shell.read_with(cx, |shell, cx| shell.card_holds_keyboard(cx)));
+    cx.simulate_keystrokes("escape");
+    super::super::menus_tests::settle(cx);
+    let focused = |cx: &mut VisualTestContext| {
+        cx.update(|window, cx| shell.read_with(cx, |shell, _| shell.focus.is_focused(window)))
+    };
+    assert!(focused(cx), "Cancel hands the keys back to the list");
+    let status =
+        cx.update(|window, cx| shell.read_with(cx, |shell, _| shell.geometry(window).status));
+    let at = gpui::point(
+        gpui::px(status.x + status.width / 2.),
+        gpui::px(status.y + status.height / 2.),
+    );
+    for _ in 0..2 {
+        cx.simulate_mouse_down(at, gpui::MouseButton::Left, gpui::Modifiers::none());
+        cx.simulate_mouse_up(at, gpui::MouseButton::Left, gpui::Modifiers::none());
+        super::super::menus_tests::settle(cx);
+        assert!(
+            focused(cx),
+            "a status bar press leaves the keys on the list"
+        );
+    }
+    let before = shell.read_with(cx, |shell, _| shell.panes[0].as_ref().unwrap().pane.cursor);
+    cx.simulate_keystrokes("j");
+    let after = shell.read_with(cx, |shell, _| shell.panes[0].as_ref().unwrap().pane.cursor);
+    assert_eq!(after, before + 1, "j still moves the cursor");
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}

@@ -80,12 +80,12 @@ impl Shell {
             self.focus_pane(usize::from(to == 1), cx);
         }
         let handle = match to {
-            2 => &self.dual_focus.rail,
-            3 => &self.dual_focus.chrome,
-            4 => &self.dual_focus.strip,
-            _ => &self.focus,
+            2 => self.dual_focus.rail.clone(),
+            3 => self.dual_focus.chrome.clone(),
+            4 => self.dual_focus.strip.clone(),
+            _ => self.overlay_return_focus(cx),
         };
-        window.focus(handle, cx);
+        window.focus(&handle, cx);
         if to == 3 {
             self.enter_chrome(forward, window, cx);
         } else if to == 4 {

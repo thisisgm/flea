@@ -24,7 +24,7 @@ pub(super) fn record_registration(window: &Window, cx: &App) {
     }
 }
 
-fn mounted(cx: &mut TestAppContext) -> WindowHandle<Root> {
+pub(super) fn mounted(cx: &mut TestAppContext) -> WindowHandle<Root> {
     cx.update(|cx| cx.set_global(Registrations::default()));
     let window = root(cx);
     shell(cx, window, |shell, window, cx| {
@@ -76,7 +76,7 @@ fn mounted(cx: &mut TestAppContext) -> WindowHandle<Root> {
     window
 }
 
-fn enter(cx: &mut TestAppContext, window: WindowHandle<Root>) {
+pub(super) fn enter(cx: &mut TestAppContext, window: WindowHandle<Root>) {
     cx.simulate_keystrokes(window.into(), "tab");
     shell(cx, window, |shell, window, cx| {
         assert!(shell.dual_focus.rail.contains_focused(window, cx));
@@ -92,7 +92,7 @@ fn enter(cx: &mut TestAppContext, window: WindowHandle<Root>) {
     });
 }
 
-fn settle(cx: &mut TestAppContext, window: WindowHandle<Root>, total: usize) {
+pub(super) fn settle(cx: &mut TestAppContext, window: WindowHandle<Root>, total: usize) {
     let rows = (0..total).map(|index| format!(
         r#"{{"uri":"trash:///item-{index}","original":"/Docs/file-{index}.txt","identity":"id-{index}","size":6}}"#,
     )).collect::<Vec<_>>().join(",");

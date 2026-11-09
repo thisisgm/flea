@@ -68,6 +68,8 @@ pub struct TrashPane {
     // The last pointer point over the rows, and whether the keyboard has quieted its wash since (#322).
     pub(super) pointer: Option<gpui::Point<gpui::Pixels>>,
     pub(super) quiet: bool,
+    /// The window's keyboard is on another stop (the rail, the tab strip), so the cursor drops its accent as a folder's does.
+    pub(super) keys_away: bool,
     /// The strip's controls as the last frame laid them out, for the IPC centre readers.
     pub controls: super::controls::Controls,
 }
@@ -112,6 +114,7 @@ impl TrashPane {
             monitor_start: Some(Monitor::start),
             pointer: None,
             quiet: false,
+            keys_away: false,
         }
     }
 

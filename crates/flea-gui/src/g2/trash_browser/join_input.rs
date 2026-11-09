@@ -61,7 +61,12 @@ impl Shell {
         let pane = host.pane.clone();
         let menu_open = host.menu.borrow().opened();
         if !menu_open && !pane.read(cx).focus.contains_focused(window, cx) {
-            return false;
+            // The window's own handle is the list stop, and on the side Trash covers that list is Trash's.
+            if !self.focus.is_focused(window) {
+                return false;
+            }
+            let focus = pane.read(cx).focus.clone();
+            window.focus(&focus, cx);
         }
         let preset = self
             .launch
