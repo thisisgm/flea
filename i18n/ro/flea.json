@@ -238,6 +238,7 @@
   "device.system_drive": "%1 este unitatea de sistem, pe care Flea nu o demontează niciodată",
   "device.system_volume": "Acest dosar se află pe un volum de sistem, pe care Flea nu îl demontează niciodată",
   "device.transfer_using": "%1 nu a putut fi demontat. Este posibil să fie încă folosit de un transfer.",
+  "device.transfer_running": "O copiere pe %1 este încă în curs. Încearcă din nou după terminare.",
   "device.unconfirmed": "Nu s-a putut confirma ejectarea lui %1; nu îl deconecta încă.",
   "device.unlock.button": "Deblochează",
   "device.unlock.cancel": "omarchy:shell.common.cancel",

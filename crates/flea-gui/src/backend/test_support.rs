@@ -59,6 +59,7 @@ impl Backend {
                 drained,
                 thumbs: Default::default(),
                 folders: Default::default(),
+                transfers: Default::default(),
             },
             receiver,
         )
@@ -85,6 +86,7 @@ impl Backend {
                 drained,
                 thumbs: Default::default(),
                 folders: Default::default(),
+                transfers: Default::default(),
             },
             receive,
         )

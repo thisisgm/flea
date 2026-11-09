@@ -320,6 +320,7 @@
   "device.system_drive": "%1 is de systeemschijf, die Flea nooit afkoppelt",
   "device.system_volume": "Deze map staat op een systeemvolume, dat Flea nooit afkoppelt",
   "device.transfer_using": "%1 kon niet worden afgekoppeld. Een overdracht gebruikt het apparaat mogelijk nog.",
+  "device.transfer_running": "Er loopt nog een kopie op %1. Probeer het opnieuw zodra die klaar is.",
   "device.unconfirmed": "Kon niet bevestigen dat %1 is uitgeworpen; koppel het apparaat nog niet los.",
   "device.unlock.failed": "%1 kon niet worden ontgrendeld.",
   "device.unlock.lock_failed": "%1 is afgekoppeld maar kon niet worden vergrendeld; sluit alles wat het apparaat gebruikt.",

@@ -134,6 +134,7 @@ pub const ENGLISH: &[(&str, &str)] = &[
     ("device.no_disc", "%1 has no disc or card in it."),
     ("device.not_mountable", "%1 cannot be mounted on this computer."),
     ("device.transfer_using", "%1 could not be unmounted. A transfer may still be using it."),
+    ("device.transfer_running", "A copy on %1 is still running. Try again when it finishes."),
     ("device.system_drive", "%1 is the system drive, which Flea never unmounts"),
     ("device.system_volume", "This folder is on a system volume, which Flea never unmounts"),
     ("device.no_volume", "This folder is not on a drive Flea can eject."),

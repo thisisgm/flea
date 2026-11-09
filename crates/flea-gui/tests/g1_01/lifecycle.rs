@@ -131,3 +131,28 @@ fn real_backend_pipes_drain_on_quit_and_report_unexpected_eof() {
         }
     }
 }
+
+#[test]
+fn a_backend_that_exits_lets_go_of_the_transfers_it_was_sent() {
+    let root = root();
+    let mut command = Command::new("python3");
+    command.args(["-c", "import pathlib,sys,time\nr=pathlib.Path(sys.argv[1]); sys.stdin.readline(); sys.stdin.readline()\nwhile not (r/'go').exists(): time.sleep(.01)\n"])
+        .arg(&root);
+    let backend = Backend::start_command(command, "/literal".into(), None, 0).unwrap();
+    let copy = r#"{"c":"transfer","op":"copy","paths":["/literal/a"],"dest":"/media/stick"}"#;
+    backend.line(copy.into()).unwrap();
+    assert!(
+        backend.transfers_on("/media/stick"),
+        "a live backend holds the copy it was sent"
+    );
+    std::fs::write(root.join("go"), "").unwrap();
+    let deadline = Instant::now() + Duration::from_secs(10);
+    while !matches!(backend.replies.try_recv(), Ok(Event::Drained)) {
+        assert!(Instant::now() < deadline, "backend did not reap");
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    assert!(
+        !backend.transfers_on("/media/stick"),
+        "an exited backend runs nothing it was sent"
+    );
+}

@@ -248,6 +248,7 @@
   "device.system_drive": "%1 є системним накопичувачем, який Flea ніколи не демонтує",
   "device.system_volume": "Ця тека розташована на системному томі, який Flea ніколи не демонтує",
   "device.transfer_using": "Не вдалося демонтувати %1. Передавання даних, можливо, ще використовує пристрій.",
+  "device.transfer_running": "Копіювання на %1 ще триває. Повторіть спробу після завершення.",
   "device.unconfirmed": "Не вдалося підтвердити витягнення %1; ще не від’єднуйте пристрій.",
   "device.unlock.button": "Розблокувати",
   "device.unlock.cancel": "omarchy:shell.common.cancel",

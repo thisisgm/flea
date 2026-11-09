@@ -24,6 +24,8 @@ pub(crate) mod bfx_net_tests;
 #[cfg(test)]
 mod card_tests;
 #[cfg(test)]
+mod eject_restore_tests;
+#[cfg(test)]
 mod eject_tests;
 #[cfg(test)]
 mod host_tests;

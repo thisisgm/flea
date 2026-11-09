@@ -238,6 +238,7 @@
   "device.system_drive": "%1 es la unidad del sistema, que Flea nunca desmonta",
   "device.system_volume": "Esta carpeta está en un volumen del sistema, que Flea nunca desmonta",
   "device.transfer_using": "No se pudo desmontar %1. Una transferencia podría seguir usándolo.",
+  "device.transfer_running": "Aún hay una copia en curso en %1. Inténtalo cuando termine.",
   "device.unconfirmed": "No se pudo confirmar que se expulsó %1; no lo desconectes todavía.",
   "device.unlock.button": "Desbloquear",
   "device.unlock.cancel": "omarchy:shell.common.cancel",

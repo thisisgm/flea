@@ -212,6 +212,7 @@
   "device.system_drive": "%1 はシステムドライブのため、Flea はアンマウントしません",
   "device.system_volume": "このフォルダーはシステムボリューム上にあるため、Flea はアンマウントしません",
   "device.transfer_using": "%1 をアンマウントできませんでした。転送処理がまだ使用している可能性があります。",
+  "device.transfer_running": "%1 でコピーを実行中です。完了後に再試行してください。",
   "device.unconfirmed": "%1 の取り出しを確認できませんでした。まだ取り外さないでください。",
   "device.unlock.button": "ロック解除",
   "device.unlock.cancel": "omarchy:shell.common.cancel",

@@ -312,6 +312,7 @@
   "device.no_disc": "%1 não tem nenhum disco ou cartão inserido.",
   "device.not_mountable": "Não é possível montar %1 neste computador.",
   "device.transfer_using": "Não foi possível desmontar %1. Uma transferência ainda pode estar a utilizá-la.",
+  "device.transfer_running": "Uma cópia em %1 ainda está a decorrer. Tenta novamente quando terminar.",
   "device.system_drive": "%1 é a unidade do sistema, que o Flea nunca desmonta",
   "device.system_volume": "Esta pasta está num volume do sistema, que o Flea nunca desmonta",
   "device.no_volume": "Esta pasta não está numa unidade que o Flea possa ejetar.",

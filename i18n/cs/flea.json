@@ -238,6 +238,7 @@
   "device.system_drive": "%1 je systémový disk, který Flea nikdy neodpojuje",
   "device.system_volume": "Tato složka je na systémovém svazku, který Flea nikdy neodpojuje",
   "device.transfer_using": "%1 nelze odpojit. Je možné, že ho stále používá přenos.",
+  "device.transfer_running": "Na %1 stále probíhá kopírování. Zkuste to po dokončení.",
   "device.unconfirmed": "Vysunutí %1 nelze potvrdit. Zatím zařízení fyzicky neodpojujte.",
   "device.unlock.button": "Odemknout",
   "device.unlock.cancel": "omarchy:shell.common.cancel",

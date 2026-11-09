@@ -228,6 +228,7 @@
   "device.system_drive": "%1 පද්ධති ධාවකයයි, Flea එය කිසිවිට ගලවන්නේ නැත",
   "device.system_volume": "මෙම ෆෝල්ඩරය පද්ධති පරිමාවක ඇත, Flea එය කිසිවිට ගලවන්නේ නැත",
   "device.transfer_using": "%1 ගැලවිය නොහැකි විය. ගොනු මාරුවක් තවම එය භාවිත කරනවා විය හැක.",
+  "device.transfer_running": "%1 මත පිටපතක් තවම ක්‍රියාත්මක වේ. එය අවසන් වූ පසු නැවත උත්සාහ කරන්න.",
   "device.unconfirmed": "%1 නික්මවූ බව තහවුරු කළ නොහැකි විය; තවම එය විසන්ධි නොකරන්න.",
   "device.unlock.button": "අගුලු හරින්න",
   "device.unlock.cancel": "omarchy:shell.common.cancel",

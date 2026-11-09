@@ -304,6 +304,7 @@
   "device.no_disc": "%1 nem tartalmaz lemezt vagy kártyát.",
   "device.not_mountable": "%1 nem csatolható ezen a számítógépen.",
   "device.transfer_using": "%1 leválasztása sikertelen. Egy átvitel még használhatja.",
+  "device.transfer_running": "Másolás még folyamatban van ezen: %1. Utána próbáld újra.",
   "device.system_drive": "%1 a rendszermeghajtó, amelyet a Flea soha nem választ le",
   "device.system_volume": "A mappa rendszerköteten található, amelyet a Flea soha nem választ le",
   "device.no_volume": "A mappa nem a Flea által kiadható meghajtón található.",

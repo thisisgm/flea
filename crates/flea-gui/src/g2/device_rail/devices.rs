@@ -37,6 +37,16 @@ pub enum Effect {
     },
     Forget(Note),
     ReadSectors(String),
+    /// A release ended with its volume still mounted, so the panes it moved go back.
+    Restore(Vec<Moved>),
+}
+
+/// A pane a release moved off its volume: its side, the folder it left and the place it landed in.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Moved {
+    pub side: usize,
+    pub from: String,
+    pub to: String,
 }
 
 pub const POLL_MS: u64 = 5_000;
@@ -78,6 +88,9 @@ pub struct Devices {
     pub(super) power_disk: String,
     pub(super) power_queue: Vec<Queued>,
     pub(super) power_sectors: String,
+    pub(super) power_leg: String,
+    /// The volume the release in flight moved panes off, and those panes.
+    pub(super) moved: (String, Vec<Moved>),
     pub(super) unmount_ended_late: bool,
     pub(super) eject_ended_late: bool,
     pub(super) last_verdict: Option<Note>,
@@ -297,16 +310,16 @@ impl Devices {
         let mut out = Vec::new();
         if !self.power_disk.is_empty() {
             if outcome.code != 0 {
+                let mounted = self.volume_pending(true);
                 self.end_chain();
-                out.push(failure(
-                    mount_error(
-                        Op::Unmount,
-                        outcome.code,
-                        &outcome.stderr,
-                        &self.eject_label,
-                    ),
+                let headline = mount_error(
+                    Op::Unmount,
+                    outcome.code,
                     &outcome.stderr,
-                ));
+                    &self.eject_label,
+                );
+                out.extend(self.chain_failure(headline, &outcome.stderr));
+                out.extend(self.put_back(mounted));
             } else {
                 out.extend(self.power_off_next(now));
             }
@@ -323,7 +336,9 @@ impl Devices {
                 ),
                 &outcome.stderr,
             ));
+            out.extend(self.put_back(true));
         } else {
+            self.moved.1.clear();
             let (device, label, listing) = (
                 self.unmount_device.clone(),
                 self.unmount_label.clone(),

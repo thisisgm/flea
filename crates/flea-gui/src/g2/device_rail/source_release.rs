@@ -1,6 +1,6 @@
 //! Releases a device row by identity: the eject mark, its keyboard frame and Ctrl+E all end here.
 use super::*;
-use crate::g2::device_rail::phones;
+use crate::g2::device_rail::{devices::Moved, phones};
 use flea::ui_logic_device_rail::{
     eject::{release, release_action, Release},
     menu::RailAction,
@@ -89,11 +89,8 @@ impl Source {
                 ),
                 None => return,
             },
-            // A share belongs to the network owner, which answers its own release.
-            (true, Some(row)) if row.group == places::Group::Network => return,
-            (true, Some(row)) => {
-                Release::Say(Note::new("device.nothing_to_release", &[&row.label]))
-            }
+            // A share belongs to the network owner, and a place is answered by the window, which knows its shown name.
+            (true, Some(_)) => return,
             (true, None) => release(Some((&[], None)), directory, true, system, false),
             (false, _) if !self.active => {
                 // A hidden rail lists once and resolves against that answer, as ui/PaneRail.qml ejectHidden.
@@ -111,12 +108,23 @@ impl Source {
         self.verdict(verdict, side, cx);
     }
 
-    /// The window has quiesced the releasing pane, so the held release child may start.
-    pub fn quiesced(&mut self, cx: &mut Context<Self>) {
+    /// The window has quiesced the releasing pane, so the held release child may start; `moved` go back if it is refused.
+    pub fn quiesced(&mut self, volume: &str, moved: Vec<Moved>, cx: &mut Context<Self>) {
         let effects = std::mem::take(&mut self.after_quiesce);
         if !effects.is_empty() {
+            self.devices.moved = (volume.into(), moved);
             self.apply_at(effects, self.quiesce_side, cx);
         }
+    }
+
+    /// The window refused the release before quiescing, as a copy on the volume still runs: its child never starts.
+    pub fn refused(&mut self, note: Note, cx: &mut Context<Self>) {
+        self.after_quiesce.clear();
+        self.devices.abandon();
+        let side = self.quiesce_side;
+        self.say(note, side, cx);
+        self.publish(cx);
+        self.arm(cx);
     }
 
     /// The release guard state in one line, read by ipc's deviceEjectState.

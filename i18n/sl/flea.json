@@ -248,6 +248,7 @@
   "device.system_drive": "%1 je sistemski pogon, ki ga Flea nikoli ne odklopi",
   "device.system_volume": "Ta mapa je na sistemskem nosilcu, ki ga Flea nikoli ne odklopi",
   "device.transfer_using": "%1 ni bilo mogoče odklopiti. Morda ga še uporablja prenos.",
+  "device.transfer_running": "Kopiranje na %1 še poteka. Poskusite znova, ko se konča.",
   "device.unconfirmed": "Ni bilo mogoče potrditi izmeta %1; ne odklopite ga še iz računalnika.",
   "device.unlock.button": "Odkleni",
   "device.unlock.cancel": "omarchy:shell.common.cancel",

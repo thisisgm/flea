@@ -61,6 +61,12 @@ impl Shell {
                     let volume = volume.clone();
                     self.quiesce_volume(request.side, &volume, window, cx);
                 }
+                // A new eject verdict withdraws the one it replaces, or the old refusal stays over it.
+                Event::Device(Effect::Forget(note)) => {
+                    let text = crate::g2::device_rail::words::say(&self.locale.catalog, note);
+                    self.status_messages(cx, |messages, now| messages.forget(&text, now));
+                }
+                Event::Device(Effect::Restore(moved)) => self.restore_moved(moved, window, cx),
                 _ => self.dispatch(Order::Device(request), window, cx),
             }
         }

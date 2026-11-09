@@ -228,6 +228,7 @@
   "device.system_drive": "⁨%1⁩ درایو سیستم است و Flea هرگز آن را پیاده نمی‌کند",
   "device.system_volume": "این پوشه روی حجم سیستم است و Flea هرگز آن را پیاده نمی‌کند",
   "device.transfer_using": "پیاده کردن ⁨%1⁩ ممکن نشد. شاید انتقالی هنوز از آن استفاده می‌کند.",
+  "device.transfer_running": "یک رونوشت روی ⁨%1⁩ هنوز در حال اجراست. پس از پایان دوباره تلاش کنید.",
   "device.unconfirmed": "خارج شدن ⁨%1⁩ تأیید نشد؛ هنوز آن را جدا نکنید.",
   "device.unlock.button": "باز کردن قفل",
   "device.unlock.cancel": "omarchy:shell.common.cancel",
