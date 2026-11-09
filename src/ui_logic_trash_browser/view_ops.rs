@@ -56,7 +56,13 @@ impl View {
         if self.busy() || if all { self.total == 0 } else { self.selection.is_empty() } {
             return;
         }
+        self.prepare_review(all);
+    }
+
+    /// Send the deletion review request for the entire Trash or the current selection.
+    pub(super) fn prepare_review(&mut self, all: bool) {
         self.confirming = true;
+        self.refresh_pending = false;
         let uris = self.selection.uris();
         self.review = Review {
             all,
@@ -98,7 +104,7 @@ impl View {
     /// The check timer: an open card asks whether its reviewed items are unchanged.
     pub fn check(&mut self) {
         let Some(token) = self.confirmation.as_ref().map(|c| c.token) else { return };
-        if self.opened && !self.busy() {
+        if !self.busy() {
             self.send("check", Self::browse().number("token", token));
         }
     }

@@ -22,8 +22,9 @@ impl Target {
     }
 }
 
+/// Open the Trash sidebar menu after the current frame has finished drawing.
 pub(super) fn run(
-    shell: &mut Shell,
+    _: &mut Shell,
     order: &Order,
     window: &mut Window,
     cx: &mut Context<Shell>,
@@ -37,7 +38,15 @@ pub(super) fn run(
     if entry.kind != Kind::Trash {
         return false;
     }
-    shell.open_rail_menu(request.side, window, cx);
+    // The rail drains requests during render, after the root has collected its overlays.
+    // The foreground task opens the menu once that draw has returned.
+    let side = request.side;
+    cx.spawn_in(window, async move |shell, cx| {
+        let _ = shell.update_in(cx, |shell, window, cx| {
+            shell.open_rail_menu(side, window, cx)
+        });
+    })
+    .detach();
     true
 }
 
@@ -114,6 +123,7 @@ impl Shell {
         }
     }
 
+    /// Dispatch a Trash sidebar choice while keeping Empty Trash in the current folder.
     pub(crate) fn rail_menu_outcome(
         &mut self,
         outcome: &Outcome,
@@ -129,6 +139,10 @@ impl Shell {
         let target = self.menu.rail.take().expect("rail menu target");
         self.rail_menu_hold(false, cx);
         self.retire_menu(window, cx);
+        if action == "emptyTrash" {
+            self.empty_trash_from_rail(target.side, window, cx);
+            return true;
+        }
         self.focus_pane(target.side, cx);
         self.trash_action(
             if action == "open" {

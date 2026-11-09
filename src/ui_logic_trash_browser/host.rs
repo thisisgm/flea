@@ -135,7 +135,7 @@ impl Host {
 
     /// The window and the sweep share one backend session, so a sweep starts only while the view is closed.
     pub fn sweep(&mut self, now_ms: i64, enabled: bool, swept_on: i64) {
-        if self.sweeping() || self.view.opened || self.view.operation_active || self.view.busy()
+        if self.sweeping() || self.view.opened || self.view.confirming || self.view.operation_active || self.view.busy()
             || !enabled || dates::day_number(now_ms) == swept_on {
             return;
         }
@@ -213,6 +213,20 @@ impl Host {
             return self.action(if action.is_empty() { "openTrash" } else { action });
         }
         self.view.open(action);
+    }
+
+    /// Review every current item from the sidebar while keeping a closed view closed.
+    pub fn empty_from_rail(&mut self) {
+        if self.view.opened {
+            return self.action("emptyTrash");
+        }
+        if self.view.confirming || self.view.operation_active {
+            return;
+        }
+        self.sweep_stop();
+        self.view.request_id = self.view.request_id.max(self.sweep_id);
+        self.view.selection.clear();
+        self.view.prepare_review(true);
     }
 
     pub fn close(&mut self) {
