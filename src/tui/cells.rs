@@ -1,8 +1,4 @@
-use super::{
-    icons,
-    model::Row,
-    theme::{Depth, Theme},
-};
+use super::{icons, model::Row, theme::Theme};
 
 pub use crate::cellwidth::width;
 #[cfg(test)]
@@ -305,17 +301,13 @@ pub fn row(
     };
     let reset = format!(
         "\x1b[0m{fill}{ink}{}",
-        if style.cursor && theme.depth == Depth::Sixteen {
-            "\x1b[7m"
-        } else {
-            ""
-        }
+        theme.depth.row_attribute(style.cursor, style.marked)
     );
     let mut out = reset.clone();
     if columns == 0 {
         return out;
     }
-    let edge = if style.cursor && style.focused && theme.depth != Depth::Sixteen {
+    let edge = if style.cursor && style.focused && !theme.depth.reverses() {
         format!("{}{}{}", theme.accent, "▎", ink)
     } else {
         " ".into()

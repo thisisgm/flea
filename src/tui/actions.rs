@@ -96,6 +96,9 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
         if matches!(action.as_str(), "tabNext" | "tabPrevious") {
             return act(model, &action, wire);
         }
+        if let Some(quit) = super::preview_keys::quit(model, key, map, &action) {
+            return act(model, &quit, wire);
+        }
         if action == "escape" || action == "focusPreview" {
             model.preview_focus = false;
             model.quicklook = false;
@@ -160,14 +163,7 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
                 _ => {}
             }
         } else {
-            match action.as_str() {
-                "cursorDown" => {
-                    model.preview_scroll =
-                        (model.preview_scroll + 1).min(super::layout::preview_scroll_limit(model))
-                }
-                "cursorUp" => model.preview_scroll = model.preview_scroll.saturating_sub(1),
-                _ => {}
-            }
+            return super::preview_keys::text(model, key, map, &armed, &action, wire);
         }
         return Ok(());
     }
@@ -195,6 +191,10 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
     }
     if action.starts_with("prefix:") {
         model.key_arm = action;
+        return Ok(());
+    }
+    // An empty folder has nothing to trash, so d arms no prompt that no second key could answer.
+    if action == "trashArm" && model.total == 0 {
         return Ok(());
     }
     // Issue 133: every trash key refuses on a mount gio cannot trash, before d arms and before the backend fails.
@@ -298,6 +298,8 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
                 | "copyDirUri"
                 | "copyName"
                 | "copyStem"
+                | "copyRelative"
+                | "copyQuoted"
                 | "followLink"
                 | "toggleSelect"
                 | "selectNext"
@@ -329,6 +331,8 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
                 | "copyDirUri"
                 | "copyName"
                 | "copyStem"
+                | "copyRelative"
+                | "copyQuoted"
                 | "followLink"
         )
     {
@@ -354,6 +358,8 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
                 | "copyUri"
                 | "copyName"
                 | "copyStem"
+                | "copyRelative"
+                | "copyQuoted"
                 | "followLink"
         )
     {
@@ -419,7 +425,7 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
         "open" | "pageForward" => {
             if m.choosing
                 && (action == "open")
-                && (!m.selected.is_empty() || m.rows.get(&m.cursor).is_some_and(|r| !r.directory))
+                && (!m.selected.is_empty() || m.rows.get(&m.cursor).is_some_and(|r| !r.folder()))
             {
                 if m.pending_clipboard || m.searching {
                     m.fail_key("tui.actions.wait_for_the_selection_to_settle_before_choosing");
@@ -431,7 +437,7 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
                 return Ok(());
             }
             if let Some(path) = m.current_path() {
-                if m.rows.get(&m.cursor).is_some_and(|r| r.directory) {
+                if m.rows.get(&m.cursor).is_some_and(|r| r.folder()) {
                     navigate(m, path, w)?;
                 } else if crate::open::open(&path.to_string_lossy()) != 0 {
                     m.fail_key("tui.model.could_not_open_selected_file");
@@ -503,7 +509,7 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
             }
         }
         "editFile" => {
-            if m.rows.get(&m.cursor).is_some_and(|r| !r.directory) {
+            if m.rows.get(&m.cursor).is_some_and(|r| !r.folder()) {
                 m.edit_file = m.current_path();
             } else {
                 m.fail_key("tui.external_editor.only_a_regular_file_can_be_edited");
@@ -625,7 +631,7 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
             }
             match m
                 .current_path()
-                .filter(|_| m.rows.get(&m.cursor).is_some_and(|r| r.directory))
+                .filter(|_| m.rows.get(&m.cursor).is_some_and(|r| r.folder()))
             {
                 Some(path) => push_tab(m, path, w)?,
                 None => m.say_key("tui.actions.only_a_folder_opens_in_a_new_tab"),

@@ -2573,6 +2573,7 @@
   "tui.cwd.the_output_needs_a_file_name": "Ieșirea necesită un nume de fișier",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "--tui-keymap acceptă default, vim, mac, windows sau yazi",
   "tui.cwd.twice": "%1 a fost specificat de două ori",
+  "tui.cwd.folder_missing": "Dosarul pentru %1 nu există: %2",
   "tui.cwd.write_error": "Nu s-a putut scrie %1: %2",
   "tui.editor.enter_a_filename_before_the_extension": "Introdu un nume de fișier înaintea extensiei.",
   "tui.editor.invalid_name": "Introdu un nume care nu este gol, . sau .. și care nu conține / sau un caracter nul.",
@@ -2601,6 +2602,7 @@
   "tui.launch.could_not_finish": "%1 nu s-a putut finaliza (%2)",
   "tui.launch.could_not_observe": "Nu s-a putut monitoriza %1: %2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "Acesta nu este un dosar, deci nu s-a deschis niciun terminal",
+  "tui.launch.program_not_found": "Programul %1 nu a fost găsit",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "Fă fereastra de cel puțin 12 coloane lățime și 5 rânduri înălțime.",
   "tui.model.bulk_done": {
     "one": "%1 element redenumit · Anularea revine asupra unei singure redenumiri",

@@ -24,4 +24,16 @@ pub fn agent(path: &Path) -> io::Result<Child> {
 
 fn detached(mut command: Command) -> io::Result<Child> {
     command.stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).process_group(0).spawn()
+        .map_err(|error| missing(error, &command))
 }
+
+// A program that is not there is named in a sentence, never left as the bare not-found cause.
+pub(super) fn missing(error: io::Error, command: &Command) -> io::Error {
+    if error.kind() != io::ErrorKind::NotFound { return error; }
+    let program = command.get_program().to_string_lossy().into_owned();
+    io::Error::other(super::words::args("tui.launch.program_not_found", vec![program.into()]))
+}
+
+#[cfg(test)]
+#[path = "launch_tests.rs"]
+mod tests;

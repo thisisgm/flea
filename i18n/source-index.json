@@ -1,9 +1,9 @@
 {
-  "catalog_file_sha256": "bbd4424e8ae76d318ab9f772198648b9be60cc81d7135ae1c19cd51556f0c5e6",
-  "catalog_sha256": "6088e663a756a95c831cd23e457d94ad733bcce4a0fc898cb4ff8808041d1122",
+  "catalog_file_sha256": "491d012f07ef5f3cb34e308407cb27d04f20ed00369ca08b4345b371aa1ba138",
+  "catalog_sha256": "f00b8548a8ff8a18ca0d0ca3028396ad0aff7597a48f552043ef041307f65464",
   "counts": {
     "direct_references": 0,
-    "keys": 2274,
+    "keys": 2276,
     "plurals": 106
   },
   "direct_references": {},
@@ -22176,7 +22176,7 @@
       "call_sites": [
         {
           "excerpt": "self.fail_key(\"clipboard.stale\");",
-          "line": 451,
+          "line": 455,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -60630,7 +60630,7 @@
         },
         {
           "excerpt": "self.search = self.prompts.i18n.tr(\"find.starting\");",
-          "line": 556,
+          "line": 560,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -64586,14 +64586,14 @@
       "call_sites": [
         {
           "excerpt": "self.transfer_text(super::words::args(if self.transfer_moving { \"jobs.transfer.moving\" } else { \"jobs.transfer.copying\" }, vec![super::words::Text::Count(0), super::words::Text::Count(self.transfer_total)]));",
-          "line": 1057,
+          "line": 1061,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "self.transfer_text(super::words::args(if self.transfer_moving { \"jobs.transfer.moving\" } else { \"jobs.transfer.copying\" }, vec![super::words::Text::Count(count(&value, \"index\") + 1), super::words::Text::Count(self.transfer_total)]));",
-          "line": 1067,
+          "line": 1071,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -64686,14 +64686,14 @@
       "call_sites": [
         {
           "excerpt": "self.transfer_text(super::words::args(if self.transfer_moving { \"jobs.transfer.moving\" } else { \"jobs.transfer.copying\" }, vec![super::words::Text::Count(0), super::words::Text::Count(self.transfer_total)]));",
-          "line": 1057,
+          "line": 1061,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "self.transfer_text(super::words::args(if self.transfer_moving { \"jobs.transfer.moving\" } else { \"jobs.transfer.copying\" }, vec![super::words::Text::Count(count(&value, \"index\") + 1), super::words::Text::Count(self.transfer_total)]));",
-          "line": 1067,
+          "line": 1071,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -67345,7 +67345,7 @@
         },
         {
           "excerpt": "\"keys.action.openTerminal\"",
-          "line": 640,
+          "line": 646,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -72594,6 +72594,13 @@
           "path": "crates/flea-gui/src/row/format.rs",
           "surface": "gui",
           "usage": "translated-call"
+        },
+        {
+          "excerpt": "let size = if row.folder() && !row.directory { i18n.tr(\"list.size_link\") } else { size };",
+          "line": 84,
+          "path": "src/tui/pane.rs",
+          "surface": "tui",
+          "usage": "translated-call"
         }
       ],
       "context": "list.size_link: crates/flea-gui/src/row/format.rs:35",
@@ -72957,7 +72964,7 @@
       "call_sites": [
         {
           "excerpt": "m.say_text(crate::tui::words::Text::Plural(\"menu.compressing\", paths.len(), vec![format.clone().into()]));",
-          "line": 232,
+          "line": 237,
           "path": "src/tui/menu_run.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -76256,7 +76263,7 @@
       "call_sites": [
         {
           "excerpt": "m.say_key(\"menu.taildropChecking\");",
-          "line": 162,
+          "line": 167,
           "path": "src/tui/menu_run.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -79561,7 +79568,7 @@
         },
         {
           "excerpt": "self.fail_key(\"pane.locked\");",
-          "line": 1249,
+          "line": 1253,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -79821,7 +79828,7 @@
         },
         {
           "excerpt": "let key = self.preview_state.refusal.unwrap_or(\"pane.unread\");",
-          "line": 953,
+          "line": 957,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -89462,7 +89469,7 @@
       "call_sites": [
         {
           "excerpt": "let facts = selection_bytes(m).map(|n| [Text::Key(\"preview.fact.combined\").spans(i18n), vec![(None, \" · \".into())], Text::Size(n).spans(i18n)].concat()).unwrap_or_default();",
-          "line": 205,
+          "line": 207,
           "path": "src/tui/pane.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -89746,7 +89753,7 @@
       "call_sites": [
         {
           "excerpt": "m.preview_state.facts.get(index).map_or(true, |fact| fact.key != \"preview.fact.modified\")",
-          "line": 241,
+          "line": 243,
           "path": "src/tui/pane.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -90519,7 +90526,7 @@
       "call_sites": [
         {
           "excerpt": "let line = if index == Some(archive.rows.len()) && more > 0 { state.i18n.trn(\"preview.more\", more as i64) } else { String::new() };",
-          "line": 111,
+          "line": 113,
           "path": "src/tui/pane.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -90603,7 +90610,7 @@
       "call_sites": [
         {
           "excerpt": "let label = i18n.tr(\"preview.openWith\");",
-          "line": 170,
+          "line": 172,
           "path": "src/tui/pane.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -90902,7 +90909,7 @@
     "preview.points.folder": {
       "call_sites": [
         {
-          "excerpt": "let kind = if row.directory { i18n.tr(\"preview.points.folder\") } else { row.kind.clone() };",
+          "excerpt": "let kind = if row.folder() { i18n.tr(\"preview.points.folder\") } else { row.kind.clone() };",
           "line": 80,
           "path": "src/tui/pane.rs",
           "surface": "tui",
@@ -91096,7 +91103,7 @@
         },
         {
           "excerpt": "typed(&mark, &Text::Plural(\"preview.selected\", m.selected.len(), vec![]).spans(i18n), width, i18n.locale().right_to_left, true)",
-          "line": 203,
+          "line": 205,
           "path": "src/tui/pane.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -91724,7 +91731,7 @@
       "call_sites": [
         {
           "excerpt": "m.prompts.i18n.tr(\"prompt.newFile\"),",
-          "line": 606,
+          "line": 612,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -91760,7 +91767,7 @@
         },
         {
           "excerpt": "m.prompts.i18n.tr(\"prompt.newFolder\"),",
-          "line": 538,
+          "line": 544,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -92068,7 +92075,7 @@
       "call_sites": [
         {
           "excerpt": "m.properties = Some(vec![(String::new(), m.i18n.tr(\"properties.loading\"))]);",
-          "line": 707,
+          "line": 713,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -92485,7 +92492,7 @@
       "call_sites": [
         {
           "excerpt": "self.say_text(super::prompts::undoable_text(self, super::words::Text::Key(\"receipt.fileCreated\")));",
-          "line": 1126,
+          "line": 1130,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -92858,7 +92865,7 @@
         },
         {
           "excerpt": "m.fail_key(\"search.contents.identity\");",
-          "line": 308,
+          "line": 310,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -101626,7 +101633,7 @@
       "call_sites": [
         {
           "excerpt": "super::words::Text::Key(\"step.link\"),",
-          "line": 194,
+          "line": 197,
           "path": "src/tui/parity17.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103552,7 +103559,7 @@
       "call_sites": [
         {
           "excerpt": "m.launched(\"tui.actions.agent\", child);",
-          "line": 651,
+          "line": 657,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103574,7 +103581,7 @@
       "call_sites": [
         {
           "excerpt": "m.fail_key(\"tui.actions.an_agent_needs_a_folder_to_open_in\");",
-          "line": 648,
+          "line": 654,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103596,7 +103603,7 @@
       "call_sites": [
         {
           "excerpt": "m.say_key(\"tui.actions.clipboard_cleared\");",
-          "line": 563,
+          "line": 569,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103618,7 +103625,7 @@
       "call_sites": [
         {
           "excerpt": "\"tui.actions.new_flea_window\"",
-          "line": 638,
+          "line": 644,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103640,7 +103647,7 @@
       "call_sites": [
         {
           "excerpt": "m.say_key(\"tui.actions.nine_tabs_is_the_most\");",
-          "line": 826,
+          "line": 832,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103662,7 +103669,7 @@
       "call_sites": [
         {
           "excerpt": "model.fail_key(\"tui.actions.no_action_for_that_key_sequence\");",
-          "line": 191,
+          "line": 187,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103684,7 +103691,7 @@
       "call_sites": [
         {
           "excerpt": "m.fail_key(\"tui.actions.no_home_folder_is_configured\");",
-          "line": 502,
+          "line": 508,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103706,7 +103713,7 @@
       "call_sites": [
         {
           "excerpt": "None => m.say_key(\"tui.actions.only_a_folder_opens_in_a_new_tab\"),",
-          "line": 631,
+          "line": 637,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103728,7 +103735,7 @@
       "call_sites": [
         {
           "excerpt": "m.fail_key(\"tui.actions.properties_requires_one_selected_item\");",
-          "line": 702,
+          "line": 708,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103750,7 +103757,7 @@
       "call_sites": [
         {
           "excerpt": "\"tui.actions.save_settings\",",
-          "line": 876,
+          "line": 882,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103774,7 +103781,7 @@
       "call_sites": [
         {
           "excerpt": "m.fail_key(\"tui.actions.select_one_available_item_to_duplicate\");",
-          "line": 599,
+          "line": 605,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103796,7 +103803,7 @@
       "call_sites": [
         {
           "excerpt": "m.fail_key(\"tui.actions.selected_item_is_unavailable_select_it_again_to_rename\");",
-          "line": 532,
+          "line": 538,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103818,7 +103825,7 @@
       "call_sites": [
         {
           "excerpt": "m.fail_key(\"tui.actions.wait_for_the_selection_to_settle_before_choosing\");",
-          "line": 425,
+          "line": 431,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103840,7 +103847,7 @@
       "call_sites": [
         {
           "excerpt": "(Err(error), Err(cleanup)) => Err(fault(\"tui.batch.cleanup_failed\", vec![semantic(&error), semantic(&cleanup)])),",
-          "line": 113,
+          "line": 111,
           "path": "src/tui/batch.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103865,7 +103872,7 @@
       "call_sites": [
         {
           "excerpt": "fs::remove_dir(&self.root).map_err(|error| fault(\"tui.batch.cleanup_left\", vec![self.root.to_string_lossy().into_owned().into(), semantic(&error)]))",
-          "line": 151,
+          "line": 149,
           "path": "src/tui/batch.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103890,7 +103897,7 @@
       "call_sites": [
         {
           "excerpt": "return Err(fault(\"tui.batch.cleanup_outside\", vec![self.path.to_string_lossy().into_owned().into(), self.root.to_string_lossy().into_owned().into()]));",
-          "line": 144,
+          "line": 142,
           "path": "src/tui/batch.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103915,7 +103922,7 @@
       "call_sites": [
         {
           "excerpt": "if !destinations.insert(destination.clone()) { return Err(failure(\"tui.batch.collision\")); }",
-          "line": 68,
+          "line": 66,
           "path": "src/tui/batch.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103937,7 +103944,7 @@
       "call_sites": [
         {
           "excerpt": "if lines.len() != self.sources.len() { return Err(failure(\"tui.batch.count_changed\")); }",
-          "line": 59,
+          "line": 57,
           "path": "src/tui/batch.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103959,7 +103966,7 @@
       "call_sites": [
         {
           "excerpt": "Ok(_) => return Err(failure(\"tui.batch.exists\")),",
-          "line": 72,
+          "line": 70,
           "path": "src/tui/batch.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103981,7 +103988,7 @@
       "call_sites": [
         {
           "excerpt": "return Err(fault(\"tui.batch.folder_changed\", vec![self.root.to_string_lossy().into_owned().into()]));",
-          "line": 136,
+          "line": 134,
           "path": "src/tui/batch.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104005,7 +104012,7 @@
       "call_sites": [
         {
           "excerpt": "if !valid_name(name) || name.contains('\\r') || name.len() > NAME_BYTES { return Err(failure(\"tui.batch.invalid_name\")); }",
-          "line": 65,
+          "line": 63,
           "path": "src/tui/batch.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104071,7 +104078,7 @@
       "call_sites": [
         {
           "excerpt": "if expected != Path::new(path) { return Err(failure(\"tui.batch.mismatched\")); }",
-          "line": 93,
+          "line": 91,
           "path": "src/tui/batch.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104093,7 +104100,7 @@
       "call_sites": [
         {
           "excerpt": "return Err(failure(\"tui.batch.nested\"));",
-          "line": 77,
+          "line": 75,
           "path": "src/tui/batch.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104114,8 +104121,8 @@
     "tui.batch.no_editor": {
       "call_sites": [
         {
-          "excerpt": ".ok_or_else(|| failure(\"tui.batch.no_editor\"))?;",
-          "line": 45,
+          "excerpt": "let editor = super::external_editor::chosen().ok_or_else(|| failure(\"tui.batch.no_editor\"))?;",
+          "line": 43,
           "path": "src/tui/batch.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104137,7 +104144,7 @@
       "call_sites": [
         {
           "excerpt": "let destination = path.parent().ok_or_else(|| failure(\"tui.batch.no_parent\"))?.join(name);",
-          "line": 67,
+          "line": 65,
           "path": "src/tui/batch.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104203,7 +104210,7 @@
       "call_sites": [
         {
           "excerpt": "if identity(&path.symlink_metadata()?) != *before { return Err(failure(\"tui.batch.source_changed\")); }",
-          "line": 66,
+          "line": 64,
           "path": "src/tui/batch.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104225,7 +104232,7 @@
       "call_sites": [
         {
           "excerpt": "if text.len() as u64 > limit { return Err(failure(\"tui.batch.too_long\")); }",
-          "line": 107,
+          "line": 105,
           "path": "src/tui/batch.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104247,7 +104254,7 @@
       "call_sites": [
         {
           "excerpt": "let limit = count.checked_mul(NAME_BYTES + 1).ok_or_else(|| failure(\"tui.batch.too_many\"))? as u64;",
-          "line": 103,
+          "line": 101,
           "path": "src/tui/batch.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104269,7 +104276,7 @@
       "call_sites": [
         {
           "excerpt": "let Some((source, name)) = self.pending.front() else { return Err(failure(\"tui.batch.unexpected\")); };",
-          "line": 91,
+          "line": 89,
           "path": "src/tui/batch.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104430,7 +104437,7 @@
       "call_sites": [
         {
           "excerpt": ".ok_or_else(|| super::words::error(\"tui.cwd.a_chosen_path_cannot_be_represented_as_one_text_line\"))?;",
-          "line": 71,
+          "line": 77,
           "path": "src/tui/cwd.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104452,7 +104459,7 @@
       "call_sites": [
         {
           "excerpt": "return Err(super::words::Text::Key(\"tui.cwd.cwd_file_and_chooser_file_need_different_output_paths\").to_string());",
-          "line": 41,
+          "line": 47,
           "path": "src/tui/cwd.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104491,6 +104498,31 @@
       "resolved_sha256": "3f0366f8b6761476dd8a2ca680575ee77f3ada85e112b7818b6990bc1003fc15",
       "resolved_source_hash": "83a94239558c",
       "source_hash": "83a94239558c"
+    },
+    "tui.cwd.folder_missing": {
+      "call_sites": [
+        {
+          "excerpt": "return Err(super::words::args(\"tui.cwd.folder_missing\", vec![flag.into(), folder.display().to_string().into()]).to_string());",
+          "line": 41,
+          "path": "src/tui/cwd.rs",
+          "surface": "tui",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "tui.cwd.folder_missing: src/tui/cwd.rs:41",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "The folder for %1 does not exist: %2",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1",
+        "%2"
+      ],
+      "plural_categories": [],
+      "resolved_english": "The folder for %1 does not exist: %2",
+      "resolved_sha256": "cd73a3b76ad09f907fca94bfff6545b1dd5b04ab2a95a7330f75bea3abcba201",
+      "resolved_source_hash": "d13570c0156a",
+      "source_hash": "d13570c0156a"
     },
     "tui.cwd.needs_file_path": {
       "call_sites": [
@@ -104568,7 +104600,7 @@
       "call_sites": [
         {
           "excerpt": "return Err(super::words::error(\"tui.cwd.no_directory_was_successfully_entered_so_no_cwd_file_was_written\"));",
-          "line": 48,
+          "line": 54,
           "path": "src/tui/cwd.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104590,7 +104622,7 @@
       "call_sites": [
         {
           "excerpt": "if body.is_empty() { return Err(super::words::error(\"tui.cwd.no_paths_were_chosen\")); }",
-          "line": 75,
+          "line": 81,
           "path": "src/tui/cwd.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104612,7 +104644,7 @@
       "call_sites": [
         {
           "excerpt": "let (temp, mut file) = made.ok_or_else(|| super::words::error(\"tui.cwd.no_private_output_temporary_file_is_available\"))?;",
-          "line": 90,
+          "line": 96,
           "path": "src/tui/cwd.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104634,7 +104666,7 @@
       "call_sites": [
         {
           "excerpt": "let name = output.file_name().ok_or_else(|| super::words::error(\"tui.cwd.the_output_needs_a_file_name\"))?;",
-          "line": 77,
+          "line": 83,
           "path": "src/tui/cwd.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104709,7 +104741,7 @@
       "call_sites": [
         {
           "excerpt": "result.map_err(|e| io::Error::other(super::words::args(\"tui.cwd.write_error\", vec![output.display().to_string().into(), e.to_string().into()])))",
-          "line": 97,
+          "line": 103,
           "path": "src/tui/cwd.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104734,7 +104766,7 @@
       "call_sites": [
         {
           "excerpt": "self.fail_key(\"tui.editor.enter_a_filename_before_the_extension\", i18n);",
-          "line": 91,
+          "line": 87,
           "path": "src/tui/editor.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104756,7 +104788,7 @@
       "call_sites": [
         {
           "excerpt": "\"tui.editor.invalid_name\"",
-          "line": 107,
+          "line": 103,
           "path": "src/tui/editor.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104778,7 +104810,7 @@
       "call_sites": [
         {
           "excerpt": "\"tui.editor.name_dots\"",
-          "line": 101,
+          "line": 97,
           "path": "src/tui/editor.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104800,7 +104832,7 @@
       "call_sites": [
         {
           "excerpt": "\"tui.editor.name_empty\"",
-          "line": 99,
+          "line": 95,
           "path": "src/tui/editor.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104822,7 +104854,7 @@
       "call_sites": [
         {
           "excerpt": "\"tui.editor.name_nul\"",
-          "line": 105,
+          "line": 101,
           "path": "src/tui/editor.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104844,7 +104876,7 @@
       "call_sites": [
         {
           "excerpt": "\"tui.editor.name_slash\"",
-          "line": 103,
+          "line": 99,
           "path": "src/tui/editor.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104866,7 +104898,7 @@
       "call_sites": [
         {
           "excerpt": "self.fail_key(\"tui.editor.selected_item_changed_reopen_rename\", i18n);",
-          "line": 117,
+          "line": 113,
           "path": "src/tui/editor.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104895,14 +104927,14 @@
       "call_sites": [
         {
           "excerpt": "m.fail_key(\"tui.external_editor.only_a_regular_file_can_be_edited\");",
-          "line": 509,
+          "line": 515,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "if !path.is_absolute() || !meta.is_file() { return Err(super::words::error(\"tui.external_editor.only_a_regular_file_can_be_edited\")); }",
-          "line": 18,
+          "line": 23,
           "path": "src/tui/external_editor.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104923,8 +104955,8 @@
     "tui.external_editor.set_editor_or_visual_to_edit_a_file_in_this_terminal": {
       "call_sites": [
         {
-          "excerpt": ".ok_or_else(|| super::words::error(\"tui.external_editor.set_editor_or_visual_to_edit_a_file_in_this_terminal\"))?;",
-          "line": 15,
+          "excerpt": "let selected = selected.ok_or_else(|| super::words::error(\"tui.external_editor.set_editor_or_visual_to_edit_a_file_in_this_terminal\"))?;",
+          "line": 20,
           "path": "src/tui/external_editor.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104946,7 +104978,7 @@
       "call_sites": [
         {
           "excerpt": "if quote.is_some() || escaped { return Err(super::words::error(\"tui.external_editor.the_editor_command_has_an_unfinished_quote_or_escape\")); }",
-          "line": 47,
+          "line": 52,
           "path": "src/tui/external_editor.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104968,7 +105000,7 @@
       "call_sites": [
         {
           "excerpt": "if args.first().map_or(true, String::is_empty) { return Err(super::words::error(\"tui.external_editor.the_editor_command_needs_a_program\")); }",
-          "line": 49,
+          "line": 54,
           "path": "src/tui/external_editor.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105099,7 +105131,7 @@
         },
         {
           "excerpt": "\"tui.frame.detail\",",
-          "line": 55,
+          "line": 58,
           "path": "src/tui/parity17.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105259,6 +105291,30 @@
       "resolved_source_hash": "6c99ee6e037e",
       "source_hash": "6c99ee6e037e"
     },
+    "tui.launch.program_not_found": {
+      "call_sites": [
+        {
+          "excerpt": "io::Error::other(super::words::args(\"tui.launch.program_not_found\", vec![program.into()]))",
+          "line": 34,
+          "path": "src/tui/launch.rs",
+          "surface": "tui",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "tui.launch.program_not_found: src/tui/launch.rs:34",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "Could not find the program %1",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1"
+      ],
+      "plural_categories": [],
+      "resolved_english": "Could not find the program %1",
+      "resolved_sha256": "76cb03bb9986a54016a2ad391d7430924b98a7140d7c9078ff28f70f6bcc117f",
+      "resolved_source_hash": "1c018dd86cf2",
+      "source_hash": "1c018dd86cf2"
+    },
     "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": {
       "call_sites": [
         {
@@ -105307,14 +105363,14 @@
       "call_sites": [
         {
           "excerpt": "super::words::Text::Plural(if cancelled { \"tui.model.bulk_stopped\" } else { \"tui.model.bulk_done\" }, completed, vec![]).to_string()",
-          "line": 230,
+          "line": 234,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "else { super::words::Text::Plural(if batch.cancelled { \"tui.model.bulk_stopped\" } else { \"tui.model.bulk_done\" }, batch.completed, vec![]) });",
-          "line": 608,
+          "line": 612,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105347,7 +105403,7 @@
       "call_sites": [
         {
           "excerpt": "self.fail_key(\"tui.model.bulk_rename_selection_is_incomplete_select_the_items_again\");",
-          "line": 1196,
+          "line": 1200,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105369,7 +105425,7 @@
       "call_sites": [
         {
           "excerpt": "else { Err(super::words::error(\"tui.model.bulk_rename_stopped_a_rename_could_not_finish\")) };",
-          "line": 1077,
+          "line": 1081,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105391,14 +105447,14 @@
       "call_sites": [
         {
           "excerpt": "super::words::Text::Plural(if cancelled { \"tui.model.bulk_stopped\" } else { \"tui.model.bulk_done\" }, completed, vec![]).to_string()",
-          "line": 230,
+          "line": 234,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "else { super::words::Text::Plural(if batch.cancelled { \"tui.model.bulk_stopped\" } else { \"tui.model.bulk_done\" }, batch.completed, vec![]) });",
-          "line": 608,
+          "line": 612,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105431,21 +105487,21 @@
       "call_sites": [
         {
           "excerpt": "m.fail_key(\"tui.model.could_not_open_selected_file\");",
-          "line": 437,
+          "line": 443,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "self.fail_key(\"tui.model.could_not_open_selected_file\");",
-          "line": 1208,
+          "line": 1212,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "self.fail_key(\"tui.model.could_not_open_selected_file\");",
-          "line": 1216,
+          "line": 1220,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105467,7 +105523,7 @@
       "call_sites": [
         {
           "excerpt": "let mut line = vec![super::words::Text::Plural(\"tui.model.deleted\", self.menu_count, vec![super::words::Text::Count(count(&value, \"deleted\"))])];",
-          "line": 1149,
+          "line": 1153,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105501,7 +105557,7 @@
       "call_sites": [
         {
           "excerpt": "if flag(&value, \"cancelled\") { line.push(super::words::Text::Key(\"tui.model.deleted_cancelled\")); }",
-          "line": 1150,
+          "line": 1154,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105523,7 +105579,7 @@
       "call_sites": [
         {
           "excerpt": "if count(&value, \"failed\") > 0 { self.fail_text(super::words::args(\"tui.model.deleted_failed\", vec![super::words::Text::Count(count(&value, \"failed\")), text(&value, \"error\").into()])); }",
-          "line": 1152,
+          "line": 1156,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105548,14 +105604,14 @@
       "call_sites": [
         {
           "excerpt": "if flag(&value, \"cancelled\") { self.say_key(\"tui.model.deletion_cancelled\"); }",
-          "line": 1144,
+          "line": 1148,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "self.say_key(\"tui.model.deletion_cancelled\");",
-          "line": 1147,
+          "line": 1151,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105577,7 +105633,7 @@
       "call_sites": [
         {
           "excerpt": "if token == 0 { return Err(super::words::error(\"tui.model.deletion_could_not_be_confirmed_try_again\")); }",
-          "line": 1184,
+          "line": 1188,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105599,7 +105655,7 @@
       "call_sites": [
         {
           "excerpt": "super::preview::set_text(self, super::words::Text::Key(\"tui.model.empty_folder\"));",
-          "line": 964,
+          "line": 968,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105621,7 +105677,7 @@
       "call_sites": [
         {
           "excerpt": "self.say_text(if batch.completed == 0 { super::words::Text::Key(if batch.cancelled { \"tui.model.rename_cancelled\" } else { \"tui.model.no_names_changed\" }) }",
-          "line": 607,
+          "line": 611,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105643,7 +105699,7 @@
       "call_sites": [
         {
           "excerpt": "self.say_text(if batch.completed == 0 { super::words::Text::Key(if batch.cancelled { \"tui.model.rename_cancelled\" } else { \"tui.model.no_names_changed\" }) }",
-          "line": 607,
+          "line": 611,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105665,7 +105721,7 @@
       "call_sites": [
         {
           "excerpt": "self.transfer_text(super::words::args(\"tui.model.renaming\", vec![super::words::Text::Count(batch.completed + 1), super::words::Text::Count(batch.total)]));",
-          "line": 601,
+          "line": 605,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105690,7 +105746,7 @@
       "call_sites": [
         {
           "excerpt": "} else { self.fail_text(super::words::args(\"tui.model.restore_deletion\", vec![text(value, \"error\").into()])); }",
-          "line": 633,
+          "line": 637,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105714,7 +105770,7 @@
       "call_sites": [
         {
           "excerpt": "self.say_key(\"tui.model.selection_changed_confirm_again\");",
-          "line": 1137,
+          "line": 1141,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105736,7 +105792,7 @@
       "call_sites": [
         {
           "excerpt": "Ok(()) => self.say_text(super::words::args(\"tui.model.sending\", vec![peer.label.clone().into()])),",
-          "line": 1225,
+          "line": 1229,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105760,7 +105816,7 @@
       "call_sites": [
         {
           "excerpt": "self.fail_key(\"tui.model.taildrop_cancelled_selection_changed\");",
-          "line": 650,
+          "line": 654,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105782,7 +105838,7 @@
       "call_sites": [
         {
           "excerpt": "let reason = if self.taildrop.error.is_empty() { super::words::Text::Key(\"tui.model.taildrop_device_is_unreachable\") }",
-          "line": 657,
+          "line": 661,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105804,7 +105860,7 @@
       "call_sites": [
         {
           "excerpt": "self.fail_key(\"tui.model.taildrop_selection_is_incomplete\");",
-          "line": 1222,
+          "line": 1226,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105826,7 +105882,7 @@
       "call_sites": [
         {
           "excerpt": "self.fail_key(\"tui.model.the_selection_changed_or_cannot_be_written_one_path_per_line_choose_it\");",
-          "line": 1018,
+          "line": 1022,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105872,7 +105928,7 @@
       "call_sites": [
         {
           "excerpt": "m.fail_key(\"tui.operation.search_busy\");",
-          "line": 335,
+          "line": 339,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105987,7 +106043,7 @@
     "tui.parity.copy_as_text_is_unavailable_in_this_terminal_build": {
       "call_sites": [
         {
-          "excerpt": "\"copyAs\" | \"copyPath\" | \"copyName\" | \"copyStem\" | \"copyUri\" | \"copydirpath\" | \"copyQuoted\" => \"tui.parity.copy_as_text_is_unavailable_in_this_terminal_build\",",
+          "excerpt": "\"copyAs\" => \"tui.parity.copy_as_text_is_unavailable_in_this_terminal_build\",",
           "line": 22,
           "path": "src/tui/parity.rs",
           "surface": "tui",
@@ -106946,8 +107002,8 @@
     "tui.terminal_editor.editor_suspended_editing_cancelled": {
       "call_sites": [
         {
-          "excerpt": "return Err(crate::tui::words::error(\"tui.terminal_editor.editor_suspended_editing_cancelled\"));",
-          "line": 40,
+          "excerpt": "Some(_) => return Err(crate::tui::words::error(\"tui.terminal_editor.editor_suspended_editing_cancelled\")),",
+          "line": 45,
           "path": "src/tui/terminal_editor.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -155239,8 +155295,17 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "format!(\"{tool} is not installed\")",
+      "line": 48,
+      "literal": "{tool} is not installed",
+      "owner": "controller",
+      "path": "src/backend/printtool.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "if cancel.load(Ordering::Relaxed) { return Err(failure(\"cancelled\".into())); }",
-      "line": 44,
+      "line": 56,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/printtool.rs",
@@ -155249,7 +155314,7 @@
     },
     {
       "excerpt": "let stdout = drain(jailed.child.stdout.take().expect(\"piped stdout\"));",
-      "line": 48,
+      "line": 60,
       "literal": "piped stdout",
       "owner": "controller",
       "path": "src/backend/printtool.rs",
@@ -155258,7 +155323,7 @@
     },
     {
       "excerpt": "let stderr = drain(jailed.child.stderr.take().expect(\"piped stderr\"));",
-      "line": 49,
+      "line": 61,
       "literal": "piped stderr",
       "owner": "controller",
       "path": "src/backend/printtool.rs",
@@ -155267,7 +155332,7 @@
     },
     {
       "excerpt": "if cancel.load(Ordering::Relaxed) { break \"cancelled\".to_string(); }",
-      "line": 55,
+      "line": 67,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/backend/printtool.rs",
@@ -155276,7 +155341,7 @@
     },
     {
       "excerpt": "if Instant::now() >= end { break format!(\"the tool took longer than {} seconds\", wait.as_secs()); }",
-      "line": 56,
+      "line": 68,
       "literal": "the tool took longer than {} seconds",
       "owner": "controller",
       "path": "src/backend/printtool.rs",
@@ -155285,7 +155350,7 @@
     },
     {
       "excerpt": "let diagnostic = said.lines().find(|line| line.contains(\"no encode delegate for this image format\")).unwrap_or(&said);",
-      "line": 77,
+      "line": 89,
       "literal": "no encode delegate for this image format",
       "owner": "controller",
       "path": "src/backend/printtool.rs",
@@ -155294,7 +155359,7 @@
     },
     {
       "excerpt": "return Err(failure(super::archivework::failure_message(\"conversion or print\", &status, diagnostic)));",
-      "line": 78,
+      "line": 90,
       "literal": "conversion or print",
       "owner": "controller",
       "path": "src/backend/printtool.rs",
@@ -155303,7 +155368,7 @@
     },
     {
       "excerpt": "if out.len() > OUTPUT_CAP || err.len() > OUTPUT_CAP { return Err(failure(\"the tool returned too much output\".into())); }",
-      "line": 80,
+      "line": 92,
       "literal": "the tool returned too much output",
       "owner": "controller",
       "path": "src/backend/printtool.rs",
@@ -155312,7 +155377,7 @@
     },
     {
       "excerpt": "String::from_utf8(out).map_err(|_| failure(\"the tool returned invalid text\".into()))",
-      "line": 81,
+      "line": 93,
       "literal": "the tool returned invalid text",
       "owner": "controller",
       "path": "src/backend/printtool.rs",
@@ -155321,7 +155386,7 @@
     },
     {
       "excerpt": "let meta = staged.symlink_metadata().map_err(|_| \"the converter wrote nothing\".to_string())?;",
-      "line": 105,
+      "line": 117,
       "literal": "the converter wrote nothing",
       "owner": "controller",
       "path": "src/backend/printtool.rs",
@@ -155330,7 +155395,7 @@
     },
     {
       "excerpt": "if !meta.is_file() || meta.len() == 0 { return Err(\"the converter wrote no regular output file\".into()); }",
-      "line": 106,
+      "line": 118,
       "literal": "the converter wrote no regular output file",
       "owner": "controller",
       "path": "src/backend/printtool.rs",
@@ -155339,7 +155404,7 @@
     },
     {
       "excerpt": "if !(MIN_ITEMS..=MAX_ITEMS).contains(&paths.len()) { return Err(format!(\"Select between {MIN_ITEMS} and {MAX_ITEMS} items.\")); }",
-      "line": 112,
+      "line": 124,
       "literal": "Select between {MIN_ITEMS} and {MAX_ITEMS} items.",
       "owner": "controller",
       "path": "src/backend/printtool.rs",
@@ -155348,7 +155413,7 @@
     },
     {
       "excerpt": "return Err(\"Absolute file paths are required.\".into());",
-      "line": 116,
+      "line": 128,
       "literal": "Absolute file paths are required.",
       "owner": "controller",
       "path": "src/backend/printtool.rs",
@@ -155357,7 +155422,7 @@
     },
     {
       "excerpt": "if !seen.insert(path) { return Err(\"An item was selected more than once.\".into()); }",
-      "line": 118,
+      "line": 130,
       "literal": "An item was selected more than once.",
       "owner": "controller",
       "path": "src/backend/printtool.rs",
@@ -171845,7 +171910,7 @@
     },
     {
       "excerpt": "None => return Err(\"--select needs a target\".into()),",
-      "line": 31,
+      "line": 43,
       "literal": "--select needs a target",
       "owner": "controller",
       "path": "src/launchargs.rs",
@@ -171853,8 +171918,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "a if a.starts_with(\"--\") => return Err(format!(\"unknown flag {}\", a)),",
-      "line": 34,
+      "excerpt": "a if a.starts_with('-') => return Err(format!(\"unknown flag {}\", a)),",
+      "line": 46,
       "literal": "unknown flag {}",
       "owner": "controller",
       "path": "src/launchargs.rs",
@@ -171863,7 +171928,7 @@
     },
     {
       "excerpt": "return Err(\"--tui and --gui cannot be used together\".into());",
-      "line": 40,
+      "line": 52,
       "literal": "--tui and --gui cannot be used together",
       "owner": "controller",
       "path": "src/launchargs.rs",
@@ -172034,7 +172099,7 @@
     },
     {
       "excerpt": "None => usage(\"--print-target needs --select <uri|path> naming a target with a parent\"),",
-      "line": 301,
+      "line": 304,
       "literal": "--print-target needs --select <uri|path> naming a target with a parent",
       "owner": "controller",
       "path": "src/main.rs",
@@ -172043,7 +172108,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: the terminal interface needs a terminal on stdin and stdout\");",
-      "line": 315,
+      "line": 318,
       "literal": "flea: the terminal interface needs a terminal on stdin and stdout",
       "owner": "controller",
       "path": "src/main.rs",
@@ -172051,8 +172116,17 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "eprintln!(\"flea: the terminal interface cannot draw on a dumb terminal (TERM=dumb)\");",
+      "line": 322,
+      "literal": "flea: the terminal interface cannot draw on a dumb terminal (TERM=dumb)",
+      "owner": "controller",
+      "path": "src/main.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "eprintln!(\"flea: there is no graphical session to open a window in\");",
-      "line": 325,
+      "line": 332,
       "literal": "flea: there is no graphical session to open a window in",
       "owner": "controller",
       "path": "src/main.rs",
@@ -172061,7 +172135,7 @@
     },
     {
       "excerpt": "assert!(!flash_picker(&bare), \"a bare flash is a path, not the picker\");",
-      "line": 339,
+      "line": 359,
       "literal": "a bare flash is a path, not the picker",
       "owner": "controller",
       "path": "src/main.rs",
@@ -172070,7 +172144,7 @@
     },
     {
       "excerpt": "assert!(flash_picker(&picker), \"flash choose runs the picker\");",
-      "line": 341,
+      "line": 361,
       "literal": "flash choose runs the picker",
       "owner": "controller",
       "path": "src/main.rs",
@@ -174428,7 +174502,7 @@
     },
     {
       "excerpt": "if key.name == \"Paste\" {",
-      "line": 174,
+      "line": 170,
       "literal": "Paste",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -174437,7 +174511,7 @@
     },
     {
       "excerpt": "if model.choosing && key.mods.is_empty() && matches!(key.name.as_str(), \"Return\" | \"Enter\")",
-      "line": 178,
+      "line": 174,
       "literal": "Return",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -174446,7 +174520,7 @@
     },
     {
       "excerpt": "if model.choosing && key.mods.is_empty() && matches!(key.name.as_str(), \"Return\" | \"Enter\")",
-      "line": 178,
+      "line": 174,
       "literal": "Enter",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -174455,7 +174529,7 @@
     },
     {
       "excerpt": "if key.name != \"Escape\" {",
-      "line": 190,
+      "line": 186,
       "literal": "Escape",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -174482,7 +174556,7 @@
     },
     {
       "excerpt": "\"goDownloads\" => home.join(\"Downloads\"),",
-      "line": 497,
+      "line": 503,
       "literal": "Downloads",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -174509,7 +174583,7 @@
     },
     {
       "excerpt": "assert_eq!(rendered(Batch::new(vec![unreadable]).err().unwrap()), \"Bulk rename cannot handle a name that is not valid text\");",
-      "line": 188,
+      "line": 186,
       "literal": "Bulk rename cannot handle a name that is not valid text",
       "owner": "t11",
       "path": "src/tui/batch.rs",
@@ -174518,7 +174592,7 @@
     },
     {
       "excerpt": "assert_eq!(rendered(read_names(&names, 1).unwrap_err()), \"An edited name is too long\");",
-      "line": 191,
+      "line": 189,
       "literal": "An edited name is too long",
       "owner": "t11",
       "path": "src/tui/batch.rs",
@@ -174527,7 +174601,7 @@
     },
     {
       "excerpt": "assert_eq!(read_names(&names, 2).unwrap().len(), NAME_BYTES + 2, \"two names leave room for it\");",
-      "line": 192,
+      "line": 190,
       "literal": "two names leave room for it",
       "owner": "t11",
       "path": "src/tui/batch.rs",
@@ -174536,7 +174610,7 @@
     },
     {
       "excerpt": "assert_eq!(rendered(joined), \"first; cleanup could not finish: second\");",
-      "line": 194,
+      "line": 192,
       "literal": "first; cleanup could not finish: second",
       "owner": "t11",
       "path": "src/tui/batch.rs",
@@ -174545,7 +174619,7 @@
     },
     {
       "excerpt": "assert_eq!(rendered(names.check().unwrap_err()), format!(\"Bulk rename stopped because its temporary folder {shown} changed\"));",
-      "line": 206,
+      "line": 204,
       "literal": "Bulk rename stopped because its temporary folder {shown} changed",
       "owner": "t11",
       "path": "src/tui/batch.rs",
@@ -174554,7 +174628,7 @@
     },
     {
       "excerpt": "assert_eq!(rendered(names.cleanup().unwrap_err()), format!(\"Bulk rename stopped because its temporary folder {shown} changed\"));",
-      "line": 209,
+      "line": 207,
       "literal": "Bulk rename stopped because its temporary folder {shown} changed",
       "owner": "t11",
       "path": "src/tui/batch.rs",
@@ -174563,7 +174637,7 @@
     },
     {
       "excerpt": "assert_eq!(rendered(names.cleanup().unwrap_err()), format!(\"Bulk rename would not remove {shown}, which is not inside its temporary folder {shown}\"));",
-      "line": 211,
+      "line": 209,
       "literal": "Bulk rename would not remove {shown}, which is not inside its temporary folder {shown}",
       "owner": "t11",
       "path": "src/tui/batch.rs",
@@ -174572,7 +174646,7 @@
     },
     {
       "excerpt": "assert!(left.starts_with(&format!(\"Bulk rename left temporary files at {}: \", root.display())), \"{left}\");",
-      "line": 214,
+      "line": 212,
       "literal": "Bulk rename left temporary files at {}: ",
       "owner": "t11",
       "path": "src/tui/batch.rs",
@@ -175391,7 +175465,7 @@
     },
     {
       "excerpt": "\"Left\" | \"Right\" | \"Home\" | \"End\" => {",
-      "line": 162,
+      "line": 158,
       "literal": "Left",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -175400,7 +175474,7 @@
     },
     {
       "excerpt": "\"Left\" | \"Right\" | \"Home\" | \"End\" => {",
-      "line": 162,
+      "line": 158,
       "literal": "Right",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -175409,7 +175483,7 @@
     },
     {
       "excerpt": "\"Left\" | \"Right\" | \"Home\" | \"End\" => {",
-      "line": 162,
+      "line": 158,
       "literal": "Home",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -175418,7 +175492,7 @@
     },
     {
       "excerpt": "\"Left\" | \"Right\" | \"Home\" | \"End\" => {",
-      "line": 162,
+      "line": 158,
       "literal": "End",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -175427,7 +175501,7 @@
     },
     {
       "excerpt": "\"Home\" => 0,",
-      "line": 164,
+      "line": 160,
       "literal": "Home",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -175436,7 +175510,7 @@
     },
     {
       "excerpt": "\"End\" => self.editable_end,",
-      "line": 165,
+      "line": 161,
       "literal": "End",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -175445,7 +175519,7 @@
     },
     {
       "excerpt": "\"Left\" => {",
-      "line": 166,
+      "line": 162,
       "literal": "Left",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -175454,7 +175528,7 @@
     },
     {
       "excerpt": "\"Backspace\" | \"Delete\" if key.mods.is_empty() => {",
-      "line": 185,
+      "line": 181,
       "literal": "Backspace",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -175463,7 +175537,7 @@
     },
     {
       "excerpt": "\"Backspace\" | \"Delete\" if key.mods.is_empty() => {",
-      "line": 185,
+      "line": 181,
       "literal": "Delete",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -175472,7 +175546,7 @@
     },
     {
       "excerpt": "} else if key.name == \"Backspace\" {",
-      "line": 188,
+      "line": 184,
       "literal": "Backspace",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -175481,7 +175555,7 @@
     },
     {
       "excerpt": "(\"alt\", \"B\") | (\"ctrl\" | \"ctrlshift\", \"Left\") => Some(false),",
-      "line": 213,
+      "line": 209,
       "literal": "Left",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -175490,7 +175564,7 @@
     },
     {
       "excerpt": "(\"alt\", \"F\") | (\"ctrl\" | \"ctrlshift\", \"Right\") => Some(true),",
-      "line": 214,
+      "line": 210,
       "literal": "Right",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -175499,7 +175573,7 @@
     },
     {
       "excerpt": "(\"ctrl\", \"W\" | \"Backspace\") => {",
-      "line": 231,
+      "line": 227,
       "literal": "Backspace",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -175508,7 +175582,7 @@
     },
     {
       "excerpt": "(\"alt\", \"D\") | (\"ctrl\", \"Delete\") => {",
-      "line": 234,
+      "line": 230,
       "literal": "Delete",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -176642,7 +176716,7 @@
     },
     {
       "excerpt": "if matches!(pointer.button, WHEEL_UP | WHEEL_DOWN) { return key(m, &Key::named(if pointer.button == WHEEL_UP { \"Up\" } else { \"Down\" }, \"\"), map, w); }",
-      "line": 115,
+      "line": 120,
       "literal": "Down",
       "owner": "t11",
       "path": "src/tui/menu_run.rs",
@@ -176651,7 +176725,7 @@
     },
     {
       "excerpt": "m.menu_view.apps = Some(if flag(value, \"ok\") { apps.iter().map(|a| (text(a, \"id\").into(), text(a, \"label\").into(), flag(a, \"default\"))).collect() } else { Vec::new() });",
-      "line": 204,
+      "line": 209,
       "literal": "default",
       "owner": "t11",
       "path": "src/tui/menu_run.rs",
@@ -176660,7 +176734,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: terminal interface: {}\", crate::error::io_message(&e));",
-      "line": 337,
+      "line": 338,
       "literal": "flea: terminal interface: {}",
       "owner": "t11",
       "path": "src/tui/mod.rs",
@@ -176669,7 +176743,7 @@
     },
     {
       "excerpt": "_ => \"default\",",
-      "line": 360,
+      "line": 364,
       "literal": "default",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -176678,7 +176752,7 @@
     },
     {
       "excerpt": "if flag(&value, \"cancelled\") { self.say_key(\"tui.model.deletion_cancelled\"); }",
-      "line": 1144,
+      "line": 1148,
       "literal": "cancelled",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -176687,7 +176761,7 @@
     },
     {
       "excerpt": "if flag(&value, \"cancelled\") { line.push(super::words::Text::Key(\"tui.model.deleted_cancelled\")); }",
-      "line": 1150,
+      "line": 1154,
       "literal": "cancelled",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -176696,7 +176770,7 @@
     },
     {
       "excerpt": "if !flag(&value, \"cancelled\") { self.fail(text(&value, \"error\").into()); }",
-      "line": 1170,
+      "line": 1174,
       "literal": "cancelled",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -176705,7 +176779,7 @@
     },
     {
       "excerpt": "if text(&value, \"where\") == \"scan\" && text(&value, \"msg\") == \"permission denied\" {",
-      "line": 1248,
+      "line": 1252,
       "literal": "permission denied",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -176831,7 +176905,7 @@
     },
     {
       "excerpt": "let facts = selection_bytes(m).map(|n| [Text::Key(\"preview.fact.combined\").spans(i18n), vec![(None, \" · \".into())], Text::Size(n).spans(i18n)].concat()).unwrap_or_default();",
-      "line": 205,
+      "line": 207,
       "literal": " · ",
       "owner": "t11",
       "path": "src/tui/pane.rs",
@@ -176840,7 +176914,7 @@
     },
     {
       "excerpt": "if i > 0 { let separator = fit(\" · \", left.min(3)); left -= text_width(&separator); out.push_str(&separator); }",
-      "line": 231,
+      "line": 233,
       "literal": " · ",
       "owner": "t11",
       "path": "src/tui/pane.rs",
@@ -176858,7 +176932,7 @@
     },
     {
       "excerpt": "super::prompts::record(m, \"link\", Vec::new());",
-      "line": 191,
+      "line": 194,
       "literal": "link",
       "owner": "t11",
       "path": "src/tui/parity17.rs",
@@ -177560,7 +177634,7 @@
     },
     {
       "excerpt": "if !self.restored { if let Err(error) = self.close() { eprintln!(\"flea: editor cleanup: {}\", error); } }",
-      "line": 62,
+      "line": 68,
       "literal": "flea: editor cleanup: {}",
       "owner": "t11",
       "path": "src/tui/terminal_editor.rs",
@@ -188206,8 +188280,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "\"       flea --tui [--cwd-file PATH] [--chooser-file PATH] [--tui-keymap PRESET] [path]\"",
-      "line": 7,
+      "excerpt": "\"       flea --tui [--cwd-file PATH] [--chooser-file PATH] [--tui-keymap PRESET] [path]\",",
+      "line": 6,
       "literal": "       flea --tui [--cwd-file PATH] [--chooser-file PATH] [--tui-keymap PRESET] [path]",
       "owner": "controller",
       "path": "src/usage.rs",
@@ -188215,8 +188289,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "eprintln!(\"       flea --ui-state [<json patch>]\");",
-      "line": 11,
+      "excerpt": "\"       flea --ui-state [<json patch>]\",",
+      "line": 9,
       "literal": "       flea --ui-state [<json patch>]",
       "owner": "controller",
       "path": "src/usage.rs",
@@ -188224,8 +188298,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "\"       flea --open-handler <path> <desktop id> <dev> <ino> <size> <mtime_s> <mtime_ns>\"",
-      "line": 17,
+      "excerpt": "\"       flea --open-handler <path> <desktop id> <dev> <ino> <size> <mtime_s> <mtime_ns>\",",
+      "line": 14,
       "literal": "       flea --open-handler <path> <desktop id> <dev> <ino> <size> <mtime_s> <mtime_ns>",
       "owner": "controller",
       "path": "src/usage.rs",
@@ -188233,8 +188307,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "eprintln!(\"       flea --clip get|set copy|cut|clear TOKEN\");",
-      "line": 19,
+      "excerpt": "\"       flea --clip get|set copy|cut|clear TOKEN\",",
+      "line": 15,
       "literal": "       flea --clip get|set copy|cut|clear TOKEN",
       "owner": "controller",
       "path": "src/usage.rs",
@@ -188242,8 +188316,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "eprintln!(\"       flea flash choose [start]\");",
-      "line": 20,
+      "excerpt": "\"       flea flash choose [start]\",",
+      "line": 16,
       "literal": "       flea flash choose [start]",
       "owner": "controller",
       "path": "src/usage.rs",
@@ -188251,8 +188325,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "eprintln!(\"       flea plugin list [--json] | add <git url|folder> | enable|disable|update|remove <id> | validate <folder>\");",
-      "line": 21,
+      "excerpt": "\"       flea plugin list [--json] | add <git url|folder> | enable|disable|update|remove <id> | validate <folder>\",",
+      "line": 17,
       "literal": "       flea plugin list [--json] | add <git url|folder> | enable|disable|update|remove <id> | validate <folder>",
       "owner": "controller",
       "path": "src/usage.rs",
@@ -188260,8 +188334,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "eprintln!(\"       flea ipc [--pid N|--any] call <target> <function> [args...] | show\");",
-      "line": 23,
+      "excerpt": "\"       flea ipc [--pid N|--any] call <target> <function> [args...] | show\",",
+      "line": 19,
       "literal": "       flea ipc [--pid N|--any] call <target> <function> [args...] | show",
       "owner": "controller",
       "path": "src/usage.rs",
@@ -249132,8 +249206,8 @@
   },
   "schema": 1,
   "source_files": {
-    "Cargo.toml": "5653c9fa01c3bb0911b631498ec7b3645b76d42faf5135f50863b907dbe1066e",
-    "crates/flea-gui/Cargo.toml": "589a73f511211a013e57f2761a6e8592336a4110df0e8abfb2068cdfa68c8c31",
+    "Cargo.toml": "be693cac71a10c0983d190f281dd6319d7c84f61b328d222f97f8fcc48fa856a",
+    "crates/flea-gui/Cargo.toml": "86fd25848a1a993a0ae1a91f210ca4f93e6ad212ab521895072022a39322597d",
     "crates/flea-gui/build.rs": "06ea5b8a62b74a9d659b1ef6d92393cc68507f8484717678054144ec06daccaf",
     "crates/flea-gui/deny.toml": "1d3ec035ff745443250ea0d7f23f7cae39329f446c869b92b4365df3cc73fd2b",
     "crates/flea-gui/examples/ipc-fixture.rs": "4e931f7c60bd1a15e3c2c9c06bfd921a207ce099b4e280d1d73676f5c0bb495b",
@@ -250542,7 +250616,7 @@
     "src/backend/printconvert.rs": "140618725cccc281ab8157717ae0485166111d82c98bfa568e688af852b1a3a2",
     "src/backend/printing.rs": "7940080a757769876e886008dd10679d056162e77e9d2468957ef7b8536d8fb5",
     "src/backend/printreq.rs": "4b0e7b3959343347428ec30ebf36ba8a4148863e8f0310ac6bac1610c4e05c6d",
-    "src/backend/printtool.rs": "7a75e8a93275f871c3ad3d80eeb76b23cee224c869a95c4f991aa000ce7c0a61",
+    "src/backend/printtool.rs": "ab7e4ad96d4dd590c3eeca873337028acc809fbbc8dce376840b3ef049b3f9e2",
     "src/backend/procwatch.rs": "02e48f8c21955f84b80ab07314f7d2fd33102cfbcf4f9b615ef20569eef01b20",
     "src/backend/proto.rs": "1a577def8ec0918c1838ec3ad1a2a2eeca4031174a52d9ec5e71f1eb1762bc00",
     "src/backend/protoparse.rs": "9979642bcf328bb77fb38af5fcea4e1ec749500e68134cbca3482323fe967650",
@@ -250747,11 +250821,11 @@
     "src/keys/user_parse.rs": "b6d313368cdb41acd0f078231bbb1af3a13139ab6b75e9b04a0a40c6944ab48a",
     "src/keys/user_projection.rs": "dd2ac6abc46063b7be95cbd88bb3d7c89c5ae417fee782022b2a2131ab042ca5",
     "src/keys_generated.rs": "4b8aad03d460397194d147d9f85d83fa1f1ecc96f34eb4db72c2c68cd2869179",
-    "src/launchargs.rs": "928414ba829091623aee75fb6069b535940b33df88d781b4cbb6036359eda17a",
+    "src/launchargs.rs": "40831d17fc2da1aa5043bb25fbba3049e759f734fcd6bb00eb202eef9c974a02",
     "src/launcher/mod.rs": "7068625788f93dff5a0e078350d5004caab8c78dd4c5fdcd0e9b118dd7fcaaa2",
     "src/launcher/prewarm.rs": "d8e90380d092979c9e8bcb13c9c1fbe8d1f4536cb06ae4dd5b657ca475782e33",
     "src/lib.rs": "cbcc64f502146e5868a7233fa9be5cc96559060c6c3be9e8f5c23e3cb8059349",
-    "src/main.rs": "015dc5b72912310c7f85acefd07b9e084068fced8cb1eaa91a2d3f3b0cd8b5da",
+    "src/main.rs": "99673352e182e9239e41dff00c7f4cbbf97af121b318bcc674d7ac8fb9ad25c6",
     "src/oflags.rs": "f1ab53c13e4e3d754d5392ee37ea8b734bb7750de6a7c443caa6f121010b873b",
     "src/open.rs": "5b8bc6ab8ca9ff891268a98ec8c92a3c8a25a2e6b0e55c708109bfc4e66c7732",
     "src/open_selection.rs": "7a6b0089d5b7a04ebd19af24665f43fd89d6aa2be6820b147601ee55382dca87",
@@ -250793,14 +250867,14 @@
     "src/theme/tokens.rs": "300da578de3add38d96788c85e0fd27f08f6a4c71f7165b93d67c3ca977dc016",
     "src/theme/watch.rs": "d8660ef8fd5bab6d239281aaeeb04fd87e0d1b459924611417db85a41600b88c",
     "src/thp.rs": "6dfac794c19696f80fe1ff33cea9f2d16ed5b69c6a186f989769db44f4fcf8f1",
-    "src/tui/actions.rs": "a91218c47c026cf2f256fa0a40b359906f5bf50e631560786702ab5f3cdbfa38",
-    "src/tui/actions_pointer.rs": "da68c95b814b7e168da30704faf7d2b077f0e5baca683b175f5ee12c4135498a",
-    "src/tui/batch.rs": "79ae57c24af694b2f1cf643a348d4eae9ca47d85d6f54c40cc8980587c146b3f",
+    "src/tui/actions.rs": "6e8bc17b077ca4d75bf435f05bc89995591dad1e3dffad47f19c5d35c88f98fa",
+    "src/tui/actions_pointer.rs": "816962529d34f16401fd802c478afd3af94eaf37761783eaa450e05b0da2ebcf",
+    "src/tui/batch.rs": "64093aac6556341b6f67598ad4047cb11e3ba3d7b7ec0997ac9586291416874e",
     "src/tui/calendar.rs": "203b5d1b559f78cae42cfdb6f2dc4bce95b437579db485f63615a3fb9eb96230",
     "src/tui/capabilities.rs": "a8790641f17557c0e34c7b417b5d321bb6f8ebb8e1becd0ab37060b947596eb9",
     "src/tui/cards.rs": "67713c6887dae88e3059bec488ddbd29e755d724c8cf78299aab0b32c1d56bd5",
     "src/tui/cards/words.rs": "fdff477f46d3b5c62f9ffa99d50144ff653885144051b0a83c09d9c5a6517aba",
-    "src/tui/cells.rs": "638bc5631468d9081073d81606d87e41cdbd07c6f0307a9534f59855de12fce2",
+    "src/tui/cells.rs": "5e625f04560d58775b577565fac6ae2a05e1465d7aa242f9579b1a5fa15c6f5b",
     "src/tui/chafa.rs": "8f0a06ee01069e36e703619ed6c5770d6764fab464aec587c8919e705c5ccbf0",
     "src/tui/chafa_process.rs": "e88bd7ad9d1ac18581ce19444c750572c513182a139d8a2c164ab75bd0a0cd5a",
     "src/tui/combine.rs": "59885ff0048119b3df480d9f449c8b87530a97c5c761f1877e4d22bd2be955cd",
@@ -250818,13 +250892,13 @@
     "src/tui/convert/card.rs": "484a014133b67f068d06f3a7d5ae5abeb38bc6eda234b0e3585b34da9b7cd3b1",
     "src/tui/convert/input.rs": "0e102c2c5c1afe0d1d4290ba7f6ccfb1883b30d207cf79c50f9da1c5205bb154",
     "src/tui/convert/replies.rs": "bcde36c7a1338d6208bd25ef7ff46279b2b431057a23074ea5305428e4e644e0",
-    "src/tui/cwd.rs": "841f27783ae071620015378cea677de784cf83ef31e900686d0c178a0bdd263d",
+    "src/tui/cwd.rs": "352a2d5790d0b99ff25c16a024f48c9c6ce5394d4b9dc5f43dbd6ea4786fc994",
     "src/tui/detail.rs": "64e7775dcb3eaf3b24030391828ccc003b9c32f290fb063b025bf77c8df24adf",
-    "src/tui/editor.rs": "de688501f5b896c7a1d4705a2d1d40476749abfe05365ce48f24f70262d509a3",
+    "src/tui/editor.rs": "333560149682d8368cef52425f92938bb16e03ae0094a319d88ac49ee5774547",
     "src/tui/editor_input.rs": "b1428f2db23a6e4b86d7a13cf136294706fe2a7908403d86247cadfda9d3ef99",
     "src/tui/editor_words.rs": "147da26c3bc92e3de9bfa1689a8873b35fa5926721b65f8dad4c1b7a5b637cab",
     "src/tui/empty.rs": "b8298bbd2187f9e0e0d0e048d1ec326abcf70885f4e4b799b09bfcabfb81454d",
-    "src/tui/external_editor.rs": "65eb226f506519506ddc26a40ab9eea742a2e449a3ed77ce021f5d460843480a",
+    "src/tui/external_editor.rs": "2d8b1d9fba5cf52c2fd7b56ad2d3eb22c80773bec28a4b0f51975797c9872bbe",
     "src/tui/filter.rs": "1cc78a25046f7ade23fc40be9670f174222135a8e227ffc491aee6a0aa18db4d",
     "src/tui/finder.rs": "8385b46bca074fb0b78f37337e1495799af68364e0e982842efdd750c526fdf1",
     "src/tui/footer_errors.rs": "82ee24155f81f20adb9643c0e72e2c583e482cd665f9120878c45e329d337994",
@@ -250836,43 +250910,44 @@
     "src/tui/jobstatus.rs": "969480bbe62dbc75e775e1acbb14ca55d0a06068ed0b6995951c3bd3f6709864",
     "src/tui/key_sheet.rs": "b4937103bcd2645473b9d537f1661c96f366377606c223eb11065b46091eef19",
     "src/tui/keycaps.rs": "b039b08e4e69962e463a53a4dc56654a188937b12a2075f2bcedf3c6681bc48a",
-    "src/tui/keymap.rs": "c43659252066174ea7ec6c32a337d6e510a215da80441f2e8270a3d6c019b45d",
-    "src/tui/launch.rs": "84cc19c56ccf2c72666c11665d34dc46e376757ca56b3135605c5bd9886ea852",
-    "src/tui/layout.rs": "4cd1d71fb1c8dba1e86d655c872cdcbde669db030e1727c7fb8686e7b803f2fb",
+    "src/tui/keymap.rs": "e5a15589d0e3b79c498587b104711b288de229705e0b887bd0574de04ae83518",
+    "src/tui/launch.rs": "500aa7b5566aa8b835d83f7ec7f790027e13d38842fac978b2adf14016740fe1",
+    "src/tui/layout.rs": "629387e0fc64c3ad13448bb668ea49f724b08e876dcf939ae8b94f26babae23a",
     "src/tui/look.rs": "d07450bd6b9dba147547ce1672bcc040dc85bd7dd322ed26071c2846a399539d",
     "src/tui/media.rs": "5af57bdb96142f0f88beda14937e69a60aec50f552147176785c0c5f4f19fa73",
     "src/tui/menu_layout.rs": "727fc220b8d74e47d429a15543e544ada4458dc8423e987194c447b6eef4a5c8",
-    "src/tui/menu_run.rs": "64d336b4cb5e4614702f6d13e3f290a02241cb7ca9d91387b7200f1da8ba7fbb",
-    "src/tui/mod.rs": "47818ccadd78edc7a16f433dfce9e3b4a50fedc8704321ad628aa4deac5dcb12",
-    "src/tui/model.rs": "50c6d0b5c27c0f96c2cb6ee5d1bc92e20ad88eabf429a06fab851422715d7ab4",
+    "src/tui/menu_run.rs": "6fae3bc33d2c4dbfe03220a67b6692a83fb08a62c9715c584cc31119649aae6a",
+    "src/tui/mod.rs": "d3d79e55c7977653ffda804cefa5010d7c0b37013162cf1a461b1ecd4e9c7f56",
+    "src/tui/model.rs": "831af18ba096936a8c187aadd26f957d71705e02c555933aada2bd42042e4dbe",
     "src/tui/model3d.rs": "411b95b4851090efd363fefecf527ee042c0239e2c14a51604c50abf5a738573",
     "src/tui/mounts.rs": "ac7b31e12ae0ee526a65fd8ea04d1594ec730c06a0765b9d8f76da9644621bf1",
     "src/tui/mpv.rs": "cbdc0c69cf48c259093532466139e5c090143cb54aa9d13e196ef5909c973909",
     "src/tui/office.rs": "4474bca41b1c10a6a5e9988dd9d750e3b16230866dff13a7c1aaef7ea4b3466c",
     "src/tui/office_container.rs": "8aba9e3af621612dc7431880c6660d741bbbe7164ea4c35b03b731c05d30638a",
-    "src/tui/pane.rs": "4182bf3397683073caeed46ce181ba8580b04370e322db53c171f59bfcd7855e",
-    "src/tui/pane_state.rs": "f53061803ba9733e51c73d80310b3cf99456f71567158700b412470be9f5d522",
-    "src/tui/parity.rs": "53547e7f5f58db0cf51b01e270fc9f99161d6a69b8112aea752f3c7651dc392e",
-    "src/tui/parity17.rs": "93a0e09eccf96706f4aaa705829c365ee4049764f5e65da551d7e8f13429e1be",
+    "src/tui/pane.rs": "00732d81354545e1c0a312539dba18338850a0f25e85f77dd5a6e4e99165a4d8",
+    "src/tui/pane_state.rs": "04d7ab8c2d66fc04d81784f452ab94d8794742072d90f07f642d6cb85dab8600",
+    "src/tui/parity.rs": "3a6c2832a39444a83453764ec501282095826a3c201c8a9b95184060ff8ccaa0",
+    "src/tui/parity17.rs": "3e35e0ee3d9da5f09171983dead37b18d08665dc19896457702f14bd7b027790",
     "src/tui/pdf.rs": "b7823758cb40ba6a265eba129dcc48d643e2825ac60cb9f15ca01559d2f4a61f",
     "src/tui/picture.rs": "2d46d805b131a3cff2087b6600f0baf51bd724291cd507e30c941bd9e465ac12",
-    "src/tui/preview.rs": "b631d1b5a4a514d5bf33056b52a46f4ca8998be3ae9d7e24da7220a6e4ed0af1",
+    "src/tui/preview.rs": "ce0a21643fde644fc475cee6601edd5b116945d4b97f44821b2596896d040e05",
     "src/tui/preview/words.rs": "f7173cf365031ee196b4694bcfe7dd558ad8853e1ca46fd04a3d140dfe742794",
+    "src/tui/preview_keys.rs": "3d71cf8ac8384adbfe285db761b5b26740e93f949463186cd24ab628a7451ed5",
     "src/tui/print.rs": "8bf182606601615a376c570a5f102e061904977962332c5fc71a5e07df094500",
     "src/tui/print/card.rs": "7e513d5ef0fe27901abf502bf9372ae74c97d54df86066e0de71aea4ab7174b0",
     "src/tui/print/input.rs": "2feadebdca18d18e77e604d762044c371781dfc4c265662d47e8e71d8920cc98",
     "src/tui/print/replies.rs": "0d9558640c05dd6527bcf9f66ec702b77f9cd4c1a5afc48dd104de786766c810",
     "src/tui/prompts.rs": "73ec6423ef4c341075b1e7e1627d506c2333a405cc525caeb002452b411671b8",
-    "src/tui/render.rs": "7e686a909f5934896a6978970f3cb995844068a4efdb23593fe73b6302f93307",
+    "src/tui/render.rs": "fb84016269338e2c3ca6c5d08ee66b182269593bf51c5deb5538e83db7bc55ca",
     "src/tui/sort_actions.rs": "10962bd7e3d0e4cd0bff680ba7c492d779f39625865f3b60c8181c1606119586",
     "src/tui/stage.rs": "6bc1a61b139ffb8a408251234c0ed6763bec47bfb9ab922b4ba3d61b1706ec69",
-    "src/tui/still.rs": "9f016dcd1608776cf1c78ebf45c564052d300105aed5c14637d1ab2e7fb540ac",
+    "src/tui/still.rs": "0e050f2e518bf5523987b6b6c9d9529a5520060904ebdc117cfb0e654e37b7de",
     "src/tui/syntax.rs": "3cb79da2ee7849c2eceafec9fe22a0f162ab7de7f3d2bae9bd7760034e2c6fb4",
     "src/tui/taildrop.rs": "367ec4adcc23435993a87c1ed63306ac1ed1f1e16fef40886d3c91ffe1a79600",
     "src/tui/terminal.rs": "d888c57b56adbbb580a9f87a400584aa0505cfd2c879c2fc96cbb8cb4106bdbc",
-    "src/tui/terminal_editor.rs": "65fe77bf45b171c5ba8e33afb48943df3d1481bac3599fdb163cf96da4b710c0",
+    "src/tui/terminal_editor.rs": "a533dd080b71b4ed18103101e140eb499b9a6b0541271949f8227028989b9e47",
     "src/tui/terminal_suspend_fixture.rs": "ad6be04a4087cca37e4c4da82e36d75feb01f274897ff3f3a01f29d1c317f2df",
-    "src/tui/theme.rs": "2ffafd81d9ebcb47d6031cd2b564330631dc369237d7101bf83f37b3c2e0d170",
+    "src/tui/theme.rs": "76adc30629062fa41519f2bad1cf04ea43d82be990b9771eeeed4089e3fb755c",
     "src/tui/tmux.rs": "54f48512fd40051fc430fb8459c32ba6579ba5ff60918337558f0392ff0c6a1e",
     "src/tui/trashview.rs": "37ad4310414041dec859d786793a5fe3ce790109b8c675aaaeac46564d3be271",
     "src/tui/visual.rs": "8cf13e1f95c65db49ab567b97fb551eb87355c6ecb79a0c3993f093bf6014648",
@@ -251231,7 +251306,7 @@
     "src/uistore.rs": "8df2c75485947e0b6495ab3846a38cb17c48b1eace425a406e7b23af24cc4474",
     "src/unlock.rs": "4eee4e2d6ead20e15e87b67c7a3c40384ca7e02103a9a0a0f6f5b6f877d38d8a",
     "src/update.rs": "51deae597a60a2fb334c3e4d6e586aad68f8ca499bcdc774c25055ed035ba921",
-    "src/usage.rs": "a163bff996a84232983b94297061326414a52c07262eff7da6e0f6d29dcd164f",
+    "src/usage.rs": "d9c00d121d8658433a6196ffa369bbefdb2377e65cd5633f0c553cff88868ba1",
     "src/userfile.rs": "c8ba8011cccc3b6c00b40ea2b39039d1309d8281605856ef2cb8c760afb5cf22",
     "src/vulkan.rs": "d63c0f31e555096e373f08545fd37a2bda701fa2d91828b293774578e0b2b433",
     "tools/flea-acceptance": "a67ae8ec98f041f146887ba0c6b0dfffd7a81abfc9331eecbee4fd8374a2a180",
@@ -251806,12 +251881,12 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "fa2511801c250bda42339eb83a05c51978eb32f9",
-  "source_sha": "fa2511801c250bda42339eb83a05c51978eb32f9",
+  "source_ref_sha": "d61159a59551adc0b553021c7296d265783330ce",
+  "source_sha": "d61159a59551adc0b553021c7296d265783330ce",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1334,
-      "missing_literal_candidates": 5688,
+      "missing_literal_candidates": 5690,
       "source_files": 849
     },
     "generated/tooling": {
@@ -251830,9 +251905,9 @@
       "source_files": 412
     },
     "tui": {
-      "keys_with_occurrences": 483,
+      "keys_with_occurrences": 486,
       "missing_literal_candidates": 381,
-      "source_files": 88
+      "source_files": 89
     }
   },
   "unlocated_keys": [

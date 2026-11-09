@@ -2573,6 +2573,7 @@
   "tui.cwd.the_output_needs_a_file_name": "L'output richiede un nome di file",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "--tui-keymap accetta default, vim, mac, windows o yazi",
   "tui.cwd.twice": "%1 è stato specificato due volte",
+  "tui.cwd.folder_missing": "La cartella per %1 non esiste: %2",
   "tui.cwd.write_error": "Impossibile scrivere %1: %2",
   "tui.editor.enter_a_filename_before_the_extension": "Inserisci un nome di file prima dell'estensione.",
   "tui.editor.invalid_name": "Inserisci un nome non vuoto, diverso da . e .., che non contenga / né caratteri nulli.",
@@ -2601,6 +2602,7 @@
   "tui.launch.could_not_finish": "%1 non ha potuto terminare (%2)",
   "tui.launch.could_not_observe": "Impossibile monitorare %1: %2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "Non è una cartella, quindi non è stato aperto alcun terminale",
+  "tui.launch.program_not_found": "Impossibile trovare il programma %1",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "Porta la finestra ad almeno 12 colonne di larghezza e 5 righe di altezza.",
   "tui.model.bulk_done": {
     "one": "Rinominato %1 elemento · Annulla ripristina una sola rinomina",

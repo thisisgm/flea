@@ -2472,6 +2472,7 @@
   "tui.cwd.the_output_needs_a_file_name": "خروجی به نام فایل نیاز دارد",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "⁦--tui-keymap⁩ مقدارهای ⁦default⁩، ⁦vim⁩، ⁦mac⁩، ⁦windows⁩ یا ⁦yazi⁩ را می‌پذیرد",
   "tui.cwd.twice": "⁦%1⁩ دو بار وارد شده است",
+  "tui.cwd.folder_missing": "پوشهٔ ⁦%1⁩ وجود ندارد: ⁨%2⁩",
   "tui.cwd.write_error": "نوشتن ⁨%1⁩ ممکن نشد: ⁨%2⁩",
   "tui.editor.enter_a_filename_before_the_extension": "پیش از پسوند، نام فایل را وارد کنید.",
   "tui.editor.invalid_name": "نامی وارد کنید که خالی، ⁦.⁩ یا ⁦..⁩ نباشد و ⁦/⁩ یا نویسهٔ تهی نداشته باشد.",
@@ -2498,6 +2499,7 @@
   "tui.launch.could_not_finish": "⁨%1⁩ کامل نشد (⁨%2⁩)",
   "tui.launch.could_not_observe": "پایش ⁨%1⁩ ممکن نشد: ⁨%2⁩",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "این مورد پوشه نیست، پس ترمینالی باز نشد",
+  "tui.launch.program_not_found": "برنامهٔ ⁨%1⁩ پیدا نشد",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "پنجره را دست‌کم به عرض ⁦۱۲⁩ ستون و ارتفاع ⁦۵⁩ ردیف برسانید.",
   "tui.model.bulk_done": {
     "one": "نام ⁦%1⁩ مورد تغییر کرد · واگرد فقط یک تغییر نام را برمی‌گرداند",

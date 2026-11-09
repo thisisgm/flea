@@ -4,15 +4,20 @@ use std::path::Path;
 use std::process::Command;
 
 pub fn run(terminal: &mut Terminal, path: &Path) -> io::Result<()> {
-    let editor = std::env::var("EDITOR").ok();
-    let visual = std::env::var("VISUAL").ok();
-    let command = command(editor.as_deref(), visual.as_deref(), path)?;
+    let command = command(chosen().as_deref(), path)?;
     terminal.run_command(command)
 }
 
-pub(super) fn command(editor: Option<&str>, visual: Option<&str>, path: &Path) -> io::Result<Command> {
-    let selected = editor.filter(|s| !s.trim().is_empty()).or_else(|| visual.filter(|s| !s.trim().is_empty()))
-        .ok_or_else(|| super::words::error("tui.external_editor.set_editor_or_visual_to_edit_a_file_in_this_terminal"))?;
+// One choice for E and bulk rename: $VISUAL, then $EDITOR, as the convention orders them; a blank value is unset.
+pub(super) fn chosen() -> Option<String> {
+    pick(std::env::var("VISUAL").ok(), std::env::var("EDITOR").ok())
+}
+fn pick(visual: Option<String>, editor: Option<String>) -> Option<String> {
+    visual.filter(|s| !s.trim().is_empty()).or_else(|| editor.filter(|s| !s.trim().is_empty()))
+}
+
+pub(super) fn command(selected: Option<&str>, path: &Path) -> io::Result<Command> {
+    let selected = selected.ok_or_else(|| super::words::error("tui.external_editor.set_editor_or_visual_to_edit_a_file_in_this_terminal"))?;
     let args = arguments(selected)?;
     let meta = path.metadata()?;
     if !path.is_absolute() || !meta.is_file() { return Err(super::words::error("tui.external_editor.only_a_regular_file_can_be_edited")); }

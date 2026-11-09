@@ -40,9 +40,7 @@ impl Batch {
         Ok(Self { sources, pending: VecDeque::new(), completed: 0, total: 0, last: None, cancelled: false })
     }
     pub fn edit(&mut self, terminal: &mut Terminal) -> io::Result<()> {
-        let editor = std::env::var("VISUAL").ok().filter(|value| !value.trim().is_empty())
-            .or_else(|| std::env::var("EDITOR").ok().filter(|value| !value.trim().is_empty()))
-            .ok_or_else(|| failure("tui.batch.no_editor"))?;
+        let editor = super::external_editor::chosen().ok_or_else(|| failure("tui.batch.no_editor"))?;
         let document = self.sources.iter().map(|(path, _)| path.file_name().unwrap().to_str().unwrap()).collect::<Vec<_>>().join("\n") + "\n";
         let mut names = NamesFile::new(&document)?;
         let result = terminal.run_editor(&editor, &names.path).and_then(|_| {

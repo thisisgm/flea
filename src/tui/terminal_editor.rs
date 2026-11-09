@@ -1,6 +1,8 @@
 // An editor as its own foreground job: it takes the terminal, and close always hands it back.
 use super::*;
 
+const SIGTTIN: i32 = 21;
+
 pub(super) struct EditorJob {
     child: Child,
     foreground: i32,
@@ -17,12 +19,10 @@ impl EditorJob {
         let child = command.process_group(0).spawn();
         let child = match child {
             Ok(child) => child,
-            Err(error) => { unsafe { signal(SIGTTOU, handler); } return Err(error); }
+            Err(error) => { unsafe { signal(SIGTTOU, handler); } return Err(crate::tui::launch::missing(error, &command)); }
         };
         let job = Self { child, foreground, handler, finished: false, restored: false };
         if unsafe { tcsetpgrp(0, job.child.id() as i32) } != 0 { return Err(io::Error::last_os_error()); }
-        // A terminal reader may stop before the parent gives its new process group the foreground.
-        let _ = crate::procsignal::signal_group(job.child.id() as i32, SIGCONT);
         Ok(job)
     }
     pub(super) fn status(&mut self) -> io::Result<Option<std::process::ExitStatus>> {
@@ -36,8 +36,14 @@ impl EditorJob {
         }
         if result == 0 { return Ok(None); }
         let status = std::process::ExitStatus::from_raw(status);
-        if status.stopped_signal().is_some() {
-            return Err(crate::tui::words::error("tui.terminal_editor.editor_suspended_editing_cancelled"));
+        // Only a pre-handoff terminal access stop (SIGTTIN, SIGTTOU) is continued; Ctrl+Z's SIGTSTP is the user suspending it.
+        match status.stopped_signal() {
+            Some(SIGTTIN | SIGTTOU) => {
+                crate::procsignal::signal_group(self.child.id() as i32, SIGCONT)?;
+                return Ok(None);
+            }
+            Some(_) => return Err(crate::tui::words::error("tui.terminal_editor.editor_suspended_editing_cancelled")),
+            None => {}
         }
         self.finished = true;
         Ok(Some(status))

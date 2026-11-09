@@ -116,3 +116,19 @@ fn cwd_chooser_confirms_backend_paths_and_refuses_a_short_or_multiline_reply() {
       }
     }
 }
+
+// An output in a folder that does not exist is refused at launch, naming the flag and the folder, not after the session.
+#[test]
+fn an_output_whose_folder_is_missing_is_refused_before_the_session() {
+    let dir = TestDir::new("cwd-missing-folder");
+    for flag in ["--cwd-file", "--chooser-file"] {
+        let mut options = Options::default();
+        let output = dir.join("missing/out");
+        options.take(&[flag.into(), output.to_string_lossy().into_owned()], &mut 0).unwrap();
+        let error = options.validate(true, false).unwrap_err();
+        assert_eq!(error, format!("The folder for {flag} does not exist: {}", dir.join("missing").display()));
+        let mut options = Options::default();
+        options.take(&[flag.into(), dir.join("out").to_string_lossy().into_owned()], &mut 0).unwrap();
+        assert!(options.validate(true, false).is_ok(), "{flag} in a folder that exists");
+    }
+}

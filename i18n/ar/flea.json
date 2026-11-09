@@ -2876,6 +2876,7 @@
   "tui.cwd.the_output_needs_a_file_name": "يتطلب الإخراج اسم ملف",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "يقبل ⁦--tui-keymap⁩ القيم ⁦default⁩ أو ⁦vim⁩ أو ⁦mac⁩ أو ⁦windows⁩ أو ⁦yazi⁩",
   "tui.cwd.twice": "أُعطي ⁦%1⁩ مرتين",
+  "tui.cwd.folder_missing": "مجلد ⁦%1⁩ غير موجود: ⁨%2⁩",
   "tui.cwd.write_error": "تعذّرت كتابة ⁨%1⁩: ⁨%2⁩",
   "tui.editor.enter_a_filename_before_the_extension": "أدخل اسم ملف قبل الامتداد.",
   "tui.editor.invalid_name": "أدخل اسمًا غير فارغ، ليس ⁦.⁩ ولا ⁦..⁩ ولا يحتوي على ⁦/⁩ أو محرف فارغ.",
@@ -2910,6 +2911,7 @@
   "tui.launch.could_not_finish": "لم يكتمل ⁨%1⁩ بنجاح (⁨%2⁩)",
   "tui.launch.could_not_observe": "تعذّرت مراقبة ⁨%1⁩: ⁨%2⁩",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "هذا ليس مجلدًا، لذا لم تُفتح طرفية",
+  "tui.launch.program_not_found": "تعذّر العثور على البرنامج ⁨%1⁩",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "اجعل عرض النافذة ⁦12⁩ عمودًا وارتفاعها ⁦5⁩ صفوف على الأقل.",
   "tui.model.bulk_done": {
     "zero": "لم تُعد تسمية أي عناصر (العدد: ⁦%1⁩) · تراجع يلغي إعادة تسمية واحدة",

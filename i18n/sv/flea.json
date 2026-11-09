@@ -2472,6 +2472,7 @@
   "tui.cwd.the_output_needs_a_file_name": "Utdata kräver ett filnamn",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "--tui-keymap accepterar default, vim, mac, windows eller yazi",
   "tui.cwd.twice": "%1 angavs två gånger",
+  "tui.cwd.folder_missing": "Mappen för %1 finns inte: %2",
   "tui.cwd.write_error": "Kunde inte skriva %1: %2",
   "tui.editor.enter_a_filename_before_the_extension": "Ange ett filnamn före filändelsen.",
   "tui.editor.invalid_name": "Ange ett namn som inte är tomt, . eller .. och som inte innehåller / eller ett nolltecken.",
@@ -2498,6 +2499,7 @@
   "tui.launch.could_not_finish": "%1 kunde inte slutföras (%2)",
   "tui.launch.could_not_observe": "Kunde inte övervaka %1: %2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "Det är ingen mapp, så ingen terminal öppnades",
+  "tui.launch.program_not_found": "Programmet %1 hittades inte",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "Gör fönstret minst 12 kolumner brett och 5 rader högt.",
   "tui.model.bulk_done": {
     "one": "Bytte namn på %1 objekt · Ångra återställer ett namnbyte",

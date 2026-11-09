@@ -171,6 +171,11 @@
       "from": "       flea ipc [--pid N|--any] call",
       "to": "       flea --action <id> [--window <pid>] | --actions [--window <pid>]\n       flea ipc [--pid N|--any] call",
       "reason": "The existing 0.4.0 action CLI adds this usage row while preserving every 0.3.12 invocation."
+    },
+    {
+      "from": "       flea --version\n",
+      "to": "       flea --version | -V\n       flea --help | -h\n",
+      "reason": "0.4.2 adds -V beside --version and a --help or -h that prints this usage on stdout with status 0. In 0.3.12 --help was an unknown flag and any word with one leading dash, -h and -V included, opened as a start folder; 0.4.2 reads -h and -V as these flags and refuses every other dash-led word, so those answers change on purpose. Usage errors gain these two rows, and every other 0.3.12 row keeps its bytes."
     }
   ]
 }

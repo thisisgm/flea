@@ -223,7 +223,7 @@ impl Live {
     pub fn new(model: &mut Model) -> Self {
         model.font_marks = icons::builtin();
         model.force_text_marks = std::env::var_os("FLEA_TUI_TEST_NO_ICONS").is_some_and(|value| value == "1");
-        Self { theme: Theme::with_depth("", Depth::Sixteen), source: String::new(), depth: Depth::Sixteen,
+        Self { theme: Theme::with_depth("", Depth::initial()), source: String::new(), depth: Depth::initial(),
             probe: icons::Probe::start(), watcher: super::theme::Watch::start(Theme::path()) }
     }
     pub fn prepare(&mut self, model: &mut Model, wire: &mut super::wire::Wire) -> std::io::Result<()> {

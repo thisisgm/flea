@@ -84,6 +84,7 @@ mod mpv;
 mod mounts;
 mod pdf;
 mod preview;
+mod preview_keys;
 mod render;
 mod taildrop;
 mod terminal;

@@ -2472,6 +2472,7 @@
   "tui.cwd.the_output_needs_a_file_name": "Output kræver et filnavn",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "--tui-keymap accepterer default, vim, mac, windows eller yazi",
   "tui.cwd.twice": "%1 blev angivet to gange",
+  "tui.cwd.folder_missing": "Mappen til %1 findes ikke: %2",
   "tui.cwd.write_error": "Kunne ikke skrive %1: %2",
   "tui.editor.enter_a_filename_before_the_extension": "Indtast et filnavn før filendelsen.",
   "tui.editor.invalid_name": "Indtast et navn, der ikke er tomt, . eller .., og hverken indeholder / eller et nul-tegn.",
@@ -2498,6 +2499,7 @@
   "tui.launch.could_not_finish": "%1 afsluttede med fejl (%2)",
   "tui.launch.could_not_observe": "Kunne ikke overvåge %1: %2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "Det er ikke en mappe, så ingen terminal blev åbnet",
+  "tui.launch.program_not_found": "Programmet %1 blev ikke fundet",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "Gør vinduet mindst 12 kolonner bredt og 5 rækker højt.",
   "tui.model.bulk_done": {
     "one": "%1 element omdøbt · Fortryd omgør én omdøbning",

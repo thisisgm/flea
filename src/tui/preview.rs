@@ -123,7 +123,7 @@ pub fn load(m: &mut Model, force: bool) {
         }
         return;
     }
-    if row.directory {
+    if row.folder() {
         set_text(m, Text::Key("preview.points.folder"));
         return;
     }
@@ -179,7 +179,7 @@ fn meta(m: &mut Model, wire: &mut super::wire::Wire) -> std::io::Result<()> {
     }
     m.preview_requested = m.preview_generation;
     if super::pane_state::kind(row) == super::pane_state::Kind::Model3d { return Ok(()); }
-    if row.directory {
+    if row.folder() {
         m.preview_children = Some(m.preview_path.clone());
         wire.send(vec![
             ("c", word("peek")),

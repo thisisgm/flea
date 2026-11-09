@@ -2363,6 +2363,7 @@
   "tui.cwd.the_output_needs_a_file_name": "출력에 파일 이름이 필요합니다",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "--tui-keymap에는 default, vim, mac, windows 또는 yazi를 지정할 수 있습니다",
   "tui.cwd.twice": "%1 옵션이 두 번 지정되었습니다",
+  "tui.cwd.folder_missing": "%1의 폴더가 없습니다: %2",
   "tui.cwd.write_error": "%1에 쓸 수 없습니다: %2",
   "tui.editor.enter_a_filename_before_the_extension": "확장자 앞에 파일 이름을 입력하세요.",
   "tui.editor.invalid_name": "비어 있지 않고 . 또는 ..가 아니며 / 또는 널 문자를 포함하지 않는 이름을 입력하세요.",
@@ -2387,6 +2388,7 @@
   "tui.launch.could_not_finish": "%1 작업을 완료할 수 없습니다 (%2)",
   "tui.launch.could_not_observe": "%1 작업을 관찰할 수 없습니다: %2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "폴더가 아니므로 터미널을 열지 않았습니다",
+  "tui.launch.program_not_found": "%1 프로그램을 찾을 수 없습니다",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "창 크기를 가로 12열, 세로 5행 이상으로 늘리세요.",
   "tui.model.bulk_done": {
     "other": "항목 %1개 이름 변경됨 · 실행 취소는 이름 변경 하나만 되돌립니다"

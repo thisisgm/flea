@@ -2573,6 +2573,7 @@
   "tui.cwd.the_output_needs_a_file_name": "La sortida necessita un nom de fitxer",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "--tui-keymap accepta default, vim, mac, windows o yazi",
   "tui.cwd.twice": "S'ha indicat %1 dues vegades",
+  "tui.cwd.folder_missing": "La carpeta de %1 no existeix: %2",
   "tui.cwd.write_error": "No s'ha pogut escriure %1: %2",
   "tui.editor.enter_a_filename_before_the_extension": "Introdueix un nom de fitxer abans de l'extensió.",
   "tui.editor.invalid_name": "Introdueix un nom no buit, diferent de . i .., sense / ni cap caràcter nul.",
@@ -2601,6 +2602,7 @@
   "tui.launch.could_not_finish": "%1 no ha pogut acabar (%2)",
   "tui.launch.could_not_observe": "No s'ha pogut supervisar %1: %2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "Això no és una carpeta; no s'ha obert cap terminal",
+  "tui.launch.program_not_found": "No s'ha trobat el programa %1",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "Amplia la finestra fins a un mínim de 12 columnes i 5 files.",
   "tui.model.bulk_done": {
     "one": "S'ha canviat el nom de %1 element · Desfés reverteix un sol canvi",

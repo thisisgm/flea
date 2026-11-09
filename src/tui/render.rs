@@ -107,7 +107,7 @@ fn contents_line(m: &Model, index: usize, columns: usize, style: RowStyle, theme
     let Some(hit) = m.find.matches.get(&index) else { return fit("", columns); };
     let fill = if style.cursor { if style.focused { &theme.cursor } else { &theme.selected } }
         else if style.marked { &theme.marked } else { &theme.background };
-    let reset = format!("\x1b[0m{fill}{}{}", theme.meta, if style.cursor && theme.depth == super::theme::Depth::Sixteen { "\x1b[7m" } else { "" });
+    let reset = format!("\x1b[0m{fill}{}{}", theme.meta, theme.depth.row_attribute(style.cursor, style.marked));
     let number = m.prompts.i18n.locale().format_count(hit.line_no as i64);
     let gutter = contents_gutter(m).min(columns);
     let prefix = format!("{}{} ", " ".repeat(gutter.saturating_sub(text_width(&number) + 1)), number);

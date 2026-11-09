@@ -2472,6 +2472,7 @@
   "tui.cwd.the_output_needs_a_file_name": "آؤٹ پٹ کے لیے فائل کا نام درکار ہے",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "⁦--tui-keymap⁩ کے لیے ⁦default⁩، ⁦vim⁩، ⁦mac⁩، ⁦windows⁩ یا ⁦yazi⁩ قابلِ قبول ہیں",
   "tui.cwd.twice": "⁦%1⁩ دو بار دیا گیا",
+  "tui.cwd.folder_missing": "⁦%1⁩ کا فولڈر موجود نہیں: ⁨%2⁩",
   "tui.cwd.write_error": "⁨%1⁩ لکھا نہیں جا سکا: ⁨%2⁩",
   "tui.editor.enter_a_filename_before_the_extension": "ایکسٹینشن سے پہلے فائل کا نام درج کریں۔",
   "tui.editor.invalid_name": "ایسا نام درج کریں جو خالی، ⁦.⁩ یا ⁦..⁩ نہ ہو اور جس میں ⁦/⁩ یا نل کریکٹر نہ ہو۔",
@@ -2498,6 +2499,7 @@
   "tui.launch.could_not_finish": "⁨%1⁩ مکمل نہیں ہو سکا (⁨%2⁩)",
   "tui.launch.could_not_observe": "⁨%1⁩ کی نگرانی نہیں ہو سکی: ⁨%2⁩",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "یہ فولڈر نہیں، اس لیے ٹرمینل نہیں کھولا گیا",
+  "tui.launch.program_not_found": "پروگرام ⁨%1⁩ نہیں ملا",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "ونڈو کم از کم ⁦12⁩ کالم چوڑی اور ⁦5⁩ قطار اونچی کریں۔",
   "tui.model.bulk_done": {
     "one": "⁦%1⁩ آئٹم کا نام بدلا گیا · کالعدم ایک نام کی تبدیلی واپس کرتا ہے",

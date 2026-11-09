@@ -316,6 +316,7 @@ pub(super) fn supported(action: &str) -> bool {
             | "wordBackward" | "wordForward" | "killBol" | "killEol" | "killBackward" | "killForward"
             | "suspend" | "pasteAbsoluteLink" | "pasteLink" | "pasteHardLink" | "detailBirth" | "detailOff"
             | "copyPath" | "copyUri" | "copydirpath" | "copyDirUri" | "copyName" | "copyStem"
+            | "copyRelative" | "copyQuoted"
             | "findPrevious" | "findNext" | "sortBirth" | "sortBirthReverse" | "sortExtension" | "sortRandom" | "followLink"
             | "openTrash"
     )

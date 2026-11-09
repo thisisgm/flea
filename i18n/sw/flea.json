@@ -2472,6 +2472,7 @@
   "tui.cwd.the_output_needs_a_file_name": "Matokeo yanahitaji jina la faili",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "--tui-keymap inakubali default, vim, mac, windows au yazi",
   "tui.cwd.twice": "%1 imetolewa mara mbili",
+  "tui.cwd.folder_missing": "Folda ya %1 haipo: %2",
   "tui.cwd.write_error": "Haikuweza kuandika %1: %2",
   "tui.editor.enter_a_filename_before_the_extension": "Ingiza jina la faili kabla ya kiendelezi.",
   "tui.editor.invalid_name": "Ingiza jina lisilo tupu, lisilo . au .., na lisilo na / wala herufi batili ya NUL.",
@@ -2498,6 +2499,7 @@
   "tui.launch.could_not_finish": "%1 haikuweza kukamilika (%2)",
   "tui.launch.could_not_observe": "Haikuweza kufuatilia %1: %2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "Hiyo si folda, hivyo hakuna terminali iliyofunguliwa",
+  "tui.launch.program_not_found": "Programu %1 haikupatikana",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "Panua dirisha liwe angalau safu wima 12 kwa upana na mistari 5 kwa urefu.",
   "tui.model.bulk_done": {
     "one": "Kipengee %1 kimebadilishwa jina · Tendua hurudisha badiliko moja la jina",

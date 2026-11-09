@@ -124,3 +124,42 @@ fn tui_ground_is_the_terminal_default_background_in_every_frame_and_erase() {
         }
     }
 }
+
+// NO_COLOR: every frame and overlay draws without one colour code, and the cursor row still reads, as reverse video.
+#[test]
+fn no_color_frames_carry_no_colour_and_the_cursor_reads_as_reverse_video() {
+    assert!(crate::tui::theme::no_color(Some("1".into())) && !crate::tui::theme::no_color(Some("".into())) && !crate::tui::theme::no_color(None));
+    let theme = Theme::with_depth(PALETTE, Depth::Mono);
+    let mut frames = Vec::new();
+    let mut m = model();
+    m.selected.insert(2);
+    m.tabs.push(Tab { path: "/fx/v/Docs".into(), cursor: 0, back: Vec::new(), forward: Vec::new() });
+    frames.push(("listing", frame(&m, &theme, 130, 31)));
+    m.preview_focus = true;
+    frames.push(("unfocused cursor", frame(&m, &theme, 130, 31)));
+    for overlay in ["menu", "sheet", "delete"] {
+        let mut m = model();
+        match overlay {
+            "menu" => m.menu = true,
+            "sheet" => m.sheet = true,
+            _ => m.deletion = Some(Deletion { token: 1, count: 1, ..Default::default() }),
+        }
+        frames.push((overlay, frame(&m, &theme, 130, 31)));
+    }
+    for (case, stream) in &frames {
+        let mut codes = Vec::new();
+        let mut rest = stream.as_str();
+        while let Some(start) = rest.find("\x1b[") {
+            rest = &rest[start + 2..];
+            let end = rest.find(|c: char| ('@'..='~').contains(&c)).unwrap();
+            if rest[end..].starts_with('m') { codes.extend(rest[..end].split(';').filter_map(|code| code.parse::<u32>().ok())); }
+            rest = &rest[end..];
+        }
+        let colour = codes.iter().find(|code| matches!(code, 30..=38 | 40..=48 | 90..=97 | 100..=107));
+        assert!(colour.is_none(), "{case}: NO_COLOR frame carries colour code {colour:?}");
+        if *case == "listing" || *case == "unfocused cursor" {
+            assert!(codes.contains(&7), "{case}: the cursor row lost its reverse video");
+            assert!(codes.contains(&4), "{case}: the marked row lost its underline");
+        }
+    }
+}

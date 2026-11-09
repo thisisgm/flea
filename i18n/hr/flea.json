@@ -2573,6 +2573,7 @@
   "tui.cwd.the_output_needs_a_file_name": "Izlazu je potreban naziv datoteke",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "--tui-keymap prihvaća default, vim, mac, windows ili yazi",
   "tui.cwd.twice": "%1 je naveden dvaput",
+  "tui.cwd.folder_missing": "Mapa za %1 ne postoji: %2",
   "tui.cwd.write_error": "Nije moguće zapisati %1: %2",
   "tui.editor.enter_a_filename_before_the_extension": "Unesite naziv datoteke prije nastavka.",
   "tui.editor.invalid_name": "Unesite naziv koji nije prazan, . ili .. i ne sadrži / ni nulti znak.",
@@ -2601,6 +2602,7 @@
   "tui.launch.could_not_finish": "%1 nije moguće dovršiti (%2)",
   "tui.launch.could_not_observe": "Nije moguće nadzirati %1: %2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "To nije mapa pa terminal nije otvoren",
+  "tui.launch.program_not_found": "Program %1 nije pronađen",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "Proširite prozor na najmanje 12 stupaca i 5 redaka.",
   "tui.model.bulk_done": {
     "one": "Preimenovana %1 stavka · Poništi vraća jedno preimenovanje",

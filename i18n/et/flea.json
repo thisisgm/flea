@@ -2472,6 +2472,7 @@
   "tui.cwd.the_output_needs_a_file_name": "Väljund vajab failinime",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "--tui-keymap lubab väärtusi default, vim, mac, windows või yazi",
   "tui.cwd.twice": "%1 anti kaks korda",
+  "tui.cwd.folder_missing": "Valiku %1 kausta pole olemas: %2",
   "tui.cwd.write_error": "%1 kirjutamine nurjus: %2",
   "tui.editor.enter_a_filename_before_the_extension": "Sisesta laiendi ette failinimi.",
   "tui.editor.invalid_name": "Sisesta nimi, mis pole tühi, . ega .. ning ei sisalda / ega nullmärki.",
@@ -2498,6 +2499,7 @@
   "tui.launch.could_not_finish": "%1 ei saanud lõpetada (%2)",
   "tui.launch.could_not_observe": "%1 jälgimine nurjus: %2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "See pole kaust, seega terminali ei avatud",
+  "tui.launch.program_not_found": "Programmi %1 ei leitud",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "Muuda aken vähemalt 12 veeru laiuseks ja 5 rea kõrguseks.",
   "tui.model.bulk_done": {
     "one": "%1 üksus ümber nimetatud · Võta tagasi ennistab ühe nime",

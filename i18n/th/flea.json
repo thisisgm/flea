@@ -2371,6 +2371,7 @@
   "tui.cwd.the_output_needs_a_file_name": "ผลลัพธ์ต้องมีชื่อไฟล์",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "--tui-keymap รับค่า default, vim, mac, windows หรือ yazi",
   "tui.cwd.twice": "ระบุ %1 สองครั้ง",
+  "tui.cwd.folder_missing": "ไม่มีโฟลเดอร์สำหรับ %1: %2",
   "tui.cwd.write_error": "เขียน %1 ไม่ได้: %2",
   "tui.editor.enter_a_filename_before_the_extension": "ป้อนชื่อไฟล์ก่อนนามสกุล",
   "tui.editor.invalid_name": "ป้อนชื่อที่ไม่ว่าง ไม่ใช่ . หรือ .. และไม่มี / หรืออักขระ null",
@@ -2395,6 +2396,7 @@
   "tui.launch.could_not_finish": "%1 ทำงานไม่สำเร็จ (%2)",
   "tui.launch.could_not_observe": "ติดตาม %1 ไม่ได้: %2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "นั่นไม่ใช่โฟลเดอร์ จึงไม่ได้เปิดเทอร์มินัล",
+  "tui.launch.program_not_found": "ไม่พบโปรแกรม %1",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "ปรับหน้าต่างให้กว้างอย่างน้อย 12 คอลัมน์และสูง 5 แถว",
   "tui.model.bulk_done": {
     "other": "เปลี่ยนชื่อแล้ว %1 รายการ · เลิกทำจะย้อนคืนการเปลี่ยนชื่อหนึ่งรายการ"

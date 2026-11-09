@@ -120,3 +120,26 @@ action = "trash"
     assert_eq!(model.error, "This location has no Trash", "no key left to name");
     finish(wire, reader);
 }
+
+// An empty folder has nothing to trash: d arms no prompt and no trash key sends anything.
+#[test]
+fn trash_keys_in_an_empty_folder_arm_nothing_and_say_nothing() {
+    for (preset, pressed) in trash_keys() {
+        let (mut wire, reader) = echo_wire();
+        let mut model = Model::new(PathBuf::from("/listing"), &Json::Null);
+        model.preset = preset.into();
+        model.hints = Hints::new(&Map::load(), preset);
+        model.open(model.path.clone(), &mut wire).unwrap();
+        drain(&mut wire);
+        model.receive(jsondoc::parse(r#"{"t":"listed","n":0,"read":0.0,"sort":0.0,"v":1,"path":"/listing"}"#).unwrap(), &mut wire).unwrap();
+        drain(&mut wire);
+        assert_eq!(model.total, 0);
+        for _ in 0..2 {
+            press(&mut model, &mut wire, &pressed);
+            assert!(requests(&drain(&mut wire), "trash").is_empty(), "{preset} {} sends no trash", pressed.name);
+            assert_eq!(model.key_arm, "", "{preset} {} arms nothing", pressed.name);
+            assert_eq!(model.message, "", "{preset} {} leaves no prompt", pressed.name);
+        }
+        finish(wire, reader);
+    }
+}
