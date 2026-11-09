@@ -72,16 +72,16 @@ pub fn walk_cancellable(path: &Path, deadline: Instant, cancelled: &impl Fn() ->
 
 // A row can itself be a remote mount under a local pane; the walk's device boundary cannot protect its starting folder.
 fn walk_display(path: &Path, stop: &dyn Fn() -> bool, mounts: &str) -> DirSize {
-    walk_display_armed(path, stop, mounts, None)
+    walk_display_armed(path, stop, mounts, None).0
 }
 
-// `arm` hears each folder before its read; a FUSE tree arms nothing, since inotify misses changes made below such a mount.
+// `arm` hears each folder before its read, never on a netfs::inotify_blind tree; the flag says a counted file may have a name outside it.
 pub(super) fn walk_display_armed(
     path: &Path,
     stop: &dyn Fn() -> bool,
     mounts: &str,
     arm: Option<&dyn Fn(&Path)>,
-) -> DirSize {
+) -> (DirSize, bool) {
     let network = |kind: String| super::netfs::is_network_fstype(&kind);
     let entry = path.symlink_metadata().ok();
     let remote = super::extclass::gvfs_class(path).is_some_and(refuses_folder_sizes)
@@ -89,19 +89,19 @@ pub(super) fn walk_display_armed(
         // A pane reached through a symlink never spells the mount point, so the row's own device names its mount too.
         || entry.as_ref().and_then(|meta| super::mountinfo::fstype_for_dev(meta.dev(), mounts)).is_some_and(network);
     if remote {
-        return DirSize { bytes: entry.map(|meta| meta.size()).unwrap_or(0), partial: true };
+        return (DirSize { bytes: entry.map(|meta| meta.size()).unwrap_or(0), partial: true }, false);
     }
-    let fuse = || {
+    let blind = || {
         let by_dev = entry
             .as_ref()
             .and_then(|meta| super::mountinfo::fstype_for_dev(meta.dev(), mounts));
         [super::mountinfo::mount_type_in(path, mounts), by_dev]
             .into_iter()
             .flatten()
-            .any(|kind| super::netfs::can_wedge(&kind))
+            .any(|kind| super::netfs::inotify_blind(&kind))
     };
-    let Some(arm) = arm.filter(|_| !fuse()) else {
-        return walk_while(path, stop);
+    let Some(arm) = arm.filter(|_| !blind()) else {
+        return (walk_while(path, stop), false);
     };
     let mut quiet = |_: &Tally| {};
     let tally = walk_core(
@@ -114,10 +114,13 @@ pub(super) fn walk_display_armed(
             entering: Some(arm),
         }),
     );
-    DirSize {
-        bytes: tally.bytes,
-        partial: tally.partial,
-    }
+    (
+        DirSize {
+            bytes: tally.bytes,
+            partial: tally.partial,
+        },
+        tally.linked,
+    )
 }
 
 // Issue F1e: a copy's walk answers to the copy and not to a clock. The listing needs a floor inside
@@ -133,6 +136,8 @@ pub struct Tally {
     pub bytes: u64,
     pub items: u64,
     pub partial: bool,
+    // A counted regular file has a name outside the tree, or the walk could not tell, so a write through it may fire no watch here.
+    pub linked: bool,
 }
 
 // The running tally goes to `report` at most once per `every`, never per entry; `entering` hears each folder before its listing.
@@ -168,6 +173,10 @@ mod race_tests;
 #[cfg(test)]
 #[path = "dirsize_gh368_tests.rs"]
 mod gh368_tests;
+
+#[cfg(test)]
+#[path = "dirsize_blind_tests.rs"]
+mod blind_tests;
 
 #[cfg(test)]
 mod tests {

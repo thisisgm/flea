@@ -317,3 +317,6 @@ fn a_path_that_comes_to_name_another_folder_is_walked_again() {
         "the new folder at that path is walked again"
     );
 }
+
+#[path = "dirsizewatch_link_tests.rs"]
+mod link;

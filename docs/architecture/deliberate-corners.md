@@ -15,6 +15,12 @@
   check: `text/markdown`'s own `/usr/share/mime/generic-icons` entry is `x-office-document`, not
   `text-x-generic`, so the row's icon name alone cannot carry it. It is a display-mode choice
   over an already-text-shaped file, not client-side content sniffing.
+- A settled folder size (`src/backend/dirsizewatch.rs`) is kept only when every hard-linked file
+  the walk counted has all its names inside the walked tree. A hard link made after that walk,
+  from a name outside the tree to a file inside it, raises no inotify event on the counted folders
+  (`link(2)` reports only to the new name's folder), so a later write through the new name leaves
+  the size stale until something inside the folder changes or its parent leaves every tab. Closing
+  it would take a time limit on settled sizes or a watch per file; neither is taken.
 
 ### Size formatting matches real GLib, not Finder, and not the design spec's assumed rounding
 

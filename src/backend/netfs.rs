@@ -1,4 +1,4 @@
-// One shared list of network filesystem types for extclass, jump, iomount and ui/js/NetFs.js.
+// One shared list of network filesystem types for extclass, jump, iomount and ui/js/NetFs.js, and the kinds inotify cannot vouch for.
 // Sample input: "fuse.sshfs" trues, "ext4" falses, "NFS4" trues, "fuse.portal" falses.
 const NETWORK_FSTYPES: &[&str] = &[
     "nfs", "nfs4", "cifs", "smb2", "smb3", "smbfs", "9p", "afs", "ceph", "davfs",
@@ -15,6 +15,15 @@ pub fn is_network_fstype(fstype: &str) -> bool {
 // A filesystem whose stat can wedge: the shared network list plus any FUSE mount, block-backed fuseblk (ntfs-3g) included.
 pub fn can_wedge(kind: &str) -> bool {
     is_network_fstype(kind) || kind == "fuse" || kind == "fuseblk" || kind.starts_with("fuse.")
+}
+
+// Changed by another kernel too, a VM host or a cluster peer, whose writes raise no inotify event on this one.
+const SHARED_FSTYPES: &[&str] = &["virtiofs", "vboxsf", "prl_fs", "vmhgfs", "gfs2", "ocfs2", "lustre", "gpfs", "beegfs", "pvfs2"];
+
+// A filesystem where a quiet inotify watch proves nothing: anything that can wedge, plus the shared kinds above.
+// Sample input: "virtiofs", "fuse.sshfs" and "nfs4" trues, "ext4" and "overlay" falses.
+pub fn inotify_blind(kind: &str) -> bool {
+    can_wedge(kind) || SHARED_FSTYPES.iter().any(|shared| shared.eq_ignore_ascii_case(kind))
 }
 
 #[cfg(test)]
@@ -55,6 +64,21 @@ mod tests {
         }
         for kind in ["ext4", "btrfs", "vfat", "exfat", "ntfs3", "tmpfs", "nfsd", "fusectl", ""] {
             assert!(!can_wedge(kind), "{} stays inline", kind);
+        }
+    }
+
+    // Sample input: a VM share or a cluster filesystem is blind without being able to wedge, so it stays off the remote list.
+    #[test]
+    fn a_vm_share_or_cluster_filesystem_is_blind_to_inotify_and_a_local_disk_is_not() {
+        for kind in ["virtiofs", "vboxsf", "prl_fs", "vmhgfs", "gfs2", "ocfs2", "lustre", "gpfs", "beegfs", "pvfs2", "VirtioFS"] {
+            assert!(inotify_blind(kind), "{} is blind", kind);
+            assert!(!can_wedge(kind) && !is_network_fstype(kind), "{} keeps its local walks", kind);
+        }
+        for kind in ["fuse", "fuseblk", "fuse.mergerfs", "nfs4", "cifs", "9p", "ceph"] {
+            assert!(inotify_blind(kind), "{} is blind because it can wedge", kind);
+        }
+        for kind in ["ext4", "btrfs", "xfs", "vfat", "exfat", "ntfs3", "tmpfs", "overlay", "f2fs", ""] {
+            assert!(!inotify_blind(kind), "{} trusts inotify", kind);
         }
     }
 
