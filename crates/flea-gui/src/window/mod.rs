@@ -54,6 +54,7 @@ pub(crate) mod search;
 pub mod selection_preview;
 pub mod settings;
 pub(crate) mod sidebar_edge;
+mod sniff;
 pub mod startup;
 pub(crate) mod status;
 pub(crate) mod surfaces;

@@ -28,7 +28,7 @@ fn read(path: &str, limit: u64) -> Read {
     if bytes.len() as u64 > limit {
         return Read::Large;
     }
-    Read::Text(String::from_utf8_lossy(&bytes).into_owned())
+    Read::Text(flea::textdecode::decode(&bytes).into_owned())
 }
 
 pub(super) fn code(

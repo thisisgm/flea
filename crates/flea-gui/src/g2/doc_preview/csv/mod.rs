@@ -97,9 +97,9 @@ pub struct CsvView {
     pub cells: CellCache,
     pub head: Vec<DrawCell>,
     pub rows: Vec<DrawRow>,
-    /// The column boxes, kept until the columns or the frame's width change.
+    /// The column boxes, kept until a column lands or widens, or the frame's width changes.
     slots: Vec<Slot>,
-    slots_for: Option<(usize, u64)>,
+    slots_for: Option<(usize, u64, u64)>,
     digits: String,
     landed: Option<csv::Table>,
     parse: Option<Task<()>>,
@@ -228,6 +228,7 @@ impl CsvView {
 
     /// Lays the table out before paint: lands a parse, measures new columns, asks what the frame needs, shapes cells.
     pub fn layout(&mut self, bounds: Bounds<Pixels>, window: &mut Window) {
+        self.feed.counters.frames += 1;
         self.frame = (f64::from(bounds.size.width), f64::from(bounds.size.height));
         if let Some(table) = self.landed.take() {
             self.feed.apply(table);
@@ -237,6 +238,10 @@ impl CsvView {
         let content = self.feed.body_rows() as f64 * g.row_height;
         self.scroll.1 = self.scroll.1.min(content - body).max(0.);
         self.measure(window);
+        // Held cells left to widen by take the next frames, so no one frame measures every held row.
+        if self.feed.widening {
+            window.request_animation_frame();
+        }
         self.lay_slots();
         self.scroll.0 = if g.look {
             let end = self.slots.last().map_or(0., |slot| slot.x + slot.w);
@@ -285,7 +290,6 @@ impl CsvView {
         advance.max(1.)
     }
 
-    // The column boxes for this frame's width, laid out again only when a column lands or the width changes.
     // Measures the columns the scroll and the frame reach, so a column past the first screen costs only once it is reached.
     fn measure(&mut self, window: &Window) {
         let limit = self.feed.reach_target(self.scroll.0.max(0.), self.frame.0);
@@ -303,8 +307,13 @@ impl CsvView {
         });
     }
 
+    // The column boxes for this frame's width, laid out again only when a column lands or widens, or the width changes.
     fn lay_slots(&mut self) {
-        let key = (self.feed.widths.len(), self.frame.0.to_bits());
+        let key = (
+            self.feed.widths.len(),
+            self.feed.revision,
+            self.frame.0.to_bits(),
+        );
         if self.slots_for != Some(key) {
             self.slots = self.feed.layout(self.frame.0);
             self.slots_for = Some(key);

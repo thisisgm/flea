@@ -157,3 +157,41 @@ case_airdrop_page_missing() (
     airdrop_owly none || return 1
     airdrop_page 'Needs the owly package'
 )
+
+# FX-PREVIEW (0.4.2): heads of untyped names (#377), Latin-1, UTF-16 and a UTF-8 byte order mark (S1A-7, S1A-8).
+CASES+=("ql-sniff-script 1100x700 ql:code"
+        "cols-sniff-notes 1100x700 surface:PreviewColumn"
+        "ql-text-latin1 1100x700 ql:text"
+        "ql-text-utf16 1100x700 ql:text"
+        "ql-markdown-bom 1100x700 surface:IpcPreviewState")
+
+fxpreview_files() {
+    local d=$C/FxPreview
+    mkdir -p "$d" || return 1
+    printf '#!/bin/bash\necho hello from myscript\n' > "$d/myscript" && chmod 755 "$d/myscript" || return 1
+    printf 'plain notes with no extension\nsecond line\n' > "$d/notes" || return 1
+    printf 'caf\351 na\357ve\n' > "$d/latin1.txt" || return 1
+    printf '\377\376h\000e\000l\000l\000o\000 \000u\000t\000f\0001\0006\000\n\000' > "$d/utf16.txt" || return 1
+    printf '\357\273\277# bom markdown\n\nbody text\n' > "$d/bom.md" || return 1
+    touch -d "$STAMP" "$d"/* || return 1
+}
+
+case_ql_sniff_script() ( fxpreview_files && quick_look "$C/FxPreview" myscript )
+case_ql_text_latin1() ( fxpreview_files && quick_look "$C/FxPreview" latin1.txt )
+case_ql_text_utf16() ( fxpreview_files && quick_look "$C/FxPreview" utf16.txt )
+
+case_cols_sniff_notes() (
+    fxpreview_files || return 1
+    launch columns "$C/FxPreview" || return 1
+    cursor_to notes || return 1
+    wait_code_state true '.total == 2' || return 1
+    snap
+)
+
+case_ql_markdown_bom() (
+    fxpreview_files || return 1
+    quick_look_open "$C/FxPreview" bom.md || return 1
+    wait_ipc previewMarkdownView rendered || return 1
+    sleep 0.5
+    snap
+)

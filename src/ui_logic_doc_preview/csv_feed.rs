@@ -1,5 +1,4 @@
-//! The CSV table's feed: which records a frame needs, the raw asks that fetch them, and the held lines, parsed table
-//! and frozen widths, as v0.3.12's CsvTable keeps them. A parse runs as a `Job` the caller may move off its own thread.
+//! The CSV table's feed: the records a frame needs, the asks that fetch them, the held lines, the parsed table and its widths; a parse is a `Job` the caller may run on another thread.
 use super::csv::{self, Held, Slot, Table};
 pub use super::csv_geometry::{body_face, Face, Geometry};
 pub use super::csv_wire::{ask_line, parse_reply, Answer, Ask, Reply, LINE_CAP};
@@ -17,6 +16,8 @@ pub struct Counters {
     pub parses: usize,
     pub lines_parsed: usize,
     pub measured: usize,
+    /// Frames the view laid out, so a test reads the cost of each frame however many frames a draw runs.
+    pub frames: usize,
 }
 
 /// A parse of the held lines, independent of the feed so it can run on another thread.
@@ -60,11 +61,16 @@ pub struct Feed {
     /// The last record of the first screen, so the first screen is known whole before the table is drawn.
     pub first_to: usize,
     pub table: Table,
-    /// Widths and alignments freeze on the first screen and only extend after, so no column moves under the reader.
+    /// The first screen is whole: columns start from its rows, widths then grow to the widest held cell, alignments stay.
     pub frozen: bool,
-    /// The column count the freeze held: those columns take the first screen's rows, and only a column first appearing
-    /// after the freeze takes the held rows.
-    pub frozen_cols: usize,
+    /// How many measured columns each held record, by ordinal, has widened.
+    pub folded: BTreeMap<usize, usize>,
+    /// A held cell may still widen its column, so `measure` has work even with every reached column measured.
+    pub widening: bool,
+    /// The table row the next widening starts at, so no frame walks again the rows an earlier frame finished.
+    pub widen_from: usize,
+    /// Bumped whenever a measured column widens, so a layout kept for the old widths is laid out again.
+    pub revision: u64,
     pub heads: Vec<f64>,
     pub widths: Vec<f64>,
     pub rights: Vec<bool>,
@@ -93,7 +99,10 @@ impl Feed {
             first_to: 0,
             table: csv::table(&BTreeMap::new(), 0, delim),
             frozen: false,
-            frozen_cols: 0,
+            folded: BTreeMap::new(),
+            widening: false,
+            widen_from: 0,
+            revision: 0,
             heads: Vec::new(),
             widths: Vec::new(),
             rights: Vec::new(),
@@ -326,6 +335,7 @@ pub fn elide(text: &str, cells: usize) -> (String, bool) {
 
 #[path = "csv_measure.rs"]
 mod measure;
+pub use measure::WIDEN_CELLS;
 
 #[cfg(test)]
 #[path = "csv_feed_engine.rs"]

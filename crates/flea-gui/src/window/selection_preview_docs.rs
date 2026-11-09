@@ -36,6 +36,8 @@ pub(crate) struct Look {
 const MORE_OPACITY: f32 = 0.6;
 /// A row's vertical pad as a multiple of the base size, 6 px at base 12.
 const ROW_PAD_Y: f32 = 6. / 12.;
+/// Plain text's left inset at 23 px of base 14, as boards filter and rename-columns draw it; numbered code keeps the gap.
+const PLAIN_LEFT: f32 = 23. / 14.;
 
 #[cfg(test)]
 #[path = "visual_geometry_code_tests.rs"]
@@ -65,7 +67,11 @@ impl Look {
                 },
             },
             doc_preview::code::Metrics {
-                inset: m.gap,
+                inset: if numbered {
+                    m.gap
+                } else {
+                    (PLAIN_LEFT * f32::from(self.face.base)).round()
+                },
                 top: m.gap,
                 right: m.gap,
                 row: self.row(),

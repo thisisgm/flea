@@ -47,7 +47,7 @@ crates/flea-gui/src/rail/element.rs 424
 crates/flea-gui/src/window/rename_field.rs 414
 crates/flea-gui/src/window/selection_preview.rs 406
 crates/flea-gui/tests/g2_pv1/svg.rs 457
-crates/flea-gui/src/window/selection_preview_load.rs 427
+crates/flea-gui/src/window/selection_preview_load.rs 431
 crates/flea-gui/src/window/columns_review_r2_tests.rs 409
 crates/flea-gui/src/g2/rail_places/producer.rs 408
 crates/flea-gui/src/g2/file_ops/cards.rs 402

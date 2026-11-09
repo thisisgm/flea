@@ -6,6 +6,7 @@ mod test_catalogs;
 use flea::i18n::{I18n, Paths};
 use flea::json::{escape, field_str, field_usize};
 use flea::ui_logic_doc_preview::csv::{self, records};
+use flea::ui_logic_doc_preview::csv_feed::WIDEN_CELLS;
 use flea::ui_logic_doc_preview::office::State;
 use flea_gui::g2::doc_preview::csv::{CodeHost, CsvView, TableFace, TablePalette};
 use flea_gui::g2::doc_preview::office::{OfficeHost, OfficeView};
@@ -160,6 +161,17 @@ fn draw<V: 'static>(cx: &mut TestAppContext, view: WindowHandle<V>) {
     cx.run_until_parked();
 }
 
+// Draws until no held cell is left to widen by, as the view's own next-frame requests would.
+fn widen(cx: &mut TestAppContext, view: WindowHandle<CsvView>) {
+    for _ in 0..10_000 {
+        if !read(cx, view, |v| v.feed.widening) {
+            return;
+        }
+        draw(cx, view);
+    }
+    panic!("the widening did not end");
+}
+
 // Draws, answers every ask the frame sent from `text`, and draws again until the frame asks nothing more.
 fn serve(cx: &mut TestAppContext, view: WindowHandle<CsvView>, sent: &Sent, text: &str) {
     let mut answered = 0;
@@ -272,3 +284,5 @@ mod review;
 mod review_r2;
 #[path = "g2_pv2_office/review_r3.rs"]
 mod review_r3;
+#[path = "g2_pv2_office/s9g8_widen.rs"]
+mod s9g8_widen;

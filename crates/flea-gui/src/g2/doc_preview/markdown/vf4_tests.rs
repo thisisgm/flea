@@ -93,3 +93,24 @@ fn vf4_markdown_source_uses_the_body_line_box(cx: &mut TestAppContext) {
         })
     });
 }
+
+// S1A-7 and S1A-8: a UTF-8 byte order mark never reaches the parser, so "# bom" is a heading; Latin-1 reads as its letters.
+#[test]
+fn the_markdown_read_drops_a_byte_order_mark_and_reads_latin1() {
+    let dir = std::env::temp_dir().join(format!("flea-md-bom-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let text = |name: &str, bytes: &[u8]| {
+        let path = dir.join(name);
+        std::fs::write(&path, bytes).unwrap();
+        match worker::read(&path, 1 << 20) {
+            worker::Read::Text(text, _) => text.to_string(),
+            _ => panic!("{name} reads as text"),
+        }
+    };
+    assert_eq!(
+        text("f-bom.md", b"\xef\xbb\xbf# bom markdown\n"),
+        "# bom markdown\n"
+    );
+    assert_eq!(text("f-latin1.md", b"# caf\xe9\n"), "# caf\u{e9}\n");
+    let _ = std::fs::remove_dir_all(&dir);
+}

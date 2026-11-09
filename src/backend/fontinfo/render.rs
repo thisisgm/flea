@@ -152,7 +152,7 @@ pub fn answer(ask: &Ask, mime: &Db, aliases: &Aliases, root: &Path, program: &st
 }
 
 fn look(ask: &Ask, mime: &Db, aliases: &Aliases, root: &Path, program: &str, run: &mut Runner) -> Result<(Facts, Vec<PathBuf>), String> {
-    let label = check(ask)?;
+    check(ask)?;
     let name = ask.path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
     let kind = mime.lookup(&name).map(|m| aliases.canonical(m));
     // Equal-weight *.otf rules can resolve to an OpenDocument formula template; only readable font tables admit that case.
@@ -162,8 +162,8 @@ fn look(ask: &Ask, mime: &Db, aliases: &Aliases, root: &Path, program: &str, run
         return Err("only TrueType and OpenType fonts are drawn".to_string());
     }
     // Absolute and canonical, so magick can never read the font as an option and the jail binds the file itself.
-    let (font, meta, facts) = iomount::call(&ask.path, &iomount::mount_body(), "font", {
-        let path = ask.path.clone();
+    let (font, meta, facts, text) = iomount::call(&ask.path, &iomount::mount_body(), "font", {
+        let (path, wanted) = (ask.path.clone(), ask.text.clone());
         move || {
             let font = std::fs::canonicalize(&path).map_err(|e| crate::error::io_message(&e))?;
             let meta = std::fs::metadata(&font).map_err(|e| crate::error::io_message(&e))?;
@@ -174,11 +174,14 @@ fn look(ask: &Ask, mime: &Db, aliases: &Aliases, root: &Path, program: &str, run
             if ambiguous_otf && facts == Facts::default() {
                 return Err("that file has no readable font tables".to_string());
             }
-            Ok((font, meta, facts))
+            // A font with no Latin letters draws a sample in a script it covers, never a blank specimen.
+            let text = fontinfo::sample::choose(&wanted, &fontinfo::sample::ranges(&font));
+            Ok((font, meta, facts, text))
         }
     })
     .map_err(|e| e.msg)??;
-    let key = key(&font, &meta, ask);
+    let label = label_text(&text)?;
+    let key = key(&font, &meta, ask, &text);
     for i in 0..SAMPLES {
         crate::cachewrite::require(&entry(root, &key, i)).map_err(|e| e.to_string())?;
     }
