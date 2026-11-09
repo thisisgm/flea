@@ -21,6 +21,9 @@ pub(crate) mod catcher;
 mod geometry;
 pub(crate) mod held;
 pub(crate) mod host;
+pub(crate) mod icons;
+#[cfg(test)]
+mod icons_tests;
 #[cfg(test)]
 mod join_tests;
 mod landing;

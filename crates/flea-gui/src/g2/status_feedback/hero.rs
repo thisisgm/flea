@@ -1,10 +1,10 @@
 //! The empty folder's hero view: captions loop while shown; a fade repaints only the caption, and a timer waits between beats.
-use super::caption::{caseless, tracking_for, Place, Slot, TRACKING};
+use super::caption::{Place, Slot, TRACKING};
 use super::{bump, empty_omi, now_ms, Counters, Ink};
 use crate::feedback::spinner::Crawl;
 use crate::list::{Palette, Typeface};
 use flea::i18n::I18n;
-use flea::ui_logic_status_feedback::empty::{Rotation, PHRASES};
+use flea::ui_logic_status_feedback::empty::Rotation;
 use gpui::{
     div, prelude::*, px, App, Context, EntityId, FontWeight, IntoElement, Render, ShapedLine,
     SharedString, Subscription, Task, Window,
@@ -14,6 +14,9 @@ use std::{rc::Rc, time::Instant};
 #[path = "hero_paint.rs"]
 mod paint;
 use paint::{Face, Layer};
+#[path = "hero_look.rs"]
+mod look;
+pub use look::EmptyLook;
 
 /// The gap from the mark to its caption and the caption's line box, which each hero board states on its own.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -43,6 +46,10 @@ pub struct EmptyHero {
     column_painted: Option<(bool, f32, f32)>,
     rotation: Rotation,
     phrases: Vec<SharedString>,
+    rotating: Vec<SharedString>,
+    fixed: SharedString,
+    look: EmptyLook,
+    look_watch: Option<Subscription>,
     /// PaneStates.qml's hint under the caption: sentence case in the metadata ink, empty when key hints are off.
     hint: SharedString,
     typeface: Typeface,
@@ -74,6 +81,10 @@ impl EmptyHero {
             column_painted: None,
             rotation: Rotation::default(),
             phrases: Vec::new(),
+            rotating: Vec::new(),
+            fixed: SharedString::default(),
+            look: EmptyLook::default(),
+            look_watch: None,
             hint: SharedString::default(),
             typeface: Typeface::omarchy_default(),
             base: cx.background_executor().now(),
@@ -92,25 +103,8 @@ impl EmptyHero {
         };
         hero.rotation.set_reduced(hero.reduced, 0);
         hero.translated(catalog);
+        hero.observe_look(cx);
         hero
-    }
-
-    /// Phrases are translated, raised and tracked once per language (caseless scripts neither), never in render or paint.
-    pub fn translated(&mut self, catalog: &I18n) {
-        self.shaped = None;
-        let raised = !caseless(catalog.language());
-        self.tracking = tracking_for(catalog.language());
-        self.phrases = PHRASES
-            .iter()
-            .map(|key| {
-                let phrase = catalog.tr(key);
-                if raised {
-                    phrase.to_uppercase().into()
-                } else {
-                    phrase.into()
-                }
-            })
-            .collect();
     }
 
     #[cfg(test)]
@@ -158,7 +152,7 @@ impl EmptyHero {
                     window,
                 )
             }))
-            .fold(super::mark::HERO, f32::max)
+            .fold(if self.look.omi { super::mark::HERO } else { 0. }, f32::max)
     }
 
     /// Every view and every beat draws one caption line, so a rotation never moves the caption.
@@ -266,8 +260,10 @@ impl Render for EmptyHero {
             .unwrap_or_default();
         let palette = Palette::inherited(&window.text_style(), theme);
         let ink = Ink::interim(&palette);
+        // Show Omi in empty folders unticked draws no mark at all; the headline alone stays centred.
+        let omi = self.look.omi;
         self.omi.show(
-            self.rotation.visible(),
+            self.rotation.visible() && omi,
             palette.accent.opacity(frame.opacity),
         );
         self.typeface = Typeface::for_window(window, cx);
@@ -305,7 +301,11 @@ impl Render for EmptyHero {
                 )
             })
             .fold(0., f32::max);
-        let mark_side = super::mark::HERO;
+        let mark_room = if omi {
+            super::mark::HERO + metrics.gap
+        } else {
+            0.
+        };
         let hint_line = if self.hint.is_empty() {
             0.
         } else {
@@ -324,28 +324,27 @@ impl Render for EmptyHero {
                         .flex()
                         .flex_col()
                         .items_center()
-                        .h(px(mark_side
-                            + metrics.gap
-                            + metrics.caption_line
-                            + hint_line))
+                        .h(px(mark_room + metrics.caption_line + hint_line))
                         .flex_shrink_0()
                         .gap(px(metrics.gap))
                         .mt(px(2. * frame.offset))
                         .opacity(frame.opacity)
-                        .child(
-                            self.painted.watch(
-                                div()
-                                    .text_color(palette.accent)
-                                    .relative()
-                                    .debug_selector(|| "fb1-hero-mark".into())
-                                    .child(empty_omi::Slot {
-                                        mark: Rc::clone(&self.omi),
-                                        side: mark_side,
-                                    }),
-                                "mark",
-                                SharedString::default(),
-                            ),
-                        )
+                        .when(omi, |column| {
+                            column.child(
+                                self.painted.watch(
+                                    div()
+                                        .text_color(palette.accent)
+                                        .relative()
+                                        .debug_selector(|| "fb1-hero-mark".into())
+                                        .child(empty_omi::Slot {
+                                            mark: Rc::clone(&self.omi),
+                                            side: super::mark::HERO,
+                                        }),
+                                    "mark",
+                                    SharedString::default(),
+                                ),
+                            )
+                        })
                         .child(
                             div()
                                 .relative()

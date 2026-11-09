@@ -105,8 +105,10 @@ impl Shell {
         let Some(caption) = caption else { return };
         self.strip.bar.width = width;
         self.strip.bar.caption = caption;
-        snapshot.frame.tab_width =
-            super::bar::tab_width(width, snapshot.frame.labels.len(), caption);
+        if snapshot.frame.icons.is_none() {
+            snapshot.frame.tab_width =
+                super::bar::tab_width(width, snapshot.frame.labels.len(), caption);
+        }
         if let Some(view) = &self.strip.view {
             view.update(cx, |strip, cx| {
                 if strip.frame != snapshot.frame || font_changed {
@@ -151,7 +153,7 @@ impl Shell {
         let Some(index) = self.strip.tabs[snapshot.side].resolve(*identity) else {
             return Hit::Nothing;
         };
-        if x >= (slot as f32 + 1.) * frame.tab_width - HIT_MIN {
+        if frame.icons.is_none() && x >= (slot as f32 + 1.) * frame.tab_width - HIT_MIN {
             Hit::Close(index)
         } else {
             Hit::Tab(index)

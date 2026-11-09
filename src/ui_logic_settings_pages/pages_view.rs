@@ -27,6 +27,10 @@ pub fn view_rows(state: &State<'_>) -> Vec<Row> {
         // 0.4.0: Git status sits before Highlight today's dates and ships off.
         check("showGitStatus", "settings.row.show_git_status", "folder-git-2", is_true(data, &["showGitStatus"])),
         check("highlightToday", "settings.row.highlight_today", "history", is_true(data, &["highlightToday"])),
+        // 0401-settings-view-c: the window's resting look, tab marks then Omi before the messages it sits over.
+        check("tabsAsIcons", "settings.row.tabs_as_icons", "app-window", is_true(data, &["tabsAsIcons"])),
+        check("emptyFolderOmi", "settings.row.empty_omi", "bot", not_false(data, &["emptyFolderOmi"])),
+        check("emptyFolderRotate", "settings.row.empty_rotate", "bot", not_false(data, &["emptyFolderRotate"])),
         check("openFoldersWhileDragging", "settings.row.open_while_dragging", "", is_true(data, &["openFoldersWhileDragging"])),
         Row::group("settings.group.sorting"),
         choice("sort.key", "settings.row.sort_by", "sort", &["name", "size", "date", "kind"],
@@ -111,3 +115,7 @@ pub(super) fn load_hint(manual: bool, key: String) -> Option<Row> {
         Some(Row::hint(Text::args("settings.hint.load_key", vec![Text::Keycap(key)])))
     }
 }
+
+#[cfg(test)]
+#[path = "pages_view_tests.rs"]
+mod tests;
