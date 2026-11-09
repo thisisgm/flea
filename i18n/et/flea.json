@@ -102,6 +102,7 @@
   "archive.compressing": "%1 pakkimine vormingusse .%2",
   "archive.confirm": "Kinnita",
   "archive.done.cancelled": "Lahtipakkimine tühistatud.",
+  "archive.done.extracted": "Lahti pakitud.",
   "archive.done.name_refused": "„%1“ ei saa sellele kettale lahti pakkida: %2.",
   "archive.done.twins": "„%1“ ja „%2“ saaksid sellel kettal sama nime, seega ei pakitud midagi lahti.",
   "archive.done.unverified": "Lahti pakitud. Arhiivi sisukorda ei õnnestunud lugeda, seega jäi tulemus kontrollimata.",

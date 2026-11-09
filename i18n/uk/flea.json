@@ -51,6 +51,7 @@
   "archive.compressing": "Стиснення у .%2: %1",
   "archive.confirm": "Підтвердити",
   "archive.done.cancelled": "Видобування скасовано.",
+  "archive.done.extracted": "Видобуто.",
   "archive.done.name_refused": "«%1» не можна видобути на цей накопичувач: %2.",
   "archive.done.twins": "«%1» і «%2» отримали б одне ім’я на цьому накопичувачі, тому нічого не видобуто.",
   "archive.done.unverified": "Видобуто. Не вдалося прочитати індекс архіву, тому результат не перевірено.",

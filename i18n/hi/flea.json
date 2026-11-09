@@ -49,6 +49,7 @@
   "archive.compressing": "%1 को .%2 में संपीड़ित कर रहे हैं",
   "archive.confirm": "पुष्टि करें",
   "archive.done.cancelled": "निकालना रद्द किया गया।",
+  "archive.done.extracted": "निकाल दिया गया।",
   "archive.done.name_refused": "“%1” को इस ड्राइव पर नहीं निकाला जा सकता: %2।",
   "archive.done.twins": "“%1” और “%2” इस ड्राइव पर एक ही नाम लेंगे, इसलिए कुछ भी नहीं निकाला गया।",
   "archive.done.unverified": "निकाल दिया गया। आर्काइव की सूची पढ़ी नहीं जा सकी, इसलिए सत्यापन नहीं हुआ।",

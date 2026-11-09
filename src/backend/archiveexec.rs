@@ -99,7 +99,18 @@ pub(crate) fn archive_line(
     };
     match result {
         Ok((verified, left)) => {
-            with_left(archivedone_line(id, true, verified, ""), left.as_deref())
+            let done = archivedone_line(id, true, verified, "");
+            // An extract's success names its archive and asked folder, as its retry line does, so a client tells it from a compress.
+            let done = if compressing {
+                done
+            } else {
+                with_field(
+                    with_field(done, "path", &archive.to_string_lossy()),
+                    "dest",
+                    &dest.to_string_lossy(),
+                )
+            };
+            with_left(done, left.as_deref())
         }
         Err(e) if !compressing && archivepass::asks_again(&e.msg) => {
             archivepass::asks_again_line(id, &e.msg, &archive, &dest)
@@ -113,12 +124,17 @@ pub(crate) fn archive_line(
 fn with_left(line: String, left: Option<&str>) -> String {
     match left {
         None => line,
-        Some(path) => format!(
-            r#"{},"left":"{}"}}"#,
-            &line[..line.len() - 1],
-            crate::json::escape(path)
-        ),
+        Some(path) => with_field(line, "left", path),
     }
+}
+
+fn with_field(line: String, key: &str, value: &str) -> String {
+    format!(
+        r#"{},"{}":"{}"}}"#,
+        &line[..line.len() - 1],
+        key,
+        crate::json::escape(value)
+    )
 }
 
 pub(crate) fn run_convert(
@@ -184,6 +200,61 @@ mod tests {
         assert_eq!(
             with_left(converted, Some("/p/.flea-work-cvt-8-0")),
             r#"{"t":"convertdone","id":5,"requestId":9,"source":"/p/a.heic","ok":true,"path":"/p/a.jpg","err":"","collision":false,"left":"/p/.flea-work-cvt-8-0"}"#
+        );
+    }
+
+    // Soak S1B-6: a finished extract named nothing, so the window said a compress's receipt for it.
+    #[test]
+    fn an_extract_success_names_its_archive_and_folder_and_a_compress_success_does_not() {
+        let formats = Formats::from_tools(true, false);
+        if crate::backend::sandboxprobe::skipped() || !formats.offers("tar") {
+            return;
+        }
+        let d = crate::backend::testdir::TestDir::new("archexecdone");
+        d.file("a.txt", "alpha");
+        let run = |compressing: bool, paths: Vec<String>, archive: PathBuf, dest: PathBuf| {
+            let request = ArchiveRequest {
+                compressing,
+                paths,
+                format: "tar".into(),
+                archive,
+                dest,
+                password: String::new(),
+                encrypt_names: false,
+            };
+            archive_line(
+                3,
+                request,
+                &formats,
+                None,
+                Arc::new(AtomicBool::new(false)),
+                None,
+            )
+        };
+        let made = run(
+            true,
+            vec![d.join("a.txt").to_string_lossy().to_string()],
+            PathBuf::new(),
+            d.join("a.tar"),
+        );
+        assert_eq!(
+            made,
+            r#"{"t":"archivedone","id":3,"ok":true,"verified":true,"err":""}"#
+        );
+        // The asked folder is taken, so the files land in "a copy" and the line still names what was asked.
+        d.dir("a");
+        let done = run(false, Vec::new(), d.join("a.tar"), d.join("a"));
+        assert_eq!(
+            done,
+            format!(
+                r#"{{"t":"archivedone","id":3,"ok":true,"verified":true,"err":"","path":"{}","dest":"{}"}}"#,
+                d.join("a.tar").display(),
+                d.join("a").display()
+            )
+        );
+        assert_eq!(
+            std::fs::read_to_string(d.join("a copy/a.txt")).unwrap(),
+            "alpha"
         );
     }
 }

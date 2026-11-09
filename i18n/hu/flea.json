@@ -102,6 +102,7 @@
   "archive.compressing": "%1 tömörítése .%2 formátumba",
   "archive.confirm": "Megerősítés",
   "archive.done.cancelled": "Kibontás megszakítva.",
+  "archive.done.extracted": "Kibontva.",
   "archive.done.name_refused": "A(z) „%1” nem bontható ki erre a meghajtóra: %2.",
   "archive.done.twins": "A(z) „%1” és a(z) „%2” ugyanazt a nevet kapná ezen a meghajtón, ezért semmi sem lett kibontva.",
   "archive.done.unverified": "Kibontva. Az archívumjegyzék nem olvasható, ezért az ellenőrzés elmaradt.",

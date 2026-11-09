@@ -49,6 +49,7 @@
   "archive.compressing": "Þjappa %1 í .%2",
   "archive.confirm": "Staðfesta",
   "archive.done.cancelled": "Hætt við afþjöppun.",
+  "archive.done.extracted": "Afþjöppun lokið.",
   "archive.done.name_refused": "Ekki er hægt að afþjappa „%1“ á þetta drif: %2.",
   "archive.done.twins": "„%1“ og „%2“ fengju sama heiti á þessu drifi, svo ekkert var afþjappað.",
   "archive.done.unverified": "Afþjöppun lokið. Ekki tókst að lesa efnisskrá safnsins og því var útkoman ekki sannreynd.",

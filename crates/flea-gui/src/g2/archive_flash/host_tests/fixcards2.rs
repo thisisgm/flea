@@ -61,7 +61,7 @@ fn fixcards2_ey542_a_finished_extract_leaves_no_extracting_card() {
         &mut cx,
         handle,
         0,
-        r#"{"t":"archivedone","id":7,"ok":true,"verified":true,"err":""}"#,
+        r#"{"t":"archivedone","id":7,"ok":true,"verified":true,"err":"","path":"/files/photos.zip","dest":"/files/photos"}"#,
     );
     assert!(
         !extracting_card(&mut cx, handle),
@@ -284,8 +284,38 @@ fn sol_extract_pw_card_correct_password_has_one_live_job_then_none() {
         &mut cx,
         handle,
         0,
-        r#"{"t":"archivedone","id":8,"ok":true,"verified":true,"err":""}"#,
+        r#"{"t":"archivedone","id":8,"ok":true,"verified":true,"err":"","path":"/files/photos.zip","dest":"/files/photos"}"#,
     );
     assert_no_extract_job(&mut cx, handle);
-    assert!(footer(&mut cx, handle).contains("Archive written."));
+    // Soak S1B-6: an extract's receipt is its own, never the compress receipt.
+    let said = footer(&mut cx, handle);
+    assert!(said.contains("Extracted."), "{said}");
+    assert!(!said.contains("could not be read"), "{said}");
+    assert!(!said.contains("Archive written."), "{said}");
+}
+
+#[test]
+fn fixcards2_s1b6_a_finished_compress_keeps_the_archive_receipt() {
+    let mut cx = crate::list::bench::real_cx();
+    let (handle, mut requests, _other) = start(&mut cx);
+    choose(
+        &mut cx,
+        handle,
+        44,
+        "compress",
+        "zip",
+        &["/files/notes.txt"],
+    );
+    assert!(drain(&mut requests)
+        .iter()
+        .any(|line| line.contains(r#""op":"compress""#)));
+    receive(&mut cx, handle, 0, r#"{"t":"archivestarted","id":9}"#);
+    receive(
+        &mut cx,
+        handle,
+        0,
+        r#"{"t":"archivedone","id":9,"ok":true,"verified":true,"err":""}"#,
+    );
+    let said = footer(&mut cx, handle);
+    assert!(said.contains("Archive written."), "{said}");
 }

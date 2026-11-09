@@ -142,6 +142,7 @@
   "archive.compressing": "%1을(를) .%2 형식으로 압축 중",
   "archive.confirm": "확인",
   "archive.done.cancelled": "압축 풀기를 취소했습니다.",
+  "archive.done.extracted": "압축을 풀었습니다.",
   "archive.done.name_refused": "“%1”은(는) 이 드라이브에 압축을 풀 수 없습니다: %2.",
   "archive.done.twins": "“%1”과(와) “%2”은(는) 이 드라이브에서 같은 이름이 되므로 아무것도 압축을 풀지 않았습니다.",
   "archive.done.unverified": "압축을 풀었습니다. 압축 파일 목록을 읽을 수 없어 검증하지 못했습니다.",

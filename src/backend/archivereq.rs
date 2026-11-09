@@ -238,20 +238,6 @@ mod tests {
     }
 
     #[test]
-    fn a_destination_already_there_is_refused_before_any_tool_runs() {
-        let d = TestDir::new("archrefuse");
-        let f = Formats::from_tools(true, true);
-        d.file("out.zip", "already here");
-        let e = compress(&f, d.path(), &["a.txt".to_string()], "zip", &d.join("out.zip"), &AtomicBool::new(false), None).unwrap_err();
-        assert!(e.msg.contains("already exists"));
-        assert_eq!(std::fs::read_to_string(d.join("out.zip")).unwrap(), "already here");
-
-        d.dir("out");
-        let e = extract(&f, &d.join("x.zip"), &d.join("out"), &AtomicBool::new(false), None).unwrap_err();
-        assert!(e.msg.contains("already exists"), "merging into a directory in use is the surprise this rules out");
-    }
-
-    #[test]
     fn a_format_no_tool_offers_is_a_named_error_rather_than_a_silent_failure() {
         let d = TestDir::new("archnotool");
         let none = Formats::from_tools(false, false);

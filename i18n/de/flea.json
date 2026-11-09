@@ -102,6 +102,7 @@
   "archive.compressing": "Komprimieren: %1 als .%2",
   "archive.confirm": "Bestätigen",
   "archive.done.cancelled": "Entpacken abgebrochen.",
+  "archive.done.extracted": "Entpackt.",
   "archive.done.name_refused": "„%1“ kann nicht auf dieses Laufwerk entpackt werden: %2.",
   "archive.done.twins": "„%1“ und „%2“ hätten auf diesem Laufwerk denselben Namen, daher wurde nichts entpackt.",
   "archive.done.unverified": "Entpackt. Der Archivindex konnte nicht gelesen werden, daher wurde das Ergebnis nicht überprüft.",

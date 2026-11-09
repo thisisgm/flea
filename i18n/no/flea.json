@@ -49,6 +49,7 @@
   "archive.compressing": "Komprimerer %1 til .%2",
   "archive.confirm": "Bekreft",
   "archive.done.cancelled": "Utpakkingen ble avbrutt.",
+  "archive.done.extracted": "Pakket ut.",
   "archive.done.name_refused": "«%1» kan ikke pakkes ut på denne disken: %2.",
   "archive.done.twins": "«%1» og «%2» ville fått samme navn på denne disken, så ingenting ble pakket ut.",
   "archive.done.unverified": "Pakket ut. Kunne ikke lese arkivindeksen, så utpakkingen ble ikke bekreftet.",

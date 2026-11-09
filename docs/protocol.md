@@ -3192,6 +3192,19 @@ codes and technical listing keys and never from the tool's words; the card words
 template, the client asks again on both rather than messaging, and Cancel runs nothing. A line carrying
 either code also names the retry: `{"t":"archivedone","id":<uint>,"ok":false,"verified":true,"err":"encrypted"|"wrong-password","path":"<archive>","dest":"<destination>"}`,
 so the card opens over the archive that asked and no client-side stash can name another extract's.
+A successful extract names the same two fields, `{"t":"archivedone","id":<uint>,"ok":true,"verified":<bool>,"err":"","path":"<archive>","dest":"<destination>"}`,
+so a client tells it from a compress, whose success line names neither.
+
+A `dest` already taken is never written over or merged into. The result lands beside it under the next
+free name in Duplicate's words: `pack.zip` becomes `pack copy.zip`, then `pack copy 2.zip`, keeping the
+whole `format` as the extension (`pack copy.tar.gz`), and an extract folder `plain` becomes `plain copy`.
+The name is picked when the finished result is renamed into place, so one taken while the tool ran is
+passed over too; `dest` in the success line stays the name the request asked for. A taken `dest` whose
+name is not UTF-8 has no copy name, as with Duplicate, and answers `err` of
+`"that name is taken and no copy name can be made from it"`. When bsdtar runs the extract, a member that
+would land outside the folder (a `../` entry, or one written through a link the archive made) refuses the
+whole extract with `err` of `"an entry in this archive would land outside its folder, so nothing was extracted"`;
+7z, which runs password and `.7z` extracts, drops the `../` and keeps the member inside the folder.
 
 A `.iso` lists and is never extracted: an `extract` naming one answers one `archivedone` with `ok` false
 and `err` of `"a disk image opens as a listing and is never extracted"`, and starts nothing, so no `archivestarted`

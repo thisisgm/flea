@@ -49,6 +49,7 @@
   "archive.compressing": "Komprimerar %1 till .%2",
   "archive.confirm": "Bekräfta",
   "archive.done.cancelled": "Uppackningen avbröts.",
+  "archive.done.extracted": "Uppackat.",
   "archive.done.name_refused": "”%1” kan inte packas upp på den här enheten: %2.",
   "archive.done.twins": "”%1” och ”%2” skulle få samma namn på den här enheten, så inget packades upp.",
   "archive.done.unverified": "Uppackat. Arkivets index kunde inte läsas, så resultatet har inte verifierats.",

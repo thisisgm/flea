@@ -49,6 +49,7 @@
   "archive.compressing": "%1, .%2 biçiminde sıkıştırılıyor",
   "archive.confirm": "Onayla",
   "archive.done.cancelled": "Arşivden çıkarma iptal edildi.",
+  "archive.done.extracted": "Arşivden çıkarıldı.",
   "archive.done.name_refused": "“%1” bu sürücüye çıkarılamaz: %2.",
   "archive.done.twins": "“%1” ve “%2” bu sürücüde aynı adı alırdı, bu yüzden hiçbir şey çıkarılmadı.",
   "archive.done.unverified": "Arşivden çıkarıldı. Arşiv dizini okunamadığı için doğrulanamadı.",

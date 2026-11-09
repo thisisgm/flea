@@ -49,6 +49,7 @@
   "archive.compressing": "⁨%1⁩ کو ⁦.%2⁩ میں کمپریس کیا جا رہا ہے",
   "archive.confirm": "تصدیق کریں",
   "archive.done.cancelled": "نکالنا منسوخ ہو گیا۔",
+  "archive.done.extracted": "نکال دیا گیا۔",
   "archive.done.name_refused": "“⁨%1⁩” کو اس ڈرائیو پر نہیں نکالا جا سکتا: ⁨%2⁩۔",
   "archive.done.twins": "“⁨%1⁩” اور “⁨%2⁩” اس ڈرائیو پر ایک ہی نام لیں گے، اس لیے کچھ نہیں نکالا گیا۔",
   "archive.done.unverified": "نکال دیا گیا۔ آرکائیو کا اشاریہ پڑھا نہیں جا سکا، اس لیے تصدیق نہیں ہوئی۔",

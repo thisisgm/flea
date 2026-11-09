@@ -51,6 +51,7 @@
   "archive.compressing": "Stiskanje %1 v .%2",
   "archive.confirm": "Potrdi",
   "archive.done.cancelled": "Razširjanje preklicano.",
+  "archive.done.extracted": "Razširjeno.",
   "archive.done.name_refused": "»%1« ni mogoče razširiti na ta pogon: %2.",
   "archive.done.twins": "»%1« in »%2« bi na tem pogonu dobila isto ime, zato ni bilo nič razširjeno.",
   "archive.done.unverified": "Razširjeno. Kazala arhiva ni bilo mogoče prebrati, zato rezultat ni preverjen.",

@@ -48,6 +48,7 @@
   "archive.compressing": "กำลังบีบอัด %1 เป็น .%2",
   "archive.confirm": "ยืนยัน",
   "archive.done.cancelled": "ยกเลิกการแตกไฟล์แล้ว",
+  "archive.done.extracted": "แตกไฟล์แล้ว",
   "archive.done.name_refused": "ไม่สามารถแตกไฟล์ “%1” ลงในไดรฟ์นี้: %2",
   "archive.done.twins": "“%1” และ “%2” จะได้ชื่อเดียวกันบนไดรฟ์นี้ จึงไม่ได้แตกไฟล์ใดเลย",
   "archive.done.unverified": "แตกไฟล์แล้ว แต่อ่านดัชนีไฟล์บีบอัดไม่ได้ จึงยังไม่ได้ตรวจสอบ",

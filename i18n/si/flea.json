@@ -49,6 +49,7 @@
   "archive.compressing": "%1 .%2 වෙත සම්පීඩනය කරමින්",
   "archive.confirm": "තහවුරු කරන්න",
   "archive.done.cancelled": "උපුටා ගැනීම අවලංගු විය.",
+  "archive.done.extracted": "උපුටා ගන්නා ලදි.",
   "archive.done.name_refused": "“%1” මෙම ධාවකයට උපුටා ගත නොහැක: %2.",
   "archive.done.twins": "“%1” සහ “%2” මෙම ධාවකයේ එකම නම ගනී, එබැවින් කිසිවක් උපුටා නොගැනිණි.",
   "archive.done.unverified": "උපුටා ගන්නා ලදි. සංරක්ෂිතයේ දර්ශකය කියවිය නොහැකි වූ නිසා මෙය තහවුරු කර නැත.",

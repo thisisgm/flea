@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 
 // How many " copy N" names duplicate will try before giving up rather than looping forever.
-const NAME_TRIES: usize = 999;
+pub(crate) const NAME_TRIES: usize = 999;
 
 // A name from the client is a trust boundary: anything with a separator would move the file out of its own directory.
 pub use super::opsname::{name_refusal, name_refusal_sentence};

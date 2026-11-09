@@ -366,3 +366,71 @@ case_cap_archives_several() {
     shot archives-several-done
     kill_flea
 }
+
+# Soak S1B-3, S1B-5, S1B-6: taken output names step to the next copy name, an extract says its own receipt, a climbing zip is refused.
+cap_archives_names_menu() {
+    local row="$1" action="$2"
+    seek_row_named "$row"
+    click_row "$(ipc cursor)" right
+    settle
+    menu_seek "$action"
+    key -k Return >/dev/null
+    settle
+}
+cap_archives_names_wait() {
+    local path="$1" i
+    for i in $(seq 1 60); do [[ -e "$path" ]] && break; sleep 0.25; done
+    settle
+    # The refused state is shot first, so a failing arm still leaves its picture.
+    [[ -e "$path" ]] || { shot "archives-names-refused-$(basename "$path" | tr ' .' '--')"
+        fail "cap_archives_names: $path never landed, bar says $(ipc lastMessage), folder holds $(ls -A "$(dirname "$path")" | tr '\n' ' ')"; }
+}
+case_cap_archives_names() {
+    local dir="$fixture_root/cap-archives-names" src="$fixture_root/cap-archives-names-src" said
+    command -v bsdtar >/dev/null || { printf 'CAP SKIP cap-archives-names: bsdtar is not installed\n'; return 0; }
+    sandbox_scratch "$dir"
+    sandbox_scratch "$src"
+    mkdir "$dir/pack"
+    printf 'alpha\n' > "$dir/pack/a.txt"
+    printf 'alpha\n' > "$src/alpha.txt"
+    printf 'beta\n' > "$src/beta.txt"
+    bsdtar -a -cf "$dir/proj.zip" -C "$src" alpha.txt || fail "cap_archives_names: no zip fixture"
+    bsdtar -a -cf "$dir/proj.tar.gz" -C "$src" beta.txt || fail "cap_archives_names: no tar.gz fixture"
+    python3 -c 'import sys, zipfile; z = zipfile.ZipFile(sys.argv[1], "w"); z.writestr("ok.txt", "ok"); z.writestr("../../escape-dotdot.txt", "out"); z.close()' "$dir/dotdot.zip" \
+        || fail "cap_archives_names: no dotdot fixture"
+    seed_ui_state "$fixture_root/cap-archives-names-state" '{"keys":"default","view":"list"}'
+    launch "$dir"
+    wait_listing 4
+    cap_resize 1100 700
+    # The first flyout row is the first format the table offered, zip on every box that has bsdtar.
+    cap_archives_names_menu pack Compress
+    key -k Return >/dev/null
+    cap_archives_names_wait "$dir/pack.zip"
+    cap_archives_names_menu pack Compress
+    key -k Return >/dev/null
+    cap_archives_names_wait "$dir/pack copy.zip"
+    said=$(ipc lastMessage)
+    printf 'CAP names compress-again=%s\n' "$said"
+    [[ "$said" == "Archive written." ]] || fail "cap_archives_names: the second compress said $said"
+    shot archives-names-compress-again
+    cap_archives_names_menu proj.zip Extract
+    cap_archives_names_wait "$dir/proj/alpha.txt"
+    cap_archives_names_menu proj.tar.gz Extract
+    cap_archives_names_wait "$dir/proj copy/beta.txt"
+    said=$(ipc lastMessage)
+    printf 'CAP names extract-same-stem=%s\n' "$said"
+    [[ "$said" == "Extracted." ]] || fail "cap_archives_names: the second extract said $said"
+    [[ "$(ls -A "$dir/proj")" == alpha.txt ]] || fail "cap_archives_names: the second extract merged into proj: $(ls -A "$dir/proj")"
+    shot archives-names-extract-same-stem
+    cap_archives_names_menu dotdot.zip Extract
+    for _ in $(seq 1 40); do [[ "$(ipc lastMessage)" == *outside* ]] && break; sleep 0.25; done
+    said=$(ipc lastMessage)
+    printf 'CAP names extract-dotdot=%s\n' "$said"
+    [[ "$said" == "An entry in this archive would land outside its folder, so nothing was extracted" ]] \
+        || fail "cap_archives_names: the climbing zip said $said"
+    [[ ! -e "$dir/dotdot" && ! -e "$fixture_root/escape-dotdot.txt" ]] || fail "cap_archives_names: the climbing zip wrote something"
+    settle
+    shot archives-names-extract-dotdot
+    printf 'CAP names landed=%s\n' "$(ls -A "$dir" | tr '\n' ' ')"
+    kill_flea
+}

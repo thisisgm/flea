@@ -50,6 +50,7 @@
   "archive.compressing": "Sažimanje %1 u .%2",
   "archive.confirm": "Potvrdi",
   "archive.done.cancelled": "Raspakiravanje je otkazano.",
+  "archive.done.extracted": "Raspakirano.",
   "archive.done.name_refused": "„%1” nije moguće raspakirati na ovaj disk: %2.",
   "archive.done.twins": "„%1” i „%2” imali bi isti naziv na ovom disku, pa ništa nije raspakirano.",
   "archive.done.unverified": "Raspakirano. Indeks arhive nije moguće pročitati pa rezultat nije provjeren.",

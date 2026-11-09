@@ -49,6 +49,7 @@
   "archive.compressing": "Pakataan %1 muotoon .%2",
   "archive.confirm": "Vahvista",
   "archive.done.cancelled": "Purkaminen peruutettu.",
+  "archive.done.extracted": "Purettu.",
   "archive.done.name_refused": "Kohdetta ”%1” ei voi purkaa tälle asemalle: %2.",
   "archive.done.twins": "”%1” ja ”%2” saisivat tällä asemalla saman nimen, joten mitään ei purettu.",
   "archive.done.unverified": "Purettu. Arkiston hakemistoa ei voitu lukea, joten tulosta ei tarkistettu.",

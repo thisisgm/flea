@@ -53,6 +53,7 @@
   "archive.compressing": "جارٍ ضغط ⁨%1⁩ إلى ⁦.%2⁩",
   "archive.confirm": "تأكيد",
   "archive.done.cancelled": "أُلغي الاستخراج.",
+  "archive.done.extracted": "اكتمل الاستخراج.",
   "archive.done.name_refused": "تعذّر استخراج «⁨%1⁩» إلى وحدة التخزين هذه: ⁨%2⁩.",
   "archive.done.twins": "«⁨%1⁩» و«⁨%2⁩» سيأخذان اسمًا واحدًا على وحدة التخزين هذه، لذا لم يُستخرج شيء.",
   "archive.done.unverified": "اكتمل الاستخراج. تعذّرت قراءة فهرس الأرشيف، لذا لم يُتحقق من النتيجة.",
