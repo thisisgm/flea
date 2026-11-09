@@ -155,7 +155,7 @@ fn non_utf8_text_is_refused_instead_of_copying_replacement_bytes() {
     crate::backend::codereq::spawn(crate::backend::codereq::Ask::parse(&code), tx);
     let OpMsg::Meta { line } = rx.recv_timeout(crate::backend::fifotest::BOUND).unwrap() else { panic!("a code reply") };
     assert_eq!(crate::json::field_str(&line, "state").as_deref(), Some("plain"));
-    assert!(line.contains("caf\u{fffd}"), "the text preview draws invalid UTF-8 lossily");
+    assert!(line.contains("caf\u{e9}"), "the text preview reads single-byte text as its characters");
     assert_eq!(compare(&a, &b), Outcome::Failed);
     assert_eq!(compare(&b, &a), Outcome::Failed);
     let mut tail = vec![b'a'; NUL_WINDOW as usize + 8];
