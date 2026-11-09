@@ -197,37 +197,38 @@ impl Shell {
         self.watch_trash_messages(window, cx);
         self.schedule_trash_sweep(window, cx);
     }
-
-    /// The rail and action dispatcher enter through this one host, including its Empty Trash menu row.
+    /// Open Trash or deliver an action to its pane.
     pub fn trash_action(
         &mut self,
         action: &str,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> bool {
-        if !matches!(
-            action,
+        match action {
             "openTrash"
-                | "emptyTrash"
-                | "restoreAll"
-                | "restoreTrashSelection"
-                | "deleteTrashSelection"
-        ) {
-            return false;
+            | "emptyTrash"
+            | "restoreAll"
+            | "restoreTrashSelection"
+            | "deleteTrashSelection" => {}
+            _ => return false,
         }
         self.mount_trash(window, cx);
         self.clear_under_trash(cx);
         let geometry = self.geometry(window);
         let host = self.trash.as_mut().expect("mounted Trash");
         host.sweep_timer = None;
-        if !host.pane.read(cx).view().opened {
+        let view = host.pane.read(cx).view();
+        if !view.opened && view.confirming {
+            return true;
+        }
+        let opening = !view.opened && !view.operation_active;
+        if !view.opened {
             host.side = self.focus_side;
-            if !host.pane.read(cx).view().operation_active {
+            if opening {
                 host.backend_side = self.focus_side;
             }
         }
         let pane = host.pane.clone();
-        let opening = !pane.read(cx).view().opened && !pane.read(cx).view().operation_active;
         let rect = geometry.panes[host.side];
         let height = if self.view == crate::window::startup::View::Dual {
             rect.height
@@ -259,7 +260,6 @@ impl Shell {
         self.flush_trash(window, cx);
         true
     }
-
     /// Tabs.js dropOverlay: a tab opened or switched on Trash's side closes it, and the keyboard returns to the window.
     pub(crate) fn drop_trash(&mut self, side: usize, window: &mut Window, cx: &mut Context<Self>) {
         let Some(pane) = self

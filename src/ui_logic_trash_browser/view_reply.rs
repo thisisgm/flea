@@ -8,7 +8,8 @@ use crate::i18n::I18n;
 impl View {
     /// One trashbrowse reply; anything not answering the request in flight is dropped.
     pub fn receive(&mut self, reply: &Reply, i18n: &I18n) {
-        if (!self.opened && !self.operation_active) || reply.id != self.request_id || reply.op != self.pending_op {
+        if (!self.opened && !self.confirming && !self.operation_active && reply.op != "cancel")
+            || reply.id != self.request_id || reply.op != self.pending_op {
             return;
         }
         self.pending_op.clear();

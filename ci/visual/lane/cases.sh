@@ -245,3 +245,16 @@ case_tabs_icons() (
     key t; wait_ipc tabCount 3 || return 1
     snap
 )
+# Empty Trash… from the rail's Trash menu reviews over the folder it was chosen from (board delete, PR #419).
+CASES+=("rail-empty-trash 1100x700 surface:TrashConfirm")
+case_rail_empty_trash() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    launch list "$W" || return 1
+    rail_cursor_to Trash || return 1
+    key m
+    wait_ipc contextMenuVisible true || return 1
+    menu_choose "Empty Trash" || return 1
+    wait_ipc_has trashState 'Empty Trash?' || return 1
+    sleep 0.5
+    snap
+)

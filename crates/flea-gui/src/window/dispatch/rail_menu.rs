@@ -114,6 +114,7 @@ impl Shell {
         }
     }
 
+    /// Dispatch a Trash sidebar choice while keeping Empty Trash in the current folder.
     pub(crate) fn rail_menu_outcome(
         &mut self,
         outcome: &Outcome,
@@ -129,6 +130,10 @@ impl Shell {
         let target = self.menu.rail.take().expect("rail menu target");
         self.rail_menu_hold(false, cx);
         self.retire_menu(window, cx);
+        if action == "emptyTrash" {
+            self.empty_trash_from_rail(target.side, window, cx);
+            return true;
+        }
         self.focus_pane(target.side, cx);
         self.trash_action(
             if action == "open" {
