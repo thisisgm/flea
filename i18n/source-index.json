@@ -251822,7 +251822,7 @@
   },
   "schema": 1,
   "source_files": {
-    "Cargo.toml": "be693cac71a10c0983d190f281dd6319d7c84f61b328d222f97f8fcc48fa856a",
+    "Cargo.toml": "e730af011ada76248129a9d0c6a1d9e3b4d61ba64023bf408ed7964ebf55eb17",
     "crates/flea-gui/Cargo.toml": "86fd25848a1a993a0ae1a91f210ca4f93e6ad212ab521895072022a39322597d",
     "crates/flea-gui/build.rs": "06ea5b8a62b74a9d659b1ef6d92393cc68507f8484717678054144ec06daccaf",
     "crates/flea-gui/deny.toml": "1d3ec035ff745443250ea0d7f23f7cae39329f446c869b92b4365df3cc73fd2b",
@@ -252283,7 +252283,7 @@
     "crates/flea-gui/src/g2/picker_portal/keys.rs": "beda6f39c2abc7c3aaf960c52abc01dc76bf7b771579bf9153371ec10fd9e4d2",
     "crates/flea-gui/src/g2/picker_portal/labels.rs": "c8503622ea8e73eb1ff69438cb7a8707643116f278e92d49c117b9da2f6ab5da",
     "crates/flea-gui/src/g2/picker_portal/launch.rs": "a1e5298bb33da791104a74a17e855c57d16d4576bb47ee53698137e2c971f02f",
-    "crates/flea-gui/src/g2/picker_portal/mod.rs": "6f997184e0e307909f5c43b1418d62e9d9fc2df8b930d478d0238ef89b74f33b",
+    "crates/flea-gui/src/g2/picker_portal/mod.rs": "0d7357372efbc4f1d14d4bd34b7a549c9f16902d1550ec0717cd8946149dde00",
     "crates/flea-gui/src/g2/picker_portal/navigation.rs": "97ef52d2ff4dc1322c980a45c970c610df90945a2f9e7046a6929ed0bf506a69",
     "crates/flea-gui/src/g2/picker_portal/network.rs": "f5b4f083e0fe348161457744d097705459d7213e8b95bda266b2103ff93f7171",
     "crates/flea-gui/src/g2/picker_portal/picker.rs": "7a8d2fbe44f337212118e97395c661a2251c3cc4a943ab60ee9a8ac0e016cd20",
@@ -253220,7 +253220,7 @@
     "src/backend/officepublish.rs": "df147c15f7e990474965b2ba5a7208a3d20b637b36aea8f1b2ea42887068bde6",
     "src/backend/officesheets.rs": "8d66d59e3fde19335ffcf829e45a4d3c4b172901e0cd77d3d7fb82185e105618",
     "src/backend/opmsg.rs": "7d1cb8ac0f606cbe2d27c2ab1d0686e7b2d191b0ffe84933eee16d6cee263c99",
-    "src/backend/ops.rs": "3774a82aa692962da696dbe3978c9e9fecfbbc3c793bf32b5bc6f6967f57e9e1",
+    "src/backend/ops.rs": "2990f3176e359f0badb1de7ff130a6703c63f405e381ec3df320ad3b24a8741b",
     "src/backend/opscancel.rs": "9418041dfe86184e9c30bfe87a7c8bd46208e1c1d8130f52ded4ad9e8f819fd0",
     "src/backend/opsdispatch.rs": "70072495f5f66d70512e852a2bba9c36e54a91f9ae54f4aab238a0dfd39a8cf4",
     "src/backend/opsname.rs": "d6a9f806c2f6c343e6fb8e1a645556e728c229f10369214c1e50f2c0ca7ab46d",
@@ -254107,7 +254107,7 @@
     "tools/flea-walkbench/src/stats.rs": "139a67b8a175124ad459004107c3069b920bb07b1907171a6a4cc0a35c1ef2b9",
     "tools/flea_bench_product.py": "32b0d9109cde20e6629c2ae5d156b381de678158e8e6066ea206df196795c09d",
     "tools/flea_ipc.py": "d088ef240adc6fce6fbe5ea848e59adcb99e5075dfcf809fae9c1905fa474871",
-    "tools/gpui-lint.json": "5905a11a9dca492731be276d65ab4e17ea295f6491ce7175fde3985060be5079",
+    "tools/gpui-lint.json": "b534be1430272ee4396ec9070704c05f823c66ece3872372393e76bb6331db68",
     "tools/gpui_lint/__init__.py": "f4287efa39701462a6d8573e3ef7aca5a0bd9ad8f26c9c4ac3e832259b79f810",
     "tools/gpui_lint/bindings.py": "97e85be963d79df4a629cb9b4ef064e2ac9e2bb10fea25f0b9bc11888fad7afa",
     "tools/gpui_lint/cargo.py": "d696a197480762215ae69e81a723c7993c1ecd5c0fad4cfa14c0abed0278dfbd",
@@ -254538,8 +254538,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "6eef14ec6c31c07b6a44ab0d9a3cf34bca98a49e",
-  "source_sha": "6eef14ec6c31c07b6a44ab0d9a3cf34bca98a49e",
+  "source_ref_sha": "1737ad6496f593f2e6baa96f18572b4685ac80fc",
+  "source_sha": "1737ad6496f593f2e6baa96f18572b4685ac80fc",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1360,

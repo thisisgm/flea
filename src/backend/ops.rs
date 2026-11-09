@@ -2,7 +2,7 @@
 use crate::backend::copyfile::{copy_any, Progress};
 use crate::backend::renamecompat;
 use crate::backend::undo::{self, ItemIdentity, Step};
-use crate::error::{from_io, FleaError};
+use crate::error::FleaError;
 use std::ffi::OsStr;
 use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};

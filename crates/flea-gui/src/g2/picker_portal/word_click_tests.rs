@@ -67,6 +67,68 @@ fn a_double_click_in_the_save_name_selects_one_word(cx: &mut TestAppContext) {
     );
 }
 
+// Double-clicks `across` of the way over the glyph at byte `at` and returns the selected text.
+fn word_at(f: &mut Fixture, field: &Entity<Filename>, at: usize, across: f32) -> String {
+    let point = f.cx.update(|_, cx| {
+        let drawn = field.read(cx).drawn().borrow();
+        let bounds = drawn.bounds.expect("the field drew");
+        let (left, right) = (drawn.line.x_for(at), drawn.line.x_for(at + 1));
+        let x = bounds.left() - drawn.line.scroll + left + (right - left) * across;
+        gpui::point(x, bounds.center().y)
+    });
+    for clicks in 1..=2 {
+        f.cx.simulate_event(MouseDownEvent {
+            button: MouseButton::Left,
+            position: point,
+            modifiers: Modifiers::none(),
+            click_count: clicks,
+            first_mouse: false,
+        });
+        f.cx.simulate_event(MouseUpEvent {
+            button: MouseButton::Left,
+            position: point,
+            modifiers: Modifiers::none(),
+            click_count: clicks,
+        });
+        f.cx.run_until_parked();
+    }
+    f.cx.update(|_, cx| {
+        let entry = &field.read(cx).entry;
+        entry.text[entry.selected.clone()].to_owned()
+    })
+}
+
+// The far half of a word's last glyph sits nearer the next caret edge; the word is still the glyph's, in both fields.
+#[gpui::test]
+fn a_double_click_on_either_half_of_a_glyph_takes_that_glyphs_word(cx: &mut TestAppContext) {
+    let mut f = seeded(cx, "alpha beta.txt");
+    let picker = f.picker.clone();
+    let name =
+        f.cx.update(|_, cx| picker.read(cx).browse.filename.clone().unwrap());
+    assert_eq!(word_at(&mut f, &name, 4, 0.8), "alpha", "far half of a");
+    assert_eq!(word_at(&mut f, &name, 5, 0.2), " ", "near half of space");
+    assert_eq!(word_at(&mut f, &name, 5, 0.8), " ", "far half of space");
+    assert_eq!(word_at(&mut f, &name, 6, 0.2), "beta.txt", "near half of b");
+    let at = f.cx.debug_bounds("picker-new-folder").unwrap().center();
+    f.cx.simulate_click(at, Modifiers::none());
+    f.cx.run_until_parked();
+    let folder =
+        f.cx.update(|_, cx| picker.read(cx).chrome.folder.clone().unwrap());
+    let text = f.cx.update(|_, cx| folder.read(cx).entry.text.clone());
+    let first = text.split(' ').next().unwrap().to_owned();
+    let end = first.len() - 1;
+    assert_eq!(
+        word_at(&mut f, &folder, end, 0.8),
+        first,
+        "far half: {text}"
+    );
+    assert_eq!(
+        word_at(&mut f, &folder, end + 1, 0.8),
+        " ",
+        "far half: {text}"
+    );
+}
+
 #[gpui::test]
 fn a_double_click_in_the_new_folder_name_selects_one_word(cx: &mut TestAppContext) {
     let mut f = seeded(cx, "a.txt");
