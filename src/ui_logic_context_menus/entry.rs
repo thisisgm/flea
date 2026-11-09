@@ -63,6 +63,8 @@ pub struct Entry {
     // A muted row beside the busy mark that says the menu is still asking, such as Looking for hosts; never the cursor.
     pub busy: bool,
     pub errored: bool,
+    // A provider row whose answer has not landed: drawn at rest, though inert, so it changes look once when it settles.
+    pub pending: bool,
     pub danger: bool,
     pub hint: Option<Text>,
     pub hint_wrap: bool,
@@ -192,4 +194,5 @@ pub const MARK_NAMES: &[&str] = &[
     "copy-x",
     "smartphone",
     "laptop",
+    "corner-down-right",
 ];

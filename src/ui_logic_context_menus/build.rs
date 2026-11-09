@@ -244,6 +244,7 @@ fn provider(e: &mut Entry, brand: Brand, peers: &[Peer], reading: bool) {
             .collect(),
     );
     e.disabled = reading || peers.is_empty();
+    e.pending = reading;
     // A provider that cannot answer reads red with no state word, so the menu keeps its size (GM 2026-10-29).
     e.errored = e.disabled && !reading;
 }
@@ -448,6 +449,7 @@ fn available(e: &mut Entry, spec: &Spec, p: &Context, kind: Kind) -> bool {
             e.brand = Some(Brand::Dropbox);
             e.glyph = None;
         }
+        e.pending = p.dropbox_refreshing;
         e.errored = e.disabled && !p.dropbox_refreshing;
     }
     if action == "sort" {

@@ -90,7 +90,7 @@ fn relative_path_covers_the_whole_selection_and_only_its_own_format_reads_the_fo
 }
 
 #[test]
-fn the_flyout_offers_relative_path_second_on_r_with_the_file_mark() {
+fn the_flyout_offers_relative_path_second_on_r_with_the_corner_down_right_mark() {
     let leaves = copy_as_entries();
     check(
         "Relative Path follows Path",
@@ -99,9 +99,13 @@ fn the_flyout_offers_relative_path_second_on_r_with_the_file_mark() {
     );
     let row = &leaves[1];
     check(
-        "it wears the file mark and the r hint",
+        "it wears board 0401-copyas-relative's corner-down-right mark and the r hint",
         (row.glyph, row.key_hint),
-        (Some("file"), Some("r")),
+        (Some("corner-down-right"), Some("r")),
+    );
+    assert!(
+        super::entry::MARK_NAMES.contains(&"corner-down-right"),
+        "the mark is drawable, not the plain file fallback"
     );
     let built = listing_entries(&Context::default());
     let copy = built

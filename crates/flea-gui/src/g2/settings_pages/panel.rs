@@ -118,7 +118,7 @@ impl Panel {
             .unwrap_or("default")
     }
 
-    fn section_rows(&self, section: &str) -> Vec<Row> {
+    pub(super) fn section_rows(&self, section: &str) -> Vec<Row> {
         let data = self.store.document();
         let state = State {
             home: &self.facts.home,

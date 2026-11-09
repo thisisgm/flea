@@ -96,3 +96,24 @@ pub fn elide_around(
     }
     (drawn.into(), (at, at + end - start))
 }
+
+/// Each matched stretch inside a run carried to where `elide_around` drew that run, clipped to it; `text` is the name the run was found in.
+pub fn letters_drawn(
+    text: &str,
+    letters: &[(usize, usize)],
+    drawn: (usize, usize),
+) -> Vec<(usize, usize)> {
+    let Some(&(first, _)) = letters.first() else {
+        return Vec::new();
+    };
+    // The drawn run opens where its first letter's cluster opened in the name.
+    let from = cluster_start(text, first);
+    letters
+        .iter()
+        .map(|&(start, end)| {
+            let start = (drawn.0 + start.saturating_sub(from)).min(drawn.1);
+            (start, (drawn.0 + end.saturating_sub(from)).min(drawn.1))
+        })
+        .filter(|(start, end)| start < end)
+        .collect()
+}

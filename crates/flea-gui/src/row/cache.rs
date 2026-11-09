@@ -23,6 +23,8 @@ pub struct Prepared {
     pub ink: NameInk,
     /// The match run's byte range inside the drawn name, when a filter or search marks one.
     pub run: Option<(usize, usize)>,
+    /// The matched stretches inside that run, the only letters its wash or bold marks.
+    pub letters: Vec<(usize, usize)>,
     /// The name with its run in bold, shaped the first time the cursor rests on this row.
     pub bold: OnceCell<GlyphRun>,
 }
@@ -43,6 +45,7 @@ impl Default for Prepared {
             mark: Mark::File,
             ink: NameInk::Foreground,
             run: None,
+            letters: Vec::new(),
             bold: OnceCell::new(),
         }
     }

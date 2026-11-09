@@ -131,15 +131,7 @@ impl SettingsView {
     /// A control row's room, with its label's longest word kept whole even in the bold a lifted search run draws.
     pub(super) fn room(&self, row: &Row, segment: bool, width: f32, window: &Window) -> g::Room {
         let catalog = &self.panel.catalog;
-        let bold = Font {
-            weight: FontWeight::BOLD,
-            ..self.typeface.font.clone()
-        };
-        let label = row.label.resolve(catalog);
-        let word = super::wrap::unbroken(&label)
-            .into_iter()
-            .map(|word| shaped_in(&bold, word.to_owned(), self.typeface.body, window))
-            .fold(0., f32::max);
+        let word = self.longest_word(&row.label.resolve(catalog), window);
         g::control_room(
             row,
             segment,
@@ -151,7 +143,19 @@ impl SettingsView {
         )
     }
 
-    /// A control row's label lines: one, or as GPUI wraps it in the room its control leaves, never elided; `bold` is a search hit's run in characters, shaped in the bold the lifted hit draws.
+    /// The label's longest unbroken piece, shaped in the bold a lifted search run draws.
+    pub(super) fn longest_word(&self, label: &str, window: &Window) -> f32 {
+        let bold = Font {
+            weight: FontWeight::BOLD,
+            ..self.typeface.font.clone()
+        };
+        super::wrap::unbroken(label)
+            .into_iter()
+            .map(|word| shaped_in(&bold, word.to_owned(), self.typeface.body, window))
+            .fold(0., f32::max)
+    }
+
+    /// A control row's label lines: one, or as GPUI wraps it in the room its control leaves; a room narrower than its longest word, or a wrap past LABEL_LINES, keeps one elided line, since a wrap there stacks a word or a letter a line; `bold` is a search hit's run in characters, shaped in the bold the lifted hit draws.
     pub(super) fn label_lines(
         &self,
         row: &Row,
@@ -162,6 +166,9 @@ impl SettingsView {
         let segment = row.kind == Kind::Choice && self.fits(row, width, window);
         let room = self.room(row, segment, width, window).label;
         let label = row.label.resolve(&self.panel.catalog);
+        if room < self.longest_word(&label, window) {
+            return 1;
+        }
         let at = |chars: usize| {
             label
                 .char_indices()
@@ -207,10 +214,15 @@ impl SettingsView {
                 None,
             )
             .map(|lines| {
-                lines
+                let count = lines
                     .iter()
                     .map(|line| line.wrap_boundaries().len() + 1)
-                    .sum()
+                    .sum::<usize>();
+                if count > g::LABEL_LINES {
+                    1
+                } else {
+                    count
+                }
             })
             .unwrap_or_else(|error| {
                 // A label that cannot be shaped is measured as one line, and the log names the row and the cause.

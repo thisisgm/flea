@@ -32,6 +32,21 @@ pub fn drawn_name(
     query: &str,
     width: Option<&dyn Fn(&str) -> f32>,
 ) -> (String, Option<(usize, usize)>) {
+    let (drawn, run, _) = drawn_letters(facts, extra, shaping, query, width);
+    (drawn, run)
+}
+
+/// A byte range in a drawn name: a match run, or one matched stretch inside it.
+pub type Span = (usize, usize);
+
+/// `drawn_name` with each matched stretch of its run in the drawn name, so a close match washes its letters and never the gaps.
+pub fn drawn_letters(
+    facts: &RowFacts,
+    extra: Extra,
+    shaping: &Shaping,
+    query: &str,
+    width: Option<&dyn Fn(&str) -> f32>,
+) -> (String, Option<Span>, Vec<Span>) {
     let display = super::outline::display(facts);
     let name = row::decorated_name(&display);
     let budget = if extra.clipped {
@@ -40,7 +55,11 @@ pub fn drawn_name(
         shaping.name_cells
     };
     let budget = extra.drop.map_or(budget, |drop| drop.min(budget));
-    let run = format::match_run(&display.name, query);
+    let letters = format::match_letters(&display.name, query);
+    let run = letters
+        .first()
+        .zip(letters.last())
+        .map(|(first, last)| (first.0, last.1));
     let elide = |cells: usize| match run {
         None => (row::middle_elide(&name, cells), None),
         Some(run) => {
@@ -49,7 +68,8 @@ pub fn drawn_name(
         }
     };
     let (drawn, run) = row::fitted(&name, budget, shaping.advance, width, elide);
-    (drawn.into_owned(), run)
+    let letters = run.map_or_else(Vec::new, |run| row::letters_drawn(&name, &letters, run));
+    (drawn.into_owned(), run, letters)
 }
 
 /// Shapes one row's cells once, each elided to its own budget, so no long name is shaped whole and no hidden column at all.
@@ -111,7 +131,8 @@ pub(super) fn prepare(
         String::new()
     };
     let width = |value: &str| f32::from(shape(value, shaping.body).line().width);
-    let (name, run) = drawn_name(&display, extra, &name_shaping, &view.query, Some(&width));
+    let (name, run, letters) =
+        drawn_letters(&display, extra, &name_shaping, &view.query, Some(&width));
     let words = &view.words;
     let date = || {
         let full = view
@@ -153,14 +174,34 @@ pub(super) fn prepare(
         mark: Mark::for_facts(facts, shaping.languages),
         ink: row::name_ink(facts),
         run,
+        letters,
         bold: OnceCell::new(),
     }
 }
 
 /// The cursor row's name with its match run in bold, the board's cursor treatment for a marked name.
 pub(super) fn bold_name(prepared: &Prepared, shaping: &Shaping, window: &Window) -> GlyphRun {
-    let runs =
-        crate::g2::file_search::run::text_runs(&prepared.label, prepared.run, true, &shaping.font);
+    let bold = Font {
+        weight: gpui::FontWeight::BOLD,
+        ..shaping.font.clone()
+    };
+    // Each matched stretch in bold and every letter between them plain, as the wash marks them at rest.
+    let mut runs = Vec::with_capacity(prepared.letters.len() * 2 + 1);
+    let mut at = 0;
+    for &(start, end) in &prepared.letters {
+        let start = start.max(at);
+        if end <= start {
+            continue;
+        }
+        if start > at {
+            runs.push(run_of(start - at, &shaping.font));
+        }
+        runs.push(run_of(end - start, &bold));
+        at = end;
+    }
+    if prepared.label.len() > at {
+        runs.push(run_of(prepared.label.len() - at, &shaping.font));
+    }
     GlyphRun::new(
         window
             .text_system()

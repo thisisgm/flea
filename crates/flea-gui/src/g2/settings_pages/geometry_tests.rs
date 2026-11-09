@@ -290,8 +290,8 @@ fn i50_fit_settings_wrap_51(cx: &mut gpui::TestAppContext) {
                 2. * super::geometry::WRAP_LINE,
                 "the wrapped label draws two lines at {width}"
             ),
-            None if !wraps => {}
-            drawn => panic!("at {width} the wrapped label is {drawn:?}"),
+            Some(label) if f32::from(label.size.height) < 2. * super::geometry::WRAP_LINE => {}
+            drawn => panic!("at {width} the label (wraps {wraps}) is {drawn:?}"),
         }
         let shown: Vec<usize> = (0..rows.len())
             .filter(|at| control(rows[*at].kind) && board.contains(&labels[*at].as_str()))

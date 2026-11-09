@@ -6,14 +6,19 @@ use super::{
 };
 use flea::ui_logic_settings_pages::rows::Master;
 use gpui::{
-    canvas, div, prelude::*, px, App, ClickEvent, Div, FontWeight, HighlightStyle, Hsla,
-    MouseButton, SharedString, StyledText, TransformationMatrix, Window,
+    canvas, div, prelude::*, px, size, AnyElement, App, Bounds, ClickEvent, Div, Element,
+    ElementId, FontWeight, GlobalElementId, HighlightStyle, Hsla, InspectorElementId, LayoutId,
+    MouseButton, Pixels, SharedString, Style, StyledText, TransformationMatrix, Window,
 };
 use std::{ops::Range, rc::Rc};
 
 #[cfg(test)]
 #[path = "rtl_keycap_match_tests.rs"]
 mod rtl_keycap_match_tests;
+
+#[cfg(test)]
+#[path = "heading_tracking_tests.rs"]
+mod heading_tracking_tests;
 
 /// A mark from the boards' path data, drawn as an alpha mask in one ink; a name no board draws keeps its slot empty.
 pub fn mark(name: &str, size: f32, ink: Hsla) -> Div {
@@ -64,22 +69,15 @@ pub fn washed(
     spacing: f32,
 ) -> Div {
     let (start, end) = run.map_or((0, 0), |(start, length)| (start, start + length));
-    let dress = move |piece: Div, inside: bool| match (inside, lifted) {
-        (false, _) => piece,
-        (true, true) => piece.font_weight(FontWeight::BOLD),
-        (true, false) => piece.bg(wash),
-    };
     if spacing > 0. && label.chars().all(spaceable) {
-        return div()
-            .flex()
-            .children(label.chars().enumerate().map(|(index, letter)| {
-                dress(
-                    div()
-                        .mr(px(spacing))
-                        .child(SharedString::from(letter.to_string())),
-                    index >= start && index < end,
-                )
-            }));
+        return div().flex().child(Tracked {
+            label: label.to_owned(),
+            run: (start, end),
+            lifted,
+            wash,
+            spacing,
+            letters: Vec::new(),
+        });
     }
     if run.is_none() {
         return div().child(SharedString::from(label.to_owned()));
@@ -89,6 +87,108 @@ pub fn washed(
         StyledText::new(label.to_owned())
             .with_highlights([highlight(label, start, end, lifted, wash)]),
     )
+}
+
+/// A spaced label set as CSS letter-spacing sets it: each letter placed at the advances and gaps before it, where a box per letter rounds every advance and gap to the pixel and tracks the label wider than the boards.
+struct Tracked {
+    label: String,
+    run: (usize, usize),
+    lifted: bool,
+    wash: Hsla,
+    spacing: f32,
+    letters: Vec<AnyElement>,
+}
+
+impl IntoElement for Tracked {
+    type Element = Self;
+    fn into_element(self) -> Self {
+        self
+    }
+}
+
+impl Element for Tracked {
+    type RequestLayoutState = ();
+    type PrepaintState = ();
+
+    fn id(&self) -> Option<ElementId> {
+        None
+    }
+    fn source_location(&self) -> Option<&'static core::panic::Location<'static>> {
+        None
+    }
+    fn request_layout(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        window: &mut Window,
+        cx: &mut App,
+    ) -> (LayoutId, ()) {
+        let face = window.text_style();
+        let font_size = face.font_size.to_pixels(window.rem_size());
+        let mut x = 0.;
+        self.letters.clear();
+        for (index, letter) in self.label.chars().enumerate() {
+            let inside = index >= self.run.0 && index < self.run.1;
+            let letter = letter.to_string();
+            let mut run = face.to_run(letter.len());
+            let piece = div().absolute().top_0().left(px(x));
+            let piece = match (inside, self.lifted) {
+                (false, _) => piece,
+                (true, true) => {
+                    run.font.weight = FontWeight::BOLD;
+                    piece.font_weight(FontWeight::BOLD)
+                }
+                (true, false) => piece.bg(self.wash),
+            };
+            let line = window
+                .text_system()
+                .layout_line(&letter, font_size, &[run], None);
+            x += f32::from(line.width) + self.spacing;
+            self.letters
+                .push(piece.child(SharedString::from(letter)).into_any_element());
+        }
+        let letters: Vec<LayoutId> = self
+            .letters
+            .iter_mut()
+            .map(|letter| letter.request_layout(window, cx))
+            .collect();
+        let style = Style {
+            size: size(
+                px(x).into(),
+                face.line_height_in_pixels(window.rem_size()).into(),
+            ),
+            flex_shrink: 0.,
+            ..Style::default()
+        };
+        (window.request_layout(style, letters, cx), ())
+    }
+    fn prepaint(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        _: Bounds<Pixels>,
+        _: &mut (),
+        window: &mut Window,
+        cx: &mut App,
+    ) {
+        for letter in &mut self.letters {
+            letter.prepaint(window, cx);
+        }
+    }
+    fn paint(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        _: Bounds<Pixels>,
+        _: &mut (),
+        _: &mut (),
+        window: &mut Window,
+        cx: &mut App,
+    ) {
+        for letter in &mut self.letters {
+            letter.paint(window, cx);
+        }
+    }
 }
 
 /// The typed run's byte range and its style: bold on the highlighted row, else the accent wash.

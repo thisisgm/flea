@@ -353,7 +353,8 @@ pub fn build(entries: &[Entry], env: &Env, window: &Window, minimum: f32, maximu
                 lead: lead(entry),
                 tag_state: entry.tag_state,
                 ink,
-                disabled: entry.disabled,
+                // A row still reading keeps its resting ink, never grey before it settles red.
+                disabled: entry.disabled && !entry.pending,
                 busy: entry.busy,
                 wanted,
             }

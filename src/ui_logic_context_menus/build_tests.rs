@@ -555,7 +555,7 @@ fn optional_rows_and_counts() {
             .map(|r| r.glyph.unwrap())
             .collect::<Vec<_>>()
             .join(","),
-        "file-text,file,type,type,folder,globe,terminal".into(),
+        "file-text,corner-down-right,type,type,folder,globe,terminal".into(),
     );
     check(
         "Copy As rows read Path, Relative Path, Name, Name Without Extension, Folder Path, File URI, Shell-Quoted",
