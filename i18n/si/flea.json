@@ -49,6 +49,7 @@
   "archive.compressing": "%1 .%2 වෙත සම්පීඩනය කරමින්",
   "archive.confirm": "තහවුරු කරන්න",
   "archive.done.cancelled": "උපුටා ගැනීම අවලංගු විය.",
+  "archive.done.extracted": "උපුටා ගන්නා ලදි.",
   "archive.done.unverified": "උපුටා ගන්නා ලදි. සංරක්ෂිතයේ දර්ශකය කියවිය නොහැකි වූ නිසා මෙය තහවුරු කර නැත.",
   "archive.done.written": "සංරක්ෂිතය ලියන ලදි.",
   "archive.encrypt_names": "ගොනු නම් සංකේතනය කරන්න",

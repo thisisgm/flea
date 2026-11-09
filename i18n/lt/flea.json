@@ -50,6 +50,7 @@
   "archive.compressing": "Glaudinama %1 į .%2",
   "archive.confirm": "Patvirtinti",
   "archive.done.cancelled": "Išskleidimas atšauktas.",
+  "archive.done.extracted": "Išskleista.",
   "archive.done.unverified": "Išskleista. Archyvo indekso nepavyko perskaityti, todėl rezultatas nepatikrintas.",
   "archive.done.written": "Archyvas įrašytas.",
   "archive.encrypt_names": "Šifruoti failų pavadinimus",

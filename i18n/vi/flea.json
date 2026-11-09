@@ -48,6 +48,7 @@
   "archive.compressing": "Đang nén %1 thành .%2",
   "archive.confirm": "Xác nhận",
   "archive.done.cancelled": "Đã hủy giải nén.",
+  "archive.done.extracted": "Đã giải nén.",
   "archive.done.unverified": "Đã giải nén. Không thể đọc chỉ mục tệp nén nên chưa xác minh được kết quả.",
   "archive.done.written": "Đã ghi tệp nén.",
   "archive.encrypt_names": "Mã hóa tên tệp",

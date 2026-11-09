@@ -84,11 +84,11 @@ fn extract_result_reloads_and_lands_on_the_new_first_folder(cx: &mut TestAppCont
     );
     receive(cx, handle, r#"{"t":"archivestarted","id":7}"#);
     receive(cx, handle, r#"{"t":"extractstarted","id":7}"#);
-    // Successful archive receipts carry no source or destination fields.
+    // An extract's success names its archive and the folder it asked for.
     receive(
         cx,
         handle,
-        r#"{"t":"archivedone","id":7,"ok":true,"verified":true,"err":""}"#,
+        r#"{"t":"archivedone","id":7,"ok":true,"verified":true,"err":"","path":"/files/archive-zip.zip","dest":"/files/archive-zip"}"#,
     );
     assert!(
         sent(&mut requests, "list").is_some(),

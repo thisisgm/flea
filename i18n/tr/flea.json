@@ -49,6 +49,7 @@
   "archive.compressing": "%1, .%2 biçiminde sıkıştırılıyor",
   "archive.confirm": "Onayla",
   "archive.done.cancelled": "Arşivden çıkarma iptal edildi.",
+  "archive.done.extracted": "Arşivden çıkarıldı.",
   "archive.done.unverified": "Arşivden çıkarıldı. Arşiv dizini okunamadığı için doğrulanamadı.",
   "archive.done.written": "Arşiv yazıldı.",
   "archive.encrypt_names": "Dosya adlarını şifrele",

@@ -53,6 +53,7 @@
   "archive.compressing": "جارٍ ضغط ⁨%1⁩ إلى ⁦.%2⁩",
   "archive.confirm": "تأكيد",
   "archive.done.cancelled": "أُلغي الاستخراج.",
+  "archive.done.extracted": "اكتمل الاستخراج.",
   "archive.done.unverified": "اكتمل الاستخراج. تعذّرت قراءة فهرس الأرشيف، لذا لم يُتحقق من النتيجة.",
   "archive.done.written": "كُتب الأرشيف.",
   "archive.encrypt_names": "تشفير أسماء الملفات",

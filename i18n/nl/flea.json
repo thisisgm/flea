@@ -66,6 +66,7 @@
   "archive.compressing": "%1 comprimeren naar .%2",
   "archive.confirm": "Bevestigen",
   "archive.done.cancelled": "Uitpakken geannuleerd.",
+  "archive.done.extracted": "Uitgepakt.",
   "archive.done.unverified": "Uitgepakt. De archiefindex kon niet worden gelezen, dus dit is niet geverifieerd.",
   "jobs.done.extract_unverified": "Uitgepakt. De archiefindex kon niet worden gelezen, dus dit is niet geverifieerd.",
   "archive.done.written": "Archief geschreven.",

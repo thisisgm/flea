@@ -49,6 +49,7 @@
   "archive.compressing": "%1 को .%2 में संपीड़ित कर रहे हैं",
   "archive.confirm": "पुष्टि करें",
   "archive.done.cancelled": "निकालना रद्द किया गया।",
+  "archive.done.extracted": "निकाल दिया गया।",
   "archive.done.unverified": "निकाल दिया गया। आर्काइव की सूची पढ़ी नहीं जा सकी, इसलिए सत्यापन नहीं हुआ।",
   "archive.done.written": "आर्काइव लिखा गया।",
   "archive.encrypt_names": "फ़ाइलों के नाम एन्क्रिप्ट करें",

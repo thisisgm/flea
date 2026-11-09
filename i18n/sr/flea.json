@@ -50,6 +50,7 @@
   "archive.compressing": "Пакује се %1 у .%2",
   "archive.confirm": "Потврди",
   "archive.done.cancelled": "Распаковање је отказано.",
+  "archive.done.extracted": "Распаковано.",
   "archive.done.unverified": "Распаковано. Индекс архиве није могуће прочитати, па распаковање није проверено.",
   "archive.done.written": "Архива је уписана.",
   "archive.encrypt_names": "Шифруј називе датотека",

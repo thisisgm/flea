@@ -49,6 +49,7 @@
   "archive.compressing": "Pakataan %1 muotoon .%2",
   "archive.confirm": "Vahvista",
   "archive.done.cancelled": "Purkaminen peruutettu.",
+  "archive.done.extracted": "Purettu.",
   "archive.done.unverified": "Purettu. Arkiston hakemistoa ei voitu lukea, joten tulosta ei tarkistettu.",
   "archive.done.written": "Arkisto kirjoitettu.",
   "archive.encrypt_names": "Salaa tiedostonimet",

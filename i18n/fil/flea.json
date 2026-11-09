@@ -49,6 +49,7 @@
   "archive.compressing": "Kino-compress ang %1 sa .%2",
   "archive.confirm": "Kumpirmahin",
   "archive.done.cancelled": "Nakansela ang pag-extract.",
+  "archive.done.extracted": "Na-extract na.",
   "archive.done.unverified": "Na-extract na. Hindi mabasa ang index ng archive, kaya hindi ito napatunayan.",
   "archive.done.written": "Naisulat na ang archive.",
   "archive.encrypt_names": "I-encrypt ang mga pangalan ng file",

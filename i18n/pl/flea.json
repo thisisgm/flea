@@ -51,6 +51,7 @@
   "archive.compressing": "Kompresowanie do .%2 · %1",
   "archive.confirm": "Potwierdź",
   "archive.done.cancelled": "Anulowano rozpakowywanie.",
+  "archive.done.extracted": "Rozpakowano.",
   "archive.done.unverified": "Rozpakowano. Nie udało się odczytać indeksu archiwum, więc nie zweryfikowano wyniku.",
   "archive.done.written": "Zapisano archiwum.",
   "archive.encrypt_names": "Szyfruj nazwy plików",

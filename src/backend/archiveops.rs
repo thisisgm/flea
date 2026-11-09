@@ -18,6 +18,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 // The sentence both the request and the job refuse a disk image extract with.
 pub const DISK_IMAGE_REFUSAL: &str = "a disk image opens as a listing and is never extracted";
 
+// The sentence an extract refuses a member with when it would land outside the folder.
+pub const ESCAPE_REFUSAL: &str = "an entry in this archive would land outside its folder, so nothing was extracted";
+
 // A password compress is a 7z job whatever the format: bsdtar writes no encryption at all.
 pub struct Password<'a> {
     pub secret: &'a str,
@@ -40,9 +43,6 @@ pub(crate) fn compress_leaving(
     cancel: &AtomicBool,
     password: Option<Password>,
 ) -> Result<Option<String>, FleaError> {
-    if dest.symlink_metadata().is_ok() {
-        return Err(op_err("archive", &dest.to_string_lossy(), "that destination already exists"));
-    }
     // A quit landing between registration and this check never starts a child.
     if cancel.load(Ordering::Relaxed) {
         return Err(op_err("archive", &dest.to_string_lossy(), "cancelled"));
@@ -92,7 +92,7 @@ pub(crate) fn compress_leaving(
     if staged.symlink_metadata().is_err() {
         return Err(op_err("archive", format, "the archive tool wrote nothing"));
     }
-    publish(&staged, dest, cancel)?;
+    freename::publish(&staged, dest, Some(format), cancel, publish)?;
     Ok(clear(work))
 }
 
@@ -122,9 +122,6 @@ pub(crate) fn extract_reporting(
     password: Option<&str>,
     report: Option<(usize, &std::sync::mpsc::Sender<super::opsreq::OpMsg>)>,
 ) -> Result<(bool, Option<String>), FleaError> {
-    if dest.symlink_metadata().is_ok() {
-        return Err(op_err("archive", &dest.to_string_lossy(), "that destination already exists"));
-    }
     // A disk image lists and is never extracted, so it is refused before any staging or probing.
     if Formats::is_list_only(archive) {
         return Err(op_err("archive", &archive.to_string_lossy(), DISK_IMAGE_REFUSAL));
@@ -197,6 +194,7 @@ pub(crate) fn extract_reporting(
         if cancel.load(Ordering::Relaxed) {
             return Err(op_err("archive", &archive.to_string_lossy(), "cancelled"));
         }
+        let said = said.or_else(|| escape_refusal(&f.message));
         return Err(op_err("archive", &leaf, said.unwrap_or(&f.message)));
     }
     // compress and convert stat a path Flea never creates, so their existence check is a real test.
@@ -233,8 +231,15 @@ pub(crate) fn extract_reporting(
     if let Some((id, tx)) = report {
         progress.sample(&staged, id, tx, true);
     }
-    publish(&staged, dest, cancel)?;
+    freename::publish(&staged, dest, None, cancel, publish)?;
     Ok((verified, clear(work)))
+}
+
+// Sample: "../../escape-dotdot.txt: Path contains '..': Unknown error -1".
+// bsdtar's secure extract refuses a "../" member and one written through a link the archive made.
+fn escape_refusal(message: &str) -> Option<&'static str> {
+    (message.contains("Path contains '..'") || message.contains("Cannot extract through symlink"))
+        .then_some(ESCAPE_REFUSAL)
 }
 
 // Issue 370: fuse.rclone refuses a directory and fuse.megafs any RENAME_NOREPLACE, so those take the exclusive copy, which the cancel stops.
@@ -318,6 +323,9 @@ pub fn split_paths(paths: &[String]) -> Option<(PathBuf, Vec<String>)> {
 #[path = "archivezip.rs"]
 pub(crate) mod zipplan;
 
+#[path = "archivename.rs"]
+pub(crate) mod freename;
+
 #[cfg(test)]
 #[path = "archiveops_tests.rs"]
 mod tests;
@@ -337,3 +345,7 @@ mod password_tests;
 #[cfg(test)]
 #[path = "archiveleft_tests.rs"]
 mod left_tests;
+
+#[cfg(test)]
+#[path = "archivefreename_tests.rs"]
+mod free_name_tests;

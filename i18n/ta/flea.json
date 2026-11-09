@@ -49,6 +49,7 @@
   "archive.compressing": "%1 ஐ .%2 ஆகச் சுருக்குகிறது",
   "archive.confirm": "உறுதிப்படுத்து",
   "archive.done.cancelled": "பிரித்தெடுத்தல் ரத்து செய்யப்பட்டது.",
+  "archive.done.extracted": "பிரித்தெடுக்கப்பட்டது.",
   "archive.done.unverified": "பிரித்தெடுக்கப்பட்டது. காப்பக அட்டவணையைப் படிக்க முடியாததால் சரிபார்க்கப்படவில்லை.",
   "archive.done.written": "காப்பகம் எழுதப்பட்டது.",
   "archive.encrypt_names": "கோப்புப் பெயர்களைக் குறியாக்கு",

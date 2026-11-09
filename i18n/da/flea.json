@@ -49,6 +49,7 @@
   "archive.compressing": "Komprimerer %1 til .%2",
   "archive.confirm": "Bekræft",
   "archive.done.cancelled": "Udpakning annulleret.",
+  "archive.done.extracted": "Udpakket.",
   "archive.done.unverified": "Udpakket. Arkivets indeks kunne ikke læses, så resultatet blev ikke verificeret.",
   "archive.done.written": "Arkiv skrevet.",
   "archive.encrypt_names": "Krypter filnavne",

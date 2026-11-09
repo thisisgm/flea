@@ -107,6 +107,7 @@
   "archive.compressing": "A comprimir %1 para .%2",
   "archive.confirm": "Confirmar",
   "archive.done.cancelled": "Extração cancelada.",
+  "archive.done.extracted": "Extraído.",
   "archive.done.unverified": "Extraído. Não foi possível ler o índice do arquivo, por isso a extração não foi verificada.",
   "archive.done.written": "Arquivo gravado.",
   "archive.encrypt_names": "Encriptar nomes de ficheiros",

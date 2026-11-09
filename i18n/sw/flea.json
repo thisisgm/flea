@@ -49,6 +49,7 @@
   "archive.compressing": "Inafinyaza %1 kuwa .%2",
   "archive.confirm": "Thibitisha",
   "archive.done.cancelled": "Utoaji umeghairiwa.",
+  "archive.done.extracted": "Imetolewa.",
   "archive.done.unverified": "Imetolewa. Fahirisi ya jalada haikuweza kusomwa, kwa hivyo matokeo hayajathibitishwa.",
   "archive.done.written": "Jalada limeandikwa.",
   "archive.encrypt_names": "Simba majina ya faili kwa njia fiche",

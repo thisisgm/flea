@@ -50,6 +50,7 @@
   "archive.compressing": "דוחס את ⁨%1⁩ ל-⁨.%2⁩",
   "archive.confirm": "אישור",
   "archive.done.cancelled": "החילוץ בוטל.",
+  "archive.done.extracted": "החילוץ הסתיים.",
   "archive.done.unverified": "החילוץ הסתיים. לא ניתן היה לקרוא את אינדקס הארכיון, ולכן התוצאה לא אומתה.",
   "archive.done.written": "הארכיון נכתב.",
   "archive.encrypt_names": "הצפנת שמות קבצים",

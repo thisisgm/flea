@@ -49,6 +49,7 @@
   "archive.compressing": "⁨%1⁩ کو ⁦.%2⁩ میں کمپریس کیا جا رہا ہے",
   "archive.confirm": "تصدیق کریں",
   "archive.done.cancelled": "نکالنا منسوخ ہو گیا۔",
+  "archive.done.extracted": "نکال دیا گیا۔",
   "archive.done.unverified": "نکال دیا گیا۔ آرکائیو کا اشاریہ پڑھا نہیں جا سکا، اس لیے تصدیق نہیں ہوئی۔",
   "archive.done.written": "آرکائیو لکھ دیا گیا۔",
   "archive.encrypt_names": "فائلوں کے نام خفیہ کریں",

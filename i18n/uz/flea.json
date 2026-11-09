@@ -49,6 +49,7 @@
   "archive.compressing": "%1 .%2 formatiga siqilmoqda",
   "archive.confirm": "Tasdiqlash",
   "archive.done.cancelled": "Arxivdan chiqarish bekor qilindi.",
+  "archive.done.extracted": "Arxivdan chiqarildi.",
   "archive.done.unverified": "Arxivdan chiqarildi. Arxiv indeksini oʻqib boʻlmagani sababli natija tekshirilmadi.",
   "archive.done.written": "Arxiv yozildi.",
   "archive.encrypt_names": "Fayl nomlarini shifrlash",

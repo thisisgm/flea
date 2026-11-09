@@ -51,6 +51,7 @@
   "archive.compressing": "Сжатие в .%2: %1",
   "archive.confirm": "Подтвердить",
   "archive.done.cancelled": "Извлечение отменено.",
+  "archive.done.extracted": "Извлечение завершено.",
   "archive.done.unverified": "Извлечение завершено. Не удалось прочитать индекс архива, поэтому результат не проверен.",
   "archive.done.written": "Архив записан.",
   "archive.encrypt_names": "Шифровать имена файлов",

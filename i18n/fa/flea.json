@@ -49,6 +49,7 @@
   "archive.compressing": "در حال فشرده‌سازی ⁨%1⁩ به ⁦.%2⁩",
   "archive.confirm": "تأیید",
   "archive.done.cancelled": "استخراج لغو شد.",
+  "archive.done.extracted": "استخراج شد.",
   "archive.done.unverified": "استخراج شد. فهرست بایگانی خوانده نشد، بنابراین درستی استخراج بررسی نشد.",
   "archive.done.written": "بایگانی نوشته شد.",
   "archive.encrypt_names": "رمزگذاری نام فایل‌ها",

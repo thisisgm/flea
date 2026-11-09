@@ -50,6 +50,7 @@
   "archive.compressing": "Comprimiendo %1 a .%2",
   "archive.confirm": "Confirmar",
   "archive.done.cancelled": "Extracción cancelada.",
+  "archive.done.extracted": "Extraído.",
   "archive.done.unverified": "Extraído. No se pudo leer el índice del archivo comprimido, por lo que no se verificó.",
   "archive.done.written": "Archivo comprimido escrito.",
   "archive.encrypt_names": "Cifrar nombres de archivo",

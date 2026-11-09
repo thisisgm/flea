@@ -174,11 +174,14 @@ impl Shell {
             // PaneWire.qml onArchiveDone re-reads in place and lands at the refreshed list's first row.
             let _ = self.step(side, crate::window::navigate::Step::Fresh, window, cx);
         }
+        // Only an extract's success names its archive, so an empty path is a compress's receipt.
         let text = if done.ok {
-            catalog.tr(if verified {
+            catalog.tr(if !verified {
+                "archive.done.unverified"
+            } else if done.path.is_empty() {
                 "archive.done.written"
             } else {
-                "archive.done.unverified"
+                "archive.done.extracted"
             })
         } else if done.err == "cancelled" {
             catalog.tr("archive.done.cancelled")

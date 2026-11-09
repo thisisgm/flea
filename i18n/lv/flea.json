@@ -50,6 +50,7 @@
   "archive.compressing": "Saspiež %1 formātā .%2",
   "archive.confirm": "Apstiprināt",
   "archive.done.cancelled": "Atarhivēšana atcelta.",
+  "archive.done.extracted": "Atarhivēts.",
   "archive.done.unverified": "Atarhivēts. Arhīva indeksu nevarēja nolasīt, tāpēc rezultāts nav pārbaudīts.",
   "archive.done.written": "Arhīvs ierakstīts.",
   "archive.encrypt_names": "Šifrēt failu nosaukumus",

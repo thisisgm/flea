@@ -51,6 +51,7 @@
   "archive.compressing": "Стиснення у .%2: %1",
   "archive.confirm": "Підтвердити",
   "archive.done.cancelled": "Видобування скасовано.",
+  "archive.done.extracted": "Видобуто.",
   "archive.done.unverified": "Видобуто. Не вдалося прочитати індекс архіву, тому результат не перевірено.",
   "archive.done.written": "Архів записано.",
   "archive.encrypt_names": "Шифрувати назви файлів",

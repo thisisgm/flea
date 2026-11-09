@@ -50,6 +50,7 @@
   "archive.compressing": "Sažimanje %1 u .%2",
   "archive.confirm": "Potvrdi",
   "archive.done.cancelled": "Raspakiravanje je otkazano.",
+  "archive.done.extracted": "Raspakirano.",
   "archive.done.unverified": "Raspakirano. Indeks arhive nije moguće pročitati pa rezultat nije provjeren.",
   "archive.done.written": "Arhiva je zapisana.",
   "archive.encrypt_names": "Šifriraj nazive datoteka",

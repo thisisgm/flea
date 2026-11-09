@@ -117,6 +117,7 @@
   "archive.compressing": "%1 á chomhbhrú go .%2",
   "archive.confirm": "Deimhnigh",
   "archive.done.cancelled": "Cealaíodh an t-eastóscadh.",
+  "archive.done.extracted": "Eastósctha.",
   "archive.done.unverified": "Eastósctha. Níorbh fhéidir innéacs na cartlainne a léamh, mar sin níor fíoraíodh é seo.",
   "archive.done.written": "Scríobhadh an chartlann.",
   "archive.encrypt_names": "Criptigh ainmneacha comhaid",

@@ -143,6 +143,7 @@
   "archive.compressing": "Mengompres %1 ke .%2",
   "archive.confirm": "Konfirmasi",
   "archive.done.cancelled": "Ekstraksi dibatalkan.",
+  "archive.done.extracted": "Selesai diekstrak.",
   "archive.done.unverified": "Selesai diekstrak. Indeks arsip tidak dapat dibaca, sehingga hasilnya belum diverifikasi.",
   "jobs.done.extract_unverified": "Selesai diekstrak. Indeks arsip tidak dapat dibaca, sehingga hasilnya belum diverifikasi.",
   "archive.done.written": "Arsip selesai ditulis.",

@@ -102,6 +102,7 @@
   "archive.compressing": "%1 tömörítése .%2 formátumba",
   "archive.confirm": "Megerősítés",
   "archive.done.cancelled": "Kibontás megszakítva.",
+  "archive.done.extracted": "Kibontva.",
   "archive.done.unverified": "Kibontva. Az archívumjegyzék nem olvasható, ezért az ellenőrzés elmaradt.",
   "archive.done.written": "Archívum kiírva.",
   "archive.encrypt_names": "Fájlnevek titkosítása",

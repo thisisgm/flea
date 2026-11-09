@@ -49,6 +49,7 @@
   "archive.compressing": "Компресиране на %1 в .%2",
   "archive.confirm": "Потвърди",
   "archive.done.cancelled": "Извличането е отменено.",
+  "archive.done.extracted": "Извлечено.",
   "archive.done.unverified": "Извлечено. Индексът на архива не може да бъде прочетен, затова резултатът не е проверен.",
   "archive.done.written": "Архивът е записан.",
   "archive.encrypt_names": "Шифровай имената на файловете",

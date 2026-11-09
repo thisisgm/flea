@@ -51,6 +51,7 @@
   "archive.compressing": "Stiskanje %1 v .%2",
   "archive.confirm": "Potrdi",
   "archive.done.cancelled": "Razširjanje preklicano.",
+  "archive.done.extracted": "Razširjeno.",
   "archive.done.unverified": "Razširjeno. Kazala arhiva ni bilo mogoče prebrati, zato rezultat ni preverjen.",
   "archive.done.written": "Arhiv zapisan.",
   "archive.encrypt_names": "Šifriraj imena datotek",
