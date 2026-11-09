@@ -96,6 +96,33 @@ fn trash_sweep_runs_once_a_day_and_records_nothing_on_failure() {
 }
 
 #[test]
+fn rail_empty_trash_stops_the_sweep_and_reviews_with_the_view_closed() {
+    let i18n = english();
+    let now = parse_ms("2026-10-18T12:00:00").unwrap();
+    let mut host = Host::new(View::new(ROW));
+    host.sweep(now, true, day_number(now - DAY_MS));
+    host.drain();
+    host.empty_from_rail();
+    let lines = host.drain();
+    assert!(lines.len() == 2 && lines[0].contains(r#""op":"cancel","id":2"#) && lines[1].contains(r#""emptyTrash":true"#) && lines[1].contains(r#""op":"prepare","id":3"#), "the sweep is cancelled first and the review numbers past it: {lines:?}");
+    assert!(!host.sweeping() && !host.view.opened && host.view.confirming);
+    let late = reply(r#"{"t":"trashbrowse","id":1,"op":"list","ok":true,"total":0,"start":0,"rows":[]}"#);
+    assert_eq!(host.receive(&late, &i18n, now), None);
+    assert_eq!(host.view.pending_op, "prepare", "a late sweep reply never answers the review");
+    host.sweep(now, true, day_number(now - DAY_MS));
+    assert!(!host.sweeping(), "no sweep starts under the card");
+    let prepared = reply(r#"{"t":"trashbrowse","id":3,"op":"prepare","ok":true,"all":true,"token":7,"count":2,"bytes":9}"#);
+    host.receive(&prepared, &i18n, now);
+    assert!(host.view.confirmation.is_some() && !host.view.opened);
+    host.view.confirmed(None);
+    assert!(host.drain()[0].contains(r#""op":"cancel","id":4"#));
+    host.receive(&reply(r#"{"t":"trashbrowse","id":4,"op":"cancel","ok":true}"#), &i18n, now);
+    assert!(!host.view.busy(), "the closed view takes its own cancel answer");
+    host.sweep(now, true, day_number(now - DAY_MS));
+    assert!(host.sweeping(), "the next sweep is not blocked once the review is answered");
+}
+
+#[test]
 fn trash_monitor_reads_one_count_at_a_time() {
     assert_eq!(monitor::parse_count("standard::name: trash\n  trash::item-count: 12\n"), Some(12));
     for bad in ["", "trash::item-count:", "trash::item-count: -1", "trash::item-count: 1x", "item-count: 3"] {

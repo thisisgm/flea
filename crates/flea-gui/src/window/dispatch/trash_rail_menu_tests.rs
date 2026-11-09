@@ -1,4 +1,4 @@
-use super::{click, open, row, settle, unchanged};
+use super::{choose, click, open, row, settle, unchanged};
 use crate::{backend::Event, state::Shell, window::u07_tests::read};
 use flea::ui_logic_rail_places::rail::Kind;
 use gpui::{
@@ -13,8 +13,7 @@ fn a_stationary_right_click_paints_the_trash_sidebar_menu(cx: &mut TestAppContex
     let (_, at) = row(&shell, cx, Kind::Trash);
     let handle = cx.update(|window, _| window.window_handle());
     let native = cx.cx.test_window(handle);
-    // Keep the click and its first draw in one update so the test executor
-    // cannot run the foreground task before we inspect the first draw.
+    // The click and its first draw share one update, so only frames the platform was asked for follow.
     let mut seen = cx.update(|window, cx| {
         window.dispatch_event(
             PlatformInput::MouseDown(MouseDownEvent {
@@ -37,10 +36,6 @@ fn a_stationary_right_click_paints_the_trash_sidebar_menu(cx: &mut TestAppContex
         );
         let seen = native.frame_wake_count();
         window.draw(cx).clear(cx);
-        assert!(
-            !shell.read(cx).menu_opened(),
-            "the menu must open after the draw"
-        );
         seen
     });
     cx.run_until_parked();
@@ -202,5 +197,88 @@ fn cancelling_sidebar_empty_trash_releases_the_review_without_deleting(cx: &mut 
         r#""all":true,"token":6,"count":1,"bytes":13"#,
     );
     assert!(!read(&shell, cx, "trashControlCentre", &["danger"]).is_empty());
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+#[gpui::test]
+fn keyboard_empty_trash_from_the_sidebar_escapes_then_deletes_in_place(cx: &mut TestAppContext) {
+    let (shell, cx) = opened_menu(cx);
+    cx.simulate_keystrokes("escape");
+    settle(cx);
+    let (index, _) = row(&shell, cx, Kind::Trash);
+    let menu = |shell: &Entity<Shell>, cx: &mut VisualTestContext| {
+        cx.update(|window, cx| {
+            shell.update(cx, |shell, cx| {
+                shell.rail_focus(true, cx);
+                shell
+                    .rail
+                    .as_ref()
+                    .unwrap()
+                    .places
+                    .update(cx, |producer, cx| producer.set_cursor(index, cx));
+                window.focus(&shell.dual_focus.rail, cx);
+            })
+        });
+        settle(cx);
+        cx.simulate_keystrokes("m");
+        settle(cx);
+        choose(shell, cx, "emptyTrash");
+    };
+    menu(&shell, cx);
+    let (first, second) = (
+        r#""all":true,"token":5,"count":1,"bytes":13"#,
+        r#""all":true,"token":6,"count":1,"bytes":13"#,
+    );
+    reply(&shell, cx, "prepare", first);
+    assert!(!read(&shell, cx, "trashControlCentre", &["danger"]).is_empty());
+    super::super::test_shell::sent();
+    cx.simulate_keystrokes("escape");
+    settle(cx);
+    let lines = super::super::test_shell::sent();
+    assert!(lines.iter().any(|line| line.contains(r#""op":"cancel""#)));
+    assert!(!lines.iter().any(|line| line.contains(r#""op":"delete""#)));
+    reply(&shell, cx, "cancel", r#""cancelled":true"#);
+    assert!(!shell.read_with(cx, |shell, cx| shell.trash_opened(cx)));
+    let pane = shell.read_with(cx, |shell, _| shell.trash.as_ref().unwrap().pane.clone());
+    assert!(!pane.read_with(cx, |pane, _| pane.view().busy()));
+    unchanged(&shell, cx);
+    menu(&shell, cx);
+    reply(&shell, cx, "prepare", second);
+    cx.simulate_keystrokes("tab enter");
+    settle(cx);
+    assert!(super::super::test_shell::sent()
+        .iter()
+        .any(|line| line.contains(r#""op":"delete""#) && line.contains(r#""token":6"#)));
+    reply(&shell, cx, "delete", r#""done":1,"failed":0"#);
+    assert!(!shell.read_with(cx, |shell, cx| shell.trash_opened(cx)));
+    unchanged(&shell, cx);
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+#[gpui::test]
+fn opening_trash_under_a_sidebar_review_keeps_the_card_over_the_folder(cx: &mut TestAppContext) {
+    let (shell, cx) = opened_menu(cx);
+    click_empty(&shell, cx);
+    reply(
+        &shell,
+        cx,
+        "prepare",
+        r#""all":true,"token":5,"count":1,"bytes":13"#,
+    );
+    let pane = shell.read_with(cx, |shell, _| shell.trash.as_ref().unwrap().pane.clone());
+    // The next draw hands focus back, so focus is read in the same update and again after it.
+    let (taken, stolen) = shell.update_in(cx, |shell, window, cx| {
+        let taken = shell.trash_action("openTrash", window, cx);
+        (taken, pane.read(cx).focus.is_focused(window))
+    });
+    settle(cx);
+    let stolen_later = cx.update(|window, cx| pane.read(cx).focus.is_focused(window));
+    assert!(
+        taken && !stolen && !stolen_later,
+        "the hidden Trash pane must not take the keyboard"
+    );
+    assert!(!shell.read_with(cx, |shell, cx| shell.trash_opened(cx)));
+    assert!(!read(&shell, cx, "trashControlCentre", &["danger"]).is_empty());
+    unchanged(&shell, cx);
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }

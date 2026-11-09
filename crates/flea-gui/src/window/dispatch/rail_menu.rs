@@ -22,9 +22,8 @@ impl Target {
     }
 }
 
-/// Open the Trash sidebar menu after the current frame has finished drawing.
 pub(super) fn run(
-    _: &mut Shell,
+    shell: &mut Shell,
     order: &Order,
     window: &mut Window,
     cx: &mut Context<Shell>,
@@ -38,15 +37,7 @@ pub(super) fn run(
     if entry.kind != Kind::Trash {
         return false;
     }
-    // The rail drains requests during render, after the root has collected its overlays.
-    // The foreground task opens the menu once that draw has returned.
-    let side = request.side;
-    cx.spawn_in(window, async move |shell, cx| {
-        let _ = shell.update_in(cx, |shell, window, cx| {
-            shell.open_rail_menu(side, window, cx)
-        });
-    })
-    .detach();
+    shell.open_rail_menu(request.side, window, cx);
     true
 }
 
