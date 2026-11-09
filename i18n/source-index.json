@@ -1362,6 +1362,16 @@
     {
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
+      "expression": "said",
+      "line": 124,
+      "path": "crates/flea-gui/src/window/events_routes.rs",
+      "pattern": null,
+      "possible_keys": [],
+      "surface": "gui"
+    },
+    {
+      "blocks_removals": true,
+      "coverage": "unresolved-key-expression",
       "expression": "key",
       "line": 78,
       "path": "crates/flea-gui/src/window/external_action.rs",
@@ -25088,15 +25098,22 @@
     "dialogs.file.disconnected": {
       "call_sites": [
         {
-          "excerpt": "let said = self.locale.catalog.tr(\"dialogs.file.disconnected\");",
-          "line": 107,
+          "excerpt": "self.left_folder(side, &doc, \"dialogs.file.disconnected\", window, cx)",
+          "line": 57,
           "path": "crates/flea-gui/src/window/events_routes.rs",
           "surface": "gui",
-          "usage": "translated-call"
+          "usage": "key-declaration"
+        },
+        {
+          "excerpt": "\"unmounted\" => \"dialogs.file.disconnected\",",
+          "line": 16,
+          "path": "src/tui/gone.rs",
+          "surface": "tui",
+          "usage": "key-declaration"
         }
       ],
       "context": "dialogs.file.disconnected: crates/flea-gui/src/window/events_routes.rs:88",
-      "coverage": "existing-translated-call",
+      "coverage": "occurrence-needs-owner-verification",
       "english": "That drive or share was disconnected, so this folder is no longer available",
       "kind": "text",
       "omarchy_reference": null,
@@ -65168,14 +65185,14 @@
       "call_sites": [
         {
           "excerpt": "self.transfer_text(super::words::args(if self.transfer_moving { \"jobs.transfer.moving\" } else { \"jobs.transfer.copying\" }, vec![super::words::Text::Count(0), super::words::Text::Count(self.transfer_total)]));",
-          "line": 1061,
+          "line": 1062,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "self.transfer_text(super::words::args(if self.transfer_moving { \"jobs.transfer.moving\" } else { \"jobs.transfer.copying\" }, vec![super::words::Text::Count(count(&value, \"index\") + 1), super::words::Text::Count(self.transfer_total)]));",
-          "line": 1071,
+          "line": 1072,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -65268,14 +65285,14 @@
       "call_sites": [
         {
           "excerpt": "self.transfer_text(super::words::args(if self.transfer_moving { \"jobs.transfer.moving\" } else { \"jobs.transfer.copying\" }, vec![super::words::Text::Count(0), super::words::Text::Count(self.transfer_total)]));",
-          "line": 1061,
+          "line": 1062,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "self.transfer_text(super::words::args(if self.transfer_moving { \"jobs.transfer.moving\" } else { \"jobs.transfer.copying\" }, vec![super::words::Text::Count(count(&value, \"index\") + 1), super::words::Text::Count(self.transfer_total)]));",
-          "line": 1071,
+          "line": 1072,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -80150,7 +80167,7 @@
         },
         {
           "excerpt": "self.fail_key(\"pane.locked\");",
-          "line": 1253,
+          "line": 1254,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -80410,7 +80427,7 @@
         },
         {
           "excerpt": "let key = self.preview_state.refusal.unwrap_or(\"pane.unread\");",
-          "line": 957,
+          "line": 958,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -93074,7 +93091,7 @@
       "call_sites": [
         {
           "excerpt": "self.say_text(super::prompts::undoable_text(self, super::words::Text::Key(\"receipt.fileCreated\")));",
-          "line": 1130,
+          "line": 1131,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -97782,7 +97799,7 @@
         },
         {
           "excerpt": "Ok(()) if held => Some(words::Text::Key(\"settings.error.save_session\")),",
-          "line": 357,
+          "line": 358,
           "path": "src/tui/mod.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -97811,7 +97828,7 @@
         },
         {
           "excerpt": "Ok(()) if unreadable => Some(words::Text::Key(\"settings.error.unreadable\")),",
-          "line": 356,
+          "line": 357,
           "path": "src/tui/mod.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -102558,6 +102575,20 @@
           "path": "crates/flea-gui/src/tabs/state.rs",
           "surface": "gui",
           "usage": "key-declaration"
+        },
+        {
+          "excerpt": "Some(\"gone\") => self.left_folder(side, &doc, \"tabs.folder_gone\", window, cx),",
+          "line": 59,
+          "path": "crates/flea-gui/src/window/events_routes.rs",
+          "surface": "gui",
+          "usage": "key-declaration"
+        },
+        {
+          "excerpt": "\"gone\" => \"tabs.folder_gone\",",
+          "line": 15,
+          "path": "src/tui/gone.rs",
+          "surface": "tui",
+          "usage": "key-declaration"
         }
       ],
       "context": "tabs.folder_gone: crates/flea-gui/src/tabs/state.rs:45",
@@ -104414,7 +104445,7 @@
         },
         {
           "excerpt": "Err(why) => Some(words::args(\"tui.actions.save_settings\", vec![why.into()])),",
-          "line": 355,
+          "line": 356,
           "path": "src/tui/mod.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -106067,7 +106098,7 @@
       "call_sites": [
         {
           "excerpt": "self.fail_key(\"tui.model.bulk_rename_selection_is_incomplete_select_the_items_again\");",
-          "line": 1200,
+          "line": 1201,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -106089,7 +106120,7 @@
       "call_sites": [
         {
           "excerpt": "else { Err(super::words::error(\"tui.model.bulk_rename_stopped_a_rename_could_not_finish\")) };",
-          "line": 1081,
+          "line": 1082,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -106158,14 +106189,14 @@
         },
         {
           "excerpt": "self.fail_key(\"tui.model.could_not_open_selected_file\");",
-          "line": 1212,
+          "line": 1213,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "self.fail_key(\"tui.model.could_not_open_selected_file\");",
-          "line": 1220,
+          "line": 1221,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -106187,7 +106218,7 @@
       "call_sites": [
         {
           "excerpt": "let mut line = vec![super::words::Text::Plural(\"tui.model.deleted\", self.menu_count, vec![super::words::Text::Count(count(&value, \"deleted\"))])];",
-          "line": 1153,
+          "line": 1154,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -106221,7 +106252,7 @@
       "call_sites": [
         {
           "excerpt": "if flag(&value, \"cancelled\") { line.push(super::words::Text::Key(\"tui.model.deleted_cancelled\")); }",
-          "line": 1154,
+          "line": 1155,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -106243,7 +106274,7 @@
       "call_sites": [
         {
           "excerpt": "if count(&value, \"failed\") > 0 { self.fail_text(super::words::args(\"tui.model.deleted_failed\", vec![super::words::Text::Count(count(&value, \"failed\")), text(&value, \"error\").into()])); }",
-          "line": 1156,
+          "line": 1157,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -106268,14 +106299,14 @@
       "call_sites": [
         {
           "excerpt": "if flag(&value, \"cancelled\") { self.say_key(\"tui.model.deletion_cancelled\"); }",
-          "line": 1148,
+          "line": 1149,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "self.say_key(\"tui.model.deletion_cancelled\");",
-          "line": 1151,
+          "line": 1152,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -106297,7 +106328,7 @@
       "call_sites": [
         {
           "excerpt": "if token == 0 { return Err(super::words::error(\"tui.model.deletion_could_not_be_confirmed_try_again\")); }",
-          "line": 1188,
+          "line": 1189,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -106319,7 +106350,7 @@
       "call_sites": [
         {
           "excerpt": "super::preview::set_text(self, super::words::Text::Key(\"tui.model.empty_folder\"));",
-          "line": 968,
+          "line": 969,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -106434,7 +106465,7 @@
       "call_sites": [
         {
           "excerpt": "self.say_key(\"tui.model.selection_changed_confirm_again\");",
-          "line": 1141,
+          "line": 1142,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -106456,7 +106487,7 @@
       "call_sites": [
         {
           "excerpt": "Ok(()) => self.say_text(super::words::args(\"tui.model.sending\", vec![peer.label.clone().into()])),",
-          "line": 1229,
+          "line": 1230,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -106524,7 +106555,7 @@
       "call_sites": [
         {
           "excerpt": "self.fail_key(\"tui.model.taildrop_selection_is_incomplete\");",
-          "line": 1226,
+          "line": 1227,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -106546,7 +106577,7 @@
       "call_sites": [
         {
           "excerpt": "self.fail_key(\"tui.model.the_selection_changed_or_cannot_be_written_one_path_per_line_choose_it\");",
-          "line": 1022,
+          "line": 1023,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -134440,6 +134471,33 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "eprintln!(\"flea: a folder moved or deleted above the open one will not be followed, inotify is unavailable\");",
+      "line": 125,
+      "literal": "flea: a folder moved or deleted above the open one will not be followed, inotify is unavailable",
+      "owner": "controller",
+      "path": "src/backend/ancestry.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "eprintln!(\"flea: folders above the open one stopped being followed, the inotify read failed: {}\", io::Error::last_os_error());",
+      "line": 147,
+      "literal": "flea: folders above the open one stopped being followed, the inotify read failed: {}",
+      "owner": "controller",
+      "path": "src/backend/ancestry.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"flea: {} will not be followed if it moves, inotify refused a watch on it: {}\",",
+      "line": 277,
+      "literal": "flea: {} will not be followed if it moves, inotify refused a watch on it: {}",
+      "owner": "controller",
+      "path": "src/backend/ancestry.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "const NOT_AN_ARCHIVE: [&str; 2] = [\"Cannot open the file as\", \"Can not open the file as\"];",
       "line": 31,
       "literal": "Cannot open the file as",
@@ -142937,7 +142995,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: {} will not follow outside changes, inotify refused a watch on it\", path);",
-      "line": 269,
+      "line": 274,
       "literal": "flea: {} will not follow outside changes, inotify refused a watch on it",
       "owner": "controller",
       "path": "src/backend/listwork.rs",
@@ -158552,7 +158610,7 @@
     },
     {
       "excerpt": "super::jobwork::Spec { kind: \"send\", label: \"Sending\", target: None },",
-      "line": 431,
+      "line": 435,
       "literal": "Sending",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158561,7 +158619,7 @@
     },
     {
       "excerpt": "super::jobwork::Spec { kind: \"send\", label: \"Sending\", target: None },",
-      "line": 454,
+      "line": 458,
       "literal": "Sending",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158570,7 +158628,7 @@
     },
     {
       "excerpt": "Some(\"The items changed; select them again.\".to_string())",
-      "line": 836,
+      "line": 840,
       "literal": "The items changed; select them again.",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158579,7 +158637,7 @@
     },
     {
       "excerpt": "ops.menuactions.as_ref().ok_or_else(|| \"The items changed; select them again.\".to_string())",
-      "line": 842,
+      "line": 846,
       "literal": "The items changed; select them again.",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158588,7 +158646,7 @@
     },
     {
       "excerpt": "let listed = String::from_utf8(std::mem::take(&mut out)).expect(\"the listing wire is UTF-8\");",
-      "line": 1106,
+      "line": 1110,
       "literal": "the listing wire is UTF-8",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158597,7 +158655,7 @@
     },
     {
       "excerpt": "let header = listed.lines().next().expect(\"the listing has a header\");",
-      "line": 1107,
+      "line": 1111,
       "literal": "the listing has a header",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158606,7 +158664,7 @@
     },
     {
       "excerpt": "let listed_path = crate::json::field_str(header, \"path\").expect(\"the header names its directory\");",
-      "line": 1109,
+      "line": 1113,
       "literal": "the header names its directory",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158615,7 +158673,7 @@
     },
     {
       "excerpt": "assert_eq!(listed_path.as_bytes(), REMOTE_PATH.as_bytes(), \"the listing preserves the input spelling\");",
-      "line": 1110,
+      "line": 1114,
       "literal": "the listing preserves the input spelling",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158624,7 +158682,7 @@
     },
     {
       "excerpt": "assert!(super::super::iomount::is_remote(&st.base, \"\"), \"the fixture takes the remote window branch\");",
-      "line": 1111,
+      "line": 1115,
       "literal": "the fixture takes the remote window branch",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158633,7 +158691,7 @@
     },
     {
       "excerpt": "assert!(super::super::iomount::test_calls() > calls_before, \"the window reaches the real mount bound\");",
-      "line": 1118,
+      "line": 1122,
       "literal": "the window reaches the real mount bound",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158642,7 +158700,7 @@
     },
     {
       "excerpt": "let response = String::from_utf8(out).expect(\"the error wire is UTF-8\");",
-      "line": 1119,
+      "line": 1123,
       "literal": "the error wire is UTF-8",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158651,7 +158709,7 @@
     },
     {
       "excerpt": "let error = lines.next().expect(\"the refused window emits an error\");",
-      "line": 1121,
+      "line": 1125,
       "literal": "the refused window emits an error",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158660,7 +158718,7 @@
     },
     {
       "excerpt": "assert_eq!(crate::json::field_str(error, \"where\").as_deref(), Some(\"window\"), \"the window emitter identifies its operation: {error}\");",
-      "line": 1123,
+      "line": 1127,
       "literal": "the window emitter identifies its operation: {error}",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158669,7 +158727,7 @@
     },
     {
       "excerpt": "let error_path = crate::json::field_str(error, \"path\").expect(\"the error names its directory\");",
-      "line": 1124,
+      "line": 1128,
       "literal": "the error names its directory",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158678,7 +158736,7 @@
     },
     {
       "excerpt": "assert_eq!(error_path.as_bytes(), listed_path.as_bytes(), \"the window error path must be byte-equal to the listed path; error={error_path:?}, listed={listed_path:?}\");",
-      "line": 1125,
+      "line": 1129,
       "literal": "the window error path must be byte-equal to the listed path; error={error_path:?}, listed={listed_path:?}",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158687,7 +158745,7 @@
     },
     {
       "excerpt": "assert!(crate::json::field_str(error, \"msg\").expect(\"the error carries its cause\").contains(\"not responding\"));",
-      "line": 1126,
+      "line": 1130,
       "literal": "the error carries its cause",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158696,7 +158754,7 @@
     },
     {
       "excerpt": "assert!(crate::json::field_str(error, \"msg\").expect(\"the error carries its cause\").contains(\"not responding\"));",
-      "line": 1126,
+      "line": 1130,
       "literal": "not responding",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158705,7 +158763,7 @@
     },
     {
       "excerpt": "assert!(lines.next().is_none(), \"a refused window emits no rows: {response}\");",
-      "line": 1127,
+      "line": 1131,
       "literal": "a refused window emits no rows: {response}",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158714,7 +158772,7 @@
     },
     {
       "excerpt": "let landed = rx.recv_timeout(REPLY_DEADLINE).expect(\"the released link reports through the op channel\");",
-      "line": 1165,
+      "line": 1169,
       "literal": "the released link reports through the op channel",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158723,7 +158781,7 @@
     },
     {
       "excerpt": "assert!(matches!(landed, OpMsg::Linked { .. }), \"the production link sends Linked\");",
-      "line": 1166,
+      "line": 1170,
       "literal": "the production link sends Linked",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158732,7 +158790,7 @@
     },
     {
       "excerpt": "assert_eq!(ops.journal.len(), 1, \"one journal entry covers both links\");",
-      "line": 1169,
+      "line": 1173,
       "literal": "one journal entry covers both links",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158741,7 +158799,7 @@
     },
     {
       "excerpt": "assert!(ops.live.running().is_none(), \"Linked releases the operation slot\");",
-      "line": 1170,
+      "line": 1174,
       "literal": "Linked releases the operation slot",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158750,7 +158808,7 @@
     },
     {
       "excerpt": "entered.recv_timeout(REPLY_DEADLINE).expect(\"run_link reached the handshake\");",
-      "line": 1174,
+      "line": 1178,
       "literal": "run_link reached the handshake",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158759,7 +158817,7 @@
     },
     {
       "excerpt": "backend.join().expect(\"the backend finishes after releasing the held link\");",
-      "line": 1177,
+      "line": 1181,
       "literal": "the backend finishes after releasing the held link",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158768,7 +158826,7 @@
     },
     {
       "excerpt": "let (out, running, unjournalled, no_pending) = responsive.expect(\"a held link must leave Request::Paths responsive\");",
-      "line": 1178,
+      "line": 1182,
       "literal": "a held link must leave Request::Paths responsive",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158777,7 +158835,7 @@
     },
     {
       "excerpt": "let refused = replies.next().expect(\"the second link is refused while the slot is held\");",
-      "line": 1182,
+      "line": 1186,
       "literal": "the second link is refused while the slot is held",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158786,7 +158844,7 @@
     },
     {
       "excerpt": "assert!(refused.contains(r#\"\"t\":\"error\"\"#) && refused.contains(\"an operation is already running\"), \"{refused}\");",
-      "line": 1183,
+      "line": 1187,
       "literal": "an operation is already running",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158795,7 +158853,7 @@
     },
     {
       "excerpt": "assert!(replies.next().is_none(), \"a held link emits neither slow nor a premature linked line: {lines}\");",
-      "line": 1184,
+      "line": 1188,
       "literal": "a held link emits neither slow nor a premature linked line: {lines}",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158804,7 +158862,7 @@
     },
     {
       "excerpt": "assert!(running && unjournalled && no_pending, \"the link holds the slot, with no slow claim or journal before completion\");",
-      "line": 1185,
+      "line": 1189,
       "literal": "the link holds the slot, with no slow claim or journal before completion",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158813,7 +158871,7 @@
     },
     {
       "excerpt": "assert!(std::fs::symlink_metadata(dest.join(\"a.txt\")).is_err(), \"undo removed the first link\");",
-      "line": 1186,
+      "line": 1190,
       "literal": "undo removed the first link",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158822,7 +158880,7 @@
     },
     {
       "excerpt": "assert!(std::fs::symlink_metadata(dest.join(\"b.txt\")).is_err(), \"undo removed the second link\");",
-      "line": 1187,
+      "line": 1191,
       "literal": "undo removed the second link",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158831,7 +158889,7 @@
     },
     {
       "excerpt": "assert!(a.exists() && b.exists(), \"undo preserves both sources\");",
-      "line": 1188,
+      "line": 1192,
       "literal": "undo preserves both sources",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158840,7 +158898,7 @@
     },
     {
       "excerpt": "let (metas, _) = window_metas(&mut st, 0, 10).expect(\"a local window answers\");",
-      "line": 1203,
+      "line": 1207,
       "literal": "a local window answers",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158849,7 +158907,7 @@
     },
     {
       "excerpt": "assert_eq!(metas.len(), 2, \"the window carries its rows\");",
-      "line": 1204,
+      "line": 1208,
       "literal": "the window carries its rows",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158858,7 +158916,7 @@
     },
     {
       "excerpt": "assert_eq!(crate::backend::iomount::test_calls(), 0, \"a local window takes no bound call and clones no listing\");",
-      "line": 1205,
+      "line": 1209,
       "literal": "a local window takes no bound call and clones no listing",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158867,7 +158925,7 @@
     },
     {
       "excerpt": "let (dev, writable) = search_root_info(d.path()).expect(\"a live root answers\");",
-      "line": 1213,
+      "line": 1217,
       "literal": "a live root answers",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158876,7 +158934,7 @@
     },
     {
       "excerpt": "assert_eq!(dev, crate::backend::fsinfo::dev_of(d.path()), \"the bound answers the root's own figures\");",
-      "line": 1214,
+      "line": 1218,
       "literal": "the bound answers the root's own figures",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158885,7 +158943,7 @@
     },
     {
       "excerpt": "assert!(writable, \"the sandbox is writable\");",
-      "line": 1215,
+      "line": 1219,
       "literal": "the sandbox is writable",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -158894,7 +158952,7 @@
     },
     {
       "excerpt": "assert_eq!(crate::backend::iomount::test_calls(), 1, \"the root's stat takes exactly one bound call\");",
-      "line": 1216,
+      "line": 1220,
       "literal": "the root's stat takes exactly one bound call",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -166400,7 +166458,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: the open folder will not follow outside changes, inotify is unavailable\");",
-      "line": 139,
+      "line": 146,
       "literal": "flea: the open folder will not follow outside changes, inotify is unavailable",
       "owner": "controller",
       "path": "src/backend/watch.rs",
@@ -166409,7 +166467,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: the open folder stopped following outside changes, the inotify read failed: {}\", failure);",
-      "line": 204,
+      "line": 211,
       "literal": "flea: the open folder stopped following outside changes, the inotify read failed: {}",
       "owner": "controller",
       "path": "src/backend/watch.rs",
@@ -178082,7 +178140,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: terminal interface: {}\", crate::error::io_message(&e));",
-      "line": 346,
+      "line": 347,
       "literal": "flea: terminal interface: {}",
       "owner": "t11",
       "path": "src/tui/mod.rs",
@@ -178100,7 +178158,7 @@
     },
     {
       "excerpt": "if flag(&value, \"cancelled\") { self.say_key(\"tui.model.deletion_cancelled\"); }",
-      "line": 1148,
+      "line": 1149,
       "literal": "cancelled",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -178109,7 +178167,7 @@
     },
     {
       "excerpt": "if flag(&value, \"cancelled\") { line.push(super::words::Text::Key(\"tui.model.deleted_cancelled\")); }",
-      "line": 1154,
+      "line": 1155,
       "literal": "cancelled",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -178118,7 +178176,7 @@
     },
     {
       "excerpt": "if !flag(&value, \"cancelled\") { self.fail(text(&value, \"error\").into()); }",
-      "line": 1174,
+      "line": 1175,
       "literal": "cancelled",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -178127,7 +178185,7 @@
     },
     {
       "excerpt": "if text(&value, \"where\") == \"scan\" && text(&value, \"msg\") == \"permission denied\" {",
-      "line": 1252,
+      "line": 1253,
       "literal": "permission denied",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -251608,17 +251666,18 @@
     "crates/flea-gui/src/tabs/catcher.rs": "508e9d443d9652ffa0208e5a25b8bc84c75fdd2dbb7dcd9df9c1268c6bca0627",
     "crates/flea-gui/src/tabs/context.rs": "03255f75e8cbe464275dfaf09513db24bb494d96a6cf19da969996b38215f8c5",
     "crates/flea-gui/src/tabs/geometry.rs": "702cd8cc06f7beb2ec5a1073d1f45c08c8817308752ea16de4962a3a64d0f30e",
+    "crates/flea-gui/src/tabs/gone.rs": "d626bd0ee5438de57443808a8af8c985224ce2ebacc24727cb57a61b91e62e39",
     "crates/flea-gui/src/tabs/held.rs": "07631e4f5fd64002554fb6a51b26999fd2ac063d281c548e03f06947acf2ba1b",
     "crates/flea-gui/src/tabs/host.rs": "da0969c122d28e92208bd975d7cb22db74046fd45a57f89f13c242f1910e5bae",
     "crates/flea-gui/src/tabs/landing.rs": "e64ee1bc878c31708c7ccb3b6249ec6f469cdc7af867b46834219fb265d71f0b",
     "crates/flea-gui/src/tabs/live.rs": "2a516fa2bf06f4b092ef6c6968abe67b76098c527c4cee1d0f60a30e08af004f",
     "crates/flea-gui/src/tabs/middle.rs": "90532746e9e7c745776295130a6142f9984aee2d754da952e99e22b19d3066ee",
-    "crates/flea-gui/src/tabs/mod.rs": "8edbe21a40f3d7eaa26cbdcc40706dd30f076558a2e0155cc2b6f96b0ec2d316",
+    "crates/flea-gui/src/tabs/mod.rs": "583612c4746179171018b0f67085617512bcdc88685b9b6ca4894665d227ed1d",
     "crates/flea-gui/src/tabs/native.rs": "60e6a603ca1b6ed104ae3a4a57359969faaf5e7b2abbbe98623637ca921446f4",
     "crates/flea-gui/src/tabs/overlays.rs": "9bf172494266ecce198bc839108ade1c721162a7a01e6bb17453b16735777513",
     "crates/flea-gui/src/tabs/payload.rs": "9f8c011bbb2525513a3e787ab39e270759da28982c62179619d8907b39d2ac12",
     "crates/flea-gui/src/tabs/restore.rs": "f3b17aeda6661ca3e75d42620cd795e1e216b5ba3e9ecaf3f1e53cb59cb61c3b",
-    "crates/flea-gui/src/tabs/state.rs": "2fba9ab2567bcb15f8a6404a1902de329e6b330b16135ffbf1d9d49d940b9997",
+    "crates/flea-gui/src/tabs/state.rs": "4ddd79436c216532b3e8bc24d1940f84929520507a2d194f20d531be271d8b62",
     "crates/flea-gui/src/tabs/trace.rs": "a99056b71f972187e3d45faf1f38dac1f232280f4344f74b43b9c825a0fac02f",
     "crates/flea-gui/src/tabs/transfer.rs": "d2727aefb13e49f56fa8d7077517702fca6ad85ca7db8ed60a2b837cc40f3253",
     "crates/flea-gui/src/tabs/view.rs": "a0c3407404bd83b7729b170ac766a723e0b4fb0f4ed47191da99a6b91ff07e85",
@@ -251694,7 +251753,7 @@
     "crates/flea-gui/src/window/events_ipc.rs": "32eac66a2732941d3b0a1aa7f2e7b331616d091b5a63a2b360f3c6d0a277036b",
     "crates/flea-gui/src/window/events_ipc_reader.rs": "48b448599050d2e1501c4975fc45a4ddde588f5e1b40741c1948eb63f0698b89",
     "crates/flea-gui/src/window/events_quit.rs": "84adbc21abdf2e0f3c8d9cde55343abd492031b18f676145bec2bff0179e84be",
-    "crates/flea-gui/src/window/events_routes.rs": "171fff59bf1fc702646560edc450db7e6fe32a114c20298f221acc2f3fb36096",
+    "crates/flea-gui/src/window/events_routes.rs": "ce7e9e0386765e05f7585d3ae7db627ac0269cb042904fdd2e6b2c945f48f465",
     "crates/flea-gui/src/window/events_slow.rs": "a31ec996c7265a8eb8ba8dc4f713868e10232560c87e28f2c30f11f7c2012642",
     "crates/flea-gui/src/window/external_action.rs": "2be6479990a62f61103f4c69c784c5f4ba3fc1d25261a2fbfbe24981596122a5",
     "crates/flea-gui/src/window/external_action_ipc.rs": "0bab120db83d19ee17f70d4deb3d18b268798d3336754c761971b1a1345464c5",
@@ -251864,6 +251923,7 @@
     "src/backend/actions.rs": "e9e3befc6f330ed74e040ce0f02ce5ec6b87cb1fbea1200f79be75fb41d9a3be",
     "src/backend/airdropsend.rs": "e90a0be9d01de470487e38ece3a8db1cb0e4a4d3ba283c674ded63868fe57a6a",
     "src/backend/aliases.rs": "93c0da23b3a1748c58a66c1ca0704a30eb9f1385b49c2fea76944def0fe2e92b",
+    "src/backend/ancestry.rs": "14c6c39fa6a0ed2a4f64f5b8c409044a2cc3612675aed371317f479090704c11",
     "src/backend/answersizes.rs": "c04f235077d66e3010a470f71e0a05f84cb805538207a2715253cbbc7c02b1fc",
     "src/backend/appicon.rs": "5dc64b3d92b2f46a2f7ab01deec122bf525f20b7c749ea886a86cee161374cf1",
     "src/backend/appicon_fixtures.rs": "3a7998297a58de09d0e96492b95ccf327ddfc859327326166b4c285f9e8e85aa",
@@ -251913,7 +251973,7 @@
     "src/backend/dirsizewatch.rs": "346a5a5e69b5cb1ef70e77fa09735b953d5d9edccff549837c4d6699e64cf4b5",
     "src/backend/dirsizeworker.rs": "d902e425a83cda0d74f5b2e9406e092064e9a29647abcd5e938b22a100bb2d55",
     "src/backend/durable.rs": "53a5f85d1b85ad7e9eea8b2ca25ddfc457f15e6b820834c03bd6281aba581cf7",
-    "src/backend/events.rs": "ce2709287f4e6e5c78a1fe65555f9bcfe77929a9748ca3f95786a1256357cdfa",
+    "src/backend/events.rs": "9088762a16fd7b53a6fec5b7d5a919a1e82436e7ea114ec3808ab0d42f8ffde3",
     "src/backend/exiffacts.rs": "ffc31ed02e73a44adab1d21385be72ee4bb0d2c8dbfe0b0c1254c5d7e4ecf8ac",
     "src/backend/extclass.rs": "075bd0cb395fdcbe0924bad0ad21a94a5483059fdb3258bb669d19e302f729d2",
     "src/backend/extractindex.rs": "3b2a19b3487ae145f9dadfb0259b9c378f718840176f7d4e661af488f667c5fe",
@@ -251992,7 +252052,7 @@
     "src/backend/linkheld.rs": "064e27dd876257536f3548782f06791429e4771865221d90d90b0f7660917a36",
     "src/backend/listing.rs": "a635b2bb70990e76a11656c6b2f193da0a38ce8f392a673348dc2c00b99c2dac",
     "src/backend/listpaths.rs": "0bdcc2247212d7e67940736cc18d9e7b10327a0706d08357c53446ef649a47e9",
-    "src/backend/listwork.rs": "269b51f5694624291c2c1b63b5c28f689db031556c16939f974534b2081619f9",
+    "src/backend/listwork.rs": "5ca46875ad3248c2fe44cbd061089347f5e6e75d3e629508ccbdf3e267716df3",
     "src/backend/locale.rs": "6a21427003650a94d936cba4c43a54cbb4f1c48859084d57ea510e051529803f",
     "src/backend/localsend.rs": "2f1db79c6845d9b3eb6b705ea91695737678c66f4d4e3aec5735752110f7120b",
     "src/backend/localsendscreen.rs": "f6facfd3b70f3cec8218f26a73fa524c8394dfe48cec815b2920be4d3647453f",
@@ -252083,7 +252143,7 @@
     "src/backend/pdfcopy.rs": "dac036052732c35ca53e712264c506d6da04b74f6132994244621263bc1a917d",
     "src/backend/peek.rs": "fcb054e4811d44c64410cd736697bf90246c45d5de77123acb87adf6838ff1d4",
     "src/backend/peekdetail.rs": "2d58ccee0f4cb7c7539decd5dc71b118b703162d0805f5559e4b1f7fbfb572fe",
-    "src/backend/peekpump.rs": "4ef1b5a74fb2f6f6f5a5b222a1e1cf99ef3d1c154348b973fc33e8ea7b16d1d6",
+    "src/backend/peekpump.rs": "8686f41e60351aa532aa67c8575f13e6cc78a09a15f0223c0d5e0b678dcc7dd3",
     "src/backend/peekwatch.rs": "4413212e23d20c89f628026ea1eef804172f8fd2a1083adf1613c501741e420d",
     "src/backend/permissions.rs": "4cc679499fecf5cf68793b3fead08307438e00f42c7e24b7eddb4ecdbbd5072d",
     "src/backend/permissions/target.rs": "cdda58d4b822a8421c15cf2712fc9c357417f4092e72d72b53b8a2cd76c495a2",
@@ -252136,7 +252196,7 @@
     "src/backend/replacedefer.rs": "e4b6c761ebe9c6049930b23565ecf8df73ff3c35f1c15d87be76285de73c7891",
     "src/backend/rowguard.rs": "84350fe6ae586a34136d14bc8304211b5a26407777e12cef9031193f0ef0e361",
     "src/backend/rows.rs": "80cc0ea5dadb4a14e49853dfe6bf6fff4e04544a8b3e016e2ac1afb743a77324",
-    "src/backend/run.rs": "b0cfe91da7c1761057f0e33eb5c9dad8d86e7c5f9e4e85585b452ba489907999",
+    "src/backend/run.rs": "8b69d6fc2cfe552974a2bee467b35c591fb8834e0ca3f796e525cdcd44620d51",
     "src/backend/run_rows.rs": "658281a171360ea26e46db5adf61c854f21e001ed2150ba9fe43293fb3dac696",
     "src/backend/sandbox.rs": "dff395b4721cece105d87e7ea69e5811c4a7f33d467d1fbf50763720b6a16d3d",
     "src/backend/sandboxprobe.rs": "ef988091cec143e646df29292b0ff99f39605f25b8c5513a64b0a77b8db58d55",
@@ -252233,11 +252293,11 @@
     "src/backend/undosharelock.rs": "355a43e774eeeadebc3a341fe6c56d72c75b9c215bce3ec70cf763892a0096ae",
     "src/backend/undostage.rs": "e915c06e0e62fdf44e2198826fe51ba9578182b2842720709817a94dfdd05bc8",
     "src/backend/unheld.rs": "1759d4a524d8f3ee6f4fc02075e28b1a11caa718773f98f5315caa03570ff6f5",
-    "src/backend/unmount.rs": "577b47594df5c6cbdd05e881de9ca4870b4830ea5720b4d8a384b274598faa3c",
+    "src/backend/unmount.rs": "c10977ad86a6460db37e72b13776cf1b53149f476b3123de0f975710a6dba964",
     "src/backend/viewerpaths.rs": "9caf40ed0bf56841751dc17fb001e1f4941eeae7a9bc2f1de3f3fe3d9c94338a",
     "src/backend/wake.rs": "ede3c96cafe5280f74feda37103f4bf65d9e564b4f2166b5242ad10fc4146348",
     "src/backend/walkmounts.rs": "68744415ea2b1dcd6637835a0d72d7e90197ad8ceffe127479b655891710ca84",
-    "src/backend/watch.rs": "b4b49c3c7ff1d43d2fd98eb8c89608ab88790d1c50b6d42daca702a23a370cad",
+    "src/backend/watch.rs": "5f1ebe2b5af536af4be2292ce97be2ba7a566ac67b580e95e7b0a2f1ba4af7cd",
     "src/backend/watchpoll.rs": "c7c1877e0f9380496d08221688ce01d3549d8ddac9b2a5bbdd897f41aa56bef7",
     "src/backend/windowreq.rs": "c9863ab19099a4e0ee83b976ef064753ba5e4854528c1f8622e8de3e91eb045e",
     "src/backend/workerlink.rs": "c5d7d33fb0d048479aa851919c7a6f3edec5d50b3149c12f26facbbaccb37620",
@@ -252393,6 +252453,7 @@
     "src/tui/filter.rs": "616bedf4de78af072c7e297eec87c9cafef1cbee8cc51f6a6316ea98382630be",
     "src/tui/finder.rs": "8385b46bca074fb0b78f37337e1495799af68364e0e982842efdd750c526fdf1",
     "src/tui/footer_errors.rs": "82ee24155f81f20adb9643c0e72e2c583e482cd665f9120878c45e329d337994",
+    "src/tui/gone.rs": "a1fd153a7c4ea305559522160ee1bcfd83024adaa643bc9efc32a1c61aac8f4d",
     "src/tui/graphics.rs": "340f6b50e3f9bb8cc63d0696598918d7e2fe3b210728924d73fc44e072341bfa",
     "src/tui/hold.rs": "9aadaa765d5e5d81d4bbfb2923988966ed65ad96bf89e0eab46ec3e996e11868",
     "src/tui/icons.rs": "085c14d17aecd28c7caf4de44c36405d01d7318512b1b33a412cabe2945c9b90",
@@ -252408,8 +252469,8 @@
     "src/tui/media.rs": "5af57bdb96142f0f88beda14937e69a60aec50f552147176785c0c5f4f19fa73",
     "src/tui/menu_layout.rs": "727fc220b8d74e47d429a15543e544ada4458dc8423e987194c447b6eef4a5c8",
     "src/tui/menu_run.rs": "6fae3bc33d2c4dbfe03220a67b6692a83fb08a62c9715c584cc31119649aae6a",
-    "src/tui/mod.rs": "2449d081097c1dd4240859707d74d811316708828bfd11182e98a4a4bf031b1a",
-    "src/tui/model.rs": "54e6ffd22cd6cfabfec40d24374a476738c1a1a9df1447463fc3bc560f8b0984",
+    "src/tui/mod.rs": "c6af0082634f62ca30225e7b67075c6135de81270a61d4374ca64c07f865d1a9",
+    "src/tui/model.rs": "19808a13e64e6a8f039ffc24a1ab7a20bafa316a5dc28b225c42674703d0413f",
     "src/tui/model3d.rs": "63cffc5f3971a0a9007d8b9da00c91b049d48b1bdbd5b1c12b718ff6423264eb",
     "src/tui/mounts.rs": "ac7b31e12ae0ee526a65fd8ea04d1594ec730c06a0765b9d8f76da9644621bf1",
     "src/tui/mpv.rs": "cbdc0c69cf48c259093532466139e5c090143cb54aa9d13e196ef5909c973909",
@@ -253372,13 +253433,13 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "7d9486b65d0ba8200afc2c140db256e89e5aef95",
-  "source_sha": "7d9486b65d0ba8200afc2c140db256e89e5aef95",
+  "source_ref_sha": "77743bdd93679973ae2528a9abc27478e6081b30",
+  "source_sha": "77743bdd93679973ae2528a9abc27478e6081b30",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1338,
-      "missing_literal_candidates": 5748,
-      "source_files": 852
+      "missing_literal_candidates": 5751,
+      "source_files": 853
     },
     "generated/tooling": {
       "keys_with_occurrences": 155,
@@ -253388,7 +253449,7 @@
     "gui": {
       "keys_with_occurrences": 553,
       "missing_literal_candidates": 2217,
-      "source_files": 1167
+      "source_files": 1168
     },
     "qml-reference": {
       "keys_with_occurrences": 0,
@@ -253396,9 +253457,9 @@
       "source_files": 412
     },
     "tui": {
-      "keys_with_occurrences": 489,
+      "keys_with_occurrences": 491,
       "missing_literal_candidates": 385,
-      "source_files": 90
+      "source_files": 91
     }
   },
   "unlocated_keys": [

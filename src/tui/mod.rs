@@ -26,6 +26,7 @@ pub(crate) mod cells;
 mod filter;
 mod finder;
 mod parity17;
+mod gone;
 mod layout;
 mod look;
 mod pane;
@@ -364,6 +365,8 @@ mod launch_notice_tests;
 
 #[cfg(test)]
 mod parity17_tests;
+#[cfg(test)]
+mod gone_tests;
 
 #[cfg(test)]
 mod cells_hig_tests;

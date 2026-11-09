@@ -79,7 +79,7 @@ fn a_local_list_that_lets_a_scan_go_releases_the_late_descriptors_parked_behind_
     assert!(l.request(&list(&d)) == Control::Continue);
     assert!(!l.gate.holds() && l.st.base == d, "the local list let C go and answered inline");
     assert!(l.gate.release_late().is_empty(), "no scan is out, so B's descriptor was released with the let-go and nothing is left parked");
-    // Removing a watch makes the kernel report IN_IGNORED for its descriptor, which the pump forwards as Changed.
-    while !matches!(l.rx.recv_timeout(EVENT_DEADLINE).expect("B's removed watch reports IN_IGNORED on the loop's channel"), Event::Changed(wd) if wd == parked) {}
+    // Removing a watch makes the kernel report IN_IGNORED for its descriptor, which the pump forwards as Vanished.
+    while !matches!(l.rx.recv_timeout(EVENT_DEADLINE).expect("B's removed watch reports IN_IGNORED on the loop's channel"), Event::Vanished(wd) if wd == parked) {}
     drop(hold_c);
 }

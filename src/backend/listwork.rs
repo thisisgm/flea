@@ -7,6 +7,7 @@ use crate::backend::searchreq::finish_search;
 use crate::backend::state::{Held, State, Tables};
 use crate::backend::thumbs::Pool;
 use crate::backend::watch::Watch;
+use crate::backend::watchpoll::Poller;
 use std::collections::VecDeque;
 use std::io::Write;
 use std::panic::{catch_unwind, AssertUnwindSafe};
@@ -257,9 +258,13 @@ pub fn start(out: &mut impl Write, st: &mut State, pool: &Pool, watch: &mut Watc
 }
 
 // A landed scan becomes the listing and a failed one leaves it alone; true when it became the listing.
-pub fn finish<W: Write>(out: &mut W, st: &mut State, tb: &Tables, pool: &Pool, watch: &mut Watch, landed: Landed) -> bool {
+pub fn finish<W: Write>(out: &mut W, st: &mut State, tb: &Tables, pool: &Pool, watch: &mut Watch, poller: &Poller, landed: Landed) -> bool {
     let Landed { job, done } = landed;
     let Job { path, first: _, line: _, hidden: _, want_changed, session: _ } = job;
+    if super::unmount::crossed_answers(out, watch, Path::new(&path), &done.result) {
+        out.flush().ok();
+        return false;
+    }
     let landed = match done.result {
         Ok(listed) => {
             watch.set_incoming(listed.watch_wd, listed.watch_mount.clone());
@@ -269,13 +274,16 @@ pub fn finish<W: Write>(out: &mut W, st: &mut State, tb: &Tables, pool: &Pool, w
                 eprintln!("flea: {} will not follow outside changes, inotify refused a watch on it", path);
             }
             adopt_listed(out, st, pool, tb, &path, listed, want_changed);
+            watch.ancestry.follow(&st.base);
             out.flush().ok();
             true
         }
         Err(failed) => {
             // The listing did not move, so the loop removes the watch the failed scan armed.
             watch.abandon_wd(failed.watch_wd);
-            say_failed(out, &failed);
+            if !super::unmount::gone_answers(out, st, watch, poller, Path::new(&path), &failed) {
+                say_failed(out, &failed);
+            }
             false
         }
     };

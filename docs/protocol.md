@@ -2982,7 +2982,9 @@ The mechanism is one inotify watch on that one directory, non-recursive, with th
 `IN_ATTRIB | IN_CLOSE_WRITE | IN_MOVED_FROM | IN_MOVED_TO | IN_CREATE | IN_DELETE | IN_MOVE_SELF`,
 which is exactly the set of events that changes what a listing says: which names are in it, and the
 size, date and mode its columns draw. Deleting the watched directory needs no bit of its own: the
-kernel removes the watch along with it and reports that removal whatever the mask holds.
+kernel removes the watch along with it and reports that removal whatever the mask holds. The listed
+directory itself going or moving ends in a `gone` line (below), never in a failed re-list, and only
+an expanded child going re-lists its parent.
 **A file growing under an open handle is not one of them.** `IN_MODIFY` fires on every `write(2)`
 and a listing does not draw a partial size, so a row's size follows the writer closing the file
 rather than the writer writing to it.
@@ -3001,6 +3003,38 @@ not as a guarantee. A
 network mount is the other case: inotify sees the local kernel's own view of a directory, so a
 change another machine makes to an NFS or SMB share is not delivered, and Flea is stale there in
 exactly the way it was before this line existed.
+
+### gone
+
+`{"t":"gone","path":"<string>","parent":"<string>"}`
+
+Example: `{"t":"gone","path":"/home/gm/parent/open-me","parent":"/home/gm"}`
+
+**The listed directory, or a directory above it, was deleted or moved away.** `path` is the listed
+directory and `parent` the nearest directory above it that still exists; the directory that went is
+the one directly under `parent` on the way to `path`. A client on `path`, or on a directory under it,
+opens `parent` without adding a history step and says why, dropping any `list` still out inside the
+directory that went, exactly as it does for `unmounted`, the line the backend sends when the listed
+directory's volume goes; a client that has moved on drops the line. For either line, every hidden
+tab the client holds inside the directory that went opens `parent` too.
+
+Every directory from the listed one up to, but not including, `/` is watched for its own
+`IN_DELETE_SELF` and `IN_MOVE_SELF` on one inotify instance the backend's watches share, armed off the
+loop each time a `list` lands. When one fires, or the listed directory's own watch reports it went,
+the backend checks the listed path against the directory the `list` landed on: `gone` when no
+directory answers there, a `changed` line when a different directory now answers to it, and nothing
+when it is the same directory, unless the listed directory's own watch asked, which always gets a
+`changed` line. A listed directory the backend could not look up when the `list` landed (a share
+whose mount stopped answering) is never called gone this way; only its own failed re-list is. The
+line is sent once. Until a `list` lands again, a `list` inside the directory that went, sent before
+the client read the line, is answered with that same line again whether it would have failed or
+landed, so a `list` the client dropped never lands in place of the one it sent next. A `list` that
+fails because its directory does not exist, or is no longer a directory, is answered with `gone`
+instead of an error when it names the listed directory or the `parent` the last `gone` line named.
+So the re-list a delete's own `changed` line starts never draws an unreadable folder, nor does a
+folder the client was entering or going up into, and a parent deleted before the client lands there
+sends it on again. No `gone` line is sent while a search or a path list stands, since neither is a
+directory.
 
 ### plugins
 

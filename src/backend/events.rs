@@ -33,6 +33,10 @@ pub enum Event {
     Changed(i32),
     // The watch descriptor whose mount went away, so the pane leaves the volume instead of re-listing it.
     Unmounted(i32),
+    // The watch descriptor whose own folder was deleted or moved; the open folder's is answered by its path.
+    Vanished(i32),
+    // The open folder or one above it is no longer there; see src/backend/ancestry.rs.
+    Gone(super::watch::ancestry::Gone),
     // A network folder's mtime moved between polls, which inotify never delivers; the open path only.
     PollChanged(PathBuf),
     // A list worker that outlived its call hands back the watch it armed; the loop drops it unless live.

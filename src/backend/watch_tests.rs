@@ -52,17 +52,27 @@ fn unmount_event(wd: i32) -> Vec<u8> {
 #[test]
 fn an_unmount_never_becomes_a_changed_relist() {
     assert_eq!(descriptors(&unmount_event(7)), Vec::<i32>::new());
-    assert_eq!(classify_burst(&unmount_event(7)), (Vec::new(), vec![7]));
+    assert_eq!(classify_burst(&unmount_event(7)), (Vec::new(), vec![7], Vec::new()));
 }
 
 #[test]
-fn a_removed_watch_still_answers_a_changed_relist() {
+fn a_removed_watch_is_its_folder_vanishing() {
     let mut out = Vec::new();
     out.extend_from_slice(&7i32.to_ne_bytes());
     out.extend_from_slice(&IN_IGNORED.to_ne_bytes());
     out.extend_from_slice(&0u32.to_ne_bytes());
     out.extend_from_slice(&0u32.to_ne_bytes());
-    assert_eq!(classify_burst(&out), (vec![7], Vec::new()));
+    assert_eq!(classify_burst(&out), (Vec::new(), Vec::new(), vec![7]));
+}
+
+// S3-7: a deleted or moved open folder was a content change, so the pane re-listed a path that was no longer there.
+#[test]
+fn a_folder_deleted_or_moved_is_never_a_changed_relist() {
+    use crate::backend::inotifyburst::event as raw;
+    let burst = |events: &[(i32, u32)]| events.iter().flat_map(|&(wd, mask)| raw(wd, mask, &[])).collect::<Vec<u8>>();
+    assert_eq!(classify_burst(&burst(&[(7, IN_DELETE)])), (vec![7], Vec::new(), Vec::new()), "a child's delete is a change");
+    assert_eq!(classify_burst(&burst(&[(7, IN_DELETE), (7, IN_DELETE_SELF), (7, IN_IGNORED)])), (Vec::new(), Vec::new(), vec![7]));
+    assert_eq!(classify_burst(&burst(&[(3, IN_CREATE), (7, IN_MOVE_SELF), (7, IN_CREATE)])), (vec![3], Vec::new(), vec![7]));
 }
 
 #[test]
@@ -76,7 +86,7 @@ fn an_ejected_folder_lands_on_its_nearest_existing_parent() {
 
 #[test]
 fn nothing_is_current_before_a_directory_is_followed() {
-    let w = Watch { outline: Vec::new(), fd: (-1).into(), events: crate::backend::events::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
+    let w = Watch { outline: Vec::new(), fd: (-1).into(), events: crate::backend::events::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new(), ancestry: Default::default() };
     assert!(!w.is_current(-1));
     assert!(!w.is_current(1));
 }
@@ -120,7 +130,7 @@ fn an_abandoned_re_list_of_the_same_folder_keeps_its_watch() {
     let sandbox = crate::backend::testdir::TestDir::new("watch-abandon");
     let fd = unsafe { inotify_init1(IN_CLOEXEC | IN_NONBLOCK) };
     assert!(fd >= 0, "this box has no inotify to test with");
-    let mut w = Watch { outline: Vec::new(), fd: fd.into(), events: crate::backend::events::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
+    let mut w = Watch { outline: Vec::new(), fd: fd.into(), events: crate::backend::events::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new(), ancestry: Default::default() };
     w.begin(sandbox.path());
     w.commit(Vec::new());
     let live = w.wd;
@@ -140,7 +150,7 @@ fn a_second_begin_of_one_folder_keeps_the_watch_it_arms() {
     let sandbox = crate::backend::testdir::TestDir::new("watch-rebegin");
     let fd = unsafe { inotify_init1(IN_CLOEXEC | IN_NONBLOCK) };
     assert!(fd >= 0, "this box has no inotify to test with");
-    let mut w = Watch { outline: Vec::new(), fd: fd.into(), events: crate::backend::events::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
+    let mut w = Watch { outline: Vec::new(), fd: fd.into(), events: crate::backend::events::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new(), ancestry: Default::default() };
     w.begin(sandbox.path());
     w.begin(sandbox.path());
     w.commit(Vec::new());
@@ -180,7 +190,7 @@ fn a_late_re_list_of_the_open_folder_keeps_its_watch() {
     let sandbox = crate::backend::testdir::TestDir::new("watch-late");
     let fd = unsafe { inotify_init1(IN_CLOEXEC | IN_NONBLOCK) };
     assert!(fd >= 0, "this box has no inotify to test with");
-    let mut w = Watch { outline: Vec::new(), fd: fd.into(), events: crate::backend::events::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
+    let mut w = Watch { outline: Vec::new(), fd: fd.into(), events: crate::backend::events::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new(), ancestry: Default::default() };
     w.begin(sandbox.path());
     w.commit(Vec::new());
     let live = w.wd;
@@ -199,7 +209,7 @@ fn abandon_wd_removes_only_a_watch_that_is_not_live() {
     let b = crate::backend::testdir::TestDir::new("abandon-b");
     let fd = unsafe { inotify_init1(IN_CLOEXEC | IN_NONBLOCK) };
     assert!(fd >= 0, "this box has no inotify to test with");
-    let mut w = Watch { outline: Vec::new(), fd: fd.into(), events: crate::backend::events::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
+    let mut w = Watch { outline: Vec::new(), fd: fd.into(), events: crate::backend::events::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new(), ancestry: Default::default() };
     w.begin(a.path());
     w.commit(Vec::new());
     let live = w.wd;
@@ -217,7 +227,7 @@ fn abandon_wd_removes_only_a_watch_that_is_not_live() {
 // No descriptor in these two, so they pin the bookkeeping alone; the one above pins the syscall.
 #[test]
 fn an_abandoned_scan_leaves_the_current_watch_alone() {
-    let mut w = Watch { outline: Vec::new(), fd: (-1).into(), events: crate::backend::events::channel().0, wd: 7, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
+    let mut w = Watch { outline: Vec::new(), fd: (-1).into(), events: crate::backend::events::channel().0, wd: 7, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new(), ancestry: Default::default() };
     w.begin(Path::new("/tmp"));
     w.abandon();
     assert!(w.is_current(7));
@@ -226,7 +236,7 @@ fn an_abandoned_scan_leaves_the_current_watch_alone() {
 // And one that succeeds hands the listing over to the descriptor the scan was armed with.
 #[test]
 fn a_committed_scan_takes_over_from_the_old_watch() {
-    let mut w = Watch { outline: Vec::new(), fd: (-1).into(), events: crate::backend::events::channel().0, wd: 7, incoming: 9, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
+    let mut w = Watch { outline: Vec::new(), fd: (-1).into(), events: crate::backend::events::channel().0, wd: 7, incoming: 9, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new(), ancestry: Default::default() };
     w.commit(Vec::new());
     assert!(w.is_current(9));
     assert!(!w.is_current(7));
@@ -235,7 +245,7 @@ fn a_committed_scan_takes_over_from_the_old_watch() {
 // Production arms through set_incoming plus commit, with the mount the list worker computed.
 #[test]
 fn set_incoming_captures_the_mount_commit_takes() {
-    let mut w = Watch { outline: Vec::new(), fd: (-1).into(), events: crate::backend::events::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
+    let mut w = Watch { outline: Vec::new(), fd: (-1).into(), events: crate::backend::events::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new(), ancestry: Default::default() };
     w.set_incoming(7, Path::new("/media/stick").to_path_buf());
     w.commit(Vec::new());
     assert!(w.is_current(7));
@@ -255,22 +265,22 @@ fn an_unmount_burst_never_answers_changed_for_a_vanished_path() {
         }
         out
     }
-    assert_eq!(classify_burst(&burst(7, &[IN_UNMOUNT, IN_IGNORED])), (Vec::new(), vec![7]));
-    assert_eq!(classify_burst(&burst(7, &[IN_CREATE, IN_UNMOUNT])), (Vec::new(), vec![7]));
+    assert_eq!(classify_burst(&burst(7, &[IN_UNMOUNT, IN_IGNORED])), (Vec::new(), vec![7], Vec::new()));
+    assert_eq!(classify_burst(&burst(7, &[IN_CREATE, IN_UNMOUNT])), (Vec::new(), vec![7], Vec::new()));
 }
 
 #[test]
 fn an_ejected_mountpoint_lands_outside_the_volume() {
     // Sample input: open "/media/stick/photos" with mount "/media/stick" starts "/media".
     use std::collections::HashSet;
-    let w = Watch { outline: Vec::new(), fd: (-1).into(), events: crate::backend::events::channel().0, wd: 7, incoming: -1, mount: Path::new("/media/stick").to_path_buf(), incoming_mount: std::path::PathBuf::new() };
+    let w = Watch { outline: Vec::new(), fd: (-1).into(), events: crate::backend::events::channel().0, wd: 7, incoming: -1, mount: Path::new("/media/stick").to_path_buf(), incoming_mount: std::path::PathBuf::new(), ancestry: Default::default() };
     assert_eq!(w.unmount_start(Path::new("/media/stick/photos")), Path::new("/media"));
     assert_eq!(w.unmount_start(Path::new("/media/stick")), Path::new("/media"));
     let live: HashSet<&str> = ["/media", "/"].into_iter().collect();
     let start = w.unmount_start(Path::new("/media/stick/photos"));
     let at = nearest_parent(&start, |p| live.contains(p.to_str().unwrap_or("")));
     assert_eq!(at, Path::new("/media"), "a surviving mountpoint is never the parent");
-    let bare = Watch { outline: Vec::new(), fd: (-1).into(), events: crate::backend::events::channel().0, wd: 7, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
+    let bare = Watch { outline: Vec::new(), fd: (-1).into(), events: crate::backend::events::channel().0, wd: 7, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new(), ancestry: Default::default() };
     assert_eq!(bare.unmount_start(Path::new("/media/stick")), Path::new("/media"));
 }
 
