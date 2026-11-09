@@ -1,13 +1,14 @@
 // The source and its existing chunk buffer, kept apart from the destination writer.
 use std::fs::File;
 use std::io::{self, Read};
+use std::os::unix::io::AsRawFd;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 // Linux FUSE_SUPER_MAGIC includes GVFS and MTP mounts, even when reached through a symlinked parent.
-const FUSE_MAGIC: i64 = 0x65735546;
+pub(crate) const FUSE_MAGIC: i64 = 0x65735546;
 // Worker reads poll Cancel every 25 ms; synchronous cleanup still waits for an unresponsive destination device.
 const CANCEL_POLL: Duration = Duration::from_millis(25);
 // Four workers bound the threads, source descriptors and chunk buffers retained by cancelled FUSE reads.
@@ -16,6 +17,17 @@ static LIVE_READ_WORKERS: AtomicUsize = AtomicUsize::new(0);
 // Local sources keep the original chunk sizes and direct read, with no channel or extra data copy.
 pub(super) const CHUNK: usize = 256 * 1024;
 const SMALL_CHUNK: usize = 8 * 1024;
+// lseek(2) whence values and the errors a hole search answers, the same on x86_64 and aarch64.
+const SEEK_SET: i32 = 0;
+const SEEK_DATA: i32 = 3;
+const SEEK_HOLE: i32 = 4;
+const ENXIO: i32 = 6;
+const EINVAL: i32 = 22;
+const EOPNOTSUPP: i32 = 95;
+
+extern "C" {
+    fn lseek(fd: i32, offset: i64, whence: i32) -> i64;
+}
 
 struct WorkerSlot;
 
@@ -119,9 +131,18 @@ impl Reader {
         }
     }
 
+    #[cfg(test)]
     pub(super) fn read(&mut self, cancel: &AtomicBool) -> io::Result<usize> {
+        self.read_upto(cancel, u64::MAX)
+    }
+
+    // A local read stops at `most` bytes, the end of the data extent a sparse copy is in.
+    pub(super) fn read_upto(&mut self, cancel: &AtomicBool, most: u64) -> io::Result<usize> {
         match &mut self.source {
-            Source::File(file) => file.read(&mut self.buffer),
+            Source::File(file) => {
+                let len = usize::try_from(most).map_or(self.buffer.len(), |most| most.min(self.buffer.len()));
+                file.read(&mut self.buffer[..len])
+            }
             Source::Pending(pending) => {
                 pending.request.send(std::mem::take(&mut self.buffer)).map_err(|_| io::ErrorKind::BrokenPipe)?;
                 loop {
@@ -139,6 +160,40 @@ impl Reader {
                 }
             }
         }
+    }
+}
+
+impl Reader {
+    // The data extent at or after `pos`, seeked to its start; None is a trailing hole, and no SEEK_DATA is one extent.
+    pub(super) fn extent(&mut self, pos: u64) -> io::Result<Option<(u64, u64)>> {
+        let Source::File(file) = &self.source else { return Ok(Some((pos, u64::MAX))) };
+        let fd = file.as_raw_fd();
+        let at = i64::try_from(pos).map_err(|_| io::Error::from(io::ErrorKind::InvalidInput))?;
+        let start = unsafe { lseek(fd, at, SEEK_DATA) };
+        if start < 0 {
+            let e = io::Error::last_os_error();
+            return match e.raw_os_error() {
+                Some(ENXIO) => Ok(None),
+                Some(EINVAL) | Some(EOPNOTSUPP) => Ok(Some((pos, u64::MAX))),
+                _ => Err(e),
+            };
+        }
+        let end = unsafe { lseek(fd, start, SEEK_HOLE) };
+        if end < 0 || unsafe { lseek(fd, start, SEEK_SET) } < 0 {
+            return Err(io::Error::last_os_error());
+        }
+        Ok(Some((start as u64, end as u64)))
+    }
+
+    // Another inode, length or mtime than when the copy began; the descriptor answers, or the path for an isolated read.
+    pub(super) fn changed(&self, before: &std::fs::Metadata, path: &std::path::Path) -> bool {
+        use std::os::unix::fs::MetadataExt;
+        let now = match &self.source {
+            Source::File(file) => file.metadata(),
+            Source::Pending(_) => path.symlink_metadata(),
+        };
+        let shape = |m: &std::fs::Metadata| (m.dev(), m.ino(), m.len(), m.mtime(), m.mtime_nsec());
+        now.is_ok_and(|now| shape(&now) != shape(before))
     }
 }
 

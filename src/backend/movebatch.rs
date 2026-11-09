@@ -1,5 +1,5 @@
 // Cross-device file moves in batches: per-file fsyncs as today, one folder confirm per batch.
-use crate::backend::copyfile::{copy_any, remove_any, Progress};
+use crate::backend::copyfile::{copy_any, finish_move, Progress};
 use crate::backend::durable::{fsync_dir, Durability, DIR_UNCONFIRMED};
 use crate::backend::opsreq::{OpMsg, PROGRESS_EVERY};
 use crate::backend::undo::{self, ItemIdentity, Step};
@@ -396,7 +396,7 @@ fn finish_item(
             return;
         }
     };
-    match remove_any(&item.src) {
+    match finish_move(&item.src, &item.dst, Some(&mut *durability)) {
         Ok(()) => {
             // Logged in test builds, so a batch pins its first removal after its folder fsync.
             #[cfg(test)]
@@ -420,9 +420,11 @@ fn finish_item(
             }
         }
         Err(e) => {
+            // A whole source whose copy would not go back journals that copy, so undo can take it.
+            if e.copy_to_undo { steps.extend(undo::copied(&item.src, &item.dst, item.source.clone())); }
             counts.failed += 1;
             retry.push((item.src.clone(), item.source.clone()));
-            send_item(tx, id, item.index, &item.name, false, &e.msg);
+            send_item(tx, id, item.index, &item.name, false, &e.error.msg);
         }
     }
 }

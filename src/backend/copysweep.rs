@@ -71,7 +71,7 @@ pub(crate) fn sweep(dir: &Path, cancel: &AtomicBool) -> usize {
         let gone = if meta.is_file() {
             std::fs::remove_file(&path).is_ok()
         } else if meta.is_dir() {
-            super::copyfile::open_dir(&path).is_ok_and(|held| super::copyfile::remove_tree(&path, &held).is_ok())
+            super::copyfile::open_dir(&path).is_ok() && super::copyfile::remove_tree(&path).is_ok()
         } else {
             false
         };

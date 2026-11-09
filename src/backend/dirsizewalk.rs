@@ -92,26 +92,42 @@ pub(super) fn same_device(start: Option<u64>, child: u64) -> bool {
     }
 }
 
-// Moving the held descriptor into the child and returning through its checked parent keeps depth from holding descriptors.
+// One held descriptor at any depth, returning through each checked parent, with the folders left to visit on the heap.
 fn walk_into(mut dir: File, path: &Path, walk: &mut Walk<'_>) -> Option<File> {
-    let parent_identity = identity(&dir.metadata().ok()?);
-    let mut folders = Vec::new();
-    list_into(&dir, path, walk, &mut folders);
-    for folder in folders {
-        if (walk.stop)() { walk.tally.partial = true; break; }
-        let at = held_path(&dir).join(&folder.name);
-        let Some(child) = open_same(&at, folder.identity) else { walk.tally.partial = true; continue; };
-        drop(dir);
-        let child = walk_into(child, &path.join(&folder.name), walk)?;
-        let parent = open_same(&held_path(&child).join(".."), parent_identity);
-        drop(child);
-        let Some(parent) = parent else { walk.tally.partial = true; return None; };
-        dir = parent;
-        if held_path(&dir).join(&folder.name).symlink_metadata().ok().as_ref().map(identity) != Some(folder.identity) {
-            walk.tally.partial = true;
+    let mut path = path.to_path_buf();
+    // Per open folder: the folders left to visit in it, its identity, and the folder it was entered through.
+    let mut open: Vec<(std::vec::IntoIter<Folder>, Identity, Option<Folder>)> = Vec::new();
+    let mut entered = None;
+    loop {
+        let parent_identity = identity(&dir.metadata().ok()?);
+        let mut folders = Vec::new();
+        list_into(&dir, &path, walk, &mut folders);
+        open.push((folders.into_iter(), parent_identity, entered.take()));
+        loop {
+            let level = open.last_mut()?;
+            let next = match level.0.next() {
+                Some(_) if (walk.stop)() => { walk.tally.partial = true; None }
+                next => next,
+            };
+            if let Some(folder) = next {
+                let at = held_path(&dir).join(&folder.name);
+                let Some(child) = open_same(&at, folder.identity) else { walk.tally.partial = true; continue; };
+                dir = child;
+                path.push(&folder.name);
+                entered = Some(folder);
+                break;
+            }
+            let (_, _, through) = open.pop()?;
+            let Some(folder) = through else { return Some(dir) };
+            let parent = open_same(&held_path(&dir).join(".."), open.last()?.1);
+            let Some(parent) = parent else { walk.tally.partial = true; return None; };
+            dir = parent;
+            path.pop();
+            if held_path(&dir).join(&folder.name).symlink_metadata().ok().as_ref().map(identity) != Some(folder.identity) {
+                walk.tally.partial = true;
+            }
         }
     }
-    Some(dir)
 }
 
 fn list_into(dir: &File, path: &Path, walk: &mut Walk<'_>, folders: &mut Vec<Folder>) {

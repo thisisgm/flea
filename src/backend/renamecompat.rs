@@ -1,5 +1,5 @@
 // Linux's atomic no-clobber rename, plus the measured mounts that need a safe caller-owned copy fallback.
-use crate::backend::copyfile::{copy_any, remove_any, Progress};
+use crate::backend::copyfile::{copy_any, Progress};
 use crate::backend::mountinfo::mount_type_in;
 use crate::error::{from_io, FleaError};
 use std::ffi::{c_char, CString};
@@ -24,6 +24,13 @@ const EEXIST: i32 = 17;
 // The kinds a half-succeeded rename answers; ui/js/Errors.js words each and ui/PaneWire.qml refreshes on both.
 pub(crate) const KEPT: &str = "rename-kept";
 pub(crate) const STRANDED: &str = "rename-stranded";
+
+// A person's item must stay whole when it will not go; a job's own stage leaves its landed copy as the result instead.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Source {
+    Item,
+    Stage,
+}
 
 extern "C" {
     fn renameat2(
@@ -152,14 +159,25 @@ pub(crate) fn rename_path(from: &Path, to: &Path) -> Result<(), FleaError> {
 
 // One rename without the case-twin check, so the twin's own temp steps never recurse.
 fn rename_inner(from: &Path, to: &Path) -> Result<(), FleaError> {
-    rename_cancellable(from, to, &AtomicBool::new(false))
+    rename_source(from, to, &AtomicBool::new(false), Source::Item)
 }
 
-// A job's staged result lands here, so its copy fallback stops on the job's own cancel and removes what it copied.
+// A job's staged result lands here, so its copy fallback stops on the job's own cancel, and a stage that will not go still publishes (issue 370).
 pub(crate) fn rename_cancellable(from: &Path, to: &Path, cancel: &AtomicBool) -> Result<(), FleaError> {
+    rename_source(from, to, cancel, Source::Stage)
+}
+
+fn rename_source(
+    from: &Path,
+    to: &Path,
+    cancel: &AtomicBool,
+    source: Source,
+) -> Result<(), FleaError> {
     match rename_noreplace(from, to) {
         Ok(()) => Ok(()),
-        Err(error) if error.raw_os_error() == Some(EXDEV) || needs_copy_fallback(from, &error) => copy_then_remove_with(from, to, cancel),
+        Err(error) if error.raw_os_error() == Some(EXDEV) || needs_copy_fallback(from, &error) => {
+            copy_then_remove_with(from, to, cancel, source)
+        }
         Err(error) => Err(from_io("rename", &to.to_string_lossy(), &error)),
     }
 }
@@ -280,15 +298,28 @@ pub(crate) fn needs_fuse_fallback_in(from: &Path, error: &io::Error, mountinfo: 
 // The tests drive the copy fallback uncancelled through this name.
 #[cfg(test)]
 pub(crate) fn copy_then_remove(from: &Path, to: &Path) -> Result<(), FleaError> {
-    copy_then_remove_with(from, to, &AtomicBool::new(false))
+    copy_then_remove_with(from, to, &AtomicBool::new(false), Source::Item)
 }
 
 // The target is built through the exclusive copy primitives, so an existing destination is refused, and a cancel makes copy_any remove what it created.
-fn copy_then_remove_with(from: &Path, to: &Path, cancel: &AtomicBool) -> Result<(), FleaError> {
+fn copy_then_remove_with(
+    from: &Path,
+    to: &Path,
+    cancel: &AtomicBool,
+    source: Source,
+) -> Result<(), FleaError> {
     let mut sink = |_: u64, _: u64| {};
     // EXDEV and a GVFS WebDAV rename land here too, and a dav share is a durable destination.
     let mut durability = crate::backend::durable::Durability::begin(to.parent().unwrap_or(from));
-    let mut progress = Progress { cancel, on_bytes: &mut sink, partial: None, tree: None, manifest: None, durability: Some(&mut durability), for_move: true };
+    let mut progress = Progress {
+        cancel,
+        on_bytes: &mut sink,
+        partial: None,
+        tree: None,
+        manifest: None,
+        durability: Some(&mut durability),
+        for_move: source == Source::Item,
+    };
     if let Err(error) = copy_any(from, to, &mut progress) {
         if progress.partial.as_deref() == Some(to) {
             if let Err(cleanup) = take_back(to) {
@@ -311,17 +342,30 @@ fn copy_then_remove_with(from: &Path, to: &Path, cancel: &AtomicBool) -> Result<
         };
         return Err(FleaError { where_: "rename".to_string(), path: to.to_string_lossy().to_string(), msg });
     }
-    match remove_any(from) {
+    remove_source(from, to, source)
+}
+
+// A copy the destination does not show whole goes back, and the source stays.
+fn remove_source(from: &Path, to: &Path, source: Source) -> Result<(), FleaError> {
+    if let Err(e) = crate::backend::copyfile::landed::same_as_source(from, to) {
+        return Err(undo_the_copy(to, e.error("rename", to)));
+    }
+    use crate::backend::copyfile::Unremoved;
+    match crate::backend::copyfile::remove_moved(from) {
         Ok(()) => Ok(()),
-        Err(error) => Err(after_failed_removal(from, to, error)),
+        // A stage still whole is no person's item, so its copy stays the result and the job clears or names the stage.
+        Err(Unremoved::Whole(error) | Unremoved::Part(error)) if source == Source::Stage => {
+            Err(kept_error(from, error))
+        }
+        Err(unremoved) => Err(after_failed_removal(from, to, unremoved)),
     }
 }
 
-// Only a directory's removal can stop partway, so a source that still stats as any other kind is proof it survived whole.
-fn after_failed_removal(from: &Path, to: &Path, error: FleaError) -> FleaError {
-    match from.symlink_metadata() {
-        Ok(meta) if !meta.is_dir() => undo_the_copy(to, error),
-        _ => kept_error(from, error),
+// A source still whole makes the copy a duplicate to take back; one gone in whole or in part leaves the copy the whole one.
+fn after_failed_removal(from: &Path, to: &Path, unremoved: crate::backend::copyfile::Unremoved) -> FleaError {
+    match unremoved {
+        crate::backend::copyfile::Unremoved::Whole(error) => undo_the_copy(to, error),
+        crate::backend::copyfile::Unremoved::Part(error) => kept_error(from, error),
     }
 }
 
@@ -331,7 +375,12 @@ fn take_back(to: &Path) -> Result<(), FleaError> {
     if FAIL_TAKE_BACK.with(|fail| fail.replace(false)) {
         return Err(FleaError { where_: "rename".to_string(), path: to.to_string_lossy().to_string(), msg: "test refused the take-back".to_string() });
     }
-    remove_any(to)
+    remove_copy(to)
+}
+
+// The copy is this operation's own, so a folder its copied modes shut is opened to take it back.
+fn remove_copy(to: &Path) -> Result<(), FleaError> {
+    crate::backend::copyfile::deep::remove_deep(to, true).map_err(|e| from_io("rename", &to.to_string_lossy(), &e))
 }
 
 // The source is not provably whole here, so the target may hold the only complete copy and stays under its own kind.
@@ -343,9 +392,9 @@ fn kept_error(from: &Path, error: FleaError) -> FleaError {
     }
 }
 
-// The source still stats as a kind remove_any unlinks, so it is whole and the copy is a duplicate this operation takes back.
+// Nothing of the source went, so the copy is a duplicate this operation takes back.
 fn undo_the_copy(to: &Path, error: FleaError) -> FleaError {
-    match remove_any(to) {
+    match remove_copy(to) {
         Ok(()) => rename_error(error),
         Err(cleanup) => FleaError {
             where_: "rename".to_string(),
@@ -372,7 +421,6 @@ mod tests {
     use std::os::unix::fs::PermissionsExt;
 
     const EACCES: i32 = 13;
-    const ENOENT: i32 = 2;
 
     #[test]
     fn copy_fallback_scope_matches_each_measured_fuse_mount() {
@@ -498,7 +546,7 @@ mod tests {
     }
     // corner: runs as a plain user, where a directory without its write bit cannot remove its child.
     #[test]
-    fn copied_directory_rename_keeps_the_complete_copy_when_source_removal_fails() {
+    fn a_directory_rename_refuses_a_source_that_cannot_give_up_its_children() {
         let d = TestDir::new("copyrenameremove");
         let source = d.dir("source");
         std::fs::write(source.join("inside.txt"), "body").unwrap();
@@ -506,20 +554,23 @@ mod tests {
         let target = d.join("target");
         d.assert_contains(&source);
         d.assert_contains(&target);
-        let error = copy_then_remove(&source, &target).expect_err("source removal must fail");
+        crate::backend::copyfile::test_take_buffers();
+        // A person's rename enters at rename_path, so the item's preflight is pinned through the same dispatch the job's stage skips.
+        test_force_fallback(true);
+        test_force_copy_fallback(true);
+        let renamed = rename_path(&source, &target);
+        test_force_copy_fallback(false);
+        test_force_fallback(false);
+        let error = renamed.expect_err("the source cannot be emptied");
         std::fs::set_permissions(&source, std::fs::Permissions::from_mode(0o755)).unwrap();
-        assert_eq!(error.where_, KEPT, "the half-succeeded rename gets its own kind");
+        assert_eq!((error.where_.as_str(), error.msg.as_str()), ("rename", "permission denied"), "refused before anything copied");
         assert_eq!(std::fs::read_to_string(source.join("inside.txt")).unwrap(), "body");
-        assert_eq!(std::fs::read_to_string(target.join("inside.txt")).unwrap(), "body");
-        assert!(
-            !error.msg.contains(&target.to_string_lossy().to_string()),
-            "the target stays out of the message ui/js/Errors.js pattern matches for a collision"
-        );
+        assert!(!target.exists() && crate::backend::copyfile::test_take_buffers().is_empty(), "nothing was read, so no copy was made");
     }
 
     // corner: runs as a plain user, where a directory with no write bit cannot lose the child it holds.
     #[test]
-    fn a_kept_copy_can_leave_a_remnant_at_the_name_it_came_from() {
+    fn a_directory_rename_out_of_a_read_only_folder_keeps_every_child() {
         let d = TestDir::new("copyrenameremnant");
         let hold = d.dir("hold");
         let source = hold.join("source");
@@ -527,16 +578,16 @@ mod tests {
         std::fs::write(source.join("alpha.txt"), "alpha").unwrap();
         std::fs::write(source.join("beta.txt"), "beta").unwrap();
         let target = d.join("target");
-        // A parent with no write bit fails the unlink of the source itself, once its children have gone.
         std::fs::set_permissions(&hold, std::fs::Permissions::from_mode(0o555)).unwrap();
         d.assert_contains(&source);
         d.assert_contains(&target);
-        let error = copy_then_remove(&source, &target).expect_err("source removal must fail");
+        crate::backend::copyfile::test_take_buffers();
+        let error = copy_then_remove(&source, &target).expect_err("the folder will not let the source go");
         std::fs::set_permissions(&hold, std::fs::Permissions::from_mode(0o755)).unwrap();
-        assert_eq!(error.where_, KEPT, "the half-succeeded rename keeps its own kind");
-        assert!(!source.join("alpha.txt").exists(), "the source lost a child, so it is not the whole copy");
-        assert_eq!(std::fs::read_to_string(target.join("alpha.txt")).unwrap(), "alpha");
-        assert_eq!(std::fs::read_to_string(target.join("beta.txt")).unwrap(), "beta");
+        assert_eq!((error.where_.as_str(), error.msg.as_str()), ("rename", "permission denied"));
+        assert_eq!(std::fs::read_to_string(source.join("alpha.txt")).unwrap(), "alpha", "the source lost nothing");
+        assert_eq!(std::fs::read_to_string(source.join("beta.txt")).unwrap(), "beta");
+        assert!(!target.exists() && crate::backend::copyfile::test_take_buffers().is_empty(), "refused before a byte was read");
     }
 
     // corner: runs as a plain user, where a directory without its write bit cannot remove its child.
@@ -621,16 +672,48 @@ mod tests {
         assert!(error.msg.starts_with(crate::backend::durable::DIR_UNCONFIRMED) && error.msg.ends_with("; the new copy could not be removed: test refused the take-back"), "{}", error.msg);
         assert!(source.join("inside.txt").is_file(), "the source was never touched");
     }
-    // A removal answering ENOENT after it took effect leaves the copy as the only whole name.
+    // A source already gone when its removal runs leaves the copy as the only whole name.
     #[test]
     fn a_source_that_no_longer_stats_keeps_the_copy_rather_than_taking_it_back() {
         let d = TestDir::new("copyrenamevanished");
         let to = d.file("target.txt", "body");
         let from = d.join("source.txt");
-        let removal = from_io("move", &from.to_string_lossy(), &io::Error::from_raw_os_error(ENOENT));
+        let removal = crate::backend::copyfile::remove_moved(&from).expect_err("a source that is not there cannot be removed");
         let error = after_failed_removal(&from, &to, removal);
         assert_eq!(std::fs::read_to_string(&to).unwrap(), "body", "the only complete copy stays on disk");
         assert_eq!(error.where_, KEPT, "a source that proves nothing keeps the copy");
+    }
+    // corner: runs as a plain user; a folder shut before the copy is refused up front, so this one shuts after its copy landed.
+    #[test]
+    fn a_source_removed_partway_keeps_the_whole_copy_under_its_own_kind() {
+        let d = TestDir::new("copyrenamepart");
+        let (source, target) = (d.dir("source"), d.dir("target"));
+        for root in [&source, &target] {
+            std::fs::write(root.join("a.txt"), "a").unwrap();
+            std::fs::create_dir(root.join("shut")).unwrap();
+            std::fs::write(root.join("shut/b.txt"), "b").unwrap();
+        }
+        std::fs::set_permissions(source.join("shut"), std::fs::Permissions::from_mode(0o555)).unwrap();
+        let error = remove_source(&source, &target, Source::Item)
+            .expect_err("the shut folder keeps b.txt");
+        std::fs::set_permissions(source.join("shut"), std::fs::Permissions::from_mode(0o755)).unwrap();
+        assert_eq!(error.where_, KEPT, "a source that lost part of itself keeps the copy under its own kind: {}", error.msg);
+        assert!(!error.msg.contains(&target.to_string_lossy().to_string()), "the target stays out of the message ui/js/Errors.js pattern matches for a collision");
+        assert!(!source.join("a.txt").exists(), "the removal had begun");
+        assert_eq!(std::fs::read_to_string(target.join("a.txt")).unwrap(), "a");
+        assert_eq!(std::fs::read_to_string(target.join("shut/b.txt")).unwrap(), "b");
+    }
+    // A copy the destination shows short goes back before the source is touched.
+    #[test]
+    fn a_copy_shown_short_goes_back_and_the_source_stays() {
+        let d = TestDir::new("copyrenameshort");
+        let from = d.file("source.txt", "body");
+        let to = d.file("target.txt", "bo");
+        let error = remove_source(&from, &to, Source::Item)
+            .expect_err("a short copy never lets its source go");
+        assert_eq!((error.where_.as_str(), error.msg.as_str()), ("rename", crate::backend::copyfile::landed::FILE_UNCONFIRMED));
+        assert_eq!(std::fs::read_to_string(&from).unwrap(), "body", "the source stays");
+        assert!(!to.exists(), "the short copy went back");
     }
     #[test]
     fn fallback_without_hard_links_moves_by_plain_rename() {

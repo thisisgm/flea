@@ -170,3 +170,9 @@ fn a_source_stalled_in_close_keeps_its_worker_slot() {
     drop(parked);
     wait_for_workers();
 }
+
+#[test]
+fn the_hole_search_flags_match_the_target_abi() {
+    assert_eq!((SEEK_SET, SEEK_DATA, SEEK_HOLE), (libc::SEEK_SET, libc::SEEK_DATA, libc::SEEK_HOLE));
+    assert_eq!((ENXIO, EINVAL, EOPNOTSUPP), (libc::ENXIO, libc::EINVAL, libc::EOPNOTSUPP));
+}

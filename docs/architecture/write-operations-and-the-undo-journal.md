@@ -134,7 +134,9 @@ the listing on it, so the duplicate sits on disk unmentioned until some later li
 exactly as the partial target above does. An archive compress, extract or convert publishes its staged result
 through the same path (issue 370), by `renamecompat::rename_cancellable` with the job's own cancel: a cancel during
 the copy removes the partial target and the job answers cancelled, and the copy reports no progress past the job's
-last sample. Every other filesystem and error, and every
+last sample. The stage is the job's own, so that publish skips the preflight a person's move takes, and a stage
+its drive will not let go keeps the landed copy as the result under `rename-kept` even when the stage stayed whole;
+the job then clears the stage or names it. Every other filesystem and error, and every
 `rename_noreplace` caller but `rename`, its undo, `move_any` and those three publishes, stays on the atomic syscall. Mountinfo's escaped mount point is decoded and the deepest
 enclosing mount wins, so a nested non-rclone mount cannot inherit the exception.
 That kept copy answers `rename-kept` rather than `rename`, because the rename half
