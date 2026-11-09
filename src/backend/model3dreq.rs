@@ -1,3 +1,4 @@
+use flea::bytename::ExactText as _;
 use super::{archivework::Work, codereq, jail, model3d, model3dcache as cache, opsreq::OpMsg, regfile, sandbox, thumbcache, thumbs, thumbwrite};
 use crate::json::{escape,field_bool,field_str,field_usize};
 use std::io::Read;
@@ -25,28 +26,71 @@ impl Ask {
 }
 
 pub fn spawn(ask: Ask, tx: Sender<OpMsg>) {
-    let ticket = codereq::begin(&format!("model3d:{}",ask.slot));
+    let ticket = codereq::begin(&format!("model3d:{}", ask.slot));
     std::thread::spawn(move || {
-        let answer = if ask.cancel { reply(&ask,"cancelled",None,None,"") }
-            else {
-                match ensure(Path::new(&ask.path),&cache::root(),ask.plate,&ticket) {
-                    Ok(data) => reply(&ask,"ready",Some(&data),None,""),
-                    Err(reason) => reply(&ask,"failed",None,Some("This file cannot be previewed."),&reason),
-                }
-            };
-        ticket.finish(answer,&tx);
+        let answer = if ask.cancel {
+            reply(&ask, "cancelled", None, None, "")
+        } else {
+            match ensure(
+                &flea::bytename::view(&ask.path),
+                &cache::root(),
+                ask.plate,
+                &ticket,
+            ) {
+                Ok(data) => reply(&ask, "ready", Some(&data), None, ""),
+                Err(reason) => reply(
+                    &ask,
+                    "failed",
+                    None,
+                    Some("This file cannot be previewed."),
+                    &reason,
+                ),
+            }
+        };
+        ticket.finish(answer, &tx);
     });
 }
 
-struct Ready { file: PathBuf, thumbnail: Option<PathBuf>, summary: String }
+struct Ready {
+    file: PathBuf,
+    thumbnail: Option<PathBuf>,
+    summary: String,
+}
 
-fn reply(ask: &Ask, state: &str, ready: Option<&Ready>, message: Option<&str>, reason: &str) -> String {
-    let mut line = format!(r#"{{"t":"model3d","slot":"{}","token":{},"state":"{}""#,escape(&ask.slot),ask.token,state);
+fn reply(
+    ask: &Ask,
+    state: &str,
+    ready: Option<&Ready>,
+    message: Option<&str>,
+    reason: &str,
+) -> String {
+    let mut line = format!(
+        r#"{{"t":"model3d","slot":"{}","token":{},"state":"{}""#,
+        escape(&ask.slot),
+        ask.token,
+        state
+    );
     if let Some(ready) = ready {
-        line.push_str(&format!(r#", "file":"{}","thumbnail":"{}","data":{}"#,escape(&ready.file.to_string_lossy()),
-            escape(&ready.thumbnail.as_ref().map(|p| p.to_string_lossy().into_owned()).unwrap_or_default()),ready.summary));
+        line.push_str(&format!(
+            r#", "file":"{}","thumbnail":"{}","data":{}"#,
+            escape(&ready.file.exact_text()),
+            escape(
+                &ready
+                    .thumbnail
+                    .as_ref()
+                    .map(|p| p.exact_text().into_owned())
+                    .unwrap_or_default()
+            ),
+            ready.summary
+        ));
     }
-    if let Some(message) = message { line.push_str(&format!(r#", "message":"{}","reason":"{}""#,escape(message),escape(reason))) }
+    if let Some(message) = message {
+        line.push_str(&format!(
+            r#", "message":"{}","reason":"{}""#,
+            escape(message),
+            escape(reason)
+        ))
+    }
     line.push('}');
     line
 }
@@ -63,73 +107,185 @@ fn drain(mut reader: impl Read) -> String {
             }
         }
     }
-    String::from_utf8_lossy(&kept).lines().rev().find(|l| !l.trim().is_empty()).unwrap_or("").chars().take(REASON_MAX_CHARS).collect()
+    String::from_utf8_lossy(&kept)
+        .lines()
+        .rev()
+        .find(|l| !l.trim().is_empty())
+        .unwrap_or("")
+        .chars()
+        .take(REASON_MAX_CHARS)
+        .collect()
 }
 
-fn ensure(path: &Path, root: &Path, plate: Option<usize>, ticket: &codereq::Ticket) -> Result<Ready,String> {
-    ensure_until(path,root,plate,ticket,Instant::now()+DEADLINE,false)
+fn ensure(
+    path: &Path,
+    root: &Path,
+    plate: Option<usize>,
+    ticket: &codereq::Ticket,
+) -> Result<Ready, String> {
+    ensure_until(path, root, plate, ticket, Instant::now() + DEADLINE, false)
 }
 
-fn ensure_until(path: &Path, root: &Path, plate: Option<usize>, ticket: &codereq::Ticket, deadline: Instant, background: bool) -> Result<Ready,String> {
-    if ticket.superseded() { return Err("preview superseded".into()) }
-    if !path.is_absolute() { return Err("3D preview requires an absolute path".into()) }
+fn ensure_until(
+    path: &Path,
+    root: &Path,
+    plate: Option<usize>,
+    ticket: &codereq::Ticket,
+    deadline: Instant,
+    background: bool,
+) -> Result<Ready, String> {
+    if ticket.superseded() {
+        return Err("preview superseded".into());
+    }
+    if !path.is_absolute() {
+        return Err("3D preview requires an absolute path".into());
+    }
     let format = model3d::supported(&path.to_string_lossy()).ok_or("unsupported 3D format")?;
     let input = path.canonicalize().map_err(|e| e.to_string())?;
-    let (_,meta) = regfile::open_if_regular_with_meta(&input,0).map_err(|e| e.to_string())?;
-    if meta.len() > model3d::MAX_INPUT as u64 { return Err("3D input exceeds 128 MiB".into()) }
-    std::fs::DirBuilder::new().recursive(true).mode(0o700).create(root).map_err(|e| e.to_string())?;
-    let key = cache::key(path,&meta);
+    let (_, meta) = regfile::open_if_regular_with_meta(&input, 0).map_err(|e| e.to_string())?;
+    if meta.len() > model3d::MAX_INPUT as u64 {
+        return Err("3D input exceeds 128 MiB".into());
+    }
+    std::fs::DirBuilder::new()
+        .recursive(true)
+        .mode(0o700)
+        .create(root)
+        .map_err(|e| e.to_string())?;
+    let key = cache::key(path, &meta);
     let dest = root.join(format!("{key}.3d"));
-    if let Some(header) = cache::header(&dest) { return ready(root,&key,dest,plate,header) }
-    let _guard = PARSING.enter(ticket,background,deadline).map_err(|reason| format!("3D preview {}: {reason}",path.display()))?;
-    let header = if let Some(header) = cache::header(&dest) { header } else {
-        if !sandbox::available() { return Err("3D previews require bwrap and prlimit".into()) }
-        let exe = std::env::current_exe().and_then(|p| p.canonicalize()).map_err(|e| e.to_string())?;
-        let work = Work::new(root,"model3d").map_err(|e| e.msg)?;
+    if let Some(header) = cache::header(&dest) {
+        return ready(root, &key, dest, plate, header);
+    }
+    let _guard = PARSING
+        .enter(ticket, background, deadline)
+        .map_err(|reason| format!("3D preview {}: {reason}", path.display()))?;
+    let header = if let Some(header) = cache::header(&dest) {
+        header
+    } else {
+        if !sandbox::available() {
+            return Err("3D previews require bwrap and prlimit".into());
+        }
+        let exe = std::env::current_exe()
+            .and_then(|p| p.canonicalize())
+            .map_err(|e| e.to_string())?;
+        let work = Work::new(root, "model3d").map_err(|e| e.msg)?;
         let temp = work.dir.join("model.3d");
-        let output = std::fs::OpenOptions::new().write(true).create_new(true).mode(0o600).open(&temp).map_err(|e| e.to_string())?;
-        let inner = vec![exe.to_string_lossy().into_owned(),"--backend".into(),"--3d-worker".into(),format.into(),"--".into(),input.to_string_lossy().into_owned()];
-        let mut argv = sandbox::wrap_readonly_extra(&inner,&[&input,&exe]);
-        sandbox::add_status(&mut argv,inner.len());
-        let mut jailed = jail::spawn_jailed(&argv,|cmd| { cmd.stdin(Stdio::null()).stdout(Stdio::from(output)).stderr(Stdio::piped()); }).map_err(|e| e.to_string())?;
-        let stderr = jailed.child.stderr.take().ok_or("3D preview has no error pipe")?;
+        let output = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .mode(0o600)
+            .open(&temp)
+            .map_err(|e| e.to_string())?;
+        let inner = vec![
+            exe.exact_text().into_owned(),
+            "--backend".into(),
+            "--3d-worker".into(),
+            format.into(),
+            "--".into(),
+            input.exact_text().into_owned(),
+        ];
+        let mut argv = sandbox::wrap_readonly_extra(&inner, &[&input, &exe]);
+        sandbox::add_status(&mut argv, inner.len());
+        let mut jailed = jail::spawn_jailed(&argv, |cmd| {
+            cmd.stdin(Stdio::null())
+                .stdout(Stdio::from(output))
+                .stderr(Stdio::piped());
+        })
+        .map_err(|e| e.to_string())?;
+        let stderr = jailed
+            .child
+            .stderr
+            .take()
+            .ok_or("3D preview has no error pipe")?;
         let log = std::thread::spawn(move || drain(stderr));
-        if !ticket.attach(jailed) { return Err("preview superseded".into()) }
-        let status = ticket.reap_until(Some(deadline)).ok_or("preview superseded")?;
+        if !ticket.attach(jailed) {
+            return Err("preview superseded".into());
+        }
+        let status = ticket
+            .reap_until(Some(deadline))
+            .ok_or("preview superseded")?;
         let reason = log.join().unwrap_or_default();
-        if !status.map_err(|e| e.to_string())?.success() { return Err(if reason.is_empty() { "3D parser failed".into() } else { reason }) }
+        if !status.map_err(|e| e.to_string())?.success() {
+            return Err(if reason.is_empty() {
+                "3D parser failed".into()
+            } else {
+                reason
+            });
+        }
         let header = cache::header(&temp).ok_or("3D parser produced no model")?;
-        let (_,after) = regfile::open_if_regular_with_meta(&input,0).map_err(|e| e.to_string())?;
-        if !cache::same(&meta,&after) { return Err("3D file changed during preview".into()) }
-        if ticket.superseded() { return Err("preview superseded".into()) }
-        std::fs::rename(&temp,&dest).map_err(|e| e.to_string())?;
+        let (_, after) =
+            regfile::open_if_regular_with_meta(&input, 0).map_err(|e| e.to_string())?;
+        if !cache::same(&meta, &after) {
+            return Err("3D file changed during preview".into());
+        }
+        if ticket.superseded() {
+            return Err("preview superseded".into());
+        }
+        std::fs::rename(&temp, &dest).map_err(|e| e.to_string())?;
         header
     };
-    ready(root,&key,dest,plate,header)
+    ready(root, &key, dest, plate, header)
 }
 
-fn ready(root: &Path, key: &str, dest: PathBuf, plate: Option<usize>, header: (String,Vec<model3d::Thumbnail>)) -> Result<Ready,String> {
-    let (summary,thumbnails) = header;
+fn ready(
+    root: &Path,
+    key: &str,
+    dest: PathBuf,
+    plate: Option<usize>,
+    header: (String, Vec<model3d::Thumbnail>),
+) -> Result<Ready, String> {
+    let (summary, thumbnails) = header;
     let data = crate::jsondoc::parse(&summary)?;
-    if plate.is_some_and(|p| data.get("plates").and_then(|v| v.as_array()).map_or(true, |a| p >= a.len())) { return Err("3D plate is out of range".into()) }
-    let thumbnail = cache::embedded(root,key,&thumbnails,plate);
+    if plate.is_some_and(|p| {
+        data.get("plates")
+            .and_then(|v| v.as_array())
+            .map_or(true, |a| p >= a.len())
+    }) {
+        return Err("3D plate is out of range".into());
+    }
+    let thumbnail = cache::embedded(root, key, &thumbnails, plate);
     cache::evict(root);
-    Ok(Ready { file: dest, thumbnail, summary })
+    Ok(Ready {
+        file: dest,
+        thumbnail,
+        summary,
+    })
+}
+
+// The model path arrives as raw bytes, which args() would panic on, so each argument is read as its exact text.
+fn worker_args(raw: impl IntoIterator<Item = std::ffi::OsString>) -> Vec<String> {
+    raw.into_iter()
+        .map(|arg| arg.exact_text().into_owned())
+        .collect()
 }
 
 // run.rs selects this before loading backend tables; the helper has exactly one file and no nested tools.
 pub(super) fn worker_entry() -> Option<i32> {
-    let args: Vec<String> = std::env::args().collect();
-    if !args.iter().any(|s| s == "--3d-worker") { return None }
-    let result = (|| -> Result<(),String> {
-        if args.len() != 6 || args[1] != "--backend" || args[2] != "--3d-worker" || args[4] != "--" { return Err("invalid 3D helper arguments".into()) }
-        let file = regfile::open_if_regular(Path::new(&args[5]),0).map_err(|e| e.to_string())?;
+    let args = worker_args(std::env::args_os());
+    if !args.iter().any(|s| s == "--3d-worker") {
+        return None;
+    }
+    let result = (|| -> Result<(), String> {
+        if args.len() != 6 || args[1] != "--backend" || args[2] != "--3d-worker" || args[4] != "--"
+        {
+            return Err("invalid 3D helper arguments".into());
+        }
+        let file = regfile::open_if_regular(&flea::bytename::view(&args[5]), 0)
+            .map_err(|e| e.to_string())?;
         let mut bytes = Vec::new();
-        file.take(model3d::MAX_INPUT as u64+1).read_to_end(&mut bytes).map_err(|e| e.to_string())?;
-        let model = model3d::parse(&args[3],&bytes)?;
-        model3d::wire::write(&model,std::io::BufWriter::new(std::io::stdout()))
+        file.take(model3d::MAX_INPUT as u64 + 1)
+            .read_to_end(&mut bytes)
+            .map_err(|e| e.to_string())?;
+        let model = model3d::parse(&args[3], &bytes)?;
+        model3d::wire::write(&model, std::io::BufWriter::new(std::io::stdout()))
     })();
-    Some(match result { Ok(()) => 0, Err(reason) => { eprintln!("flea: {reason}"); 1 } })
+    Some(match result {
+        Ok(()) => 0,
+        Err(reason) => {
+            eprintln!("flea: {reason}");
+            1
+        }
+    })
 }
 
 pub(super) fn thumbnail(tables: &thumbs::Tables, job: &thumbs::Job) -> thumbs::Outcome {

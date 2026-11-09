@@ -1,4 +1,5 @@
 // The status row's prompts and receipts, the paste question, and the undo steps an undo of a trash lands the cursor on.
+use flea::bytename::ExactText as _;
 use super::{cells::{ellipsis, fit, text_width}, editor::Editor, input::Key, model::Model, theme::Theme,
     wire::{count, flag, number, text, word, Wire}};
 use crate::jsondoc::Json;
@@ -173,7 +174,7 @@ pub fn record(m: &mut Model, op: &'static str, paths: Vec<PathBuf>) {
 pub fn receipt(m: &mut Model, value: &Json) -> String {
     let i18n = &m.prompts.i18n;
     let (ok, failed, skipped) = (count(value, "ok"), count(value, "failed"), count(value, "skipped"));
-    let path = PathBuf::from(text(value, "path"));
+    let path = flea::bytename::exact(text(value, "path"));
     match text(value, "t") {
         "renamed" => { record(m, "rename", vec![path]); undoable(m, m.prompts.i18n.tr("receipt.renamed")) }
         "made" => { record(m, "mkdir", vec![path]); undoable(m, m.prompts.i18n.tr("receipt.made")) }
@@ -205,7 +206,7 @@ pub fn receipt(m: &mut Model, value: &Json) -> String {
             }
             // An answer whose request this client no longer waits on records nothing, so no undo step is taken twice.
             if !m.prompts.trashing.remove(&count(value, "id")) || ok == 0 { return String::new(); }
-            let moved: Vec<PathBuf> = value.get("moved").and_then(Json::as_array).unwrap_or(&[]).iter().filter_map(Json::as_str).map(PathBuf::from).collect();
+            let moved: Vec<PathBuf> = value.get("moved").and_then(Json::as_array).unwrap_or(&[]).iter().filter_map(Json::as_str).map(flea::bytename::exact).collect();
             let line = m.prompts.i18n.trn("receipt.trashed", ok as i64);
             record(m, "trash", moved);
             undoable(m, line)
@@ -273,9 +274,18 @@ pub fn paste(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
     Ok(())
 }
 fn ask_collisions(paste: &Paste, w: &mut Wire) -> io::Result<()> {
-    let mut fields = vec![("c", word("collisions")), ("id", number(paste.id)), ("paths", Json::Arr(paste.paths.iter().map(|p| word(p)).collect())),
-        ("dest", word(&paste.dest.to_string_lossy()))];
-    if let Some(fat) = paste.fat { fields.push(("fat", word(fat))); }
+    let mut fields = vec![
+        ("c", word("collisions")),
+        ("id", number(paste.id)),
+        (
+            "paths",
+            Json::Arr(paste.paths.iter().map(|p| word(p)).collect()),
+        ),
+        ("dest", word(&paste.dest.exact_text())),
+    ];
+    if let Some(fat) = paste.fat {
+        fields.push(("fat", word(fat)));
+    }
     w.send(fields)
 }
 // Sample input: {"t":"collisions","id":7,"total":1,"names":[{"n":"notes.txt","d":false,"i":"text-plain"}],"mergeable":false}.
@@ -298,7 +308,10 @@ pub fn collided(m: &mut Model, value: &Json, w: &mut Wire) -> io::Result<()> {
             Some(index) => m.move_by(index as isize - m.cursor as isize, false, w)?,
             None => {
                 let path = paste.dest.join(&paste.name);
-                w.send(vec![("c", word("locate")), ("path", word(&path.to_string_lossy()))])?;
+                w.send(vec![
+                    ("c", word("locate")),
+                    ("path", word(&path.exact_text())),
+                ])?;
                 m.restore_path = Some(path);
             }
         }
@@ -308,10 +321,23 @@ pub fn collided(m: &mut Model, value: &Json, w: &mut Wire) -> io::Result<()> {
 }
 fn transfer(paste: Paste, collide: &str, w: &mut Wire) -> io::Result<()> {
     let linked = matches!(paste.op, "relative" | "absolute" | "hard");
-    let mut fields = vec![("c", word(if linked { "link" } else { "transfer" })), ("op", word(paste.op)), ("paths", Json::Arr(paste.paths.iter().map(|p| word(p)).collect())),
-        ("dest", word(&paste.dest.to_string_lossy())), ("collide", word(collide)), ("collideId", number(paste.id))];
-    if linked { fields.push(("held", crate::backend::linkheld::encode(&paste.held))); }
-    if let Some(fat) = paste.fat { fields.push(("fat", word(fat))); }
+    let mut fields = vec![
+        ("c", word(if linked { "link" } else { "transfer" })),
+        ("op", word(paste.op)),
+        (
+            "paths",
+            Json::Arr(paste.paths.iter().map(|p| word(p)).collect()),
+        ),
+        ("dest", word(&paste.dest.exact_text())),
+        ("collide", word(collide)),
+        ("collideId", number(paste.id)),
+    ];
+    if linked {
+        fields.push(("held", crate::backend::linkheld::encode(&paste.held)));
+    }
+    if let Some(fat) = paste.fat {
+        fields.push(("fat", word(fat)));
+    }
     w.send(fields)
 }
 // Enter or b keeps both, r replaces, s skips, Escape cancels; any other key leaves the question standing.

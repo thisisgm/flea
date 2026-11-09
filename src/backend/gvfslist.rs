@@ -2,6 +2,7 @@
 use crate::backend::child::{wait_for_exit, Woke};
 use crate::backend::extclass;
 use crate::backend::listing::{GioMeta, GioTarget, Listing};
+use flea::bytename::ExactText as _;
 use std::os::unix::fs::MetadataExt;
 use std::path::Path;
 use std::sync::mpsc;
@@ -34,7 +35,7 @@ pub fn is_gvfs(path: &Path) -> bool {
     }
     // extclass recognises /run/user/*/gvfs; a session with XDG_RUNTIME_DIR elsewhere keeps the same root.
     match std::env::var("XDG_RUNTIME_DIR").ok().filter(|v| !v.is_empty()) {
-        Some(root) => path.to_string_lossy().starts_with(&format!("{}/gvfs/", root)),
+        Some(root) => path.exact_text().starts_with(&format!("{}/gvfs/", root)),
         None => false,
     }
 }
@@ -195,7 +196,7 @@ pub(crate) fn raw_output(path: &str, gio: &str, timeout: Duration) -> Result<Vec
     let mut argv = vec!["list".to_string(), "-u".to_string(), "-a".to_string(), GIO_ATTRS.to_string(), "--nofollow-symlinks".to_string(), "-h".to_string()];
     argv.push(path.to_string());
     let mut child = crate::backend::locale::command(gio)
-        .args(&argv)
+        .args(flea::bytename::args(&argv))
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::null())

@@ -229,11 +229,21 @@ pub fn delete_key(m: &mut Model, key: &Key, wire: &mut Wire) -> io::Result<()> {
 
 // Properties: the window's facts as a muted label column beside each value, closed by its default Close button.
 pub fn properties_reply(m: &mut Model, value: &Json) {
-    let mime_kind = m.rows.values().chain(m.selected_rows.values()).find(|row| m.path.join(&row.name) == std::path::Path::new(text(value, "path")))
-        .map(|row| row.kind.clone()).unwrap_or_default();
+    let mime_kind = m
+        .rows
+        .values()
+        .chain(m.selected_rows.values())
+        .find(|row| {
+            m.path.join(flea::bytename::text_path(&row.name)).as_path()
+                == &*flea::bytename::text_path(text(value, "path"))
+        })
+        .map(|row| row.kind.clone())
+        .unwrap_or_default();
     let mut value = value.clone();
     if value.get("mimeKind").is_none() && !mime_kind.is_empty() {
-        if let Json::Obj(fields) = &mut value { fields.push(("mimeKind".into(), word(&mime_kind))); }
+        if let Json::Obj(fields) = &mut value {
+            fields.push(("mimeKind".into(), word(&mime_kind)));
+        }
     }
     m.menu_view.properties_source = Some((m.action_id, value.clone()));
     m.properties = Some(properties(&value, &m.i18n));

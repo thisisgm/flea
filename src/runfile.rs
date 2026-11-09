@@ -147,7 +147,7 @@ pub fn terminal_argv(dir: &Path, target: &Path) -> Vec<OsString> {
 }
 
 fn canonical(path: &str) -> Option<PathBuf> {
-    std::fs::canonicalize(path).ok()
+    std::fs::canonicalize(flea::bytename::text_path(path)).ok()
 }
 
 // The card's four modes beside main.rs's --open arms: Some(code) when argv names one, malformed shapes refused through the same usage errors, None for every other mode.
@@ -294,7 +294,7 @@ pub fn ask_line(kind: Kind, handler: Option<&(String, String)>, id: &crate::runi
         id.ino,
         id.mtime_s,
         id.mtime_ns,
-        crate::json::escape(&target.to_string_lossy())
+        crate::json::escape(&flea::bytename::path_text(target))
     )
 }
 

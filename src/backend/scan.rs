@@ -11,7 +11,7 @@ pub fn scan(path: &str, hidden: bool) -> Result<(Listing, f64), FleaError> {
     #[cfg(test)]
     super::scanhold::held(path, super::scanhold::Stage::Read);
     // The gvfs check first, so a local listing never reads the prefetch environment or the gio name.
-    if !super::gvfslist::is_gvfs(std::path::Path::new(path)) {
+    if !super::gvfslist::is_gvfs(&flea::bytename::view(path)) {
         return scan_with(path, hidden, None, "gio");
     }
     scan_with(path, hidden, crate::gvfsprefetch::env_prefetch(), &super::gvfslist::gio_bin())
@@ -36,7 +36,7 @@ pub(crate) fn scan_in(
     runtime: &dyn Fn() -> Option<std::path::PathBuf>,
 ) -> Result<(Listing, f64), FleaError> {
     // One prefix check: local and USB paths take exactly today's code past it.
-    if super::gvfslist::is_gvfs(std::path::Path::new(path)) {
+    if super::gvfslist::is_gvfs(&flea::bytename::view(path)) {
         // The launcher's head start on this exact path; anything else takes today's gio path.
         if let Some(found) = prefetch.as_ref().and_then(|p| crate::gvfsprefetch::adopt_matching_in(path, hidden, p, runtime().as_deref())) {
             return Ok(found);
@@ -48,7 +48,6 @@ pub(crate) fn scan_in(
     }
     let t = Instant::now();
     let mut l = Listing::new();
-    // corner: a non-UTF8 name goes lossy here and then cannot be stat'd, see AGENTS.md.
     scan_raw(path, hidden, &mut l)?;
     Ok((l, t.elapsed().as_secs_f64() * 1000.0))
 }
@@ -135,9 +134,18 @@ fn stat_mode_at(fd: c_int, raw: &[u8]) -> Option<u32> {
 
 // Raw getdents with an fstatat fallback for typeless entries only, so xfs ftype=0 resolves before any order.
 fn scan_raw(path: &str, hidden: bool, l: &mut Listing) -> Result<(), FleaError> {
-    let c = match CString::new(path) {
+    // The folder's exact bytes, so a folder whose own name is not UTF-8 lists like any other.
+    let c = match CString::new(std::os::unix::ffi::OsStrExt::as_bytes(
+        flea::bytename::text_path(path).as_os_str(),
+    )) {
         Ok(c) => c,
-        Err(_) => return Err(from_io("scan", path, &std::io::Error::new(std::io::ErrorKind::InvalidInput, "invalid input"))),
+        Err(_) => {
+            return Err(from_io(
+                "scan",
+                path,
+                &std::io::Error::new(std::io::ErrorKind::InvalidInput, "invalid input"),
+            ))
+        }
     };
     let dir = unsafe { opendir(c.as_ptr()) };
     if dir.is_null() {
@@ -156,7 +164,8 @@ fn scan_raw(path: &str, hidden: bool, l: &mut Listing) -> Result<(), FleaError> 
         }
         let dtype = unsafe { (*entry).dtype };
         let bytes: Vec<u8> = unsafe { (*entry).name.iter().take_while(|&&b| b != 0).map(|&b| b as u8).collect() };
-        let name = String::from_utf8_lossy(&bytes);
+        // A name that is not UTF-8 keeps its exact bytes in its text, so a row never names its lossy twin.
+        let name = flea::bytename::name_text(&bytes);
         // readdir returns . and .. like any other entry, while ReadDir filters them.
         if name == "." || name == ".." {
             continue;
@@ -183,7 +192,7 @@ fn scan_raw(path: &str, hidden: bool, l: &mut Listing) -> Result<(), FleaError> 
 pub fn mode_of(path: &str) -> u32 {
     #[cfg(test)]
     super::scanhold::held(path, super::scanhold::Stage::Mode);
-    match fs::metadata(path) {
+    match fs::metadata(flea::bytename::text_path(path)) {
         Ok(m) => m.mode(),
         Err(_) => 0,
     }
@@ -192,6 +201,10 @@ pub fn mode_of(path: &str) -> u32 {
 #[cfg(test)]
 #[path = "scan_gh362_tests.rs"]
 mod gh362_tests;
+
+#[cfg(test)]
+#[path = "scan_exact_tests.rs"]
+mod exact_tests;
 
 #[cfg(test)]
 mod tests {

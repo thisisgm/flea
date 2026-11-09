@@ -1,4 +1,5 @@
 // Rename work and ordered journal publication never wait on the request dispatcher.
+use flea::bytename::ExactText as _;
 use super::opsdispatch::{forget_pending, Ops, SlowClaim};
 use super::opsreq::{renamed_line, OpMsg};
 use super::proto::error_line;
@@ -28,7 +29,7 @@ pub(crate) fn start(
     let id = ops.claim_id();
     ops.journal.reserve(id);
     let body = super::iomount::mount_body();
-    let mount = super::iomount::mount_key(std::path::Path::new(&path), &body);
+    let mount = super::iomount::mount_key(&flea::bytename::view(&path), &body);
     ops.pending.push(SlowClaim {
         id,
         path: path.clone(),
@@ -37,7 +38,7 @@ pub(crate) fn start(
     let tx = ops.tx.clone();
     let timer = tx.clone();
     let (finished, wait) = std::sync::mpsc::channel();
-    let failure_path = PathBuf::from(&path);
+    let failure_path = flea::bytename::exact(&path);
     std::thread::spawn(move || {
         let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(work))
             .unwrap_or_else(|_| Err(super::iomount::internal_failure("rename", &failure_path)));
@@ -130,7 +131,7 @@ pub(crate) fn published(
     for (id, result) in renames {
         match result {
             Ok((path, _)) => {
-                writeln!(out, "{}", renamed_line(true, &path.to_string_lossy())).ok();
+                writeln!(out, "{}", renamed_line(true, &path.exact_text())).ok();
             }
             Err(error) => {
                 writeln!(out, "{}", error_line(&error)).ok();

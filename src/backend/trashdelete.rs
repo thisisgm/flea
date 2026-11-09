@@ -2,6 +2,7 @@
 mod recovery;
 mod cancel;
 use cancel::remove_tree_cancellable;
+use flea::bytename::ExactText as _;
 #[cfg(test)]
 mod cancel_tests;
 pub use recovery::{recover, recovery_root, RecoveryReport};
@@ -324,7 +325,7 @@ fn original_path(metadata: &File, trash_root: &Path) -> Result<PathBuf, Refusal>
         if !section { continue; }
         if let Some(value) = line.strip_prefix("Path=") {
             if original.is_some() { return Err(Refusal::new(Outcome::Damaged, "Trash metadata contains duplicate original paths.")); }
-            let decoded = PathBuf::from(crate::paths::percent_decode(value));
+            let decoded = PathBuf::from(OsString::from_vec(crate::paths::percent_decode_bytes(value)));
             if decoded.as_os_str().is_empty() || decoded.components().any(|part| matches!(part, std::path::Component::ParentDir)) {
                 return Err(Refusal::new(Outcome::Damaged, "Trash metadata contains an invalid original path."));
             }
@@ -368,17 +369,16 @@ impl Reviewed {
                 .and_then(|s| s.to_str())
                 != Some("files")
         {
-            return Err(Refusal::changed("Trash provider did not supply a supported backing path."));
+            return Err(Refusal::changed(
+                "Trash provider did not supply a supported backing path.",
+            ));
         }
-        let name = path
-            .file_name()
-            .and_then(|s| s.to_str())
-            .changed("Trash filename is not valid text.")?;
+        let name = path.file_name().changed("Trash filename is missing.")?;
         let root = path
             .parent()
             .and_then(Path::parent)
             .changed("Trash root is missing.")?;
-        let info = root.join("info").join(format!("{}.trashinfo", name));
+        let info = root.join("info").join(crate::backend::hometrash::info_name(name));
         let payload = identity(&path).changed("Trash item unreadable")?;
         if gio_identity != format!("l{}:{}", payload.dev, payload.ino) {
             return Err(Refusal::changed("Trash identity changed while reading it."));
@@ -408,18 +408,17 @@ impl Reviewed {
     }
     pub fn saved(&self) -> Result<String, Refusal> {
         let tree = self.tree.as_ref().changed("Trash contents have not been reviewed.").map_err(Refusal::logged)?;
-        let (path, info) = self.path.to_str().zip(self.info.to_str())
-            .changed("Trash path is not valid text.").map_err(Refusal::logged)?;
+        let (path, info) = (self.path.exact_text(), self.info.exact_text());
         Ok(format!(r#"{{"path":"{}","info":"{}","payload":"{}","metadata":"{}","start":{},"end":{},"nodes":{},"bytes":{}}}"#,
-            escape(path), escape(info), self.payload.saved(), self.metadata.saved(), tree.start(), tree.end(), self.nodes, self.bytes))
+            escape(&path), escape(&info), self.payload.saved(), self.metadata.saved(), tree.start(), tree.end(), self.nodes, self.bytes))
     }
     pub fn from_saved(text: &str, manifest: &Manifest) -> Result<Self, Refusal> {
         Self::read_saved(text, manifest).map_err(Refusal::logged)
     }
     fn read_saved(text: &str, manifest: &Manifest) -> Result<Self, Refusal> {
         Ok(Self {
-            path: PathBuf::from(field_str(text, "path").changed("Missing Trash review path.")?),
-            info: PathBuf::from(field_str(text, "info").changed("Missing Trash review metadata path.")?),
+            path: flea::bytename::exact(field_str(text, "path").changed("Missing Trash review path.")?),
+            info: flea::bytename::exact(field_str(text, "info").changed("Missing Trash review metadata path.")?),
             payload: Identity::from_saved(&field_str(text, "payload").changed("Missing Trash review identity.")?)?,
             metadata: Identity::from_saved(&field_str(text, "metadata").changed("Missing Trash metadata identity.")?)?,
             nodes: field_usize(text, "nodes").changed("Missing Trash review file total.")?,
@@ -781,6 +780,8 @@ mod tests {
         assert_eq!(original_path(&File::open(&encoded).unwrap(), &root).unwrap(), d.join("folder/photo one+two.jpg"));
         let root = d.join(".Trash/1000");
         assert_eq!(original_path(&File::open(&encoded).unwrap(), &root).unwrap(), d.join("folder/photo one+two.jpg"));
+        std::fs::write(&encoded, "[Trash Info]\nPath=/x/caf%E9.txt\n").unwrap();
+        assert_eq!(original_path(&File::open(&encoded).unwrap(), &root).unwrap(), Path::new(OsStr::from_bytes(b"/x/caf\xe9.txt")), "a name that is not UTF-8 keeps its bytes");
         std::fs::write(&encoded, "[Trash Info]\nPath=../escape\n").unwrap();
         assert!(original_path(&File::open(&encoded).unwrap(), &root).is_err());
         std::fs::write(&encoded, "[Trash Info]\nPath=/one\nPath=/two\n").unwrap();

@@ -1,4 +1,5 @@
 // Image layout math and ImageMagick commands are shared by the window and terminal cards.
+use flea::bytename::ExactText as _;
 use super::{aliases::Aliases, archivework::Work, convertbatch, menu_actions::Selected, mime::Db, opsreq::OpMsg, printconvert, printtool};
 use crate::json::{field_str, field_usize};
 use std::path::{Path, PathBuf};
@@ -73,13 +74,32 @@ pub fn run(ask: Ask, selection: Result<Option<Vec<Selected>>, String>, id: usize
         convertbatch::vacant(&dest)?;
         let mut work = Work::new(parent, "combine").map_err(|e| e.msg)?;
         let staged = make(&ask, &settings, &mut work, &cancel, id, tx)?;
-        if cancel.load(Ordering::Relaxed) { return Err("cancelled".into()); }
+        if cancel.load(Ordering::Relaxed) {
+            return Err("cancelled".into());
+        }
         printtool::publish(&staged, &dest)?;
         published.push(dest);
-        convertbatch::progress(tx, "combine", id, ask.request_id, ask.paths.len() + 1, ask.paths.len() + 1, &published[0]);
+        convertbatch::progress(
+            tx,
+            "combine",
+            id,
+            ask.request_id,
+            ask.paths.len() + 1,
+            ask.paths.len() + 1,
+            &published[0],
+        );
         Ok(())
     })();
-    convertbatch::finished("combine", id, ask.request_id, &ask.paths.first().map_or(String::new(), |p| p.to_string_lossy().into_owned()), &published, outcome)
+    convertbatch::finished(
+        "combine",
+        id,
+        ask.request_id,
+        &ask.paths
+            .first()
+            .map_or(String::new(), |p| p.exact_text().into_owned()),
+        &published,
+        outcome,
+    )
 }
 
 #[cfg(test)]

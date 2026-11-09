@@ -43,6 +43,21 @@ fn word_commands_keep_utf8_selections_suffixes_and_insert_only_typing() {
 }
 
 #[test]
+fn a_raw_named_copy_reads_lossy_as_text_and_exact_as_a_uri() {
+    use flea::bytename::ExactText as _;
+    use std::os::unix::ffi::OsStrExt;
+    let raw = std::path::Path::new(std::ffi::OsStr::from_bytes(b"/x/r\xff.txt"))
+        .exact_text()
+        .into_owned();
+    let copy = |form: &str| {
+        parity17::copy_text(std::slice::from_ref(&raw), form, std::path::Path::new("/empty"))
+    };
+    assert_eq!(copy("path"), "/x/r\u{fffd}.txt");
+    assert_eq!(copy("filename"), "r\u{fffd}.txt");
+    assert_eq!(copy("url"), "file:///x/r%FF.txt");
+}
+
+#[test]
 fn copy_variants_keep_selected_names_uri_bytes_and_parent_fallback() {
     let paths = vec!["/x/a é.tar.gz".into(), "/x/.bashrc".into()];
     for (form, want) in [

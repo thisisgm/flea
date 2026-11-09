@@ -204,7 +204,8 @@ fn prepare(
     } else {
         shaping.plain_cells
     };
-    let path = row.name();
+    let shown = flea::bytename::display(row.name());
+    let path = &*shown;
     let name = if shaping.locating {
         flea::ui_logic_sr1::base(path)
     } else {

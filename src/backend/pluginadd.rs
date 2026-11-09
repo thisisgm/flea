@@ -23,8 +23,10 @@ fn classify(source: &str) -> Result<From, Invalid> {
         return Ok(From::Git(source.to_string()));
     }
     let path = match source.strip_prefix("~/") {
-        Some(rest) => crate::userfile::home().map_err(|_| missing())?.join(rest),
-        None => PathBuf::from(source),
+        Some(rest) => crate::userfile::home()
+            .map_err(|_| missing())?
+            .join(flea::bytename::view(rest)),
+        None => flea::bytename::exact(source),
     };
     if !path.is_absolute() || !path.is_dir() {
         return Err(missing());

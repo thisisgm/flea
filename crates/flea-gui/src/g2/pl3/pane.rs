@@ -20,7 +20,6 @@ use gpui::{Context, FocusHandle, ImageAssetLoader, Resource, Task, Window};
 use std::{
     cell::RefCell,
     collections::HashSet,
-    path::Path,
     rc::Rc,
     sync::Arc,
     time::{Duration, Instant},

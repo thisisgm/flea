@@ -1,5 +1,6 @@
 // The image probe behind flashimage: kind from the name confirmed by magic, sizes in the sandbox.
 use crate::backend::flash::IMAGE_SUFFIXES;
+use flea::bytename::ExactText as _;
 use std::path::Path;
 use std::time::Duration;
 
@@ -110,7 +111,12 @@ fn parse_xz_robot(text: &str) -> Option<u64> {
 }
 
 fn xz_size(path: &Path) -> (u64, bool) {
-    let inner = vec!["xz".to_string(), "--robot".to_string(), "--list".to_string(), path.to_string_lossy().to_string()];
+    let inner = vec![
+        "xz".to_string(),
+        "--robot".to_string(),
+        "--list".to_string(),
+        path.exact_text().to_string(),
+    ];
     match capture(&crate::backend::sandbox::wrap_readonly(&inner, path)) {
         Some(text) => match parse_xz_robot(&text) {
             Some(n) => (n, true),
@@ -141,10 +147,25 @@ pub(crate) fn zip_member(contents: &crate::backend::archivelist::Contents) -> St
 
 // A zip qualifies only with exactly one file member, and that member an image by the same rules.
 fn zip_probe(path: &Path, bytes: u64) -> Probe {
-    let refused = Probe { kind: String::new(), bytes, unpacked: 0, known: false, member: String::new() };
-    let inner = vec!["bsdtar".to_string(), "-tvf".to_string(), path.to_string_lossy().to_string()];
-    let Some(text) = capture(&crate::backend::sandbox::wrap_readonly(&inner, path)) else { return refused; };
-    let contents = crate::backend::archivelist::parse_reader(std::io::BufReader::new(text.as_bytes()), &crate::backend::archivespec::tar_spec());
+    let refused = Probe {
+        kind: String::new(),
+        bytes,
+        unpacked: 0,
+        known: false,
+        member: String::new(),
+    };
+    let inner = vec![
+        "bsdtar".to_string(),
+        "-tvf".to_string(),
+        path.exact_text().to_string(),
+    ];
+    let Some(text) = capture(&crate::backend::sandbox::wrap_readonly(&inner, path)) else {
+        return refused;
+    };
+    let contents = crate::backend::archivelist::parse_reader(
+        std::io::BufReader::new(text.as_bytes()),
+        &crate::backend::archivespec::tar_spec(),
+    );
     if contents.failed {
         return refused;
     }
@@ -160,8 +181,18 @@ fn zip_probe(path: &Path, bytes: u64) -> Probe {
 
 // An .iso member earns its kind only when its head holds CD001, read through the member pipe.
 fn zip_member_is_iso(path: &Path, member: &str) -> bool {
-    let inner = vec!["bsdtar".to_string(), "-xOf".to_string(), path.to_string_lossy().to_string(), crate::backend::flashpipe::escape_member(member)];
-    let Some(head) = capture_head(&crate::backend::sandbox::wrap_readonly(&inner, path), HEAD_BYTES) else { return false; };
+    let inner = vec![
+        "bsdtar".to_string(),
+        "-xOf".to_string(),
+        path.exact_text().to_string(),
+        crate::backend::flashpipe::escape_member(member),
+    ];
+    let Some(head) = capture_head(
+        &crate::backend::sandbox::wrap_readonly(&inner, path),
+        HEAD_BYTES,
+    ) else {
+        return false;
+    };
     iso_signature(&head)
 }
 

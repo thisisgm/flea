@@ -1,6 +1,7 @@
 // Image conversion, delegated to ImageMagick, which converts by the destination's own extension and
 // strips every profile and comment in the same pass. One tool does both halves, so there is no
 // second one here: that is hard rule 1's first question answered.
+use flea::bytename::ExactText as _;
 use std::path::Path;
 
 const MAGICK: &str = "magick";
@@ -8,17 +9,17 @@ pub fn available() -> bool {
     let path = std::env::var("PATH").unwrap_or_default();
     path.split(':')
         .filter(|d| !d.is_empty())
-        .any(|d| Path::new(d).join(MAGICK).is_file())
+        .any(|d| flea::bytename::view(d).join(MAGICK).is_file())
 }
 
 // No format argument: magick reads the codec off dest's extension, so a second source of truth for
 // the same fact would only be something to disagree with.
 pub fn argv(input: &Path, dest: &Path, strip: bool) -> Vec<String> {
-    let mut a = vec![MAGICK.to_string(), input.to_string_lossy().to_string()];
+    let mut a = vec![MAGICK.to_string(), input.exact_text().to_string()];
     if strip {
         a.push("-strip".to_string());
     }
-    a.push(dest.to_string_lossy().to_string());
+    a.push(dest.exact_text().to_string());
     a
 }
 

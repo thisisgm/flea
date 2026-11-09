@@ -160,7 +160,9 @@ pub fn file_uri(path: &str) -> String {
     const KEPT: &[u8] = b"-_.!~*'();,/:@&=+$";
     let mut out = String::with_capacity(path.len() + 7);
     out.push_str("file://");
-    for byte in path.bytes() {
+    for &byte in
+        std::os::unix::ffi::OsStrExt::as_bytes(crate::bytename::text_path(path).as_os_str())
+    {
         if byte.is_ascii_alphanumeric() || KEPT.contains(&byte) {
             out.push(byte as char);
         } else {
@@ -195,3 +197,6 @@ mod lifetime_tests;
 #[cfg(test)]
 #[path = "ui_logic_pk1/tests.rs"]
 mod tests;
+#[cfg(test)]
+#[path = "ui_logic_pk1/exact_name_tests.rs"]
+mod exact_name_tests;

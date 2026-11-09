@@ -114,7 +114,7 @@ impl Index {
 
     // Owned bridges make reconstruction visible to callers; no hidden full-path cache exists.
     pub(crate) fn path(&self, row: usize) -> String {
-        String::from_utf8_lossy(&self.raw(row)).into_owned()
+        flea::bytename::path_text(Path::new(OsStr::from_bytes(&self.raw(row)))).into_owned()
     }
 
     pub(crate) fn raw(&self, row: usize) -> Vec<u8> {

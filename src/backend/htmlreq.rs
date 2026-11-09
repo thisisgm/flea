@@ -1,3 +1,4 @@
+use flea::bytename::ExactText as _;
 use super::{archivework::Work, codereq, htmlcache, htmldeps, jail, opsreq::OpMsg, regfile, sandbox, thumbcache};
 use crate::json::{escape, field_bool, field_str, field_usize};
 use std::io::{Read, Write};
@@ -105,20 +106,37 @@ fn confined_html(bytes: &[u8]) -> Vec<u8> {
 }
 
 fn render(ask: &Ask, ticket: &codereq::Ticket) -> Option<String> {
-    if ticket.superseded() || !Path::new(&ask.path).is_absolute() || !sandbox::available() { return None }
-    let path = Path::new(&ask.path).canonicalize().ok()?;
+    if ticket.superseded()
+        || !flea::bytename::view(&ask.path).is_absolute()
+        || !sandbox::available()
+    {
+        return None;
+    }
+    let path = flea::bytename::view(&ask.path).canonicalize().ok()?;
     let (file, meta) = regfile::open_if_regular_with_meta(&path, 0).ok()?;
-    if meta.len() > MAX_BYTES { return None }
+    if meta.len() > MAX_BYTES {
+        return None;
+    }
     let mut bytes = Vec::new();
     file.take(MAX_BYTES + 1).read_to_end(&mut bytes).ok()?;
-    if bytes.len() as u64 > MAX_BYTES || bytes.contains(&0) { return None }
-    let total = bytes.iter().filter(|&&b| b == b'\n').count() + usize::from(!bytes.is_empty() && !bytes.ends_with(b"\n"));
+    if bytes.len() as u64 > MAX_BYTES || bytes.contains(&0) {
+        return None;
+    }
+    let total = bytes.iter().filter(|&&b| b == b'\n').count()
+        + usize::from(!bytes.is_empty() && !bytes.ends_with(b"\n"));
     let cache = htmlcache::root();
-    let dest = cache.join(format!("{}.png", htmlcache::key(&path, &meta, ask.width, ask.height)));
+    let dest = cache.join(format!(
+        "{}.png",
+        htmlcache::key(&path, &meta, ask.width, ask.height)
+    ));
     let folder = path.parent()?;
-    if htmlcache::hit(&dest, ask.width, ask.height, folder) { return Some(reply(ask, "ready", &dest.to_string_lossy(), total, "")) }
+    if htmlcache::hit(&dest, ask.width, ask.height, folder) {
+        return Some(reply(ask, "ready", &dest.exact_text(), total, ""));
+    }
     // Checked before the renderer runs, so a document this cache cannot replace costs no child; publish checks again.
-    if !htmlcache::replaceable(&dest) { return None }
+    if !htmlcache::replaceable(&dest) {
+        return None;
+    }
     std::fs::create_dir_all(&cache).ok()?;
     let work = Work::new(&cache, "html").ok()?;
     std::fs::set_permissions(&work.dir, std::fs::Permissions::from_mode(0o700)).ok()?;
@@ -151,7 +169,7 @@ fn render(ask: &Ask, ticket: &codereq::Ticket) -> Option<String> {
     exclusive(&record, dependencies.as_deref().unwrap_or(b"null\n"))?;
     htmlcache::publish(&png, &record, &dest).ok()?;
     htmlcache::evict(&cache);
-    Some(reply(ask, "ready", &dest.to_string_lossy(), total, &title))
+    Some(reply(ask, "ready", &dest.exact_text(), total, &title))
 }
 
 // Sample output: {"t":"html","slot":"look","token":3,"state":"ready","file":"/cache/x.png","total":61,"width":984,"title":"Page"}.

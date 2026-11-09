@@ -39,13 +39,13 @@ pub const ARCHIVE_EXTENSIONS: [&str; 17] = [
 
 // A strict suffix, case-insensitive: "a.rs" ends in ".rs" and "rs" alone does not.
 fn ends_with_any(name: &str, extensions: &[&str]) -> bool {
-    let lower = name.to_lowercase();
+    let lower = crate::bytename::display(name).to_lowercase();
     extensions.iter().any(|e| lower.len() > e.len() && lower.ends_with(e))
 }
 
 // A suffix that may be the whole name: ui/js/Kinds.js tests these with an anchored regular expression.
 fn ends_with_word(name: &str, extensions: &[&str]) -> bool {
-    let lower = name.to_lowercase();
+    let lower = crate::bytename::display(name).to_lowercase();
     extensions.iter().any(|e| lower.ends_with(e))
 }
 
@@ -59,7 +59,7 @@ pub fn is_archive(name: &str) -> bool { ends_with_any(name, &ARCHIVE_EXTENSIONS)
 fn is_table(name: &str) -> bool { ends_with_word(name, &TABLE_EXTENSIONS) }
 
 pub fn is_pdf(name: &str) -> bool {
-    let lower = name.to_lowercase();
+    let lower = crate::bytename::display(name).to_lowercase();
     lower.len() > 4 && lower.ends_with(".pdf")
 }
 
@@ -186,5 +186,18 @@ mod tests {
         assert_eq!(unit_of("dir", "folder", true, false), None);
         assert_eq!(unit_of("a.tar", "package-x-generic", false, false), None);
         assert_eq!(unit_of("core.bin", "application-x-generic", false, false), None);
+    }
+
+    #[test]
+    fn a_raw_name_is_classified_by_its_shown_extension() {
+        let text = crate::bytename::name_text(b"inv\xff.md").into_owned();
+        assert_eq!(
+            unit_of(&text, "text-x-generic", false, false),
+            Some(Unit::Markdown)
+        );
+        assert!(
+            is_code(&crate::bytename::name_text(b"a\xff.rs"))
+                && is_pdf(&crate::bytename::name_text(b"p\xff.pdf"))
+        );
     }
 }

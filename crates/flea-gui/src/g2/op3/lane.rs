@@ -15,8 +15,9 @@ pub fn run(argv: &[String]) -> Exit {
     let Some((program, args)) = argv.split_first() else {
         return (None, String::new());
     };
+    // A path argument's exact text goes out as its own bytes, see docs/architecture/exact-names.md.
     match Command::new(program)
-        .args(args)
+        .args(flea::bytename::args(args))
         .stdin(Stdio::null())
         .stderr(Stdio::null())
         .output()

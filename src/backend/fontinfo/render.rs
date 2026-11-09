@@ -9,6 +9,7 @@ use crate::backend::mime::Db;
 use crate::backend::opsreq::{op_err, OpMsg};
 use crate::error::FleaError;
 use crate::json::{escape, field_str, field_usize, field_usize_array};
+use flea::bytename::ExactText as _;
 use std::os::unix::fs::DirBuilderExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -41,7 +42,7 @@ impl Ask {
     pub fn parse(line: &str) -> Ask {
         Ask {
             id: field_usize(line, "id").unwrap_or(0),
-            path: PathBuf::from(field_str(line, "path").unwrap_or_default()),
+            path: flea::bytename::exact(field_str(line, "path").unwrap_or_default()),
             fg: field_str(line, "fg").unwrap_or_default(),
             bg: field_str(line, "bg").unwrap_or_default(),
             sizes: field_usize_array(line, "sizes"),
@@ -61,7 +62,10 @@ pub fn looked_line(id: usize, facts: &Facts, files: &[PathBuf]) -> String {
     if let Some(n) = facts.glyphs {
         line.push_str(&format!(r#","glyphs":{}"#, n));
     }
-    let files: Vec<String> = files.iter().map(|f| format!(r#""{}""#, escape(&f.to_string_lossy()))).collect();
+    let files: Vec<String> = files
+        .iter()
+        .map(|f| format!(r#""{}""#, escape(&f.exact_text())))
+        .collect();
     line.push_str(&format!(r#","files":[{}]}}"#, files.join(",")));
     line
 }
@@ -99,17 +103,17 @@ fn check(ask: &Ask) -> Result<String, String> {
 // One process, three images: -write then +delete is how magick makes several files from one run.
 pub fn argv(program: &str, font: &Path, ask: &Ask, label: &str, out: &[PathBuf]) -> Vec<String> {
     let mut a: Vec<String> = [program, "-background", &ask.bg, "-fill", &ask.fg, "-font"].iter().map(|s| s.to_string()).collect();
-    a.push(font.to_string_lossy().to_string());
+    a.push(font.exact_text().to_string());
     for (i, px) in ask.sizes.iter().enumerate() {
         a.push("-pointsize".to_string());
         a.push(px.to_string());
         a.push(format!("label:{}", label));
         if i + 1 < ask.sizes.len() {
             a.push("-write".to_string());
-            a.push(out[i].to_string_lossy().to_string());
+            a.push(out[i].exact_text().to_string());
             a.push("+delete".to_string());
         } else {
-            a.push(out[i].to_string_lossy().to_string());
+            a.push(out[i].exact_text().to_string());
         }
     }
     a

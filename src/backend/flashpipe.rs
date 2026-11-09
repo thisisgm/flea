@@ -1,5 +1,6 @@
 // The sandboxed producer behind a piped flash: one argv per kind, the image as its stdin.
 use crate::backend::flashwrite::{Fail, Job};
+use flea::bytename::ExactText as _;
 use std::os::raw::c_int;
 
 extern "C" {
@@ -15,7 +16,12 @@ fn decompressor_argv(kind: &str, image: &std::path::Path, member: &str) -> Optio
         "zst" => Some(vec!["zstd".to_string(), "-dc".to_string()]),
         "gz" => Some(vec!["gzip".to_string(), "-dc".to_string()]),
         "bz2" => Some(vec!["bzip2".to_string(), "-dc".to_string()]),
-        "zip" => Some(vec!["bsdtar".to_string(), "-xOf".to_string(), image.to_string_lossy().to_string(), escape_member(member)]),
+        "zip" => Some(vec![
+            "bsdtar".to_string(),
+            "-xOf".to_string(),
+            image.exact_text().to_string(),
+            escape_member(member),
+        ]),
         _ => None,
     }
 }
@@ -45,8 +51,8 @@ pub fn wrap_stream(inner: &[String], image: Option<&std::path::Path>) -> Vec<Str
     }
     if let Some(path) = image {
         a.push("--ro-bind".to_string());
-        a.push(path.to_string_lossy().to_string());
-        a.push(path.to_string_lossy().to_string());
+        a.push(path.exact_text().to_string());
+        a.push(path.exact_text().to_string());
     }
     a.extend_from_slice(inner);
     a

@@ -1,6 +1,6 @@
 // One buffer plus a span each, see AGENTS.md "Why the listing is an arena".
 use std::collections::HashMap;
-use std::path::{Component, Path};
+use std::path::{Component, Path, PathBuf};
 use std::sync::OnceLock;
 use super::scan::{S_IFMT, S_IFREG};
 
@@ -76,9 +76,15 @@ impl Listing {
         self.spans.len() - 1
     }
 
+    // The row's wire text: its name, or for a name that is not UTF-8 the exact spelling src/bytename.rs writes.
     pub fn name(&self, i: usize) -> &str {
         let s = &self.spans[i];
         &self.names[s.off as usize..(s.off + s.len) as usize]
+    }
+
+    // The exact file a row names under base; every filesystem call on a row goes through here, never base.join(name).
+    pub fn path(&self, base: &Path, i: usize) -> PathBuf {
+        base.join(flea::bytename::text_path(self.name(i)))
     }
 
     // The seam: callers ask the listing; spans is public only because sort borrows it.
@@ -124,7 +130,7 @@ impl Listing {
     }
 
     pub fn indices_of<'a>(&self, base: &Path, paths: &'a [String]) -> Vec<(&'a str, usize)> {
-        let mut wanted: HashMap<&str, &str> = paths.iter().filter_map(|path|
+        let mut wanted: HashMap<std::borrow::Cow<'a, str>, &str> = paths.iter().filter_map(|path|
             relative_name(base, Path::new(path)).map(|name| (name, path.as_str()))).collect();
         let mut found = Vec::new();
         for index in 0..self.len() {
@@ -135,11 +141,31 @@ impl Listing {
     }
 }
 
-fn relative_name<'a>(base: &Path, path: &'a Path) -> Option<&'a str> {
-    if !base.is_absolute() || !path.is_absolute() { return None; }
-    let relative = path.strip_prefix(base).ok()?;
-    if relative.components().any(|part| !matches!(part, Component::Normal(_))) { return None; }
-    relative.to_str()
+// The row text a path names under base, whether the path is wire text or the exact bytes, so both meet as bytes.
+fn relative_name<'a>(base: &Path, path: &'a Path) -> Option<std::borrow::Cow<'a, str>> {
+    use std::borrow::Cow;
+    if !base.is_absolute() || !path.is_absolute() {
+        return None;
+    }
+    let normal = |relative: &Path| {
+        relative
+            .components()
+            .all(|part| matches!(part, Component::Normal(_)))
+    };
+    match path
+        .to_str()
+        .map(flea::bytename::text_path)
+        .unwrap_or(Cow::Borrowed(path))
+    {
+        Cow::Borrowed(exact) => {
+            let relative = exact.strip_prefix(base).ok()?;
+            normal(relative).then(|| flea::bytename::path_text(relative))
+        }
+        Cow::Owned(exact) => {
+            let relative = exact.strip_prefix(base).ok()?;
+            normal(relative).then(|| Cow::Owned(flea::bytename::path_text(relative).into_owned()))
+        }
+    }
 }
 
 // Sample input: Some("vfat") answers false, Some("nfs") and None answer true.
@@ -273,6 +299,29 @@ mod tests {
             vec![("/listing/a", 0), ("/listing/sub/b", 1), ("/listing/quote\"\n", 2)]);
         assert!(listing.indices_of(Path::new("/listing"), &[]).is_empty());
         assert!(listing.indices_of(Path::new("relative"), &paths).is_empty());
+    }
+
+    #[test]
+    fn a_raw_named_folder_and_row_meet_their_exact_paths_and_never_their_twins() {
+        use flea::bytename::ExactText as _;
+        use std::os::unix::ffi::OsStrExt;
+        let base = Path::new(std::ffi::OsStr::from_bytes(b"/d\xff"));
+        let raw = base.join(std::ffi::OsStr::from_bytes(b"z\xfe"));
+        let mut listing = Listing::new();
+        for name in ["x", &*raw.file_name().unwrap().exact_text()] {
+            listing.push(name, false);
+        }
+        let paths = [
+            raw.exact_text().into_owned(),
+            "/d\u{fffd}/x".to_string(),
+            base.join("z\u{fffd}").exact_text().into_owned(),
+        ];
+        assert_eq!(
+            listing.indices_of(base, &paths),
+            vec![(paths[0].as_str(), 1)],
+            "a twin folder or twin row never matches"
+        );
+        assert_eq!(listing.path(base, 1), raw);
     }
 
     #[test]

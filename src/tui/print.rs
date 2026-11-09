@@ -83,7 +83,7 @@ pub fn kind(m: &Model, row: &Row) -> Kind {
     if row.directory || !row.link.is_empty() {
         return Kind::Other;
     }
-    classify(m, &row.name)
+    classify(m, &row.shown())
 }
 fn classify(m: &Model, path: &str) -> Kind {
     let (mime, aliases) = m

@@ -83,7 +83,7 @@ pub struct Reply {
 }
 impl Reply {
     pub fn capture(tag: &Tag, row: usize, path: &Path, listing: u64) -> Option<Self> {
-        (Path::new(&tag.path) == path && tag.listing == listing).then(|| Self {
+        (&*flea::bytename::view(&tag.path) == path && tag.listing == listing).then(|| Self {
             tag: tag.clone(),
             row,
         })

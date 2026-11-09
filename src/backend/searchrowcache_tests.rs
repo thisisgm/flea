@@ -38,6 +38,28 @@ fn search_row_cache_stats_each_row_and_reuses_only_fresh_intersecting_tags() {
 }
 
 #[test]
+fn search_row_cache_keeps_a_raw_named_row_under_its_own_path() {
+    use flea::bytename::ExactText as _;
+    use std::os::unix::ffi::OsStrExt;
+    let d = TestDir::new("search-row-raw");
+    let raw = std::ffi::OsStr::from_bytes(b"caf\xe9.txt");
+    std::fs::write(d.path().join(raw), "raw").unwrap();
+    let mut cache = Cache::default();
+    render(
+        &mut cache,
+        d.path(),
+        &listing(&[&raw.exact_text()]),
+        0,
+        1,
+        "",
+    );
+    assert!(
+        cache.entries.contains_key(&d.path().join(raw)),
+        "the raw row is cached at the file it names"
+    );
+}
+
+#[test]
 fn search_row_cache_reindexes_kinds_and_preserves_every_fresh_row_field() {
     let d = TestDir::new("search-row-kinds");
     d.file("a.txt", "abc");

@@ -1,4 +1,5 @@
 // Multi-image, PDF-page and office export jobs, published beside the source without replacement.
+use flea::bytename::ExactText as _;
 use super::{aliases::Aliases, archivework::Work, menu_actions::Selected, mime::Db, opsreq::OpMsg, pagerange::Pages, printconvert::{self, Kind}, printtool};
 use crate::json::{escape, field_bool, field_str, field_usize};
 use std::path::{Path, PathBuf};
@@ -32,32 +33,92 @@ pub fn image_argv(inputs: &[PathBuf], output: &Path, strip: bool) -> Vec<String>
     let mut args = vec!["magick".into()];
     let pdf = printconvert::extension(output) == "pdf";
     for input in inputs {
-        let path = input.to_string_lossy();
-        let source = if pdf { format!("{path}[0]") } else { path.into_owned() };
-        args.extend(["--".into(), source]);
+        // The page suffix joins the raw name's bytes, so the argument still decodes to that file.
+        let mut source = input.as_os_str().to_owned();
+        if pdf {
+            source.push("[0]");
+        }
+        args.extend([
+            "--".into(),
+            flea::bytename::path_text(Path::new(&source)).into_owned(),
+        ]);
     }
-    if strip { args.push("-strip".into()); }
+    if strip {
+        args.push("-strip".into());
+    }
     // A suffix can silently fall back to the input codec when its encoder is missing.
-    args.push(format!("{}:{}", printconvert::extension(output), output.to_string_lossy()));
+    args.push(format!(
+        "{}:{}",
+        printconvert::extension(output),
+        output.exact_text()
+    ));
     args
 }
 
 pub fn pdf_argv(input: &Path, prefix: &Path, page: u32, format: &str) -> Vec<String> {
-    let codec = match format { "jpg" => "-jpeg", "tiff" => "-tiff", _ => "-png" };
-    ["pdftoppm", "-r", &PDF_DPI.to_string(), "-f", &page.to_string(), "-l", &page.to_string(), "-singlefile", codec, "--", &input.to_string_lossy(), &prefix.to_string_lossy()]
-        .iter().map(|arg| arg.to_string()).collect()
+    let codec = match format {
+        "jpg" => "-jpeg",
+        "tiff" => "-tiff",
+        _ => "-png",
+    };
+    [
+        "pdftoppm",
+        "-r",
+        &PDF_DPI.to_string(),
+        "-f",
+        &page.to_string(),
+        "-l",
+        &page.to_string(),
+        "-singlefile",
+        codec,
+        "--",
+        &input.exact_text(),
+        &prefix.exact_text(),
+    ]
+    .iter()
+    .map(|arg| arg.to_string())
+    .collect()
 }
 
-pub(crate) fn progress(tx: &Sender<OpMsg>, event: &str, id: usize, request_id: usize, done: usize, total: usize, path: &Path) {
+pub(crate) fn progress(
+    tx: &Sender<OpMsg>,
+    event: &str,
+    id: usize,
+    request_id: usize,
+    done: usize,
+    total: usize,
+    path: &Path,
+) {
     let _ = tx.send(OpMsg::Meta { line: format!(r#"{{"t":"{event}progress","id":{id},"requestId":{request_id},"done":{done},"total":{total},"name":"{}"}}"#,
         escape(&path.file_name().unwrap_or_default().to_string_lossy())) });
 }
 
-pub(crate) fn finished(event: &str, id: usize, request_id: usize, source: &str, paths: &[PathBuf], outcome: Result<(), String>) -> String {
+pub(crate) fn finished(
+    event: &str,
+    id: usize,
+    request_id: usize,
+    source: &str,
+    paths: &[PathBuf],
+    outcome: Result<(), String>,
+) -> String {
     let err = outcome.err().unwrap_or_default();
-    let outputs: Vec<_> = paths.iter().map(|p| format!(r#""{}""#, escape(&p.to_string_lossy()))).collect();
-    format!(r#"{{"t":"{event}done","id":{id},"requestId":{request_id},"source":"{}","ok":{},"path":"{}","paths":[{}],"err":"{}","collision":{}}}"#,
-        escape(source), err.is_empty(), escape(&paths.first().map_or(String::new(), |p| p.to_string_lossy().into_owned())), outputs.join(","), escape(&err), err.contains("already exists"))
+    let outputs: Vec<_> = paths
+        .iter()
+        .map(|p| format!(r#""{}""#, escape(&p.exact_text())))
+        .collect();
+    format!(
+        r#"{{"t":"{event}done","id":{id},"requestId":{request_id},"source":"{}","ok":{},"path":"{}","paths":[{}],"err":"{}","collision":{}}}"#,
+        escape(source),
+        err.is_empty(),
+        escape(
+            &paths
+                .first()
+                .map_or(String::new(), |p| p.exact_text().into_owned())
+        ),
+        outputs.join(","),
+        escape(&err),
+        err.contains("already exists")
+    )
 }
 
 pub(crate) fn vacant(path: &Path) -> Result<(), String> {
@@ -142,20 +203,58 @@ fn convert_images(ask: &Ask, work: &mut Work, cancel: &AtomicBool, id: usize, tx
     Ok(staged)
 }
 
-fn convert_pdf(ask: &Ask, work: &mut Work, cancel: &AtomicBool, id: usize, tx: &Sender<OpMsg>) -> Result<Vec<(PathBuf, PathBuf)>, String> {
+fn convert_pdf(
+    ask: &Ask,
+    work: &mut Work,
+    cancel: &AtomicBool,
+    id: usize,
+    tx: &Sender<OpMsg>,
+) -> Result<Vec<(PathBuf, PathBuf)>, String> {
     let input = work.dir.join("input.pdf");
     printtool::stage(&ask.paths[0], &input)?;
-    let info = printtool::boxed(vec!["pdfinfo".into(), "--".into(), input.to_string_lossy().into_owned()], work, cancel)?;
+    let info = printtool::boxed(
+        vec![
+            "pdfinfo".into(),
+            "--".into(),
+            input.exact_text().into_owned(),
+        ],
+        work,
+        cancel,
+    )?;
     // pdfinfo sample: Pages:           3
-    let count = info.lines().find_map(|l| l.strip_prefix("Pages:").and_then(|s| s.trim().parse().ok())).ok_or("the PDF page count could not be read")?;
+    let count = info
+        .lines()
+        .find_map(|l| l.strip_prefix("Pages:").and_then(|s| s.trim().parse().ok()))
+        .ok_or("the PDF page count could not be read")?;
     let pages = Pages::parse(&ask.pages)?.selected(count)?;
-    let outputs = pages.iter().map(|page| destination(&ask.paths[0], printconvert::page_name(&ask.paths[0], *page, &ask.format), true)).collect::<Result<Vec<_>, _>>()?;
+    let outputs = pages
+        .iter()
+        .map(|page| {
+            destination(
+                &ask.paths[0],
+                printconvert::page_name(&ask.paths[0], *page, &ask.format),
+                true,
+            )
+        })
+        .collect::<Result<Vec<_>, _>>()?;
     let mut staged = Vec::new();
     for (n, (page, dest)) in pages.iter().zip(outputs).enumerate() {
-        progress(tx, "convert", id, ask.request_id, n * CONVERSION_PROGRESS / pages.len(), PROGRESS_TOTAL, &dest);
+        progress(
+            tx,
+            "convert",
+            id,
+            ask.request_id,
+            n * CONVERSION_PROGRESS / pages.len(),
+            PROGRESS_TOTAL,
+            &dest,
+        );
         let prefix = work.dir.join(format!("page-{page}"));
         printtool::boxed(pdf_argv(&input, &prefix, *page, &ask.format), work, cancel)?;
-        let rendered = prefix.with_extension(match ask.format.as_str() { "webp" => "png", "tiff" => "tif", format => format });
+        let rendered = prefix.with_extension(match ask.format.as_str() {
+            "webp" => "png",
+            "tiff" => "tif",
+            format => format,
+        });
         let output = if ask.format == "webp" {
             let webp = prefix.with_extension("webp");
             printtool::boxed(image_argv(&[rendered], &webp, false), work, cancel)?;
@@ -211,7 +310,16 @@ pub fn run(ask: Ask, selection: Result<Option<Vec<Selected>>, String>, id: usize
         }
         Ok(())
     })();
-    finished("convert", id, ask.request_id, &ask.paths.first().map_or(String::new(), |p| p.to_string_lossy().into_owned()), &published, outcome)
+    finished(
+        "convert",
+        id,
+        ask.request_id,
+        &ask.paths
+            .first()
+            .map_or(String::new(), |p| p.exact_text().into_owned()),
+        &published,
+        outcome,
+    )
 }
 
 #[cfg(test)]

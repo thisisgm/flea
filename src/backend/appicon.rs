@@ -9,6 +9,7 @@ use crate::backend::thumbspec::{is_runnable, Spec};
 use crate::backend::thumbs::{discard, publish, record_failure, records_marker, wrote_something, Job, Outcome, Tables, JOB_TIMEOUT, THUMB_SIZE};
 use crate::backend::thumbwrite::{exclusive_temp, WORK_TAG};
 use crate::error::FleaError;
+use flea::bytename::ExactText as _;
 use std::collections::HashMap;
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -172,10 +173,10 @@ fn icon(tool: &[String], runner: Runner, image: &Path, work: &mut Work, deadline
     let list = work.dir.join("list.txt");
     // 7z lists on stdout and the jail discards it, so the shell redirects it into the work folder.
     let mut inner: Vec<String> = ["/usr/bin/sh", "-c", r#"out=$1; shift; exec "$@" >"$out""#, "sh"].map(String::from).to_vec();
-    inner.push(list.to_string_lossy().to_string());
+    inner.push(list.exact_text().to_string());
     inner.extend_from_slice(tool);
     inner.extend(["l", "-slt", "--"].map(String::from));
-    inner.push(image.to_string_lossy().to_string());
+    inner.push(image.exact_text().to_string());
     step(runner, inner, image, work, deadline)?;
     let mut hops = 0;
     let member = resolve(&read_capped(&list, MAX_LIST_BYTES)?, &mut |link| {
@@ -193,9 +194,9 @@ fn icon(tool: &[String], runner: Runner, image: &Path, work: &mut Work, deadline
 fn extract(tool: &[String], image: &Path, out: &Path, member: &str) -> Vec<String> {
     let mut inner: Vec<String> = tool.to_vec();
     inner.extend(["e", "-y", "-bd"].map(String::from));
-    inner.push(format!("-o{}", out.to_string_lossy()));
+    inner.push(format!("-o{}", out.exact_text()));
     inner.push("--".to_string());
-    inner.push(image.to_string_lossy().to_string());
+    inner.push(image.exact_text().to_string());
     inner.push(member.to_string());
     inner
 }

@@ -1,3 +1,4 @@
+use flea::bytename::ExactText as _;
 use super::wire::{count, flag, number, text, word, Wire};
 use crate::jsondoc::Json;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
@@ -22,9 +23,13 @@ pub struct Row {
     pub icon: String,
 }
 impl Row {
+    // The name a person reads: the lossy spelling of a name that is not UTF-8, never its exact tail.
+    pub fn shown(&self) -> std::borrow::Cow<'_, str> {
+        flea::bytename::display(&self.name)
+    }
     pub fn is_pdf(&self) -> bool {
         !self.directory && self.link.is_empty()
-            && std::path::Path::new(&self.name).extension()
+            && std::path::Path::new(&*self.shown()).extension()
                 .and_then(|extension| extension.to_str())
                 .is_some_and(|extension| extension.eq_ignore_ascii_case("pdf"))
     }
@@ -453,7 +458,7 @@ impl Model {
         self.pending = Some(path.clone());
         let result = wire.send(vec![
             ("c", word("list")),
-            ("path", word(&path.to_string_lossy())),
+            ("path", word(&path.exact_text())),
             ("first", number(self.height)),
             ("hidden", Json::Bool(self.hidden)),
             ("by", word(&self.sort)),
@@ -512,17 +517,17 @@ impl Model {
         if self.path == path { return Ok(()); }
         self.path = path;
         self.parents.clear();
-        self.peek_sent = self.path.parent().map(PathBuf::from);
+        self.peek_sent = self.path.parent().map(flea::bytename::exact);
         if let Some(parent) = &self.peek_sent {
-            wire.send(vec![("c", word("peek")), ("path", word(&parent.to_string_lossy())),
-                ("focus", word(&self.path.file_name().unwrap_or_default().to_string_lossy())),
+            wire.send(vec![("c", word("peek")), ("path", word(&parent.exact_text())),
+                ("focus", word(&self.path.file_name().unwrap_or_default().exact_text())),
                 ("first", number(self.height)), ("hidden", Json::Bool(self.hidden))])?;
         }
         Ok(())
     }
     pub(super) fn search_settled(&mut self, wire: &mut Wire) -> io::Result<()> {
         if let Some(path) = &self.restore_path {
-            wire.send(vec![("c", word("locate")), ("path", word(&path.to_string_lossy()))])?;
+            wire.send(vec![("c", word("locate")), ("path", word(&path.exact_text()))])?;
         }
         self.locate_survivors(wire)
     }
@@ -556,7 +561,7 @@ impl Model {
             self.search = self.prompts.i18n.tr("find.starting");
             self.invalidate_rows();
             self.sort_anchor = None;
-            wire.send(vec![("c", word("search")), ("path", word(&self.path.to_string_lossy())),
+            wire.send(vec![("c", word("search")), ("path", word(&self.path.exact_text())),
                 ("query", word(&self.search_query)), ("hidden", Json::Bool(self.hidden))])
         } else { self.open(self.path.clone(), wire) }
     }
@@ -579,7 +584,7 @@ impl Model {
         ])
     }
     pub fn row_path(&self, row: &Row) -> PathBuf {
-        self.path.join(&row.name)
+        self.path.join(flea::bytename::text_path(&row.name))
     }
     // The displayed safe identity also feeds previews; actions separately refuse a held Find snapshot.
     pub fn current_path(&self) -> Option<PathBuf> {
@@ -616,14 +621,14 @@ impl Model {
         if self.menu_action != "deleteRestore" { return Ok(()); }
         self.restore_id = self.restore_id.wrapping_add(1).max(1);
         wire.send(vec![("c", word("locate")), ("id", number(self.restore_id)), ("menuId", number(self.action_id)),
-            ("paths", Json::Arr(self.restore_selection.iter().map(|path| word(&path.to_string_lossy())).collect()))])
+            ("paths", Json::Arr(self.restore_selection.iter().map(|path| word(&path.exact_text())).collect()))])
     }
     fn restore_survivors(&mut self, value: &Json) -> bool {
         if self.menu_action != "deleteRestore" || self.pending.is_some() || self.searching
-            || count(value, "id") != self.restore_id || text(value, "directory") != self.path.to_string_lossy() { return false; }
+            || count(value, "id") != self.restore_id || text(value, "directory") != self.path.exact_text() { return false; }
         if flag(value, "ok") {
             for item in value.get("matches").and_then(Json::as_array).unwrap_or(&[]) {
-                let path = PathBuf::from(text(item, "path"));
+                let path = flea::bytename::exact(text(item, "path"));
                 let Some(index) = item.get("index").and_then(Json::as_f64).filter(|index| index.is_finite() && *index >= 0.0 && index.fract() == 0.0 && *index < self.total as f64) else { continue; };
                 if !self.restore_selection.remove(&path) { continue; }
                 self.selected.insert(index as usize);
@@ -813,8 +818,8 @@ impl Model {
                 self.cursor = self.cursor.min(self.total.saturating_sub(1));
                 // Only the anchor still waited for moves the cursor; a superseded or foreign reply leaves the wait alive.
                 if value.get("anchor").and_then(Json::as_str).is_some()
-                    && text(&value, "path") == self.path.to_string_lossy()
-                    && self.sort_anchor.as_ref().is_some_and(|waiting| waiting.to_string_lossy() == text(&value, "anchor"))
+                    && text(&value, "path") == self.path.exact_text()
+                    && self.sort_anchor.as_ref().is_some_and(|waiting| waiting.exact_text() == text(&value, "anchor"))
                 {
                     let index = value.get("anchorIndex").and_then(Json::as_f64).unwrap_or(-1.0);
                     if index >= 0.0 && index.fract() == 0.0 && index < self.total as f64 {
@@ -825,7 +830,7 @@ impl Model {
                     }
                 }
                 // No parent column at /: clear it and send no peek, so nothing waits.
-                match self.path.parent().map(PathBuf::from) {
+                match self.path.parent().map(flea::bytename::exact) {
                     None => {
                         self.parents.clear();
                         self.peek_sent = None;
@@ -833,8 +838,8 @@ impl Model {
                     Some(parent) => {
                         wire.send(vec![
                             ("c", word("peek")),
-                            ("path", word(&parent.to_string_lossy())),
-                            ("focus", word(&self.path.file_name().unwrap_or_default().to_string_lossy())),
+                            ("path", word(&parent.exact_text())),
+                            ("focus", word(&self.path.file_name().unwrap_or_default().exact_text())),
                             ("first", number(self.height)),
                             ("hidden", Json::Bool(self.hidden)),
                         ])?;
@@ -846,7 +851,7 @@ impl Model {
                 if let Some(path) = self.restore_path.as_ref().filter(|_| !self.searching) {
                     wire.send(vec![
                         ("c", word("locate")),
-                        ("path", word(&path.to_string_lossy())),
+                        ("path", word(&path.exact_text())),
                     ])?;
                 }
                 if !self.searching { self.locate_survivors(wire)?; }
@@ -859,11 +864,11 @@ impl Model {
             }
             "located" => {
                 if self.pending.is_none()
-                    && text(&value, "directory") == self.path.to_string_lossy()
+                    && text(&value, "directory") == self.path.exact_text()
                     && self
                         .restore_path
                         .as_ref()
-                        .is_some_and(|p| p.to_string_lossy() == text(&value, "path"))
+                        .is_some_and(|p| p.exact_text() == text(&value, "path"))
                 {
                     let index = value.get("index").and_then(Json::as_f64).unwrap_or(-1.0);
                     if index >= 0.0 && index < self.total as f64 {
@@ -871,7 +876,7 @@ impl Model {
                         self.window(wire)?;
                     } else {
                         if !self.search.is_empty() {
-                            if let Some(parent) = self.restore_path.as_ref().and_then(|path| path.parent()).map(PathBuf::from) {
+                            if let Some(parent) = self.restore_path.as_ref().and_then(|path| path.parent()).map(flea::bytename::exact) {
                                 self.open(parent, wire)?;
                             } else { self.restore_path = None; }
                         } else { self.restore_path = None; }
@@ -907,7 +912,7 @@ impl Model {
                     }
                 }
             }
-            "fsinfo" if self.pending.is_none() && text(&value, "path") == self.path.to_string_lossy() => {
+            "fsinfo" if self.pending.is_none() && text(&value, "path") == self.path.exact_text() => {
                 self.disk_path = self.path.clone();
                 self.disk_fs = text(&value, "fs").into();
                 self.disk_free = count(&value, "free");
@@ -923,7 +928,7 @@ impl Model {
                 if self.thumb_index == Some(count(&value, "row"))
                     && !text(&value, "file").is_empty()
                 {
-                    self.image_file = Some(PathBuf::from(text(&value, "file")));
+                    self.image_file = Some(flea::bytename::exact(text(&value, "file")));
                 }
             }
             "owner" => self.detail.receive(&value, &self.rows),
@@ -942,7 +947,7 @@ impl Model {
                 if self
                     .preview_children
                     .as_ref()
-                    .is_some_and(|path| path.to_string_lossy() == text(&value, "path"))
+                    .is_some_and(|path| path.exact_text() == text(&value, "path"))
                     && self.current_path().as_ref() == self.preview_children.as_ref()
                 {
                     self.preview_rows_generation = self.preview_generation;
@@ -971,7 +976,7 @@ impl Model {
                 if self
                     .path
                     .parent()
-                    .map(|p| p.to_string_lossy() == text(&value, "path"))
+                    .map(|p| p.exact_text() == text(&value, "path"))
                     .unwrap_or(false)
                 {
                     self.peek_sent = None;
@@ -991,7 +996,7 @@ impl Model {
                 if self.pending.is_none()
                     && !self.choose_pending
                     && self.search.is_empty() && self.prompts.trash.is_none()
-                    && text(&value, "path") == self.path.to_string_lossy()
+                    && text(&value, "path") == self.path.exact_text()
                 {
                     self.restore_cursor = Some(self.cursor);
                     if self.menu_action != "deleteRestore" { self.restore_path = self.current_path(); }
@@ -1041,7 +1046,7 @@ impl Model {
                     self.cursor = 0;
                     self.top = 0;
                     if let Some(path) = &self.restore_path {
-                        wire.send(vec![("c", word("locate")), ("path", word(&path.to_string_lossy()))])?;
+                        wire.send(vec![("c", word("locate")), ("path", word(&path.exact_text()))])?;
                     }
                     self.locate_survivors(wire)?;
                 }
@@ -1107,7 +1112,7 @@ impl Model {
                 let line = super::prompts::receipt(self, &value);
                 if !line.is_empty() { self.say_text(super::prompts::receipt_text(self, &value)); }
                 if matches!(operation, "renamed" | "made" | "duplicated") {
-                    self.restore_path = Some(PathBuf::from(text(&value, "path")));
+                    self.restore_path = Some(flea::bytename::exact(text(&value, "path")));
                     self.editor = None;
                 }
                 self.refresh(wire)?;
@@ -1122,9 +1127,9 @@ impl Model {
                 }
                 if flag(&value, "ok") {
                     self.editor = None;
-                    super::prompts::record(self, "newfile", vec![PathBuf::from(text(&value, "path"))]);
+                    super::prompts::record(self, "newfile", vec![flea::bytename::exact(text(&value, "path"))]);
                     self.say_text(super::prompts::undoable_text(self, super::words::Text::Key("receipt.fileCreated")));
-                    self.restore_path = Some(PathBuf::from(text(&value, "path")));
+                    self.restore_path = Some(flea::bytename::exact(text(&value, "path")));
                     self.refresh(wire)?;
                 } else if let Some(editor) = &mut self.editor {
                     editor.pending = false;
@@ -1150,7 +1155,7 @@ impl Model {
                     if flag(&value, "cancelled") { line.push(super::words::Text::Key("tui.model.deleted_cancelled")); }
                     self.say_text(super::words::Text::Joined(line));
                     if count(&value, "failed") > 0 { self.fail_text(super::words::args("tui.model.deleted_failed", vec![super::words::Text::Count(count(&value, "failed")), text(&value, "error").into()])); }
-                    let remaining: BTreeSet<PathBuf> = value.get("remaining").and_then(Json::as_array).unwrap_or(&[]).iter().filter_map(Json::as_str).map(PathBuf::from).collect();
+                    let remaining: BTreeSet<PathBuf> = value.get("remaining").and_then(Json::as_array).unwrap_or(&[]).iter().filter_map(Json::as_str).map(flea::bytename::exact).collect();
                     self.restore_marks = std::mem::take(&mut self.delete_marks);
                     self.restore_marks.retain(|path, _| remaining.contains(path));
                     self.restore_path = None;
@@ -1195,7 +1200,7 @@ impl Model {
                         if paths.len() != self.menu_count {
                             self.fail_key("tui.model.bulk_rename_selection_is_incomplete_select_the_items_again");
                         } else {
-                            match super::batch::Batch::new(paths.into_iter().map(PathBuf::from).collect()) {
+                            match super::batch::Batch::new(paths.into_iter().map(flea::bytename::exact).collect()) {
                                 Ok(batch) => { self.bulk = Some(batch); self.menu_action = "bulkEditor".into(); }
                                 Err(error) => self.fail_io(&error),
                             }
@@ -1204,7 +1209,7 @@ impl Model {
                             wire.send(vec![("c", word("menuaction")), ("op", word("close")), ("id", number(self.action_id))])?;
                         }
                     } else if action == "open" {
-                        if !paths.iter().any(|path| PathBuf::from(path) == self.menu_path) {
+                        if !paths.iter().any(|path| flea::bytename::exact(path) == self.menu_path) {
                             self.fail_key("tui.model.could_not_open_selected_file");
                         } else if self.menu_directory {
                             if self.pending.is_some() { self.menu_action = "openWaiting".into(); }
@@ -1212,7 +1217,7 @@ impl Model {
                                 let path = self.menu_path.clone();
                                 super::actions::navigate(self, path, wire)?;
                             }
-                        } else if crate::open::open(&self.menu_path.to_string_lossy()) != 0 {
+                        } else if crate::open::open(&self.menu_path.exact_text()) != 0 {
                             self.fail_key("tui.model.could_not_open_selected_file");
                         }
                     } else if action == "taildrop" {
@@ -1258,7 +1263,7 @@ impl Model {
                     && self
                         .pending
                         .as_ref()
-                        .is_some_and(|p| p.to_string_lossy() == text(&value, "path"))
+                        .is_some_and(|p| p.exact_text() == text(&value, "path"))
                 {
                     self.pending = None;
                     self.restore_navigation();

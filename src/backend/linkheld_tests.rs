@@ -134,6 +134,25 @@ fn tui17_link_journal_child() {
     assert_eq!(std::fs::read_to_string(&source).unwrap(), "replacement");
 }
 #[test]
+fn a_raw_named_source_keeps_its_own_bytes_through_the_journal() {
+    use flea::bytename::ExactText as _;
+    use std::os::unix::ffi::OsStrExt;
+    let root = TestDir::new("linkheld-raw");
+    let raw = root.path().join(std::ffi::OsStr::from_bytes(b"src-\xff"));
+    std::fs::write(&raw, "raw").unwrap();
+    std::fs::write(root.path().join("src-\u{fffd}"), "twin").unwrap();
+    let held = capture(&[raw.exact_text().into_owned()]).unwrap();
+    let back = decode(&encode(&held)).unwrap();
+    assert_eq!(back[0].path, raw);
+    let inode = std::os::unix::fs::MetadataExt::ino(&std::fs::symlink_metadata(&raw).unwrap());
+    assert_eq!(
+        back[0].item.parts().1,
+        inode,
+        "the identity is the raw file's, never its twin's"
+    );
+}
+
+#[test]
 fn identities_survive_the_protocol_and_links_undo_redo_inside_the_fixture() {
     let root = TestDir::new("tui17-link-journal");
     let status = std::process::Command::new(std::env::current_exe().unwrap())

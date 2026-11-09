@@ -1,6 +1,7 @@
 // Duration, pixels and sample rate for a media row, which the preview column names and no listing
 // carries. ffprobe reads the container's own header; nothing is decoded and nothing is written.
 use crate::backend::sandbox;
+use flea::bytename::ExactText as _;
 use std::io::Read;
 use std::path::Path;
 use std::sync::{Arc, Condvar, Mutex};
@@ -54,7 +55,7 @@ fn argv(path: &Path) -> Vec<String> {
     ]
     .iter()
     .map(|s| s.to_string())
-    .chain(std::iter::once(path.to_string_lossy().to_string()))
+    .chain(std::iter::once(path.exact_text().to_string()))
     .collect()
 }
 

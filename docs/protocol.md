@@ -2253,8 +2253,9 @@ whose `start` lands past the end of the listing answers with `start` equal to th
 listing's length and an empty `rows` array, not the value that was requested.
 
 Each row object holds a name (`n`, JSON-escaped; a valid UTF-8 name may carry any
-character including a quote or a newline, but a non-UTF8 name arrives lossy and then
-cannot be stat'd, so it reports zeroes, see AGENTS.md "Deliberate corners"), a
+character including a quote or a newline, and a name that is not UTF-8 arrives as its lossy
+spelling, a NUL and its raw bytes in lowercase hex, which every path field accepts back and
+a client draws each such component without its NUL and hex tail, see docs/architecture/exact-names.md), a
 directory flag (`d`, the link's own type rather than its target's: a symlink to a
 directory reports `d:false` and carries `S_IFLNK` in `p`), a size in bytes (`s`), an
 mtime as a unix timestamp (`m`), a raw `st_mode` (`p`), a freedesktop icon name

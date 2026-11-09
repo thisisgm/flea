@@ -1,6 +1,7 @@
 // A transfer's deferred Replace session: trash each replaced item now, attribute every one to its gio entry at settle.
 use crate::backend::undo::Step;
 use crate::error::FleaError;
+use flea::bytename::ExactText as _;
 use std::path::{Path, PathBuf};
 
 // One merge's replaces under a single before/after list pair: each gio trash stays synchronous, so N replaces cost 2 lists instead of 2N, and a marked put-back restores at settle.
@@ -45,7 +46,7 @@ impl Deferred {
         }
         // Stamped before gio runs, as a chunk is, so the deletion date falls after it and undo's window starts there.
         let began = crate::backend::hometrash::deletion_date_local();
-        let _ = crate::backend::trash::gio(&["trash", "--", &dst.to_string_lossy()]);
+        let _ = crate::backend::trash::gio(&["trash", "--", &dst.exact_text()]);
         if dst.symlink_metadata().is_ok() {
             return Err(crate::backend::collide::TRASH_REFUSED.to_string());
         }

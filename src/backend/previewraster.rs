@@ -90,7 +90,7 @@ pub fn run(args: &[String]) -> i32 {
     let Some(size) = size.parse::<u32>().ok() else {
         return 2;
     };
-    let Some(bytes) = generate(Path::new(path), size) else {
+    let Some(bytes) = generate(&flea::bytename::view(path), size) else {
         return 1;
     };
     if std::io::stdout().lock().write_all(&bytes).is_ok() {

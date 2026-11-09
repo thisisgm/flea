@@ -3,6 +3,7 @@ use crate::backend::opsreq::OpMsg;
 use crate::backend::trashdelete::Reviewed;
 use crate::backend::trashmanifest::{Cancellation, Manifest, Op, Outcome, Refusal};
 use crate::json::{escape, field_bool, field_str, field_str_array, field_usize};
+use flea::bytename::ExactText as _;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::mpsc::{channel, Sender};
@@ -148,7 +149,7 @@ fn gio(args: &[&str]) -> Result<String, Refusal> {
     let prefix = super::trash::gio_prefix();
     answer(crate::backend::locale::command(&prefix[0])
         .args(&prefix[1..])
-        .args(args)
+        .args(flea::bytename::args(args))
         .output())
 }
 fn answer(output: std::io::Result<std::process::Output>) -> Result<String, Refusal> {
@@ -256,7 +257,7 @@ fn detail_text(item: &Item, text: &str) -> Result<Detail, Refusal> {
         .and_then(|uri| uri.strip_prefix("file://"))
         .and_then(|path| {
             Reviewed::inspect(
-                PathBuf::from(crate::paths::percent_decode(path)),
+                PathBuf::from(<std::ffi::OsString as std::os::unix::ffi::OsStringExt>::from_vec(crate::paths::percent_decode_bytes(path))),
                 attribute(text, "id::file").unwrap_or(""),
             )
             .ok()
@@ -296,7 +297,7 @@ fn thumbnail(item: &Detail) -> String {
         if let Some(backing) = &item.backing {
             if let Some((path, mtime)) = backing.thumbnail() {
                 return format!(r#"{{"path":"{}","provider":"{}","identity":"{}","mtime":{}}}"#,
-                    escape(&path.to_string_lossy()), escape(&backing.provider_identity()),
+                    escape(&path.exact_text()), escape(&backing.provider_identity()),
                     escape(&backing.selection_identity()), mtime);
             }
         }
@@ -507,7 +508,7 @@ impl Session {
             let mut text = row(item);
             text.pop();
             let class = if self.body.is_empty() { "null".into() } else {
-                let class = item.backing.as_ref().and_then(Reviewed::thumbnail_path).and_then(|path| path.parent().map(PathBuf::from))
+                let class = item.backing.as_ref().and_then(Reviewed::thumbnail_path).and_then(|path| path.parent().map(flea::bytename::exact))
                     .map(|parent| *classes.entry(parent.clone()).or_insert_with(|| super::extclass::classify_in(&parent, &self.body))).unwrap_or("");
                 format!(r#""{}""#, class)
             };
@@ -616,7 +617,7 @@ impl Session {
         while let Some(bytes) = targets.records().next(&mut offset)? {
             self.cancellation.check()?;
             let item = record_item(&record_text(bytes)?)?;
-            let mount = crate::backend::iomount::mount_key(&PathBuf::from(&item.original), &self.body);
+            let mount = crate::backend::iomount::mount_key(&flea::bytename::exact(&item.original), &self.body);
             if self.pending.iter().any(|held| held == &mount) {
                 return Ok(true);
             }
@@ -731,7 +732,7 @@ impl Session {
                     require_selected_identity(&current, &field_str(&text, "identity").unwrap_or_default())?;
                 }
                 let backing = current.backing.as_ref().ok_or_else(|| unchecked(Op::Restore))?;
-                let result = backing.restore(&PathBuf::from(&item.original), &crate::backend::trashdelete::recovery_root()?);
+                let result = backing.restore(&flea::bytename::exact(&item.original), &crate::backend::trashdelete::recovery_root()?);
                 thumbnails.record(backing, &result);
                 let result = result.map_err(String::from);
                 if result.is_err() { retained = surviving_identity(&current); }

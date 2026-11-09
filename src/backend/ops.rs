@@ -82,14 +82,16 @@ fn case_only_rename(path: &Path, to: &Path, before: ItemIdentity) -> Result<(Pat
 
 // "backup.tar.zst" becomes "backup.tar copy.zst": Path's own stem and extension split the last dot only, and a dotfile keeps its whole name as the stem.
 // Convert passes "(converted)" as the word for the parenthesised form the canvas draws; duplicate passes "copy".
-pub fn copy_name(original: &Path, word: &str, n: usize) -> Option<String> {
-    let name = original.file_name()?.to_str()?;
+pub fn copy_name(original: &Path, word: &str, n: usize) -> Option<std::ffi::OsString> {
+    let name = Path::new(original.file_name()?);
     let suffix = if n <= 1 { format!(" {}", word) } else { format!(" {} {}", word, n) };
-    let stem = Path::new(name).file_stem()?.to_str()?;
-    match Path::new(name).extension().and_then(|e| e.to_str()) {
-        Some(ext) => Some(format!("{}{}.{}", stem, suffix, ext)),
-        None => Some(format!("{}{}", stem, suffix)),
+    let mut out = name.file_stem()?.to_os_string();
+    out.push(suffix);
+    if let Some(ext) = name.extension() {
+        out.push(".");
+        out.push(ext);
     }
+    Some(out)
 }
 
 // The first " copy N" sibling not already taken. The copy itself is still created exclusively, so this is a starting point and not a promise.
@@ -271,6 +273,13 @@ mod tests {
             "shot (converted).png",
             "convert reuses this helper with its own word, per the canvas"
         );
+    }
+
+    #[test]
+    fn a_raw_name_copies_its_own_bytes_and_never_its_lossy_twin() {
+        use std::os::unix::ffi::OsStrExt;
+        let raw = Path::new(std::ffi::OsStr::from_bytes(b"/x/r-\xff.txt"));
+        assert_eq!(copy_name(raw, "copy", 1).unwrap().as_bytes(), b"r-\xff copy.txt");
     }
 
     #[test]

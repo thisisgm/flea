@@ -105,13 +105,17 @@ fn reason(kind: Kind, e: &std::io::Error, dst: At, inside: Option<&Path>) -> Opt
 pub(crate) fn refused(kind: Kind, e: &std::io::Error, dst: At, inside: Option<&Path>) -> FleaError {
     match reason(kind, e, dst, inside) {
         Some(msg) => marked(dst.named, msg),
-        None => from_io("copy", &dst.named.to_string_lossy(), e),
+        None => from_io("copy", &flea::bytename::path_text(dst.named), e),
     }
 }
 
 // The same marker for a refusal decided before any syscall, as the 4 GiB limit is.
 pub(crate) fn marked(named: &Path, msg: String) -> FleaError {
-    FleaError { where_: UNHELD.to_string(), path: named.to_string_lossy().to_string(), msg }
+    FleaError {
+        where_: UNHELD.to_string(),
+        path: flea::bytename::path_text(named).into_owned(),
+        msg,
+    }
 }
 
 // One copy_any starts with an empty list, so nothing an earlier copy on this thread refused is reported again.
@@ -126,7 +130,7 @@ pub(crate) fn note(e: FleaError) {
         let mut r = r.borrow_mut();
         r.1 += 1;
         if r.0.len() < NAMED {
-            r.0.push((PathBuf::from(e.path), e.msg));
+            r.0.push((flea::bytename::exact(e.path), e.msg));
         }
     });
 }
@@ -153,10 +157,18 @@ pub(crate) fn summary(top: &Path, moving: bool) -> Option<FleaError> {
         let msg = match (refused.1, moving) {
             (1, true) => format!("{inside} could not be moved: {why}"),
             (1, false) => format!("{inside} could not be copied: {why}"),
-            (n, true) => format!("{n} items inside could not be moved; the first is {inside}: {why}"),
-            (n, false) => format!("{n} items inside could not be copied; the first is {inside}: {why}"),
+            (n, true) => {
+                format!("{n} items inside could not be moved; the first is {inside}: {why}")
+            }
+            (n, false) => {
+                format!("{n} items inside could not be copied; the first is {inside}: {why}")
+            }
         };
-        Some(FleaError { where_: "copy".to_string(), path: top.to_string_lossy().to_string(), msg })
+        Some(FleaError {
+            where_: "copy".to_string(),
+            path: flea::bytename::path_text(top).into_owned(),
+            msg,
+        })
     })
 }
 

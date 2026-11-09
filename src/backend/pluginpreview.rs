@@ -257,7 +257,7 @@ pub(super) fn check(env: &Env, found: &Installed) -> Result<(), Invalid> {
 fn selected(manifest: &Manifest, request: &Json) -> Result<std::fs::File, Invalid> {
     let refuse = |why: &str| Invalid::new("request", why);
     let path = match request.get("paths").and_then(Json::as_array) {
-        Some([Json::Str(path)]) => Path::new(path),
+        Some([Json::Str(path)]) => flea::bytename::view(path),
         _ => return Err(refuse("preview takes exactly one selected file")),
     };
     let name = path
@@ -280,7 +280,8 @@ fn selected(manifest: &Manifest, request: &Json) -> Result<std::fs::File, Invali
     {
         return Err(refuse("previewer does not handle this type"));
     }
-    super::regfile::open_regular(path).ok_or_else(|| refuse("preview input must be a regular file"))
+    super::regfile::open_regular(&path)
+        .ok_or_else(|| refuse("preview input must be a regular file"))
 }
 
 // Plain text only: no control characters but newline and tab, and a bounded line count.

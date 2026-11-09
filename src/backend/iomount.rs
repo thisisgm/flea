@@ -315,10 +315,10 @@ pub fn list_dir(
     loop_tx: super::events::Sender<super::events::Event>,
     body: &str,
 ) -> Result<ListOut, ListErr> {
-    let path_buf = std::path::PathBuf::from(&path);
+    let path_buf = flea::bytename::exact(&path);
     let late_tx = loop_tx.clone();
     call_with_flag(&path_buf, body, "scan", CALL_DEADLINE, STUCK_TTL, move |out: Result<ListOut, ListErr>| hand_back_late(&out, &late_tx), move || {
-        let base = std::path::PathBuf::from(&path);
+        let base = flea::bytename::exact(&path);
         let wd = super::watch::Watch::add_raw(fd, &base);
         match super::scan::scan(&path, hidden) {
             Ok((mut l, read_ms)) => {

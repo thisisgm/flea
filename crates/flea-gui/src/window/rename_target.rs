@@ -19,13 +19,10 @@ impl Shell {
             return;
         };
         let source = crate::navigation::history::join(&capture.path, &row.name);
+        let shown = flea::bytename::display(&row.name).into_owned();
         let mut entry = Entry::default();
-        entry.begin(&row.name);
-        let cut = row
-            .name
-            .rfind('.')
-            .filter(|&at| at > 0)
-            .unwrap_or(row.name.len());
+        entry.begin(&shown);
+        let cut = shown.rfind('.').filter(|&at| at > 0).unwrap_or(shown.len());
         entry.move_to(0);
         entry.select_to(cut);
         self.rename.neighbour = Some((capture.path.clone(), row.name.clone()));
@@ -34,7 +31,7 @@ impl Shell {
             index: 0,
             listing: host.pane.held.listing,
             source,
-            name: row.name.clone(),
+            name: shown,
             menu: capture.id,
             entry,
             error: String::new(),

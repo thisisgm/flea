@@ -3,7 +3,6 @@ use super::opsdispatch::Ops;
 use super::opsreq::OpMsg;
 use crate::json::{escape, field_str, field_str_array, field_usize};
 use std::io::Write;
-use std::path::Path;
 use std::sync::atomic::AtomicBool;
 use std::time::Duration;
 
@@ -119,18 +118,22 @@ pub(super) fn request(out: &mut impl Write, ops: &mut Ops, line: &str) {
 
 // The sentence that refuses one selection path, naming it; None for an absolute path with a file name.
 fn path_error(path: &str) -> Option<String> {
-    if path.contains('\0') {
+    let shown = flea::bytename::display(path);
+    if flea::bytename::is_refused(path) {
         Some(format!(
             "rclone cannot send {}, it contains a NUL byte.",
-            path
+            shown
         ))
-    } else if !Path::new(path).is_absolute() {
+    } else if !flea::bytename::view(path).is_absolute() {
         Some(format!(
             "rclone requires an absolute selection path, not {}.",
-            path
+            shown
         ))
-    } else if Path::new(path).file_name().is_none() {
-        Some(format!("rclone cannot send {}, it has no file name.", path))
+    } else if flea::bytename::view(path).file_name().is_none() {
+        Some(format!(
+            "rclone cannot send {}, it has no file name.",
+            shown
+        ))
     } else {
         None
     }
@@ -153,5 +156,21 @@ mod tests {
         ] {
             assert!(!remote_name(name), "{name:?}");
         }
+    }
+
+    #[test]
+    fn rclone_sends_a_raw_named_path_and_refuses_only_a_stray_nul() {
+        use flea::bytename::ExactText as _;
+        use std::os::unix::ffi::OsStrExt;
+        let raw = std::path::Path::new(std::ffi::OsStr::from_bytes(b"/srv/caf\xe9.txt"))
+            .exact_text()
+            .into_owned();
+        assert_eq!(
+            path_error(&raw),
+            None,
+            "the exact text of a raw name is a sendable path"
+        );
+        let stray = path_error("/srv/a\0b").expect("a NUL that encodes no bytes is refused");
+        assert!(stray.contains("NUL byte"), "{stray}");
     }
 }

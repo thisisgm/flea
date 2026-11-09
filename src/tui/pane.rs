@@ -68,7 +68,8 @@ pub fn preview_row(m: &Model, y: usize, columns: usize, height: usize, theme: &T
     let inner = match y {
         0 => {
             let mark = if m.marks() { format!("{} ", icons::row(row, true)) } else { String::new() };
-            let leaf = row.name.rsplit('/').next().unwrap_or(&row.name);
+            let shown = row.shown();
+            let leaf = shown.rsplit('/').next().unwrap_or(&shown);
             let head = (text_width(&mark) + text_width(leaf)).min(width);
             let name = title(&mark, leaf, head, i18n);
             let target = if row.link.is_empty() { String::new() } else { format!(" {}", i18n.tr_args("preview.link_target", &[&row.link])) };

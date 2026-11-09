@@ -31,7 +31,7 @@ fn m9_g2rows_01_review_malformed_identity_fails_closed() {
             .unwrap()
             .matches
             .iter()
-            .position(|hit| !hit.operable)
+            .position(|hit| hit.path_bytes == b"raw-\xff.txt")
             .unwrap();
     let generation = f.st.generation;
     let alias = escape(&f.root.join("raw-�.txt").to_string_lossy());
@@ -58,7 +58,7 @@ fn m9_g2rows_01_review_malformed_identity_fails_closed() {
             .unwrap()
             .matches
             .iter()
-            .position(|hit| hit.operable)
+            .position(|hit| hit.path == "safe.txt")
             .unwrap();
     f.out.clear();
     f.request(&format!(
@@ -138,12 +138,6 @@ fn m9_g2rows_01_review_completed_cancel_and_close_are_idempotent() {
         "closed search emitted another terminal receipt: {}",
         f.text()
     );
-    let alias = escape(&f.root.join("raw-�.txt").to_string_lossy());
-    f.request(&format!(r#"{{"c":"locate","path":"{alias}"}}"#));
-    assert!(
-        f.text().contains("contentsidentity"),
-        "close must retain unsafe listing identity guard"
-    );
 }
 
 #[test]
@@ -172,7 +166,7 @@ fn m9_g2rows_01_review_sort_and_filter_preserve_match_identity() {
     for (row, hit) in held.matches.iter().enumerate() {
         assert_eq!(row, hit.row);
         assert_eq!(f.st.listing.name(row), hit.path);
-        assert_eq!(hit.operable, hit.path == "safe.txt");
+        assert!(hit.operable, "every hit, raw or not, names its own file");
     }
     let mut sorted_bytes: Vec<_> = held
         .matches
@@ -185,7 +179,7 @@ fn m9_g2rows_01_review_sort_and_filter_preserve_match_identity() {
     assert_eq!(sorted_bytes, before_bytes);
     f.out.clear();
     f.request(r#"{"c":"window","start":1,"count":2}"#);
-    assert_eq!(f.text().matches(r#""operable":false"#).count(), 2);
+    assert_eq!(f.text().matches(r#""operable":false"#).count(), 0);
 
     let mut f = Fixture::new();
     std::fs::write(f.root.join("a.txt"), "needle\n").unwrap();

@@ -51,8 +51,8 @@ impl Ask {
             Some(Json::Bool(value)) => *value,
             _ => return Err("invalid hidden".into()),
         };
-        if !std::path::Path::new(&path).is_absolute()
-            || path.contains('\0')
+        if !flea::bytename::view(&path).is_absolute()
+            || flea::bytename::is_refused(&path)
             || query.is_empty()
             || query.contains(['\0', '\n', '\r'])
             || gen == 0

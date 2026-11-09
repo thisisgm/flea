@@ -90,7 +90,7 @@ impl Shell {
             let count = cx
                 .background_executor()
                 .spawn(async move {
-                    crate::g2::pv2::poppler::Document::open(Path::new(&path))
+                    crate::g2::pv2::poppler::Document::open(&flea::bytename::view(&path))
                         .map(|document| u32::try_from(document.page_count()).unwrap_or(u32::MAX))
                         .map_err(|failure| match failure {
                             crate::g2::pv2::poppler::Failure::Library(reason) => reason,

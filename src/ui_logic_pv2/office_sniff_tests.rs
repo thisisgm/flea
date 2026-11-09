@@ -1,5 +1,18 @@
 use super::*;
 
+#[test]
+fn a_raw_named_container_is_typed_by_its_extension() {
+    use std::os::unix::ffi::OsStrExt;
+    let exact = crate::bytename::path_text(std::path::Path::new(std::ffi::OsStr::from_bytes(
+        b"/d/r\xff.odt",
+    )))
+    .into_owned();
+    assert!(
+        is_container_path(&exact),
+        "the extension sits before the exact tail"
+    );
+}
+
 // A zip of stored entries, each name and data, with its central directory and end record.
 fn zip(entries: &[(&str, &[u8])]) -> Vec<u8> {
     zip_at(entries, 0)

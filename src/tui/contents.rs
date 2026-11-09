@@ -1,3 +1,4 @@
+use flea::bytename::ExactText as _;
 use super::{
     model::{Model, Row},
     wire::{count, text, Wire},
@@ -78,12 +79,11 @@ pub(super) fn start(
     wire: &mut Wire,
 ) -> io::Result<bool> {
     let home = std::env::var("HOME").unwrap_or_default();
-    let Some(root) = Session::scope_root(&folder.to_string_lossy(), &home, m.find.session.scope)
-    else {
+    let Some(root) = Session::scope_root(&folder.exact_text(), &home, m.find.session.scope) else {
         m.find.session.scope = m.find.active.as_ref().map_or(Scope::Folder, |q| q.scope);
         return Ok(false);
     };
-    let root = PathBuf::from(root);
+    let root = flea::bytename::exact(root);
     if m.find.previous.is_none() {
         m.find.previous = Some((
             m.search.clone(),
@@ -294,7 +294,7 @@ pub(super) fn receive(m: &mut Model, value: &Json, wire: &mut Wire) -> io::Resul
             _ => bad(m),
         }
     } else if kind == "listed" {
-        if text(value, "path") != ask.root.to_string_lossy() {
+        if text(value, "path") != ask.root.exact_text() {
             return Ok(true);
         }
         block(m, listing);
@@ -355,7 +355,7 @@ pub(super) fn receive(m: &mut Model, value: &Json, wire: &mut Wire) -> io::Resul
             m.cursor = m
                 .sort_anchor
                 .as_ref()
-                .filter(|p| p.to_string_lossy() == text(&listed, "anchor"))
+                .filter(|p| p.exact_text() == text(&listed, "anchor"))
                 .and_then(|_| listed.get("anchorIndex").and_then(Json::as_f64))
                 .filter(|index| *index >= 0.0 && *index < m.total as f64)
                 .map_or(0, |index| index as usize);

@@ -1,5 +1,6 @@
 use crate::backend::manifestdir::current_uid;
 use crate::backend::sandbox;
+use flea::bytename::ExactText as _;
 use std::os::unix::fs::MetadataExt;
 use std::path::{Component, Path, PathBuf};
 
@@ -86,7 +87,11 @@ fn rows(program: &Path, target: &Path, hops: &[PathBuf]) -> Vec<String> {
 }
 
 fn bind(target: &Path, at: &Path) -> Vec<String> {
-    vec!["--ro-bind".to_string(), target.to_string_lossy().to_string(), at.to_string_lossy().to_string()]
+    vec![
+        "--ro-bind".to_string(),
+        target.exact_text().to_string(),
+        at.exact_text().to_string(),
+    ]
 }
 
 // A regular executable that only root or this user can have written, so the bind hands the jail nothing a stranger shaped.

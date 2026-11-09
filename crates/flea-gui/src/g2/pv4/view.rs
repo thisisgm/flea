@@ -224,7 +224,7 @@ impl Model3dView {
         let read = data.clone();
         let job = cx.background_executor().spawn(async move {
             reader
-                .read(std::path::Path::new(&file), &read)
+                .read(&flea::bytename::view(&file), &read)
                 .and_then(|scene| Model::build(scene, plate, palette))
         });
         self._build = Some(cx.spawn(async move |this, cx| {

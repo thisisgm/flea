@@ -21,9 +21,9 @@ A digit run is compared without parsing, because a 40-digit run overflows every 
 leading zeros, longer remaining run wins, then compare the digits as bytes. **corner: ASCII only.**
 Finder also collates a diacritic beside its base letter, which needs a collation table, and this
 tree ships zero dependencies with `Cargo.lock` byte-identical as a gate, so a byte above `0x7f`
-falls back to byte order, which for UTF-8 is code point order. A name that is not UTF-8 never
-reaches the comparator at all: the arena is a `String` and `scan.rs:16` already converts lossily at
-the readdir, with its own corner tag there.
+falls back to byte order, which for UTF-8 is code point order. A name that is not UTF-8 reaches the
+comparator as its exact text, its lossy spelling then a NUL and its bytes in hex (see "A name that is
+not UTF-8 is carried exactly"), so it sorts by that spelling and its tail, and never ties a sibling.
 
 Measured on this box, release build, seven runs each, medians: **100,000 rows 2.02 ms to 4.62 ms,
 2,000 rows 0.225 ms to 0.586 ms.** So the listing hot path pays about 2.6 ms once on the largest
@@ -36,14 +36,11 @@ Task 5b made the substitution, proved it output-identical, and reverted it on ti
 
 The order argument, for whoever revisits this. The comparator's key is `(is_dir, name)`, it
 returns `Equal` only when both fields match, and POSIX gives each entry in a directory a unique
-name, so on names that are valid UTF-8 the order is total and the substitution cannot change the
-output. The one hole is that `scan.rs` pushes `file_name().to_string_lossy()`, so two distinct
-non-UTF-8 names in one directory can collide on the same lossy string and tie; see the `scan.rs`
-entry under "Deliberate corners". That hole is harmless, because two rows that tie there carry
-the same name, the same `is_dir` and the same failed stat, which makes them byte-identical
-objects on the wire, so no permutation of them is observable. It was exercised rather than
-argued: a fixture with three file names and two directory names colliding on two lossy strings
-sorted identically under both. **The output was byte-identical in all ten comparisons taken**,
+name, so the order is total and the substitution cannot change the output. Before 0.4.2 there was
+one hole: `scan.rs` pushed the lossy spelling, so two distinct non-UTF-8 names in one directory
+could tie. Each now carries its exact bytes in its text, so no two rows tie. While the hole stood it
+was exercised rather than argued: a fixture with three file names and two directory names colliding
+on two lossy strings sorted identically under both. **The output was byte-identical in all ten comparisons taken**,
 four trees plus that fixture, ascending and descending, 100,000 rows down to 7, with the only
 difference anywhere being the `rows` line's own `ms` stat-timing field, which is a measurement.
 

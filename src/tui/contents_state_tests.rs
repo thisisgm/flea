@@ -92,7 +92,7 @@ fn tui_contents_raw_identity_and_operations_fail_closed() {
     let gen = enter(&mut m, &mut w, "needle");
     let hit = ContentsMatch {
         row: 0,
-        path: "bad�.txt".into(),
+        path: "bad�.txt\u{0}626164ff2e747874".into(),
         path_bytes: b"bad\xff.txt".to_vec(),
         line_no: 3,
         line: "needle".into(),
@@ -110,7 +110,14 @@ fn tui_contents_raw_identity_and_operations_fail_closed() {
         .line(),
     );
     listed(&mut m, &mut w, gen, 51, 1);
-    rows(&mut m, &mut w, gen, 51, 0, &["bad�.txt"]);
+    rows(
+        &mut m,
+        &mut w,
+        gen,
+        51,
+        0,
+        &["bad�.txt\u{0}626164ff2e747874"],
+    );
     receive(
         &mut m,
         &mut w,

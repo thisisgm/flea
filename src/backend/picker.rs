@@ -1,4 +1,5 @@
 // Picker checks retain reviewed objects; only the application receiving a URI writes its contents.
+use flea::bytename::ExactText as _;
 use super::listing::Listing;
 use super::mime::Db;
 use super::opsreq::OpMsg;
@@ -146,7 +147,7 @@ impl State {
         let id = field_usize(line, "id").filter(|id| *id > 0).ok_or("Picker request has no identity.")?;
         match field_str(line, "op").as_deref() {
             Some("mark") => {
-                let path = PathBuf::from(field_str(line, "path").unwrap_or_default());
+                let path = flea::bytename::exact(field_str(line, "path").unwrap_or_default());
                 if let Some(index) = self.marks.iter().position(|item| item.path == path) {
                     self.marks.remove(index);
                 } else {
@@ -160,14 +161,17 @@ impl State {
                 self.valid_marks(cancel)
             }
             Some("select") => {
-                let paths: Vec<PathBuf> = field_str_array(line, "paths").into_iter().map(PathBuf::from).collect();
+                let paths: Vec<PathBuf> = field_str_array(line, "paths")
+                    .into_iter()
+                    .map(flea::bytename::exact)
+                    .collect();
                 let directory = field_bool(line, "directory");
                 self.select(&paths, directory, cancel, Held::open)
             }
             Some("validate") => self.valid_marks(cancel),
             Some("save") => {
                 self.save = None;
-                let path = PathBuf::from(field_str(line, "folder").unwrap_or_default());
+                let path = flea::bytename::exact(field_str(line, "folder").unwrap_or_default());
                 let name = field_str(line, "name").unwrap_or_default();
                 if let Some(refusal) = super::ops::name_refusal_sentence(&name) { return Err(refusal); }
                 let folder = Held::open(&path, true)?;
@@ -180,11 +184,28 @@ impl State {
                         Some(held)
                     }
                     Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
-                    Err(error) => return Err(format!("Could not inspect output location: {}.", io_message(&error))),
+                    Err(error) => {
+                        return Err(format!(
+                            "Could not inspect output location: {}.",
+                            io_message(&error)
+                        ))
+                    }
                 };
-                if let Some(target) = &target { target.current()?; }
-                let result = format!(r#""review":{},"path":"{}","collision":{}"#, id, escape(&path.to_string_lossy()), target.is_some());
-                self.save = Some(SaveReview { id, folder, path, target });
+                if let Some(target) = &target {
+                    target.current()?;
+                }
+                let result = format!(
+                    r#""review":{},"path":"{}","collision":{}"#,
+                    id,
+                    escape(&path.exact_text()),
+                    target.is_some()
+                );
+                self.save = Some(SaveReview {
+                    id,
+                    folder,
+                    path,
+                    target,
+                });
                 Ok(result)
             }
             Some("review") => {
@@ -196,11 +217,25 @@ impl State {
                 } else {
                     match review.path.symlink_metadata() {
                         Err(error) if error.kind() == std::io::ErrorKind::NotFound => (),
-                        Ok(_) => return Err("An item with this name just appeared there; review it again.".into()),
-                        Err(error) => return Err(format!("Could not inspect output location: {}.", io_message(&error))),
+                        Ok(_) => {
+                            return Err(
+                                "An item with this name just appeared there; review it again."
+                                    .into(),
+                            )
+                        }
+                        Err(error) => {
+                            return Err(format!(
+                                "Could not inspect output location: {}.",
+                                io_message(&error)
+                            ))
+                        }
                     }
                 }
-                Ok(format!(r#""path":"{}","collision":{}"#, escape(&review.path.to_string_lossy()), review.target.is_some()))
+                Ok(format!(
+                    r#""path":"{}","collision":{}"#,
+                    escape(&review.path.exact_text()),
+                    review.target.is_some()
+                ))
             }
             _ => Err("Unknown picker check.".into()),
         }
@@ -225,8 +260,15 @@ impl State {
                 Err(error) => {
                     let prefix = format!("Could not inspect {}: ", path.display());
                     // The picker joins this clause into its own sentence, so it carries neither the prefix nor the closing period.
-                    let why = error.strip_prefix(&prefix).unwrap_or(&error).trim_end_matches('.');
-                    skipped.push(format!(r#"{{"path":"{}","why":"{}"}}"#, escape(&path.to_string_lossy()), escape(why)));
+                    let why = error
+                        .strip_prefix(&prefix)
+                        .unwrap_or(&error)
+                        .trim_end_matches('.');
+                    skipped.push(format!(
+                        r#"{{"path":"{}","why":"{}"}}"#,
+                        escape(&path.exact_text()),
+                        escape(why)
+                    ));
                     continue;
                 }
             };
@@ -263,13 +305,22 @@ impl State {
         let mut rows = Vec::new();
         let mut missing = 0;
         self.marks.retain(|item| {
-            if cancel.check().is_err() { return false; }
+            if cancel.check().is_err() {
+                return false;
+            }
             match item.current() {
                 Ok(meta) => {
-                    rows.push(format!(r#"{{"path":"{}","bytes":{}}}"#, escape(&item.path.to_string_lossy()), meta.len()));
+                    rows.push(format!(
+                        r#"{{"path":"{}","bytes":{}}}"#,
+                        escape(&item.path.exact_text()),
+                        meta.len()
+                    ));
                     true
                 }
-                Err(_) => { missing += 1; false }
+                Err(_) => {
+                    missing += 1;
+                    false
+                }
             }
         });
         cancel.check()?;

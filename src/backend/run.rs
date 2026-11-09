@@ -22,6 +22,7 @@ use crate::backend::listpaths;
 use crate::backend::listwork::{self, Gate};
 use crate::backend::proto::{error_line, listed_line, parse_request, paths_line, thumbed_line, Request};
 use crate::backend::proto::with_anchor;
+use flea::bytename::ExactText as _;
 pub use super::windowreq::{write_window, write_window_gen};
 pub(crate) use super::windowreq::window_metas;
 use super::windowreq::window_line;
@@ -219,7 +220,7 @@ fn dispatch_inner<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tabl
         Event::FsInfo(d) if gate.holds() => gate.hold(Event::FsInfo(d)),
         Event::FsInfo(d) => {
             if let Some(info) = fsinfo.finish(d, &st.base) {
-                say(out, &fsinfo_line(&info, &st.base.to_string_lossy(), crate::backend::fsinforeq::slow_class(&st.base), fsinfo.tagable_shown(&st.base), false));
+                say(out, &fsinfo_line(&info, &flea::bytename::path_text(&st.base), crate::backend::fsinforeq::slow_class(&st.base), fsinfo.tagable_shown(&st.base), false));
             }
         }
         // The one line no client asked for, and only ever for the directory being listed now.
@@ -318,10 +319,10 @@ fn land<W: Write>(out: &mut W, st: &mut State, tb: &Tables, pool: &Pool, watch: 
     let path = landed.job.path.clone();
     if listwork::finish(out, st, tb, pool, watch, landed) {
         // After the rows, because a statfs beside gio's own listing slows it on the share.
-        fsinfo.list_arrived(Path::new(&path), &st.listing);
+        fsinfo.list_arrived(&flea::bytename::view(&path), &st.listing);
         // Every open outline folder uses the same remote poll path as its root.
-        poller.set(PathBuf::from(path));
-        poller.set_children(st.listing.outline_open.iter().map(|name| st.base.join(name)));
+        poller.set(flea::bytename::exact(path));
+        poller.set_children(st.listing.outline_open.iter().map(|name| st.base.join(flea::bytename::view(name))));
     }
 }
 
@@ -462,12 +463,12 @@ fn handle_line(
             }
             match super::outline::request(st, &rows, anchor, open, enabled, first) {
                 Ok(line) => return handle_line(&line, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate),
-                Err(msg) => say(out, &error_line(&FleaError { where_: "outline".into(), path: st.base.to_string_lossy().into_owned(), msg })),
+                Err(msg) => say(out, &error_line(&FleaError { where_: "outline".into(), path: flea::bytename::path_text(&st.base).into_owned(), msg })),
             }
         }
         // A local list lands inline here, a remote one as Event::List; both land through finish.
         Request::List { path, first, hidden, want_changed, keep } => {
-            let tabs = keep.into_iter().map(PathBuf::from).collect();
+            let tabs = keep.into_iter().map(flea::bytename::exact).collect();
             st.settled.keep(tabs);
             #[cfg(test)]
             super::renametiming::mark("dispatch_list");
@@ -516,7 +517,7 @@ fn handle_line(
             if finish_search(out, st, true) {
                 forget_rows(st, pool);
             }
-            st.base = PathBuf::from(&path);
+            st.base = flea::bytename::text_path(&path).into_owned();
             st.listing = Listing::new();
             // A walk holds no directory listing, so neither re-read counts over it.
             st.held = Held::Walk;
@@ -529,7 +530,7 @@ fn handle_line(
                 // A root that answers nothing starts no walk, so no terminal line can strand it.
                 Err(e) => { writeln!(out, "{}", error_line(&e)).ok(); }
                 Ok((dev, writable)) => {
-                    writeln!(out, "{}", listed_line(0, 0.0, 0.0, dev, &st.base.to_string_lossy(), writable)).ok();
+                    writeln!(out, "{}", listed_line(0, 0.0, 0.0, dev, &flea::bytename::path_text(&st.base), writable)).ok();
                     st.search = Some(Search::new(&path, &query, hidden));
                     st.search_reported = Instant::now();
                 }
@@ -591,7 +592,7 @@ fn handle_line(
                     let hidden = st.search_session.as_ref().is_some_and(|session| session.hidden);
                     let walking = st.search_session.as_ref().is_some_and(|session| session.walking());
                     let session = Some(listwork::ForSession { gen, walking });
-                    let job = listwork::Job { path: folder.to_string_lossy().to_string(), first: count, line: line.to_string(), hidden, want_changed: false, session };
+                    let job = listwork::Job { path: folder.exact_text().to_string(), first: count, line: line.to_string(), hidden, want_changed: false, session };
                     if let listwork::Started::Inline(landed) = listwork::start(out, st, pool, watch, gate, job, Arc::clone(&tb.mime)) {
                         land(out, st, tb, pool, watch, fsinfo, poller, *landed);
                     }
@@ -607,7 +608,7 @@ fn handle_line(
             if let Some(session) = st.search_session.take() {
                 let scope = session.scope.clone();
                 let _ = session.close();
-                say(out, &searchclosed_line(&scope.to_string_lossy()));
+                say(out, &searchclosed_line(&scope.exact_text()));
                 out.flush().ok();
             }
         }
@@ -651,11 +652,11 @@ fn handle_line(
                         // The listing is a snapshot, so only a path it never held answers -1.
                         Some(anchor) => {
                             let base = listed_line(st.listing.len(), pass_ms, sort_ms, dev,
-                                &st.base.to_string_lossy(), writable);
+                                &flea::bytename::path_text(&st.base), writable);
                             with_anchor(&base, anchor,
-                                st.listing.index_of(&st.base, Path::new(anchor)).map(|index| index as isize).unwrap_or(-1))
+                                st.listing.index_of(&st.base, &flea::bytename::view(anchor)).map(|index| index as isize).unwrap_or(-1))
                         }
-                        None => listed_line(st.listing.len(), pass_ms, sort_ms, dev, &st.base.to_string_lossy(), writable),
+                        None => listed_line(st.listing.len(), pass_ms, sort_ms, dev, &flea::bytename::path_text(&st.base), writable),
                     };
                     writeln!(out, "{}", line).ok();
                 }
@@ -749,7 +750,7 @@ fn handle_line(
         Request::Redo => start_redo(out, ops),
         // Never touches st.listing, which is the whole point: a column is not the pane's own listing.
         Request::Peek { path, first, details, hidden, hidden_last, focus, watch, keep, by, desc } => {
-            if watch && !keep.is_empty() { peeks.keep(keep.into_iter().map(PathBuf::from).collect()) }
+            if watch && !keep.is_empty() { peeks.keep(keep.into_iter().map(flea::bytename::exact).collect()) }
             let order = match super::peek::Order::wire(hidden_last, by.as_deref(), desc) {
                 Ok(order) => order,
                 // A key this wire never defined answers the sort's own error, never a name-order column.
@@ -762,9 +763,9 @@ fn handle_line(
         // The password leaves this wire only on the tool's own stdin pipe, never in argv or a log.
         Request::Archive { op, paths, path, dest, format, menu_id, password, encrypt_names } => start_archive(
             out, ops, Arc::clone(&tb.formats), &op,
-            paths, format, PathBuf::from(&path), PathBuf::from(&dest), menu_id, password, encrypt_names),
+            paths, format, flea::bytename::exact(&path), flea::bytename::exact(&dest), menu_id, password, encrypt_names),
         Request::Convert { path, dest, strip, menu_id, request_id, check } =>
-            start_convert(out, ops, PathBuf::from(&path), PathBuf::from(&dest), strip, menu_id, request_id, check),
+            start_convert(out, ops, flea::bytename::exact(&path), flea::bytename::exact(&dest), strip, menu_id, request_id, check),
         Request::PrintConvert(ask) => super::printreq::serve(out, ops, ask, Arc::clone(&tb.mime), Arc::clone(&tb.aliases)),
         Request::Formats { id } => {
             let mut line = formats_line(&tb.formats, convert::available());
@@ -775,27 +776,27 @@ fn handle_line(
         Request::FsInfo => {
             let (info, class, system) = fsinfo.answer(&st.base);
             let tagable = fsinfo.tagable(&st.base, class);
-            say(out, &fsinfo_line(&info, &st.base.to_string_lossy(), class, tagable, system));
+            say(out, &fsinfo_line(&info, &flea::bytename::path_text(&st.base), class, tagable, system));
         }
         Request::PdfCopy { id, slot, path } => {
-            super::pdfcopy::spawn(id, slot, PathBuf::from(&path), ops.tx.clone());
+            super::pdfcopy::spawn(id, slot, flea::bytename::exact(&path), ops.tx.clone());
         }
         Request::OfficePdf { id, path, sheets } => super::officepdf::serve(out, ops, &tb.mime, &tb.aliases, id, &path, sheets),
         Request::FontLook(ask) => super::fontinfo::render::spawn(ask, Arc::clone(&tb.mime), Arc::clone(&tb.aliases), ops.tx.clone()),
         // One row, only when a client asked: the same no-sweep rule thumb and dirsize already follow.
         Request::Owner { row, token } => {
-            let path = (row < st.listing.len()).then(|| st.base.join(st.listing.name(row)));
+            let path = (row < st.listing.len()).then(|| st.listing.path(&st.base, row));
             super::owner::spawn(row, path, token, ops.tx.clone());
         }
         Request::Meta { row, text, media, archive, token } => {
             if row < st.listing.len() {
                 let want = if archive { Some(Arc::clone(&tb.formats)) } else { None };
-                spawn_meta(row, st.base.join(st.listing.name(row)), text, media, want, token, ops.tx.clone())
+                spawn_meta(row, st.listing.path(&st.base, row), text, media, want, token, ops.tx.clone())
             }
         }
         // The Make executable row's own probe, answered on a thread: an open on a hung mount never returns.
         Request::Shebang { path, id } => {
-            super::shebang::spawn(PathBuf::from(&path), id, ops.tx.clone())
+            super::shebang::spawn(flea::bytename::exact(&path), id, ops.tx.clone())
         }
         // Answered on a thread, since bat runs in a jail and a read on a hung mount never returns.
         Request::Code(ask) => super::codereq::spawn(ask, ops.tx.clone()),
@@ -825,8 +826,8 @@ fn handle_line(
             )),
         ),
         Request::Locate { path } => {
-            let index = st.listing.index_of(&st.base, Path::new(&path));
-            say(out, &super::proto::located_line(&st.base.to_string_lossy(), &path, index));
+            let index = st.listing.index_of(&st.base, &flea::bytename::view(&path));
+            say(out, &super::proto::located_line(&flea::bytename::path_text(&st.base), &path, index));
         }
         Request::LocateMany { paths, id, menu_id, transfer_id } => {
             let mut matches = st.listing.indices_of(&st.base, &paths);
@@ -842,7 +843,7 @@ fn handle_line(
                     .and_then(|menu| menu.retain_survivors(menu_id, &mut matches)).err()
             };
             if error.is_some() { matches.clear(); }
-            say(out, &super::proto::located_many_line(&st.base.to_string_lossy(), id, transfer_id, &matches, error.as_deref()));
+            say(out, &super::proto::located_many_line(&flea::bytename::path_text(&st.base), id, transfer_id, &matches, error.as_deref()));
         }
         Request::Jump { id, ranking, favourites, recent } => super::jump::request(id, ranking, favourites, recent, ops.tx.clone()),
         Request::Devs { paths, id } => super::devsreq::request(paths, id, ops.tx.clone()),
@@ -943,9 +944,10 @@ enum Adopt { Listing { want_changed: bool }, Session(usize) }
 fn adopt_listed_as(out: &mut impl Write, st: &mut State, pool: &Pool, tb: &Tables, path: &str, done: super::iomount::ListOut, how: Adopt) {
     let (want_changed, gen) = match how { Adopt::Listing { want_changed } => (want_changed, None), Adopt::Session(gen) => (false, Some(gen)) };
     // A same-path re-list names added plus removed rows, so a rename counts 2 against a net delta of 0.
-    let same = st.held == Held::List && Path::new(path) == st.base.as_path();
+    let exact = flea::bytename::text_path(path);
+    let same = st.held == Held::List && exact == st.base.as_path();
     let changed = if same && want_changed { crate::backend::listing::changed_count(&st.listing, &done.listing) } else { 0 };
-    st.base = PathBuf::from(path);
+    st.base = exact.into_owned();
     st.settled.listed(&st.base);
     st.listing = done.listing;
     // A list holds a directory now, so only its own re-read counts.
@@ -955,7 +957,7 @@ fn adopt_listed_as(out: &mut impl Write, st: &mut State, pool: &Pool, tb: &Table
     if gen.is_some() {
         super::answersizes::fill(st, done.first_start, done.first_metas.len());
     }
-    let base = st.base.to_string_lossy().to_string();
+    let base = flea::bytename::path_text(&st.base).into_owned();
     let listed = match gen {
         Some(gen) => super::proto::listed_gen_line(st.listing.len(), done.read_ms, done.sort_ms, done.dev, &base, done.writable, gen),
         None => super::proto::say_listed(st.listing.len(), done.read_ms, done.sort_ms, done.dev, &base, done.writable),

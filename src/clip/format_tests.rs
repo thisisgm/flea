@@ -97,7 +97,7 @@ fn comments_localhost_and_plain_text_behave() {
 
 #[test]
 fn every_refusal_is_a_skip_and_never_a_failed_read() {
-    // Bad escapes, NUL, a relative path, dot components, non-UTF-8, duplicates, other schemes.
+    // Bad escapes, NUL, a relative path, dot components, duplicates, other schemes; a non-UTF-8 name is carried exactly.
     let lines: Vec<Vec<u8>> = vec![
         b"copy".to_vec(),
         b"file:///tmp/ok.txt".to_vec(),
@@ -117,9 +117,13 @@ fn every_refusal_is_a_skip_and_never_a_failed_read() {
     assert_eq!(op, "copy");
     assert_eq!(
         paths,
-        vec!["/tmp/ok.txt".to_string(), "/tmp/second.txt".to_string()]
+        vec![
+            "/tmp/ok.txt".to_string(),
+            "/tmp/\u{fffd}.txt\0ff2e747874".to_string(),
+            "/tmp/second.txt".to_string()
+        ]
     );
-    assert_eq!(skipped, 9);
+    assert_eq!(skipped, 8);
 }
 
 #[test]
@@ -239,4 +243,16 @@ fn tui17_text_payload_offers_no_file_identity_or_uri_list() {
     }
     assert!(check_selection("text", &["nul\0byte".into()]).is_err());
     assert!(check_selection("text", &["a".into(), "b".into()]).is_err());
+}
+
+#[test]
+fn a_raw_name_round_trips_by_its_own_bytes_and_reads_lossy_as_plain_text() {
+    let paths = vec![format!("/tmp/{}", flea::bytename::name_text(b"r\xff.txt"))];
+    assert_eq!(build_urilist(&paths), b"file:///tmp/r%FF.txt\r\n");
+    assert_eq!(parse_urilist(&build_urilist(&paths)), (paths.clone(), 0));
+    assert_eq!(build_plain(&paths), "/tmp/r\u{fffd}.txt".as_bytes());
+    assert!(
+        validate_clip_paths(&paths).is_ok(),
+        "the exact text is a path, not a stray NUL"
+    );
 }

@@ -1,4 +1,5 @@
 use crate::backend::proto::thumbed_line;
+use flea::bytename::ExactText as _;
 #[path = "thumbidentity.rs"]
 pub mod identity;
 use crate::backend::timing::since;
@@ -67,7 +68,7 @@ pub(crate) fn thumb_rows(
                 let table = if super::model3d::embedded_thumbnail_supported(name) { super::model3dreq::THUMB_TABLE } else { tb.thumbs.fingerprint() };
                 match cache.lookup(&path, mtime, table) {
                     Hit::Ready(p) => {
-                        writeln!(out, "{}", answer(&p.to_string_lossy(), since(t))).ok();
+                        writeln!(out, "{}", answer(&p.exact_text(), since(t))).ok();
                     }
                     Hit::Failed => {
                         writeln!(out, "{}", answer("", since(t))).ok();
@@ -116,7 +117,7 @@ pub(crate) fn thumb_rows(
         let table = if super::model3d::embedded_thumbnail_supported(&name) { super::model3dreq::THUMB_TABLE } else { tb.thumbs.fingerprint() };
         match cache.lookup(&path, mtime, table) {
             Hit::Ready(p) => {
-                writeln!(out, "{}", answer(&p.to_string_lossy(), since(t))).ok();
+                writeln!(out, "{}", answer(&p.exact_text(), since(t))).ok();
             }
             Hit::Failed => {
                 writeln!(out, "{}", answer("", since(t))).ok();
@@ -202,7 +203,7 @@ pub(crate) fn report_done(out: &mut impl Write, st: &mut State, pool: &Pool, don
     // Workers have taken jobs off the pool since the last pump, so the oldest waiting rows go in now.
     super::thumbdefer::pump(out, st, pool);
     let file = match done.result {
-        Outcome::Ready(p) => p.to_string_lossy().into_owned(),
+        Outcome::Ready(p) => p.exact_text().into_owned(),
         Outcome::Failed => String::new(),
     };
     super::trashthumb::answer(out, st, &done.path, done.mtime, done.trash_identity.as_deref(), &file);

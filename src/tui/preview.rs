@@ -1,3 +1,4 @@
+use flea::bytename::ExactText as _;
 use super::model::Model;
 use crate::backend::regfile;
 use crate::oflags::O_NOFOLLOW;
@@ -133,7 +134,7 @@ pub fn load(m: &mut Model, force: bool) {
         return;
     }
     // A Markdown document rests on its head in the pane, as v0.3.12 and the TUI boards draw todo.md; Quick Look still reads it.
-    if !m.quicklook && markdown(std::path::Path::new(&row.name)) {
+    if !m.quicklook && markdown(std::path::Path::new(&*row.shown())) {
         return;
     }
     if row.size as u64 > TEXT_BYTES && row.link.is_empty() {
@@ -184,7 +185,7 @@ fn meta(m: &mut Model, wire: &mut super::wire::Wire) -> std::io::Result<()> {
         wire.send(vec![
             ("c", word("peek")),
             ("details", Json::Bool(true)),
-            ("path", word(&m.preview_path.to_string_lossy())),
+            ("path", word(&m.preview_path.exact_text())),
             ("first", number(m.height)),
             ("hidden", Json::Bool(m.hidden)),
         ])?;

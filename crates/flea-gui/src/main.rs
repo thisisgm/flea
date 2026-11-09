@@ -36,7 +36,11 @@ fn main() {
         .filter(|value| !value.is_empty());
     // Consume the one-window request before any service starts child processes or threads.
     std::env::remove_var("FLEA_UNLOCK");
-    let words: Vec<String> = std::env::args().skip(1).collect();
+    // A path argument that is not UTF-8 arrives as its exact text, see docs/architecture/exact-names.md.
+    let words: Vec<String> = std::env::args_os()
+        .skip(1)
+        .map(|word| flea::bytename::path_text(std::path::Path::new(&word)).into_owned())
+        .collect();
     if let Some(status) = flea_gui::g2::pv3::dispatch(&words) {
         std::process::exit(status);
     }
@@ -53,7 +57,7 @@ fn main() {
         eprintln!("flea-gui: {error}");
         std::process::exit(2);
     });
-    let argv: Vec<String> = std::env::args().skip(1).collect();
+    let argv = words;
     if argv.first().map(String::as_str) == Some("--pick") {
         let reply = if argv.len() == 2 {
             argv[1].as_str()

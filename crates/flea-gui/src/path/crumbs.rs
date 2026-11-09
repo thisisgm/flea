@@ -11,9 +11,10 @@ pub struct Crumb {
 }
 
 impl Crumb {
+    // The crumb reads the lossy spelling of a folder name that is not UTF-8 and opens its exact path.
     fn new(text: String, path: String) -> Self {
         Self {
-            text,
+            text: flea::bytename::display(&text).into_owned(),
             path,
             last: false,
             elided: false,

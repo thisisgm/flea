@@ -1,4 +1,5 @@
 use crate::backend::md5;
+use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 
 // This application's name in the shared cache's fail/ namespace, per the freedesktop thumbnail spec.
@@ -104,9 +105,8 @@ fn stamped_mtime(bytes: &[u8]) -> Option<i64> {
 
 // Sample output, the key GNOME itself wrote for "CleanShot 2026-08-17 at 18.25.25@2x.png": file:///home/gm/Downloads/CleanShot%202026-08-17%20at%2018.25.25@2x.png, so the literal set is GLib's measured one and not RFC 3986 unreserved; see AGENTS.md "Thumbnail cache".
 pub fn uri_for(path: &Path) -> String {
-    let raw = path.to_string_lossy();
     let mut out = String::from("file://");
-    for b in raw.bytes() {
+    for &b in path.as_os_str().as_bytes() {
         if b.is_ascii_alphanumeric() || URI_LITERAL_BYTES.contains(&b) {
             out.push(b as char);
         } else {
@@ -175,6 +175,9 @@ mod tests {
         assert_eq!(uri_for(Path::new("/tmp/~a.jpg")), "file:///tmp/~a.jpg");
         // A non-ASCII name is escaped one UTF-8 byte at a time, which is what GLib does.
         assert_eq!(uri_for(Path::new("/tmp/caf\u{e9}.jpg")), "file:///tmp/caf%C3%A9.jpg");
+        // A name that is not UTF-8 is escaped from its own bytes, never from a lossy or exact spelling.
+        let raw = std::ffi::OsStr::from_bytes(b"/tmp/a\xff.jpg");
+        assert_eq!(uri_for(Path::new(raw)), "file:///tmp/a%FF.jpg");
     }
 
     #[test]

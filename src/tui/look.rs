@@ -68,7 +68,8 @@ fn bar(m: &Model, width: usize, theme: &Theme) -> String {
     let close = if m.marks() { "\u{ea76}" } else { "×" };
     let room = width.saturating_sub(3);
     let mark = if m.marks() { format!("{} ", super::icons::row(row, true)) } else { String::new() };
-    let leaf = row.name.rsplit('/').next().unwrap_or(&row.name);
+    let shown = row.shown();
+    let leaf = shown.rsplit('/').next().unwrap_or(&shown);
     let plates = if pane_state::kind(row) == Kind::Model3d { plate_words(m, room / 2, theme) } else { (String::new(), 0) };
     let room = room.saturating_sub(plates.1);
     let head = (text_width(&mark) + text_width(leaf)).min(room);

@@ -93,8 +93,8 @@ pub(crate) fn run(
         return ("missing".into(), String::new());
     };
     let argv = airdrop::send_argv(&program, &send.peer, &send.paths);
-    let spawned = crate::backend::locale::command(&argv[0])
-        .args(&argv[1..])
+    let spawned = crate::backend::locale::command(&*flea::bytename::text_name(&argv[0]))
+        .args(flea::bytename::args(&argv[1..]))
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -168,7 +168,7 @@ pub(crate) fn background(
     cancel: std::sync::Arc<AtomicBool>,
     tx: Sender<OpMsg>,
 ) {
-    let sources: Vec<PathBuf> = send.paths.iter().map(PathBuf::from).collect();
+    let sources: Vec<PathBuf> = send.paths.iter().map(flea::bytename::exact).collect();
     let (code, reason) =
         match crate::backend::menu_actions::validate_sources(Some(&send.items), &sources) {
             Ok(()) => run(owly(), id, &send, &cancel, &tx),

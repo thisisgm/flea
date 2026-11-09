@@ -37,7 +37,7 @@ pub fn walk_all(base: &Path, l: &Listing, deadline: Instant) -> Vec<Option<DirSi
             s.spawn(move || {
                 for (j, slot) in slots.iter_mut().enumerate() {
                     if l.is_dir(first + j) {
-                        *slot = Some(walk_display(&base.join(l.name(first + j)), &|| Instant::now() >= deadline, mounts));
+                        *slot = Some(walk_display(&l.path(base, first + j), &|| Instant::now() >= deadline, mounts));
                     }
                 }
             });
