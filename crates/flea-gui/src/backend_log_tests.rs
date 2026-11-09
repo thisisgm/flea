@@ -16,13 +16,22 @@ pub(super) fn emit_if_requested() -> bool {
     if case == "fallback" || case == "two_windows" {
         log::warn!(target: RENDERER, "No usable Backends(VULKAN) adapter for this window: Failed to create surface: no Vulkan driver\n  loader found no ICD");
     }
-    if case == "vulkan" {
+    if case == "fallback" {
+        log::info!(target: CONTEXT, "  Adapter {:?} (Vulkan) failed: Failed to create wgpu device: Parent device is lost, trying next...", "Test GPU");
+    }
+    if case == "refused" {
+        log::info!(target: CONTEXT, "  Adapter {:?} (Gl) failed: Failed to create wgpu device: Limit\n  'max_storage_buffer_binding_size' value 134217728 is better than allowed 0, trying next...", "Test GPU");
+    } else if case == "vulkan" {
         log::info!(target: CONTEXT, "Selected GPU adapter: {:?} (Vulkan)", "Test GPU");
     } else {
         log::info!(target: CONTEXT, "Selected GPU adapter: {:?} (Gl)", "Test GPU");
     }
     if case == "two_windows" {
         log::info!(target: CONTEXT, "Selected GPU adapter: {:?} (Vulkan)", "Second GPU");
+    }
+    // A selection drops the refusals before it, so only a start that opened no window prints any here.
+    for refusal in crate::backend_log::take_refusals() {
+        eprintln!("{refusal}");
     }
     true
 }
@@ -47,6 +56,10 @@ fn s6_backend_log_reports_selection_without_info_flood() {
         (
             "two_windows",
             format!("{fallback}flea: the window starts on Vulkan (\"Second GPU\")\n"),
+        ),
+        (
+            "refused",
+            "\"Test GPU\" (Gl) was refused: Failed to create wgpu device: Limit 'max_storage_buffer_binding_size' value 134217728 is better than allowed 0\n".to_owned(),
         ),
     ] {
         let output = Command::new(std::env::current_exe().unwrap())

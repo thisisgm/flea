@@ -95,7 +95,7 @@ impl Clipboard {
         }
     }
 
-    // Copy As over rows resolves through the backend as clip does; over paths the text goes out at once, and the shared paths slot refuses another asker (refuseWhileBusy).
+    // Copy As over rows resolves through the backend as clip does; over paths the text goes out at once, and the shared paths slot refuses another asker (refuseWhileBusy). Relative Path reads from take.path, the listed folder, kept on the claim.
     #[allow(clippy::too_many_arguments)]
     pub fn copy_as(
         &mut self,
@@ -109,7 +109,7 @@ impl Clipboard {
         owner: &mut dyn Owner,
     ) -> Vec<core::Said> {
         match paths {
-            Some(paths) => match core::copy_as_text(&paths, format) {
+            Some(paths) => match core::copy_as_text(&paths, format, take.path) {
                 Some(text) => {
                     owner.publish_text(text);
                     Vec::new()
@@ -127,7 +127,7 @@ impl Clipboard {
                 if rows.is_empty() {
                     return Vec::new();
                 }
-                self.copy_as.insert(backend, format);
+                self.copy_as.insert(backend, (format, take.path.to_owned()));
                 wire.send(core::paths_request_line(&rows));
                 Vec::new()
             }
@@ -152,6 +152,8 @@ impl Clipboard {
     ) -> Vec<core::Said> {
         match MenuAction::parse(action) {
             MenuAction::CopyAs(leaf) => match Format::parse(&leaf) {
+                // Recent has no folder of its own and its flyout hides Relative Path, so a pick that still arrives copies nothing.
+                Some(Format::Relative) if landing.recent => Vec::new(),
                 Some(format) => {
                     let paths = if snapshot.is_empty() {
                         None

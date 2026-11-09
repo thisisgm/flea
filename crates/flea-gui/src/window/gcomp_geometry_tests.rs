@@ -81,6 +81,9 @@ fn gcomp_fix3_mounted_dual_selection_uses_one_retained_snapshot_per_pane() {
     use std::rc::Rc;
     let mut cx = crate::list::bench::real_cx();
     let handle = open(&mut cx);
+    // The focused pane draws focused only in the active window; a TestWindow starts inactive.
+    edit(&mut cx, handle, |_, window, _| window.activate_window());
+    cx.run_until_parked();
     let snapshots = edit(&mut cx, handle, |shell, _, _| {
         std::array::from_fn::<_, 2, _>(|side| {
             let host = shell.panes[side].as_mut().unwrap();

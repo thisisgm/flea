@@ -35,3 +35,47 @@ fn an_edge_under_a_separator_trims_to_the_half_row_above_it() {
         true,
     );
 }
+
+#[test]
+fn a_view_short_of_two_half_rows_still_cuts_both_edges_near_half() {
+    let row = |i: usize| Entry::row(format!("row{i}"), Text::Data(format!("Row {i}")), "file");
+    // The copyas-menu-small file menu's shape; Copy As is the sixth row of the fifth group.
+    let items: Vec<Entry> = [3, 5, 1, 2, 7, 2, 2]
+        .iter()
+        .enumerate()
+        .flat_map(|(group, count)| {
+            (group > 0)
+                .then(Entry::separator)
+                .into_iter()
+                .chain((0..*count).map(row))
+        })
+        .collect();
+    let copy_as = 3 + 5 + 1 + 2 + 4 + 5;
+    // A 230 px frame at a 5 px inset leaves 218: five whole rows and two halves need at least 219.
+    let view = 218;
+    let (y, h) = menu_cut(
+        &items,
+        reveal(&items, copy_as, 0, view),
+        view,
+        Some(copy_as),
+    );
+    let (top, bottom) = edge_cuts(&items, y, h);
+    check(
+        "the full view stays, cut by half rows under both fades",
+        (
+            h,
+            top.map(|(_, shown)| shown),
+            bottom.map(|(_, shown)| shown),
+        ),
+        (view, Some(16), Some(17)),
+    );
+    check(
+        "both cuts are rows, Copy As keeps clear of the fade",
+        (
+            top.is_some_and(|(index, _)| !items[index].separator),
+            bottom.is_some_and(|(index, _)| !items[index].separator),
+            keeps_clear(&items, Some(copy_as), y, h),
+        ),
+        (true, true, true),
+    );
+}

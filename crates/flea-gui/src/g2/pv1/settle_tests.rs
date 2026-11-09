@@ -1,4 +1,4 @@
-//! A borrowed first paint needs one original decode, with the exact final pixels and no enlargement.
+//! An open needs one original decode, with or without a borrowed first paint, with the exact final pixels and no enlargement.
 use super::*;
 use flea::ui_logic_pv1::{kinds::State, rect::Shape};
 use gpui::{px, size, TestAppContext};
@@ -30,7 +30,7 @@ impl Drop for Root {
     }
 }
 
-fn check(cx: &mut TestAppContext, extension: &str, dimensions: (u32, u32)) {
+fn check(cx: &mut TestAppContext, extension: &str, dimensions: (u32, u32), borrowed: bool) {
     cx.executor().allow_parking();
     let root = Root::new();
     let name = format!("picture.{extension}");
@@ -70,8 +70,10 @@ fn check(cx: &mut TestAppContext, extension: &str, dimensions: (u32, u32)) {
             true,
             cx,
         );
-        let interim = Arc::new(RenderImage::from_bgra(1, 1, vec![0, 0, 240, 255]).unwrap());
-        look.picture_interim(path.clone(), interim, cx);
+        if borrowed {
+            let interim = Arc::new(RenderImage::from_bgra(1, 1, vec![0, 0, 240, 255]).unwrap());
+            look.picture_interim(path.clone(), interim, cx);
+        }
     });
     let started = Instant::now();
     loop {
@@ -96,7 +98,7 @@ fn check(cx: &mut TestAppContext, extension: &str, dimensions: (u32, u32)) {
         assert_eq!(
             look.quality_decodes(),
             1,
-            "the column already supplied first paint"
+            "first paint and final pixels come from one original decode"
         );
         (look.svg_raster().unwrap(), look.quality_pixels().unwrap().0)
     });
@@ -118,21 +120,40 @@ fn check(cx: &mut TestAppContext, extension: &str, dimensions: (u32, u32)) {
 
 #[gpui::test]
 fn ql_settle_jpeg_borrowed_first_paint_decodes_original_once(cx: &mut TestAppContext) {
-    check(cx, "jpg", (1200, 800));
+    check(cx, "jpg", (1200, 800), true);
 }
 
 #[gpui::test]
 fn ql_settle_png_borrowed_first_paint_decodes_original_once(cx: &mut TestAppContext) {
-    check(cx, "png", (1200, 800));
+    check(cx, "png", (1200, 800), true);
 }
 
 #[gpui::test]
 fn ql_settle_small_raster_keeps_its_own_pixels(cx: &mut TestAppContext) {
-    check(cx, "png", (12, 9));
+    check(cx, "png", (12, 9), true);
+}
+
+#[gpui::test]
+fn b03_list_png_first_paint_decodes_original_once(cx: &mut TestAppContext) {
+    check(cx, "png", (1200, 800), false);
+}
+
+#[gpui::test]
+fn b03_list_small_raster_keeps_its_own_pixels(cx: &mut TestAppContext) {
+    check(cx, "png", (12, 9), false);
 }
 
 #[gpui::test]
 fn ql_settle_retains_scaled_decode_when_full_source_is_over_bound(cx: &mut TestAppContext) {
+    over_bound(cx, true);
+}
+
+#[gpui::test]
+fn b03_list_jpeg_retains_scaled_decode_when_full_source_is_over_bound(cx: &mut TestAppContext) {
+    over_bound(cx, false);
+}
+
+fn over_bound(cx: &mut TestAppContext, borrowed: bool) {
     cx.executor().allow_parking();
     let root = Root::new();
     let path = root.0.join("large.jpg");
@@ -173,7 +194,9 @@ fn ql_settle_retains_scaled_decode_when_full_source_is_over_bound(cx: &mut TestA
             true,
             cx,
         );
-        look.picture_interim(path.clone(), interim, cx);
+        if borrowed {
+            look.picture_interim(path.clone(), interim, cx);
+        }
     });
     let started = Instant::now();
     loop {

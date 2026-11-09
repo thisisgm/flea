@@ -3,6 +3,7 @@
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Format {
     Path,
+    Relative,
     Name,
     Stem,
     Dirpath,
@@ -15,6 +16,7 @@ impl Format {
     pub fn parse(word: &str) -> Option<Self> {
         Some(match word {
             "copyPath" | "path" => Self::Path,
+            "copyRelative" | "relative" => Self::Relative,
             "copyName" | "name" => Self::Name,
             "copyStem" | "stem" => Self::Stem,
             "copydirpath" | "dirpath" => Self::Dirpath,
@@ -63,9 +65,28 @@ pub fn file_uri(path: &str) -> String {
     out
 }
 
-pub fn one(path: &str, format: Format) -> String {
+// Sample input: "/home/gm/proj/src/a.rs" from "/home/gm/proj" is "src/a.rs", "/home/gm/b.txt" from it is "../b.txt"; an empty base keeps the path.
+pub fn relative(path: &str, base: &str) -> String {
+    if base.is_empty() {
+        return path.to_owned();
+    }
+    let to: Vec<&str> = path.split('/').filter(|part| !part.is_empty()).collect();
+    let from: Vec<&str> = base.split('/').filter(|part| !part.is_empty()).collect();
+    let shared = to.iter().zip(&from).take_while(|(a, b)| a == b).count();
+    let mut walk = vec![".."; from.len() - shared];
+    walk.extend_from_slice(&to[shared..]);
+    if walk.is_empty() {
+        ".".into()
+    } else {
+        walk.join("/")
+    }
+}
+
+// Only Relative reads base, the folder the pane lists.
+pub fn one(path: &str, format: Format, base: &str) -> String {
     match format {
         Format::Path => path.to_owned(),
+        Format::Relative => relative(path, base),
         Format::Name => leaf(path).to_owned(),
         Format::Stem => stem(path).to_owned(),
         Format::Dirpath => dirpath(path).to_owned(),
@@ -74,10 +95,10 @@ pub fn one(path: &str, format: Format) -> String {
     }
 }
 
-pub fn lines(paths: &[&str], format: Format) -> String {
+pub fn lines(paths: &[&str], format: Format, base: &str) -> String {
     paths
         .iter()
-        .map(|path| one(path, format))
+        .map(|path| one(path, format, base))
         .collect::<Vec<_>>()
         .join("\n")
 }

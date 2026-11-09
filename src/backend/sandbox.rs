@@ -120,6 +120,15 @@ pub(crate) fn wrap_with(
     a
 }
 
+// The office jail: no CPU cap (LibreOffice's threads outspend 30 CPU seconds inside the 60 s wall clock) and the system font cache read-only, so no conversion rescans the fonts.
+pub(crate) fn wrap_office(inner: &[String], input: &Path, out: &Path) -> Vec<String> {
+    let mut a = wrap_with(inner, input, out, None, OFFICE_ADDRESS_SPACE_BYTES);
+    let at = a.len() - inner.len();
+    a.splice(at..at, ["--ro-bind-try", FONT_CACHE, FONT_CACHE].map(String::from));
+    a
+}
+const FONT_CACHE: &str = "/var/cache/fontconfig";
+
 // The pool's namespace flags around the long-lived thumbnail worker, which gets each job's files as descriptors and binds only its own executable; no prlimit, because the limits are per job and a CPU cap would also accumulate the worker's own time across the session.
 pub fn wrap_worker(inner: &[String], exe: &Path) -> Vec<String> {
     let head_and_binds = 4;

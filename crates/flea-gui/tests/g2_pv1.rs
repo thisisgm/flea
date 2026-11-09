@@ -38,6 +38,8 @@ pub mod svg;
 mod svgfit_join;
 #[path = "g2_pv1/symlink.rs"]
 mod symlink;
+#[path = "g2_pv1/watchdog.rs"]
+mod watchdog;
 
 /// What the listing behind the overlay saw: each counter is one thing #331 says must not move.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

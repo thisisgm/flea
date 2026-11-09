@@ -13,7 +13,9 @@ use flea::{
 use gpui::{AppContext, Context, TestAppContext, VisualTestContext, Window, WindowHandle};
 use std::{cell::Cell, rc::Rc};
 
+mod cancel_click;
 mod compress_geometry;
+mod control_click;
 mod extract;
 mod fixcards2;
 mod flash;

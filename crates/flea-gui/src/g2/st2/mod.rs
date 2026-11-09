@@ -1,5 +1,6 @@
 //! Settings, Plugins: the installed list, each plugin's page, Add, Update, Remove and the failed state, over the backend's plugins request.
 mod act;
+mod airdrop;
 mod card;
 pub mod glyphs;
 mod input;
@@ -10,6 +11,8 @@ mod scroll;
 pub mod seam;
 pub mod view;
 
+#[cfg(test)]
+mod airdrop_tests;
 #[cfg(test)]
 mod fact_tests;
 #[cfg(test)]

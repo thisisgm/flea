@@ -157,15 +157,13 @@ impl<'a> Worker<'a> {
         let input = child.stdin.take().expect("piped stdin");
         let stdout = child.stdout.take().expect("piped stdout");
         let initial = Pending::from_line(first_line);
-        let result = self.pump(&mut child, input, stdout, initial);
+        let result = self.pump(input, stdout, initial);
         // pump owns both pipes, so stdin closes before a forced kill and no reader outlives reap; after a stdin close the child is only reaped, never killed.
         let released = *self.closing.lock().unwrap() == Closing::Stdin;
         if result.is_err() && !released {
             let _ = child.kill();
         }
-        let waited = child
-            .wait()
-            .map_err(|error| failure("window.backend_wait", error));
+        let waited = reap(child, released).map_err(|error| failure("window.backend_wait", error));
         result?;
         waited?;
         Ok(())
@@ -173,7 +171,6 @@ impl<'a> Worker<'a> {
 
     fn pump(
         &mut self,
-        child: &mut Child,
         input: ChildStdin,
         mut stdout: ChildStdout,
         initial: Pending,
@@ -236,14 +233,8 @@ impl<'a> Worker<'a> {
                     Closing::Open => return Err(failure("window.backend_eof", "")),
                     // No deadline after a stdin close: run blocks in wait until the child leaves on its own.
                     Closing::Stdin => return Ok(()),
-                    Closing::Quit(_) => (),
-                }
-                if child
-                    .try_wait()
-                    .map_err(|error| failure("window.backend_wait", error))?
-                    .is_some()
-                {
-                    return Ok(());
+                    // The backend lets go of its output only once its shutdown is done, so the end is the drain.
+                    Closing::Quit(_) => return Ok(()),
                 }
             }
             if let (Some(write), Some(input)) = (&mut pending, &mut input) {
@@ -365,6 +356,19 @@ impl<'a> Worker<'a> {
         }
         Ok(())
     }
+}
+
+// A child the kernel holds past its output (a thread stuck in a dead mount's read) is reaped off this thread.
+fn reap(mut child: Child, released: bool) -> io::Result<()> {
+    if released {
+        return child.wait().map(drop);
+    }
+    if child.try_wait()?.is_none() {
+        std::thread::Builder::new()
+            .name("flea-backend-reap".into())
+            .spawn(move || drop(child.wait()))?;
+    }
+    Ok(())
 }
 
 // One reply line as the pane receives it; a line that is not protocol stays one bad line.

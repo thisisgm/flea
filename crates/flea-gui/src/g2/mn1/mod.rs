@@ -35,6 +35,8 @@ pub(crate) mod presentation;
 #[cfg(test)]
 mod rclone_tests;
 #[cfg(test)]
+mod relative_tests;
+#[cfg(test)]
 mod review_r2_tests;
 #[cfg(test)]
 mod review_tests;

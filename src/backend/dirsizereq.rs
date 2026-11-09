@@ -14,6 +14,17 @@ pub fn queue_dirsizes(out: &mut impl Write, st: &mut State, rows: &[usize]) {
             writeln!(out, "{}", dirsized_line(row, bytes, partial, 0.0)).ok();
             continue;
         }
+        // A folder walked under an earlier listing and unchanged since answers without a walk.
+        if let Some(bytes) = st.settled.get(&st.base.join(st.listing.name(row))) {
+            st.dirsizes.insert(row, (bytes, false));
+            let size = crate::backend::dirsize::DirSize {
+                bytes,
+                partial: false,
+            };
+            crate::backend::answersizes::learn(st, row, size);
+            writeln!(out, "{}", dirsized_line(row, bytes, false, 0.0)).ok();
+            continue;
+        }
         if st.dirsize_queue.contains(&row) || st.dirsize_worker.contains(row) {
             continue;
         }
@@ -50,6 +61,13 @@ pub fn report_done(out: &mut impl Write, st: &mut State, done: Done) {
     if !st.dirsize_worker.accept(&done) { return; }
     let result = done.result;
     st.dirsizes.insert(done.row, (result.bytes, result.partial));
+    if !result.partial && done.row < st.listing.len() {
+        st.settled.settle(
+            st.base.join(st.listing.name(done.row)),
+            result.bytes,
+            done.pins,
+        );
+    }
     crate::backend::answersizes::learn(st, done.row, result);
     writeln!(out, "{}", dirsized_line(done.row, result.bytes, result.partial, done.ms)).ok();
     out.flush().ok();
@@ -84,6 +102,7 @@ mod tests {
             dirsizes: HashMap::new(),
             dirsize_queue: Vec::new(),
             dirsize_worker: crate::backend::dirsizeworker::Worker::new(events),
+            settled: Default::default(),
             search: None,
             search_session: None,
             search_reported: Instant::now(),

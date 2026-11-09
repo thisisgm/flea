@@ -157,3 +157,58 @@ fn the_bench_palette_draws_the_tag_marks_and_tags_menu_board_colours() {
         "--tagm-* on the menu surface"
     );
 }
+
+#[test]
+fn a_colour_far_from_its_tags_name_draws_the_canonical_colour() {
+    // Omarchy's stock hackerman: red, orange and yellow are all greens.
+    let hackerman = [
+        ("red", "#50f872"),
+        ("orange", "#50f7a3"),
+        ("yellow", "#50f7d4"),
+        ("green", "#4fe88f"),
+        ("blue", "#829dd4"),
+        ("magenta", "#86a7df"),
+        ("dark_foreground", "#6a6e95"),
+    ];
+    let theme = tag_theme(palette(&hackerman), "#0b0c16", "#080910");
+    let want = [
+        "#f7768e", "#eb927b", "#e0af68", "#4fe88f", "#829dd4", "#86a7df", "#6a6e95",
+    ];
+    assert_eq!(theme.colors, want.map(String::from), "listing");
+    assert_eq!(theme.menu_colors, want.map(String::from), "menu");
+    assert!(
+        !theme.fallback,
+        "a canonical colour is not the digit fallback"
+    );
+    for (at, hex) in theme.colors.iter().take(3).enumerate() {
+        let rgb = parse(hex).unwrap();
+        assert_eq!(
+            outside(hue(rgb), HUE_WINDOWS[at]),
+            0.0,
+            "{at} {hex} sits in its name's window"
+        );
+    }
+}
+
+#[test]
+fn a_hue_near_its_name_and_a_grey_keep_the_themes_colour() {
+    // Purple a blue and Blue a teal stay, as do greys, which name no other colour.
+    assert_eq!(named(5, "#86a7df"), "#86a7df");
+    assert_eq!(named(4, "#509467"), "#509467");
+    assert_eq!(named(0, "#565d60"), "#565d60");
+    assert_eq!(named(6, "#50f872"), "#50f872", "the Gray tag has no window");
+    assert_eq!(named(4, "#e68e0d"), "#7aa2f7", "an orange Blue is far");
+    assert_eq!(named(0, "nope"), "nope");
+}
+
+#[test]
+fn hue_windows_wrap_past_red() {
+    assert_eq!(hue([1.0, 0.0, 0.0]), 0.0);
+    assert!((hue([1.0, 0.0, 0.5]) - 330.0).abs() < 1e-9);
+    assert!((hue([0.0, 0.0, 1.0]) - 240.0).abs() < 1e-9);
+    assert_eq!(outside(350.0, (335.0, 12.0)), 0.0);
+    assert_eq!(outside(5.0, (335.0, 12.0)), 0.0);
+    assert_eq!(outside(132.0, (335.0, 12.0)), 120.0);
+    assert_eq!(outside(330.0, (335.0, 12.0)), 5.0);
+    assert_eq!(outside(33.0, (250.0, 335.0)), 58.0);
+}

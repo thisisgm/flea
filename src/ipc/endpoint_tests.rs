@@ -48,10 +48,12 @@ fn socket_and_directory_are_private_and_symlinks_are_refused() {
 fn stale_requires_both_a_dead_pid_and_a_refused_connection() {
     let root = root();
     let directory = directory(&root).unwrap();
-    let child = std::process::Command::new("true").spawn().unwrap();
-    let dead = child.id();
-    let mut child = child;
-    child.wait().unwrap();
+    // The kernel hands out pids below pid_max only, so pid_max names no process even while other tests spawn.
+    let dead: u32 = fs::read_to_string("/proc/sys/kernel/pid_max")
+        .unwrap()
+        .trim()
+        .parse()
+        .unwrap();
     assert!(!alive(dead));
     let stale = directory.join(format!("{dead}.sock"));
     let listener = UnixListener::bind(&stale).unwrap();

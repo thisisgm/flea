@@ -5,6 +5,7 @@ pub mod columns;
 pub(crate) mod compositor;
 #[cfg(test)]
 mod compositor_surface_tests;
+pub mod driver_notice;
 pub mod dual;
 pub mod feedback;
 #[cfg(test)]
@@ -13,6 +14,7 @@ pub mod g2;
 pub mod grid;
 pub mod input;
 pub mod ipc;
+pub mod leaf;
 pub mod list;
 pub mod locale_geometry;
 pub mod navigation;

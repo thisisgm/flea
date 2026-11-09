@@ -51,7 +51,7 @@ impl Shell {
             ),
             cx,
         );
-        // A hung catalogue draws as a refusal after the deadline; a late answer still fills Open With.
+        // A hung catalogue opens the menu after the deadline with Open With kept for Another Application; delivery.rs fills it from a late answer.
         let id = capture.id;
         cx.spawn_in(window, async move |this, cx| {
             cx.background_executor()
@@ -65,6 +65,7 @@ impl Shell {
                     if waiting {
                         shell.menu.reading = false;
                         shell.menu.context.open_with_loaded = true;
+                        shell.menu.context.open_with_late = true;
                         shell.menu.context.open_with_apps.clear();
                         shell.refresh_menu(window, cx);
                     }

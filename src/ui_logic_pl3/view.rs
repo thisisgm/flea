@@ -70,6 +70,8 @@ pub struct View {
     pub initial_action: String,
     pub(super) pending_selection: Option<(usize, Extend)>,
     pub landing: bool,
+    /// The last list went out over held rows, so it and its summary keep those rows drawn; an open clears them first.
+    pub relist: bool,
     pub error_text: Option<String>,
     pub(super) review: Review,
     /// The open delete card, filled by the backend's prepare reply.
@@ -116,8 +118,26 @@ impl View {
     pub fn ready(&self) -> bool {
         self.opened && self.shown && !self.operation_active && self.pending_op != "list"
     }
+    /// The rows the listing shows at its height, and one more past each edge.
+    pub(super) fn page(&self) -> usize {
+        (self.height / self.row_height).ceil() as usize + 2
+    }
+    // Held rows past each edge of the view, so a wheel notch lands on rows already read.
+    fn margin(&self) -> usize {
+        self.page().min(WINDOW_CAP.saturating_sub(self.page()) / 2)
+    }
     pub fn window_rows(&self) -> usize {
-        ((self.height / self.row_height).ceil() as usize + 2).clamp(1, WINDOW_CAP)
+        (self.page() + 2 * self.margin()).clamp(1, WINDOW_CAP)
+    }
+    // The first row the viewport shows and the row after its last.
+    fn visible(&self) -> (usize, usize) {
+        let top = (self.scroll_y / self.row_height).floor() as usize;
+        (top, self.total.min(((self.scroll_y + self.height) / self.row_height).ceil() as usize))
+    }
+    /// Every row the viewport shows is held, so it draws whole while a window reads.
+    pub fn covers_viewport(&self) -> bool {
+        let (top, end) = self.visible();
+        top >= self.first && end <= self.first + self.rows.len()
     }
     pub fn row_at(&self, index: usize) -> Option<&TrashRow> {
         index.checked_sub(self.first).and_then(|at| self.rows.get(at))
@@ -165,6 +185,9 @@ impl View {
         self.pending_op = op.into();
         if op == "restore" || op == "delete" {
             self.operation_active = true;
+        }
+        if op == "list" {
+            self.relist = !self.rows.is_empty();
         }
         if op == "list" || op == "restore" || op == "delete" {
             self.thumbs.reset();
@@ -313,11 +336,14 @@ impl View {
         if !self.opened || self.total == 0 || self.busy() || self.confirmation.is_some() {
             return;
         }
-        let top = (self.scroll_y / self.row_height).floor() as usize;
-        let end = self.total.min(((self.scroll_y + self.height) / self.row_height).ceil() as usize);
-        if top < self.first || end > self.first + self.rows.len() {
-            let count = self.window_rows();
-            self.send("window", Self::browse().number("start", top).number("count", count));
+        let (top, end) = self.visible();
+        let (held_end, margin) = (self.first + self.rows.len(), self.margin());
+        // Read the next window while the view is still half a margin inside the held rows.
+        let near_top = self.first > 0 && top < self.first + margin / 2;
+        let near_end = held_end < self.total && end + margin / 2 > held_end;
+        if top < self.first || end > held_end || near_top || near_end {
+            let (start, count) = (top.saturating_sub(margin), self.window_rows());
+            self.send("window", Self::browse().number("start", start).number("count", count));
         }
     }
 }

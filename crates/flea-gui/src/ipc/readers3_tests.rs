@@ -275,9 +275,12 @@ fn ipc_readers3_permissions_input_ready_follows_list_focus(cx: &mut TestAppConte
         Some(false),
         "an unfocused list takes no input"
     );
+    // v0.3.12's listArea.activeFocus needs the active window too; a TestWindow starts inactive.
     update(cx, handle, |shell, window, cx| {
-        window.focus(&shell.focus, cx)
+        window.focus(&shell.focus, cx);
+        window.activate_window();
     });
+    cx.run_until_parked();
     let state = json(cx, handle, "permissionsState");
     assert_eq!(
         state.get("inputReady").and_then(Json::as_bool),

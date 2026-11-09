@@ -123,6 +123,9 @@ pub fn access_lines(access: &[String], i18n: &I18n) -> Vec<String> {
             "shelf:pile" => "plugins.access.shelf_pile",
             "shelf:bar" => "plugins.access.shelf_bar",
             "shelf:captures" => "plugins.access.shelf_captures",
+            "airdrop:send" => "plugins.access.airdrop_send",
+            "airdrop:wifi" => "plugins.access.airdrop_wifi",
+            "airdrop:receive" => "plugins.access.airdrop_receive",
             e if e.starts_with("exec:") && !ran && !programs.is_empty() => {
                 ran = true;
                 lines.push(i18n.tr_args("plugins.access.exec", &[&joined(&programs, i18n)]));
@@ -180,10 +183,17 @@ fn update_value(update: &Update, i18n: &I18n) -> (String, bool) {
 
 // The plugin's page: description, its heading carrying the enable, its settings, ACCESS, SOURCE when added, and Back.
 pub fn page_rows(plugin: &Plugin, update: &Update, i18n: &I18n) -> Vec<Row> {
+    page_rows_with(plugin, update, None, i18n)
+}
+
+// The same page with the window's AirDrop facts, which only the AirDrop plugin's page draws.
+pub fn page_rows_with(plugin: &Plugin, update: &Update, airdrop: Option<&super::airdrop::Page>, i18n: &I18n) -> Vec<Row> {
     let mut rows = vec![Row::Description { text: description(plugin, i18n) }];
     let id = &plugin.manifest.id;
-    match &plugin.shelf {
-        Some(input) => rows.extend(super::shelf::rows(input, i18n)),
+    let airdrop = airdrop.filter(|_| *id == builtin::AIRDROP);
+    match (&plugin.shelf, airdrop) {
+        (Some(input), _) => rows.extend(super::shelf::rows(input, i18n)),
+        (None, Some(page)) => rows.extend(super::airdrop::rows(plugin, page, i18n)),
         _ => {
             rows.push(Row::Group { id: format!("{id}:enabled"), label: name(plugin, i18n), switch: Some(plugin.enabled), action: None });
             rows.extend(schema_rows(plugin));
@@ -193,6 +203,9 @@ pub fn page_rows(plugin: &Plugin, update: &Update, i18n: &I18n) -> Vec<Row> {
     if !access.is_empty() {
         rows.push(Row::Group { id: "plugins.access".into(), label: i18n.tr("plugins.access.heading"), switch: None, action: None });
         rows.extend(access.into_iter().map(|text| Row::Fact { text, value: String::new() }));
+    }
+    if airdrop.is_some() {
+        rows.extend(super::airdrop::credit_rows(i18n));
     }
     let origin = match &plugin.source {
         Source::Builtin => None,

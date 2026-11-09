@@ -47,7 +47,7 @@ pub(super) fn surface(
                     let row = if slot == Slot::Active {
                         active_row
                     } else {
-                        crate::pane::ROW_HEIGHT
+                        columns.area.row()
                     };
                     let scroll = if slot == Slot::Active {
                         host.pane.scroll_y

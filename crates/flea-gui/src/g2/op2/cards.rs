@@ -172,6 +172,15 @@ pub(super) enum BodyLayout {
     Compress,
 }
 
+/// Where a click on the card landed: a button, a Format chip, a field by its place among the fields, the checkbox.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Hit {
+    Button(usize),
+    Chip(usize),
+    Field(usize),
+    Check,
+}
+
 impl Card {
     pub fn focused_button(&self) -> Option<&Button> {
         self.buttons.iter().find(|b| b.focused)
@@ -258,6 +267,8 @@ pub(super) struct Draw<'a> {
     pub(super) typeface: &'a Typeface,
     /// The live compositor corner value in board units, square at Omarchy's default 0.
     pub(super) r: f32,
+    /// The open card's pointer, absent where nothing answers a click.
+    pub(super) press: Option<super::draw::CardPress>,
 }
 
 pub use super::draw::StandIn;

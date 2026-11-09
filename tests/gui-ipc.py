@@ -6,12 +6,16 @@ import socket
 import subprocess
 import sys
 import time
+import tomllib
 
 root, binary, fixture = map(lambda s: Path(s).resolve(), sys.argv[1:])
 assert root.is_absolute() and (root / ".flea-test-sandbox").is_file()
 repo = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(repo / "tools"))
 from flea_ipc import Client
+
+# The fixture answers flea-gui's CARGO_PKG_VERSION, so the expectation follows the crate a bump edits.
+version = tomllib.loads((repo / "crates/flea-gui/Cargo.toml").read_text())["package"]["version"]
 
 runtime = root / "r"
 runtime.mkdir(mode=0o700)
@@ -115,7 +119,7 @@ try:
     check(endpoint.stat().st_mode & 0o777 == 0o600, "socket permissions")
     value(first.pid, "path", b"/first path\nnext\n")
     value(second.pid, "path", b"/second\n")
-    value(first.pid, "version", b"0.4.0\n")
+    value(first.pid, "version", f"{version}\n".encode())
     value(first.pid, "ready", b"true\n")
     value(first.pid, "total", b"3\n")
     value(first.pid, "cursor", b"1\n")

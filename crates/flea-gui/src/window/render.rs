@@ -52,6 +52,7 @@ impl Render for Shell {
             cx,
         );
         self.sync_font_settings(cx);
+        self.keep_midnight_wake(cx);
         self.sync_search_text();
         self.route_rail(window, cx);
         self.sync_rail(window, cx);
@@ -251,7 +252,6 @@ impl Render for Shell {
                 cx,
             );
             let lifter = cx.entity().downgrade();
-            let payload = cx.entity().downgrade();
             panes[side] = Some(
                 div()
                     .id(("file-drag", side))
@@ -264,12 +264,7 @@ impl Render for Shell {
                             lifter.update(cx, |shell, cx| shell.begin_file_drag(side, window, cx));
                         flock(cx)
                     })
-                    .external_drag_payload::<Seed>(move |_, window, cx| {
-                        payload.upgrade()?.read(cx).file_drag_payload(window, cx)
-                    })
-                    .on_drop::<Seed>(cx.listener(move |shell, _: &Seed, window, cx| {
-                        shell.land_own_drag(side, window, cx);
-                    }))
+                    .map(|div| Shell::own_file_drag(div, side, cx))
                     .when(side == 0, |div| Shell::aim_rail_on_drag_move(div, cx))
                     // A pane with no rows yet draws the list ground its rows will draw.
                     .when(!host.drawn_list, |div| {

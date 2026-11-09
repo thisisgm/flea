@@ -20,6 +20,7 @@ Item {
 
     signal chosen(string action)
     signal refused(string reason)
+    signal noticed(string text)
     signal snapshotRequested()
     signal railChosen(string action, string key)
     signal lockedChosen(string action, string path)
@@ -132,6 +133,7 @@ Item {
         for (var n = 0; n < root.stateNames.length; n++) root.watchState(root.stateNames[n])
         root.item.chosen.connect(root.chosen)
         root.item.refused.connect(root.refused)
+        root.item.noticed.connect(root.noticed)
         root.item.snapshotRequested.connect(root.snapshotRequested)
         root.item.railChosen.connect(root.railChosen)
         root.item.lockedChosen.connect(root.lockedChosen)

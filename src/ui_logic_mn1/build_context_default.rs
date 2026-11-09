@@ -33,6 +33,7 @@ impl Default for Context {
             tag_submenu: None,
             open_with_apps: Vec::new(),
             open_with_loaded: false,
+            open_with_late: false,
             taildrop_installed: false,
             taildrop_peers: Vec::new(),
             taildrop_refreshing: false,
@@ -46,6 +47,9 @@ impl Default for Context {
             dropbox_refreshing: false,
             dropbox_code: String::new(),
             row_in_dropbox: false,
+            airdrop_installed: false,
+            airdrop_on: false,
+            airdrop_devices: Vec::new(),
             scripts: Vec::new(),
             hidden: Vec::new(),
             show_hidden: false,
@@ -58,6 +62,7 @@ impl Default for Context {
             place_favourite: false,
             trash_total: 0,
             busy: false,
+            recent: false,
             rail: None,
         }
     }

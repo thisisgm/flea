@@ -2,8 +2,10 @@
 use crate::json::escape;
 use std::path::Path;
 
+// A preview PDF names its cut: {"t":"officepdf","id":4,"state":"ready","path":"/c/k.head30.pdf","first":30}.
 pub fn ready_line(id: usize, path: &Path) -> String {
-    format!(r#"{{"t":"officepdf","id":{},"state":"ready","path":"{}"}}"#, id, escape(&path.to_string_lossy()))
+    let first = if super::head::is_head(path) { format!(r#","first":{}"#, super::head::PREVIEW_PAGES) } else { String::new() };
+    format!(r#"{{"t":"officepdf","id":{},"state":"ready","path":"{}"{first}}}"#, id, escape(&path.to_string_lossy()))
 }
 
 #[cfg(test)]

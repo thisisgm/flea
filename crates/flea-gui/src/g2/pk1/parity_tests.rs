@@ -110,6 +110,8 @@ fn pb_picker1_save_has_new_folder(cx: &mut TestAppContext) {
             .center();
     f.cx.simulate_click(at, Modifiers::none());
     f.cx.run_until_parked();
+    f.cx.simulate_keystrokes("enter");
+    f.cx.run_until_parked();
     assert!(
         f.checks
             .sent()
@@ -309,6 +311,8 @@ fn pb_picker1_new_folder_opens_only_the_confirmed_child(cx: &mut TestAppContext)
     seed(&mut f, "/d");
     let at = f.cx.debug_bounds("picker-new-folder").unwrap().center();
     f.cx.simulate_click(at, Modifiers::none());
+    f.cx.run_until_parked();
+    f.cx.simulate_keystrokes("enter");
     f.cx.run_until_parked();
     f.checks.say(Line::Reply(
         r#"{"t":"made","ok":true,"path":"/d/New Folder"}"#.into(),

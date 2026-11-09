@@ -202,6 +202,7 @@ fn undoing_a_copied_folder_refuses_once_anything_inside_it_has_changed() {
 // A failed copy's tree can hold a file something else wrote into it mid-copy, so undo must refuse rather than remove it.
 #[test]
 fn undoing_a_failed_copy_keeps_a_file_something_else_put_inside_it() {
+    let _in_place = crate::backend::copystage_tests::in_place();
     let d = TestDir::new("undopartialforeign");
     let source = d.dir("source");
     std::fs::create_dir(source.join("nested")).unwrap();

@@ -51,11 +51,18 @@ fn a_watching_peek_names_the_column_directories_drawn() {
 #[test]
 fn parses_each_request_shape() {
     match parse_request(r#"{"c":"list","path":"/home/gm","first":350}"#) {
-        Request::List { path, first, hidden, want_changed } => {
+        Request::List { path, first, hidden, want_changed, keep } => {
             assert_eq!(path, "/home/gm");
             assert_eq!(first, 350);
             assert!(!hidden);
             assert!(!want_changed);
+            assert!(keep.is_empty());
+        }
+        _ => panic!("expected List"),
+    }
+    match parse_request(r#"{"c":"list","path":"/a","keep":["/b","/c, [d]"]}"#) {
+        Request::List { keep, .. } => {
+            assert_eq!(keep, vec!["/b".to_string(), "/c, [d]".to_string()])
         }
         _ => panic!("expected List"),
     }

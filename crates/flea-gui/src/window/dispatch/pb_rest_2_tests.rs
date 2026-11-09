@@ -124,8 +124,8 @@ fn s1_pb_rest_2_escape_clears_a_standing_filter_before_the_marks(cx: &mut TestAp
         cx,
         r#"{"t":"filtered","id":1,"query":"a","n":1000,"rows":[0,1],"ms":0.01,"listing":1}"#,
     );
-    // Enter hands the keyboard to the list, whose Ctrl+A marks the matches (EY-115: the typed line keeps it).
-    cx.simulate_keystrokes("enter ctrl-a escape");
+    // A cursor key hands the keyboard to the list, whose Ctrl+A marks the matches (EY-115: the typed line keeps it).
+    cx.simulate_keystrokes("home ctrl-a escape");
     shell.read_with(cx, |shell, _| {
         let host = shell.panes[0].as_ref().unwrap();
         assert_eq!(host.selected, vec![0, 1], "Focus.js:187 keeps the marks");
@@ -219,7 +219,7 @@ fn pb_rest_2_standing_filter_ctrl_d_and_ctrl_u_move_half_a_page(cx: &mut TestApp
             r#"{{"t":"filtered","id":1,"query":"a","n":1000,"rows":[{rows}],"ms":0.01,"listing":1}}"#
         ),
     );
-    cx.simulate_keystrokes("enter");
+    cx.simulate_keystrokes("home");
     let page = shell
         .read_with(cx, |shell, _| {
             shell.panes[0].as_ref().unwrap().pane.visible_rows() / 2

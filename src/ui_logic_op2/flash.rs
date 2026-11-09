@@ -75,12 +75,13 @@ pub fn flash_pos(drive_count: usize) -> usize {
 }
 
 // Sample input: down from the fitting drive skips the refused row for Flash.
-pub fn step(cursor: usize, delta: isize, drives: &[Drive], has_image: bool, flash_live: bool) -> usize {
+// The image row is always a stop: with no image chosen, Enter there opens the chooser.
+pub fn step(cursor: usize, delta: isize, drives: &[Drive], flash_live: bool) -> usize {
     let count = flash_pos(drives.len()) + 1;
     let mut at = cursor as isize + delta;
     while at >= 0 && (at as usize) < count {
         let atn = at as usize;
-        if atn == 0 && has_image {
+        if atn == 0 {
             return atn;
         }
         if atn > 0 && atn <= drives.len() && fits(&drives[atn - 1]) {

@@ -18,6 +18,7 @@ pub struct Labels {
     pub hints: SharedString,
     pub hints_unavailable: SharedString,
     pub hints_filtered: SharedString,
+    pub hints_folder: SharedString,
 }
 
 fn text(catalog: &I18n, text: &Text) -> String {
@@ -42,6 +43,7 @@ impl Labels {
             hints: catalog.tr(logic::hints(req, false)).into(),
             hints_unavailable: catalog.tr(logic::hints(req, true)).into(),
             hints_filtered: flea::ui_logic_pk2::hints_filtered(catalog).into(),
+            hints_folder: catalog.tr("picker.browser.hints_folder").into(),
         }
     }
 

@@ -20,7 +20,7 @@ impl Shell {
                 cx.notify();
             });
         }
-        if let Some(view) = &self.settings.plugins {
+        if let Some(view) = &self.settings.plugins.pane {
             view.update(cx, |view, cx| view.set_catalog(catalog, cx));
         }
         self.sync_trash_sheet(cx);

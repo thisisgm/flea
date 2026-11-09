@@ -71,6 +71,9 @@ pub(super) const CUT: &[(&str, &str, &[u8])] = &[
     ("cloud-upload", "flea-menu:cloud-upload", cut!("M12 13v8 M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242 M8 17l4-4 4 4")),
     ("x", "flea-menu:x", cut!("M6 6l12 12 M18 6 6 18")),
     ("copy-x", "flea-menu:copy-x", cut!("M9 8h12v13H9z M4 16V3h13 M12 11.5l6 6 M18 11.5l-6 6")),
+    // AirDrop's devices, board 0401-airdrop-menu's phone and laptop cut to the Omarchy edge; appended so FILE keeps its index.
+    ("smartphone", "flea-menu:smartphone", cut!("M5 2h14v20H5z M12 18L12.01 18")),
+    ("laptop", "flea-menu:laptop", cut!("M4 5h16v11H4z M2 20h20")),
 ];
 
 // The cuts mn2 hands the join as data (Verify Checksum's hash), drawn with the same stroke as CUT.
@@ -110,10 +113,13 @@ pub fn brand(brand: Brand) -> (SharedString, &'static [u8], f32) {
         Brand::Tailscale => ("flea-menu:brand-tailscale", TAILSCALE, 1.),
         Brand::Dropbox => ("flea-menu:brand-dropbox", DROPBOX, 1.18),
         Brand::LocalSend => ("flea-menu:brand-localsend", LOCALSEND, 1.),
+        Brand::AirDrop => ("flea-menu:brand-airdrop", AIRDROP, 1.),
     };
     (SharedString::new_static(key), data.as_bytes(), ratio)
 }
 
+// Apple's AirDrop mark as board 0401-airdrop-menu draws it: a dot under two open arcs.
+const AIRDROP: &str = r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="1.8" fill="currentColor"/><g stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M 5.74 11.73 A 4.25 4.25 0 1 1 12.26 11.73"/><path d="M 4.74 14.87 A 7.25 7.25 0 1 1 13.26 14.87"/></g></svg>"#;
 const TAILSCALE: &str = r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 169 169" fill="currentColor"><circle cx="30.5" cy="30.5" r="18" opacity="0.4"/><circle cx="84.5" cy="30.5" r="18" opacity="0.4"/><circle cx="138.5" cy="30.5" r="18" opacity="0.4"/><circle cx="30.5" cy="84.5" r="18"/><circle cx="84.5" cy="84.5" r="18"/><circle cx="138.5" cy="84.5" r="18"/><circle cx="30.5" cy="138.5" r="18" opacity="0.4"/><circle cx="84.5" cy="138.5" r="18"/><circle cx="138.5" cy="138.5" r="18" opacity="0.4"/></svg>"#;
 const DROPBOX: &str = r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 118 100" fill="currentColor"><path d="M29.5 0L59 18.8L29.5 37.6L0 18.8ZM88.5 0L118 18.8L88.5 37.6L59 18.8ZM29.5 37.6L59 56.4L29.5 75.2L0 56.4ZM88.5 37.6L118 56.4L88.5 75.2L59 56.4ZM59 62.4L88.5 81.2L59 100L29.5 81.2Z"/></svg>"#;
 const LOCALSEND: &str = r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="27.6" fill="currentColor"/><path d="M95.7 40.91A46.6 46.6 0 0 1 95.7 59.09M88.75 75.89A46.6 46.6 0 0 1 75.89 88.75M59.09 95.7A46.6 46.6 0 0 1 40.91 95.7M24.11 88.75A46.6 46.6 0 0 1 11.25 75.89M4.3 59.09A46.6 46.6 0 0 1 4.3 40.91M11.25 24.11A46.6 46.6 0 0 1 24.11 11.25M40.91 4.3A46.6 46.6 0 0 1 59.09 4.3M75.89 11.25A46.6 46.6 0 0 1 88.75 24.11" fill="none" stroke="currentColor" stroke-width="6.9" stroke-linecap="round"/></svg>"#;

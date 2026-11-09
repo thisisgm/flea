@@ -4,7 +4,7 @@ use gpui::{prelude::*, Div, ExternalPaths};
 use std::time::Duration;
 
 // FINDER-BEHAVIOR's spring-loaded folder dwell, about 0.3 s over a row (HIG-RECHECK-1024 item 7).
-const OPEN_MS: u64 = 300;
+pub(in crate::g2::dg2) const OPEN_MS: u64 = 300;
 
 pub(super) struct Rest {
     point: Point<gpui::Pixels>,

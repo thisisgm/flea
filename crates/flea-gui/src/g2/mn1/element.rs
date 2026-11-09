@@ -89,16 +89,26 @@ fn slot(at: gpui::Point<Pixels>, w: f32, h: f32, metrics: Metrics) -> Bounds<Pix
     )
 }
 
+#[allow(clippy::too_many_arguments)]
 fn paint_lead(
     lead: &Lead,
     mark: Hsla,
     ink: &MenuInk,
+    busy: &crate::feedback::spinner::Crawl,
     at: gpui::Point<Pixels>,
     metrics: Metrics,
     window: &mut Window,
     cx: &mut App,
 ) {
     match lead {
+        Lead::Busy => {
+            // One Omi grid in device pixels, two past the 18px slot on each side as the board draws it.
+            let side = crate::feedback::spinner::OMI_GRID_PX / window.scale_factor();
+            busy.show(true, ink.accent);
+            busy.place(slot(at, side, side, metrics), window);
+            busy.prepare(true, None, window, cx);
+            busy.paint(window);
+        }
         Lead::None | Lead::Check(false) => {}
         Lead::Cut(name) => {
             let (key, data) = glyphs::mark(name);
@@ -166,10 +176,12 @@ fn paint_lead(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn paint_row(
     line: &Line,
     lit: bool,
     ink: &MenuInk,
+    busy: &crate::feedback::spinner::Crawl,
     at: gpui::Point<Pixels>,
     width: Pixels,
     window: &mut Window,
@@ -195,12 +207,19 @@ fn paint_row(
     let frame = px(1. - line.frame_inset());
     let (left, right) = (left - frame, right + frame);
     let red = matches!(line.ink, Ink::Errored | Ink::Danger);
-    let label_ink = if red { ink.error } else { ink.label }.opacity(dim);
+    let label_ink = if line.busy {
+        ink.muted
+    } else if red {
+        ink.error.opacity(dim)
+    } else {
+        ink.label.opacity(dim)
+    };
     let mark_ink = if red { ink.error } else { ink.mark }.opacity(dim);
     paint_lead(
         &line.lead,
         mark_ink,
         ink,
+        busy,
         point(left, top),
         metrics,
         window,
@@ -331,6 +350,7 @@ fn paint_card(
                     line,
                     card.cursor == Some(index) || lit == Some(index),
                     ink,
+                    &card.busy,
                     point(inner.origin.x, row_top),
                     inner.size.width,
                     window,

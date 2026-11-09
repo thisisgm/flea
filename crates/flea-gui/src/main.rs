@@ -1,4 +1,5 @@
 use flea_gui::{
+    driver_notice::DriverNotice,
     ipc::server::Server,
     presentation,
     window::{
@@ -19,9 +20,9 @@ mod renderer_tests;
 #[cfg(test)]
 mod backend_log_tests;
 
-fn finish_opening<T>(opened: Result<T, String>) -> T {
+fn finish_opening<T>(opened: Result<T, String>, notice: &DriverNotice) -> T {
     opened.unwrap_or_else(|error| {
-        renderer::unavailable(&error);
+        renderer::unavailable(&error, &backend_log::take_refusals(), notice);
         let _ = std::io::stdout().flush();
         let _ = std::io::stderr().flush();
         // The startup callback precedes the event loop, which clears an earlier quit request.
@@ -46,6 +47,8 @@ fn main() {
     if backend_log_tests::emit_if_requested() {
         return;
     }
+    // Vulkan instance creation is the slowest step of opening a window; overlap it with the startup below.
+    gpui_platform::prewarm_gpu();
     let (service, locale) = Service::launch(flea::i18n::Paths::default()).unwrap_or_else(|error| {
         eprintln!("flea-gui: {error}");
         std::process::exit(2);
@@ -115,7 +118,8 @@ fn main() {
             }
         })
         .detach();
-        let window = finish_opening(window::open(launch, locale, events, cx));
+        let notice = DriverNotice::new(&locale.catalog);
+        let window = finish_opening(window::open(launch, locale, events, cx), &notice);
         window::glass_tag::start(presentation.theme.glass);
         let _ = window.update(cx, |root, window, cx| {
             root.shell.update(cx, |shell, cx| {

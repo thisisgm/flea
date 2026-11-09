@@ -1,9 +1,7 @@
 //! Logical-leading geometry for the source contract in i18n/rtl-policy.json.
+use crate::leaf::{Leaf, Painted};
 use flea::i18n::Locale;
-use gpui::{
-    AnyElement, App, Bounds, Element, GlobalElementId, InspectorElementId, IntoElement, LayoutId,
-    Pixels, Point, Window,
-};
+use gpui::{AnyElement, App, Bounds, IntoElement, LayoutId, Pixels, Point, Window};
 
 /// Direction is captured with the locale epoch, never inferred from a file's text.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -93,61 +91,22 @@ pub fn trailing_chevron(mirrored: bool) -> &'static str {
 /// Keeps an editable line, file content or media transport left to right, moved whole to its mirrored place.
 pub struct Unmirrored(AnyElement);
 
-pub fn unmirrored(child: impl IntoElement) -> Unmirrored {
-    Unmirrored(child.into_any_element())
+pub fn unmirrored(child: impl IntoElement) -> Painted<Unmirrored> {
+    Painted(Unmirrored(child.into_any_element()))
 }
 
-impl IntoElement for Unmirrored {
-    type Element = Self;
+impl Leaf for Unmirrored {
+    type Prepaint = ();
 
-    fn into_element(self) -> Self {
-        self
-    }
-}
-
-impl Element for Unmirrored {
-    type RequestLayoutState = ();
-    type PrepaintState = ();
-
-    fn id(&self) -> Option<gpui::ElementId> {
-        None
-    }
-    fn source_location(&self) -> Option<&'static core::panic::Location<'static>> {
-        None
+    fn layout(&mut self, window: &mut Window, cx: &mut App) -> LayoutId {
+        self.0.request_layout(window, cx)
     }
 
-    fn request_layout(
-        &mut self,
-        _: Option<&GlobalElementId>,
-        _: Option<&InspectorElementId>,
-        window: &mut Window,
-        cx: &mut App,
-    ) -> (LayoutId, ()) {
-        (self.0.request_layout(window, cx), ())
-    }
-
-    fn prepaint(
-        &mut self,
-        _: Option<&GlobalElementId>,
-        _: Option<&InspectorElementId>,
-        _: Bounds<Pixels>,
-        _: &mut (),
-        window: &mut Window,
-        cx: &mut App,
-    ) {
+    fn prepaint(&mut self, _: Bounds<Pixels>, window: &mut Window, cx: &mut App) {
         self.0.prepaint(window, cx);
     }
 
-    fn paint(
-        &mut self,
-        _: Option<&GlobalElementId>,
-        _: Option<&InspectorElementId>,
-        bounds: Bounds<Pixels>,
-        _: &mut (),
-        _: &mut (),
-        window: &mut Window,
-        cx: &mut App,
-    ) {
+    fn paint(&mut self, bounds: Bounds<Pixels>, _: &mut (), window: &mut Window, cx: &mut App) {
         window.with_unmirrored(bounds, |window| self.0.paint(window, cx));
     }
 }

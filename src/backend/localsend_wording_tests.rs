@@ -19,7 +19,7 @@ fn a_key_that_cannot_be_written_says_localsend_stopped_answering() {
 // Lines no fixture reaches (a pty that will not open, a descriptor that will not clone) are pinned by their source.
 #[test]
 fn retired_localsend_wording_is_gone_from_the_live_source() {
-    let live = include_str!("localsend.rs").split("\n#[cfg(test)]\nmod tests").next().unwrap();
+    let live = include_str!("localsend.rs").split("\n#[cfg(test)]\n#[path = \"localsend_tests.rs\"]").next().unwrap();
     for retired in ["its own CLI", "for its own", "terminal setup failed", "could not reach", "its own terminal", "could not name the terminal",
                     "could not size the terminal", "could not prepare a terminal", "could not open a terminal", "could not open {}"] {
         assert!(!live.contains(retired), "retired wording came back: {}", retired);

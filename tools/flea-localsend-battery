@@ -1,0 +1,950 @@
+#!/usr/bin/env python3
+"""LocalSend battery: Flea's backend against real localsend-cli peers on a private network.
+
+Usage: flea-localsend-battery --flea BIN --cli LOCALSEND_CLI [--runs N] [--cases a,b,...] [--root DIR] [--log FILE]
+       flea-localsend-battery --list
+
+Runs without root. The script re-executes itself inside a new user and network namespace, builds a
+bridge there and gives each node its own network namespace on it, so multicast discovery, ports and
+links are private to the run and nothing reaches the host's LAN. Node "a" runs `flea --backend` with
+the given localsend-cli first on its PATH; the other nodes run localsend-cli as receiving peers under
+a pty, answering an incoming request with Y. Every case is repeated --runs times. Each failure is
+printed and logged with the case, the run and the reason; the summary prints one rate per case and
+the script exits 1 if any run failed.
+
+Needs: Linux with unprivileged user namespaces, iproute2, util-linux (unshare, nsenter), python3.
+Every file it writes lives under a fresh mktemp root (or --root), removed at the end unless --keep.
+Sample summary line: "send-small        20/20 ok"
+"""
+import argparse
+import fcntl
+import hashlib
+import json
+import os
+import re
+import shutil
+import signal
+import struct
+import subprocess
+import sys
+import tempfile
+import termios
+import threading
+import time
+
+INNER = "FLEA_LOCALSEND_BATTERY_INNER"
+MARKER = ".flea-localsend-battery"
+ANSI = re.compile(r"\x1b(\[[0-?]*[ -/]*[@-~]|\][^\x07\x1b]*(\x07|\x1b\\)?|[()][A-Za-z0-9]|.)")
+# Unicode names that are not ASCII in any byte, and the spaces Flea must keep inside one argument.
+ODD_NAME = "Grüße aus Köln 東京 файл.txt"
+PEER_ODD = "Pästë Büro 東京"
+MIB = 1 << 20
+# Timeouts are sized as if an unshaped veth moved this many bits a second; it moves far more.
+UNSHAPED_BPS = 100e6
+# What a send gets on top of its transfer time: discovery and the person accepting.
+SETUP_SLACK = 60
+# Flea gives up on an unanswered accept at 45 s (SEND_LIMIT in src/backend/localsend.rs).
+ACCEPT_GIVE_UP = (40, 60)
+# A decline is one keypress at the receiver, so its answer comes back well inside this.
+DECLINE_LIMIT = 15
+
+
+def run(argv, check=True, **kw):
+    done = subprocess.run(argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, **kw)
+    if check and done.returncode != 0:
+        raise RuntimeError("%s: %s" % (" ".join(argv), done.stdout.strip()))
+    return done
+
+
+def text_of(raw):
+    return ANSI.sub("", raw.decode("utf-8", "replace"))
+
+
+def sha256(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+class Lab:
+    """A bridge in this namespace and one network namespace per node, each held by a sleeping child."""
+
+    def __init__(self):
+        self.holders = {}
+        self.bridges = set()
+
+    def bridge(self, name):
+        if name not in self.bridges:
+            run(["ip", "link", "add", name, "type", "bridge", "mcast_snooping", "0"])
+            run(["ip", "link", "set", name, "up"])
+            self.bridges.add(name)
+
+    def node(self, name):
+        own = os.readlink("/proc/self/ns/net")
+        holder = subprocess.Popen(["unshare", "-n", "sleep", "infinity"])
+        deadline = time.time() + 5
+        while os.readlink("/proc/%d/ns/net" % holder.pid) == own:
+            if time.time() > deadline:
+                raise RuntimeError("node %s never got its own namespace" % name)
+            time.sleep(0.01)
+        self.holders[name] = holder
+        self.inside(name, ["ip", "link", "set", "lo", "up"])
+
+    def link(self, name, bridge, ifname, address, default=True):
+        self.bridge(bridge)
+        host, peer = "h%s%s" % (name, ifname), "n%s%s" % (name, ifname)
+        run(["ip", "link", "add", host, "type", "veth", "peer", "name", peer])
+        run(["ip", "link", "set", host, "master", bridge, "up"])
+        run(["ip", "link", "set", peer, "netns", str(self.holders[name].pid)])
+        self.inside(name, ["ip", "link", "set", peer, "name", ifname])
+        self.inside(name, ["ip", "addr", "add", address + "/24", "dev", ifname])
+        self.inside(name, ["ip", "link", "set", ifname, "up"])
+        if default:
+            self.inside(name, ["ip", "route", "add", "default", "dev", ifname])
+
+    def carrier(self, name, ifname, up):
+        # The host end of the veth: taking it down is the peer leaving the network, as a cable pull is.
+        run(["ip", "link", "set", "h%s%s" % (name, ifname), "up" if up else "down"])
+
+    def shape(self, name, ifname, rate):
+        # Traffic into the node leaves the bridge on the host end, so the limit sits there.
+        run(["tc", "qdisc", "replace", "dev", "h%s%s" % (name, ifname), "root", "tbf", "rate", rate,
+             "burst", "256kb", "latency", "100ms"])
+
+    def delay(self, name, ifname, ms):
+        # A slow answer, as a phone in power save gives: every packet toward the node waits ms.
+        dev = "h%s%s" % (name, ifname)
+        if ms:
+            run(["tc", "qdisc", "replace", "dev", dev, "root", "netem", "delay", "%dms" % ms])
+        else:
+            run(["tc", "qdisc", "del", "dev", dev, "root"], check=False)
+
+    def readdress(self, name, ifname, old, new):
+        self.inside(name, ["ip", "addr", "del", old + "/24", "dev", ifname])
+        self.inside(name, ["ip", "addr", "add", new + "/24", "dev", ifname])
+        self.inside(name, ["ip", "route", "replace", "default", "dev", ifname])
+
+    def prefix(self, name):
+        return ["nsenter", "--net=/proc/%d/ns/net" % self.holders[name].pid, "--"]
+
+    def inside(self, name, argv):
+        return run(self.prefix(name) + argv)
+
+    def processes(self, name, comm):
+        """Pids named comm whose network namespace is this node's."""
+        ns = os.readlink("/proc/%d/ns/net" % self.holders[name].pid)
+        out = []
+        for pid in os.listdir("/proc"):
+            if not pid.isdigit():
+                continue
+            try:
+                if open("/proc/%s/comm" % pid).read().strip() == comm and os.readlink("/proc/%s/ns/net" % pid) == ns:
+                    out.append(int(pid))
+            except OSError:
+                pass
+        return out
+
+    def close(self):
+        for holder in self.holders.values():
+            holder.kill()
+            holder.wait()
+
+
+class Term:
+    """One program under a pty of its own, its output drained into a byte buffer by a thread."""
+
+    def __init__(self, argv, env, log):
+        self.master, slave = os.openpty()
+        fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 120, 0, 0))
+        self.proc = subprocess.Popen(argv, stdin=slave, stdout=slave, stderr=slave, env=env, start_new_session=True,
+                                     preexec_fn=lambda: fcntl.ioctl(0, termios.TIOCSCTTY, 0), close_fds=True)
+        os.close(slave)
+        self.raw = bytearray()
+        self.lock = threading.Lock()
+        self.log = log
+        self.reader = threading.Thread(target=self._drain, daemon=True)
+        self.reader.start()
+
+    def _drain(self):
+        while True:
+            try:
+                chunk = os.read(self.master, 65536)
+            except OSError:
+                break
+            if not chunk:
+                break
+            with self.lock:
+                self.raw += chunk
+
+    def text(self):
+        with self.lock:
+            raw = bytes(self.raw)
+        return text_of(raw)
+
+    def press(self, keys):
+        os.write(self.master, keys)
+
+    def signal(self, sig):
+        try:
+            os.killpg(self.proc.pid, sig)
+        except ProcessLookupError:
+            pass
+
+    def close(self):
+        self.signal(signal.SIGKILL)
+        self.proc.wait()
+        self.reader.join(2)
+        try:
+            os.close(self.master)
+        except OSError:
+            pass
+        with open(self.log, "ab") as f:
+            with self.lock:
+                f.write(bytes(self.raw))
+
+
+class Peer:
+    """A receiving localsend-cli on one node, accepting every incoming request with Y."""
+
+    def __init__(self, lab, node, alias, cli, root):
+        self.alias = alias
+        self.dest = os.path.join(root, "recv-" + node)
+        os.makedirs(self.dest, exist_ok=True)
+        home = os.path.join(root, "home-" + node)
+        os.makedirs(home, exist_ok=True)
+        env = dict(os.environ, HOME=home, XDG_CONFIG_HOME=os.path.join(home, ".config"), TERM="xterm-256color",
+                   LOCALSEND_ALIAS=alias, LOCALSEND_DESTINATION=self.dest)
+        self.term = Term(lab.prefix(node) + [cli], env, os.path.join(root, "peer-%s.raw" % node))
+        self.answered = 0
+        # What the person at this peer presses when asked: b"y" accepts, b"n" declines, None walks away.
+        self.answer = b"y"
+        self.watch = threading.Thread(target=self._answer, daemon=True)
+        self.stopped = False
+        self.watch.start()
+
+    def _answer(self):
+        while not self.stopped:
+            asks = self.term.text().count("Y/N")
+            if asks > self.answered:
+                self.answered = asks
+                try:
+                    if self.answer:
+                        self.term.press(self.answer)
+                except OSError:
+                    return
+            time.sleep(0.05)
+
+    def count(self, words):
+        return self.term.text().count(words)
+
+    def ready(self, limit=10):
+        deadline = time.time() + limit
+        while time.time() < deadline:
+            if "Ready to accept requests" in self.term.text() or "Devices" in self.term.text():
+                return True
+            time.sleep(0.05)
+        return False
+
+    def close(self):
+        self.stopped = True
+        self.term.close()
+
+
+class Flea:
+    """`flea --backend` on node a, one JSON line per request, its replies collected by a thread."""
+
+    def __init__(self, lab, node, flea, bindir, root):
+        home = os.path.join(root, "flea-home-" + node)
+        os.makedirs(home, exist_ok=True)
+        run_dir = os.path.join(root, "run-" + node)
+        os.makedirs(run_dir, mode=0o700, exist_ok=True)
+        env = dict(os.environ, HOME=home, XDG_CONFIG_HOME=os.path.join(home, ".config"),
+                   XDG_DATA_HOME=os.path.join(home, ".local/share"), XDG_CACHE_HOME=os.path.join(home, ".cache"),
+                   XDG_STATE_HOME=os.path.join(home, ".local/state"), XDG_RUNTIME_DIR=run_dir,
+                   PATH=bindir + ":" + os.environ.get("PATH", "/usr/bin:/bin"), LOCALSEND_ALIAS="flea-" + node,
+                   LOCALSEND_DESTINATION=os.path.join(root, "recv-" + node))
+        self.err = open(os.path.join(root, "flea-%s.stderr" % node), "ab")
+        self.proc = subprocess.Popen(lab.prefix(node) + [flea, "--backend"], stdin=subprocess.PIPE,
+                                     stdout=subprocess.PIPE, stderr=self.err, env=env)
+        self.seen = []
+        self.next_id = 1000
+        self.lock = threading.Lock()
+        threading.Thread(target=self._read, daemon=True).start()
+
+    def _read(self):
+        for line in self.proc.stdout:
+            try:
+                msg = json.loads(line)
+            except ValueError:
+                continue
+            with self.lock:
+                self.seen.append(msg)
+
+    def ask(self, request):
+        with self.lock:
+            self.next_id += 1
+            rid = self.next_id
+        request = dict(request, id=rid)
+        self.proc.stdin.write((json.dumps(request, ensure_ascii=False) + "\n").encode())
+        self.proc.stdin.flush()
+        return rid
+
+    def wait(self, kind, rid, limit):
+        deadline = time.time() + limit
+        while time.time() < deadline:
+            with self.lock:
+                for msg in self.seen:
+                    if msg.get("t") == kind and msg.get("id") == rid:
+                        return msg
+            time.sleep(0.05)
+        return None
+
+    def send_jobs(self):
+        with self.lock:
+            return {m["job"]["id"] for m in self.seen if m.get("t") == "job" and m["job"].get("kind") == "send"}
+
+    def new_send_job(self, before, limit=10):
+        """The backend job a send just started runs under: the first send job id not in before."""
+        deadline = time.time() + limit
+        while time.time() < deadline:
+            fresh = self.send_jobs() - before
+            if fresh:
+                return min(fresh)
+            time.sleep(0.05)
+        return None
+
+    def peers(self, limit=30):
+        rid = self.ask({"c": "localsend", "op": "peers", "peer": "", "paths": []})
+        return self.wait("localsendpeers", rid, limit)
+
+    def send(self, peer, paths):
+        return self.ask({"c": "localsend", "op": "send", "peer": peer, "paths": paths})
+
+    def cancel(self, job):
+        self.proc.stdin.write((json.dumps({"c": "jobs", "op": "cancel", "id": job}) + "\n").encode())
+        self.proc.stdin.flush()
+
+    def close(self):
+        try:
+            self.proc.stdin.write(b'{"c":"quit"}\n')
+            self.proc.stdin.flush()
+            self.proc.wait(5)
+        except (OSError, subprocess.TimeoutExpired):
+            self.proc.kill()
+            self.proc.wait()
+        self.err.close()
+
+
+class Fail(Exception):
+    pass
+
+
+class Battery:
+    """The topology every case shares, the fixtures, and the checks the cases are made of.
+
+    a  eth0 10.77.0.1 on br0, eth1 10.78.0.1 on br1 (no default route): runs Flea.
+    b  eth0 10.77.0.2 on br0, shaped to --rate:  peer "Peer B".
+    d  eth0 10.77.0.4 on br0:                    peer "Peer D".
+    c  eth0 10.78.0.3 on br1 only:               peer "Peer C", reachable through a's second interface.
+    """
+
+    def __init__(self, args, lab, root):
+        self.args, self.lab, self.root = args, lab, root
+        self.bindir = os.path.join(root, "bin")
+        os.makedirs(self.bindir)
+        os.symlink(os.path.abspath(args.cli), os.path.join(self.bindir, "localsend-cli"))
+        for node in "abcd":
+            lab.node(node)
+        lab.link("a", "br0", "eth0", "10.77.0.1")
+        lab.link("a", "br1", "eth1", "10.78.0.1", default=False)
+        lab.link("b", "br0", "eth0", "10.77.0.2")
+        lab.link("d", "br0", "eth0", "10.77.0.4")
+        lab.link("c", "br1", "eth0", "10.78.0.3")
+        if args.rate:
+            lab.shape("b", "eth0", args.rate)
+        self.b_address = "10.77.0.2"
+        self.peers = {}
+        for node, alias in (("b", "Peer B"), ("d", "Peer D"), ("c", "Peer C")):
+            self.start_peer(node, alias)
+        self.flea = None
+        self.reverse_flea = self.reverse_peer = None
+        self.data = os.path.join(root, "data")
+        self.fixtures()
+
+    def start_peer(self, node, alias):
+        old = self.peers.pop(node, None)
+        if old:
+            old.close()
+        peer = Peer(self.lab, node, alias, self.args.cli, self.root)
+        if not peer.ready():
+            raise RuntimeError("peer %s never started" % alias)
+        self.peers[node] = peer
+        return peer
+
+    def fixtures(self):
+        os.makedirs(os.path.join(self.data, "many"))
+        os.makedirs(os.path.join(self.data, "folder", "sub", "deep"))
+        self.small = self.blob("small.bin", 64 * 1024)
+        self.odd = self.blob(ODD_NAME, 100 * 1024)
+        self.medium = self.blob("medium.bin", 256 * MIB)
+        self.large = self.blob("large.bin", self.args.large_mb * MIB)
+        self.many = [self.blob(os.path.join("many", "f%04d.txt" % i), 1024) for i in range(self.args.many)]
+        self.folder = os.path.join(self.data, "folder")
+        for rel in ("a.txt", "sub/b.txt", "sub/deep/c.txt"):
+            self.blob(os.path.join("folder", rel), 2048)
+
+    def blob(self, rel, size):
+        path = os.path.join(self.data, rel)
+        with open(path, "wb") as f:
+            left = size
+            while left:
+                step = min(left, 8 << 20)
+                f.write(os.urandom(step))
+                left -= step
+        return path
+
+    def clear(self, node):
+        dest = self.peers[node].dest
+        for name in os.listdir(dest):
+            path = os.path.join(dest, name)
+            if os.path.isdir(path) and not os.path.islink(path):
+                shutil.rmtree(path)
+            else:
+                os.unlink(path)
+
+    def received(self, node, sources, limit=20):
+        """Every source arrived whole at node: same name under its destination, same sha256."""
+        dest = self.peers[node].dest
+        deadline = time.time() + limit
+        for src in sources:
+            rel = os.path.basename(src)
+            got = os.path.join(dest, rel)
+            while not (os.path.exists(got) and os.path.getsize(got) == os.path.getsize(src)):
+                if time.time() > deadline:
+                    present = sorted(os.listdir(dest))[:5]
+                    raise Fail("%s never arrived whole at %s (destination holds %s)" % (rel, node, present))
+                time.sleep(0.1)
+            if sha256(got) != sha256(src):
+                raise Fail("%s arrived at %s with other bytes" % (rel, node))
+
+    def no_cli_left(self, node="a", limit=3):
+        deadline = time.time() + limit
+        while self.lab.processes(node, "localsend-cli"):
+            if time.time() > deadline:
+                raise Fail("a localsend-cli was still running on %s after the reply" % node)
+            time.sleep(0.1)
+
+    def reply_limit(self, path_bytes):
+        # The transfer at the shaped rate, twice over, plus a minute for discovery and the accept.
+        rate = parse_rate(self.args.rate) or UNSHAPED_BPS
+        return SETUP_SLACK + 2 * path_bytes * 8 / rate
+
+    def send(self, peer, paths):
+        flea = self.flea
+        rid = flea.send(peer, paths)
+        size = sum(total_size(p) for p in paths)
+        reply = flea.wait("localsendsent", rid, self.reply_limit(size))
+        if reply is None:
+            raise Fail("no localsendsent reply")
+        if not reply.get("ok"):
+            raise Fail("send refused: %s" % reply.get("reason"))
+        return reply
+
+
+def total_size(path):
+    if os.path.isdir(path):
+        return sum(os.path.getsize(os.path.join(d, f)) for d, _, fs in os.walk(path) for f in fs)
+    return os.path.getsize(path)
+
+
+# Bits a second in a tc rate, 0 for none. Sample: "300mbit" (tc also takes "300Mbit").
+def parse_rate(rate):
+    m = re.fullmatch(r"(\d+)([kmg]?)bit", (rate or "").lower())
+    if not m:
+        return 0
+    return int(m.group(1)) * {"": 1, "k": 1e3, "m": 1e6, "g": 1e9}[m.group(2)]
+
+
+def wait_for(check, limit, what):
+    deadline = time.time() + limit
+    while not check():
+        if time.time() > deadline:
+            raise Fail(what)
+        time.sleep(0.05)
+
+
+# One function per case; each leaves nothing of its own running and raises Fail with the reason.
+
+def case_discover(bt, run):
+    reply = bt.flea.peers()
+    if reply is None:
+        raise Fail("no localsendpeers reply")
+    names = {p["name"]: p["address"] for p in reply["peers"]}
+    if names.get("Peer B") != bt.b_address:
+        raise Fail("Peer B missing from %s (reason %r)" % (sorted(names), reply.get("reason")))
+    bt.no_cli_left()
+
+
+def case_discover_all(bt, run):
+    reply = bt.flea.peers()
+    if reply is None:
+        raise Fail("no localsendpeers reply")
+    names = sorted(p["name"] for p in reply["peers"])
+    want = ["Peer B", "Peer C", "Peer D"]
+    if names != want:
+        raise Fail("listed %s, wanted %s (reason %r)" % (names, want, reply.get("reason")))
+    bt.no_cli_left()
+
+
+def case_discover_late(bt, run):
+    # Every packet toward Peer D waits 150 ms, so its answer lands about 450 ms after the others.
+    if run == 0:
+        bt.lab.delay("d", "eth0", 150)
+    try:
+        case_discover_all(bt, run)
+    finally:
+        if run == bt.runs - 1:
+            bt.lab.delay("d", "eth0", 0)
+
+
+def case_send_small(bt, run):
+    bt.clear("b")
+    bt.send("Peer B", [bt.small])
+    bt.received("b", [bt.small])
+    bt.no_cli_left()
+
+
+def case_send_odd_name(bt, run):
+    bt.clear("b")
+    bt.send("Peer B", [bt.odd])
+    bt.received("b", [bt.odd])
+    bt.no_cli_left()
+
+
+def case_peer_odd_name(bt, run):
+    if run == 0:
+        bt.start_peer("d", PEER_ODD)
+    bt.clear("d")
+    try:
+        bt.send(PEER_ODD, [bt.small])
+        bt.received("d", [bt.small])
+        bt.no_cli_left()
+    finally:
+        if run == bt.runs - 1:
+            bt.start_peer("d", "Peer D")
+
+
+def case_send_large(bt, run):
+    bt.clear("b")
+    bt.send("Peer B", [bt.large])
+    bt.received("b", [bt.large], limit=60)
+    bt.no_cli_left()
+
+
+def case_send_many(bt, run):
+    bt.clear("b")
+    bt.send("Peer B", bt.many)
+    bt.received("b", bt.many)
+    bt.no_cli_left()
+
+
+def case_send_folder(bt, run):
+    # localsend-cli sends files only ("Not a file" for a folder), so the folder is refused by name, at once.
+    t0 = time.time()
+    rid = bt.flea.send("Peer B", [bt.small, bt.folder])
+    reply = bt.flea.wait("localsendsent", rid, 10)
+    if reply is None or reply.get("ok") or "folder is a folder" not in reply.get("reason", ""):
+        raise Fail("a folder answered %r" % reply)
+    if time.time() - t0 > 2:
+        raise Fail("the folder refusal took %.1f s" % (time.time() - t0))
+    bt.no_cli_left()
+
+
+def case_second_interface(bt, run):
+    bt.clear("c")
+    bt.send("Peer C", [bt.small])
+    bt.received("c", [bt.small])
+    bt.no_cli_left()
+
+
+def started(bt, node, accepted_before, limit=30):
+    wait_for(lambda: bt.peers[node].count("You accepted") > accepted_before, limit, "the peer was never asked")
+    peer = bt.peers[node]
+    # Bytes are moving once the receiver draws its first progress bar after the accept.
+    wait_for(lambda: peer.term.text().rfind("[#") > peer.term.text().rfind("You accepted"), limit,
+             "no bytes moved after the accept")
+
+
+def case_cancel(bt, run):
+    bt.clear("b")
+    before, accepted = bt.flea.send_jobs(), bt.peers["b"].count("You accepted")
+    rid = bt.flea.send("Peer B", [bt.large])
+    job = bt.flea.new_send_job(before)
+    if job is None:
+        raise Fail("the send never became a job")
+    started(bt, "b", accepted)
+    t0 = time.time()
+    bt.flea.cancel(job)
+    reply = bt.flea.wait("localsendsent", rid, 10)
+    if reply is None:
+        raise Fail("no reply within 10 s of the cancel")
+    took = time.time() - t0
+    if reply.get("ok") or "cancel" not in reply.get("reason", "").lower():
+        raise Fail("a cancel answered %r" % reply)
+    bt.no_cli_left()
+    # The very next send must go through: a cancelled run leaves no port or process behind.
+    bt.send("Peer B", [bt.small])
+    bt.received("b", [bt.small])
+    bt.no_cli_left()
+    if took > 5:
+        raise Fail("the cancel took %.1f s to answer" % took)
+
+
+def case_cancel_at_ask(bt, run):
+    # A cancel at the receiver's Accept? prompt must clear it, or the next send is refused as busy.
+    peer = bt.peers["b"]
+    peer.answer = None
+    try:
+        asked, aborted = peer.count("Y/N"), peer.count("Aborted by sender")
+        before = bt.flea.send_jobs()
+        rid = bt.flea.send("Peer B", [bt.small])
+        job = bt.flea.new_send_job(before)
+        if job is None:
+            raise Fail("the send never became a job")
+        wait_for(lambda: peer.count("Y/N") > asked, 30, "the peer was never asked")
+        bt.flea.cancel(job)
+        reply = bt.flea.wait("localsendsent", rid, 10)
+        if reply is None or reply.get("ok") or "cancel" not in reply.get("reason", "").lower():
+            raise Fail("a cancel at the ask answered %r" % reply)
+        bt.no_cli_left()
+        wait_for(lambda: peer.count("Aborted by sender") > aborted, 10, "the receiver kept its prompt after the cancel")
+    finally:
+        peer.answer = b"y"
+    bt.clear("b")
+    bt.send("Peer B", [bt.small])
+    bt.received("b", [bt.small])
+    bt.no_cli_left()
+
+
+def case_no_answer(bt, run):
+    # Nobody at the receiver: the send gives up on the accept, says so, and leaves no prompt behind.
+    peer = bt.peers["b"]
+    peer.answer = None
+    try:
+        aborted = peer.count("Aborted by sender")
+        t0 = time.time()
+        rid = bt.flea.send("Peer B", [bt.small])
+        reply = bt.flea.wait("localsendsent", rid, 120)
+        if reply is None or reply.get("ok") or "did not accept" not in reply.get("reason", ""):
+            raise Fail("an unanswered send answered %r" % reply)
+        if not ACCEPT_GIVE_UP[0] <= time.time() - t0 <= ACCEPT_GIVE_UP[1]:
+            raise Fail("an unanswered send gave up after %.0f s" % (time.time() - t0))
+        bt.no_cli_left()
+        wait_for(lambda: peer.count("Aborted by sender") > aborted, 10, "the receiver kept its prompt after the send gave up")
+    finally:
+        peer.answer = b"y"
+
+
+def case_concurrent(bt, run):
+    bt.clear("b")
+    bt.clear("d")
+    one = bt.flea.send("Peer B", [bt.small])
+    two = bt.flea.send("Peer D", [bt.odd])
+    limit = bt.reply_limit(total_size(bt.small) + total_size(bt.odd)) * 2
+    replies = [bt.flea.wait("localsendsent", rid, limit) for rid in (one, two)]
+    bad = [r for r in replies if not r or not r.get("ok")]
+    if bad:
+        raise Fail("of two sends at once, %d failed: %s" % (len(bad), [r and r.get("reason") for r in bad]))
+    bt.received("b", [bt.small])
+    bt.received("d", [bt.odd])
+    bt.no_cli_left()
+
+
+def case_peers_during_send(bt, run):
+    bt.clear("b")
+    accepted = bt.peers["b"].count("You accepted")
+    rid = bt.flea.send("Peer B", [bt.medium])
+    started(bt, "b", accepted)
+    listed = bt.flea.peers()
+    reply = bt.flea.wait("localsendsent", rid, bt.reply_limit(total_size(bt.medium)))
+    if not reply or not reply.get("ok"):
+        raise Fail("the send under a discovery failed: %r" % (reply and reply.get("reason")))
+    names = sorted(p["name"] for p in (listed or {}).get("peers", []))
+    if "Peer D" not in names:
+        raise Fail("discovery during a send listed %s (reason %r)" % (names, listed and listed.get("reason")))
+    bt.received("b", [bt.medium])
+    bt.no_cli_left()
+
+
+def case_peers_twice(bt, run):
+    one = bt.flea.ask({"c": "localsend", "op": "peers", "peer": "", "paths": []})
+    two = bt.flea.ask({"c": "localsend", "op": "peers", "peer": "", "paths": []})
+    for rid in (one, two):
+        reply = bt.flea.wait("localsendpeers", rid, 30)
+        names = sorted(p["name"] for p in (reply or {}).get("peers", []))
+        if "Peer B" not in names:
+            raise Fail("one of two discoveries at once listed %s (reason %r)" % (names, reply and reply.get("reason")))
+    bt.no_cli_left()
+
+
+def case_appear(bt, run):
+    bt.clear("b")
+    bt.peers.pop("b").close()
+    rid = bt.flea.send("Peer B", [bt.small])
+    time.sleep(3)
+    bt.start_peer("b", "Peer B")
+    reply = bt.flea.wait("localsendsent", rid, 60)
+    if not reply or not reply.get("ok"):
+        raise Fail("a peer that appeared 3 s into the send was not sent to: %r" % (reply and reply.get("reason")))
+    bt.received("b", [bt.small])
+    bt.no_cli_left()
+
+
+def case_disappear(bt, run):
+    bt.clear("b")
+    accepted = bt.peers["b"].count("You accepted")
+    rid = bt.flea.send("Peer B", [bt.large])
+    started(bt, "b", accepted)
+    time.sleep(1)
+    bt.lab.carrier("b", "eth0", False)
+    try:
+        t0 = time.time()
+        reply = bt.flea.wait("localsendsent", rid, 120)
+        if reply is None:
+            raise Fail("no reply within 120 s of the peer leaving")
+        if reply.get("ok"):
+            raise Fail("a send to a peer that left mid-transfer reported success")
+        bt.no_cli_left()
+        if time.time() - t0 > 60:
+            raise Fail("the failure took %.0f s to report" % (time.time() - t0))
+        # The receiver never saw the close and refuses the next session; Flea must say it is busy.
+        bt.lab.carrier("b", "eth0", True)
+        rid = bt.flea.send("Peer B", [bt.small])
+        reply = bt.flea.wait("localsendsent", rid, 60)
+        if reply is None or not (reply.get("ok") or "busy with another transfer" in reply.get("reason", "")):
+            raise Fail("a send to the peer still holding the cut transfer answered %r" % reply)
+    finally:
+        bt.lab.carrier("b", "eth0", True)
+        # A fresh receiver for the next run, as the person would restart the app holding the dead session.
+        bt.start_peer("b", "Peer B")
+
+
+def case_sleep_wake(bt, run):
+    bt.clear("b")
+    accepted = bt.peers["b"].count("You accepted")
+    rid = bt.flea.send("Peer B", [bt.medium])
+    started(bt, "b", accepted)
+    bt.peers["b"].term.signal(signal.SIGSTOP)
+    time.sleep(10)
+    bt.peers["b"].term.signal(signal.SIGCONT)
+    reply = bt.flea.wait("localsendsent", rid, bt.reply_limit(total_size(bt.medium)) + 10)
+    if not reply or not reply.get("ok"):
+        raise Fail("a receiver asleep for 10 s mid-transfer ended the send: %r" % (reply and reply.get("reason")))
+    bt.received("b", [bt.medium])
+    bt.no_cli_left()
+
+
+def case_asleep_at_send(bt, run):
+    bt.clear("b")
+    bt.peers["b"].term.signal(signal.SIGSTOP)
+    rid = bt.flea.send("Peer B", [bt.small])
+    time.sleep(5)
+    bt.peers["b"].term.signal(signal.SIGCONT)
+    reply = bt.flea.wait("localsendsent", rid, 60)
+    if not reply or not reply.get("ok"):
+        raise Fail("a receiver that woke 5 s into the send was not sent to: %r" % (reply and reply.get("reason")))
+    bt.received("b", [bt.small])
+    bt.no_cli_left()
+
+
+def case_netchange(bt, run):
+    bt.clear("b")
+    new = "10.77.0.12" if bt.b_address == "10.77.0.2" else "10.77.0.2"
+    bt.lab.readdress("b", "eth0", bt.b_address, new)
+    bt.b_address = new
+    bt.send("Peer B", [bt.small])
+    bt.received("b", [bt.small])
+    bt.no_cli_left()
+
+
+def case_decline(bt, run):
+    peer = bt.peers["b"]
+    peer.answer = b"n"
+    try:
+        asked = peer.count("Y/N")
+        t0 = time.time()
+        rid = bt.flea.send("Peer B", [bt.small])
+        reply = bt.flea.wait("localsendsent", rid, 60)
+        if reply is None or reply.get("ok") or "declined" not in reply.get("reason", ""):
+            raise Fail("a declined send answered %r" % reply)
+        if peer.count("Y/N") <= asked:
+            raise Fail("Peer B was never asked, so nothing was declined: %r" % reply.get("reason"))
+        bt.no_cli_left()
+        if time.time() - t0 > DECLINE_LIMIT:
+            raise Fail("a decline took %.0f s to report (%s)" % (time.time() - t0, reply.get("reason")))
+    finally:
+        peer.answer = b"y"
+
+
+def case_reverse(bt, run):
+    # Flea on b sends to a localsend-cli on a; the shaping sits toward b, so this direction is unshaped.
+    try:
+        if run == 0:
+            bt.reverse_peer = Peer(bt.lab, "a", "Peer A", bt.args.cli, bt.root)
+            if not bt.reverse_peer.ready():
+                raise RuntimeError("peer Peer A never started")
+            bt.peers.pop("b").close()
+            bt.reverse_flea = Flea(bt.lab, "b", bt.args.flea, bt.bindir, bt.root)
+        if bt.reverse_flea is None:
+            raise Fail("Peer A or Flea on b never started on run 1, so there is nothing to send from")
+        dest = bt.reverse_peer.dest
+        for name in os.listdir(dest):
+            os.unlink(os.path.join(dest, name))
+        rid = bt.reverse_flea.send("Peer A", [bt.medium])
+        reply = bt.reverse_flea.wait("localsendsent", rid, bt.reply_limit(total_size(bt.medium)))
+        if not reply or not reply.get("ok"):
+            raise Fail("b to a send failed: %r" % (reply and reply.get("reason")))
+        got = os.path.join(dest, "medium.bin")
+        wait_for(lambda: os.path.exists(got) and os.path.getsize(got) == total_size(bt.medium), 20, "medium.bin never arrived at a")
+        if sha256(got) != sha256(bt.medium):
+            raise Fail("medium.bin arrived at a with other bytes")
+        bt.no_cli_left("b")
+    finally:
+        if run == bt.runs - 1:
+            for held in (bt.reverse_flea, bt.reverse_peer):
+                if held:
+                    held.close()
+            bt.reverse_flea = bt.reverse_peer = None
+            bt.start_peer("b", "Peer B")
+
+
+CASES = [
+    ("discover", case_discover),
+    ("discover-all", case_discover_all),
+    ("discover-late", case_discover_late),
+    ("send-small", case_send_small),
+    ("send-odd-name", case_send_odd_name),
+    ("peer-odd-name", case_peer_odd_name),
+    ("send-many", case_send_many),
+    ("send-folder", case_send_folder),
+    ("second-interface", case_second_interface),
+    ("send-large", case_send_large),
+    ("cancel", case_cancel),
+    ("cancel-at-ask", case_cancel_at_ask),
+    ("no-answer", case_no_answer),
+    ("concurrent", case_concurrent),
+    ("peers-during-send", case_peers_during_send),
+    ("peers-twice", case_peers_twice),
+    ("appear", case_appear),
+    ("disappear", case_disappear),
+    ("sleep-wake", case_sleep_wake),
+    ("asleep-at-send", case_asleep_at_send),
+    ("netchange", case_netchange),
+    ("decline", case_decline),
+    ("reverse", case_reverse),
+]
+
+
+def battery(args, lab, root, log):
+    wanted = {}
+    # Sample --cases: "send-small:5,cancel" runs send-small 5 times and cancel --runs times.
+    for item in filter(None, args.cases.split(",")):
+        name, _, runs = item.partition(":")
+        wanted[name] = int(runs) if runs else args.runs
+    unknown = set(wanted) - {name for name, _ in CASES}
+    if unknown:
+        raise SystemExit("unknown cases: %s" % ", ".join(sorted(unknown)))
+    bt = Battery(args, lab, root)
+    results = []
+
+    def say(line):
+        print(line, flush=True)
+        log.write(line + "\n")
+        log.flush()
+
+    say("# flea %s, %s, rate %s, large %d MiB, %d small files" % (
+        args.flea, run([args.cli, "--version"]).stdout.strip(), args.rate or "unshaped", args.large_mb, args.many))
+    for name, fn in CASES:
+        if wanted and name not in wanted:
+            continue
+        runs = wanted.get(name, args.runs)
+        bt.runs = runs
+        bt.flea = Flea(lab, "a", args.flea, bt.bindir, root)
+        oks, reasons = 0, {}
+        for i in range(runs):
+            t0 = time.time()
+            try:
+                fn(bt, i)
+                oks += 1
+                say("%s run %d ok %.1fs" % (name, i + 1, time.time() - t0))
+            except Fail as e:
+                reasons[str(e)] = reasons.get(str(e), 0) + 1
+                say("FAIL %s run %d %.1fs: %s" % (name, i + 1, time.time() - t0, e))
+            except Exception as e:  # noqa: BLE001, the battery reports a harness fault as that run's failure
+                reasons[repr(e)] = reasons.get(repr(e), 0) + 1
+                say("FAIL %s run %d %.1fs: harness: %r" % (name, i + 1, time.time() - t0, e))
+            # A failed run can leave a sleeping peer or a link down; the next run starts from the topology.
+            for peer in bt.peers.values():
+                peer.term.signal(signal.SIGCONT)
+        bt.flea.close()
+        results.append((name, oks, runs, reasons))
+    say("# summary")
+    for name, oks, runs, reasons in results:
+        say("%-18s %d/%d ok" % (name, oks, runs))
+        for reason, n in sorted(reasons.items(), key=lambda kv: -kv[1]):
+            say("    %dx %s" % (n, reason))
+    for peer in bt.peers.values():
+        peer.close()
+    return all(oks == runs for _, oks, runs, _ in results)
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap.add_argument("--flea", help="the flea binary under test")
+    ap.add_argument("--cli", help="the localsend-cli binary every node runs")
+    ap.add_argument("--runs", type=int, default=20, help="runs per case (default 20)")
+    ap.add_argument("--cases", default="", help="comma list, each optionally NAME:RUNS (default all)")
+    ap.add_argument("--rate", default="300mbit", help="tc rate on Peer B's link, empty for unshaped (default 300mbit)")
+    ap.add_argument("--large-mb", type=int, default=2048, help="size of the large file in MiB (default 2048)")
+    ap.add_argument("--many", type=int, default=1000, help="number of small files (default 1000)")
+    ap.add_argument("--root", help="an empty directory to work in (default a new mktemp root)")
+    ap.add_argument("--log", default="flea-localsend-battery.log", help="the log, appended (default in the cwd)")
+    ap.add_argument("--keep", action="store_true", help="keep the work root")
+    ap.add_argument("--list", action="store_true", help="print the case names")
+    args = ap.parse_args()
+    if args.list:
+        print("\n".join(name for name, _ in CASES))
+        return 0
+    if not args.flea or not args.cli:
+        ap.error("--flea and --cli are required")
+    if args.rate and not parse_rate(args.rate):
+        ap.error("--rate takes Nbit, Nkbit, Nmbit or Ngbit, not %r" % args.rate)
+    args.flea, args.cli = os.path.abspath(args.flea), os.path.abspath(args.cli)
+    args.log = os.path.abspath(args.log)
+    if os.environ.get(INNER) != "1":
+        env = dict(os.environ, **{INNER: "1"})
+        env["PATH"] = env.get("PATH", "/usr/bin:/bin") + ":/usr/sbin:/sbin"
+        argv = ["unshare", "-Urn", "--kill-child", sys.executable, "-I", os.path.abspath(__file__)] + sys.argv[1:]
+        os.execvpe("unshare", argv, env)
+    if args.root:
+        root = os.path.abspath(args.root)
+        if os.listdir(root):
+            raise SystemExit("--root must be empty: %s" % root)
+    else:
+        root = tempfile.mkdtemp(prefix="flea-localsend-battery.")
+    open(os.path.join(root, MARKER), "w").close()
+    lab = Lab()
+    try:
+        with open(args.log, "a") as log:
+            ok = battery(args, lab, root, log)
+    finally:
+        lab.close()
+        if not args.keep and os.path.exists(os.path.join(root, MARKER)):
+            shutil.rmtree(root)
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

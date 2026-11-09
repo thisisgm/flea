@@ -13,8 +13,9 @@ pub enum MenuAction {
 
 impl MenuAction {
     pub fn parse(action: &str) -> Self {
-        const LEAVES: [&str; 6] = [
+        const LEAVES: [&str; 7] = [
             "copyPath",
+            "copyRelative",
             "copyName",
             "copyStem",
             "copydirpath",

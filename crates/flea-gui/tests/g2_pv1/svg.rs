@@ -17,14 +17,7 @@ use std::{
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
-// A test that blocks past this ends the whole process, so a hang never holds the broker's lock.
-pub(super) fn watchdog(secs: u64) {
-    std::thread::spawn(move || {
-        std::thread::sleep(Duration::from_secs(secs));
-        eprintln!("svg test watchdog: {secs} s passed, exiting 97");
-        std::process::exit(97);
-    });
-}
+pub(super) use super::watchdog::watchdog;
 
 fn mkfifo(path: &Path) {
     assert!(
@@ -407,7 +400,7 @@ fn an_oversize_svg_never_reaches_the_rasterizer(cx: &mut TestAppContext) {
 
 #[gpui::test]
 fn a_fifo_named_svg_never_reaches_the_rasterizer(cx: &mut TestAppContext) {
-    watchdog(100);
+    let _watchdog = watchdog(100);
     let root = sandbox("fifo");
     let path = root.join("pipe.svg");
     mkfifo(&path);

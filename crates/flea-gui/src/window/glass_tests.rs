@@ -1,4 +1,6 @@
 //! Glass is observed through the real mounted Shell and its ordinary IPC dispatch.
+#[path = "glass/material_startup_controls.rs"]
+mod material_startup_controls;
 #[path = "glass/paint_pass_controls.rs"]
 mod paint_pass_controls;
 #[path = "glass/producer_controls.rs"]

@@ -127,7 +127,7 @@ fn sweep(replace_at: Option<usize>) -> (usize, usize, [u64; 2], usize) {
     let mut live = 0;
     // Seventy j presses: the cursor moves one row per frame and the scroll contains it in one pass.
     for cursor in 1..=70 {
-        scroll = contain_y(cursor, rows.len(), scroll, height);
+        scroll = contain_y(cursor, rows.len(), scroll, height, 31.);
         let replaced = replace_at == Some(cursor);
         set(&mut cx, window, |view| {
             view.focus = Rc::new(Focus {

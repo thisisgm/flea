@@ -18,7 +18,7 @@ mod peek_lift;
 #[path = "rail_drop.rs"]
 pub(crate) mod rail_drop;
 #[path = "spring.rs"]
-mod spring;
+pub(super) mod spring;
 #[path = "tab_drop.rs"]
 mod tab_drop;
 use owned::Owned;
@@ -116,9 +116,9 @@ impl Shell {
         drags.serial += 1;
         let serial = FILE_SERIALS | drags.serial;
         if let Some((lifted, picture)) = self.peek_lift(side, window, serial) {
-            let host = self.panes[side]
-                .as_ref()
-                .expect("the source pane remains mounted");
+            let Some(host) = self.panes[side].as_ref() else {
+                return false;
+            };
             let flock = image::pictured(host, picture, window, cx);
             cx.default_global::<Drags>().flocks.insert(key, flock);
             cx.default_global::<Drags>().put(key, lifted);
@@ -161,9 +161,9 @@ impl Shell {
             self.say_drop(side, text, cx);
             return false;
         }
-        let host = self.panes[side]
-            .as_ref()
-            .expect("the source pane remains mounted");
+        let Some(host) = self.panes[side].as_ref() else {
+            return false;
+        };
         let flock = image::captured(host, &lifted.rows, window, cx);
         cx.default_global::<Drags>().flocks.insert(key, flock);
         cx.default_global::<Drags>().put(key, lifted);
@@ -175,6 +175,24 @@ impl Shell {
     /// This window's lift while its drag is in flight, for the dragState reader.
     pub(crate) fn file_drag_lift<'a>(&self, window: &Window, cx: &'a App) -> Option<&'a Lift> {
         cx.try_global::<Drags>()?.lifts.get(&window_key(window))
+    }
+
+    /// A pane's file drag goes to the compositor at the threshold, so a workspace switch cannot end it, and lands back on that pane.
+    pub(crate) fn own_file_drag(
+        div: gpui::Stateful<gpui::Div>,
+        side: usize,
+        cx: &mut Context<Self>,
+    ) -> gpui::Stateful<gpui::Div> {
+        // Imported here, not at module level, because spring.rs and its siblings glob this module.
+        use gpui::{InteractiveElement, StatefulInteractiveElement};
+        let payload = cx.entity().downgrade();
+        div.external_drag_payload::<Seed>(move |_, window, cx| {
+            payload.upgrade()?.read(cx).file_drag_payload(window, cx)
+        })
+        .external_drag_at_start()
+        .on_drop::<Seed>(
+            cx.listener(move |shell, _: &Seed, window, cx| shell.land_own_drag(side, window, cx)),
+        )
     }
 
     /// The drag ended over this window: a drop that never left the slop is the tap pointer_up already handled.

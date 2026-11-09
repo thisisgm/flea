@@ -48,6 +48,8 @@ pub(crate) struct Runtime {
     /// Filter.js filterKeyAt and filterNarrowedAt: wall-clock ms of the last query change and of its answer landing.
     pub key_at: u64,
     pub narrowed_at: u64,
+    /// The query an Enter committed while its answer was still out; the row acts when that answer lands.
+    pub enter_after: Option<String>,
 }
 
 fn wall_ms() -> u64 {
@@ -67,6 +69,7 @@ impl Runtime {
             shown: None,
             key_at: 0,
             narrowed_at: 0,
+            enter_after: None,
         }
     }
 
@@ -165,6 +168,7 @@ impl Shell {
         let query = host.filter.owner.query().to_owned();
         let listing = host.pane.held.listing;
         let before = host.filter.owner.drawn(listing).cloned();
+        let filtered = host.filter.shown.clone();
         let asked = change(
             &mut host.filter.owner,
             &mut Seam {
@@ -172,6 +176,12 @@ impl Shell {
                 selected: &mut host.selected,
             },
         );
+        // Seam::refill reveals the list's cursor; the Grid keeps its own scroll, so a clear hands it over here.
+        if let Some(filtered) =
+            filtered.filter(|_| before.is_some() && host.filter.owner.drawn(listing).is_none())
+        {
+            host.grid_filter_cleared(&filtered);
+        }
         // The seam marks and prunes host.selected directly, so the plate's snapshot follows it here.
         host.input.selection.sync(&host.selected);
         let owner = &host.filter.owner;
@@ -360,3 +370,4 @@ impl Shell {
 
 #[path = "filter_input.rs"]
 mod input;
+pub(crate) use input::plain_enter;

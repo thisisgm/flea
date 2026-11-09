@@ -71,6 +71,19 @@ impl NetworkView {
         self.effects(effects, cx);
         window.focus(&self.focus, cx);
     }
+    /// Add a Network Share opened from a nearby host: the card at rest, then that host's fields filled.
+    pub fn open_suggested(
+        &mut self,
+        origin: u64,
+        address: &flea::ui_logic_pl2::networkaddress::Address,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.open_for(origin, window, cx);
+        self.model.suggest(address);
+        self.load_input();
+        self.changed(cx);
+    }
     pub(crate) fn visible(&self) -> bool {
         self.model.opened || self.motion.visible()
     }
@@ -197,8 +210,11 @@ impl NetworkView {
                 return;
             }
         };
-        self.input.private = false;
-        self.input.digits = self.model.focus == Focus::Port;
+        self.input.kind = if self.model.focus == Focus::Port {
+            crate::path::entry::Kind::Digits
+        } else {
+            crate::path::entry::Kind::Text
+        };
         self.input.begin(text);
         self.input.move_to(text.len());
         self.input_owner = Some(self.model.focus);

@@ -12,7 +12,7 @@ fn vf_look_quick_look_centers_the_search_match_at_line_102(cx: &mut TestAppConte
         0,
         &matches(6, 16, "src/main.rs", true).replace("\"lineNo\":3", "\"lineNo\":102"),
     );
-    key(cx, handle, "enter", None);
+    results(cx, handle);
     key(cx, handle, "space", Some(" "));
     frame(cx, handle);
     let code = edit(cx, handle, |shell, _, cx| {

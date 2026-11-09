@@ -54,6 +54,9 @@ pub struct PluginsPage {
     pub(super) pending: HashMap<u64, String>,
     pub(super) updates: HashMap<String, Update>,
     pub(super) card: Card,
+    pub(super) airdrop: flea::ui_logic_st2::airdrop::Page,
+    // What a chip pick or a key asked of the host, sent once the pane has the event.
+    pub(super) effect: Effect,
 }
 
 impl PluginsPage {
@@ -71,6 +74,8 @@ impl PluginsPage {
             pending: HashMap::new(),
             updates: HashMap::new(),
             card: Card::None,
+            airdrop: Default::default(),
+            effect: Effect::None,
         }
     }
 
@@ -229,7 +234,7 @@ impl PluginsPage {
                     .get(&plugin.manifest.id)
                     .cloned()
                     .unwrap_or_default();
-                pages::page_rows(plugin, &update, &self.i18n)
+                pages::page_rows_with(plugin, &update, Some(&self.airdrop_page()), &self.i18n)
             }
             None => pages::list_rows(&self.plugins, &self.i18n),
         };

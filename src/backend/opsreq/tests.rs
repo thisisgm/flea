@@ -1,7 +1,7 @@
 // The opsreq test module, out of line so src/backend/opsreq.rs stays inside the file budget.
 use super::*;
 use crate::backend::testdir::TestDir;
-use crate::backend::undo::{self, Journal};
+use crate::backend::undo;
 use std::os::unix::fs::PermissionsExt;
 use std::sync::mpsc::{channel, Receiver};
 
@@ -350,9 +350,9 @@ fn one_failing_item_is_data_and_the_batch_carries_on() {
         "the plain failure cause retains its operation and item identity");
 }
 
-// The tree's only file has no permission bits (EACCES for every uid but root); a copied file beside it could land a ctime tick after the root, and undo keeps such a tree.
+// The tree's only file has no permission bits (EACCES for every uid but root), so the new folder fails while still hidden.
 #[test]
-fn a_copy_that_fails_short_of_a_cancel_records_the_partial_tree_and_undo_removes_it() {
+fn a_copy_that_fails_short_of_a_cancel_leaves_nothing_under_the_name_and_nothing_to_undo() {
     let d = TestDir::new("transferpartialtree");
     let src = d.dir("tree");
     let shut = src.join("shut.txt");
@@ -363,15 +363,9 @@ fn a_copy_that_fails_short_of_a_cancel_records_the_partial_tree_and_undo_removes
     run_transfer(5, false, vec![src.to_string_lossy().to_string()], dest.clone(), Arc::new(AtomicBool::new(false)), tx);
     let (ok, failed, _, cancelled, entry) = done_line(rx);
     assert_eq!((ok, failed, cancelled), (0, 1, false));
-    let partial = dest.join("tree");
-    assert!(partial.is_dir(), "a failure that is not a cancel leaves what it copied");
-    assert!(matches!(&entry.steps[..], [Step::Copied { from, to, manifest: Some(_), .. }] if from == &src && to == &partial),
-        "the partial tree is journaled with what it created: {:?}", entry.steps);
-    let mut j = Journal::new();
-    j.push(entry);
-    assert_eq!(j.undo().expect("undo"), "copy");
-    assert!(!partial.exists(), "undo removed the partial tree");
-    assert!(shut.exists(), "and left the source alone");
+    assert_eq!(std::fs::read_dir(&dest).unwrap().count(), 0, "neither the name nor the hidden folder stays");
+    assert!(entry.steps.is_empty(), "nothing was left to journal: {:?}", entry.steps);
+    assert!(shut.exists(), "and the source stands");
 }
 
 #[test]

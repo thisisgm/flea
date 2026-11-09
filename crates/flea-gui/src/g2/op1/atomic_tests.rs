@@ -150,16 +150,19 @@ fn u13_fix1_completion_waits_for_100_ms_of_drawn_progress(cx: &mut TestAppContex
             let view = root.shell.read(cx).operation_view(0).unwrap();
             let overlay = view.read(cx);
             assert!(!overlay.model.jobs.visible());
-            let accent = overlay.palette.accent;
+            let frame = overlay.palette.muted_frame;
             let square = mark.scale(window.scale_factor());
             let painted = window.painted_quads().iter().any(|quad| {
                 quad.bounds.is_contained_within(&square)
                     && quad
                         .background
                         .as_solid()
-                        .is_some_and(|ink| (ink.h, ink.s, ink.l) == (accent.h, accent.s, accent.l))
+                        .is_some_and(|ink| (ink.h, ink.s, ink.l) == (frame.h, frame.s, frame.l))
             });
-            assert!(painted, "the retained Omi must actually paint spiral quads");
+            assert!(
+                painted,
+                "the retained job spiral must actually paint its quads"
+            );
             let (answer, receive) = std::sync::mpsc::sync_channel(1);
             root.shell.update(cx, |shell, cx| {
                 shell.ipc(

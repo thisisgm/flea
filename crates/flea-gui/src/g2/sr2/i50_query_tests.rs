@@ -197,13 +197,13 @@ fn i50_query_filter_ctrl_a_scope(cx: &mut TestAppContext) {
         None,
         "Tab stays inert until filter26 supplies its recursive producer"
     );
-    // Ctrl+A on the typed line stays on it (EY-115); after Enter the list's Ctrl+A marks the matches.
+    // Ctrl+A on the typed line stays on it (EY-115); after a cursor key the list's Ctrl+A marks the matches.
     key(cx, handle, "a", true);
     edit(cx, handle, |shell, _, _| {
         let host = shell.panes[0].as_ref().unwrap();
         assert!(host.selected.is_empty() && host.filter.owner.typing());
     });
-    key(cx, handle, "enter", false);
+    key(cx, handle, "home", false);
     key(cx, handle, "a", true);
     edit(cx, handle, |shell, _, _| {
         let host = shell.panes[0].as_ref().unwrap();

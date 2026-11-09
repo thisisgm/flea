@@ -89,7 +89,7 @@ fn columns_search_washes_only_the_non_cursor_typed_runs() {
             row("code-py.py", false),
         ],
     );
-    cx.simulate_keystrokes("enter");
+    cx.simulate_keystrokes("home");
     cx.update(|window, cx| shell.update(cx, |shell, cx| host::settle(shell, window, cx)));
     cx.run_until_parked();
     cx.update(|window, cx| {

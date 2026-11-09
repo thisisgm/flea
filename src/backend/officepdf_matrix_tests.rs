@@ -125,13 +125,7 @@ fn matrix_cell(
         OBSERVE_CACHE.to_string(),
     ];
     inner.extend(argv(program, input, &work.dir));
-    let mut full = sandbox::wrap_with(
-        &inner,
-        input,
-        &work.dir,
-        Some(sandbox::CPU_SECONDS),
-        sandbox::OFFICE_ADDRESS_SPACE_BYTES,
-    );
+    let mut full = sandbox::wrap_office(&inner, input, &work.dir);
     let cap = full
         .iter_mut()
         .find(|argument| argument.starts_with("--as="))

@@ -1,6 +1,6 @@
 //! The encrypted archive's card: its name, one masked field with the eye, and Extract.
 use super::{
-    cards::{Block, Button, Card, Field, Ink},
+    cards::{Block, Button, Card, Field, Hit, Ink},
     keys::Key,
     Effect,
 };
@@ -192,6 +192,29 @@ impl Extract {
                 vec![Effect::Close]
             }
             Stop::Extract => self.commit(i18n),
+            _ => Vec::new(),
+        }
+    }
+
+    /// A click on the button card() draws at this index presses it, as Enter on it would.
+    pub fn press_at(&mut self, i18n: &I18n, at: usize) -> Vec<Effect> {
+        match [Stop::Cancel, Stop::Extract].get(at) {
+            Some(&button) => {
+                self.focus(button);
+                self.press(i18n, button)
+            }
+            None => Vec::new(),
+        }
+    }
+
+    /// A click focuses its control and answers as that control's key; the password is the card's only field.
+    pub fn click(&mut self, i18n: &I18n, hit: Hit) -> Vec<Effect> {
+        match hit {
+            Hit::Button(at) => self.press_at(i18n, at),
+            Hit::Field(0) => {
+                self.focus(Stop::Password);
+                Vec::new()
+            }
             _ => Vec::new(),
         }
     }

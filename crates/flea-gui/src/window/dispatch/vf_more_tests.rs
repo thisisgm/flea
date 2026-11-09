@@ -208,6 +208,9 @@ fn vf_more_actions_default_on_preserves_saved_off_and_run_script_off() {
 #[gpui::test]
 fn vf_more_extracting_keeps_the_painted_cursor_accented(cx: &mut TestAppContext) {
     let (shell, cx) = open_root(cx, "default");
+    // The cursor keeps its accent only in the active window; a TestWindow starts inactive.
+    cx.update(|window, _| window.activate_window());
+    cx.run_until_parked();
     super::test_shell::land(&shell, cx, "/files", vec![row("backup.tar.zst", false)], 1);
     draw(cx);
     receive(&shell, cx, Event::Operations(r#"{"t":"job","job":{"id":7,"kind":"extract","head":"Extracting","file":"backup.tar.zst","state":"running"}}"#.into()));

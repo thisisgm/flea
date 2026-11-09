@@ -248,10 +248,36 @@ impl Metrics {
                 .min_by_key(|h| (self.balance(items, content_y, *h), -h))
         };
         // An edge just under a separator reaches the half of the row above it only past that separator too.
-        match trim(view_h - self.row + 1).or_else(|| trim(view_h - self.row - self.sep + 1)) {
-            Some(h) => (content_y, h),
-            None => (content_y, view_h),
+        if let Some(h) =
+            trim(view_h - self.row + 1).or_else(|| trim(view_h - self.row - self.sep + 1))
+        {
+            return (content_y, h);
         }
+        // A view a pixel or two short of two half rows plus whole ones moves within a row to the scroll whose edge rows sit nearest half.
+        let rows_cut = |y: i32| {
+            let (top, bottom) = self.edge_cuts(items, y, view_h);
+            let row = |cut: Cut| cut.is_some_and(|(index, _)| !items[index].separator);
+            (y <= 0 || row(top)) && (y + view_h >= self.content_height(items) || row(bottom))
+        };
+        let worst = |y: i32| {
+            let (top, bottom) = self.edge_cuts(items, y, view_h);
+            [top, bottom]
+                .iter()
+                .flatten()
+                .map(|(_, shown)| (2 * shown - self.row).abs())
+                .max()
+        };
+        (0..=end)
+            .filter(|y| rows_cut(*y) && self.keeps_clear(items, keep, *y, view_h))
+            .min_by_key(|y| {
+                (
+                    (y - content_y).abs() / self.row,
+                    worst(*y),
+                    self.balance(items, *y, view_h),
+                    (y - content_y).abs(),
+                )
+            })
+            .map_or((content_y, view_h), |y| (y, view_h))
     }
 
     pub fn scroll_for(

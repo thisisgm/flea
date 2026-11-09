@@ -195,7 +195,7 @@ fn review_u32_r4_all_entry_actions_and_close_paths_drop_the_drawn_surface() {
 }
 
 #[test]
-fn review_u32_r4_loading_refresh_requires_a_new_list_prepaint() {
+fn review_u32_r4_a_refresh_keeps_its_rows_and_changed_rows_need_a_new_prepaint() {
     use std::time::Duration;
 
     let mut cx = crate::list::bench::real_cx();
@@ -208,25 +208,35 @@ fn review_u32_r4_loading_refresh_requires_a_new_list_prepaint() {
         });
         shell.flush_trash(window, cx);
         let host = shell.trash.as_ref().unwrap();
-        assert!(host.presentation.held_trash);
+        assert!(
+            !host.presentation.held_trash,
+            "a refresh over drawn rows opens no hold"
+        );
         assert!(host.pane.read(cx).paint.borrow().drawn());
     });
     cx.executor()
-        .advance_clock(Duration::from_millis(crate::pane::swap::CAP_MS));
+        .advance_clock(Duration::from_millis(crate::pane::swap::CAP_MS + 100));
     cx.run_until_parked();
     draw(&mut cx, window);
-    shell(&mut cx, window, |shell, _, cx| {
+    shell(&mut cx, window, |shell, window, cx| {
         let host = shell.trash.as_ref().unwrap();
-        assert_eq!(host.presentation.stage, super::presentation::Stage::Loading);
-        assert!(!host.pane.read(cx).paint.borrow().drawn());
+        assert_eq!(host.presentation.stage, super::presentation::Stage::Ready);
+        assert!(
+            host.pane.read(cx).paint.borrow().drawn(),
+            "the drawn rows stay through a slow refresh"
+        );
+        assert_eq!(
+            jsondoc::parse(&read(shell, window, cx, "trashState"))
+                .unwrap()
+                .get("busy"),
+            Some(&Json::Bool(true))
+        );
     });
-    cx.executor().advance_clock(Duration::from_millis(100));
-    cx.run_until_parked();
     answer(
         &mut cx,
         window,
         "list",
-        r#", "total":2,"start":0,"present":["trash:///alpha","trash:///beta"],"rows":[{"uri":"trash:///alpha","original":"/private/alpha.txt","identity":"alpha-identity","size":6},{"uri":"trash:///beta","original":"/private/beta.txt","identity":"beta-identity","size":5}]"#,
+        r#", "total":3,"start":0,"present":["trash:///gamma","trash:///alpha","trash:///beta"],"rows":[{"uri":"trash:///gamma","original":"/private/gamma.txt","identity":"gamma-identity","size":4},{"uri":"trash:///alpha","original":"/private/alpha.txt","identity":"alpha-identity","size":6},{"uri":"trash:///beta","original":"/private/beta.txt","identity":"beta-identity","size":5}]"#,
     );
     shell(&mut cx, window, |shell, window, cx| {
         let host = shell.trash.as_ref().unwrap();

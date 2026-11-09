@@ -111,7 +111,7 @@ function runRows(check) {
     check("the current menu controls include Permissions, Update Flea and the retained hints preference",
           menus.filter(function (r) { return r.kind === "check" })
                .map(function (r) { return r.id }).join(","),
-          "cut,copy,paste,duplicate,rename,trash,delete,openwith,run,openAsText,openTerminal,moveto,copyto,properties,permissions,makeExecutable,copyAs,showOriginal,tags,shelf,compress,extract,convert,flashDrive,taildrop,localsend,dropbox,sharelink,runScript,placeMenu,updateFlea,toggleLangMarks,extThumbs,pasteAs,invertSelection,keyHints")
+          "cut,copy,paste,duplicate,rename,trash,delete,openwith,run,openAsText,openTerminal,moveto,copyto,properties,permissions,makeExecutable,copyAs,showOriginal,tags,shelf,compress,extract,convert,flashDrive,taildrop,localsend,dropbox,sharelink,runScript,placeMenu,updateFlea,toggleHidden,toggleLangMarks,extThumbs,pasteAs,invertSelection,keyHints")
     // The one check that is not a menu action: it says how every row is drawn, not whether it is. Since 2026-09-10 it is off by default, with the rail's own detail rows, and src/uischema.rs stores that default, so an absent preference reads off and not on.
     check("the hints row defaults off, as ruled over the boards",
           find(menus, "keyHints").label + "|" + find(menus, "keyHints").on,
@@ -124,10 +124,10 @@ function runRows(check) {
     check("Open in terminal is a switch like any other action row",
           find(menus, "openTerminal").label + "|" + find(menus, "openTerminal").glyph,
           "Open in terminal|terminal")
-    // The board shows the two locked rows so the section is a complete list of what a menu can hold.
-    check("Open and Show hidden files are listed, locked rather than omitted",
+    // The board shows the locked row so the section is a complete list of what a menu can hold; Show hidden files has a switch.
+    check("Open is listed, locked rather than omitted",
           menus.filter(function (r) { return r.kind === "lock" })
-               .map(function (r) { return r.id }).join(","), "open,toggleHidden")
+               .map(function (r) { return r.id }).join(","), "open")
     check("and no locked row is a checkbox", find(menus, "open").kind, "lock")
 
     var keys = Settings.rows("keys", { preset: "mac", presetKeys: Keymap.PRESET_KEYS })
@@ -224,7 +224,7 @@ function runPresets(check) {
         check("an override with no reset key announces the size alone", TextSize.announce({ mode: 16 }, 14), "Text size 16px")
     })
     var menuRows = Settings.menuRows([], true)
-    check("SettingsMenus contains exactly 35 action switches", menuRows.filter(function (r) { return r.kind === "check" && r.id !== "keyHints" }).length, 35)
+    check("SettingsMenus contains exactly 36 action switches", menuRows.filter(function (r) { return r.kind === "check" && r.id !== "keyHints" }).length, 36)
     // The board's Tags row is one of those switches.
     check("the added switch is the Tags menu row", find(menuRows, "tags").label, "Tags")
     check("Delete permanently is visually destructive", find(menuRows, "delete").role, "error")

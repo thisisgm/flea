@@ -168,6 +168,28 @@ fn an_unreadable_archive_draws_its_recipe_at_the_card_top_with_no_bar(cx: &mut T
 }
 
 #[gpui::test]
+fn the_view_words_sit_14_px_apart_and_close_follows_at_the_bar_gap(cx: &mut TestAppContext) {
+    let (shell, cx, _requests, _script) = mounted(cx);
+    open_kind(&shell, cx, "readme.md");
+    let [rendered, source, close_slot] =
+        ["pv1-word-0", "pv1-word-1", "pv1-close"].map(|selector| {
+            cx.debug_bounds(selector)
+                .unwrap_or_else(|| panic!("the bar draws {selector}"))
+        });
+    assert_eq!(
+        f32::from(source.left() - rendered.right()),
+        14.,
+        "Rendered and Source keep the boards' word gap"
+    );
+    assert_eq!(
+        f32::from(close_slot.left() - source.right()),
+        9.,
+        "close keeps the bar's gap after the last word"
+    );
+    close(&shell, cx);
+}
+
+#[gpui::test]
 fn a_mounted_documents_bar_follows_the_language_marks_setting(cx: &mut TestAppContext) {
     // The mounted chrome bar reads the card's live langMarks, as the plain card's bar does.
     let (shell, cx, _requests, _script) = mounted(cx);

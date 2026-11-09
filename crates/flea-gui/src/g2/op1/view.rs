@@ -6,7 +6,10 @@ use super::line::Line;
 use super::model::{Dialog, Operations};
 use super::palette::CardPalette;
 use super::press::Press;
-use crate::{feedback::spinner::Mode, row::marks::Mark};
+use crate::{
+    feedback::spinner::{self, Mode},
+    row::marks::Mark,
+};
 use flea::i18n::I18n;
 use flea::ui_logic_op1::{
     card::{self, ButtonState, Kind},
@@ -461,7 +464,7 @@ pub fn block(scene: &Scene, track: f32, block: &Block, mode: Mode) -> Div {
         .filter(|(observed, _)| *observed == id)
         .map(|(_, paint)| paint);
     let still = (block.state == State::Waiting)
-        .then_some(0.)
+        .then(|| spinner::spiral_seconds(WAITING_PHASE))
         .or(scene.pinned);
     let (head_ink, mark): (Hsla, Glyph) = match block.state {
         // A failed head and its alert take the error role as text on the card's surface.
@@ -469,10 +472,15 @@ pub fn block(scene: &Scene, track: f32, block: &Block, mode: Mode) -> Div {
             palette.error_on_surface,
             Glyph::svg(glyph::ALERT, card::JOBS_MARK, palette.error_on_surface),
         ),
-        _ => (
-            palette.foreground,
-            spiral(still, block.id, mode, palette.accent),
-        ),
+        // TransferCard.qml draws its spiral in the muted frame ink; a waiting job holds it still at 55%.
+        _ => {
+            let ink = if block.mark_dim {
+                palette.muted_frame.opacity(card::JOBS_WAITING_ALPHA)
+            } else {
+                palette.muted_frame
+            };
+            (palette.foreground, spiral(still, block.id, mode, ink))
+        }
     };
     let head = div()
         .flex()
@@ -549,6 +557,9 @@ pub fn block(scene: &Scene, track: f32, block: &Block, mode: Mode) -> Div {
         out.child(buttons)
     }
 }
+
+// The jobs board's still frame: the dash on the inner turns, units 54 to 114 of the spiral.
+const WAITING_PHASE: f32 = 27.;
 
 fn spiral(still: Option<f32>, id: u64, mode: Mode, ink: Hsla) -> Glyph {
     Glyph {

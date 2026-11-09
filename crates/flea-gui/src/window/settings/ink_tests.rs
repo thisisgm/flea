@@ -24,7 +24,14 @@ fn the_mounted_plugins_pane_takes_the_card_surface_and_its_red(cx: &mut TestAppC
         panel.update(cx, |view, _| view.panel.show_section("plugins"));
         // Mount: window/settings/plugins.rs builds the pane's tokens.
         shell.sync_settings_plugins(window, cx);
-        let tokens = shell.settings.plugins.as_ref().unwrap().read(cx).tokens();
+        let tokens = shell
+            .settings
+            .plugins
+            .pane
+            .as_ref()
+            .unwrap()
+            .read(cx)
+            .tokens();
         assert_eq!(tokens.surface, theme.surface, "mounted pane ground");
         assert_eq!(tokens.error, palette.error_on_surface, "mounted pane red");
         // Refresh: a second theme makes the tokens window/settings/mod.rs rebuilds differ from the mount's.
@@ -38,7 +45,14 @@ fn the_mounted_plugins_pane_takes_the_card_surface_and_its_red(cx: &mut TestAppC
         assert_ne!(next_palette.error_on_surface, palette.error_on_surface);
         cx.set_global(next);
         shell.apply_corner(8., window, cx);
-        let tokens = shell.settings.plugins.as_ref().unwrap().read(cx).tokens();
+        let tokens = shell
+            .settings
+            .plugins
+            .pane
+            .as_ref()
+            .unwrap()
+            .read(cx)
+            .tokens();
         assert_eq!(tokens.surface, next.surface, "refreshed pane ground");
         assert_eq!(
             tokens.error, next_palette.error_on_surface,

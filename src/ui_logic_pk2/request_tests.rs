@@ -131,7 +131,7 @@ fn every_label_comes_from_the_reserved_catalog_prefix() {
     let catalog = crate::jsondoc::parse(include_str!("../../i18n/en/flea.json")).expect("the English catalog parses");
     let pairs = catalog.as_object().expect("the catalog is an object");
     let picker: Vec<&(String, crate::jsondoc::Json)> = pairs.iter().filter(|(key, _)| key.starts_with("picker.browser.")).collect();
-    assert_eq!(picker.len(), 37, "the reserved prefix holds exactly the chooser keys");
+    assert_eq!(picker.len(), 38, "the reserved prefix holds exactly the chooser keys");
     for (key, value) in picker {
         match value.as_str() {
             Some(text) => assert_eq!(i18n.tr(key), text, "{key} resolves to its catalog text"),

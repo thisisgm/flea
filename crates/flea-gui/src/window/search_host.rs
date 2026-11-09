@@ -9,6 +9,8 @@ pub(crate) struct Runtime {
     pub owner: Search,
     pub input: Option<gpui::Entity<sr1::input::QueryInput>>,
     pub rows_generation: usize,
+    /// The generation an Enter committed before its rows landed; the row acts when they do.
+    pub(crate) enter_after: Option<u64>,
     pub strip: Rc<RefCell<sr1::strip::StripState>>,
     pub(super) origin: Option<crate::window::startup::View>,
     pub(super) scroll: f32,
@@ -37,6 +39,7 @@ impl Runtime {
             }),
             input: None,
             rows_generation: 0,
+            enter_after: None,
             strip: Rc::new(RefCell::new(sr1::strip::StripState::new(face))),
             origin: None,
             scroll: 0.,

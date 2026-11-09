@@ -19,9 +19,9 @@ fn check_root(d: &TestDir, path: &Path) {
     assert!(path.is_absolute() && path.starts_with(d.path()));
 }
 
-// Runs a tree copy with its manifest attached, failing after three files whatever order readdir returns.
-
+// Runs a tree copy in place (as on FUSE, the only tree that leaves a partial) with its manifest, failing after three files.
 fn partial_with_manifest(src: &Path, dst: &Path, hook: &mut dyn FnMut(u32, &Path, &Path)) -> copymanifest::Handle {
+    let _seams = crate::backend::copystage_tests::in_place();
     let flag = AtomicBool::new(false);
     let mut reports = 0u32;
     let mut sink = |_: u64, _: u64| {

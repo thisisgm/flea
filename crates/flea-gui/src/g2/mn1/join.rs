@@ -335,6 +335,10 @@ impl Shell {
                     self.menu_explain(sentence, cx);
                     return;
                 }
+                if let Some(key) = flea::ui_logic_mn1::places::locked_notice(&hidden) {
+                    let sentence = self.locale.catalog.tr(key);
+                    self.menu_explain(sentence, cx);
+                }
             }
         }
         let Some(host) = &mut self.panes[side] else {

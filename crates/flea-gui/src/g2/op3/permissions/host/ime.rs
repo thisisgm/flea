@@ -129,7 +129,7 @@ impl FieldView for View {
         self.editing_octal(window)
     }
     fn field_palette(&self) -> CardPalette {
-        self.palette.expect("mounted card palette")
+        self.palette
     }
     fn field_focus(&self) -> Option<FocusHandle> {
         Some(self.focus.clone())

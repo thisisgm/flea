@@ -288,3 +288,38 @@ impl Drop for Root {
         std::fs::remove_dir_all(&self.0).unwrap();
     }
 }
+
+#[test]
+fn b03_png_bands_reduce_exactly_like_one_band() {
+    let root = Root::new();
+    let source = RgbaImage::from_fn(640, 420, |x, y| {
+        Rgba([
+            (x * 7 + y * 3) as u8,
+            (x ^ y) as u8,
+            (y * 11) as u8,
+            if (x / 9 + y / 13) % 5 == 0 {
+                0
+            } else {
+                40 + (x % 200) as u8
+            },
+        ])
+    });
+    let (plain, laced) = (root.0.join("bands.png"), root.0.join("bands-laced.png"));
+    source.save(&plain).unwrap();
+    std::fs::write(&laced, adam7_png(&source)).unwrap();
+    for path in [&plain, &laced] {
+        for target in [(320, 210), (213, 140), (640, 420)] {
+            let reduce = |most| {
+                super::photo_png::reduce(std::fs::File::open(path).unwrap(), target, &|| true, most)
+                    .unwrap()
+            };
+            let (one, banded) = (reduce(1), reduce(4));
+            assert_eq!(banded.size(0), one.size(0));
+            assert!(
+                banded.as_bytes(0) == one.as_bytes(0),
+                "{} at {target:?}: bands add every scanline in file order",
+                path.display()
+            );
+        }
+    }
+}

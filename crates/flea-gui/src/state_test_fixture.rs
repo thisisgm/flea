@@ -96,6 +96,7 @@ pub(crate) fn shell_with(backend: Backend, cx: &mut Context<Shell>) -> Shell {
         font_key: None,
         _app_quit: None,
         deadlines: [None, None],
+        midnight: None,
         opener: Default::default(),
         run_card: None,
         open_with: None,

@@ -12,7 +12,9 @@ fn slot_size(cx: &mut TestAppContext, handle: WindowHandle<Shell>, view: View) -
                 .borrow()
                 .file_metrics();
             let side = match view {
-                View::Columns => crate::columns::geometry::picture_box().2,
+                View::Columns => {
+                    crate::columns::geometry::picture_box(crate::list::pane::ROW_HEIGHT).2
+                }
                 View::Dual => metrics.mark,
                 _ => metrics.slot,
             };

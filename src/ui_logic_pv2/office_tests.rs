@@ -55,10 +55,10 @@ fn office_wire_lines_parse() {
             wire: Wire::Converting
         }
     );
-    assert_eq!(
+    assert!(matches!(
         line(r#"{"t":"officepdf","id":4,"state":"ready","path":"/c/x.pdf"}"#).wire,
-        Wire::Pdf("/c/x.pdf".into())
-    );
+        Wire::Pdf { path, first: None } if path == "/c/x.pdf"
+    ));
     assert_eq!(
         line(r#"{"t":"officepdf","id":4,"state":"failed","err":"no","unavailable":true}"#).wire,
         Wire::Failed {

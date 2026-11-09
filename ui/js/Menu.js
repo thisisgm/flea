@@ -112,6 +112,9 @@ var INVENTORY = [
     ["emptyTrash", "Empty Trash", "trash", "T", "empty"]
 ]
 
+// src/ui_logic_mn1/build.rs BACKGROUND_KEEPS: the background offers these whatever Settings > Menus says.
+var BACKGROUND_KEEPS = ["openTerminal", "toggleHidden", "toggleLangMarks"]
+
 function listingEntries(p) { return buildEntries(p.hasRow ? "F" : "B", p) }
 // The Places rail's own, behind its Extras toggle: off, the rail keeps the menu it has today.
 function placeEntries(p) { return isHidden(p.hiddenActions, "placeMenu") ? [] : buildEntries("P", p) }
@@ -124,10 +127,8 @@ function buildEntries(kind, p) {
         var spec = INVENTORY[i]
         // Rail rows are never user-hideable: no switch governs them, so the stored set is not read here.
         if (spec[3].indexOf(kind) < 0) continue
-        // The background menu shows Open in terminal without reading the hidden set.
-        if (kind !== "R" && isHidden(p.hiddenActions, spec[0])) {
-            if (!(kind === "B" && spec[0] === "openTerminal")) continue
-        }
+        // The background menu keeps these rows without reading the hidden set; there the switches hide them from the file menu alone.
+        if (kind !== "R" && isHidden(p.hiddenActions, spec[0]) && !(kind === "B" && BACKGROUND_KEEPS.indexOf(spec[0]) >= 0)) continue
         var entry = { id: spec[0], action: spec[5] || spec[0], label: spec[1], glyph: spec[2] }
         if (!availableEntry(entry, p, kind)) continue
         if (out.length && group !== spec[4]) out.push({ separator: true })
@@ -344,10 +345,11 @@ function canCompare(kinds) {
     return kinds.every(function (kind) { return ((Number(kind) || 0) & Format.S_IFMT) === Format.S_IFREG })
 }
 
-// The Copy as flyout: six leaves in board order, letters on keyHint.
+// The Copy as flyout: seven leaves in board order, letters on keyHint.
 function copyAsEntries() {
     return [
         { id: "copyPath", label: "Path", glyph: "file-text", keyHint: "p" },
+        { id: "copyRelative", label: "Relative path", glyph: "file", keyHint: "r" },
         { id: "copyName", label: "Name", glyph: "type", keyHint: "n" },
         { id: "copyStem", label: "Name without extension", glyph: "type", keyHint: "e" },
         { id: "copydirpath", label: "Folder path", glyph: "folder", keyHint: "f" },
@@ -451,10 +453,9 @@ function applyHidden(entries, hiddenActions) {
     return kept
 }
 
-// Open and the hidden toggle are never in the stored set: ui/js/Settings.js draws them locked, and
-// this is the second half of that lock, so a hand-edited state file cannot empty the menu either.
+// Open is never in the stored set: ui/js/Settings.js draws it locked, and this half of the lock keeps a hand-edited state file from emptying a menu.
 function isHidden(hiddenActions, action) {
-    if (action === "open" || action === "toggleHidden")
+    if (action === "open")
         return false
     for (var i = 0; hiddenActions && i < hiddenActions.length; i++) {
         if (hiddenActions[i] === action)

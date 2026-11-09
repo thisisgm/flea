@@ -1,4 +1,5 @@
 // Items a destination cannot hold inside a copied tree: each is named and skipped, and the walk goes on.
+use crate::backend::copyfile::At;
 use crate::error::{from_io, FleaError};
 use std::cell::RefCell;
 use std::path::{Path, PathBuf};
@@ -49,12 +50,17 @@ fn fat_drive(parent: &Path) -> bool {
     if FORCE_LINKLESS.with(|f| f.get()) {
         return true;
     }
+    // A test's vfat root answers as tests/fatcopy-shim.c does: statfs reads vfat for a path that exists below it.
+    #[cfg(test)]
+    if let Some(root) = FAT_ROOT.with(|r| r.borrow().clone()) {
+        return crate::backend::fsinfo::magic_of(parent).is_some() && std::fs::canonicalize(parent).is_ok_and(|p| p.starts_with(&root));
+    }
     matches!(crate::backend::fsinfo::magic_of(parent), Some(VFAT_MAGIC) | Some(EXFAT_MAGIC))
 }
 
 // A drive whose driver restricts names: vfat, exfat or ntfs3 mounted with windows_names, so EINVAL and EILSEQ there mean the drive.
-fn restricts_names(parent: &Path) -> bool {
-    fat_drive(parent) || crate::backend::fsname::has_windows_names(parent)
+fn restricts_names(held: &Path, parent: &Path) -> bool {
+    fat_drive(held) || crate::backend::fsname::has_windows_names(parent)
 }
 
 // vfat and exfat match names without case and without trailing dots or spaces, and a copy under Rename writes a name as sanitize gives it.
@@ -70,34 +76,36 @@ fn folds_in(source: &Path) -> bool {
     std::fs::read_dir(dir).map(|entries| entries.flatten().any(|e| e.file_name() != name && folded(&e.file_name()) == want)).unwrap_or(false)
 }
 
-// Sample input: (Link, EPERM, "/media/stick/a/l", Some(source)) on vfat answers Some("this drive cannot hold links").
-fn reason(kind: Kind, e: &std::io::Error, named: &Path, inside: Option<&Path>) -> Option<String> {
-    let parent = named.parent().unwrap_or(named);
+// Sample input: (Link, EPERM, At { at: "/proc/self/fd/7/l", named: "/media/stick/a/l" }, Some(source)) on vfat answers Some("this drive cannot hold links").
+fn reason(kind: Kind, e: &std::io::Error, dst: At, inside: Option<&Path>) -> Option<String> {
+    let named = dst.named;
+    // statfs asks the held path, which exists while a staged folder's named parent does not; the mount table is read by name.
+    let (held, parent) = (dst.at.parent().unwrap_or(dst.at), named.parent().unwrap_or(named));
     let errno = e.raw_os_error()?;
     match (kind, errno) {
         (Kind::Link, EOPNOTSUPP | ENOSYS) => Some(LINKS.to_string()),
-        (Kind::Link, EPERM) if fat_drive(parent) => Some(LINKS.to_string()),
+        (Kind::Link, EPERM) if fat_drive(held) => Some(LINKS.to_string()),
         (Kind::Node, EOPNOTSUPP | ENOSYS) => Some(NODES.to_string()),
-        (Kind::Node, EPERM) if fat_drive(parent) => Some(NODES.to_string()),
+        (Kind::Node, EPERM) if fat_drive(held) => Some(NODES.to_string()),
         // The drive is named by statfs, the same call fat_drive reads, so both agree about which drive this is.
-        (_, EINVAL | EILSEQ) if restricts_names(parent) => {
+        (_, EINVAL | EILSEQ) if restricts_names(held, parent) => {
             let leaf = named.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
-            let fs = crate::backend::fsinfo::magic_of(parent).map(crate::backend::fsinfo::name_for).unwrap_or_default();
+            let fs = crate::backend::fsinfo::magic_of(held).map(crate::backend::fsinfo::name_for).unwrap_or_default();
             let windows = crate::backend::fsname::has_windows_names(parent);
             Some(crate::backend::fsname::refuse_name(&leaf, &fs, windows).unwrap_or_else(|| NAME.to_string()))
         }
         (_, ENAMETOOLONG) if named.as_os_str().len() < PATH_MAX => Some(LONG.to_string()),
         // Inside a folder this copy created, a taken name is a fold only on vfat or exfat beside a source sibling; else another writer's.
-        (_, EEXIST) if fat_drive(parent) && inside.is_some_and(folds_in) => Some(TAKEN.to_string()),
+        (_, EEXIST) if fat_drive(held) && inside.is_some_and(folds_in) => Some(TAKEN.to_string()),
         _ => None,
     }
 }
 
 // A create's failure: what the drive cannot hold carries the marker; inside is the source entry within a tree, else None.
-pub(crate) fn refused(kind: Kind, e: &std::io::Error, named: &Path, inside: Option<&Path>) -> FleaError {
-    match reason(kind, e, named, inside) {
-        Some(msg) => marked(named, msg),
-        None => from_io("copy", &named.to_string_lossy(), e),
+pub(crate) fn refused(kind: Kind, e: &std::io::Error, dst: At, inside: Option<&Path>) -> FleaError {
+    match reason(kind, e, dst, inside) {
+        Some(msg) => marked(dst.named, msg),
+        None => from_io("copy", &dst.named.to_string_lossy(), e),
     }
 }
 
@@ -173,6 +181,7 @@ fn test_fault(named: &Path, kind: Kind) -> Option<i32> {
 #[cfg(test)]
 thread_local! {
     static FORCE_LINKLESS: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    static FAT_ROOT: RefCell<Option<PathBuf>> = const { RefCell::new(None) };
     static FAULTS: RefCell<Vec<(std::ffi::OsString, i32)>> = const { RefCell::new(Vec::new()) };
 }
 
@@ -180,6 +189,12 @@ thread_local! {
 #[cfg(test)]
 pub fn test_force_linkless(force: bool) {
     FORCE_LINKLESS.with(|f| f.set(force));
+}
+
+// Sample input: test_fat_root(Some(dir)) makes every existing path below dir read as vfat; None clears it.
+#[cfg(test)]
+pub fn test_fat_root(root: Option<&Path>) {
+    FAT_ROOT.with(|r| *r.borrow_mut() = root.map(|root| std::fs::canonicalize(root).expect("the vfat root exists")));
 }
 
 // Sample input: test_refuse(&[("l", 1)]) makes the create of any entry named l answer EPERM; &[] clears it.

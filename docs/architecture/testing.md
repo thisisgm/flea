@@ -117,6 +117,18 @@ The capture port keeps the stage's later suites and native cases. The sweep's PD
   the negative control (`ql_md_plain_b`), each in a fresh launch, key to `settled_ms`, and `report` prints INCOMPLETE
   with no twin rows, INVALID when the twin control reports INSTRUMENT-NOISE, else SHIP when p95(table) <= p95(plain) +
   the control's own gap |p95(plain) - p95(twin)|, else HOLD.
+- `tools/flea-localsend-battery --flea BIN --cli LOCALSEND_CLI` is the LocalSend battery. It needs no root: it
+  re-executes inside a new user and network namespace, puts four nodes on private bridges and runs real
+  `localsend-cli` peers that accept with Y (the declined case presses N, the unanswered and cancel-at-prompt cases
+  press nothing), so discovery and port 53317 never reach the host's LAN. Node a runs
+  `flea --backend` with that CLI first on its PATH. Each case runs `--runs` times (default 20; `--cases name:runs,...`
+  narrows it, `--list` names them): discovery, a late answer, small, Unicode-named, 1000-file, 2 GiB and folder sends,
+  a second interface, cancel during the transfer and at the accept prompt, an unanswered and a declined send, two
+  sends and two discoveries at once, discovery during a send, a peer appearing, leaving mid-transfer and sleeping
+  (SIGSTOP), a changed address, and the reverse direction. Peer B's link is shaped to `--rate` (default 300mbit, so
+  the 2 GiB send takes about a minute). Every failure is printed and appended to `--log` with its case, run and
+  reason, the summary gives one pass count per case (`send-small 20/20 ok`), and the exit status is 1 if any run
+  failed. It needs iproute2 with `tc`, util-linux and Python 3; a full pass takes about an hour.
 - **The tested Flea starts from its own caches, as an installed one does after its first launch.** Its
   QML units go to `target/qmlcache` of the tree under test (`QML_DISK_CACHE_PATH`), and
   `tools/flea-field-bench` parks the operator's `~/.cache/flea/prefetch` for the run and restores it

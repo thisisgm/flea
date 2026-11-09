@@ -146,3 +146,25 @@ while IFS= read -r line; do :; done
     backend.close_stdin();
     backend.drained().recv_blocking().unwrap();
 }
+
+// A backend that let go of its output but that the kernel still holds drains the pane at once.
+#[test]
+fn a_quit_drains_once_the_backend_lets_go_of_its_output_before_it_can_exit() {
+    let mut command = Command::new("/bin/bash");
+    command.args([
+        "-c",
+        r#"while IFS= read -r line; do case $line in *'"quit"'*) break ;; esac; done
+exec 1>&- 0<&-
+sleep 10
+"#,
+    ]);
+    let backend = Backend::start_command(command, "/files".into(), None, 320).unwrap();
+    let started = Instant::now();
+    backend.quit();
+    backend.drained().recv_blocking().unwrap();
+    assert!(
+        started.elapsed() < Duration::from_secs(5),
+        "the pane waited {:?} on a backend whose output had ended",
+        started.elapsed()
+    );
+}

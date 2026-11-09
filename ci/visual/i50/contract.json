@@ -1,227 +1,35 @@
 {
   "schema": "flea-i18n-native-contract/1",
-  "cases": [
-    "catalog",
-    "fit",
-    "ime",
-    "fonts",
-    "rtl",
-    "live"
-  ],
-  "frontends": [
-    "gui",
-    "tui"
-  ],
-  "fit_languages": [
-    "de",
-    "ar",
-    "ja",
-    "zh-CN",
-    "th",
-    "hi"
-  ],
-  "states": [
-    "rest",
-    "hover",
-    "focus",
-    "pressed",
-    "disabled"
-  ],
-  "themes": [
-    "gm",
-    "low-chroma"
-  ],
-  "rounding": [
-    0,
-    8
-  ],
-  "viewport": {
-    "width": 1100,
-    "height": 700,
-    "text_size": 14
-  },
+  "cases": ["catalog", "fit", "ime", "fonts", "rtl", "live"],
+  "frontends": ["gui", "tui"],
+  "fit_languages": ["de", "ar", "ja", "zh-CN", "th", "hi"],
+  "states": ["rest", "hover", "focus", "pressed", "disabled"],
+  "themes": ["gm", "low-chroma"],
+  "rounding": [0, 8],
+  "viewport": {"width": 1100, "height": 700, "text_size": 14},
   "surfaces": [
-    {
-      "id": "menu",
-      "frontend": "gui",
-      "boards": [
-        "lang-de-menu"
-      ],
-      "states": [
-        "rest",
-        "hover",
-        "focus",
-        "pressed",
-        "disabled"
-      ]
-    },
-    {
-      "id": "dialog",
-      "frontend": "gui",
-      "boards": [
-        "lang-de-dialog"
-      ],
-      "states": [
-        "rest",
-        "hover",
-        "focus",
-        "pressed"
-      ]
-    },
-    {
-      "id": "settings",
-      "frontend": "gui",
-      "boards": [
-        "lang-de-settings"
-      ],
-      "states": [
-        "rest",
-        "hover",
-        "focus",
-        "pressed"
-      ]
-    },
-    {
-      "id": "about",
-      "frontend": "gui",
-      "boards": [
-        "lang-about"
-      ],
-      "states": [
-        "rest",
-        "hover",
-        "focus",
-        "pressed"
-      ]
-    },
-    {
-      "id": "list",
-      "frontend": "gui",
-      "boards": [
-        "lang-ja-list",
-        "lang-ar-list"
-      ],
-      "states": [
-        "rest",
-        "hover",
-        "focus"
-      ]
-    },
-    {
-      "id": "rename",
-      "frontend": "gui",
-      "boards": [
-        "lang-ja-rename"
-      ],
-      "states": [
-        "rest",
-        "focus"
-      ]
-    },
-    {
-      "id": "keys",
-      "frontend": "gui",
-      "boards": [
-        "lang-ru-keys"
-      ],
-      "states": [
-        "rest"
-      ]
-    },
-    {
-      "id": "caps",
-      "frontend": "gui",
-      "boards": [
-        "lang-caps"
-      ],
-      "states": [
-        "rest"
-      ]
-    },
-    {
-      "id": "tui-list",
-      "frontend": "tui",
-      "boards": [
-        "tui-lang-ja",
-        "tui-lang-ar"
-      ],
-      "states": [
-        "rest",
-        "focus"
-      ]
-    },
-    {
-      "id": "tui-menu",
-      "frontend": "tui",
-      "boards": [
-        "tui-lang-ja-menu"
-      ],
-      "states": [
-        "rest",
-        "focus"
-      ]
-    },
-    {
-      "id": "tui-keys",
-      "frontend": "tui",
-      "boards": [
-        "tui-lang-ru-keys"
-      ],
-      "states": [
-        "rest"
-      ]
-    }
+    {"id": "menu", "frontend": "gui", "boards": ["lang-de-menu"], "states": ["rest", "hover", "focus", "pressed", "disabled"]},
+    {"id": "dialog", "frontend": "gui", "boards": ["lang-de-dialog"], "states": ["rest", "hover", "focus", "pressed"]},
+    {"id": "settings", "frontend": "gui", "boards": ["lang-de-settings"], "states": ["rest", "hover", "focus", "pressed"]},
+    {"id": "about", "frontend": "gui", "boards": ["lang-about"], "states": ["rest", "hover", "focus", "pressed"]},
+    {"id": "list", "frontend": "gui", "boards": ["lang-ja-list", "lang-ar-list"], "states": ["rest", "hover", "focus"]},
+    {"id": "rename", "frontend": "gui", "boards": ["lang-ja-rename"], "states": ["rest", "focus"]},
+    {"id": "keys", "frontend": "gui", "boards": ["lang-ru-keys"], "states": ["rest"]},
+    {"id": "caps", "frontend": "gui", "boards": ["lang-caps"], "states": ["rest"]},
+    {"id": "tui-list", "frontend": "tui", "boards": ["tui-lang-ja", "tui-lang-ar"], "states": ["rest", "focus"]},
+    {"id": "tui-menu", "frontend": "tui", "boards": ["tui-lang-ja-menu"], "states": ["rest", "focus"]},
+    {"id": "tui-keys", "frontend": "tui", "boards": ["tui-lang-ru-keys"], "states": ["rest"]}
   ],
-  "source_index": {
-    "path": "i18n/source-index.json",
-    "sha256": "b911760956259b47e9991272a9655a5ee085d7274ff30a845d5f83aff94f592c",
-    "source": "COMPOSE-I50 stage index; re-pinned after the create prompt's line became one rule (prompt.create)"
-  },
-  "rtl_policy": {
-    "path": "i18n/rtl-policy.json",
-    "sha256": "5db3d4fb59ea48297aa1fd619aaa45469278ddaae6c1305271adcb3b66c49d77",
-    "source": "I50 stage 088069d43: I50-04 merged at c7fafc60b"
-  },
-  "ime_inventory": {
-    "path": "ci/visual/i50/ime-cases.tsv",
-    "sha256": "6b59a0d0d5c0bca4e39f9d450da4222d9515dea9e7d3172d90a814e6a931efaa",
-    "source": "accepted I50-07 evidence native-cases.tsv at host 54fe171381a328614a28cc96c8aefff1b9d77e23"
-  },
+  "source_index": {"path": "i18n/source-index.json", "sha256": "508b3e8b5fbb8fa69d7d7ad8d580da0de97e813b14cf569651f3492f5901e70e", "source": "COMPOSE-I50 stage index, refrozen from the whole joined source after each join; I50-01 merged at 020e19dac, I50-02 at 476301de2"},
+  "rtl_policy": {"path": "i18n/rtl-policy.json", "sha256": "5db3d4fb59ea48297aa1fd619aaa45469278ddaae6c1305271adcb3b66c49d77", "source": "I50 stage 088069d43: I50-04 merged at c7fafc60b"},
+  "ime_inventory": {"path": "ci/visual/i50/ime-cases.tsv", "sha256": "6b59a0d0d5c0bca4e39f9d450da4222d9515dea9e7d3172d90a814e6a931efaa", "source": "accepted I50-07 evidence native-cases.tsv at host 54fe171381a328614a28cc96c8aefff1b9d77e23"},
   "dependencies": [
-    {
-      "id": "I50-02",
-      "provides": "per-surface catalog key lists from the frozen source index",
-      "missing": "i18n/source-index.json is absent or is not the accepted I50-01 schema 1 index (pinned: the I50 stage index, source_index.sha256 below)"
-    },
-    {
-      "id": "I50-04",
-      "provides": "rtl case geometry rules",
-      "missing": "i18n/rtl-policy.json is absent or invalid (pinned: the I50 stage policy, sha256 5db3d4fb...)"
-    },
-    {
-      "id": "I50-07",
-      "provides": "ime case entries",
-      "missing": "ci/visual/i50/ime-cases.tsv is absent or differs from the accepted I50-07 native-cases.tsv pinned in ime_inventory"
-    },
-    {
-      "id": "I50-09",
-      "provides": "fonts case values and font preference sequence",
-      "missing": "accepted I50-09 app font epoch receipt naming the font preferences and pinned omarchy font cjk values to drive"
-    },
-    {
-      "id": "I50-28",
-      "provides": "live switch sequence and epoch evidence",
-      "missing": "accepted I50-28 atomic switch naming the language sequence to drive and its presented-frame epoch counters (mixed epochs, blank frames, blink-backs) readable per frame"
-    },
-    {
-      "id": "TUI-16",
-      "provides": "tui cases and the shared display lease",
-      "missing": "tests/tui_battery/candidate.py has no catalog_case with the keyword-only signature TUI-16 froze"
-    },
-    {
-      "id": "SCENE-LANG",
-      "provides": "gui cases",
-      "missing": "ci/visual/schema.json registers no i50 language scene, or scene settings cannot carry a language, surface or state; a registered language scene draws only the list at rest until each surface owner adds a drawn-state readback"
-    }
+    {"id": "I50-02", "provides": "per-surface catalog key lists from the frozen source index", "missing": "i18n/source-index.json is absent or is not the accepted I50-01 schema 1 index (pinned: the I50 stage index, sha256 cbf351a8...)"},
+    {"id": "I50-04", "provides": "rtl case geometry rules", "missing": "i18n/rtl-policy.json is absent or invalid (pinned: the I50 stage policy, sha256 5db3d4fb...)"},
+    {"id": "I50-07", "provides": "ime case entries", "missing": "ci/visual/i50/ime-cases.tsv is absent or differs from the accepted I50-07 native-cases.tsv pinned in ime_inventory"},
+    {"id": "I50-09", "provides": "fonts case values and font preference sequence", "missing": "accepted I50-09 app font epoch receipt naming the font preferences and pinned omarchy font cjk values to drive"},
+    {"id": "I50-28", "provides": "live switch sequence and epoch evidence", "missing": "accepted I50-28 atomic switch naming the language sequence to drive and its presented-frame epoch counters (mixed epochs, blank frames, blink-backs) readable per frame"},
+    {"id": "TUI-16", "provides": "tui cases and the shared display lease", "missing": "tests/tui_battery/candidate.py has no catalog_case with the keyword-only signature TUI-16 froze"},
+    {"id": "SCENE-LANG", "provides": "gui cases", "missing": "ci/visual/schema.json registers no i50 language scene, or scene settings cannot carry a language, surface or state; a registered language scene draws only the list at rest until each surface owner adds a drawn-state readback"}
   ]
 }

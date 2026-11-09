@@ -201,3 +201,33 @@ fn answer_listing_is_sized_to_its_rows() {
     assert!(rig.st.listing.names.capacity() < 4096, "names capacity {}", rig.st.listing.names.capacity());
     assert!(rig.st.listing.spans.capacity() < 64, "spans capacity {}", rig.st.listing.spans.capacity());
 }
+
+// Issue 390: a size the settled cache answers teaches the session, as a walked one does.
+#[test]
+fn a_settled_size_the_client_asked_for_teaches_the_session() {
+    let d = fixture("answersizes-settled");
+    let mut rig = Rig::open(&d, 40);
+    *rig.sizes() = AnswerSizes::new(true);
+    rig.sizes().wish = 40;
+    rig.ask("bench");
+    let row = (0..rig.st.listing.len())
+        .find(|&row| rig.st.listing.name(row) == "bench-a")
+        .expect("bench-a is listed");
+    let path = rig.st.base.join("bench-a");
+    let watch = crate::backend::dirsizewatch::TreeWatch::new();
+    let deadline = Instant::now() + Duration::from_secs(30);
+    let (size, pins) =
+        crate::backend::dirsizewatch::walk_watched(&path, deadline, &|| false, &watch);
+    rig.st.settled.settle(path, size.bytes, pins);
+    rig.st.dirsizes.remove(&row);
+    let mut out = Vec::new();
+    crate::backend::dirsizereq::queue_dirsizes(&mut out, &mut rig.st, &[row]);
+    assert!(!out.is_empty(), "the settled size answers at once");
+    let (rows, walks) = rig.ask("ben");
+    assert_eq!(walks, 0, "a remote scope walks nothing inline");
+    let pair = format!(",{}]", size.bytes);
+    assert!(
+        rows.contains(&pair),
+        "the settled size rides on the next answer: {rows}"
+    );
+}

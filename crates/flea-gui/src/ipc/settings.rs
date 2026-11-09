@@ -214,7 +214,13 @@ impl Adapter for SettingsAdapter<'_> {
             .map(|view| &view.read(self.cx).sheet);
         let json = |value: Json| jsondoc::render(&value).trim_end().to_owned();
         if panel.is_some_and(|panel| panel.section == "plugins") {
-            if let Some(plugin) = self.host.plugins.as_ref().map(|view| view.read(self.cx)) {
+            if let Some(plugin) = self
+                .host
+                .plugins
+                .pane
+                .as_ref()
+                .map(|view| view.read(self.cx))
+            {
                 let value = match function {
                     "settingsCursor" => {
                         Some(plugin.page().cursor().map_or(-1, |i| i as i64).to_string())

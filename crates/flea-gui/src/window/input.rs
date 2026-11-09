@@ -59,6 +59,11 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        // Any later key takes the keyboard back from an Enter still waiting on its rows.
+        for host in self.panes.iter_mut().flatten() {
+            host.filter.enter_after = None;
+            host.search.enter_after = None;
+        }
         if self.lifecycle.phase() != Phase::Open || self.band_key(event, window, cx) {
             return;
         }

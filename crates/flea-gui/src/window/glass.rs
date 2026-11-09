@@ -49,6 +49,22 @@ fn value(text: &str) -> Option<u8> {
     Some((number.clamp(0., 1.) * 255.).round() as u8)
 }
 
+#[cfg(test)]
+thread_local! {
+    // Each Glassy alpha search a test thread ran, with its time, as tests/material-startup.sh counts the QML oracle's.
+    static FLOOR_SEARCHES: RefCell<Vec<std::time::Duration>> = const { RefCell::new(Vec::new()) };
+}
+
+// The automatic Glassy alpha: the lowest that keeps body text at WCAG contrast over the material.
+fn floor(material: &Material) -> u8 {
+    #[cfg(test)]
+    let started = std::time::Instant::now();
+    let alpha = material.floor(TEXT_CONTRAST);
+    #[cfg(test)]
+    FLOOR_SEARCHES.with_borrow_mut(|searches| searches.push(started.elapsed()));
+    alpha
+}
+
 impl Inputs {
     pub(crate) fn resolve(
         colors: &str,
@@ -64,7 +80,7 @@ impl Inputs {
         let material = Material::from_colors(&core.colors, true);
         let alpha = user.unwrap_or_else(|| match mode {
             Mode::Opaque => 255,
-            Mode::Glassy => theme.unwrap_or_else(|| material.floor(TEXT_CONTRAST)),
+            Mode::Glassy => theme.unwrap_or_else(|| floor(&material)),
             Mode::Transparent => theme.unwrap_or(255),
         });
         let list_alpha = alpha;
@@ -77,6 +93,11 @@ impl Inputs {
             chrome_inks: (automatic && mode == Mode::Glassy)
                 .then(|| recipe::inks(&core.colors, alpha)),
         }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn take_floor_searches() -> Vec<std::time::Duration> {
+        FLOOR_SEARCHES.take()
     }
 
     pub(crate) fn appearance(self) -> WindowBackgroundAppearance {

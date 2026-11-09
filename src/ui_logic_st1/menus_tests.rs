@@ -69,7 +69,7 @@ fn every_heading_reports_its_own_group() {
         })
         .collect();
     assert_eq!(drawn.join(", "), "Basic File Actions|6 of 6|all, Destructive|no master, Open and Inspect|10 of 14|some, \
-        Extras|17 of 17|all, Shortcuts|no master, Always Shown|no master");
+        Extras|18 of 18|all, Shortcuts|no master, Always Shown|no master");
     let inspect = groups[2];
     assert_eq!((focusable(inspect), focusable(groups[1])), (true, false));
     let mut kept = toggle_master(&ids(&["moveto", "copyto", "properties", "permissions", "paste"]), &inspect.ids);
@@ -90,7 +90,7 @@ fn menus_rows_lead_with_the_master_and_draw_counts() {
     let checks: Vec<&str> = menus.iter().filter(|r| r.kind == Kind::Check).map(|r| r.id.as_str()).collect();
     assert_eq!(checks.join(","), "cut,copy,paste,duplicate,rename,trash,delete,openwith,print,run,openAsText,openTerminal,openAgent,\
 moveto,copyto,properties,permissions,makeExecutable,copyAs,showOriginal,tags,shelf,compress,extract,convert,flashDrive,taildrop,\
-localsend,rclone,dropbox,sharelink,actions,placeMenu,updateFlea,toggleLangMarks,extThumbs,pasteAs,invertSelection,keyHints");
+localsend,rclone,dropbox,sharelink,actions,placeMenu,updateFlea,toggleHidden,toggleLangMarks,extThumbs,pasteAs,invertSelection,keyHints");
 }
 
 #[test]
@@ -102,9 +102,10 @@ fn hints_switch_defaults_off_and_reads_its_value() {
     let terminal = find(&menus, "openTerminal");
     assert_eq!(format!("{}|{}", say(&terminal.label), terminal.glyph), "Open in Terminal|terminal");
     let locks: Vec<&str> = menus.iter().filter(|r| r.kind == Kind::Lock).map(|r| r.id.as_str()).collect();
-    assert_eq!(locks, ["open", "toggleHidden"]);
+    assert_eq!(locks, ["open"]);
+    assert_eq!(find(&menus, "toggleHidden").kind, Kind::Check, "Show Hidden Files leaves the file menu by its switch");
     assert_eq!(find(&menus, "open").kind, Kind::Lock);
-    assert_eq!(say(&menus[menus.len() - 4].label), "Every key stays bound either way.");
+    assert_eq!(say(&menus[menus.len() - 3].label), "Every key stays bound either way.");
 }
 
 #[test]
@@ -123,7 +124,7 @@ fn menus_cursor_steps_over_read_only_rows() {
 #[test]
 fn switch_inventory_counts_and_destructive_row() {
     let menus = rows(&[], true);
-    assert_eq!(menus.iter().filter(|r| r.kind == Kind::Check && r.id != "keyHints").count(), 38);
+    assert_eq!(menus.iter().filter(|r| r.kind == Kind::Check && r.id != "keyHints").count(), 39);
     assert_eq!(say(&find(&menus, "tags").label), "Tags");
     assert_eq!(find(&menus, "delete").role, Role::Error);
     assert_eq!(say(&find(&menus, "delete").value), "off by default");
@@ -139,9 +140,9 @@ fn the_shipped_hidden_list_is_the_schema_default() {
     assert_eq!(ids, SHIPPED_HIDDEN);
 }
 
-// EY-08: a fresh ui.json leaves Open and Inspect at the board's 5 of 14, Open in Agent off.
+// EY-08: a fresh ui.json leaves Open and Inspect at 7 of 14, Properties and Permissions on, Open in Agent off.
 #[test]
-fn a_fresh_install_counts_open_and_inspect_five_of_fourteen() {
+fn a_fresh_install_counts_open_and_inspect_seven_of_fourteen() {
     let data = crate::uistate::from_file("{}");
     let hidden = crate::ui_logic_st1::pages::hidden(&data);
     let group = crate::ui_logic_st1::menus::GROUPS
@@ -159,6 +160,8 @@ fn a_fresh_install_counts_open_and_inspect_five_of_fourteen() {
         [
             "openwith",
             "print",
+            "properties",
+            "permissions",
             "makeExecutable",
             "showOriginal",
             "tags"
@@ -167,14 +170,14 @@ fn a_fresh_install_counts_open_and_inspect_five_of_fourteen() {
     );
 }
 
-// EY-08: the fresh install's hidden set ticks Open With and Print... and leaves Copy To... off, as settings-menus.png draws.
+// EY-08: the fresh install's hidden set ticks Open With, Print..., Properties and Permissions... and leaves Copy To... off.
 #[test]
-fn fixlogic_ey08_fresh_install_open_and_inspect_counts_five_of_fourteen_with_copy_to_off() {
+fn fixlogic_ey08_fresh_install_open_and_inspect_counts_seven_of_fourteen_with_copy_to_off() {
     let rows = rows(&super::super::pages::hidden(&crate::uischema::defaults()), false);
     let head = rows.iter().find(|row| row.master && row.id == "openInspect").expect("openInspect");
-    assert_eq!(say(&head.value), "5 of 14");
+    assert_eq!(say(&head.value), "7 of 14");
     assert_eq!(head.state, Master::Some);
-    for (id, on) in [("openwith", true), ("print", true), ("copyto", false), ("openAgent", false)] {
+    for (id, on) in [("openwith", true), ("print", true), ("properties", true), ("permissions", true), ("copyto", false), ("openAgent", false)] {
         assert_eq!(find(&rows, id).on, on, "{id}");
     }
 }

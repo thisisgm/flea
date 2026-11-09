@@ -24,7 +24,14 @@ pub struct Chrome {
     pub filter_subscription: Option<gpui::Subscription>,
     pub filter_close: Option<gpui::Subscription>,
     pub folder_request: Option<String>,
+    // New Folder's card while open (0401-picker-new-folder): field, parent, refusal, buttons and pointer.
     pub folder: Option<Entity<super::filename::Filename>>,
+    pub folder_parent: String,
+    pub folder_error: String,
+    pub folder_cancel: FocusHandle,
+    pub folder_create: FocusHandle,
+    pub folder_pointer: crate::g2::op1::view::Pointer,
+    pub folder_edits: Option<gpui::Subscription>,
     pub restore: Option<FocusHandle>,
     pub was_submitting: bool,
     pub restore_path: Option<String>,
@@ -57,6 +64,12 @@ impl Chrome {
             filter_close: None,
             folder_request: None,
             folder: None,
+            folder_parent: String::new(),
+            folder_error: String::new(),
+            folder_cancel: cx.focus_handle(),
+            folder_create: cx.focus_handle(),
+            folder_pointer: Default::default(),
+            folder_edits: None,
             restore: None,
             was_submitting: false,
             restore_path: None,
@@ -69,7 +82,7 @@ impl Chrome {
 impl Picker {
     pub fn user_set_view(&mut self, mode: &str, cx: &mut Context<Self>) {
         if self.accept_state().submitting()
-            || self.chrome.folder_request.is_some()
+            || self.folder_busy()
             || self.browse.listing.read(cx).view_mode() == mode
         {
             return;

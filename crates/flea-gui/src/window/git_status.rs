@@ -156,8 +156,10 @@ impl Shell {
                     if !git.paths.iter().any(|p| p == path) {
                         continue;
                     }
+                    // Keyed by the row's own name, which is relative to the listed folder inside an open folder.
                     if let Some(name) = std::path::Path::new(path)
-                        .file_name()
+                        .strip_prefix(&host.path)
+                        .ok()
                         .and_then(|n| n.to_str())
                     {
                         paint.marks.insert(

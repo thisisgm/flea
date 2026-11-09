@@ -1,4 +1,6 @@
 //! The pure send logic every front end shares: Taildrop, Dropbox, LocalSend, ShareBrowser and ShareLink, ported from ui/js and ui/*.qml.
+pub mod airdrop;
+pub mod airdrop_ask;
 pub mod dropbox;
 pub mod localsend;
 pub mod providers;

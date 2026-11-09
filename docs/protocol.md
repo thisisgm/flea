@@ -84,6 +84,13 @@ Optional `wantChanged`, `false` unless `true`: with it on, a `list` that re-read
 directory already listed names added plus removed rows in `changed`. Absent is off, so
 every navigation and watched re-read stays silent and pays no count.
 
+Optional `keep`, an array of full folder paths such as `["/home/gm/Music"]`: the folders the
+client's other tabs show. Settled folder sizes (see `dirsize`) for rows of those folders, and of
+the folder this `list` lands on, outlive the new listing; every other settled size is dropped
+when it lands. Absent keeps only the listed folder's own, so an older client still reuses sizes
+across a re-read, a sort or a `hidden` change of the same folder. The TUI names every tab but the
+current one.
+
 Optional `select`, a full path such as `"/home/gm/notes.txt"`: when it names a row of the new
 listing at index `first` or past it, the `rows` line covers the `first` rows that hold that row
 near their middle, starting at `index - first / 2` and clamped so the window ends at the last
@@ -920,6 +927,19 @@ navigation event loop. No replacement worker is spawned while the old one is sti
 A row already answered for the current listing answers again from its cache; a row already
 queued or running costs nothing extra.
 
+**Settled sizes outlive the listing.** A whole (not partial) walk that ran on a local
+filesystem is also kept by the folder's full path, so a `dirsize` for the same folder under a
+later listing answers at once with no walk, as when a tab switch returns to it. Such a size is
+trusted only while every folder the walk read stays watched: the walk arms one inotify watch per
+folder before reading it, and any write, truncate, create, delete or rename in any of them, or
+the folder itself moving or going, retires the size, so the next `dirsize` walks again. So does
+the path coming to name another folder, as when a folder above it is renamed, which no watch
+below sees. A directory's mtime alone would miss a write several levels down, which is why every
+level is watched. A walk that would take the backend past 8192 watched folders, counting every
+kept size's, a FUSE or network tree, or a box with no inotify is answered as before and never
+kept. Which settled sizes survive a new listing is the `list`
+request's `keep` field.
+
 **What the shipped client sends.** `ui/List.qml` sends `dirsize` only when the list settles, the
 same 120&nbsp;ms timer `thumb` already waits on, so a fling issues nothing at all. One request
 names only the directory rows currently visible and not already known.
@@ -1264,7 +1284,9 @@ there without a partial tree. When the archive tool has not exited ten seconds a
 folder is left in place rather than deleted under a live writer, and the `err` names that folder.
 
 A `quit`, or stdin closing, cancels a running operation the same way and waits for its terminal line
-before the process exits, so shutting down mid-copy also leaves nothing half-written behind. A
+before the process exits, so shutting down mid-copy also leaves nothing half-written behind. The cancel
+lands as the line or the end of input is read, as `transfercancel`'s does, so a listing still out cannot
+hold the copy running behind it. A
 quit sets each detached compress and convert flag too and drains them under the one 25 s shutdown
 budget, so each job's `Work` cleanup runs before the process exits and no `.flea-work-*` folder is
 left beside the destination. A job whose tool has not exited ten seconds after the cancel keeps its folder in place
@@ -1714,7 +1736,11 @@ Example: `{"c":"officepdf","id":4,"path":"/home/gm/Documents/report.docx"}`
 Converts one DOCX, ODT, XLSX, ODS, PPTX or RTF file to a cached PDF with LibreOffice and answers
 `officepdf` lines carrying the request `id`: `{"t":"officepdf","id":4,"state":"ready","path":"<cached pdf>"}`
 when the PDF exists, `{"t":"officepdf","id":4,"state":"converting"}` when a conversion started, and
-`{"t":"officepdf","id":4,"state":"failed","err":"<string>"}` when it cannot be had. A `converting`
+`{"t":"officepdf","id":4,"state":"failed","err":"<string>"}` when it cannot be had. The preview's
+PDF holds only the document's first 30 pages, and its `ready` line says so with `"first":30`:
+`{"t":"officepdf","id":4,"state":"ready","path":"<cached pdf>","first":30}`. A client that reads
+it shows a PDF of 30 pages as "30+", because the document may run past them; Print and Convert
+convert the whole document under their own cache entry. A `converting`
 line is always followed by one `ready` or `failed` line for the same `id` once the job ends, so
 a client waits for that second line and treats `converting` as progress only. A request that
 needs no conversion answers `ready` or `failed` at once and sends no follow-up.
@@ -1994,7 +2020,7 @@ the `plugins` listing they left, both carrying the request's `id`. Management ch
 request instead answers one terminal `pluginruntime` line, optionally preceded by `pluginprogress` lines; it does
 not append a `pluginop` line or a `plugins` listing.
 
-The listing names the four built-ins first (Shelf, LocalSend, Tailscale, Dropbox), then every folder under
+The listing names the five built-ins first (Shelf, LocalSend, Tailscale, Dropbox, AirDrop), then every folder under
 `$XDG_CONFIG_HOME/flea/plugins/` whose name does not start with a dot, in name order. Each plugin carries its
 manifest's facts, `enabled`, `source` (`builtin`, `git` with the origin in the plugin's own `.git` folder, `folder`
 with the folder it was added from, or empty), its `schema` in the manifest's own shape and its `settings` clamped to that schema. The Shelf also carries
@@ -2111,6 +2137,8 @@ Stops the read loop, then answers the thumbnail work already asked for: every qu
 running job is drained and reported before the process exits, because a worker inside a
 child owns a temp file in the shared cache that only its own return publishes or removes.
 Draining is bounded; see `thumbed` below. Apart from those `thumbed` lines, no response.
+Once it is done the backend points its stdin and stdout at `/dev/null` and then exits, so a client
+reads the end of output even while the kernel still holds a thread of it in a dead mount's call.
 
 **A queued `dirsize` row is not drained.** It answers nothing that outlives this process, unlike
 a thumbnail's shared on-disk cache, so a row still waiting when `quit` arrives is simply dropped;
@@ -3262,6 +3290,24 @@ MIME patterns match the entire MIME string and accept literal characters, `*`, a
 `{path}`, `{dir}`, `{name}`, `{stem}`, and `{ext}` expand separately within each argv element, once per selected file. Replacements are not expanded again. The program is literal and cannot contain placeholders. Paths remain absolute; a placeholder-led argument whose result begins with `-` is prefixed with `./`, so a filename cannot become an option. Invocation uses argv without a shell unless the manifest explicitly names one. A background job retains only its last two merged stdout and stderr lines, each bounded to 4,096 decoded UTF-8 bytes with lossy decoding. `output` replaces the file line once nonempty. The invocation owns its entire process group: cancellation and leader exit, successful or unsuccessful, kill remaining descendants with SIGKILL before reaping the leader, including children that ignore SIGTERM.
 
 Executable regular files directly under `$XDG_CONFIG_HOME/flea/scripts` remain Actions entries, with ids `script:<filename>` and labels omitting the final extension. They retain the existing Run script contract: one invocation receives all selected absolute paths. The Actions switch retains the `runScript` id in `menu.hidden` and remains hidden by default. No `src/uischema.rs` defaults change.
+
+## AirDrop sends (0.4.1)
+
+`{"c":"airdrop","op":"send","id":1,"peer":"3a9f0c2be41d","paths":["/home/u/a.png"]}` sends the files to one
+AirDrop device by the service ID `owly browse` printed before its name, since two devices can share a name, as a
+`send` job: the backend runs
+`owly send --to=<peer> -- <paths>`, turns its `<sent> / <total> bytes` progress into job progress, and kills it on
+`{"c":"jobs","op":"cancel","id":<job>}`. It answers one line when the job ends:
+
+`{"t":"airdropsent","id":1,"ok":true,"code":"delivered","reason":""}`
+
+`code` is `delivered`, `declined` (the device refused), `failed` (with owly's own `reason`), `cancelled`, `missing`
+(owly is not on PATH) or `stale` (a path is gone). The window owns the radio, the receiver and discovery: it runs
+`owly doctor --json`, `owly radio up --for 600`, `owly receive --dir <folder>` and `owly browse` itself, and the
+backend's `providers` facts name `owly`'s path. When the receiver or the radio exits, the window takes both down and
+says owly's reason unless the ten minutes ran out. The receiver asks `accept? [y/N]` for each incoming request; the window
+answers it from a notification with Accept and Decline buttons, and anything but Accept within 12 s declines; the
+window then closes that notification by its id. [owly](https://github.com/t4t5/owly) is MIT, by Tristan (t4t5).
 
 ## Checked rclone sends (0.4.0)
 

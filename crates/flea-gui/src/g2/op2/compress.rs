@@ -1,6 +1,6 @@
 //! The With-password compress card: format, name, the password pair and the header switch.
 use super::{
-    cards::{Block, Button, Card, CheckLine, Chips, Field, Ink},
+    cards::{Block, Button, Card, CheckLine, Chips, Field, Hit, Ink},
     keys::Key,
     Effect,
 };
@@ -272,6 +272,38 @@ impl Compress {
             Stop::Compress => self.commit(i18n),
             _ => Vec::new(),
         }
+    }
+
+    /// A click on the button card() draws at this index focuses and presses it, as Enter on it would.
+    pub fn press_at(&mut self, i18n: &I18n, at: usize) -> Vec<Effect> {
+        match [Stop::Cancel, Stop::Compress].get(at) {
+            Some(&button) => {
+                self.focus(button);
+                self.press(i18n, button)
+            }
+            None => Vec::new(),
+        }
+    }
+
+    /// A click focuses its control and answers as that control's key: a chip picks, the checkbox toggles.
+    pub fn click(&mut self, i18n: &I18n, hit: Hit) -> Vec<Effect> {
+        match hit {
+            Hit::Button(at) => return self.press_at(i18n, at),
+            Hit::Chip(at) => {
+                self.focus(Stop::Format);
+                self.pick_format(at);
+            }
+            Hit::Field(at) => {
+                if let Some(&field) = [Stop::Name, Stop::Password, Stop::Confirm].get(at) {
+                    self.focus(field);
+                }
+            }
+            Hit::Check => {
+                self.focus(Stop::Encrypt);
+                self.toggle_encrypt();
+            }
+        }
+        Vec::new()
     }
 
     /// The pointer's entries, so the join can wire taps without the key walk.

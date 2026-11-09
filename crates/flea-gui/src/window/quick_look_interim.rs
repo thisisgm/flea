@@ -96,14 +96,10 @@ impl Shell {
         host.ask = ask;
         self.show(subject, false, Some(line), window, cx);
         self.quick_look_header(token, early, cx);
-        if let Some((_, image)) = interim {
-            self.quick_look
-                .as_ref()
-                .unwrap()
-                .view
-                .update(cx, |view, cx| {
-                    view.picture_interim(PathBuf::from(path), image, cx);
-                });
+        if let (Some((_, image)), Some(host)) = (interim, self.quick_look.as_ref()) {
+            host.view.update(cx, |view, cx| {
+                view.picture_interim(PathBuf::from(path), image, cx);
+            });
         }
     }
 }

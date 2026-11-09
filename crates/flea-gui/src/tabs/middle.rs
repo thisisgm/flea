@@ -95,7 +95,7 @@ impl Shell {
                         return None;
                     }
                     let index = ((f32::from(position.y - drawn.bounds.origin.y) + drawn.scroll)
-                        / crate::list::pane::ROW_HEIGHT)
+                        / drawn.row_height)
                         .floor() as usize;
                     let name = match &drawn.view().rows {
                         crate::columns::TrackRows::Peek(rows) => rows

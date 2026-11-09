@@ -67,7 +67,8 @@ impl Session {
 
 pub fn request(
     st: &mut State,
-    row: Option<usize>,
+    rows: &[usize],
+    anchor: Option<usize>,
     open: bool,
     enabled: Option<bool>,
     first: usize,
@@ -75,17 +76,33 @@ pub fn request(
     if st.held != super::state::Held::List {
         return Err("open in place needs a folder listing".into());
     }
-    let anchor = if let Some(row) = row {
-        if row >= st.listing.len() || !st.listing.is_dir(row) {
-            return Err(format!("row {row} is not a folder in this listing"));
+    let anchor = if let Some(&named) = rows.first() {
+        // Marked rows outside the window's held rows arrive unchecked; a file or symlink is never is_dir, and with no folder among them the anchor's folder acts.
+        let folder = |&row: &usize| row < st.listing.len() && st.listing.is_dir(row);
+        let mut folders: Vec<usize> = rows.iter().copied().filter(folder).collect();
+        if folders.is_empty() {
+            folders.extend(anchor.filter(folder));
         }
-        let path = st.base.join(st.listing.name(row));
-        if open {
-            st.outline.open.insert(path.clone());
-        } else {
-            st.outline.open.remove(&path);
+        let Some(&lead) = folders.first() else {
+            return Err(format!("row {named} is not a folder in this listing"));
+        };
+        for &row in &folders {
+            let path = st.base.join(st.listing.name(row));
+            if open {
+                st.outline.open.insert(path);
+            } else {
+                st.outline.open.remove(&path);
+            }
         }
-        Some(path)
+        let at = st.listing.name(anchor.filter(|&row| row < st.listing.len()).unwrap_or(lead));
+        // The re-list keeps the window's cursor row; a close that hides it selects the outermost folder closing over it.
+        let select = folders
+            .iter()
+            .map(|&row| st.listing.name(row))
+            .filter(|name| !open && at.strip_prefix(name).is_some_and(|rest| rest.starts_with('/')))
+            .min_by_key(|name| name.len())
+            .unwrap_or(at);
+        Some(st.base.join(select))
     } else {
         let Some(enabled) = enabled else {
             return Err("an outline request names a row or enabled".into());

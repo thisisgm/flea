@@ -127,6 +127,7 @@ fn validate_reply(cx: &mut TestAppContext, fixture: &mut Fixture, chosen: &str, 
 fn ey164_copy_as_leaves_copy_their_value(cx: &mut TestAppContext) {
     for (leaf, want) in [
         ("copyPath", "{path}"),
+        ("copyRelative", "notes.txt"),
         ("copyName", "notes.txt"),
         ("copyStem", "notes"),
         ("copydirpath", "{root}"),
@@ -167,7 +168,7 @@ fn ey164_copy_as_leaves_copy_their_value(cx: &mut TestAppContext) {
     }
 }
 
-// EY-164 as the sweep drives it: c opens the lone Copy As flyout on the cursor row, down and Return choose Name.
+// EY-164 as the sweep drives it: c opens the lone Copy As flyout on the cursor row, down past Relative Path and Return choose Name.
 #[gpui::test]
 fn ey164_copy_as_name_with_return_copies_the_name(cx: &mut TestAppContext) {
     let mut fixture = Fixture::new(cx, 0o644);
@@ -176,7 +177,7 @@ fn ey164_copy_as_name_with_return_copies_the_name(cx: &mut TestAppContext) {
     });
     keys(cx, &fixture, "c");
     answer_reads(cx, &mut fixture);
-    keys(cx, &fixture, "down enter");
+    keys(cx, &fixture, "down down enter");
     let path = fixture
         .root
         .join("notes.txt")

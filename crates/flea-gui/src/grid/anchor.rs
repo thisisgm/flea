@@ -30,6 +30,20 @@ impl PaneHost {
         self.nav.reread_preferences(&mut self.pane, &self.selected)
     }
 
+    /// GridArea.qml placeCursor on a cleared filter: Contain from the painted filtered scroll while the strip still stands, then the reflow keeps it.
+    pub(crate) fn grid_filter_cleared(&mut self, filtered: &[usize]) {
+        let Some(grid) = self.grid.as_mut().filter(|grid| grid.view.visible) else {
+            return;
+        };
+        grid.view.scroll = grid
+            .view
+            .layout(Shown::Only(filtered))
+            .clamp(grid.view.drawn_scroll());
+        grid.view.glide = None;
+        let layout = grid.view.layout(Shown::All(self.pane.held.total));
+        grid.view.reveal(&layout, self.pane.cursor);
+    }
+
     pub(super) fn restore_grid_anchor(&mut self) {
         let Some((listing, cursor, offset)) = self.nav.grid_landing else {
             return;

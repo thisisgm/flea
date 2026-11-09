@@ -12,7 +12,7 @@ pub(crate) fn mount<V: FieldView>(
     view: Entity<V>,
     field: Div,
     typeface: &crate::list::Typeface,
-) -> crate::locale_geometry::Unmirrored {
+) -> crate::leaf::Painted<crate::locale_geometry::Unmirrored> {
     let down = view.downgrade();
     let moved = view.downgrade();
     // An editable line keeps its text, selection, caret and placeholder together in a mirrored window.
@@ -33,6 +33,26 @@ pub(crate) fn mount<V: FieldView>(
                     .h_full()
                     .child(Destination(view, typeface.clone())),
             ),
+    )
+}
+
+/// The slot a card mounts its field in, showing the placeholder while the line is empty.
+pub(crate) fn slot(value: &str, placeholder: &str, muted: gpui::Hsla) -> Div {
+    div().relative().flex_1().min_w_0().h_full().when(
+        value.is_empty() && !placeholder.is_empty(),
+        |slot| {
+            slot.child(
+                div()
+                    .absolute()
+                    .left(px(1.))
+                    .top_0()
+                    .h_full()
+                    .flex()
+                    .items_center()
+                    .text_color(muted)
+                    .child(placeholder.to_owned()),
+            )
+        },
     )
 }
 

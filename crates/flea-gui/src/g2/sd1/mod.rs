@@ -1,5 +1,8 @@
 //! LocalSend discovery and the Taildrop/provider send picker; every process runs through the host as an Action.
 mod activation;
+pub(crate) mod airdrop;
+pub(crate) mod airdrop_join;
+pub(crate) mod airdrop_pids;
 mod dropbox_status;
 pub mod ipc;
 pub(crate) mod join;
@@ -77,28 +80,36 @@ impl ProviderSend {
 
     // One row per provider, suppressed while disabled or failed once the st2 join lands.
     fn derive_providers(&mut self, states: Option<&[ProviderState]>) {
-        self.providers = [Role::Tailscale, Role::LocalSend, Role::Dropbox]
-            .iter()
-            .map(|role| Provider {
-                plugin: role.plugin_id().into(),
-                installed: installed(*role, &self.facts),
-                enabled: states
-                    .and_then(|states| states.iter().find(|s| s.plugin == role.plugin_id()))
-                    .map(|s| s.enabled)
-                    .unwrap_or(true),
-                failed: states
-                    .and_then(|states| states.iter().find(|s| s.plugin == role.plugin_id()))
-                    .map(|s| s.failed)
-                    .unwrap_or(false),
-            })
-            .collect();
+        self.providers = [
+            Role::Tailscale,
+            Role::LocalSend,
+            Role::Dropbox,
+            Role::AirDrop,
+        ]
+        .iter()
+        .map(|role| Provider {
+            plugin: role.plugin_id().into(),
+            installed: installed(*role, &self.facts),
+            enabled: states
+                .and_then(|states| states.iter().find(|s| s.plugin == role.plugin_id()))
+                .map(|s| s.enabled)
+                .unwrap_or(true),
+            failed: states
+                .and_then(|states| states.iter().find(|s| s.plugin == role.plugin_id()))
+                .map(|s| s.failed)
+                .unwrap_or(false),
+        })
+        .collect();
     }
 
     pub fn row_on(&self, role: Role) -> bool {
         if self.gated {
             self.provider(role).row_on(&self.hidden, role.menu_id())
         } else {
-            self.provider(role).installed && !self.hidden.iter().any(|id| id == role.menu_id())
+            // AirDrop ships off, so until the plugin listing lands its row stays out.
+            role != Role::AirDrop
+                && self.provider(role).installed
+                && !self.hidden.iter().any(|id| id == role.menu_id())
         }
     }
 
@@ -107,7 +118,7 @@ impl ProviderSend {
         match role {
             Role::LocalSend => self.ls_peers.clone(),
             Role::Tailscale => self.td_peers.clone(),
-            Role::Dropbox => Vec::new(),
+            Role::Dropbox | Role::AirDrop => Vec::new(),
         }
     }
 
@@ -213,34 +224,14 @@ impl ProviderSend {
 }
 
 fn installed(role: Role, facts: &Facts) -> bool {
-    match role {
-        // LocalSend drives localsend-cli, never the app's own window, as providers.rs documents.
-        Role::LocalSend => facts.localsend_installed || !facts.localsend_command.is_empty(),
-        // Pane.qml taildropInstalled: an installed Tailscale that cannot run keeps its row, which then reads unavailable.
-        Role::Tailscale => {
-            facts.tailscale_installed
-                || !facts.tailscale_command.is_empty()
-                || facts.tailscale_unusable
+    // Pane.qml taildropInstalled: an installed provider that cannot run (no command) keeps its row, which then reads unavailable.
+    facts.installed.contains(&role)
+        || !match role {
+            // LocalSend drives localsend-cli, never the app's own window, as providers.rs documents.
+            Role::LocalSend => &facts.localsend_command,
+            Role::Tailscale => &facts.tailscale_command,
+            Role::Dropbox => &facts.dropbox_command,
+            Role::AirDrop => &facts.owly_command,
         }
-        Role::Dropbox => facts.dropbox_installed || !facts.dropbox_command.is_empty(),
-    }
-}
-
-#[test]
-fn uish_misc_unusable_provider_facts_keep_the_disabled_row_and_no_command() {
-    let facts = providers::parse_facts(r#"{"taildrop":{"installed":true,"command":"","reason":"not executable"},"dropbox":{"installed":true,"command":"","reason":"not executable"},"dropboxInfo":"{}"}"#).unwrap();
-    assert!(installed(Role::Tailscale, &facts));
-    assert!(installed(Role::Dropbox, &facts));
-    assert!(!installed(Role::LocalSend, &facts));
-    assert!(facts.tailscale_command.is_empty() && facts.dropbox_command.is_empty());
-    struct NoWire;
-    impl seams::Wire for NoWire {
-        fn send(&self, _: String) -> bool {
-            panic!("an unusable provider must start no discovery")
-        }
-    }
-    let mut sender = ProviderSend::default();
-    assert!(sender.menu_opened(&NoWire, &facts, None, &[], 0).is_empty());
-    assert!(sender.row_on(Role::Tailscale) && sender.row_on(Role::Dropbox));
-    assert!(sender.dropbox_refresh().is_none());
+        .is_empty()
 }

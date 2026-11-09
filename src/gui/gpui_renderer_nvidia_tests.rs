@@ -65,14 +65,22 @@ fn matrix(label: &str, gpus: &[(u32, u32, u32)], display: Option<usize>) {
     for (index, &gpu) in gpus.iter().enumerate() {
         card(&drm, &format!("card{index}"), gpu, display == Some(index));
     }
-    let filter =
+    let (filter, applied) =
         crate::icdexclude::decide_exclusion(|_| None, &pci, &drm, &[root.path().join("data")]);
-    if gpus.iter().any(|gpu| gpu.0 == NVIDIA.0) {
+    let nvidia = gpus.iter().any(|gpu| gpu.0 == NVIDIA.0);
+    // An NVIDIA GPU lighting the display keeps its drivers; one beside another GPU's display is idle and loses them.
+    let idle = nvidia && display.is_some_and(|index| gpus[index].0 != NVIDIA.0);
+    assert_eq!(applied, idle, "{label}: idle rule");
+    if nvidia {
         let filter = filter.as_deref().unwrap_or_default();
-        assert!(
-            !filter.contains("nvidia") && !filter.contains("nvk"),
-            "{label}: {filter}"
-        );
+        for name in ["nvidia_icd.json", "nvk.json"] {
+            let installed = icd.join(name).exists();
+            assert_eq!(
+                filter.split(',').any(|entry| entry == name),
+                idle && installed,
+                "{label}: {filter}"
+            );
+        }
     }
     let names = configured_pin(&root, false);
     assert!(names.is_empty(), "{label}: GPUI forced an ICD: {names}");
@@ -95,7 +103,7 @@ fn l_nvidia_both_nvidia_drivers_installed_does_not_pin_an_icd() {
 }
 
 #[test]
-fn l_nvidia_intel_compositor_keeps_nvidia_driver() {
+fn l_nvidia_intel_compositor_disables_the_idle_nvidia_drivers() {
     matrix("intel-display", &[INTEL, NVIDIA], Some(0));
 }
 
@@ -121,16 +129,40 @@ fn l_nvidia_gpu_less_box_does_not_pin_an_icd() {
 }
 
 #[test]
-fn l_nvidia_render_node_only_nvidia_is_not_excluded() {
+fn l_nvidia_render_node_only_nvidia_is_present_but_idle() {
     let root = TestDir::new("nvidia-render-only");
     let pci = root.dir("pci");
     let drm = root.dir("drm");
     manifests(&root);
     card(&drm, "card0", INTEL, true);
     card(&drm, "renderD129", NVIDIA, false);
-    let filter =
-        crate::icdexclude::decide_exclusion(|_| None, &pci, &drm, &[root.path().join("data")]);
-    assert_eq!(filter.as_deref(), Some("radeon.json"));
+    let data = [root.path().join("data")];
+    let filter = crate::icdexclude::decide_exclusion(|_| None, &pci, &drm, &data);
+    assert_eq!(
+        filter,
+        (Some("nvidia_icd.json,nvk.json,radeon.json".into()), true)
+    );
+    // Present all the same: asking for the dGPU keeps its drivers and disables only the absent vendor's.
+    let keep = |name: &str| (name == "FLEA_VK_KEEP_NVIDIA").then(|| "1".into());
+    let filter = crate::icdexclude::decide_exclusion(keep, &pci, &drm, &data);
+    assert_eq!(filter, (Some("radeon.json".into()), false));
+}
+
+#[test]
+fn l_nvidia_idle_nvidia_keeps_its_drivers_when_the_display_gpu_has_none() {
+    let root = TestDir::new("nvidia-idle-no-intel-driver");
+    let pci = root.dir("pci");
+    let drm = root.dir("drm");
+    let icd = manifests(&root);
+    let path = icd.join("intel.json");
+    root.assert_contains(&path);
+    std::fs::remove_file(path).unwrap();
+    card(&drm, "card0", INTEL, true);
+    card(&drm, "card1", NVIDIA, false);
+    // Disabling NVIDIA here would leave GPUI only Lavapipe, a software renderer, for the Intel panel.
+    let data = [root.path().join("data")];
+    let filter = crate::icdexclude::decide_exclusion(|_| None, &pci, &drm, &data);
+    assert_eq!(filter, (Some("radeon.json".into()), false));
 }
 
 #[test]

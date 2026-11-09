@@ -147,6 +147,14 @@ pub(super) fn decode(
     }
 }
 
+/// True when the file's own bytes say PNG, whatever its name.
+pub(crate) fn is_png(path: &Path) -> bool {
+    let mut magic = [0; 8];
+    flea::backend::regfile::open_regular(path)
+        .is_some_and(|mut file| file.read_exact(&mut magic).is_ok())
+        && image::guess_format(&magic).is_ok_and(|format| format == image::ImageFormat::Png)
+}
+
 /// Full detail replaces the first scaled picture on the existing background executor.
 pub(crate) fn decode_sharp(
     path: &Path,

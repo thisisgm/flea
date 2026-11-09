@@ -149,21 +149,22 @@ fn tree_outline_session_retains_nested_expansions_and_rejects_stale_rows() {
         "{{\"c\":\"list\",\"path\":\"{}\",\"by\":\"name\"}}",
         crate::json::escape(&dir.path().to_string_lossy())
     );
-    let first = outline::request(&mut state, Some(0), true, None, 32).unwrap();
+    let first = outline::request(&mut state, &[0], None, true, None, 32).unwrap();
     let first = state.outline.list(&first);
     assert!(first.contains("outlinePaths"));
     state.listing = listed(&dir, &["A"], "").listing;
-    outline::request(&mut state, Some(1), true, None, 32).unwrap();
-    outline::request(&mut state, Some(0), false, None, 32).unwrap();
+    outline::request(&mut state, &[1], None, true, None, 32).unwrap();
+    outline::request(&mut state, &[0], None, false, None, 32).unwrap();
     assert!(!state.outline.open.contains(&dir.join("A")), "a collapse closes the folder");
     assert!(state.outline.open.contains(&dir.join("A/full")));
-    outline::request(&mut state, Some(0), true, None, 32).unwrap();
-    outline::request(&mut state, None, false, Some(false), 32).unwrap();
+    outline::request(&mut state, &[0], None, true, None, 32).unwrap();
+    outline::request(&mut state, &[], None, false, Some(false), 32).unwrap();
     let last = state.outline.last.clone();
     assert!(crate::json::field_str_array(&state.outline.list(&last), "outlinePaths").is_empty());
-    outline::request(&mut state, None, false, Some(true), 32).unwrap();
+    outline::request(&mut state, &[], None, false, Some(true), 32).unwrap();
     assert!(state.outline.list(&last).contains("A/full"));
     assert!(rowguard::refusal(r#"{"c":"outline","row":0,"listing":1}"#, 2).is_some());
+    assert!(rowguard::refusal(r#"{"c":"outline","rows":[0,1],"open":true,"anchor":0,"listing":1}"#, 2).is_some());
 }
 
 #[test]
@@ -329,16 +330,16 @@ fn tree_outline_requests_reach_the_list_parser_and_refusals_name_their_cause() {
     let base = dir.path().to_string_lossy().into_owned();
     state.outline.last = format!(r#"{{"c":"list","path":"{}"}}"#, crate::json::escape(&base));
     let folder = dir.join("A \"quoted\"").to_string_lossy().into_owned();
-    let opened = outline::request(&mut state, Some(0), true, None, 32).unwrap();
+    let opened = outline::request(&mut state, &[0], None, true, None, 32).unwrap();
     let line = state.outline.list(&opened);
     let Request::List { path, first, .. } = parse_request(&line) else { panic!("not a list request: {line}") };
     assert_eq!((path.as_str(), first), (base.as_str(), 32));
     assert_eq!(crate::json::field_str_array(&line, "outlinePaths"), std::slice::from_ref(&folder));
     assert_eq!(crate::json::field_str(&line, "select"), Some(folder));
-    let toggled = outline::request(&mut state, None, false, Some(false), 32).unwrap();
+    let toggled = outline::request(&mut state, &[], None, false, Some(false), 32).unwrap();
     assert_eq!(crate::json::field_str(&toggled, "select"), None, "a view toggle carries no select from the last listing");
-    assert_eq!(outline::request(&mut state, Some(1), true, None, 32), Err("row 1 is not a folder in this listing".into()));
-    assert_eq!(outline::request(&mut state, None, false, None, 32), Err("an outline request names a row or enabled".into()));
+    assert_eq!(outline::request(&mut state, &[1], None, true, None, 32), Err("row 1 is not a folder in this listing".into()));
+    assert_eq!(outline::request(&mut state, &[], None, false, None, 32), Err("an outline request names a row or enabled".into()));
 }
 
 #[test]
@@ -359,3 +360,6 @@ fn tree_outline_a_link_inside_an_open_folder_stays_a_link_through_a_sort() {
     assert!(listing.spans[link].is_symlink, "the copied row keeps the link bit through expand and the group sort");
     assert!(!listing.spans[names.iter().position(|&name| name == "A/plain").unwrap()].is_symlink);
 }
+
+#[path = "tree_outline_request_tests.rs"]
+mod request_tests;

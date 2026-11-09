@@ -1,22 +1,26 @@
 //! The stand-in frame: the card, its title, its controls and its buttons, drawn to the boards.
 use super::cards::*;
 use super::draw_step::{DISABLED_OPACITY, WASH_PRESS};
-use super::flash::SEL_FORMAT_LABEL;
 use crate::g2::fb1::caption::Tracked;
 use crate::g2::op3::shell::{card_heading, glyph};
 use crate::list::{Palette, Typeface};
 use gpui::{
-    canvas, div, prelude::*, px, relative, AnyElement, Bounds, Div, FontWeight, Hsla, Pixels,
+    canvas, div, prelude::*, px, relative, AnyElement, App, Bounds, Div, FontWeight, MouseButton,
+    Pixels, Window,
 };
 use std::{cell::Cell, rc::Rc};
 
 /// Where a secret field's eye painted, for the pointer and archiveCardsState's eye centre.
 pub type EyeProbe = Rc<Cell<Option<Bounds<Pixels>>>>;
 
-/// The open card's eye probes, handed to its secret fields in body order.
+/// A click on an enabled control reports what it landed on, as that control's key would answer.
+pub type CardPress = Rc<dyn Fn(&Hit, &mut Window, &mut App)>;
+
+/// The open card's eye probes, handed to its secret fields in body order, and the next field's place.
 pub(super) struct Eyes<'a> {
     probes: &'a [EyeProbe],
     at: usize,
+    field: usize,
 }
 
 impl Eyes<'_> {
@@ -25,28 +29,15 @@ impl Eyes<'_> {
         self.at += 1;
         self.probes.get(at).map(|probe| (at, probe.clone()))
     }
+
+    fn next_field(&mut self) -> usize {
+        self.field += 1;
+        self.field - 1
+    }
 }
 
 /// Draws a card centred with no scrim, until op1's shell replaces it.
 pub struct StandIn;
-
-/// The chosen chip draws a foreground frame, an accent one while the chips hold the keyboard; the rest stay muted.
-pub(super) fn chip_frame(t: &Tokens, on: bool, focused: bool) -> Hsla {
-    match (on, focused) {
-        (true, true) => t.accent_frame,
-        (true, false) => t.fg,
-        (false, _) => t.muted_frame,
-    }
-}
-
-/// SettingsSegment.qml:68: the chosen chip's text in the foreground, every other one in Theme.color.muted.
-pub(super) fn chip_ink(t: &Tokens, on: bool) -> Hsla {
-    if on {
-        t.fg
-    } else {
-        t.muted
-    }
-}
 
 impl Draw<'_> {
     pub(super) fn px(&self, board: f32) -> Pixels {
@@ -76,48 +67,18 @@ impl Draw<'_> {
             ))
     }
 
-    fn chips(&self, chips: &Chips) -> Div {
-        let t = self.t;
-        let mut row = div().flex().gap(self.px(CHIP_GAP));
-        for (at, option) in chips.options.iter().enumerate() {
-            let on = at == chips.current;
-            row = row.child(
-                self.text(BOARD_BODY)
-                    .h(self.px(CHIP_HEIGHT))
-                    .px(self.px(BUTTON_PAD))
-                    .flex()
-                    .items_center()
-                    .border_1()
-                    .border_color(chip_frame(&t, on, chips.focused))
-                    .rounded(self.px(self.r))
-                    .text_color(chip_ink(&t, on))
-                    .child(option.clone()),
-            );
-        }
-        if chips.label.is_empty() {
-            return row;
-        }
-        div()
-            .flex()
-            .flex_col()
-            .child(
-                self.label(&chips.label)
-                    .debug_selector(|| SEL_FORMAT_LABEL.into()),
-            )
-            .child(row)
-    }
-
-    pub(super) fn field(&self, field: &Field) -> Div {
-        self.field_probed(field, None)
-    }
-
     /// The eye glyph, recording its painted bounds into the probe when one is given.
     fn eye(&self, probe: Option<(usize, EyeProbe)>) -> Div {
-        let eye = div().flex_none().relative().child(glyph(
-            Glyph::Eye,
-            super::cards::EYE * self.s,
-            self.t.muted_frame,
-        ));
+        // DialogField's eye takes its own press, so holding it never moves the caret or the focus.
+        let eye = div()
+            .flex_none()
+            .relative()
+            .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
+            .child(glyph(
+                Glyph::Eye,
+                super::cards::EYE * self.s,
+                self.t.muted_frame,
+            ));
         match probe {
             Some((at, probe)) => eye.debug_selector(move || format!("op2-eye-{at}")).child(
                 canvas(
@@ -133,10 +94,12 @@ impl Draw<'_> {
         }
     }
 
-    fn field_probed(&self, field: &Field, probe: Option<(usize, EyeProbe)>) -> Div {
+    /// The field at this place among the card's fields; a press on it while unfocused takes the keys, as Tab to it does.
+    fn field(&self, field: &Field, at: usize, probe: Option<(usize, EyeProbe)>) -> Div {
         let t = self.t;
         let caret = || div().w(px(1.)).h(self.px(CARET)).flex_none().bg(t.fg);
         let mut line = div()
+            .debug_selector(move || format!("op2-field-{at}"))
             .h(self.px(BUTTON_HEIGHT))
             .flex()
             .items_center()
@@ -157,22 +120,7 @@ impl Draw<'_> {
         if let Some(input) = &field.input {
             line = line.child(crate::g2::op1::field::mount(
                 input.clone(),
-                div().relative().flex_1().min_w_0().h_full().when(
-                    field.value.is_empty() && !field.placeholder.is_empty(),
-                    |slot| {
-                        slot.child(
-                            div()
-                                .absolute()
-                                .left(px(1.))
-                                .top_0()
-                                .h_full()
-                                .flex()
-                                .items_center()
-                                .text_color(t.muted)
-                                .child(field.placeholder.clone()),
-                        )
-                    },
-                ),
+                crate::g2::op1::field::slot(&field.value, &field.placeholder, t.muted),
                 self.typeface,
             ));
             if field.eye {
@@ -182,6 +130,11 @@ impl Draw<'_> {
                 Some(name) => div().flex().flex_col().child(self.label(name)).child(line),
                 None => line,
             };
+        }
+        if let Some(press) = self.press.clone().filter(|_| !field.focused) {
+            line = line.on_mouse_down(MouseButton::Left, move |_, window, cx| {
+                press(&Hit::Field(at), window, cx)
+            });
         }
         let drawn = field.drawn();
         // The text takes the free width, so the eye sits at the right edge whatever the field holds.
@@ -219,46 +172,14 @@ impl Draw<'_> {
         }
     }
 
-    fn checkline(&self, check: &CheckLine) -> Div {
-        let t = self.t;
-        let frame = if check.checked || check.focused {
-            t.fg
-        } else {
-            t.muted_frame
-        };
-        let box_ = div()
-            .size(self.px(CHECK))
-            .flex_none()
-            .flex()
-            .items_center()
-            .justify_center()
-            .border_2()
-            .border_color(frame)
-            .rounded(self.px(self.r / 2.))
-            .when(check.checked, |d| d.bg(t.fg))
-            .when(check.checked, |d| {
-                d.child(glyph(Glyph::Check, CHECK_GLYPH * self.s, t.surface))
-            });
-        div()
-            .debug_selector(|| "op2-encrypt".into())
-            .flex()
-            .items_center()
-            .gap(self.px(ROW_GAP))
-            .child(box_)
-            .child(
-                self.text(BOARD_BODY)
-                    .text_color(t.fg)
-                    .child(check.label.clone()),
-            )
-    }
-
     pub(super) fn block(&self, block: &Block, eyes: &mut Eyes) -> AnyElement {
         match block {
             Block::Chips(chips) => self.chips(chips).into_any_element(),
-            Block::Field(field) if field.secret && field.eye => {
-                self.field_probed(field, eyes.next()).into_any_element()
+            Block::Field(field) => {
+                let at = eyes.next_field();
+                let probe = (field.secret && field.eye).then(|| eyes.next()).flatten();
+                self.field(field, at, probe).into_any_element()
             }
-            Block::Field(field) => self.field(field).into_any_element(),
             Block::CheckLine(check) => self.checkline(check).into_any_element(),
             Block::Note { text, ink } => {
                 if text.is_empty() {
@@ -314,12 +235,13 @@ impl super::cards::DialogShell for StandIn {
         room: f32,
         radius: f32,
     ) -> AnyElement {
-        self.present_probed(card, palette, typeface, room, radius, &[])
+        self.present_probed(card, palette, typeface, room, radius, &[], None)
     }
 }
 
 impl StandIn {
-    /// The card with each secret field's eye bounds recorded into its probe, in body order.
+    /// The card with each secret field's eye bounds recorded into its probe, in body order, and live buttons when pressable.
+    #[allow(clippy::too_many_arguments)]
     pub fn present_probed(
         &self,
         card: &Card,
@@ -328,6 +250,7 @@ impl StandIn {
         room: f32,
         radius: f32,
         probes: &[EyeProbe],
+        press: Option<CardPress>,
     ) -> AnyElement {
         let s = f32::from(typeface.body) / BOARD_BODY;
         let draw = Draw {
@@ -336,6 +259,7 @@ impl StandIn {
             s,
             typeface,
             r: radius,
+            press: press.clone(),
         };
         let t = draw.t;
         let head = card_heading(
@@ -363,9 +287,19 @@ impl StandIn {
             .font_family(draw.typeface.font.family.clone())
             .text_size(draw.px(BOARD_BODY))
             .line_height(relative(1.2))
+            // A press on the card is the card's; only a press on the scrim around it answers as Cancel.
+            .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
             .child(head)
             .child(draw.hairline());
-        frame = draw.body(card, frame, &mut Eyes { probes, at: 0 });
+        frame = draw.body(
+            card,
+            frame,
+            &mut Eyes {
+                probes,
+                at: 0,
+                field: 0,
+            },
+        );
         let mut buttons = div()
             .mt(draw.px(ABOVE_BUTTONS))
             .flex()
@@ -373,7 +307,13 @@ impl StandIn {
             .items_center()
             .gap(draw.px(ROW_GAP));
         for (at, button) in card.buttons.iter().enumerate() {
-            buttons = buttons.child(draw.button(button, at));
+            let press = press.clone().filter(|_| button.enabled);
+            buttons = buttons.child(draw.button(button, at).id(("op2-button", at)).when_some(
+                press,
+                |drawn, press| {
+                    drawn.on_click(move |_, window, cx| press(&Hit::Button(at), window, cx))
+                },
+            ));
         }
         div()
             .debug_selector(|| format!("op2-radius-{}", draw.r))

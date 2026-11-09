@@ -117,11 +117,7 @@ impl Line {
             return px(0.);
         };
         let next = glyphs.clone().filter(|glyph| glyph.0 >= index);
-        let leftward = |glyph: Glyph| {
-            self.bidi_levels
-                .get(glyph.0)
-                .map_or(self.right_to_left, |level| level.is_rtl())
-        };
+        let leftward = |glyph: Glyph| self.leftward(glyph.0);
         match next.min_by_key(|glyph| glyph.0) {
             Some(glyph) if leftward(glyph) => right_of(glyphs, glyph.1, width),
             Some(glyph) => glyph.1,
@@ -166,9 +162,26 @@ impl Line {
     }
 
     pub fn index_for(&self, x: Pixels) -> usize {
-        self.run
-            .as_ref()
-            .map_or(0, |run| run.line().closest_index_for_x(x))
+        let Some(run) = &self.run else {
+            return 0;
+        };
+        let (line, index) = (run.line(), run.line().closest_index_for_x(x));
+        // closest_index_for_x answers the end for any x past the last glyph's left edge; the nearer edge wins there too.
+        match glyphs(run).max_by(|a, b| f32::from(a.1).total_cmp(&f32::from(b.1))) {
+            Some((at, left))
+                if index == line.len && x - left < line.width - x && !self.leftward(at) =>
+            {
+                at
+            }
+            _ => index,
+        }
+    }
+
+    // Whether the glyph at byte index draws right to left.
+    fn leftward(&self, index: usize) -> bool {
+        self.bidi_levels
+            .get(index)
+            .map_or(self.right_to_left, |level| level.is_rtl())
     }
 }
 

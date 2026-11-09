@@ -8,6 +8,8 @@ mod consumer_tests;
 mod control_tests;
 #[cfg(test)]
 mod golden_tests;
+#[cfg(test)]
+mod tag_hue_tests;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Theme {

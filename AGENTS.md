@@ -60,9 +60,11 @@ Markdown navigation links are relative to the document containing them.
    `FLEA_VK_PIN` and its ICD list, and adds no display GPU pin or Vulkan probe cache.
    GPUI uses compositor feedback and checks adapters against the window surface.
 
-   **The absent-vendor ICD filter remains.** Before the exec, `src/icdexclude.rs` can set
-   `VK_LOADER_DRIVERS_DISABLE` for known driver manifests whose hardware is absent, with
-   `FLEA_VK_DISABLE` holding the filter Flea wrote.
+   **The ICD filter remains.** Before the exec, `src/icdexclude.rs` can set
+   `VK_LOADER_DRIVERS_DISABLE` for known driver manifests whose hardware is absent or idle, with
+   `FLEA_VK_DISABLE` holding the filter Flea wrote. `src/icdidle.rs` adds NVIDIA's
+   manifests while an NVIDIA GPU drives no display beside one that does and has its own
+   driver, so the dGPU stays suspended; `FLEA_VK_KEEP_NVIDIA=1` or a PRIME offload variable keeps them.
    An operator's nonempty driver override or a loader settings file prevents that automatic
    exclusion; an inherited filter still matching Flea's marker is reconsidered.
    `src/open.rs` and `src/terminal.rs` remove Flea's marked filter and legacy display pin
@@ -247,9 +249,9 @@ Each link names the destination of the original top-level section. The
 
 - [Thumbnail requests](docs/architecture/thumbnail-requests.md)
 
-<a id="a-drag-does-not-survive-a-workspace-switch"></a>
+<a id="a-drag-survives-a-workspace-switch"></a>
 
-- [A drag does not survive a workspace switch](docs/architecture/a-drag-does-not-survive-a-workspace-switch.md)
+- [A drag survives a workspace switch](docs/architecture/a-drag-survives-a-workspace-switch.md)
 
 <a id="drag-to-trash"></a>
 

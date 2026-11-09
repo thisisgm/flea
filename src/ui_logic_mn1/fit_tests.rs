@@ -12,7 +12,7 @@ fn rows(count: usize) -> Vec<Entry> {
 
 #[test]
 fn copy_as_lines() {
-    let one = |path: &str, format| lines(&[path], format);
+    let one = |path: &str, format| lines(&[path], format, "");
     check(
         "quoted wraps paths without special characters too",
         one("/home/gm/a.txt", Format::Quoted),
@@ -75,7 +75,7 @@ fn copy_as_lines() {
     );
     check(
         "every variant covers the whole selection one per line",
-        lines(&["/a/one.txt", "/a/two.txt"], Format::Path),
+        lines(&["/a/one.txt", "/a/two.txt"], Format::Path, ""),
         "/a/one.txt\n/a/two.txt".into(),
     );
     check(

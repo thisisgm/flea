@@ -22,7 +22,7 @@ mod contents_state_tests;
 mod contents_fix_tests;
 #[cfg(test)]
 mod contents_fix2_tests;
-mod cells;
+pub(crate) mod cells;
 mod filter;
 mod finder;
 mod parity17;
@@ -90,6 +90,8 @@ mod terminal;
 mod launch;
 mod wait;
 mod words;
+#[cfg(test)]
+mod live_language_tests;
 mod hold;
 #[cfg(test)]
 #[path = "hold_tests.rs"]

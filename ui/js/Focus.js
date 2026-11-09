@@ -221,6 +221,7 @@ function act(action, root, menuId, paths) {
     case "makeExecutable": root.makeExecutable(paths); return
     case "compare": Ops.open(root, paths); return
     case "copyPath": Ops.copyAs(root, "path", paths); return
+    case "copyRelative": Ops.copyAs(root, "relative", paths); return
     case "copyName": Ops.copyAs(root, "name", paths); return
     case "copyStem": Ops.copyAs(root, "stem", paths); return
     case "copyUri": Ops.copyAs(root, "uri", paths); return

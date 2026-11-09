@@ -229,15 +229,9 @@ impl RowsAdapter<'_> {
             "rowGlyph" => self
                 .shown(index)
                 .map(|shown| {
-                    if let Some((name, _, _)) = facts.and_then(|row| {
-                        crate::list::outline::chevron(
-                            view,
-                            row,
-                            shown.state.hovered,
-                            self.list.drawn.mirrored,
-                        )
-                    }) {
-                        name.to_owned()
+                    if let Some(mark) = facts.and_then(|row| crate::list::outline::mark(view, row))
+                    {
+                        mark.name().to_owned()
                     } else if shown.prepared.is_none() {
                         Mark::File.name().to_owned()
                     } else {

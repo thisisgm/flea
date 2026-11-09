@@ -169,7 +169,7 @@ fn gh336_physical_fit_avoids_full_photo_allocation_in_fresh_processes() {
         let min_full = *peaks[0].iter().min().unwrap();
         let max_fit = *peaks[1].iter().max().unwrap();
         // Fit must never pay the full source. PNG decodes bounded here, so it keeps the tight budget;
-        // a JPEG loader that scales after decoding (gdk-pixbuf on some builds) can only promise the floor.
+        // a JPEG loader that scales after decoding (GdkPixbuf on a glycin stack) can only promise the floor.
         assert!(
             max_fit + 11_718 < min_full,
             "{extension} still pays a full-source allocation"
@@ -225,21 +225,32 @@ fn gh336_fallback_scaling_preserves_transparent_edge_colour() {
     pixels.put_pixel(0, 0, image::Rgba([255, 0, 0, 255]));
     pixels.put_pixel(1, 0, image::Rgba([0, 0, 0, 0]));
     let root = Root::new();
-    for extension in ["gif", "qoi"] {
+    for (extension, format) in [
+        ("gif", image::ImageFormat::Gif),
+        ("qoi", image::ImageFormat::Qoi),
+    ] {
         let path = root.0.join(format!("edge.{extension}"));
         pixels.save(&path).unwrap();
-        let decoded = decode(&path, (1, 1), &|| true).unwrap();
-        // Half coverage is 50% alpha, and a codec rounds that to 127 or 128; which one is the loader's.
-        let pixel = decoded.as_bytes(0).unwrap();
+        // The image fallback is called directly, so GdkPixbuf's own QOI loader on a glycin stack cannot stand in for it.
+        let fallback = super::photo_frames::static_image(
+            &path,
+            std::fs::File::open(&path).unwrap(),
+            format,
+            (1, 1),
+            &|| true,
+        )
+        .unwrap();
         assert_eq!(
-            (pixel[0], pixel[1], pixel[2]),
-            (0, 0, 255),
+            fallback.as_bytes(0).unwrap(),
+            &[0, 0, 255, 128],
             "{extension} retains straight colour at half coverage"
         );
+        let shown = decode(&path, (1, 1), &|| true).unwrap();
+        let pixel = shown.as_bytes(0).unwrap();
+        // Coverage is exactly 127.5, which GdkPixbuf on a glycin stack rounds down.
         assert!(
-            (127..=128).contains(&pixel[3]),
-            "{extension} half coverage reads {} not 50%",
-            pixel[3]
+            pixel[..3] == [0, 0, 255] && (127..=128).contains(&pixel[3]),
+            "{extension} as shown keeps straight colour at half coverage: {pixel:?}"
         );
     }
 }

@@ -6,7 +6,9 @@ use crate::json::{field_bool, field_str, field_str_array, field_usize, field_usi
 pub fn parse_request(line: &str) -> Request {
     match field_str(line, "c").as_deref() {
         Some("outline") => Request::Outline {
-            row: field_usize(line, "row"), open: field_bool(line, "open"),
+            // Sample input: {"c":"outline","rows":[0,4],"open":true,"anchor":7,"listing":3,"first":320}; a lone "row" still names one folder.
+            rows: match field_usize_array(line, "rows") { rows if rows.is_empty() => field_usize(line, "row").into_iter().collect(), rows => rows },
+            anchor: field_usize(line, "anchor"), open: field_bool(line, "open"),
             enabled: crate::jsondoc::parse(line).ok().and_then(|doc| doc.get("enabled").and_then(crate::jsondoc::Json::as_bool)), first: field_usize(line, "first").unwrap_or(crate::backend::searchsession::FIRST_WINDOW_DEFAULT),
         },
         Some("nearby") => Request::Nearby {
@@ -70,6 +72,11 @@ pub fn parse_request(line: &str) -> Request {
             paths: field_str_array(line, "paths"),
             id: field_usize(line, "id").unwrap_or(0),
         },
+        Some("airdrop") => Request::AirDrop {
+            peer: field_str(line, "peer").unwrap_or_default(),
+            paths: field_str_array(line, "paths"),
+            id: field_usize(line, "id").unwrap_or(0),
+        },
         Some("list") => Request::List {
             path: field_str(line, "path").unwrap_or_default(),
             first: field_usize(line, "first").unwrap_or(0),
@@ -77,6 +84,8 @@ pub fn parse_request(line: &str) -> Request {
             hidden: field_bool(line, "hidden"),
             // Absent is today's silent re-read, so an older client never pays the count.
             want_changed: field_bool(line, "wantChanged"),
+            // Absent keeps only the listed folder's own sizes, so an older client still gets same-folder reuse.
+            keep: field_str_array(line, "keep"),
         },
         Some("listpaths") => Request::ListPaths {
             paths: field_str_array(line, "paths"),

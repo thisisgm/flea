@@ -30,13 +30,16 @@ impl Shell {
         if showing {
             self.follow_plugins(window, cx);
         }
-        if showing && self.settings.plugins.is_none() {
+        // Plugins coming into view, which a kept view does again after every close.
+        let shown = showing && !self.settings.plugins.shown;
+        self.settings.plugins.shown = showing;
+        if showing && self.settings.plugins.pane.is_none() {
             let theme = cx
                 .try_global::<crate::palette::Theme>()
                 .copied()
                 .unwrap_or_default();
             let palette = crate::list::Palette::inherited(&window.text_style(), theme);
-            let wire = Rc::new(Wire(self.settings.plugin_queue.clone()));
+            let wire = Rc::new(Wire(self.settings.plugins.queue.clone()));
             let view = cx.new(|cx| {
                 PluginsPane::new(
                     self.locale.catalog.clone(),
@@ -67,6 +70,10 @@ impl Shell {
                         );
                     }
                     Effect::PinFolder => shell.pin_settings_folder(window, cx),
+                    Effect::AirdropReceiving(on, folder) => {
+                        shell.airdrop_receiving(*on, folder, window, cx)
+                    }
+                    Effect::AirdropFolder(start) => shell.airdrop_choose_folder(start, window, cx),
                     Effect::None => {}
                 },
             ));
@@ -77,10 +84,14 @@ impl Shell {
                     cx.notify();
                 });
             }
-            self.settings.plugins = Some(view);
+            self.settings.plugins.pane = Some(view);
+        }
+        if shown {
+            self.airdrop_settings_shown(window, cx);
         }
         if self.settings.opened {
-            if let (Some(panel), Some(plugin)) = (&self.settings.panel, &self.settings.plugins) {
+            if let (Some(panel), Some(plugin)) = (&self.settings.panel, &self.settings.plugins.pane)
+            {
                 let panel = panel.read(cx);
                 let owns = showing && panel.panel.side == crate::g2::st1::Side::Pane;
                 let parent = panel.focus.clone();
@@ -95,7 +106,7 @@ impl Shell {
         self.flush_settings_plugins(cx);
     }
     fn flush_settings_plugins(&mut self, cx: &mut Context<Self>) {
-        let lines = std::mem::take(&mut *self.settings.plugin_queue.borrow_mut());
+        let lines = std::mem::take(&mut *self.settings.plugins.queue.borrow_mut());
         for line in lines {
             let sent = self
                 .plugins
@@ -103,21 +114,21 @@ impl Shell {
                 .as_ref()
                 .is_some_and(|host| host.read(cx).line(line));
             if !sent {
-                if let Some(view) = &self.settings.plugins {
+                if let Some(view) = &self.settings.plugins.pane {
                     view.update(cx, |view, cx| view.backend_failed(cx));
                 }
             }
         }
     }
     pub(crate) fn settings_plugins_reply(&mut self, line: &str, cx: &mut Context<Self>) {
-        if let Some(view) = &self.settings.plugins {
+        if let Some(view) = &self.settings.plugins.pane {
             view.update(cx, |view, cx| view.receive(line, cx));
         }
     }
 
     pub(crate) fn settings_plugins_failed(&mut self, side: usize, cx: &mut Context<Self>) {
-        if std::mem::take(&mut self.settings.plugin_backends[side]) {
-            if let Some(view) = &self.settings.plugins {
+        if std::mem::take(&mut self.settings.plugins.backends[side]) {
+            if let Some(view) = &self.settings.plugins.pane {
                 view.update(cx, |view, cx| view.backend_failed(cx));
             }
         }
@@ -143,7 +154,7 @@ impl Shell {
                 .await;
             let _ = this.update(cx, |shell, cx| {
                 if pinned {
-                    if let Some(plugin) = &shell.settings.plugins {
+                    if let Some(plugin) = &shell.settings.plugins.pane {
                         plugin.update(cx, |plugin, cx| plugin.refresh(cx));
                     }
                 } else {

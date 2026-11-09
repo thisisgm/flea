@@ -63,6 +63,8 @@ pub fn walk_until(path: &Path, deadline: Instant) -> DirSize {
     walk_display(path, &|| Instant::now() >= deadline, &super::iomount::mount_body())
 }
 
+// The size worker walks through dirsizewatch::walk_watched; this unarmed form keeps the walk's own tests.
+#[cfg(test)]
 pub fn walk_cancellable(path: &Path, deadline: Instant, cancelled: &impl Fn() -> bool) -> DirSize {
     if cancelled() { return DirSize { bytes: 0, partial: true }; }
     walk_display(path, &|| cancelled() || Instant::now() >= deadline, &super::iomount::mount_body())
@@ -70,6 +72,16 @@ pub fn walk_cancellable(path: &Path, deadline: Instant, cancelled: &impl Fn() ->
 
 // A row can itself be a remote mount under a local pane; the walk's device boundary cannot protect its starting folder.
 fn walk_display(path: &Path, stop: &dyn Fn() -> bool, mounts: &str) -> DirSize {
+    walk_display_armed(path, stop, mounts, None)
+}
+
+// `arm` hears each folder before its read; a FUSE tree arms nothing, since inotify misses changes made below such a mount.
+pub(super) fn walk_display_armed(
+    path: &Path,
+    stop: &dyn Fn() -> bool,
+    mounts: &str,
+    arm: Option<&dyn Fn(&Path)>,
+) -> DirSize {
     let network = |kind: String| super::netfs::is_network_fstype(&kind);
     let entry = path.symlink_metadata().ok();
     let remote = super::extclass::gvfs_class(path).is_some_and(refuses_folder_sizes)
@@ -79,7 +91,33 @@ fn walk_display(path: &Path, stop: &dyn Fn() -> bool, mounts: &str) -> DirSize {
     if remote {
         return DirSize { bytes: entry.map(|meta| meta.size()).unwrap_or(0), partial: true };
     }
-    walk_while(path, stop)
+    let fuse = || {
+        let by_dev = entry
+            .as_ref()
+            .and_then(|meta| super::mountinfo::fstype_for_dev(meta.dev(), mounts));
+        [super::mountinfo::mount_type_in(path, mounts), by_dev]
+            .into_iter()
+            .flatten()
+            .any(|kind| super::netfs::can_wedge(&kind))
+    };
+    let Some(arm) = arm.filter(|_| !fuse()) else {
+        return walk_while(path, stop);
+    };
+    let mut quiet = |_: &Tally| {};
+    let tally = walk_core(
+        path,
+        stop,
+        None,
+        Some(Progress {
+            every: Duration::MAX,
+            report: &mut quiet,
+            entering: Some(arm),
+        }),
+    );
+    DirSize {
+        bytes: tally.bytes,
+        partial: tally.partial,
+    }
 }
 
 // Issue F1e: a copy's walk answers to the copy and not to a clock. The listing needs a floor inside

@@ -14,6 +14,26 @@
       "from": "    \"width\": 0,\n    \"wrap\": false",
       "to": "    \"width\": 0,\n    \"tracks\": [],\n    \"wrap\": false",
       "reason": "The existing 0.4.0 preview state persists subtitle and audio track choices."
+    },
+    {
+      "from": "    \"showUnmounted\": true,\n",
+      "to": "    \"showUnmounted\": true,\n    \"nearbyHosts\": false,\n",
+      "reason": "0.4.1 adds the Network nearby hosts switch, off by default"
+    },
+    {
+      "from": "      \"properties\",\n      \"permissions\",\n",
+      "to": "",
+      "reason": "0.4.1 shows Properties and Permissions and moves Show Hidden Files and Hide Code Icons off the file menu (src/uimigrate.rs menuVersion 1)"
+    },
+    {
+      "from": "  \"plugins\": {},\n",
+      "to": "  \"plugins\": {},\n  \"menuVersion\": 1,\n",
+      "reason": "0.4.1 stamps the menu row swap apart from stateVersion, which 0.4.0 refuses above 4"
+    },
+    {
+      "from": "      \"openAgent\"\n    ]",
+      "to": "      \"openAgent\",\n      \"toggleHidden\",\n      \"toggleLangMarks\"\n    ]",
+      "reason": "0.4.1 shows Properties and Permissions and moves Show Hidden Files and Hide Code Icons off the file menu (src/uimigrate.rs menuVersion 1)"
     }
   ],
   "cli:ui-state-write": [
@@ -31,6 +51,26 @@
       "from": "    \"width\": 0,\n    \"wrap\": false",
       "to": "    \"width\": 0,\n    \"tracks\": [],\n    \"wrap\": false",
       "reason": "The existing 0.4.0 preview state persists subtitle and audio track choices."
+    },
+    {
+      "from": "    \"showUnmounted\": true,\n",
+      "to": "    \"showUnmounted\": true,\n    \"nearbyHosts\": false,\n",
+      "reason": "0.4.1 adds the Network nearby hosts switch, off by default"
+    },
+    {
+      "from": "      \"properties\",\n      \"permissions\",\n",
+      "to": "",
+      "reason": "0.4.1 shows Properties and Permissions and moves Show Hidden Files and Hide Code Icons off the file menu (src/uimigrate.rs menuVersion 1)"
+    },
+    {
+      "from": "  \"plugins\": {},\n",
+      "to": "  \"plugins\": {},\n  \"menuVersion\": 1,\n",
+      "reason": "0.4.1 stamps the menu row swap apart from stateVersion, which 0.4.0 refuses above 4"
+    },
+    {
+      "from": "      \"openAgent\"\n    ]",
+      "to": "      \"openAgent\",\n      \"toggleHidden\",\n      \"toggleLangMarks\"\n    ]",
+      "reason": "0.4.1 shows Properties and Permissions and moves Show Hidden Files and Hide Code Icons off the file menu (src/uimigrate.rs menuVersion 1)"
     }
   ],
   "state:ui-state": [
@@ -48,6 +88,26 @@
       "from": "    \"width\": 0,\n    \"wrap\": false",
       "to": "    \"width\": 0,\n    \"tracks\": [],\n    \"wrap\": false",
       "reason": "src/uischema.rs supplies preview.tracks for the 0.4.0 state reader, matching its already-declared CLI default."
+    },
+    {
+      "from": "    \"showUnmounted\": true,\n",
+      "to": "    \"showUnmounted\": true,\n    \"nearbyHosts\": false,\n",
+      "reason": "0.4.1 adds the Network nearby hosts switch, off by default"
+    },
+    {
+      "from": "      \"properties\",\n      \"permissions\",\n",
+      "to": "",
+      "reason": "0.4.1 shows Properties and Permissions and moves Show Hidden Files and Hide Code Icons off the file menu (src/uimigrate.rs menuVersion 1)"
+    },
+    {
+      "from": "  \"plugins\": {},\n",
+      "to": "  \"plugins\": {},\n  \"menuVersion\": 1,\n",
+      "reason": "0.4.1 stamps the menu row swap apart from stateVersion, which 0.4.0 refuses above 4"
+    },
+    {
+      "from": "      \"actions\"\n    ]",
+      "to": "      \"actions\",\n      \"toggleHidden\",\n      \"toggleLangMarks\"\n    ]",
+      "reason": "0.4.1 shows Properties and Permissions and moves Show Hidden Files and Hide Code Icons off the file menu (src/uimigrate.rs menuVersion 1)"
     }
   ],
   "cli:gui-desktop": [

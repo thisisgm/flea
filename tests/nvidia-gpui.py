@@ -111,6 +111,14 @@ class GpuReport(unittest.TestCase):
         self.assertNotIn('alice', policy)
         self.assertIn('filename withheld', policy)
 
+    def test_policy_names_the_idle_nvidia_decision(self):
+        _, _, policy = report['decode']('flea-gpu-policy: excluded="nvidia_icd.json" operator_icd=false nvidia_idle_disabled=true selection=compositor-feedback')
+        self.assertIn('idle NVIDIA drivers disabled=yes', policy)
+        _, _, policy = report['decode']('flea-gpu-policy: excluded="" operator_icd=false nvidia_idle_disabled=false selection=compositor-feedback')
+        self.assertIn('idle NVIDIA drivers disabled=no', policy)
+        _, _, policy = report['decode']('flea-gpu-policy: excluded="" operator_icd=false')
+        self.assertIn('idle NVIDIA drivers disabled=unknown', policy)
+
     def test_two_early_frames_do_not_hide_a_stalled_scroll(self):
         self.assertFalse(report['scroll_covered'](dict(intervals_ms=[16, 17])))
         self.assertFalse(report['scroll_covered'](dict(intervals_ms=[float('nan'), float('inf')])))

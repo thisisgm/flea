@@ -22,6 +22,9 @@ pub(crate) use observe::{Draw, QueryReader};
 #[path = "search_contents_tests.rs"]
 mod contents_tests;
 #[cfg(test)]
+#[path = "enter_once_tests.rs"]
+mod enter_once_tests;
+#[cfg(test)]
 #[path = "search_grid_tests.rs"]
 mod grid_tests;
 #[cfg(test)]
@@ -41,6 +44,8 @@ mod tests;
 mod contents;
 #[path = "search_host.rs"]
 mod host;
+#[path = "search_lines.rs"]
+mod lines;
 #[path = "search_tag.rs"]
 mod tag;
 pub(crate) use host::Runtime;
@@ -265,6 +270,11 @@ impl Shell {
         let clipboard = matches!(key, StripKey::Paste)
             .then(|| cx.read_from_clipboard().and_then(|item| item.text()))
             .flatten();
+        // Enter on the line commits and acts on the highlighted result in the same press; rows still out act when they land.
+        let enter = host.search.owner.typing()
+            && matches!(key, StripKey::Enter)
+            && crate::window::input::modifiers(event.keystroke.modifiers) == 0
+            && host.search.owner.entry.borrow().marked.is_none();
         self.search_update(
             side,
             clipboard,
@@ -272,100 +282,63 @@ impl Shell {
             window,
             cx,
         );
-        true
-    }
-
-    pub(crate) fn search_line(
-        &mut self,
-        side: usize,
-        line: &str,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) -> bool {
-        let kind = flea::json::field_str(line, "t");
-        if kind.as_deref() == Some("error")
-            && flea::json::field_str(line, "where").as_deref() == Some("searchcontents")
-        {
-            let mut settled = false;
-            self.search_update(
-                side,
-                None,
-                |search, host| settled = search.contents_failed(line, host),
-                window,
-                cx,
-            );
-            if settled {
-                let message = flea::json::field_str(line, "msg").unwrap_or_default();
-                self.status_refused("searchcontents", &message, "", cx);
-            }
-            return true;
-        }
-        if !matches!(
-            kind.as_deref(),
-            Some("searchopened" | "searchclosed" | "searched" | "searching" | "contentsmatches")
-        ) {
-            return false;
-        }
-        let mut error = None;
-        self.search_update(
-            side,
-            None,
-            |search, host| {
-                if let Err(message) = search.line(line, host) {
-                    error = Some(message);
-                }
-            },
-            window,
-            cx,
-        );
-        if let (Some(message), Some(host)) = (error, self.panes[side].as_mut()) {
-            host.record_error(
-                crate::backend::Failure {
-                    key: "window.backend_protocol",
-                    detail: message,
-                },
-                &self.locale,
-            );
+        if enter {
+            self.search_enter_row(side, event, window, cx);
         }
         true
     }
 
-    pub(crate) fn search_landed(
+    /// The newest generation's rows landed: an Enter that came before them acts on the highlighted result now.
+    pub(crate) fn search_rows_landed(
         &mut self,
         side: usize,
-        failed: bool,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        let Some(host) = &self.panes[side] else {
+        let Some(host) = self.panes[side].as_mut() else {
             return;
         };
-        if !host.search.owner.active() {
+        let Some(generation) = host.search.enter_after else {
             return;
+        };
+        if host
+            .search_scene()
+            .is_some_and(|(drawn, _)| drawn == generation)
+        {
+            host.search.enter_after = None;
+            if side == self.focus_side && self.enter_replay_open(window, cx) {
+                self.search_enter_row(side, &crate::window::filter::plain_enter(), window, cx);
+            }
         }
-        let failed = failed
-            || matches!(
-                host.pane.state.kind,
-                crate::pane::states::Kind::Error | crate::pane::states::Kind::Locked
-            );
-        if !failed
-            && (!host.search.owner.session.leaving || host.pane.busy() || host.pane.state.search)
+    }
+
+    // The committed line's Enter, run again through the listing so a file reveals and a folder opens as they always do.
+    fn search_enter_row(
+        &mut self,
+        side: usize,
+        event: &KeyDownEvent,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let Some(host) = self.panes[side].as_mut() else {
+            return;
+        };
+        let owner = &host.search.owner;
+        if !owner.active()
+            || owner.typing()
+            || owner.session.leaving
+            || owner.session.query.is_empty()
         {
             return;
         }
-        self.search_update(
-            side,
-            None,
-            |search, host| {
-                if failed {
-                    search.leave(host);
-                    search.listing_failed(host);
-                }
-                search.landed(host);
-            },
-            window,
-            cx,
-        );
+        if host.search_scene().is_none() {
+            host.search.enter_after = Some(owner.session.stamps.gen);
+            return;
+        }
+        if host.pane.held.row(host.pane.cursor).is_none() {
+            return;
+        }
+        self.key(event, window, cx);
     }
 
     pub(crate) fn search_leave(

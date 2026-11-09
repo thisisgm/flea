@@ -31,6 +31,8 @@ mod recent_tabs_remainder_tests;
 mod rename;
 #[cfg(test)]
 mod s5_preview_tests;
+#[cfg(test)]
+mod tab_sort_memory_tests;
 mod tabs;
 mod tag_capability;
 mod tag_places;
@@ -374,6 +376,8 @@ mod outline_tests;
 
 #[cfg(test)]
 mod outline_frame_tests;
+#[cfg(test)]
+mod outline_hover_tests;
 #[cfg(test)]
 mod outline_mode_tests;
 #[cfg(test)]

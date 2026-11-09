@@ -26,6 +26,7 @@ fn builtin(action: &str) -> Option<Role> {
         "taildrop" => Some(Role::Tailscale),
         "localsend" => Some(Role::LocalSend),
         "dropbox" | "sharelink" => Some(Role::Dropbox),
+        "airdrop" => Some(Role::AirDrop),
         _ => None,
     }
 }
@@ -34,9 +35,14 @@ fn builtin(action: &str) -> Option<Role> {
 pub(crate) fn send_role(action: &str) -> Option<Role> {
     builtin(action).or_else(|| {
         action.strip_prefix(PREFIX).and_then(|id| {
-            [Role::Tailscale, Role::LocalSend, Role::Dropbox]
-                .into_iter()
-                .find(|r| r.plugin_id() == id)
+            [
+                Role::Tailscale,
+                Role::LocalSend,
+                Role::Dropbox,
+                Role::AirDrop,
+            ]
+            .into_iter()
+            .find(|r| r.plugin_id() == id)
         })
     })
 }
@@ -51,16 +57,21 @@ impl Shell {
     }
 
     pub(crate) fn declared_provider_states(&self) -> Vec<ProviderState> {
-        [Role::Tailscale, Role::LocalSend, Role::Dropbox]
-            .iter()
-            .map(|role| ProviderState {
-                plugin: role.plugin_id().into(),
-                enabled: self
-                    .declared_menu_plugins("send-target")
-                    .any(|p| p.manifest.id == role.plugin_id()),
-                failed: false,
-            })
-            .collect()
+        [
+            Role::Tailscale,
+            Role::LocalSend,
+            Role::Dropbox,
+            Role::AirDrop,
+        ]
+        .iter()
+        .map(|role| ProviderState {
+            plugin: role.plugin_id().into(),
+            enabled: self
+                .declared_menu_plugins("send-target")
+                .any(|p| p.manifest.id == role.plugin_id()),
+            failed: false,
+        })
+        .collect()
     }
 
     // Sample input, one plugin's stored answer: {"op":"targets","targets":[{"id":"receiver","label":"Local Receiver","state":"ready"}]}
@@ -76,7 +87,7 @@ impl Shell {
         for row in entries.iter_mut() {
             if let Some(role) = builtin(&row.action) {
                 // The generic validation verb returns the selected files, including a marked set whose cursor is outside it.
-                if role == Role::Tailscale {
+                if matches!(role, Role::Tailscale | Role::AirDrop) {
                     row.action = format!("{PREFIX}{}", role.plugin_id()).into();
                 }
             }

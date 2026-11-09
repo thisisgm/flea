@@ -1,4 +1,4 @@
-//! Every menu card the 0.4.0 menu boards draw, row for row: words, marks, inks, state words, keys, width, flyout place and scroll.
+//! Every menu card the 0.4.0 menu boards and the 0.4.1 Copy As and menu-inspect boards draw, row for row: words, marks, inks, state words, keys, width, flyout place and scroll.
 use super::build::{build_entries, App, Context, Kind};
 use super::entry::{Brand, Entry, Text};
 use super::fit::{self, Rect, RowParts, PAD};
@@ -62,6 +62,25 @@ fn cards() -> Vec<Card<'static>> {
         .collect()
 }
 
+// The 0.4.0 boards draw v0.4.0's shipped hidden list; 0401-menu-inspect-c draws the current default.
+const HIDDEN_0_4_0: [&str; 15] = [
+    "delete",
+    "openTerminal",
+    "placeMenu",
+    "runScript",
+    "moveto",
+    "copyto",
+    "properties",
+    "permissions",
+    "copyAs",
+    "pasteAs",
+    "invertSelection",
+    "extThumbs",
+    "run",
+    "openAsText",
+    "openAgent",
+];
+
 // notes.txt, a plain-text file that prints, with nothing copied, Taildrop offline and Dropbox signed out.
 fn notes(all_on: bool) -> Context {
     let tags = TAGS.iter().enumerate().map(|(i, name)| {
@@ -83,7 +102,7 @@ fn notes(all_on: bool) -> Context {
         hidden: if all_on {
             effective_hidden(Some(&strings(&["run", "openAsText"])), false)
         } else {
-            effective_hidden(None, false)
+            effective_hidden(Some(&strings(&HIDDEN_0_4_0)), false)
         },
         archive_formats: strings(&["zip", "tar", "tar.gz", "tar.bz2", "tar.xz", "tar.zst", "7z"]),
         tag_submenu: Some(tags.collect()),
@@ -108,6 +127,16 @@ fn entries(board: &str) -> (Vec<Entry>, bool, Rect, f32) {
             (build_entries(Kind::File, &notes(false)), false)
         }
         "file-menu-print" => (build_entries(Kind::File, &notes(false)), true),
+        "0401-menu-inspect-c" => (
+            build_entries(
+                Kind::File,
+                &Context {
+                    hidden: effective_hidden(None, false),
+                    ..notes(false)
+                },
+            ),
+            false,
+        ),
         "pasteas-menu" => (
             build_entries(
                 Kind::File,
@@ -171,6 +200,7 @@ fn glyph(e: &Entry) -> String {
         (Some(Brand::Tailscale), _) => "brand:tailscale".into(),
         (Some(Brand::Dropbox), _) => "brand:dropbox".into(),
         (Some(Brand::LocalSend), _) => "brand:localsend".into(),
+        (Some(Brand::AirDrop), _) => "brand:airdrop".into(),
         (None, Some(_)) => "icon".into(),
         (None, None) => e.glyph.unwrap_or("").into(),
     }
@@ -258,7 +288,7 @@ fn walked(board: &str, rows: &[Entry], view: i32, keep: usize) -> (i32, i32) {
 fn sol_menu_order_every_board_card_draws_the_boards_rows_width_place_and_scroll() {
     let i18n = english();
     let all = cards();
-    assert_eq!(all.len(), 27, "every card the 19 boards draw");
+    assert_eq!(all.len(), 30, "every card the 21 boards draw");
     for card in all.iter().filter(|c| c.card == 0) {
         let (rows, hints, work, inset) = entries(card.board);
         let name = card.board;
@@ -332,7 +362,19 @@ fn sol_menu_order_every_board_card_draws_the_boards_rows_width_place_and_scroll(
         )
         .h as i32
             - 2 * PAD;
-        let (y, h) = fit::menu_cut(&leaves, 0, full, fly.cursor);
+        // As Menu::open_flyout: open on the first leaf, keep the trimmed view's foot where the work area put it, then walk the cursor inside the room under that top.
+        let mut at = super::rows::step_row(&leaves, -1, 1);
+        let (mut y, mut h) = fit::scroll_for(&leaves, at as usize, 0, full);
+        let placed = fit::place_flyout(frame, fly_w, h, row_top, work, inset);
+        let room = full.min((work.y + work.h - inset - placed.y) as i32 - 2 * PAD);
+        let want = fly.cursor.map_or(at, |cursor| cursor as isize);
+        while at < want {
+            let next = super::rows::step_row(&leaves, at, 1);
+            assert!(next > at, "{name}: the flyout cursor cannot reach {want}");
+            at = next;
+            (y, h) = fit::scroll_for(&leaves, at as usize, y, room);
+        }
+        assert_eq!(at, want, "{name}: the flyout cursor names a leaf the keys can reach");
         if let Some(fly_view) = fly.view {
             assert_eq!(
                 (y, h),
@@ -340,8 +382,6 @@ fn sol_menu_order_every_board_card_draws_the_boards_rows_width_place_and_scroll(
                 "{name}: flyout scroll and view"
             );
         }
-        // A trimmed view keeps its foot where the work area put it, as Menu::open_flyout places it.
-        let placed = fit::place_flyout(frame, fly_w, h, row_top, work, inset);
         assert!(
             placed.x == fly.left && placed.y == fly.top,
             "{name}: flyout place {:?} against the board's {:?}",

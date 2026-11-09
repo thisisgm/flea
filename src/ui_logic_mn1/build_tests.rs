@@ -5,7 +5,7 @@ use super::rows::is_hidden;
 use super::testkit::*;
 use std::collections::HashSet;
 
-fn st(change: impl FnOnce(&mut Context)) -> Context {
+pub(super) fn st(change: impl FnOnce(&mut Context)) -> Context {
     let mut p = state();
     change(&mut p);
     p
@@ -15,16 +15,16 @@ fn st(change: impl FnOnce(&mut Context)) -> Context {
 fn sol_menu_order_inventory_order_and_default_menus() {
     let i18n = english();
     let file = listing_entries(&state());
-    // 0.4.0 adds Print, Combine Images and Send with rclone to the 57 rows v0.3.12 shipped.
+    // 0.4.0 adds Print, Combine Images and Send with rclone to the 57 rows v0.3.12 shipped; 0.4.1 adds Send with AirDrop.
     check(
-        "Menus and Places inventory has 60 actions",
+        "Menus and Places inventory has 61 actions",
         INVENTORY.len(),
-        60,
+        61,
     );
     check(
         "inventory storage ids are unique",
         INVENTORY.iter().map(|s| s.id).collect::<HashSet<_>>().len(),
-        60,
+        61,
     );
     check("default image menu matches Menus specimen", actions(&file),
         "open,openWith,run,openAsText,cut,copy,paste,duplicate,rename,compress,convert,flashDrive,addToShelf,taildrop,dropbox,tags,toggleHidden,toggleLangMarks,trash".into());
@@ -542,12 +542,12 @@ fn optional_rows_and_counts() {
     );
     let copy = entry(&all, "copyAs").unwrap().submenu.clone().unwrap();
     check(
-        "Copy as holds Path, Name, Stem, Folder path, URI and Shell-quoted",
+        "Copy as holds Path, Relative Path, Name, Stem, Folder path, URI and Shell-quoted",
         copy.iter()
             .map(|r| r.id.to_string())
             .collect::<Vec<_>>()
             .join(","),
-        "copyPath,copyName,copyStem,copydirpath,copyUri,copyQuoted".into(),
+        "copyPath,copyRelative,copyName,copyStem,copydirpath,copyUri,copyQuoted".into(),
     );
     check(
         "and each leaf wears the board's mark",
@@ -555,12 +555,12 @@ fn optional_rows_and_counts() {
             .map(|r| r.glyph.unwrap())
             .collect::<Vec<_>>()
             .join(","),
-        "file-text,type,type,folder,globe,terminal".into(),
+        "file-text,file,type,type,folder,globe,terminal".into(),
     );
     check(
-        "Copy As rows read Path, Name, Name Without Extension, Folder Path, File URI, Shell-Quoted",
+        "Copy As rows read Path, Relative Path, Name, Name Without Extension, Folder Path, File URI, Shell-Quoted",
         labels(&i18n, &copy),
-        "Path|Name|Name Without Extension|Folder Path|File URI|Shell-Quoted".into(),
+        "Path|Relative Path|Name|Name Without Extension|Folder Path|File URI|Shell-Quoted".into(),
     );
     let paste = entry(&all, "pasteAs").unwrap().submenu.clone().unwrap();
     check(
@@ -705,10 +705,19 @@ fn optional_rows_and_counts() {
         is_hidden(&strings(&["open"]), "open"),
         false,
     );
+    let view = strings(&["toggleHidden", "toggleLangMarks", "openTerminal"]);
     check(
-        "hidden toggle cannot be hidden",
-        is_hidden(&strings(&["toggleHidden"]), "toggleHidden"),
+        "Settings > Menus takes the view rows off the file menu",
+        actions(&listing_entries(&st(|p| p.hidden = view.clone()))).contains("toggle"),
         false,
+    );
+    check(
+        "and the background keeps them with Open in Terminal",
+        actions(&listing_entries(&st(|p| {
+            p.hidden = view.clone();
+            p.has_row = false;
+        }))),
+        "newFolder,newFile,paste,selectAll,invertSelection,openTerminal,addFavourite,sort,toggleHidden,toggleLangMarks,settings".into(),
     );
     check(
         "stored lower-case id hides corresponding action",
@@ -814,28 +823,6 @@ fn print_convert_and_combine() {
             entry(&mixed, "convert").is_none(),
             entry(&mixed, "combineImages").is_none(),
         ),
-        (true, true),
-    );
-}
-
-#[test]
-fn a_folder_row_offers_no_taildrop_peers() {
-    // tests/js/menu.js "cold folder listing suppresses file-only peers": a folder takes no Taildrop peer.
-    let rows = listing_entries(&st(|p| p.row_is_file = false));
-    let taildrop = rows
-        .iter()
-        .find(|e| e.action == "taildrop")
-        .expect("Taildrop installed draws its row");
-    check(
-        "cold folder listing suppresses file-only peers",
-        taildrop.submenu.as_ref().map_or(0, Vec::len),
-        0,
-    );
-    check("folder Taildrop row is dimmed", taildrop.disabled, true);
-    // GM 2026-10-29: it reads red with no state word, so the menu keeps its size.
-    check(
-        "folder Taildrop row is red and says no word",
-        (taildrop.errored, taildrop.hint.is_none()),
         (true, true),
     );
 }

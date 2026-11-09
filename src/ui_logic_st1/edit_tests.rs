@@ -134,10 +134,11 @@ fn a_fresh_install_counts_the_shelf_as_off() {
     for text in [FRESH, "{}"] {
         let (_, menus) = rows("menus", text);
         let extras = head(&menus, "extras");
-        assert_eq!(say(&extras.value), if text == "{}" { "12 of 17" } else { "11 of 17" }, "{text}");
+        assert_eq!(say(&extras.value), if text == "{}" { "11 of 18" } else { "12 of 18" }, "{text}");
         assert_eq!(extras.state, Master::Some, "{text}");
         assert!(!find(&menus, "shelf").on, "{text}: Enable shelf is off");
-        assert_eq!(say(&head(&menus, "openInspect").value), "5 of 14", "{text}: Open in Agent ships off");
+        // A held list is read as saved here; with none, Properties and Permissions ship shown.
+        assert_eq!(say(&head(&menus, "openInspect").value), if text == "{}" { "7 of 14" } else { "5 of 14" }, "{text}: Open in Agent ships off");
     }
 }
 
@@ -148,7 +149,7 @@ fn actions_default_on_and_saved_off_are_independent_of_run_script() {
     assert!(!find(&menus, "actions").on);
     let (data, menus) = rows("menus", &FRESH.replace(r#","actions""#, ""));
     assert!(find(&menus, "actions").on);
-    assert_eq!(say(&head(&menus, "extras").value), "12 of 17");
+    assert_eq!(say(&head(&menus, "extras").value), "13 of 18");
     let changed = patch(activate("menus", find(&menus, "actions"), &data, 14));
     assert!(changed.contains("runScript") && changed.contains("actions"));
 }

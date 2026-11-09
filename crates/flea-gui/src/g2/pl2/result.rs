@@ -56,7 +56,7 @@ impl ResultState {
     fn error(key: &str) -> Option<Self> {
         match key {
             "network.another_opening" => None,
-            "network.password_needed" => Some(Self::MissingCredential),
+            "network.password_needed" | super::mount::GUEST_EMPTY => Some(Self::MissingCredential),
             "network.unmounted" => Some(Self::Unmounted),
             _ => Some(Self::Failed),
         }

@@ -134,7 +134,10 @@ impl Shell {
                 if *connect_failed {
                     self.network_connect_error(side, &text);
                 }
-                self.network_say(side, text, *connect_failed, cx);
+                // The sign-in invitation lives on the card alone; the pane has no failure to report.
+                if *error != crate::g2::pl2::mount::GUEST_EMPTY {
+                    self.network_say(side, text, *connect_failed, cx);
+                }
                 self.network_remember_focus();
                 card.update(cx, |card, cx| card.retry(retry, window, cx));
             }

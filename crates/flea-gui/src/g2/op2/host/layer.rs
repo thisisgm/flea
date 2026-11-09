@@ -83,7 +83,25 @@ impl Shell {
                 }
             }
             let eyes = [archive.eye.clone(), archive.confirm_eye.clone()];
-            let drawn = StandIn.present_probed(&card, &palette, &typeface, room, radius, &eyes);
+            let press = cx.listener(|shell: &mut Shell, hit: &Hit, window, cx| {
+                let catalog = shell.locale.catalog.clone();
+                let archive = &mut shell.operations.archive;
+                let side = archive.card_side;
+                let effects = match archive.compress.as_mut().filter(|card| card.opened()) {
+                    Some(card) => card.click(&catalog, *hit),
+                    None => archive.extract.click(&catalog, *hit),
+                };
+                shell.archive_effects(side, effects, window, cx);
+            });
+            let drawn = StandIn.present_probed(
+                &card,
+                &palette,
+                &typeface,
+                room,
+                radius,
+                &eyes,
+                Some(Rc::new(press)),
+            );
             let ground = cx.listener(|shell: &mut Shell, _: &MouseDownEvent, window, cx| {
                 let archive = &mut shell.operations.archive;
                 let side = archive.card_side;
@@ -98,8 +116,11 @@ impl Shell {
             });
             // DialogField's pressed state: a press held on a field's eye reveals that field alone until any release.
             let probes = eyes;
+            // Capture runs before the card frame keeps the press, so the eye still sees a press the field answers too.
             let eye = cx.listener(move |shell: &mut Shell, event: &MouseDownEvent, _, cx| {
-                cx.stop_propagation();
+                if event.button != MouseButton::Left {
+                    return;
+                }
                 let archive = &mut shell.operations.archive;
                 let on = |at: usize| {
                     probes[at]
@@ -145,12 +166,7 @@ impl Shell {
                     .capture_any_mouse_up(release())
                     // A release dragged off the window misses the scrim's hitbox, so it masks here.
                     .on_mouse_up_out(MouseButton::Left, release())
-                    .child(
-                        div()
-                            .size_full()
-                            .on_mouse_down(MouseButton::Left, eye)
-                            .child(drawn),
-                    )
+                    .child(div().size_full().capture_any_mouse_down(eye).child(drawn))
                     .into_any_element(),
             );
         }

@@ -12,6 +12,12 @@ fn quiet<'a>(flag: &'a AtomicBool, sink: &'a mut dyn FnMut(u64, u64)) -> Progres
     Progress { cancel: flag, on_bytes: sink, partial: None, tree: None, manifest: None, durability: None, for_move: false }
 }
 
+// Mid-copy the bytes are in the destination's hidden sibling, the one file in the folder with that prefix.
+fn staged_in(dir: &std::path::Path) -> Option<std::path::PathBuf> {
+    std::fs::read_dir(dir).unwrap().flatten().map(|e| e.path())
+        .find(|path| path.file_name().is_some_and(|n| n.to_string_lossy().starts_with(crate::backend::copystage::PREFIX)))
+}
+
 struct HeldRead {
     first: bool,
     entered: mpsc::Sender<()>,
@@ -64,22 +70,26 @@ fn cancel_held_read(first: bool) {
     let target = dst.clone();
     let worker = std::thread::spawn(move || {
         copyread::test_reader(HeldRead { first, entered, release: held, left });
+        // A sibling, so the test can hold the partial inode by its name.
+        let _seams = crate::backend::copystage_tests::sibling_only();
         let mut sink = |_: u64, _: u64| {};
         let mut p = quiet(&cancel, &mut sink);
         let answer = copy_any(&src, &target, &mut p);
         result.send((answer, p.partial)).unwrap();
     });
     waiting.recv_timeout(SETUP_BOUND).expect("the read is parked after the exclusive create");
-    let held_destination = std::fs::File::open(&dst).expect("hold the partial inode across unlink");
+    assert!(!dst.exists(), "the name stays absent while the copy is unfinished");
+    let staged = staged_in(d.path()).expect("the bytes go to a hidden sibling");
+    let held_destination = std::fs::File::open(&staged).expect("hold the partial inode across unlink");
     flag.store(true, Ordering::Relaxed);
     let started = Instant::now();
     let prompt = done.recv_timeout(CANCEL_DEADLINE);
     let elapsed = started.elapsed();
     let prompt_returned = prompt.is_ok();
-    let removed_promptly = !dst.exists();
+    let removed_promptly = !dst.exists() && !staged.exists();
     if prompt_returned {
-        d.assert_contains(&dst);
-        std::fs::write(&dst, "replacement").unwrap();
+        d.assert_contains(&staged);
+        std::fs::write(&staged, "replacement").unwrap();
     }
     release.send(()).expect("release the read even when the regression is red");
     let (answer, partial) = prompt.unwrap_or_else(|_| done.recv_timeout(SETUP_BOUND).unwrap());
@@ -90,7 +100,8 @@ fn cancel_held_read(first: bool) {
     assert_eq!(answer.unwrap_err().msg, "cancelled");
     assert!(partial.is_none(), "a cancelled partial is removed rather than journaled");
     assert_eq!(held_destination.metadata().unwrap().len(), if first { 4 } else { 0 }, "late source bytes must never reach even the unlinked inode");
-    assert_eq!(std::fs::read_to_string(&dst).unwrap(), "replacement", "late bytes must never reach a reused destination name");
+    assert_eq!(std::fs::read_to_string(&staged).unwrap(), "replacement", "late bytes must never reach a reused destination name");
+    assert!(!dst.exists(), "and the cancelled copy never took its name");
     eprintln!("stalled-read cancel returned within {:?}", elapsed);
 }
 
@@ -102,11 +113,12 @@ struct LiveRead {
 
 impl Read for LiveRead {
     fn read(&mut self, buffer: &mut [u8]) -> io::Result<usize> {
+        // The end of the source is held too, so the copy cannot take its name between checks.
+        self.entered.send((self.step, buffer.as_ptr() as usize, buffer.len())).unwrap();
+        self.release.recv().unwrap();
         if self.step == 3 {
             return Ok(0);
         }
-        self.entered.send((self.step, buffer.as_ptr() as usize, buffer.len())).unwrap();
-        self.release.recv().unwrap();
         buffer[..4].fill(b'a' + self.step);
         self.step += 1;
         Ok(4)
@@ -126,6 +138,7 @@ fn a_slow_live_source_reports_each_chunk_before_its_next_read_finishes() {
     let target = dst.clone();
     let worker = std::thread::spawn(move || {
         copyread::test_reader(LiveRead { step: 0, entered, release: held });
+        let _seams = crate::backend::copystage_tests::sibling_only();
         let flag = AtomicBool::new(false);
         let mut sink = |done: u64, total: u64| progress.send((done, total)).unwrap();
         copy_any(&src, &target, &mut quiet(&flag, &mut sink))
@@ -139,8 +152,13 @@ fn a_slow_live_source_reports_each_chunk_before_its_next_read_finishes() {
         assert!(updates.try_recv().is_err(), "a held read cannot report bytes it has not supplied");
         release.send(()).unwrap();
         assert_eq!(updates.recv_timeout(SETUP_BOUND).unwrap(), (u64::from(step + 1) * 4, 12));
-        assert_eq!(std::fs::metadata(&dst).unwrap().len(), u64::from(step + 1) * 4);
+        assert!(!dst.exists(), "the name stays absent until the copy is whole");
+        assert_eq!(std::fs::metadata(staged_in(d.path()).unwrap()).unwrap().len(), u64::from(step + 1) * 4);
     }
+    let (reading, _, _) = waiting.recv_timeout(SETUP_BOUND).expect("the copy asks for the end of the source");
+    assert_eq!(reading, 3);
+    assert!(!dst.exists(), "the name stays absent until the source has ended");
+    release.send(()).unwrap();
     worker.join().unwrap().expect("the slow source finishes normally");
     assert_eq!(std::fs::read_to_string(&dst).unwrap(), "aaaabbbbcccc");
 }

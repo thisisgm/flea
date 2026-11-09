@@ -53,6 +53,7 @@ fn plugins_page(
     shell
         .settings
         .plugins
+        .pane
         .as_ref()
         .unwrap()
         .update(cx, |view, cx| {

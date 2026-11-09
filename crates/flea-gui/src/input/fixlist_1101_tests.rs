@@ -47,6 +47,9 @@ fn mounted<'a>(
         window.focus(&shell.focus, cx);
         shell
     });
+    // The focused pane draws the accent only in the active window; a TestWindow starts inactive.
+    cx.update(|window, _| window.activate_window());
+    cx.run_until_parked();
     cx.update(|_, cx| cx.set_reduce_motion(true));
     cx.simulate_resize(size(px(1100.), px(600.)));
     cx.run_until_parked();

@@ -1,5 +1,4 @@
 //! ui/js/Columns.js arithmetic: how many tracks a width draws, where each sits and which cells a row keeps.
-use crate::list::pane::ROW_HEIGHT;
 
 pub const COUNT_4_AT: f32 = 1700.;
 pub const COUNT_5_AT: f32 = 2300.;
@@ -44,18 +43,15 @@ pub fn active_content(
     grow.content(total, row) + footer
 }
 
-/// The row mark's square from the row's left and top: centred in its slot and on the row, as Glyph centres it.
-pub fn mark_box() -> (f32, f32, f32) {
-    (
-        PAD_X + (MARK_SLOT - MARK) / 2.,
-        (ROW_HEIGHT - MARK) / 2.,
-        MARK,
-    )
+/// The row mark's square from the row's left and top: centred in its slot and on a row `band` high, as Glyph centres it.
+pub fn mark_box(band: f32) -> (f32, f32, f32) {
+    (PAD_X + (MARK_SLOT - MARK) / 2., (band - MARK) / 2., MARK)
 }
 
-/// A row thumbnail's square from the row's left and top: the whole mark slot, centred on the row.
-pub fn picture_box() -> (f32, f32, f32) {
-    (PAD_X, (ROW_HEIGHT - MARK_SLOT) / 2., MARK_SLOT)
+/// A row thumbnail's square from the row's left and top: the mark slot, centred on the row and never taller than it.
+pub fn picture_box(band: f32) -> (f32, f32, f32) {
+    let side = MARK_SLOT.min(band);
+    (PAD_X + (MARK_SLOT - side) / 2., (band - side) / 2., side)
 }
 
 /// cappedLimit: a stored number clamps to 2..5, and anything that is not a number reads as the shipped default.
@@ -414,14 +410,14 @@ pub fn name_budget_in(
 }
 
 /// ScrollOff.cursorY at context 0: the row shown whole with the least travel, clamped to the content.
-pub fn contain_y(index: usize, total: usize, scroll: f32, height: f32) -> f32 {
-    let top = index as f32 * ROW_HEIGHT;
+pub fn contain_y(index: usize, total: usize, scroll: f32, height: f32, row: f32) -> f32 {
+    let top = index as f32 * row;
     let rel = if top < scroll {
         top
-    } else if top + ROW_HEIGHT > scroll + height {
-        top + ROW_HEIGHT - height
+    } else if top + row > scroll + height {
+        top + row - height
     } else {
         scroll
     };
-    rel.min(total as f32 * ROW_HEIGHT - height).max(0.)
+    rel.min(total as f32 * row - height).max(0.)
 }

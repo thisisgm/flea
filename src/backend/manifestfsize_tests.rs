@@ -65,6 +65,8 @@ fn a_file_half_written_when_writes_give_out_is_removed_by_undo() {
     if !child_or_spawn("backend::manifestfsize_tests::a_file_half_written_when_writes_give_out_is_removed_by_undo") {
         return;
     }
+    // In place, as a FUSE destination writes a tree; a staged folder goes whole instead (copyfolder_tests).
+    let _seams = crate::backend::copystage_tests::in_place();
     let d = TestDir::new("undopartialfsize");
     let src = d.dir("source");
     for i in 0..3 {

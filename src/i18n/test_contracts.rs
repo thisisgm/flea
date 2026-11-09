@@ -9,6 +9,14 @@ fn no_test_loads_the_shipped_catalog_dir() {
             "Live rail language switching verifies the shipped XDG translations",
         ),
         (
+            "crates/flea-gui/src/window/rail_language_every_tests.rs",
+            "Every-language live rail switching reads each shipped catalog's place words",
+        ),
+        (
+            "src/tui/live_language_tests.rs",
+            "Live TUI language switching draws each shipped catalog's frame words",
+        ),
+        (
             "crates/flea-gui/src/g2/st1/sheet_keycap_tests.rs",
             "I50-24 checks key sheet labels against each shipped catalog's keycap words",
         ),

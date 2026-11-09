@@ -56,24 +56,7 @@ impl Draw<'_> {
         if let Some(mark) = field.glyph {
             line = line.child(glyph(mark, 14. * self.s, t.muted));
         }
-        let slot = || {
-            div().relative().flex_1().min_w_0().h_full().when(
-                field.value.is_empty() && !field.placeholder.is_empty(),
-                |slot| {
-                    slot.child(
-                        div()
-                            .absolute()
-                            .left(px(1.))
-                            .top_0()
-                            .h_full()
-                            .flex()
-                            .items_center()
-                            .text_color(t.muted)
-                            .child(field.placeholder.clone()),
-                    )
-                },
-            )
-        };
+        let slot = || crate::g2::op1::field::slot(&field.value, &field.placeholder, t.muted);
         // A Shell card names its input; a live card's own entity mounts its focused field.
         let mounted = match (&field.input, self.mount) {
             (Some(input), _) => Some(

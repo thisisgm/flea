@@ -271,18 +271,24 @@ class LayoutTests(unittest.TestCase):
                           ("preset", "all", "U", "ctrl", "pageUp", ["preview", "pdf"], "gui"),
                           ("preset", "all", "PageDown", "none", "pageDown", ["preview", "pdf"], "gui"),
                           ("preset", "all", "PageUp", "none", "pageUp", ["preview", "pdf"], "gui")])
-        # Open in place adds Ctrl+Right and Ctrl+Left to the GUI listing, to expand and collapse a folder as tree rows.
+        # Ctrl+Right and Ctrl+Left open and close one folder in place as tree rows; > and < do so for every marked folder.
         in_place = [r for r in common if r["action"] in ("openInPlace", "closeInPlace")]
         self.assertEqual([(r["table"], r["layer"], r["key"], r["mods"], r["action"], r["contexts"], r["frontend"])
                           for r in in_place], [("preset", "all", "Right", "ctrl", "openInPlace", ["listing"], "gui"),
-                                               ("preset", "all", "Left", "ctrl", "closeInPlace", ["listing"], "gui")])
+                                               ("preset", "all", "Left", "ctrl", "closeInPlace", ["listing"], "gui"),
+                                               ("preset", "all", ">", "text", "openInPlace", ["listing"], "gui"),
+                                               ("preset", "all", "<", "text", "closeInPlace", ["listing"], "gui")])
+        # Copy as gains Relative path on r inside the menu (PR #296).
+        relative = [r for r in common if r["action"] == "copyRelative"]
+        self.assertEqual([(r["table"], r["layer"], r["key"], r["mods"], r["action"], r["contexts"], r["frontend"])
+                          for r in relative], [("preset", "all", "r", "text", "copyRelative", ["menu"], "all")])
         frozen = [{k: v for k, v in r.items() if k != "id"} for r in baseline]
         widened = [r for r in frozen if r["action"] in ("previewPageForward", "previewPageBack")]
         self.assertEqual([(r["key"], r["contexts"]) for r in widened], [("F", ["listing"]), ("B", ["listing"])])
         self.assertEqual([r for r in common if r["action"] in ("previewPageForward", "previewPageBack")],
                          [dict(r, contexts=["listing", "preview", "pdf"]) for r in widened])
         self.assertEqual([r for r in common if r["action"] not in ("openAgent", "carry", "searchContents") and r not in text_size
-                          and r not in sheets and r not in paging and r not in in_place],
+                          and r not in sheets and r not in paging and r not in in_place and r not in relative],
                          [r for r in frozen if r not in widened])
 
     def test_i50_layout_unreachable_fails(self):

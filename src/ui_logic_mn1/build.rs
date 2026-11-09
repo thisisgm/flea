@@ -8,6 +8,8 @@ pub const S_IFREG: u32 = 0o100000;
 pub const S_IFDIR: u32 = 0o040000;
 pub const S_IFLNK: u32 = 0o120000;
 pub const ANY_EXECUTE_BIT: u32 = 0o111;
+// The background offers these whatever Settings > Menus says; there the switches hide them from the file menu alone.
+const BACKGROUND_KEEPS: [&str; 3] = ["openTerminal", "toggleHidden", "toggleLangMarks"];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Kind {
@@ -113,6 +115,8 @@ pub struct Context {
     pub tag_submenu: Option<Vec<Entry>>,
     pub open_with_apps: Vec<App>,
     pub open_with_loaded: bool,
+    // The catalogue missed the menu's deadline, so an empty list says nothing about the file's applications.
+    pub open_with_late: bool,
     pub taildrop_installed: bool,
     pub taildrop_peers: Vec<Peer>,
     pub taildrop_refreshing: bool,
@@ -126,6 +130,10 @@ pub struct Context {
     pub dropbox_refreshing: bool,
     pub dropbox_code: String,
     pub row_in_dropbox: bool,
+    // The AirDrop row: owly there, its plugin on and the Wi-Fi able; on once the radio is up; each device with its phone mark.
+    pub airdrop_installed: bool,
+    pub airdrop_on: bool,
+    pub airdrop_devices: Vec<(Peer, bool)>,
     pub scripts: Vec<Peer>,
     pub hidden: Vec<String>,
     pub show_hidden: bool,
@@ -138,6 +146,8 @@ pub struct Context {
     pub place_favourite: bool,
     pub trash_total: i64,
     pub busy: bool,
+    // The listing is a history such as Recent, with no folder of its own to read a relative path from.
+    pub recent: bool,
     pub rail: Option<RailEntry>,
 }
 
@@ -191,10 +201,10 @@ pub fn build_entries(kind: Kind, p: &Context) -> Vec<Entry> {
         if !spec.kinds.contains(kind.letter()) {
             continue;
         }
-        // Rail rows are never hideable, and the background shows Open in Terminal without reading the hidden set.
+        // Rail rows are never hideable.
         if kind != Kind::Rail
             && rows::is_hidden(&p.hidden, spec.id)
-            && !(kind == Kind::Background && spec.id == "openTerminal")
+            && !(kind == Kind::Background && BACKGROUND_KEEPS.contains(&spec.id))
         {
             continue;
         }
@@ -276,7 +286,7 @@ fn available(e: &mut Entry, spec: &Spec, p: &Context, kind: Kind) -> bool {
             e.action = Id::Borrowed("copypath");
             e.label = Some(Text::Key("menu.row.copy_path"));
         } else {
-            e.submenu = Some(rows::copy_as_entries());
+            e.submenu = Some(rows::flyout_leaves("copyAs", p.recent));
         }
     }
     if (action == "run" || action == "openAsText") && (count != 1 || is_dir) {
@@ -376,7 +386,7 @@ fn available(e: &mut Entry, spec: &Spec, p: &Context, kind: Kind) -> bool {
         return false;
     }
     if action == "openWith" {
-        if count == 1 && p.open_with_loaded && p.open_with_apps.is_empty() {
+        if count == 1 && p.open_with_loaded && !p.open_with_late && p.open_with_apps.is_empty() {
             return false;
         }
         e.submenu = Some(flyouts::open_with_entries(&p.open_with_apps, count == 1));
@@ -403,6 +413,14 @@ fn available(e: &mut Entry, spec: &Spec, p: &Context, kind: Kind) -> bool {
         for leaf in e.submenu.iter_mut().flatten() {
             leaf.glyph = Some(rows::submenu_glyph(action));
         }
+    }
+    if action == "airdrop" {
+        if !p.airdrop_installed {
+            return false;
+        }
+        e.brand = Some(Brand::AirDrop);
+        e.glyph = None;
+        e.submenu = Some(super::airdrop::flyout(p.airdrop_on, &p.airdrop_devices));
     }
     if action == "localsend" {
         if !p.localsend_installed {

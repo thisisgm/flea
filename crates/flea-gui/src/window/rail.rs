@@ -127,7 +127,7 @@ impl Shell {
             })
         });
         if let Some(side) = added {
-            self.network_add(side, window, cx);
+            self.network_plus(side, window, cx);
         }
         let events = self
             .rail

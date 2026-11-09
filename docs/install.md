@@ -105,6 +105,21 @@ unmanaged-devices=driver:ipheth
 
 Then run `sudo systemctl restart NetworkManager`.
 
+## A GPU without a Vulkan driver
+
+The window draws with Vulkan and falls back to OpenGL. A GPU with no Vulkan driver and an
+OpenGL driver without storage buffers, such as Intel HD Graphics 2000 and 3000 (Sandy Bridge),
+can use neither, so it needs Mesa's software Vulkan driver, the optional dependency
+`vulkan-swrast`:
+
+```
+omarchy pkg add vulkan-swrast
+```
+
+The window then draws on the CPU. Without a usable driver, `flea --gui` exits with status 1 and
+says why on stderr and in the journal, and in a desktop notification when it was not started from
+a terminal. `flea --tui` in a terminal works on any GPU. [The renderer fallback](gui-renderer.md) gives the order Flea tries drivers in.
+
 ## Uninstall
 
 ```

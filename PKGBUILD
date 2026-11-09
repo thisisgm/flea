@@ -1,7 +1,7 @@
 # Maintainer: GM <gianmarcomorales@icloud.com>
 
 pkgname=flea
-pkgver=0.4.0
+pkgver=0.4.1
 pkgrel=1
 pkgdesc='Fast, keyboard-first file manager for Omarchy'
 arch=('x86_64' 'aarch64')
@@ -63,7 +63,9 @@ optdepends=(
   'imagemagick: image conversion'
   'libarchive: archive listing and extraction'
   'libreoffice: office document previews'
+  'owly: AirDrop sending and receiving'
   'tailscale: Taildrop sharing'
+  'vulkan-swrast: software rendering on a GPU without a Vulkan driver'
   'zoxide: frecent folders in the folder jump of the path bar'
 )
 conflicts=('flea-bin' 'flea-git')

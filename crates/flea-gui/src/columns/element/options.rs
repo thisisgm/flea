@@ -47,8 +47,10 @@ impl TrackElement {
 }
 
 impl TrackElement {
-    pub(crate) fn with_row_height(mut self, row_height: f32) -> Self {
+    /// The row pitch and the band each row centres its marks and lines in.
+    pub(crate) fn with_rows(mut self, row_height: f32, band: f32) -> Self {
         self.row_height = row_height;
+        self.band = band;
         self
     }
 }

@@ -820,10 +820,11 @@ class Session:
         self.log.close()
 
 
-# The shipped menu.hidden (src/uischema.rs DEFAULTS) hides Properties; op.size.recursive's session shows it and hides the rest.
-MENU_HIDDEN = ["delete", "openTerminal", "placeMenu", "runScript", "moveto", "copyto", "properties", "permissions",
-               "copyAs", "pasteAs", "invertSelection", "extThumbs", "run", "openAsText", "openAgent"]
-SIZE_UI = {"menu": {"hidden": [a for a in MENU_HIDDEN if a != "properties"]}}
+# The shipped menu.hidden (src/uischema.rs DEFAULTS) shows Properties; op.size.recursive's session pins that list.
+MENU_HIDDEN = ["delete", "openTerminal", "placeMenu", "runScript", "moveto", "copyto",
+               "copyAs", "pasteAs", "invertSelection", "extThumbs", "run", "openAsText", "openAgent",
+               "toggleHidden", "toggleLangMarks"]
+SIZE_UI = {"menu": {"hidden": list(MENU_HIDDEN)}}
 
 
 def ui_patch(view, fixture, right=None):
@@ -3602,14 +3603,14 @@ def selftest():
         with mock.patch.dict(globals(), dict(empty_dir=wipe, reflink=lambda s_, d: fill(d, 1), wait_until=lambda pred, cap: 0.5)), mock.patch.object(time, "sleep", lambda secs: None):
             rows = run_series(ses, {"type": "op", "op": "op.copy.large"}, 1)
         check("op_s_from_paste", 5.0 <= rows[0]["op_s"] < 60.0, True)
-    # op.size.recursive has an instrument: its session shows Properties and hides nothing else differently from the shipped default.
+    # op.size.recursive has an instrument: its session shows Properties and hides exactly the shipped default.
     with open(os.path.join(REPO, "src", "uischema.rs")) as f:
         # Sample input: '  "menu": { "hidden": ["delete", "openTerminal", "placeMenu", "runScript",' then more names to '] }'.
         shipped = re.search(r'"menu": \{ "hidden": \[([^\]]*)\]', f.read()).group(1)
     shipped = re.findall(r'"([^"]+)"', shipped)
     check("menu_hidden_is_the_shipped_default", MENU_HIDDEN, shipped)
-    check("size_ui_shows_only_properties", ([a for a in MENU_HIDDEN if a not in SIZE_UI["menu"]["hidden"]],
-                                            len(SIZE_UI["menu"]["hidden"])), (["properties"], len(shipped) - 1))
+    check("size_ui_shows_properties", ("properties" in SIZE_UI["menu"]["hidden"], SIZE_UI["menu"]["hidden"]),
+          (False, shipped))
     with open(os.path.join(REPO, "ui", "js", "Nav.js")) as f:
         # Sample input: 'var here = pane.path', 'var cut = here.lastIndexOf("/")', 'pane.open(cut <= 0 ? "/" : here.substring(0, cut))'.
         nav = f.read()

@@ -194,7 +194,7 @@ fn decide_setup(tag: &str, extra: &[(&str, &str)]) -> (TestDir, Vec<(String, Str
 }
 
 fn decide_answer(pairs: &[(String, String)], pci: &Path, drm: &Path, roots: &[PathBuf]) -> Option<String> {
-    decide_exclusion(|name| pairs.iter().find(|(key, _)| key == name).map(|(_, value)| OsString::from(value.as_str())), pci, drm, roots)
+    decide_exclusion(|name| pairs.iter().find(|(key, _)| key == name).map(|(_, value)| OsString::from(value.as_str())), pci, drm, roots).0
 }
 
 // The positive case: the planted NVIDIA manifest is excluded on the fake AMD box.

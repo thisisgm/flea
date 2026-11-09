@@ -173,7 +173,7 @@ fn a_failed_fsync_fails_the_copy_like_any_other_write_error() {
     let mut p = quiet(&flag, &mut sink, &mut durability);
     let err = crate::backend::copyfile::copy_any(&src, &out.join("a.txt"), &mut p).expect_err("a failed fsync is a failed copy");
     assert_eq!(err.where_, "copy");
-    assert!(p.partial.is_some(), "the partial is journalled for undo: {:?}", p.partial);
+    assert!(p.partial.is_none(), "the unconfirmed file went with its hidden name, so nothing is journalled: {:?}", p.partial);
     assert_eq!(test_counts().0, 1, "the failed flush still counts as called");
 }
 
@@ -286,7 +286,7 @@ fn a_local_transfer_reports_durable_false_and_no_writing() {
 }
 
 #[test]
-fn a_failed_file_fsync_fails_the_item_and_journals_the_partial() {
+fn a_failed_file_fsync_fails_the_item_and_leaves_nothing_to_journal() {
     use crate::backend::opsreq::{run_transfer, OpMsg};
     use std::sync::mpsc::channel;
     use std::sync::Arc;
@@ -312,7 +312,7 @@ fn a_failed_file_fsync_fails_the_item_and_journals_the_partial() {
         }
     }
     assert!(!item_err.is_empty(), "the file's name rides a copy error");
-    assert_eq!(entry_steps, 1, "the partial is journalled for undo");
+    assert_eq!(entry_steps, 0, "the unconfirmed file went with its hidden name, so nothing is journalled");
     assert_eq!(done, Some((false, 0, 1, String::new())), "a failed file flush is not durable with no note: {:?}", done);
     test_set_fail_files(false);
 }
@@ -659,9 +659,9 @@ fn a_range_einval_still_copies_and_reports_only_the_final_count() {
     test_reset();
 }
 
-// A slice flush failure fails the copy, marks the file and journals the partial.
+// A slice flush failure fails the copy, marks the file and leaves no half behind.
 #[test]
-fn a_slice_flush_failure_fails_the_copy_and_journals_the_partial() {
+fn a_slice_flush_failure_fails_the_copy_and_leaves_no_half() {
     test_reset();
     let d = TestDir::new("durable-slice-fail");
     let out = d.dir("out");
@@ -678,7 +678,7 @@ fn a_slice_flush_failure_fails_the_copy_and_journals_the_partial() {
     let mut p = quiet(&flag, &mut sink, &mut durability);
     let err = crate::backend::copyfile::copy_any(&src, &out.join("big.bin"), &mut p).expect_err("a failed slice flush is a failed copy");
     assert_eq!(err.where_, "copy");
-    assert!(p.partial.is_some(), "the partial is journalled for undo: {:?}", p.partial);
+    assert!(p.partial.is_none(), "the half went with its hidden name, so nothing is journalled: {:?}", p.partial);
     drop(p);
     crate::backend::durable::test_set_fail_files(false);
     assert!(durability.file_failed, "the file failure is noted for the verdict");
@@ -757,7 +757,7 @@ fn a_wait_einval_stops_slicing_and_reports_only_the_final_count() {
 
 // The wait leg answering EIO fails the copy, notes the file and journals the partial.
 #[test]
-fn a_wait_eio_fails_the_copy_and_journals_the_partial() {
+fn a_wait_eio_fails_the_copy_and_leaves_no_half() {
     test_reset();
     let d = TestDir::new("durable-wait-eio");
     let out = d.dir("out");
@@ -774,7 +774,7 @@ fn a_wait_eio_fails_the_copy_and_journals_the_partial() {
     let mut p = quiet(&flag, &mut sink, &mut durability);
     let err = crate::backend::copyfile::copy_any(&src, &out.join("big.bin"), &mut p).expect_err("a failed wait is a failed copy");
     assert_eq!(err.where_, "copy");
-    assert!(p.partial.is_some(), "the partial is journalled for undo: {:?}", p.partial);
+    assert!(p.partial.is_none(), "the half went with its hidden name, so nothing is journalled: {:?}", p.partial);
     drop(p);
     crate::backend::durable::test_set_fail_range_wait(0);
     assert!(durability.file_failed, "the file failure is noted for the verdict");

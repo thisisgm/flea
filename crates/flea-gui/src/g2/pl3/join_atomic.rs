@@ -92,13 +92,16 @@ impl Shell {
         if host.presentation.stage == Stage::Closed {
             host.presentation.ready(now);
         }
+        // A window read or a relist keeps the drawn rows, so only an open or an empty Trash can fall back to Reading Trash…
         if host.presentation.stage == Stage::Ready
-            && matches!(view.pending_op.as_str(), "list" | "summary" | "window")
+            && matches!(view.pending_op.as_str(), "list" | "summary")
+            && !view.relist
         {
             host.presentation.begin(true, now);
             host.presentation.held_trash = true;
         }
-        let ready = !view.busy();
+        // A window read over held rows draws whole already, so it never keeps a hold from publishing.
+        let ready = !view.busy() || (view.pending_op == "window" && view.covers_viewport());
         let loading_at = pane.read(cx).loading_at;
         if let Some(at) = loading_at {
             host.presentation

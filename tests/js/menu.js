@@ -127,13 +127,13 @@ function run(check) {
     // enabled where the single-item rows above grey out.
     check("multi-selection keeps Permissions enabled on files",
         entry(Menu.listingEntries(state({ hiddenActions: [], selectionCount: 2, selectionModes: [0o100644, 0o100644] })), "permissions").disabled, false)
-    // MenuAdditions040: Copy as holds six leaves, Paste as three, each with
+    // MenuAdditions040: Copy as holds seven leaves, Paste as three, each with
     // the board's own mark; the letters ride the menu keymap, not a hint.
     var copyLeaves = entry(Menu.listingEntries(state({ hiddenActions: [] })), "copyAs").submenu
-    check("Copy as holds Path, Name, Stem, Folder path, URI and Shell-quoted",
-        copyLeaves.map(function (r) { return r.id }).join(","), "copyPath,copyName,copyStem,copydirpath,copyUri,copyQuoted")
+    check("Copy as holds Path, Relative path, Name, Stem, Folder path, URI and Shell-quoted",
+        copyLeaves.map(function (r) { return r.id }).join(","), "copyPath,copyRelative,copyName,copyStem,copydirpath,copyUri,copyQuoted")
     check("and each leaf wears the board's mark",
-        copyLeaves.map(function (r) { return r.glyph }).join(","), "file-text,type,type,folder,globe,terminal")
+        copyLeaves.map(function (r) { return r.glyph }).join(","), "file-text,file,type,type,folder,globe,terminal")
     var pasteLeaves = entry(Menu.listingEntries(state({ hiddenActions: [], clipboardAvailable: true })), "pasteAs").submenu
     check("Paste as holds Link, Absolute link and Hard link",
         pasteLeaves.map(function (r) { return r.id }).join(","), "pasteLink,pasteAbsoluteLink,pasteHardLink")
@@ -217,7 +217,13 @@ function run(check) {
     check("inside Dropbox replaces move with share link", entry(inside, "dropbox").action + "|" + entry(inside, "sharelink").action, "undefined|sharelink")
     check("hidden capability rows leave no doubled separators", separated(Menu.listingEntries(state({ hiddenActions: ["compress", "convert", "taildrop", "dropbox"] }))), true)
     check("Open cannot be hidden", Menu.isHidden(["open"], "open"), false)
-    check("hidden toggle cannot be hidden", Menu.isHidden(["toggleHidden"], "toggleHidden"), false)
+    // src/ui_logic_mn1/build.rs BACKGROUND_KEEPS: the view rows' switches take them off the file menu, and the background keeps them.
+    var viewHidden = ["toggleHidden", "toggleLangMarks", "openTerminal"]
+    check("Settings > Menus takes the view rows off the file menu",
+          actions(Menu.listingEntries(state({ hiddenActions: viewHidden }))).indexOf("toggle") >= 0, false)
+    check("and the background keeps them with Open in terminal",
+          actions(Menu.listingEntries(state({ hasRow: false, hiddenActions: viewHidden }))),
+          "newFolder,newFile,paste,pasteAs,selectAll,invertSelection,openTerminal,addFavourite,sort,toggleHidden,toggleLangMarks,settings")
     check("stored lower-case id hides corresponding action", entry(Menu.listingEntries(state({ hiddenActions: ["openwith"] })), "openWith").action, undefined)
     check("hidden files toggle uses inverse wording", Menu.hiddenRow(true).label, "Hide hidden files")
     check("permissions accepts ordinary file", Menu.permissionsEntry(0o100644, 1).disabled, false)
@@ -283,6 +289,22 @@ function run(check) {
           actions(LockedMenu.lockedEntries({ lockedMode: 0o040000, hiddenActions: ["openTerminal", "permissions"] })), "copypath")
     check("and it refuses nothing then",
           LockedMenu.lockedRefusal({ lockedMode: 0o040000, hiddenActions: ["openTerminal", "permissions"] }), "")
+    // src/ui_logic_mn1/places.rs locked_notice: Permissions alone shown opens the tile and names the other two.
+    var currentHidden = ["delete", "openTerminal", "placeMenu", "runScript", "moveto", "copyto", "copyAs", "pasteAs",
+        "invertSelection", "extThumbs", "run", "openAsText", "openAgent", "toggleHidden", "toggleLangMarks"]
+    check("the current shipped set leaves the Locked tile Permissions alone",
+          actions(LockedMenu.lockedEntries({ lockedMode: 0o040000, hiddenActions: currentHidden })), "permissions")
+    check("and the bar names the two still hidden",
+          LockedMenu.lockedNotice({ hiddenActions: currentHidden }), "Open in terminal and Copy as are hidden in Settings > Menus.")
+    check("a refusal names no second sentence",
+          LockedMenu.lockedNotice({ hiddenActions: shippedHidden }), "")
+    check("nor does a hidden pair that leaves Copy path",
+          LockedMenu.lockedNotice({ hiddenActions: ["openTerminal", "permissions"] }), "")
+    check("nor every row shown", LockedMenu.lockedNotice({ hiddenActions: [] }), "")
+    // tests/lockedmenu.qml drives ContextMenu.noticed alone; these pin each half as a live line beside the refusal it mirrors.
+    var liveLines = function (path, from, to) { return Source.slice(Source.source(path), from, to).split("\n").map(function (line) { return line.trim() }) }
+    check("MenuHost forwards the notice", liveLines("ui/MenuHost.qml", "root.item.refused.connect(", "root.item.snapshotRequested.connect(").indexOf("root.item.noticed.connect(root.noticed)") >= 0, true)
+    check("and the pane's menu host shows it as a plain message", liveLines("ui/Pane.qml", "onRefused: function(reason)", "rowIsArchive:").indexOf("onNoticed: function(text) { root.message(text, false) }") >= 0, true)
     check("menu fits at pointer", Menu.clamp(20, 80, 300), 20)
     check("menu flips before shifting", Menu.clamp(270, 80, 300), 190)
     check("oversized menu pins to near edge", Menu.clamp(30, 500, 300), 0)
@@ -363,7 +385,7 @@ function providerRefresh(check) {
     check("and the Paste as row", entry(hiddenRows, "pasteAs").action || "absent", "absent")
     check("yet Copy as still builds its flyout from the action",
           Menu.flyoutEntries("copyAs").map(function (l) { return l.id }).join(","),
-          "copyPath,copyName,copyStem,copydirpath,copyUri,copyQuoted")
+          "copyPath,copyRelative,copyName,copyStem,copydirpath,copyUri,copyQuoted")
     check("and Paste as builds its own",
           Menu.flyoutEntries("pasteAs").map(function (l) { return l.id }).join(","),
           "pasteLink,pasteAbsoluteLink,pasteHardLink")
@@ -645,4 +667,7 @@ function providerRefresh(check) {
     var pmaText = Source.source("ui/PaneMenuActions.qml")
     check("Show original sends through requestLinkTarget", pmaText.indexOf("requestLinkTarget") >= 0, true)
     check("and sends no raw linktarget", pmaText.indexOf('"linktarget"') < 0, true)
+    // Source pin: a menu leaf copies through Ops.copyAs, so Recent's refusal covers it too.
+    check("Copy as leaves copy through Ops.copyAs", pmaText.indexOf("Ops.copyAs(root.pane, kind, taken)") >= 0, true)
+    check("and never format their own text", pmaText.indexOf("CopyAs.lines") < 0, true)
 }

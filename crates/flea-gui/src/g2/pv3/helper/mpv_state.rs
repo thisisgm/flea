@@ -1,5 +1,5 @@
 use super::{DURATION, VIDEO};
-use flea::ui_logic_pv3::{frame::Event, transport::Transport};
+use flea::ui_logic_pv3::{frame::Event, tonemap::Tonemap, transport::Transport};
 
 /// What the loop knows about the open file.
 pub(super) struct State {
@@ -13,6 +13,7 @@ pub(super) struct State {
     pub(super) clip: (i64, i64),
     pub(super) box_size: (u32, u32),
     pub(super) size: (u32, u32),
+    pub(super) tonemap: Tonemap,
 }
 
 impl State {
@@ -28,6 +29,7 @@ impl State {
             clip: (0, 0),
             size: (0, 0),
             box_size: (0, 0),
+            tonemap: Tonemap::default(),
         }
     }
 

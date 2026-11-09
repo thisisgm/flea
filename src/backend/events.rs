@@ -68,7 +68,19 @@ pub(crate) fn read_line(line: String, live: &Live) -> Event {
     {
         live.cancel(crate::json::field_usize(&line, "id").unwrap_or(0));
     }
+    // A quit cancels here too, as Cancel does, so a listing still out cannot hold a copy past it.
+    if line.contains("quit") && crate::json::field_str(&line, "c").as_deref() == Some("quit") {
+        cancel_running(live);
+    }
     Event::Request(line)
+}
+
+// The slot operation and every detached job (a copy is one), as the drain does once the loop gets there.
+fn cancel_running(live: &Live) {
+    if let Some(id) = live.running() {
+        live.cancel(id);
+    }
+    live.1.cancel_all();
 }
 
 // Sample input: b"{\"c\":\"pi" then b"ng\"}\r\n" sends {"c":"ping"}; CR LF ends a line as LF does.
@@ -98,6 +110,8 @@ pub(crate) fn feed(
     if !tail.is_empty() && !send_line(std::mem::take(tail), tx, live) {
         return false;
     }
+    // The end of input is a quit, so it cancels at the door too.
+    cancel_running(live);
     let _ = tx.send(Event::Closed);
     false
 }

@@ -4,9 +4,9 @@ use super::*;
 const LIMITED_PDF: &str = r#"exec /usr/bin/python3 -c '
 import resource, sys
 address_space_bytes = 8589934592
-cpu_seconds = 30
+unlimited = (resource.RLIM_INFINITY, resource.RLIM_INFINITY)
 assert resource.getrlimit(resource.RLIMIT_AS) == (address_space_bytes, address_space_bytes), "Office must have a finite 8 GiB address-space cap"
-assert resource.getrlimit(resource.RLIMIT_CPU) == (cpu_seconds, cpu_seconds), "Office must retain its 30 s CPU cap"
+assert resource.getrlimit(resource.RLIMIT_CPU) == unlimited, "Office has no CPU cap: the wall clock bounds it"
 with open(sys.argv[1], "xb") as output:
     output.write(b"%PDF-1.4 stub")
 ' "$2/out.pdf""#;

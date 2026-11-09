@@ -1,4 +1,4 @@
-//! The marks a card draws: a row's own mark, the alert, and the Omarchy spiral of a job, painted from static data.
+//! The marks a card draws: a row's own mark, the alert, and a job's Spinner.qml spiral crawl, painted from static data.
 use crate::feedback::spinner;
 use flea::ui_logic_op1::card;
 use gpui::{
@@ -18,7 +18,7 @@ pub const ALERT: (&str, &[u8]) = (
 #[derive(Clone)]
 pub enum Paint {
     Svg(SharedString, &'static [u8]),
-    // One persistent Omi per job, at a fixed time or playing its mode.
+    // One persistent spiral per job, at a fixed time or crawling; the mode names it for accessibility.
     Spiral {
         id: u64,
         mode: spinner::Mode,
@@ -77,12 +77,8 @@ impl Element for Glyph {
         window: &mut Window,
         cx: &mut App,
     ) -> (LayoutId, ()) {
-        let side = match self.paint {
-            Paint::Spiral { .. } => self.side.max(spinner::OMI_GRID_PX / window.scale_factor()),
-            _ => self.side,
-        };
         let style = Style {
-            size: size(px(side).into(), px(side).into()),
+            size: size(px(self.side).into(), px(self.side).into()),
             flex_shrink: 0.,
             ..Style::default()
         };
@@ -105,7 +101,7 @@ impl Element for Glyph {
             |state: Option<Rc<spinner::Crawl>>, window| {
                 let mark = state.unwrap_or_default();
                 mark.set(mode);
-                mark.show(true, self.ink);
+                mark.show_spiral(true, self.ink);
                 mark.place(bounds, window);
                 mark.prepare(!cx.reduce_motion(), still, window, cx);
                 (Some(Rc::clone(&mark)), mark)

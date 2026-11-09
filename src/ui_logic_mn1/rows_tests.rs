@@ -572,7 +572,7 @@ fn clamp_flyouts_and_steps() {
             .map(|l| l.id.to_string())
             .collect::<Vec<_>>()
             .join(","),
-        "copyPath,copyName,copyStem,copydirpath,copyUri,copyQuoted".into(),
+        "copyPath,copyRelative,copyName,copyStem,copydirpath,copyUri,copyQuoted".into(),
     );
     check(
         "and Paste as builds its own",
@@ -993,4 +993,13 @@ fn choices_validate_against_live_rows() {
         ),
         Ok(()),
     );
+}
+
+#[test]
+fn a_step_skips_the_busy_row_that_says_the_menu_is_still_asking() {
+    let busy = Entry { busy: true, ..Entry::leaf("nearbyLooking", Text::Key("network.looking_hosts")) };
+    let rows = [busy, Entry::separator(), Entry::row("addShare", Text::Key("network.add_share"), "plus")];
+    assert!(!rows[0].steppable() && !rows[0].disabled && !rows[0].separator);
+    assert_eq!(step_row(&rows, 2, -1), 2, "the busy row is never the cursor, so Up keeps Add");
+    assert_eq!(step_row(&rows, -1, 1), 2);
 }

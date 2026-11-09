@@ -1,4 +1,4 @@
-//! Tag swatch colours per theme: each role lifted to 3:1 on the listing and menu grounds, plus the digit fallback.
+//! Tag swatch colours per theme: each role, or the canonical colour where the role is far from its name, lifted to 3:1 on the listing and menu grounds, plus the digit fallback.
 use super::tags::NAMES;
 
 // The palette role each tag takes, member for member with ui/js/Contrast.js TAG_ROLES.
@@ -14,6 +14,21 @@ pub const ROLES: [&str; 7] = [
 pub const MIN_RATIO: f64 = 3.0;
 // Below this share of chroma a colour is a grey whatever its name claims.
 pub const GREY_CHROMA: f64 = 0.12;
+// The hue window, in degrees, each colour tag's name allows; a window may wrap past red (v0.3.12 Contrast.js TAG_HUES).
+pub const HUE_WINDOWS: [(f64, f64); 6] = [
+    (335.0, 12.0),
+    (8.0, 45.0),
+    (28.0, 70.0),
+    (80.0, 170.0),
+    (195.0, 255.0),
+    (250.0, 335.0),
+];
+// A slot further than this outside its tag's window reads as another colour, so the tag draws its canonical colour.
+pub const FAR_FROM_NAME: f64 = 90.0;
+// The canonical colour tags: Omarchy's default theme, tokyo-night, red through magenta.
+pub const CANONICAL: [&str; 6] = [
+    "#f7768e", "#eb927b", "#e0af68", "#9ece6a", "#7aa2f7", "#ad8ee6",
+];
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct TagTheme {
@@ -132,6 +147,50 @@ pub fn is_grey(rgb: [f64; 3]) -> bool {
     hi == 0.0 || (hi - lo) / hi < GREY_CHROMA
 }
 
+// HSV hue in degrees, 0 for a grey.
+pub fn hue(rgb: [f64; 3]) -> f64 {
+    let hi = rgb[0].max(rgb[1]).max(rgb[2]);
+    let delta = hi - rgb[0].min(rgb[1]).min(rgb[2]);
+    if delta == 0.0 {
+        0.0
+    } else if hi == rgb[0] {
+        60.0 * ((rgb[1] - rgb[2]) / delta).rem_euclid(6.0)
+    } else if hi == rgb[1] {
+        60.0 * ((rgb[2] - rgb[0]) / delta + 2.0)
+    } else {
+        60.0 * ((rgb[0] - rgb[1]) / delta + 4.0)
+    }
+}
+
+// Degrees from a hue to the nearer edge of a window, 0 inside it.
+pub fn outside(hue: f64, (lo, hi): (f64, f64)) -> f64 {
+    let inside = if lo <= hi {
+        (lo..=hi).contains(&hue)
+    } else {
+        hue >= lo || hue <= hi
+    };
+    if inside {
+        return 0.0;
+    }
+    let apart = |a: f64, b: f64| {
+        let d = (a - b).abs();
+        d.min(360.0 - d)
+    };
+    apart(hue, lo).min(apart(hue, hi))
+}
+
+// The colour a tag draws before the lift: the theme's own unless it is a colour far from the tag's name, as hackerman's green red.
+pub fn named(at: usize, hex: &str) -> String {
+    match (HUE_WINDOWS.get(at), parse(hex)) {
+        (Some(&window), Some(rgb))
+            if !is_grey(rgb) && outside(hue(rgb), window) > FAR_FROM_NAME =>
+        {
+            CANONICAL[at].to_owned()
+        }
+        _ => hex.to_owned(),
+    }
+}
+
 // Decided once per theme load: the digit fallback only for a missing colour, an exact shared colour or a grey (README Tags).
 pub fn tag_theme(role: impl Fn(&str) -> Option<String>, bg: &str, surface: &str) -> TagTheme {
     let mut theme = TagTheme::default();
@@ -145,8 +204,9 @@ pub fn tag_theme(role: impl Fn(&str) -> Option<String>, bg: &str, surface: &str)
         let key = hex.to_ascii_lowercase();
         theme.fallback |= seen.contains(&key);
         seen.push(key);
-        theme.colors[at] = ensure_ratio(&hex, bg, MIN_RATIO);
-        theme.menu_colors[at] = ensure_ratio(&hex, surface, MIN_RATIO);
+        let drawn = named(at, &hex);
+        theme.colors[at] = ensure_ratio(&drawn, bg, MIN_RATIO);
+        theme.menu_colors[at] = ensure_ratio(&drawn, surface, MIN_RATIO);
         if *name != "Gray" && parse(&hex).is_some_and(is_grey) {
             theme.fallback = true;
         }

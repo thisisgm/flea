@@ -10,6 +10,9 @@ use gpui::TestAppContext;
 #[gpui::test]
 fn fixchrome_ey522_a_running_copy_keeps_the_selected_row_focused(cx: &mut TestAppContext) {
     let (shell, cx) = open_root(cx, "default");
+    // The selected row draws the focused look only in the active window; a TestWindow starts inactive.
+    cx.update(|window, _| window.activate_window());
+    cx.run_until_parked();
     super::test_shell::land(&shell, cx, "/files", vec![row("notes.txt", false)], 1);
     draw(cx);
     receive(&shell, cx, Event::Operations(r#"{"t":"job","job":{"id":7,"kind":"copy","head":"Copying","file":"notes.txt","state":"running"}}"#.into()));

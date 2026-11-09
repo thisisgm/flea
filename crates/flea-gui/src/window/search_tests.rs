@@ -78,6 +78,19 @@ pub(super) fn control_key(cx: &mut TestAppContext, handle: Handle, key: &str) {
     });
 }
 
+/// The committed results with no row acted on, as a tag place opens them; Enter on the line goes to its row instead.
+pub(super) fn results(cx: &mut TestAppContext, handle: Handle) {
+    edit(cx, handle, |shell, window, cx| {
+        shell.search_update(
+            0,
+            None,
+            |search, host| search.key(crate::g2::sr1::StripKey::Enter, host),
+            window,
+            cx,
+        )
+    });
+}
+
 pub(super) fn reply(cx: &mut TestAppContext, handle: Handle, side: usize, line: &str) {
     edit(cx, handle, |shell, window, cx| {
         shell.receive(side, Backend::test_reply_line(line), window, cx)

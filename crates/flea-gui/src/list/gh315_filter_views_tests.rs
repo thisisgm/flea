@@ -4,6 +4,7 @@ mod backend_fixture;
 use crate::{
     backend::Backend,
     columns::geometry::Slot,
+    grid::Shown,
     state::{tests::shell_with, Shell},
     window::{root::Root, startup::View},
 };
@@ -135,8 +136,7 @@ fn check_names(rows: &[(usize, usize, String)]) {
     }
 }
 
-fn regression(cx: &mut TestAppContext, view: View) {
-    let fixture = Fixture::new();
+fn mount(cx: &mut TestAppContext, view: View) -> (Handle, impl FnMut() -> Option<String>) {
     let (backend, mut read) = Backend::test_lines();
     let handle = cx.add_window(|window, cx| Root {
         shell: cx.new(|cx| {
@@ -160,29 +160,71 @@ fn regression(cx: &mut TestAppContext, view: View) {
     frame(cx, handle);
     assert_eq!(drawn(cx, handle, view).first().map(|row| row.1), Some(0));
     while read().is_some() {}
+    (handle, read)
+}
+
+// Page down from the top until the cursor sits a third of the way into the folder, past the first held window.
+fn go_deep(cx: &mut TestAppContext, handle: Handle) {
+    press(cx, handle, "home", None);
+    for _ in 0..200 {
+        if edit(cx, handle, |shell, _, _| {
+            shell.panes[0].as_ref().unwrap().pane.cursor >= 1666
+        }) {
+            break;
+        }
+        press(cx, handle, "pagedown", None);
+        frame(cx, handle);
+        serve(cx, handle);
+    }
+    edit(cx, handle, |shell, _, _| {
+        let pane = &shell.panes[0].as_ref().unwrap().pane;
+        assert!(
+            (1666..2500).contains(&pane.cursor),
+            "the second query starts deep"
+        );
+        assert!(pane.held.start > 320, "the held window has left the top");
+    });
+}
+
+// The real backend answers the last request for this query; the answer lands, a frame draws and any owed window is served.
+fn answer(
+    cx: &mut TestAppContext,
+    handle: Handle,
+    fixture: &Fixture,
+    read: &mut impl FnMut() -> Option<String>,
+    query: &str,
+) -> String {
+    let mut asked = Vec::new();
+    while let Some(line) = read() {
+        asked.push(line);
+    }
+    // Sample: {"c":"filter","query":"file-2345","id":9}.
+    let id = asked
+        .iter()
+        .rev()
+        .find(|line| {
+            flea::json::field_str(line, "c").as_deref() == Some("filter")
+                && flea::json::field_str(line, "query").as_deref() == Some(query)
+        })
+        .and_then(|line| flea::json::field_usize(line, "id"))
+        .unwrap_or_else(|| panic!("the query never reached the backend: {asked:?}"));
+    let answer = fixture.answer(query, id);
+    edit(cx, handle, |shell, window, cx| {
+        shell.receive(0, Backend::test_reply_line(&answer), window, cx)
+    });
+    frame(cx, handle);
+    serve(cx, handle);
+    answer
+}
+
+fn regression(cx: &mut TestAppContext, view: View) {
+    let fixture = Fixture::new();
+    let (handle, mut read) = mount(cx, view);
 
     // First query starts at the top; second starts one third down, outside the original held rows.
     for (phase, query, target) in [(1, "file-2345", 2344), (2, "0300", 299)] {
         if phase == 2 {
-            press(cx, handle, "home", None);
-            for _ in 0..200 {
-                if edit(cx, handle, |shell, _, _| {
-                    shell.panes[0].as_ref().unwrap().pane.cursor >= 1666
-                }) {
-                    break;
-                }
-                press(cx, handle, "pagedown", None);
-                frame(cx, handle);
-                serve(cx, handle);
-            }
-            edit(cx, handle, |shell, _, _| {
-                let pane = &shell.panes[0].as_ref().unwrap().pane;
-                assert!(
-                    (1666..2500).contains(&pane.cursor),
-                    "the second query starts deep"
-                );
-                assert!(pane.held.start > 320, "the held window has left the top");
-            });
+            go_deep(cx, handle);
         }
         while read().is_some() {}
         press(cx, handle, "/", Some("/"));
@@ -190,26 +232,7 @@ fn regression(cx: &mut TestAppContext, view: View) {
             let key = character.to_string();
             press(cx, handle, &key, Some(&key));
         }
-        let mut asked = Vec::new();
-        while let Some(line) = read() {
-            asked.push(line);
-        }
-        // Sample: {"c":"filter","query":"file-2345","id":9}.
-        let id = asked
-            .iter()
-            .rev()
-            .find(|line| {
-                flea::json::field_str(line, "c").as_deref() == Some("filter")
-                    && flea::json::field_str(line, "query").as_deref() == Some(query)
-            })
-            .and_then(|line| flea::json::field_usize(line, "id"))
-            .unwrap_or_else(|| panic!("the query never reached the backend: {asked:?}"));
-        let answer = fixture.answer(query, id);
-        edit(cx, handle, |shell, window, cx| {
-            shell.receive(0, Backend::test_reply_line(&answer), window, cx)
-        });
-        frame(cx, handle);
-        serve(cx, handle);
+        let answer = answer(cx, handle, &fixture, &mut read, query);
         let narrowed = drawn(cx, handle, view);
         assert_eq!(
             narrowed
@@ -279,4 +302,58 @@ fn gh315_grid_off_window_match_and_deep_one_escape_refill(cx: &mut TestAppContex
 #[gpui::test]
 fn gh315_columns_off_window_match_and_deep_one_escape_refill(cx: &mut TestAppContext) {
     regression(cx, View::Columns);
+}
+
+// After one Escape: the Grid cursor tile's top in the viewport, its height, the viewport height, and whether the next row shows.
+fn grid_escape_place(cx: &mut TestAppContext, stepwise: bool) -> (f32, f32, f32, bool) {
+    let fixture = Fixture::new();
+    let (handle, mut read) = mount(cx, View::Grid);
+    go_deep(cx, handle);
+    while read().is_some() {}
+    press(cx, handle, "/", Some("/"));
+    let query = "0300";
+    for end in 1..=query.len() {
+        let key = &query[end - 1..end];
+        press(cx, handle, key, Some(key));
+        // Live typing: each keystroke's answer lands and draws before the next key, walking the cursor 0, 2, 29, 299.
+        if stepwise {
+            answer(cx, handle, &fixture, &mut read, &query[..end]);
+        }
+    }
+    if !stepwise {
+        answer(cx, handle, &fixture, &mut read, query);
+    }
+    press(cx, handle, "escape", None);
+    frame(cx, handle);
+    serve(cx, handle);
+    edit(cx, handle, |shell, _, _| {
+        let host = shell.panes[0].as_ref().unwrap();
+        assert_eq!(host.pane.cursor, 299);
+        let grid = host.grid.as_ref().unwrap();
+        let layout = grid.view.layout(Shown::All(TOTAL));
+        let scroll = grid.view.drawn_scroll();
+        (
+            layout.row_top(299 / layout.columns) - scroll,
+            layout.cell_height,
+            layout.height,
+            layout.covers(scroll, 299 + layout.columns),
+        )
+    })
+}
+
+#[gpui::test]
+fn gh315_grid_escape_places_the_cursor_alike_however_answers_land(cx: &mut TestAppContext) {
+    let batched = grid_escape_place(cx, false);
+    let stepwise = grid_escape_place(cx, true);
+    assert_eq!(
+        batched, stepwise,
+        "one Escape places the cursor tile the same whether the answers landed per key or at once"
+    );
+    let (top, cell, height, next) = batched;
+    // GridArea.qml placeCursor: Contain from the filtered view's top, so a cursor below it lands low and whole.
+    assert!(
+        top > height / 2. && top + cell <= height,
+        "the cursor tile is whole near the bottom: {batched:?}"
+    );
+    assert!(next, "the row after the cursor shows once the strip closes");
 }

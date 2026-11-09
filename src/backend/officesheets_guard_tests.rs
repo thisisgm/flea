@@ -96,7 +96,7 @@ fn a_refused_jail_answers_failed_and_publishes_nothing() {
     r.svc = Arc::new(Service::new(
         Store::new(&r.cache),
         Box::new(|| Some("/usr/bin/sh".to_string())),
-        Box::new(argv),
+        Box::new(convert_argv),
         refuse,
         CONVERT_TIMEOUT,
     ));
@@ -229,10 +229,7 @@ fn the_sheet_argv_is_the_csv_filter_one_sheet_at_a_time_in_the_office_jail() {
     );
     let _ = jail(office.clone(), &source, &mut work, &AtomicBool::new(false));
     let full = last_jail().expect("the production office runner builds its jail argv");
-    assert_eq!(
-        &full[..4],
-        ["prlimit", "--cpu=30", "--as=8589934592", "bwrap"]
-    );
+    assert_eq!(&full[..3], ["prlimit", "--as=8589934592", "bwrap"]);
     assert_eq!(&full[full.len() - office.len()..], office.as_slice());
 }
 

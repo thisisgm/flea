@@ -139,7 +139,11 @@ fn u06_live_menu_minimum_inventory_keeps_unhideable_actions_usable(cx: &mut Test
         .iter()
         .filter_map(|row| row.get("action").and_then(flea::jsondoc::Json::as_str))
         .collect();
-    assert_eq!(actions, ["open", "toggleHidden"]);
+    assert_eq!(
+        actions,
+        ["open"],
+        "Show Hidden Files now leaves the file menu by its switch; Open alone cannot"
+    );
     VisualTestContext::from_window(handle.into(), cx).simulate_keystrokes("escape");
     assert_eq!(read(cx, handle, "contextMenuVisible").stdout, "false\n");
     assert!((fixture.requests)().unwrap().contains("\"op\":\"close\""));
@@ -192,6 +196,81 @@ fn uish_misc_a_catalogue_that_never_answers_does_not_keep_the_menu_shut(cx: &mut
     assert!(read(cx, handle, "contextMenuModel")
         .stdout
         .contains("rename"));
+}
+
+// A catalogue past the deadline has not said the file has no applications, so Open With stays until its answer lands.
+#[gpui::test]
+fn f07_a_late_catalogue_keeps_open_with_until_its_answer(cx: &mut TestAppContext) {
+    let mut fixture = open(cx);
+    let handle = fixture.handle;
+    handle
+        .update(cx, |root, _, cx| {
+            root.shell.update(cx, |shell, _| {
+                shell.launch.settings.data =
+                    flea::jsondoc::parse("{\"menu\":{\"hidden\":[\"runScript\"]}}").unwrap();
+            })
+        })
+        .unwrap();
+    VisualTestContext::from_window(handle.into(), cx).simulate_keystrokes("m");
+    let snapshot = (fixture.requests)().unwrap();
+    let id = flea::json::field_usize(&snapshot, "id").unwrap();
+    receive(cx, handle, &format!("{{\"t\":\"menuaction\",\"id\":{id},\"op\":\"snapshot\",\"ok\":true,\"kinds\":[32768]}}"));
+    cx.run_until_parked();
+    cx.executor().advance_clock(Duration::from_millis(
+        super::discovery::APPLICATIONS_WAIT_MS,
+    ));
+    cx.run_until_parked();
+    cx.update_window(handle.into(), |_, window, cx| {
+        window.refresh();
+        window.draw(cx).clear(cx);
+        assert!(window.simulate_next_frame(cx) > 0);
+    })
+    .unwrap();
+    cx.executor().advance_clock(Duration::from_millis(200));
+    cx.run_until_parked();
+    assert_eq!(read(cx, handle, "contextMenuVisible").stdout, "true\n");
+    let model = read(cx, handle, "contextMenuModel").stdout;
+    assert!(
+        model.contains("openWith"),
+        "the deadline keeps the row: {model}"
+    );
+    receive(cx, handle, &format!("{{\"t\":\"menuaction\",\"id\":{id},\"op\":\"applications\",\"ok\":true,\"applications\":[{{\"id\":\"org.example.Edit.desktop\",\"label\":\"Example Edit\",\"icon\":\"\",\"default\":true}}]}}"));
+    cx.run_until_parked();
+    assert!(!model.contains("Example Edit"), "{model}");
+    let filled = read(cx, handle, "contextMenuModel").stdout;
+    assert!(
+        filled.contains("Example Edit"),
+        "the late answer fills it: {filled}"
+    );
+}
+
+// An open card keeps its rows in place, so a late empty answer leaves Open With on Another Application.
+#[gpui::test]
+fn f07_a_late_empty_catalogue_keeps_the_open_rows_in_place(cx: &mut TestAppContext) {
+    let mut fixture = open(cx);
+    let handle = fixture.handle;
+    VisualTestContext::from_window(handle.into(), cx).simulate_keystrokes("m");
+    let snapshot = (fixture.requests)().unwrap();
+    let id = flea::json::field_usize(&snapshot, "id").unwrap();
+    receive(cx, handle, &format!("{{\"t\":\"menuaction\",\"id\":{id},\"op\":\"snapshot\",\"ok\":true,\"kinds\":[32768]}}"));
+    cx.run_until_parked();
+    cx.executor().advance_clock(Duration::from_millis(
+        super::discovery::APPLICATIONS_WAIT_MS,
+    ));
+    cx.run_until_parked();
+    cx.update_window(handle.into(), |_, window, cx| {
+        window.refresh();
+        window.draw(cx).clear(cx);
+        assert!(window.simulate_next_frame(cx) > 0);
+    })
+    .unwrap();
+    cx.executor().advance_clock(Duration::from_millis(200));
+    cx.run_until_parked();
+    let before = read(cx, handle, "contextMenuModel").stdout;
+    receive(cx, handle, &format!("{{\"t\":\"menuaction\",\"id\":{id},\"op\":\"applications\",\"ok\":true,\"applications\":[]}}"));
+    cx.run_until_parked();
+    assert!(before.contains("openWith"), "{before}");
+    assert_eq!(read(cx, handle, "contextMenuModel").stdout, before);
 }
 
 #[gpui::test]

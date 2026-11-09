@@ -204,6 +204,19 @@ Press **?** for the full keymap, or **,** to change settings.
 The Windows preset uses `Ctrl+Shift+1/2/3/4` for views and `Ctrl+Y` for redo.
 See [the full key table](keys.toml) for preset bindings and pointer actions.
 
+## Scripts and agents
+
+Every Flea window is titled Flea. To find which folder each one shows, ask it over IPC by its process id:
+
+```sh
+for p in $(hyprctl clients -j | jq -r '.[] | select(.class == "com.thisisgm.flea") | .pid'); do
+    echo "$p $(flea ipc --pid "$p" call flea path)"
+done
+```
+
+To open a folder and know when a window shows it, run `flea /path/to/folder`, then poll
+`flea ipc --pid PID call flea path` until it prints that path.
+
 ## Build
 
 Requires Omarchy and Rust. See
@@ -230,6 +243,9 @@ If this saved you an afternoon, you can
 ## Licence
 
 [MIT](LICENSE).
+
+The AirDrop plugin is built on [owly](https://github.com/t4t5/owly) by Tristan
+([t4t5](https://github.com/t4t5)), MIT, which Flea runs as a separate program.
 
 The language marks in `ui/js/LangMarkPaths.js` use [simple-icons](https://github.com/simple-icons/simple-icons)
 geometry (CC0 1.0) and remain their owners' trademarks.

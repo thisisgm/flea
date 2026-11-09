@@ -434,6 +434,7 @@ fn handle_line(
                         paths,
                         request: id,
                         selection: None,
+                        airdrop: false,
                     },
                     &ops.detached,
                     &ops.tx,
@@ -445,18 +446,29 @@ fn handle_line(
         Request::TrashBrowse { line } => {
             super::trashbrowse::request(out, ops, line);
         }
-        Request::Outline { row, open, enabled, first } => {
+        // An AirDrop send is a job like LocalSend's, so it shows in the jobs list with its progress and its Cancel.
+        Request::AirDrop { peer, paths, id } => {
+            let job = ops.claim_id();
+            let (spec, work) = (
+                super::jobwork::Spec { kind: "send", label: "Sending", target: None },
+                super::jobwork::Work::Send { peer, paths, request: id, selection: None, airdrop: true },
+            );
+            ops.jobs.submit(out, job, spec, work, &ops.detached, &ops.tx);
+        }
+        Request::Outline { rows, anchor, open, enabled, first } => {
             if let Some(enabled) = enabled.filter(|_| st.held != Held::List) {
                 st.outline.disabled = !enabled;
                 return Control::Continue;
             }
-            match super::outline::request(st, row, open, enabled, first) {
+            match super::outline::request(st, &rows, anchor, open, enabled, first) {
                 Ok(line) => return handle_line(&line, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate),
                 Err(msg) => say(out, &error_line(&FleaError { where_: "outline".into(), path: st.base.to_string_lossy().into_owned(), msg })),
             }
         }
         // A local list lands inline here, a remote one as Event::List; both land through finish.
-        Request::List { path, first, hidden, want_changed } => {
+        Request::List { path, first, hidden, want_changed, keep } => {
+            let tabs = keep.into_iter().map(PathBuf::from).collect();
+            st.settled.keep(tabs);
             #[cfg(test)]
             super::renametiming::mark("dispatch_list");
             // The session goes first; start then ends the walk and forgets its rows before the scan.
@@ -934,6 +946,7 @@ fn adopt_listed_as(out: &mut impl Write, st: &mut State, pool: &Pool, tb: &Table
     let same = st.held == Held::List && Path::new(path) == st.base.as_path();
     let changed = if same && want_changed { crate::backend::listing::changed_count(&st.listing, &done.listing) } else { 0 };
     st.base = PathBuf::from(path);
+    st.settled.listed(&st.base);
     st.listing = done.listing;
     // A list holds a directory now, so only its own re-read counts.
     st.held = Held::List;
@@ -963,6 +976,20 @@ fn tick_walkers(out: &mut BufWriter<io::Stdout>, st: &mut State, pool: &Pool) {
     // A finished walk hands back its rows in ranked order, which renames every outstanding index.
     if step_search(out, st) {
         forget_rows(st, pool);
+    }
+}
+
+// A thread stuck in a dead mount's call holds the exit and the pipes with it, so the client is let go of first.
+pub fn let_go_of_client() {
+    use std::os::unix::io::AsRawFd;
+    extern "C" {
+        fn dup2(old: i32, new: i32) -> i32;
+    }
+    let _ = io::stdout().flush();
+    if let Ok(null) = std::fs::OpenOptions::new().read(true).write(true).open("/dev/null") {
+        for fd in [0, 1] {
+            unsafe { dup2(null.as_raw_fd(), fd) };
+        }
     }
 }
 
