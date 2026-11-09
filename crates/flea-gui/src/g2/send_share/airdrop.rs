@@ -1,5 +1,5 @@
 //! One window's AirDrop over owly (MIT, by t4t5): doctor, the radio's ten minutes, found devices and sends; airdrop_join.rs runs each Act.
-use super::airdrop_shared::Shared;
+use super::airdrop_shared::{Seen, Shared};
 use super::seams::Wire;
 use flea::i18n::I18n;
 use flea::ui_logic_context_menus::build::Peer;
@@ -44,6 +44,8 @@ pub enum Act {
     Say(String, bool),
     // The menu and the plugin page draw again.
     Refresh,
+    // Another window owns the radio: its owner is asked to stop, off the window's thread.
+    AskStop,
 }
 
 #[derive(Default)]
@@ -51,12 +53,21 @@ pub struct AirDrop {
     pub adapter: Adapter,
     owly: String,
     doctor_gen: u64,
-    doctoring: bool,
+    // The doctor generation whose answer is awaited, if one is.
+    doctor_wait: Option<u64>,
     doctor_at_ms: Option<u64>,
     // This window's own radio; another window's is `elsewhere`, read from `shared`.
     pub radio: Radio,
     elsewhere: Radio,
     pub(crate) shared: Shared,
+    // Each Receiving choice counts up, so a look taken before the latest one never lands.
+    pub(super) asks: u64,
+    // Each shut menu counts up, so a menu open still waiting for its look starts no browse.
+    pub(super) menus: u64,
+    // The folder of a Receiving On still waiting for its look, whose withdrawal an Off meanwhile asks again.
+    pub(super) on_wait: Option<String>,
+    // Closes once the window's last look or ask of the machine's state has run, so the next one waits for it.
+    pub(super) io: Option<async_channel::Receiver<()>>,
     watching: bool,
     // The radio run sent SIGTERM and not yet exited: the machine's lock stays held until it has.
     stopping: Option<u64>,
@@ -93,7 +104,7 @@ impl AirDrop {
             };
             self.doctor_at_ms = None;
             // A doctor still running answers for an owly that is gone, so its answer must not land.
-            self.doctoring = false;
+            self.doctor_wait = None;
         } else if self.adapter.readiness == Readiness::Missing {
             self.adapter = Adapter::default();
         }
@@ -104,16 +115,21 @@ impl AirDrop {
         self.gens[slot(proc)]
     }
 
+    #[cfg(test)]
+    pub(super) fn runs(&self, proc: Proc) -> u64 {
+        self.gens[slot(proc)]
+    }
+
     // Asks owly doctor unless an answer is fresh, one is in flight, or the radio is up (doctor then reports the lease).
     pub fn ask_doctor(&mut self, now_ms: u64) -> Vec<Act> {
         let fresh = self
             .doctor_at_ms
             .is_some_and(|at| now_ms.saturating_sub(at) < DOCTOR_FRESH_MS);
-        if self.owly.is_empty() || self.doctoring || fresh || self.on() {
+        if self.owly.is_empty() || self.doctor_wait.is_some() || fresh || self.on() {
             return Vec::new();
         }
         self.doctor_gen += 1;
-        self.doctoring = true;
+        self.doctor_wait = Some(self.doctor_gen);
         vec![Act::Doctor(self.doctor_gen, owly::doctor_argv(&self.owly))]
     }
 
@@ -124,10 +140,10 @@ impl AirDrop {
         stdout: &str,
         now_ms: u64,
     ) -> Vec<Act> {
-        if !self.doctoring || generation != self.doctor_gen {
+        if self.doctor_wait != Some(generation) {
             return Vec::new();
         }
-        self.doctoring = false;
+        self.doctor_wait = None;
         self.doctor_at_ms = Some(now_ms);
         self.adapter = owly::doctor(stdout, exit_code);
         vec![Act::Refresh]
@@ -148,9 +164,9 @@ impl AirDrop {
         )]
     }
 
-    pub fn menu_opened(&mut self, now_ms: u64) -> Vec<Act> {
+    pub fn menu_opened(&mut self, now_ms: u64, seen: &Seen) -> Vec<Act> {
         self.menu_open = true;
-        let mut acts = self.look();
+        let mut acts = self.look(seen);
         acts.extend(self.ask_doctor(now_ms));
         let failed_late = self
             .browse_failed_ms
@@ -162,9 +178,18 @@ impl AirDrop {
         acts
     }
 
+    // The look a menu open waited for, with the shut-menu count it was asked under: a menu shut meanwhile starts nothing.
+    pub(super) fn menu_looked(&mut self, now_ms: u64, seen: &Seen, menus: u64) -> Vec<Act> {
+        if self.menus != menus {
+            return Vec::new();
+        }
+        self.menu_opened(now_ms, seen)
+    }
+
     // Nothing browses behind a shut menu; the devices found stay listed until the radio goes down.
     pub fn menu_closed(&mut self) -> Vec<Act> {
         self.menu_open = false;
+        self.menus += 1;
         if !std::mem::take(&mut self.browsing) {
             return Vec::new();
         }
@@ -172,49 +197,20 @@ impl AirDrop {
         vec![Act::Stop(Proc::Browse)]
     }
 
-    // Turn On AirDrop, or Receiving set to Everyone for 10 Minutes: the radio first, the receiver once awdl0 is up.
-    pub fn turn_on(&mut self, folder: &str, i18n: &I18n) -> Vec<Act> {
-        if self.radio != Radio::Off {
-            return Vec::new();
-        }
-        // owly is still giving Wi-Fi back, and the radio is free once that run exits.
-        if self.stopping.is_some() {
-            return self.retry_later(folder);
-        }
-        // The machine has one radio: an Off asked of its owner is withdrawn, and one another window holds shows on here.
-        self.shared.keep();
-        let mut acts = self.look();
-        if self.elsewhere != Radio::Off {
-            acts.push(Act::Refresh);
-            return acts;
-        }
-        if self.owly.is_empty() || !self.adapter.ready() {
-            acts.extend([
-                Act::Say(i18n.tr("send.providers.menu_stale"), true),
-                Act::Refresh,
-            ]);
-            return acts;
-        }
-        if !self.shared.claim(&self.adapter.card) {
-            acts.extend(self.retry_later(folder));
-            return acts;
-        }
-        self.radio = Radio::Starting;
-        self.folder = folder.to_string();
-        self.said.clear();
-        let generation = self.next_gen(Proc::Radio);
-        acts.extend([
-            Act::Start(Proc::Radio, generation, owly::radio_argv(&self.owly)),
-            Act::Refresh,
-        ]);
-        acts
+    // Receiving On asked by hand: turn_on runs once its look off the window's thread is back.
+    pub(super) fn ask_on(&mut self, folder: &str) {
+        self.asks += 1;
+        self.on_wait = Some(folder.to_string());
     }
 
     // Receiving set to Off, the plugin switched off or a run that exited: every run stops and Wi-Fi comes back.
     pub fn turn_off(&mut self) -> Vec<Act> {
         self.again = None;
+        self.asks += 1;
+        // An On still waiting for its look has withdrawn the last stop asked, so this Off asks it again.
+        let waited = self.on_wait.take().is_some();
         if self.radio == Radio::Off {
-            return self.stop_elsewhere();
+            return self.stop_elsewhere(waited);
         }
         self.radio = Radio::Off;
         self.hold_until_exit();

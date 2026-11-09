@@ -24,6 +24,7 @@ mod view_split_tests;
 mod view_tests;
 
 use crate::list::{Palette, Typeface};
+pub use airdrop_shared::settle_stops;
 use flea::ui_logic_context_menus::build::Peer;
 use flea::ui_logic_send_share::providers::{self, Facts, Provider, Role};
 use flea::ui_logic_send_share::{share, Send};

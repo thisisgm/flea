@@ -59,7 +59,11 @@ fn a_failed_browse_is_not_started_again_until_the_menu_opens_again() {
     let (mut air, browse) = on_with_menu();
     assert!(air.ended(Proc::Browse, browse, 2, 0, &english()).is_empty());
     air.menu_closed();
-    assert!(started(&air.menu_opened(BROWSE_GAP_MS), Proc::Browse).is_some());
+    assert!(started(
+        &air.menu_opened(BROWSE_GAP_MS, &Seen::default()),
+        Proc::Browse
+    )
+    .is_some());
 }
 
 #[test]

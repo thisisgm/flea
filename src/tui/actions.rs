@@ -276,66 +276,50 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
         return Ok(());
     }
     if super::contents::guarded(m)
-        && matches!(
-            action,
-            "open"
-                | "pageForward"
-                | "duplicate"
-                | "copy"
-                | "cut"
-                | "trash"
-                | "trashArm"
-                | "deletePermanently"
-                | "rename"
-                | "preview"
-                | "reveal"
-                | "editFile"
-                | "menu"
-                | "properties"
-                | "factsToggle"
-                | "copyPath"
-                | "copyUri"
-                | "copydirpath"
-                | "copyDirUri"
-                | "copyName"
-                | "copyStem"
-                | "copyRelative"
-                | "copyQuoted"
-                | "followLink"
-                | "toggleSelect"
-                | "selectNext"
-                | "selectAll"
-                | "invertSelection"
-        )
+        && (copies_a_path(action)
+            || matches!(
+                action,
+                "open"
+                    | "pageForward"
+                    | "duplicate"
+                    | "copy"
+                    | "cut"
+                    | "trash"
+                    | "trashArm"
+                    | "deletePermanently"
+                    | "rename"
+                    | "preview"
+                    | "reveal"
+                    | "editFile"
+                    | "menu"
+                    | "properties"
+                    | "factsToggle"
+                    | "toggleSelect"
+                    | "selectNext"
+                    | "selectAll"
+                    | "invertSelection"
+            ))
     {
         m.fail_key("search.contents.identity");
         return Ok(());
     }
     if m.searching
-        && matches!(
-            action,
-            "paste"
-                | "movePaste"
-                | "duplicate"
-                | "trash"
-                | "trashArm"
-                | "deletePermanently"
-                | "rename"
-                | "copy"
-                | "cut"
-                | "pasteLink"
-                | "pasteAbsoluteLink"
-                | "pasteHardLink"
-                | "copyPath"
-                | "copyUri"
-                | "copydirpath"
-                | "copyDirUri"
-                | "copyName"
-                | "copyStem"
-                | "copyRelative"
-                | "copyQuoted"
-                | "followLink"
-        )
+        && (copies_a_path(action)
+            || matches!(
+                action,
+                "paste"
+                    | "movePaste"
+                    | "duplicate"
+                    | "trash"
+                    | "trashArm"
+                    | "deletePermanently"
+                    | "rename"
+                    | "copy"
+                    | "cut"
+                    | "pasteLink"
+                    | "pasteAbsoluteLink"
+                    | "pasteHardLink"
+            ))
     {
         m.fail_key("tui.operation.search_busy");
         return Ok(());
@@ -806,6 +790,22 @@ pub(super) fn navigate(m: &mut Model, path: PathBuf, w: &mut Wire) -> io::Result
     m.forward.clear();
     m.open(path, w)
 }
+// The copy keys and followLink, which read the cursor row or its folder: a guarded contents view and a busy search refuse them alike.
+fn copies_a_path(action: &str) -> bool {
+    matches!(
+        action,
+        "copyPath"
+            | "copyUri"
+            | "copydirpath"
+            | "copyDirUri"
+            | "copyName"
+            | "copyStem"
+            | "copyRelative"
+            | "copyQuoted"
+            | "followLink"
+    )
+}
+
 fn history(m: &mut Model, forward: bool, w: &mut Wire) -> io::Result<()> {
     if m.pending.is_some() {
         return Ok(());

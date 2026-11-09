@@ -49,8 +49,7 @@ fn a_radio_that_cannot_start_says_which_program_and_why(cx: &mut TestAppContext)
             readiness: Readiness::Ready,
             card: String::new(),
         };
-        let acts = air.turn_on("/tmp", &shell.locale.catalog);
-        shell.airdrop_acts(0, acts, window, cx);
+        shell.airdrop_receiving(true, "/tmp", window, cx);
     });
     for _ in 0..POLL_STEPS {
         cx.run_until_parked();

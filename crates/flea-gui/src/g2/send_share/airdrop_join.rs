@@ -54,8 +54,11 @@ impl Shell {
     ) {
         self.menu.providers.airdrop.facts(owly);
         if self.menu.providers.sides[side].row_on(Role::AirDrop) {
-            let acts = self.menu.providers.airdrop.menu_opened(now_ms());
-            self.airdrop_acts(side, acts, window, cx);
+            let menus = self.menu.providers.airdrop.menus;
+            self.airdrop_look(window, cx, move |shell, seen, window, cx| {
+                let acts = (shell.menu.providers.airdrop).menu_looked(now_ms(), seen, menus);
+                shell.airdrop_acts(side, acts, window, cx);
+            });
         }
     }
 
@@ -103,6 +106,7 @@ impl Shell {
                     self.provider_refresh(window, cx);
                     self.airdrop_page(cx);
                 }
+                Act::AskStop => self.airdrop_ask_stop(cx),
             }
         }
         self.airdrop_watch(window, cx);
@@ -143,7 +147,8 @@ impl Shell {
             }
             None if leaf == flea::ui_logic_context_menus::airdrop::TURN_ON => {
                 let folder = self.airdrop_folder();
-                self.menu.providers.airdrop.turn_on(&folder, &catalog)
+                self.airdrop_turn_on(side, &folder, window, cx);
+                Vec::new()
             }
             None => Vec::new(),
         };
@@ -158,15 +163,36 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        let catalog = self.locale.catalog.clone();
-        let air = &mut self.menu.providers.airdrop;
-        let acts = if on {
-            air.turn_on(folder, &catalog)
-        } else {
-            air.turn_off()
-        };
         let side = self.focus_side;
-        self.airdrop_acts(side, acts, window, cx);
+        if on {
+            self.airdrop_turn_on(side, folder, window, cx);
+        } else {
+            let acts = self.menu.providers.airdrop.turn_off();
+            self.airdrop_acts(side, acts, window, cx);
+        }
+    }
+
+    // Receiving On withdraws an Off asked of the machine's owner and reads its radio off the window's thread first.
+    fn airdrop_turn_on(
+        &mut self,
+        side: usize,
+        folder: &str,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.menu.providers.airdrop.ask_on(folder);
+        self.airdrop_probe(true, window, cx, move |shell, seen, window, cx| {
+            // A Receiving choice made while the look ran wins over this On.
+            let Some(seen) = seen else {
+                return;
+            };
+            let Some(folder) = shell.menu.providers.airdrop.on_wait.take() else {
+                return;
+            };
+            let catalog = shell.locale.catalog.clone();
+            let acts = (shell.menu.providers.airdrop).turn_on(&folder, &catalog, seen);
+            shell.airdrop_acts(side, acts, window, cx);
+        });
     }
 
     // The plugin switched off while the radio holds Wi-Fi: hand it back at once.
@@ -186,12 +212,14 @@ impl Shell {
         // The page can open before any file menu brought the backend's facts, so it finds owly itself.
         let path = std::env::var_os("PATH").unwrap_or_default();
         let owly = flea::ui_logic_send_share::airdrop::find(&path).unwrap_or_default();
-        let air = &mut self.menu.providers.airdrop;
-        air.facts(&owly);
-        let mut acts = air.look();
-        acts.extend(air.ask_doctor(now_ms()));
-        let side = self.focus_side;
-        self.airdrop_acts(side, acts, window, cx);
+        self.menu.providers.airdrop.facts(&owly);
+        self.airdrop_look(window, cx, |shell, seen, window, cx| {
+            let air = &mut shell.menu.providers.airdrop;
+            let mut acts = air.look(seen);
+            acts.extend(air.ask_doctor(now_ms()));
+            let side = shell.focus_side;
+            shell.airdrop_acts(side, acts, window, cx);
+        });
         self.airdrop_page(cx);
         // The host name is read off the window's thread; the page redraws once it is known.
         cx.spawn_in(window, async move |this, cx| {

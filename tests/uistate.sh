@@ -462,13 +462,15 @@ env WAYLAND_DISPLAY=flea-uistate-test-display PATH=/nonexistent-flea-test-path \
 check "a ui.json that is not text is left byte for byte" "$notext_sha" "$(sha256sum "$UI" | cut -d' ' -f1)"
 check "and view.json is not read in its place" "1" "$(flea_ui 2>&1 | tr -d ' \n' | grep -c '"columns":\["name","size","date"\]')"
 
-# The write half of that same file, which the settle alone did not close: read() answers the shipped
-# defaults for bytes it cannot read, so a patch that went ahead would rename a full default document
-# over the operator's only copy. update() refuses the write instead, and says which file and why.
+# The write half of that same file: bytes that are not text are set aside as ui.json.broken and the patch lands on the defaults.
+notext_ino=$(stat -c '%i' "$UI")
 out=$(flea_ui '{"hidden":true}' 2>&1); rc=$?
-check "a patch onto a ui.json that is not text exits 2" "2" "$rc"
-check "and names the read as the reason" "1" "$(echo "$out" | grep -c 'could not be read')"
-check "and leaves that file byte for byte" "$notext_sha" "$(sha256sum "$UI" | cut -d' ' -f1)"
+check "a patch onto a ui.json that is not text exits 0" "0" "$rc"
+check "and keeps those bytes as ui.json.broken, byte for byte" "$notext_sha" "$(sha256sum "$STATE/flea/ui.json.broken" | cut -d' ' -f1)"
+check "as the same file, linked rather than read and copied" "$notext_ino" "$(stat -c '%i' "$STATE/flea/ui.json.broken")"
+check "it writes the full default document instead" "44" "$(grep -c '^  "' "$UI")"
+check "and the patch itself landed" "1" "$(grep -c '"hidden": true' "$UI")"
+check "and view.json is still not read into it" "1" "$(flea_ui 2>&1 | tr -d ' \n' | grep -c '"columns":\["name","size","date"\]')"
 
 # The way in that needs no hex editor: a mode this process cannot read, which one `sudo flea` also
 # leaves behind as a root-owned ui.json inside a user-owned directory. The rename needs the directory

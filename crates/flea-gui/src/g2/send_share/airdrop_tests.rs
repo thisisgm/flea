@@ -46,9 +46,12 @@ fn started(acts: &[Act], proc: Proc) -> Option<(u64, Vec<String>)> {
 fn on_with_menu() -> (AirDrop, u64) {
     let i18n = english();
     let mut air = ready();
-    air.menu_opened(1);
-    let (radio, _) =
-        started(&air.turn_on("/home/u/Downloads", &i18n), Proc::Radio).expect("the radio starts");
+    air.menu_opened(1, &Seen::default());
+    let (radio, _) = started(
+        &air.turn_on("/home/u/Downloads", &i18n, &Seen::default()),
+        Proc::Radio,
+    )
+    .expect("the radio starts");
     let acts = air.line(
         Proc::Radio,
         radio,
@@ -78,9 +81,9 @@ fn a_missing_owly_runs_nothing_and_says_so_on_the_page() {
     let mut air = AirDrop::default();
     air.facts("");
     assert!(air.ask_doctor(0).is_empty());
-    assert!(air.menu_opened(0).is_empty());
+    assert!(air.menu_opened(0, &Seen::default()).is_empty());
     assert_eq!(air.adapter.readiness, Readiness::Missing);
-    let acts = air.turn_on("/d", &english());
+    let acts = air.turn_on("/d", &english(), &Seen::default());
     assert!(matches!(acts[0], Act::Say(_, true)), "{acts:?}");
     assert_eq!(air.radio, Radio::Off);
     assert_eq!(
@@ -132,7 +135,7 @@ fn an_unsupported_adapter_refuses_to_turn_on() {
         0,
     );
     assert!(matches!(
-        air.turn_on("/d", &english())[0],
+        air.turn_on("/d", &english(), &Seen::default())[0],
         Act::Say(_, true)
     ));
     assert_eq!(air.radio, Radio::Off);
@@ -333,7 +336,7 @@ fn turning_off_stops_every_run_and_late_lines_change_nothing() {
 fn the_ten_minutes_ending_turns_off_quietly_and_a_radio_that_never_came_up_says_why() {
     let i18n = english();
     let mut air = ready();
-    let (radio, _) = started(&air.turn_on("/d", &i18n), Proc::Radio).unwrap();
+    let (radio, _) = started(&air.turn_on("/d", &i18n, &Seen::default()), Proc::Radio).unwrap();
     air.line(
         Proc::Radio,
         radio,
@@ -346,7 +349,7 @@ fn the_ten_minutes_ending_turns_off_quietly_and_a_radio_that_never_came_up_says_
     assert!(!acts.iter().any(|a| matches!(a, Act::Say(..))), "{acts:?}");
     assert!(acts.contains(&Act::Stop(Proc::Receive)) && !acts.contains(&Act::Stop(Proc::Radio)));
     assert_eq!(air.radio, Radio::Off);
-    let (radio, _) = started(&air.turn_on("/d", &i18n), Proc::Radio).unwrap();
+    let (radio, _) = started(&air.turn_on("/d", &i18n, &Seen::default()), Proc::Radio).unwrap();
     assert!(
         air.page("/d", "h").receiving,
         "Everyone for 10 Minutes shows while the radio starts"

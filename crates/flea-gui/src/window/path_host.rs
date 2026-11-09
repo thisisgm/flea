@@ -18,7 +18,7 @@ pub fn stamp(file: &Path) -> Stamp {
 pub fn load(file: &Path) -> (Stamp, Vec<String>) {
     let stamp = stamp(file);
     // Bounded and non-blocking, so a fifo or an endless file in its place never holds the worker.
-    match flea::backend::regfile::read_text(file, MAX_HISTORY_BYTES) {
+    match flea::userfile::read_text(file, MAX_HISTORY_BYTES) {
         Ok(text) => (stamp, history::read(&text)),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => (stamp, Vec::new()),
         // A failed read keeps no stamp, so the next open retries, as PickerRecent.qml warns on it.
