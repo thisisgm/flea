@@ -57,7 +57,8 @@ pub(crate) const CENSUS: &[(&str, States)] = &[
     ("settings-places", row(28, 0, 0, 0, 0)),
     ("settings-preview", row(20, 0, 0, 0, 0)),
     ("settings-search-field", row(0, 4, 0, 0, 0)),
-    ("settings-view", row(36, 0, 0, 0, 4)),
+    // 0401-settings-view-c: checked Omi and Rotate rows add 4 each; New tabs open in's chip falls below the fixture (-4).
+    ("settings-view", row(40, 0, 0, 0, 4)),
     ("trash-strip-button", row(0, 0, 0, 0, 4)),
     ("unlock-card-password-buttons", row(4, 0, 0, 0, 0)),
     ("unlock-pointer-wash", row(4, 0, 0, 0, 0)),
