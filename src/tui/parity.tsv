@@ -216,7 +216,7 @@ input	"<C-r>"	"redo"	input	[]		unsupported	Consumes the command inside the field
 input	"k"	"recall -1"	input	[]		unsupported	Inserts literal "k" in the field; insert-only prompts have no modal command/register/history operation and never dispatch to the listing.	yazi-214	yazi
 input	"j"	"recall 1"	input	[]		unsupported	Inserts literal "j" in the field; insert-only prompts have no modal command/register/history operation and never dispatch to the listing.	yazi-215	yazi
 input	"<Up>"	"recall -1"	input	[]		unsupported	Consumes the command inside the field; insert-only prompts have no modal command/register/history operation and never dispatch to the listing.	yazi-216	yazi
-input	"<Down>"	"recall 1"	input	[]		unsupported	Consumes the command inside the field; insert-only prompts have no modal command/register/history operation and never dispatch to the listing.	yazi-217	yazi
+input	"<Down>"	"recall 1"	input	[]		unsupported	Commits the filter line without acting on a row, so the matches can be read before Enter opens one; insert-only prompts have no history to recall.	yazi-217	yazi
 input	"<C-p>"	"recall -1"	input	[]		unsupported	Consumes the command inside the field; insert-only prompts have no modal command/register/history operation and never dispatch to the listing.	yazi-218	yazi
 input	"<C-n>"	"recall 1"	input	[]		unsupported	Consumes the command inside the field; insert-only prompts have no modal command/register/history operation and never dispatch to the listing.	yazi-219	yazi
 input	"~"	"help"	input	[]		unsupported	Inserts literal "~" in the field; insert-only prompts have no modal command/register/history operation and never dispatch to the listing.	yazi-220	yazi

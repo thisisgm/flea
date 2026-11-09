@@ -271,3 +271,24 @@ fn tui_convert_rtl_rows_mirror_the_format_edge_and_the_option_brackets() {
     );
     wire::finish(w, reader);
 }
+
+// Only a plain Space toggles the focused option; Ctrl+Space leaves it.
+#[test]
+fn tui_convert_space_toggles_only_without_a_modifier() {
+    let (mut w, reader) = wire::echo_wire();
+    let mut m = opened(&mut w, "photo.png");
+    actions::key(&mut m, &Key::named("Tab", ""), &Map::load(), &mut w).unwrap();
+    assert_eq!(m.converting.card.as_ref().unwrap().focus, 1);
+    actions::key(&mut m, &Key::named("Space", "ctrl"), &Map::load(), &mut w).unwrap();
+    assert!(
+        !m.converting.card.as_ref().unwrap().strip,
+        "Ctrl+Space leaves the option"
+    );
+    actions::key(&mut m, &Key::named("Space", ""), &Map::load(), &mut w).unwrap();
+    assert!(
+        m.converting.card.as_ref().unwrap().strip,
+        "Space toggles the option"
+    );
+    drain(&mut w);
+    wire::finish(w, reader);
+}

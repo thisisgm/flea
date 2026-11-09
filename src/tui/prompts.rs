@@ -2,8 +2,8 @@
 use super::{cells::{ellipsis, fit, text_width}, editor::Editor, input::Key, model::Model, theme::Theme,
     wire::{count, flag, number, text, word, Wire}};
 use crate::jsondoc::Json;
-use flea::{i18n::I18n, ui_logic_file_search::{scope_label, Kind, Session}};
-use std::{collections::BTreeSet, io, path::PathBuf, time::Duration};
+use flea::{i18n::I18n, ui_logic_file_search::{scope_label, Kind, Scope, Session}};
+use std::{collections::BTreeSet, io, path::{Path, PathBuf}, time::Duration};
 
 #[derive(Default)]
 pub struct Prompts {
@@ -85,17 +85,45 @@ fn after<'a>(m: &Model, editor: &Editor, theme: &'a Theme) -> (String, &'a str, 
     match editor.kind {
         "rename" => (i18n.tr("prompt.renameHint"), &theme.muted, true),
         "filter" => (shown(m), &theme.muted, false),
-        "search" => (i18n.tr_args("tui.find.scope_hint", &[&scope(m, m.find.mode)]), &theme.muted, false),
+        "search" if tab_scope(&m.find.session, folder(m)).is_none() => {
+            (scope(m, m.find.mode), &theme.muted, false)
+        }
+        "search" => (
+            i18n.tr_args("tui.find.scope_hint", &[&scope(m, m.find.mode)]),
+            &theme.muted,
+            false,
+        ),
         _ => (String::new(), &theme.muted, false),
     }
 }
 fn shown(m: &Model) -> String {
     m.prompts.i18n.tr_args("filter.shown", &[&m.i18n.locale().format_count(m.filter_count() as i64), &m.i18n.locale().format_count(m.total as i64)])
 }
+fn folder(m: &Model) -> &Path {
+    m.editor
+        .as_ref()
+        .filter(|e| e.kind == "search")
+        .map_or(&m.path, |e| &e.path)
+}
+fn root(folder: &Path, scope: Scope) -> Option<String> {
+    Session::scope_root(
+        &folder.to_string_lossy(),
+        &std::env::var("HOME").unwrap_or_default(),
+        scope,
+    )
+}
+// Tab's next scope in the shared cycle that searches somewhere else, skipping one that is this folder again (Home outside Home).
+pub(super) fn tab_scope(session: &Session, folder: &Path) -> Option<Scope> {
+    let here = root(folder, session.scope);
+    let mut next = session.clone();
+    (0..2).find_map(|_| {
+        next.scope = next.next_scope();
+        (root(folder, next.scope) != here).then_some(next.scope)
+    })
+}
 fn scope(m: &Model, contents: bool) -> String {
-    let folder = m.editor.as_ref().filter(|e| e.kind == "search").map_or(&m.path, |e| &e.path);
     let home = std::env::var("HOME").unwrap_or_default();
-    let root = Session::scope_root(&folder.to_string_lossy(), &home, m.find.session.scope);
+    let root = root(folder(m), m.find.session.scope);
     scope_label(&m.prompts.i18n, root.as_deref(), &home, m.find.session.scope, if contents { Kind::Contents } else { Kind::Names })
 }
 // The footer's leading runs: an applied filter in muted ink with its count, Find's count and its query in muted ink, or the item count.

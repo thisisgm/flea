@@ -23,7 +23,8 @@ pub(super) fn enter(m: &mut Model, w: &mut wire::Wire, query: &str) -> usize {
         .as_mut()
         .expect("Ctrl+G must open Find")
         .replace(query.into());
-    press(m, w, Key::named("Enter", ""));
+    // Down commits the line and only shows the results; one Enter would also open the first of them.
+    press(m, w, Key::named("Down", ""));
     let sent = drain(w);
     let ask = sent
         .iter()

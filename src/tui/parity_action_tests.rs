@@ -177,6 +177,9 @@ fn inactive_action(row: &[&str], keys: &[Key], map: &Map) {
             if row[3] == "cmp" && keys == [Key::named("Return", "")] {
                 assert!(model.editor.is_none());
                 assert!(model.pending.is_some());
+            } else if row[8] == "yazi-217" {
+                // Down commits the filter line and keeps its query, acting on no row.
+                assert!(model.editor.is_none() && model.filter == "abc" && model.pending.is_none());
             } else {
                 let typed: String = keys.iter().filter(|key| matches!(key.mods.as_str(), "" | "shift")).map(|key| key.text.as_str()).collect();
                 let expected = if row[8] == "yazi-165" { "abc".into() } else { format!("abc{typed}") };

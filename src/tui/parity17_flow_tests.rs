@@ -212,13 +212,23 @@ fn follow_reveals_only_a_current_link_target_reply() {
         .unwrap();
     assert_eq!(text(request, "target"), "../target/name");
     let id = count(request, "id");
-    m.receive(parse(&format!(r#"{{"t":"linktarget","id":{},"path":"/listing/folder","directory":"/target","name":"name"}}"#,id+1)),&mut w).unwrap();
+    let dir = TestDir::new("follow-target");
+    std::fs::create_dir(dir.join("target")).unwrap();
+    std::fs::write(dir.join("target/name"), "").unwrap();
+    let folder = dir.join("target");
+    let reply = |id: usize, name: &str| {
+        parse(&format!(
+            r#"{{"t":"linktarget","id":{id},"path":"/listing/folder","directory":"{}","name":"{name}"}}"#,
+            folder.display()
+        ))
+    };
+    m.receive(reply(id + 1, "name"), &mut w).unwrap();
     assert!(m.pending.is_none());
-    m.receive(parse(&format!(r#"{{"t":"linktarget","id":{id},"path":"/listing/folder","directory":"/target","name":"name"}}"#)),&mut w).unwrap();
-    assert_eq!(m.pending.as_deref(), Some(std::path::Path::new("/target")));
+    m.receive(reply(id, "name"), &mut w).unwrap();
+    assert_eq!(m.pending.as_deref(), Some(folder.as_path()));
     assert_eq!(
         m.restore_path.as_deref(),
-        Some(std::path::Path::new("/target/name"))
+        Some(folder.join("name").as_path())
     );
     wire::finish(w, reader);
 }

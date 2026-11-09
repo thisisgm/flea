@@ -105,7 +105,12 @@ pub fn receive(m: &mut Model, value: &Json, w: &mut Wire) -> io::Result<bool> {
             {
                 let folder = PathBuf::from(text(value, "directory"));
                 let name = text(value, "name");
-                if folder.is_absolute()
+                // A broken link says so; a link to / opens / itself, which has no folder to show it in.
+                if folder.is_absolute() && folder.join(name).symlink_metadata().is_err() {
+                    m.fail_key("dialogs.file.original.missing");
+                } else if folder.is_absolute() && name.is_empty() {
+                    super::actions::navigate(m, folder, w)?;
+                } else if folder.is_absolute()
                     && std::path::Path::new(name)
                         .file_name()
                         .is_some_and(|n| n == name)

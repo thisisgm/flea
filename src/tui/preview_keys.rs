@@ -3,7 +3,7 @@ use super::{input::Key, keymap::Map, model::Model, wire::Wire};
 use std::io;
 
 // The listing's action for a key the preview context leaves unbound, with the listing's prefixes and its bare q.
-fn listing_action(m: &Model, key: &Key, map: &Map, armed: &str, here: &str) -> String {
+pub(super) fn listing_action(m: &Model, key: &Key, map: &Map, armed: &str, here: &str) -> String {
     if let Some(prefix) = armed.strip_prefix("prefix:") {
         return map.sequence(prefix, key, &m.preset, "listing");
     }

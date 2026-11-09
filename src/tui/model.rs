@@ -781,7 +781,7 @@ impl Model {
         let replied = self.receive_reply(value, wire);
         // Any reply that empties the listing (a re-list, a search with no results) stops drawing the preview as focused.
         super::layout::release_preview_focus(self);
-        replied
+        replied.and_then(|()| super::editor_input::enter_once::landed(self, wire))
     }
     fn receive_reply(&mut self, value: Json, wire: &mut Wire) -> io::Result<()> {
         if super::parity17::receive(self, &value, wire)? { return Ok(()); }

@@ -26,3 +26,37 @@ fn the_editor_choice_prefers_visual_then_editor() {
     assert_eq!(pick(some("visual"), None).as_deref(), Some("visual"));
     assert_eq!(pick(some(""), some(" ")), None);
 }
+
+// A missing program is named as the command line spells it, the first word without its quotes; one that ran and exited 127 keeps its status.
+#[test]
+fn a_missing_editor_program_is_named_by_its_first_word() {
+    use std::os::unix::process::ExitStatusExt;
+    let not_found = std::process::ExitStatus::from_raw(127 << 8);
+    let named = |selected: &str| missing(selected, not_found).map(|error| error.to_string());
+    assert_eq!(
+        named("'/no where/ed' --wait").as_deref(),
+        Some("Could not find the program /no where/ed")
+    );
+    assert_eq!(
+        named("/nonexistent/flea-ed").as_deref(),
+        Some("Could not find the program /nonexistent/flea-ed")
+    );
+    assert_eq!(
+        named("'bad").as_deref(),
+        Some("Could not find the program 'bad")
+    );
+    assert_eq!(
+        named("flea-no-such-editor --wait").as_deref(),
+        Some("Could not find the program flea-no-such-editor")
+    );
+    assert!(
+        named("/bin/sh -c 'exit 127'").is_none(),
+        "an editor that ran keeps its own 127"
+    );
+    assert!(named("sh").is_none(), "a program found on PATH ran");
+    assert!(missing(
+        "/nonexistent/flea-ed",
+        std::process::ExitStatus::from_raw(1 << 8)
+    )
+    .is_none());
+}

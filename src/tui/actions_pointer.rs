@@ -152,6 +152,15 @@ pub(super) fn pointer_key(
     let old = m.cursor;
     m.cursor = index;
     if key.mods == "ctrl" || key.mods == "super" {
+        // Only a row the last plain click chose joins Ctrl+click's selection; a cursor left by keys or a reload, or a row Ctrl+click took out, does not.
+        let clicked = m
+            .last_click
+            .take()
+            .is_some_and(|(path, _)| m.rows.get(&old).is_some_and(|row| m.row_path(row) == path));
+        let drawn = m.filter.is_empty() || m.shown().contains(&old);
+        if m.selected.is_empty() && old != index && clicked && drawn {
+            m.selected.insert(old);
+        }
         if !m.selected.remove(&index) {
             m.selected.insert(index);
         }

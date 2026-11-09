@@ -67,7 +67,8 @@ pub fn key(m: &mut Model, key: &Key, w: &mut Wire) -> io::Result<()> {
         }) % order.len()];
         f.fresh = true;
         f.changed();
-    } else if matches!(key.name.as_str(), "Return" | "Enter") || key.name == "Space" && f.focus != 6
+    } else if matches!(key.name.as_str(), "Return" | "Enter")
+        || key.name == "Space" && key.mods.is_empty() && f.focus != 6
     {
         return activate(m, w);
     } else if f.focus == 6 || f.focus == 2 {
