@@ -107,7 +107,9 @@ fn plate_words(m: &Model, width: usize, theme: &Theme) -> (String, usize) {
         let gap = length.min(2);
         let label = super::pane::direction(&word, length - gap, &m.preview_state.i18n, false);
         let ink = if plate == active { &theme.foreground } else { &theme.muted };
-        pieces.push(format!("{ink}{label}{}", " ".repeat(gap)));
+        let attribute = theme.depth.overlay_attribute(plate == active, false);
+        let reset = if attribute.is_empty() { String::new() } else { theme.base() };
+        pieces.push(format!("{attribute}{ink}{label}{}{reset}", " ".repeat(gap)));
         used += length;
     }
     (pieces.concat(), used)

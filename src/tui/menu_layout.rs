@@ -214,6 +214,7 @@ pub fn draw(out: &mut String, m: &Model, theme: &Theme, map: &Map) {
             None => out.push_str(&format!(" {}{} ", theme.rule, "─".repeat(p.width.saturating_sub(2)))),
             Some(row) => {
                 if index == m.menu_cursor { out.push_str(&theme.tab); }
+                out.push_str(theme.depth.overlay_attribute(index == m.menu_cursor, false));
                 let (mark, ink) = match row.ink {
                     Ink::Plain => (&theme.frame, &theme.foreground), Ink::Dim => (&theme.muted, &theme.muted),
                     Ink::Destructive => (&theme.error, &theme.error), Ink::Unavailable => (&theme.unavailable, &theme.unavailable),

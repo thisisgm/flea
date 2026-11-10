@@ -224,6 +224,7 @@ pub fn draw(out: &mut String, m: &Model, theme: &Theme) {
         let top = f.choice.saturating_sub(shown.saturating_sub(1));
         for (i, d) in f.destinations.iter().enumerate().skip(top).take(shown) {
             let selected = i == f.choice;
+            let attribute = theme.depth.overlay_attribute(selected, false);
             let fill = if selected {
                 &theme.cursor
             } else {
@@ -235,7 +236,7 @@ pub fn draw(out: &mut String, m: &Model, theme: &Theme) {
                 String::new()
             };
             out.push_str(&format!(
-                "\x1b[{};{}H{base}{fill}{}{}{base}",
+                "\x1b[{};{}H{base}{fill}{attribute}{}{}{base}",
                 card.y + 6 + i - top,
                 card.left() + 1,
                 theme.foreground,

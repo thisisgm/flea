@@ -92,6 +92,7 @@ pub fn header(m: &Model, theme: &Theme, columns: usize) -> String {
             else {
                 out.push_str(if index == m.tab { &theme.tab } else { &theme.background });
                 out.push_str(if index == m.tab { &theme.foreground } else { &theme.muted });
+                out.push_str(theme.depth.overlay_attribute(index == m.tab, false));
                 out.push_str(&text);
                 out.push_str(&theme.base());
             }

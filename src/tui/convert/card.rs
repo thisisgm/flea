@@ -238,6 +238,7 @@ pub fn draw(out: &mut String, m: &Model, theme: &Theme) {
         match row.kind {
             1 => {
                 let chosen = i == f.choice;
+                out.push_str(theme.depth.overlay_attribute(chosen, false));
                 let mark = if f.kind.formats()[i] == "pdf" {
                     "\u{eaeb}"
                 } else {
