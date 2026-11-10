@@ -2745,5 +2745,23 @@
   "settings.hint.key_reserved": "%1 zůstává bez přiřazení, protože si jej Flea vyhrazuje pro sebe.",
   "settings.hint.key_taken": "%1 zůstává bez přiřazení, protože jej v této předvolbě již používá %2.",
   "settings.hint.key_unknown": "%1 zůstává bez přiřazení, protože Flea nemá akci s názvem %2.",
-  "mime.png": "obrázek PNG"
+  "mime.png": "obrázek PNG",
+  "mime.plain": "prostý textový dokument",
+  "feedback.unheld.links": "Tento disk nepodporuje odkazy.",
+  "feedback.unheld.nodes": "Tento disk nepodporuje speciální soubory.",
+  "feedback.unheld.name": "Tento disk tento název nepovoluje.",
+  "feedback.unheld.long": "Tento název je pro tento disk příliš dlouhý.",
+  "feedback.unheld.taken": "Tento disk považuje tento název za shodný s jiným ve složce.",
+  "feedback.unheld.copy_one": "%1 se nepodařilo zkopírovat: %2",
+  "feedback.unheld.move_one": "%1 se nepodařilo přesunout: %2",
+  "feedback.unheld.copy_many": {
+    "one": "Uvnitř se nepodařilo zkopírovat %1 položku; první je %2: %3",
+    "few": "Uvnitř se nepodařilo zkopírovat %1 položky; první je %2: %3",
+    "other": "Uvnitř se nepodařilo zkopírovat %1 položek; první je %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "one": "Uvnitř se nepodařilo přesunout %1 položku; první je %2: %3",
+    "few": "Uvnitř se nepodařilo přesunout %1 položky; první je %2: %3",
+    "other": "Uvnitř se nepodařilo přesunout %1 položek; první je %2: %3"
+  }
 }

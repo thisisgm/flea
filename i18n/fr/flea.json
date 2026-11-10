@@ -2745,5 +2745,23 @@
   "settings.hint.key_reserved": "%1 reste sans affectation, car Flea se réserve cette séquence.",
   "settings.hint.key_taken": "%1 reste sans affectation, car %2 utilise déjà cette séquence dans ce préréglage.",
   "settings.hint.key_unknown": "%1 reste sans affectation, car Flea n’a aucune action appelée %2.",
-  "mime.png": "image PNG"
+  "mime.png": "image PNG",
+  "mime.plain": "document texte brut",
+  "feedback.unheld.links": "Ce lecteur ne prend pas en charge les liens.",
+  "feedback.unheld.nodes": "Ce lecteur ne prend pas en charge les fichiers spéciaux.",
+  "feedback.unheld.name": "Ce lecteur n’autorise pas ce nom.",
+  "feedback.unheld.long": "Ce nom est trop long pour ce lecteur.",
+  "feedback.unheld.taken": "Ce lecteur considère ce nom comme identique à un autre dans le dossier.",
+  "feedback.unheld.copy_one": "Impossible de copier %1 : %2",
+  "feedback.unheld.move_one": "Impossible de déplacer %1 : %2",
+  "feedback.unheld.copy_many": {
+    "one": "Impossible de copier %1 élément à l’intérieur ; le premier est %2 : %3",
+    "many": "Impossible de copier %1 éléments à l’intérieur ; le premier est %2 : %3",
+    "other": "Impossible de copier %1 éléments à l’intérieur ; le premier est %2 : %3"
+  },
+  "feedback.unheld.move_many": {
+    "one": "Impossible de déplacer %1 élément à l’intérieur ; le premier est %2 : %3",
+    "many": "Impossible de déplacer %1 éléments à l’intérieur ; le premier est %2 : %3",
+    "other": "Impossible de déplacer %1 éléments à l’intérieur ; le premier est %2 : %3"
+  }
 }

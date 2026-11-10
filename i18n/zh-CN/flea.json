@@ -2515,5 +2515,19 @@
   "settings.hint.key_reserved": "%1 仍未绑定，因为 Flea 保留此按键序列供自身使用。",
   "settings.hint.key_taken": "%1 仍未绑定，因为 %2 在此预设中已使用此按键序列。",
   "settings.hint.key_unknown": "%1 仍未绑定，因为 Flea 没有名为 %2 的操作。",
-  "mime.png": "PNG 图像"
+  "mime.png": "PNG 图像",
+  "mime.plain": "纯文本文档",
+  "feedback.unheld.links": "此驱动器不支持链接。",
+  "feedback.unheld.nodes": "此驱动器不支持特殊文件。",
+  "feedback.unheld.name": "此驱动器不允许使用该名称。",
+  "feedback.unheld.long": "该名称对于此驱动器来说太长。",
+  "feedback.unheld.taken": "此驱动器将该名称视为与文件夹中的另一个名称相同。",
+  "feedback.unheld.copy_one": "无法复制 %1：%2",
+  "feedback.unheld.move_one": "无法移动 %1：%2",
+  "feedback.unheld.copy_many": {
+    "other": "内部有 %1 个项目无法复制；第一个是 %2：%3"
+  },
+  "feedback.unheld.move_many": {
+    "other": "内部有 %1 个项目无法移动；第一个是 %2：%3"
+  }
 }

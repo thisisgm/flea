@@ -2634,5 +2634,21 @@
   "settings.hint.key_reserved": "%1 förblir utan bindning eftersom Flea reserverar tangentsekvensen för sig självt.",
   "settings.hint.key_taken": "%1 förblir utan bindning eftersom %2 redan använder tangentsekvensen i denna förinställning.",
   "settings.hint.key_unknown": "%1 förblir utan bindning eftersom Flea inte har någon åtgärd som heter %2.",
-  "mime.png": "PNG-bild"
+  "mime.png": "PNG-bild",
+  "mime.plain": "Vanligt textdokument",
+  "feedback.unheld.links": "Den här enheten stöder inte länkar.",
+  "feedback.unheld.nodes": "Den här enheten stöder inte specialfiler.",
+  "feedback.unheld.name": "Den här enheten tillåter inte det namnet.",
+  "feedback.unheld.long": "Namnet är för långt för den här enheten.",
+  "feedback.unheld.taken": "Den här enheten betraktar namnet som identiskt med ett annat i mappen.",
+  "feedback.unheld.copy_one": "%1 kunde inte kopieras: %2",
+  "feedback.unheld.move_one": "%1 kunde inte flyttas: %2",
+  "feedback.unheld.copy_many": {
+    "one": "%1 objekt inuti kunde inte kopieras; det första är %2: %3",
+    "other": "%1 objekt inuti kunde inte kopieras; det första är %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "one": "%1 objekt inuti kunde inte flyttas; det första är %2: %3",
+    "other": "%1 objekt inuti kunde inte flyttas; det första är %2: %3"
+  }
 }

@@ -2634,5 +2634,21 @@
   "settings.hint.key_reserved": "%1 hozzárendelés nélkül marad, mert a Flea saját magának tartja fenn.",
   "settings.hint.key_taken": "%1 hozzárendelés nélkül marad, mert ebben az előbeállításban már a(z) %2 használja.",
   "settings.hint.key_unknown": "%1 hozzárendelés nélkül marad, mert a Flea nem rendelkezik %2 nevű művelettel.",
-  "mime.png": "PNG-kép"
+  "mime.png": "PNG-kép",
+  "mime.plain": "Egyszerű szöveges dokumentum",
+  "feedback.unheld.links": "Ez a meghajtó nem támogatja a hivatkozásokat.",
+  "feedback.unheld.nodes": "Ez a meghajtó nem támogatja a speciális fájlokat.",
+  "feedback.unheld.name": "Ez a meghajtó nem engedélyezi ezt a nevet.",
+  "feedback.unheld.long": "Ez a név túl hosszú ehhez a meghajtóhoz.",
+  "feedback.unheld.taken": "Ez a meghajtó ezt a nevet azonosnak tekinti a mappa egy másik nevével.",
+  "feedback.unheld.copy_one": "A(z) %1 másolása sikertelen: %2",
+  "feedback.unheld.move_one": "A(z) %1 áthelyezése sikertelen: %2",
+  "feedback.unheld.copy_many": {
+    "one": "A benne lévő %1 elem másolása sikertelen; az első: %2: %3",
+    "other": "A benne lévő %1 elem másolása sikertelen; az első: %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "one": "A benne lévő %1 elem áthelyezése sikertelen; az első: %2: %3",
+    "other": "A benne lévő %1 elem áthelyezése sikertelen; az első: %2: %3"
+  }
 }

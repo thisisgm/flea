@@ -1,4 +1,53 @@
 //! The pieces of a Settings label its room keeps whole, so a word never breaks where the room could have held it.
+use super::{geometry::LABEL_LINES, view::SettingsView};
+use gpui::{px, Font, FontWeight, TextRun, Window};
+
+impl SettingsView {
+    /// Values and captions yield enough room for the complete label within the existing two-line row.
+    pub(super) fn label_width(&self, label: &str, window: &Window) -> f32 {
+        let mut low = self.longest_word(label, window);
+        let mut high = self
+            .shaped(label.to_owned(), self.typeface.body, window)
+            .max(low);
+        let run = TextRun {
+            len: label.len(),
+            font: Font {
+                weight: FontWeight::BOLD,
+                ..self.typeface.font.clone()
+            },
+            color: Default::default(),
+            background_color: None,
+            underline: None,
+            strikethrough: None,
+        };
+        // Search only whole layout pixels; the room calculation adds its own rounding slack.
+        while high.ceil() - low.floor() > 1. {
+            let width = ((low + high) / 2.).floor();
+            let fits = window
+                .text_system()
+                .shape_text(
+                    label.to_owned().into(),
+                    self.typeface.body,
+                    std::slice::from_ref(&run),
+                    Some(px(width)),
+                    None,
+                )
+                .is_ok_and(|lines| {
+                    lines
+                        .iter()
+                        .map(|line| line.wrap_boundaries().len() + 1)
+                        .sum::<usize>()
+                        <= LABEL_LINES
+                });
+            if fits {
+                high = width;
+            } else {
+                low = width + 1.;
+            }
+        }
+        high.ceil()
+    }
+}
 
 // The marks GPUI's is_word_char keeps inside a word; any other mark is a place its wrap may break before.
 const WORD_MARKS: &str =

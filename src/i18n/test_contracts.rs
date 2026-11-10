@@ -37,6 +37,10 @@ fn no_test_loads_the_shipped_catalog_dir() {
             "LANG polish verifies PNG fallback completeness and provider precedence in all 50 shipped catalogs",
         ),
         (
+            "src/ui_logic_status_feedback/tests/unheld.rs",
+            "FX-I18N3 verifies unsupported-entry reasons and copy/move plurals in every shipped catalog",
+        ),
+        (
             "crates/flea-gui/src/window/dispatch/lang_polish_tests.rs",
             "LANG polish measures actual German/French/Arabic catalog text in preview metadata",
         ),
@@ -91,7 +95,10 @@ fn rust_sources(tops: &[&str]) -> Vec<(String, String)> {
             if path.is_dir() && path.file_name().is_some_and(|name| name != "target") {
                 dirs.push(path);
             } else if path.extension().is_some_and(|ext| ext == "rs") {
-                let text: String = fs::read_to_string(&path).unwrap().split_whitespace().collect();
+                let text: String = fs::read_to_string(&path)
+                    .unwrap()
+                    .split_whitespace()
+                    .collect();
                 found.push((path.strip_prefix(root).unwrap().display().to_string(), text));
             }
         }
@@ -105,17 +112,61 @@ fn rust_sources(tops: &[&str]) -> Vec<(String, String)> {
 fn no_test_resolves_the_host_language() {
     // Each allowed file with its exact count, so a new test call inside it still fails.
     const ALLOWED: &[(&str, usize, &str)] = &[
-        ("src/i18n/mod.rs", 1, "I18n's Default impl is the real resolution"),
-        ("src/i18n/test_catalogs.rs", 1, "the hermetic paths keep the default Omarchy root"),
-        ("src/plugincli.rs", 1, "flea plugin prints in the user's language"),
-        ("src/backend/plugins.rs", 1, "the plugin hello reports the user's language"),
-        ("src/backend/kind.rs", 1, "the row service resolves the selected language once per response"),
-        ("src/backend/contents.rs", 1, "backend content messages use the user's language"),
-        ("src/tui/model.rs", 1, "Model::new's release build reads the user's language"),
-        ("src/tui/words.rs", 1, "Text's Display implementation resolves the user's catalog only outside tests"),
-        ("crates/flea-gui/src/main.rs", 1, "the GUI launch loads the real catalogs"),
-        ("crates/flea-gui/src/ipc/server.rs", 1, "the IPC server answers in the user's language"),
-        ("crates/flea-gui/src/g2/media_preview/kit/window.rs", 1, "the bench-seam media kit loads catalogs as the shipped app does"),
+        (
+            "src/i18n/mod.rs",
+            1,
+            "I18n's Default impl is the real resolution",
+        ),
+        (
+            "src/i18n/test_catalogs.rs",
+            1,
+            "the hermetic paths keep the default Omarchy root",
+        ),
+        (
+            "src/plugincli.rs",
+            1,
+            "flea plugin prints in the user's language",
+        ),
+        (
+            "src/backend/plugins.rs",
+            1,
+            "the plugin hello reports the user's language",
+        ),
+        (
+            "src/backend/kind.rs",
+            1,
+            "the row service resolves the selected language once per response",
+        ),
+        (
+            "src/backend/contents.rs",
+            1,
+            "backend content messages use the user's language",
+        ),
+        (
+            "src/tui/model.rs",
+            1,
+            "Model::new's release build reads the user's language",
+        ),
+        (
+            "src/tui/words.rs",
+            1,
+            "Text's Display implementation resolves the user's catalog only outside tests",
+        ),
+        (
+            "crates/flea-gui/src/main.rs",
+            1,
+            "the GUI launch loads the real catalogs",
+        ),
+        (
+            "crates/flea-gui/src/ipc/server.rs",
+            1,
+            "the IPC server answers in the user's language",
+        ),
+        (
+            "crates/flea-gui/src/g2/media_preview/kit/window.rs",
+            1,
+            "the bench-seam media kit loads catalogs as the shipped app does",
+        ),
     ];
     // Split so this file never matches itself; every spelling that names the host-resolving Default directly.
     let calls = [
@@ -145,6 +196,13 @@ fn no_test_resolves_the_host_language() {
         }
     }
     assert!(unexpected.is_empty(), "use test_catalogs::english() or english_paths(), or allow the file with a reason: {unexpected:?}");
-    let stale: Vec<_> = ALLOWED.iter().map(|(path, _, _)| *path).filter(|path| !seen.contains(path)).collect();
-    assert!(stale.is_empty(), "allowed files no longer call the default: {stale:?}");
+    let stale: Vec<_> = ALLOWED
+        .iter()
+        .map(|(path, _, _)| *path)
+        .filter(|path| !seen.contains(path))
+        .collect();
+    assert!(
+        stale.is_empty(),
+        "allowed files no longer call the default: {stale:?}"
+    );
 }

@@ -2523,5 +2523,19 @@
   "settings.hint.key_reserved": "%1 仍未綁定，因為 Flea 保留此按鍵序列供自身使用。",
   "settings.hint.key_taken": "%1 仍未綁定，因為 %2 在此預設組合中已使用此按鍵序列。",
   "settings.hint.key_unknown": "%1 仍未綁定，因為 Flea 沒有名為 %2 的動作。",
-  "mime.png": "PNG 影像"
+  "mime.png": "PNG 影像",
+  "mime.plain": "純文字文件",
+  "feedback.unheld.links": "此磁碟機不支援連結。",
+  "feedback.unheld.nodes": "此磁碟機不支援特殊檔案。",
+  "feedback.unheld.name": "此磁碟機不允許使用該名稱。",
+  "feedback.unheld.long": "該名稱對此磁碟機來說太長。",
+  "feedback.unheld.taken": "此磁碟機將該名稱視為與資料夾中的另一個名稱相同。",
+  "feedback.unheld.copy_one": "無法複製 %1：%2",
+  "feedback.unheld.move_one": "無法移動 %1：%2",
+  "feedback.unheld.copy_many": {
+    "other": "內部有 %1 個項目無法複製；第一個是 %2：%3"
+  },
+  "feedback.unheld.move_many": {
+    "other": "內部有 %1 個項目無法移動；第一個是 %2：%3"
+  }
 }

@@ -24,6 +24,8 @@ mod keymap_sheet_activation_tests;
 mod keymap_sheet_menu_tests;
 #[cfg(test)]
 mod keymap_sheet_order_tests;
+#[cfg(test)]
+mod label_fit_tests;
 mod marks;
 #[cfg(test)]
 mod overlay_tests;

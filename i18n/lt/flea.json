@@ -2745,5 +2745,23 @@
   "settings.hint.key_reserved": "%1 lieka nepriskirta, nes Flea pasilieka šią klavišų seką sau.",
   "settings.hint.key_taken": "%1 lieka nepriskirta, nes %2 jau naudoja šią klavišų seką šiame rinkinyje.",
   "settings.hint.key_unknown": "%1 lieka nepriskirta, nes Flea neturi veiksmo pavadinimu %2.",
-  "mime.png": "PNG paveikslėlis"
+  "mime.png": "PNG paveikslėlis",
+  "mime.plain": "Grynojo teksto dokumentas",
+  "feedback.unheld.links": "Šis diskas nepalaiko nuorodų.",
+  "feedback.unheld.nodes": "Šis diskas nepalaiko specialiųjų failų.",
+  "feedback.unheld.name": "Šis diskas neleidžia tokio pavadinimo.",
+  "feedback.unheld.long": "Šiam diskui šis pavadinimas per ilgas.",
+  "feedback.unheld.taken": "Šis diskas šį pavadinimą laiko tokiu pačiu kaip kitą aplanke.",
+  "feedback.unheld.copy_one": "Nepavyko nukopijuoti %1: %2",
+  "feedback.unheld.move_one": "Nepavyko perkelti %1: %2",
+  "feedback.unheld.copy_many": {
+    "few": "Nepavyko nukopijuoti viduje esančių elementų (%1); pirmasis yra %2: %3",
+    "one": "Nepavyko nukopijuoti viduje esančių elementų (%1); pirmasis yra %2: %3",
+    "other": "Nepavyko nukopijuoti viduje esančių elementų (%1); pirmasis yra %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "few": "Nepavyko perkelti viduje esančių elementų (%1); pirmasis yra %2: %3",
+    "one": "Nepavyko perkelti viduje esančių elementų (%1); pirmasis yra %2: %3",
+    "other": "Nepavyko perkelti viduje esančių elementų (%1); pirmasis yra %2: %3"
+  }
 }

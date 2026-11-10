@@ -2634,5 +2634,21 @@
   "settings.hint.key_reserved": "Nananatiling walang keybinding ang %1 dahil nakalaan ito para sa Flea mismo.",
   "settings.hint.key_taken": "Nananatiling walang keybinding ang %1 dahil ginagamit na ito ng %2 sa preset na ito.",
   "settings.hint.key_unknown": "Nananatiling walang keybinding ang %1 dahil walang aksyon ang Flea na tinatawag na %2.",
-  "mime.png": "Larawang PNG"
+  "mime.png": "Larawang PNG",
+  "mime.plain": "Dokumento ng payak na teksto",
+  "feedback.unheld.links": "Hindi kayang mag-imbak ng mga link ang drive na ito.",
+  "feedback.unheld.nodes": "Hindi kayang mag-imbak ng mga espesyal na file ang drive na ito.",
+  "feedback.unheld.name": "Hindi pinapayagan ng drive na ito ang pangalang iyon.",
+  "feedback.unheld.long": "Masyadong mahaba ang pangalang iyon para sa drive na ito.",
+  "feedback.unheld.taken": "Itinuturing ng drive na ito na kapareho ng ibang pangalan sa folder ang pangalang iyon.",
+  "feedback.unheld.copy_one": "Hindi makopya ang %1: %2",
+  "feedback.unheld.move_one": "Hindi mailipat ang %1: %2",
+  "feedback.unheld.copy_many": {
+    "one": "Hindi makopya ang %1 item sa loob; ang una ay %2: %3",
+    "other": "Hindi makopya ang %1 item sa loob; ang una ay %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "one": "Hindi mailipat ang %1 item sa loob; ang una ay %2: %3",
+    "other": "Hindi mailipat ang %1 item sa loob; ang una ay %2: %3"
+  }
 }

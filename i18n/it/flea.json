@@ -2745,5 +2745,23 @@
   "settings.hint.key_reserved": "%1 resta senza assegnazione perché Flea lo riserva a sé stesso.",
   "settings.hint.key_taken": "%1 resta senza assegnazione perché %2 lo usa già in questo profilo.",
   "settings.hint.key_unknown": "%1 resta senza assegnazione perché Flea non ha un'azione chiamata %2.",
-  "mime.png": "Immagine PNG"
+  "mime.png": "Immagine PNG",
+  "mime.plain": "Documento di testo semplice",
+  "feedback.unheld.links": "Questa unità non supporta i collegamenti.",
+  "feedback.unheld.nodes": "Questa unità non supporta i file speciali.",
+  "feedback.unheld.name": "Questa unità non consente questo nome.",
+  "feedback.unheld.long": "Questo nome è troppo lungo per questa unità.",
+  "feedback.unheld.taken": "Questa unità considera questo nome identico a un altro nella cartella.",
+  "feedback.unheld.copy_one": "Impossibile copiare %1: %2",
+  "feedback.unheld.move_one": "Impossibile spostare %1: %2",
+  "feedback.unheld.copy_many": {
+    "one": "Impossibile copiare %1 elemento all’interno; il primo è %2: %3",
+    "many": "Impossibile copiare %1 elementi all’interno; il primo è %2: %3",
+    "other": "Impossibile copiare %1 elementi all’interno; il primo è %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "one": "Impossibile spostare %1 elemento all’interno; il primo è %2: %3",
+    "many": "Impossibile spostare %1 elementi all’interno; il primo è %2: %3",
+    "other": "Impossibile spostare %1 elementi all’interno; il primo è %2: %3"
+  }
 }

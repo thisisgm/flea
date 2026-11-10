@@ -2634,5 +2634,21 @@
   "settings.hint.key_reserved": "Flea নিজের জন্য সংরক্ষণ করে বলে %1 অনির্ধারিত থাকে।",
   "settings.hint.key_taken": "এই প্রিসেটে %2 ইতিমধ্যে ব্যবহার করে বলে %1 অনির্ধারিত থাকে।",
   "settings.hint.key_unknown": "Flea-তে %2 নামে কোনো কাজ নেই বলে %1 অনির্ধারিত থাকে।",
-  "mime.png": "PNG ছবি"
+  "mime.png": "PNG ছবি",
+  "mime.plain": "সাধারণ পাঠ্য নথি",
+  "feedback.unheld.links": "এই ড্রাইভে লিংক রাখা যায় না।",
+  "feedback.unheld.nodes": "এই ড্রাইভে বিশেষ ফাইল রাখা যায় না।",
+  "feedback.unheld.name": "এই ড্রাইভে এই নাম অনুমোদিত নয়।",
+  "feedback.unheld.long": "এই ড্রাইভের জন্য নামটি অত্যন্ত দীর্ঘ।",
+  "feedback.unheld.taken": "এই ড্রাইভে নামটি ফোল্ডারের অন্য একটি নামের সমান বলে গণ্য হয়।",
+  "feedback.unheld.copy_one": "%1 কপি করা যায়নি: %2",
+  "feedback.unheld.move_one": "%1 সরানো যায়নি: %2",
+  "feedback.unheld.copy_many": {
+    "one": "ভিতরের %1টি আইটেম কপি করা যায়নি; প্রথমটি %2: %3",
+    "other": "ভিতরের %1টি আইটেম কপি করা যায়নি; প্রথমটি %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "one": "ভিতরের %1টি আইটেম সরানো যায়নি; প্রথমটি %2: %3",
+    "other": "ভিতরের %1টি আইটেম সরানো যায়নি; প্রথমটি %2: %3"
+  }
 }

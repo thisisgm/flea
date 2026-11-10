@@ -4,6 +4,8 @@ use crate::i18n::I18n;
 #[path = "drive_names.rs"]
 mod drive_names;
 pub use drive_names::drive_refusal;
+#[path = "unheld.rs"]
+mod unheld;
 
 /// A sentence ready to translate: a catalog key and its arguments, never prose matched after translation.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -142,6 +144,15 @@ pub fn passthrough(message: &str) -> Sentence {
     if let Some(sentence) = drive_refusal(message) {
         return sentence;
     }
+    if let Some(key) = unheld::reason(message) {
+        return Sentence::key(key);
+    }
+    if unheld::recognizes(message) {
+        return Sentence {
+            cause: Some(0),
+            ..Sentence::with("feedback.error.backend", message)
+        };
+    }
     Sentence::with("feedback.error.backend", &capitalised(message))
 }
 
@@ -151,6 +162,8 @@ pub fn clause(message: &str, catalog: &I18n) -> String {
         catalog.tr(key)
     } else if let Some(refusal) = drive_refusal(message) {
         refusal.render(catalog)
+    } else if let Some(said) = unheld::translated(message, catalog) {
+        said
     } else {
         return message.to_owned();
     };

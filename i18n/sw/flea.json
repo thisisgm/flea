@@ -2634,5 +2634,21 @@
   "settings.hint.key_reserved": "%1 inabaki bila mgawo kwa sababu Flea inahifadhi mfuatano huo kwa matumizi yake yenyewe.",
   "settings.hint.key_taken": "%1 inabaki bila mgawo kwa sababu %2 tayari inatumia mfuatano huo katika seti hii ya mipangilio.",
   "settings.hint.key_unknown": "%1 inabaki bila mgawo kwa sababu Flea haina kitendo kinachoitwa %2.",
-  "mime.png": "Picha ya PNG"
+  "mime.png": "Picha ya PNG",
+  "mime.plain": "Hati ya maandishi wazi",
+  "feedback.unheld.links": "Hifadhi hii haiwezi kuhifadhi viungo.",
+  "feedback.unheld.nodes": "Hifadhi hii haiwezi kuhifadhi faili maalumu.",
+  "feedback.unheld.name": "Hifadhi hii hairuhusu jina hilo.",
+  "feedback.unheld.long": "Jina hilo ni refu sana kwa hifadhi hii.",
+  "feedback.unheld.taken": "Hifadhi hii huchukulia jina hilo kuwa sawa na jingine kwenye folda.",
+  "feedback.unheld.copy_one": "%1 haikuweza kunakiliwa: %2",
+  "feedback.unheld.move_one": "%1 haikuweza kuhamishwa: %2",
+  "feedback.unheld.copy_many": {
+    "one": "Kipengee %1 kilichomo hakikuweza kunakiliwa; cha kwanza ni %2: %3",
+    "other": "Vipengee %1 vilivyomo havikuweza kunakiliwa; cha kwanza ni %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "one": "Kipengee %1 kilichomo hakikuweza kuhamishwa; cha kwanza ni %2: %3",
+    "other": "Vipengee %1 vilivyomo havikuweza kuhamishwa; cha kwanza ni %2: %3"
+  }
 }

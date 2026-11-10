@@ -2634,5 +2634,21 @@
   "settings.hint.key_reserved": "%1 er áfram óbundin því Flea tekur lyklasamsetninguna frá fyrir eigin notkun.",
   "settings.hint.key_taken": "%1 er áfram óbundin því %2 notar lyklasamsetninguna þegar í þessari forstillingu.",
   "settings.hint.key_unknown": "%1 er áfram óbundin því Flea hefur enga aðgerð sem heitir %2.",
-  "mime.png": "PNG mynd"
+  "mime.png": "PNG mynd",
+  "mime.plain": "Einfalt textaskjal",
+  "feedback.unheld.links": "Þetta drif styður ekki tengla.",
+  "feedback.unheld.nodes": "Þetta drif styður ekki sérskrár.",
+  "feedback.unheld.name": "Þetta drif leyfir ekki þetta heiti.",
+  "feedback.unheld.long": "Þetta heiti er of langt fyrir þetta drif.",
+  "feedback.unheld.taken": "Þetta drif lítur á þetta heiti sem sama heiti og annað í möppunni.",
+  "feedback.unheld.copy_one": "Ekki tókst að afrita %1: %2",
+  "feedback.unheld.move_one": "Ekki tókst að færa %1: %2",
+  "feedback.unheld.copy_many": {
+    "one": "Ekki tókst að afrita atriðin inni (%1); það fyrsta er %2: %3",
+    "other": "Ekki tókst að afrita atriðin inni (%1); það fyrsta er %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "one": "Ekki tókst að færa atriðin inni (%1); það fyrsta er %2: %3",
+    "other": "Ekki tókst að færa atriðin inni (%1); það fyrsta er %2: %3"
+  }
 }

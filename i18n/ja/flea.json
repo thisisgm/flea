@@ -2516,5 +2516,19 @@
   "settings.hint.key_taken": "このプリセットでは %2 がすでに使用しているため、%1 は未割り当てのままです。",
   "settings.hint.key_unknown": "Flea に %2 というアクションがないため、%1 は未割り当てのままです。",
   "mime.markdown": "Markdown 文書",
-  "mime.png": "PNG 画像"
+  "mime.png": "PNG 画像",
+  "mime.plain": "プレーンテキスト文書",
+  "feedback.unheld.links": "このドライブにはリンクを保存できません。",
+  "feedback.unheld.nodes": "このドライブには特殊ファイルを保存できません。",
+  "feedback.unheld.name": "このドライブではその名前を使用できません。",
+  "feedback.unheld.long": "このドライブにはその名前が長すぎます。",
+  "feedback.unheld.taken": "このドライブでは、その名前はフォルダー内の別の名前と同一とみなされます。",
+  "feedback.unheld.copy_one": "%1 をコピーできませんでした: %2",
+  "feedback.unheld.move_one": "%1 を移動できませんでした: %2",
+  "feedback.unheld.copy_many": {
+    "other": "内部の %1 項目をコピーできませんでした。最初の項目は %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "other": "内部の %1 項目を移動できませんでした。最初の項目は %2: %3"
+  }
 }

@@ -1,10 +1,10 @@
 {
-  "catalog_file_sha256": "93bc830eb41f937bf86260cabb3de08cbc3eee4d3370d6680a260b5c162488b8",
-  "catalog_sha256": "3655d7a26af60be49c56bd4e9f57405bb40171093a0586720cb2116531bf4f5a",
+  "catalog_file_sha256": "ff259b0200a68293e66d40aa52d2669f4a60a5d8c9ca950388dc060599a1cb64",
+  "catalog_sha256": "6b2b5b20136901f47e722a73c5d214257cea3312a6438b7941c6491677cec31e",
   "counts": {
     "direct_references": 0,
-    "keys": 2304,
-    "plurals": 111
+    "keys": 2314,
+    "plurals": 113
   },
   "direct_references": {},
   "dynamic_callsite_handoffs": [
@@ -3752,7 +3752,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "self.key",
-      "line": 57,
+      "line": 59,
       "path": "src/ui_logic_status_feedback/errors.rs",
       "pattern": null,
       "possible_keys": [],
@@ -3762,7 +3762,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
-      "line": 151,
+      "line": 162,
       "path": "src/ui_logic_status_feedback/errors.rs",
       "pattern": null,
       "possible_keys": [],
@@ -3774,6 +3774,36 @@
       "expression": "note.key()",
       "line": 91,
       "path": "src/ui_logic_status_feedback/status.rs",
+      "pattern": null,
+      "possible_keys": [],
+      "surface": "core/backend"
+    },
+    {
+      "blocks_removals": true,
+      "coverage": "unresolved-key-expression",
+      "expression": "key",
+      "line": 84,
+      "path": "src/ui_logic_status_feedback/unheld.rs",
+      "pattern": null,
+      "possible_keys": [],
+      "surface": "core/backend"
+    },
+    {
+      "blocks_removals": true,
+      "coverage": "unresolved-key-expression",
+      "expression": "summary.key",
+      "line": 90,
+      "path": "src/ui_logic_status_feedback/unheld.rs",
+      "pattern": null,
+      "possible_keys": [],
+      "surface": "core/backend"
+    },
+    {
+      "blocks_removals": true,
+      "coverage": "unresolved-key-expression",
+      "expression": "summary.key",
+      "line": 91,
+      "path": "src/ui_logic_status_feedback/unheld.rs",
       "pattern": null,
       "possible_keys": [],
       "surface": "core/backend"
@@ -8941,7 +8971,7 @@
         },
         {
           "excerpt": "\"archive.done.name_refused\",",
-          "line": 188,
+          "line": 201,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -9090,7 +9120,7 @@
         },
         {
           "excerpt": "return Some(Sentence::args(\"archive.done.twins\", &[*one, *other]));",
-          "line": 182,
+          "line": 195,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59390,7 +59420,7 @@
       "call_sites": [
         {
           "excerpt": "124 => \"feedback.connect.no_answer\",",
-          "line": 361,
+          "line": 374,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59426,7 +59456,7 @@
       "call_sites": [
         {
           "excerpt": "77 => \"feedback.connect.no_password\",",
-          "line": 363,
+          "line": 376,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59448,7 +59478,7 @@
       "call_sites": [
         {
           "excerpt": "126 | 127 => \"feedback.connect.no_prompt\",",
-          "line": 362,
+          "line": 375,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59484,7 +59514,7 @@
       "call_sites": [
         {
           "excerpt": "_ => \"feedback.connect.unopened\",",
-          "line": 364,
+          "line": 377,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59727,7 +59757,7 @@
       "call_sites": [
         {
           "excerpt": "\"feedback.error.archive_stopped\",",
-          "line": 293,
+          "line": 306,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59749,7 +59779,7 @@
       "call_sites": [
         {
           "excerpt": "\"feedback.error.archive_stopped_named\",",
-          "line": 292,
+          "line": 305,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59779,8 +59809,15 @@
           "usage": "translated-call"
         },
         {
+          "excerpt": "..Sentence::with(\"feedback.error.backend\", message)",
+          "line": 153,
+          "path": "src/ui_logic_status_feedback/errors.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        },
+        {
           "excerpt": "Sentence::with(\"feedback.error.backend\", &capitalised(message))",
-          "line": 145,
+          "line": 156,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59804,7 +59841,7 @@
       "call_sites": [
         {
           "excerpt": "\"scan\" if denied(place, message) => pick(\"feedback.error.denied_named\", \"pane.locked\"),",
-          "line": 273,
+          "line": 286,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59828,7 +59865,7 @@
       "call_sites": [
         {
           "excerpt": "\"duplicate\" => Sentence::key(\"feedback.error.duplicate\"),",
-          "line": 287,
+          "line": 300,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59857,7 +59894,7 @@
         },
         {
           "excerpt": "pub const GENERIC: &str = \"feedback.error.generic\";",
-          "line": 69,
+          "line": 71,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59879,7 +59916,7 @@
       "call_sites": [
         {
           "excerpt": "\"mkdir\" => keep_or(\"feedback.error.mkdir\"),",
-          "line": 283,
+          "line": 296,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59908,7 +59945,7 @@
         },
         {
           "excerpt": "\"rename\" => keep_or(\"feedback.error.rename\"),",
-          "line": 281,
+          "line": 294,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59930,7 +59967,7 @@
       "call_sites": [
         {
           "excerpt": "\"rename-kept\" => Sentence::key(\"feedback.error.rename_kept\"),",
-          "line": 282,
+          "line": 295,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59952,7 +59989,7 @@
       "call_sites": [
         {
           "excerpt": "\"scan\" if share_gone(message) => Sentence::key(\"feedback.error.share_gone\"),",
-          "line": 275,
+          "line": 288,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59974,7 +60011,7 @@
       "call_sites": [
         {
           "excerpt": "\"scan\" if share_silent(message) => Sentence::key(\"feedback.error.share_silent\"),",
-          "line": 276,
+          "line": 289,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59996,7 +60033,7 @@
       "call_sites": [
         {
           "excerpt": "\"scan\" if share_stale(message) => Sentence::key(\"feedback.error.share_stale\"),",
-          "line": 274,
+          "line": 287,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60018,7 +60055,7 @@
       "call_sites": [
         {
           "excerpt": "\"sort\" => Sentence::key(\"feedback.error.sort\"),",
-          "line": 278,
+          "line": 291,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60040,7 +60077,7 @@
       "call_sites": [
         {
           "excerpt": "\"stale\" => Sentence::key(\"feedback.error.stale\"),",
-          "line": 290,
+          "line": 303,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60062,7 +60099,7 @@
       "call_sites": [
         {
           "excerpt": "\"state\" => Sentence::key(\"feedback.error.state\"),",
-          "line": 284,
+          "line": 297,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60084,7 +60121,7 @@
       "call_sites": [
         {
           "excerpt": "\"statefile\" => Sentence::key(\"feedback.error.statefile\"),",
-          "line": 285,
+          "line": 298,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60113,7 +60150,7 @@
         },
         {
           "excerpt": "\"read\" => Sentence::key(\"feedback.error.stopped\"),",
-          "line": 279,
+          "line": 292,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60135,7 +60172,7 @@
       "call_sites": [
         {
           "excerpt": "Sentence::key(\"feedback.error.taken\")",
-          "line": 267,
+          "line": 280,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60157,7 +60194,7 @@
       "call_sites": [
         {
           "excerpt": "\"trash\" => Sentence::key(\"feedback.error.trash\"),",
-          "line": 289,
+          "line": 302,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60179,7 +60216,7 @@
       "call_sites": [
         {
           "excerpt": "\"scan\" => pick(\"feedback.error.unread_named\", \"pane.unread\"),",
-          "line": 277,
+          "line": 290,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60335,7 +60372,7 @@
       "call_sites": [
         {
           "excerpt": "(\"address is already in use\", \"feedback.os.address_in_use\"),",
-          "line": 80,
+          "line": 82,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60357,7 +60394,7 @@
       "call_sites": [
         {
           "excerpt": "(\"address is unavailable\", \"feedback.os.address_unavailable\"),",
-          "line": 81,
+          "line": 83,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60379,7 +60416,7 @@
       "call_sites": [
         {
           "excerpt": "(\"already exists\", \"feedback.os.already_exists\"),",
-          "line": 75,
+          "line": 77,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60401,7 +60438,7 @@
       "call_sites": [
         {
           "excerpt": "(\"file or device is busy\", \"feedback.os.busy\"),",
-          "line": 96,
+          "line": 98,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60423,7 +60460,7 @@
       "call_sites": [
         {
           "excerpt": "(\"connection closed\", \"feedback.os.connection_closed\"),",
-          "line": 82,
+          "line": 84,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60445,7 +60482,7 @@
       "call_sites": [
         {
           "excerpt": "(\"connection ended\", \"feedback.os.connection_ended\"),",
-          "line": 78,
+          "line": 80,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60467,7 +60504,7 @@
       "call_sites": [
         {
           "excerpt": "(\"connection refused\", \"feedback.os.connection_refused\"),",
-          "line": 76,
+          "line": 78,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60489,7 +60526,7 @@
       "call_sites": [
         {
           "excerpt": "(\"connection reset\", \"feedback.os.connection_reset\"),",
-          "line": 77,
+          "line": 79,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60511,7 +60548,7 @@
       "call_sites": [
         {
           "excerpt": "\"feedback.os.could_not_finish\",",
-          "line": 118,
+          "line": 120,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60533,7 +60570,7 @@
       "call_sites": [
         {
           "excerpt": "\"feedback.os.cross_device\",",
-          "line": 99,
+          "line": 101,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60555,7 +60592,7 @@
       "call_sites": [
         {
           "excerpt": "(\"the drive is full\", \"feedback.os.full\"),",
-          "line": 109,
+          "line": 111,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60577,7 +60614,7 @@
       "call_sites": [
         {
           "excerpt": "(\"operation was interrupted\", \"feedback.os.interrupted\"),",
-          "line": 88,
+          "line": 90,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60599,7 +60636,7 @@
       "call_sites": [
         {
           "excerpt": "(\"invalid data\", \"feedback.os.invalid_data\"),",
-          "line": 85,
+          "line": 87,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60621,7 +60658,7 @@
       "call_sites": [
         {
           "excerpt": "(\"invalid input\", \"feedback.os.invalid_input\"),",
-          "line": 84,
+          "line": 86,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60643,7 +60680,7 @@
       "call_sites": [
         {
           "excerpt": "\"feedback.os.io\",",
-          "line": 94,
+          "line": 96,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60665,7 +60702,7 @@
       "call_sites": [
         {
           "excerpt": "(\"item is a folder\", \"feedback.os.is_a_folder\"),",
-          "line": 106,
+          "line": 108,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60687,7 +60724,7 @@
       "call_sites": [
         {
           "excerpt": "(\"that name is too long\", \"feedback.os.name_too_long\"),",
-          "line": 111,
+          "line": 113,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60709,7 +60746,7 @@
       "call_sites": [
         {
           "excerpt": "(\"the drive is unavailable\", \"feedback.os.no_device\"),",
-          "line": 101,
+          "line": 103,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60731,7 +60768,7 @@
       "call_sites": [
         {
           "excerpt": "\"feedback.os.not_a_folder\",",
-          "line": 104,
+          "line": 106,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60753,7 +60790,7 @@
       "call_sites": [
         {
           "excerpt": "(\"not connected\", \"feedback.os.not_connected\"),",
-          "line": 79,
+          "line": 81,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60775,7 +60812,7 @@
       "call_sites": [
         {
           "excerpt": "(\"folder is not empty\", \"feedback.os.not_empty\"),",
-          "line": 112,
+          "line": 114,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60797,7 +60834,7 @@
       "call_sites": [
         {
           "excerpt": "(\"item not found\", \"feedback.os.not_found\"),",
-          "line": 73,
+          "line": 75,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60819,7 +60856,7 @@
       "call_sites": [
         {
           "excerpt": "(\"not enough memory\", \"feedback.os.out_of_memory\"),",
-          "line": 91,
+          "line": 93,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60841,7 +60878,7 @@
       "call_sites": [
         {
           "excerpt": "(\"permission denied\", \"feedback.os.permission_denied\"),",
-          "line": 74,
+          "line": 76,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60863,7 +60900,7 @@
       "call_sites": [
         {
           "excerpt": "(\"storage quota exceeded\", \"feedback.os.quota\"),",
-          "line": 115,
+          "line": 117,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60885,7 +60922,7 @@
       "call_sites": [
         {
           "excerpt": "(\"the drive is read-only\", \"feedback.os.read_only\"),",
-          "line": 110,
+          "line": 112,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60907,7 +60944,7 @@
       "call_sites": [
         {
           "excerpt": "(\"file is no longer available\", \"feedback.os.stale\"),",
-          "line": 114,
+          "line": 116,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60929,7 +60966,7 @@
       "call_sites": [
         {
           "excerpt": "(\"operation timed out\", \"feedback.os.timed_out\"),",
-          "line": 86,
+          "line": 88,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60951,7 +60988,7 @@
       "call_sites": [
         {
           "excerpt": "(\"file is too large\", \"feedback.os.too_large\"),",
-          "line": 108,
+          "line": 110,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60973,7 +61010,7 @@
       "call_sites": [
         {
           "excerpt": "(\"the path has too many links\", \"feedback.os.too_many_links\"),",
-          "line": 113,
+          "line": 115,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -60995,7 +61032,7 @@
       "call_sites": [
         {
           "excerpt": "(\"too many files are open\", \"feedback.os.too_many_open\"),",
-          "line": 107,
+          "line": 109,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -61017,7 +61054,7 @@
       "call_sites": [
         {
           "excerpt": "(\"file ended unexpectedly\", \"feedback.os.unexpected_eof\"),",
-          "line": 90,
+          "line": 92,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -61039,7 +61076,7 @@
       "call_sites": [
         {
           "excerpt": "(\"operation is not supported\", \"feedback.os.unsupported\"),",
-          "line": 89,
+          "line": 91,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -61061,7 +61098,7 @@
       "call_sites": [
         {
           "excerpt": "(\"the item is busy; try again\", \"feedback.os.would_block\"),",
-          "line": 83,
+          "line": 85,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -61083,7 +61120,7 @@
       "call_sites": [
         {
           "excerpt": "(\"could not write all data\", \"feedback.os.write_zero\"),",
-          "line": 87,
+          "line": 89,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -61249,6 +61286,236 @@
       "resolved_sha256": "80d649a60177c0ce721c465097b27b68fe4db2d90c9e59958d513ac254a5f267",
       "resolved_source_hash": "4fd58e257386",
       "source_hash": "4fd58e257386"
+    },
+    "feedback.unheld.copy_many": {
+      "call_sites": [
+        {
+          "excerpt": "\"feedback.unheld.copy_many\",",
+          "line": 48,
+          "path": "src/ui_logic_status_feedback/unheld.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "feedback.unheld.copy_many: src/ui_logic_status_feedback/unheld.rs:30",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": {
+        "one": "%1 item inside could not be copied; the first is %2: %3",
+        "other": "%1 items inside could not be copied; the first is %2: %3"
+      },
+      "kind": "plural",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1",
+        "%2",
+        "%3"
+      ],
+      "plural_categories": [
+        "one",
+        "other"
+      ],
+      "resolved_english": {
+        "one": "%1 item inside could not be copied; the first is %2: %3",
+        "other": "%1 items inside could not be copied; the first is %2: %3"
+      },
+      "resolved_sha256": "bdb7f4e750daddfbcf0eee4a88525a37b9a7627ac9d2283e32a52f9a223a4d12",
+      "resolved_source_hash": "55f23ae36a0e",
+      "source_hash": "55f23ae36a0e"
+    },
+    "feedback.unheld.copy_one": {
+      "call_sites": [
+        {
+          "excerpt": "\"feedback.unheld.copy_one\",",
+          "line": 47,
+          "path": "src/ui_logic_status_feedback/unheld.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "feedback.unheld.copy_one: src/ui_logic_status_feedback/unheld.rs:30",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "%1 could not be copied: %2",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1",
+        "%2"
+      ],
+      "plural_categories": [],
+      "resolved_english": "%1 could not be copied: %2",
+      "resolved_sha256": "dd2e08f7c770ee01e43993b9e05114734c34d602f27d39effea632aad83fc763",
+      "resolved_source_hash": "ca37149d405a",
+      "source_hash": "ca37149d405a"
+    },
+    "feedback.unheld.links": {
+      "call_sites": [
+        {
+          "excerpt": "(\"this drive cannot hold links\", \"feedback.unheld.links\"),",
+          "line": 5,
+          "path": "src/ui_logic_status_feedback/unheld.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "feedback.unheld.links: src/ui_logic_status_feedback/unheld.rs:5",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "This drive cannot hold links.",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "This drive cannot hold links.",
+      "resolved_sha256": "578c4f81d85ec5c31e6b2edd6c935425d7f3f1c7c04dd350e63c8a454f1ddf19",
+      "resolved_source_hash": "fec1f4b11043",
+      "source_hash": "fec1f4b11043"
+    },
+    "feedback.unheld.long": {
+      "call_sites": [
+        {
+          "excerpt": "\"feedback.unheld.long\",",
+          "line": 16,
+          "path": "src/ui_logic_status_feedback/unheld.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "feedback.unheld.long: src/ui_logic_status_feedback/unheld.rs:8",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "That name is too long for this drive.",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "That name is too long for this drive.",
+      "resolved_sha256": "8b933621d9c444e90caa79b0209442f37ce4d020f656f6bd6f9b6eb224b9ea73",
+      "resolved_source_hash": "78299765905f",
+      "source_hash": "78299765905f"
+    },
+    "feedback.unheld.move_many": {
+      "call_sites": [
+        {
+          "excerpt": "\"feedback.unheld.move_many\",",
+          "line": 53,
+          "path": "src/ui_logic_status_feedback/unheld.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "feedback.unheld.move_many: src/ui_logic_status_feedback/unheld.rs:31",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": {
+        "one": "%1 item inside could not be moved; the first is %2: %3",
+        "other": "%1 items inside could not be moved; the first is %2: %3"
+      },
+      "kind": "plural",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1",
+        "%2",
+        "%3"
+      ],
+      "plural_categories": [
+        "one",
+        "other"
+      ],
+      "resolved_english": {
+        "one": "%1 item inside could not be moved; the first is %2: %3",
+        "other": "%1 items inside could not be moved; the first is %2: %3"
+      },
+      "resolved_sha256": "7a0b09e5e8c629184948a87810f653c86ec6291e8547c1f53d494a7b32ecc51c",
+      "resolved_source_hash": "f7ded9b2000a",
+      "source_hash": "f7ded9b2000a"
+    },
+    "feedback.unheld.move_one": {
+      "call_sites": [
+        {
+          "excerpt": "\"feedback.unheld.move_one\",",
+          "line": 52,
+          "path": "src/ui_logic_status_feedback/unheld.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "feedback.unheld.move_one: src/ui_logic_status_feedback/unheld.rs:31",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "%1 could not be moved: %2",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1",
+        "%2"
+      ],
+      "plural_categories": [],
+      "resolved_english": "%1 could not be moved: %2",
+      "resolved_sha256": "133301e409481e45c8c8a91bd14b23daa4680b83ae0337baf18a7b8d80881fd5",
+      "resolved_source_hash": "db557d784d75",
+      "source_hash": "db557d784d75"
+    },
+    "feedback.unheld.name": {
+      "call_sites": [
+        {
+          "excerpt": "\"feedback.unheld.name\",",
+          "line": 12,
+          "path": "src/ui_logic_status_feedback/unheld.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "feedback.unheld.name: src/ui_logic_status_feedback/unheld.rs:7",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "This drive does not allow that name.",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "This drive does not allow that name.",
+      "resolved_sha256": "2f8061445aac22510f227ef822b3d1fcf5d79de971e00daf6e2614cd7c6a7972",
+      "resolved_source_hash": "8bf53d4836d5",
+      "source_hash": "8bf53d4836d5"
+    },
+    "feedback.unheld.nodes": {
+      "call_sites": [
+        {
+          "excerpt": "\"feedback.unheld.nodes\",",
+          "line": 8,
+          "path": "src/ui_logic_status_feedback/unheld.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "feedback.unheld.nodes: src/ui_logic_status_feedback/unheld.rs:6",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "This drive cannot hold special files.",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "This drive cannot hold special files.",
+      "resolved_sha256": "09cc05a627d680320ad6be8881a8f0131fde275dfad71eb16f12186b463a12dd",
+      "resolved_source_hash": "3beefbf4e9f9",
+      "source_hash": "3beefbf4e9f9"
+    },
+    "feedback.unheld.taken": {
+      "call_sites": [
+        {
+          "excerpt": "\"feedback.unheld.taken\",",
+          "line": 20,
+          "path": "src/ui_logic_status_feedback/unheld.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "feedback.unheld.taken: src/ui_logic_status_feedback/unheld.rs:9",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "This drive treats that name as the same as another in the folder.",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "This drive treats that name as the same as another in the folder.",
+      "resolved_sha256": "5f098fc63bb87211decacee22bfd11d227e0e93f268927a01a59eed5bc76e514",
+      "resolved_source_hash": "f97c714c253f",
+      "source_hash": "f97c714c253f"
     },
     "feedback.verdict.background": {
       "call_sites": [
@@ -75234,7 +75501,7 @@
         },
         {
           "excerpt": "Sentence::key(\"menu.refusal.empty_clipboard\")",
-          "line": 302,
+          "line": 315,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -77701,6 +77968,28 @@
       "resolved_sha256": "c24f1bce0d9fea4e0bc25d9d2cdd4e6063d324756be32217e667552ff5156ce4",
       "resolved_source_hash": "00271ff95f27",
       "source_hash": "00271ff95f27"
+    },
+    "mime.plain": {
+      "call_sites": [
+        {
+          "excerpt": "Some(catalog.tr(\"mime.plain\"))",
+          "line": 79,
+          "path": "src/backend/kind.rs",
+          "surface": "core/backend",
+          "usage": "translated-call"
+        }
+      ],
+      "context": "mime.plain: src/i18n/mod.rs:159",
+      "coverage": "existing-translated-call",
+      "english": "Plain text document",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "Plain text document",
+      "resolved_sha256": "a51033c29bb6e0a6f22ea302d0d21337aa5f59611d4507f0510f0461c69af4d2",
+      "resolved_source_hash": "3c1deb0731b7",
+      "source_hash": "3c1deb0731b7"
     },
     "mime.png": {
       "call_sites": [
@@ -80937,7 +81226,7 @@
         },
         {
           "excerpt": "\"scan\" if denied(place, message) => pick(\"feedback.error.denied_named\", \"pane.locked\"),",
-          "line": 273,
+          "line": 286,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -80966,7 +81255,7 @@
         },
         {
           "excerpt": "catalog.tr_args(\"pane.permissions_other_owner\", &[&drawn])",
-          "line": 352,
+          "line": 365,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -81197,7 +81486,7 @@
         },
         {
           "excerpt": "\"scan\" => pick(\"feedback.error.unread_named\", \"pane.unread\"),",
-          "line": 277,
+          "line": 290,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -143233,7 +143522,7 @@
     },
     {
       "excerpt": "\"<?xml version=\\\"1.0\\\" encoding=\\\"utf-8\\\"?>\\n\",",
-      "line": 91,
+      "line": 124,
       "literal": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n",
       "owner": "controller",
       "path": "src/backend/kind.rs",
@@ -143242,7 +143531,7 @@
     },
     {
       "excerpt": "\"<mime-type xmlns=\\\"http://www.freedesktop.org/standards/shared-mime-info\\\" type=\\\"application/msword\\\">\\n\",",
-      "line": 92,
+      "line": 125,
       "literal": "<mime-type xmlns=\"http://www.freedesktop.org/standards/shared-mime-info\" type=\"application/msword\">\n",
       "owner": "controller",
       "path": "src/backend/kind.rs",
@@ -143251,7 +143540,7 @@
     },
     {
       "excerpt": "\"  <comment xml:lang=\\\"zh-Hant-TW\\\">Word 文件</comment>\\n\",",
-      "line": 93,
+      "line": 126,
       "literal": "  <comment xml:lang=\"zh-Hant-TW\">Word 文件</comment>\n",
       "owner": "controller",
       "path": "src/backend/kind.rs",
@@ -143260,7 +143549,7 @@
     },
     {
       "excerpt": "\"  <comment xml:lang=\\\"vi\\\">Tài liệu Word</comment>\\n\",",
-      "line": 94,
+      "line": 127,
       "literal": "  <comment xml:lang=\"vi\">Tài liệu Word</comment>\n",
       "owner": "controller",
       "path": "src/backend/kind.rs",
@@ -143269,7 +143558,7 @@
     },
     {
       "excerpt": "\"  <comment>Word document</comment>\\n\",",
-      "line": 95,
+      "line": 128,
       "literal": "  <comment>Word document</comment>\n",
       "owner": "controller",
       "path": "src/backend/kind.rs",
@@ -143277,8 +143566,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "assert_eq!(first_untranslated_comment(MSWORD_SHAPED).as_deref(), Some(\"Word document\"));",
-      "line": 101,
+      "excerpt": "Some(\"Word document\")",
+      "line": 136,
       "literal": "Word document",
       "owner": "controller",
       "path": "src/backend/kind.rs",
@@ -143287,7 +143576,7 @@
     },
     {
       "excerpt": "let translated_only = \"<mime-type type=\\\"application/x-thing\\\">\\n  <comment xml:lang=\\\"de\\\">Datei</comment>\\n</mime-type>\\n\";",
-      "line": 106,
+      "line": 142,
       "literal": "<mime-type type=\"application/x-thing\">\n  <comment xml:lang=\"de\">Datei</comment>\n</mime-type>\n",
       "owner": "controller",
       "path": "src/backend/kind.rs",
@@ -143295,8 +143584,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "let jpeg = db.comment(\"image/jpeg\").expect(\"shared-mime-info is a hard dependency and ships image/jpeg\");",
-      "line": 120,
+      "excerpt": ".expect(\"shared-mime-info is a hard dependency and ships image/jpeg\");",
+      "line": 158,
       "literal": "shared-mime-info is a hard dependency and ships image/jpeg",
       "owner": "controller",
       "path": "src/backend/kind.rs",
@@ -143304,8 +143593,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "let msword = db.comment(\"application/msword\").expect(\"shared-mime-info ships application/msword\");",
-      "line": 123,
+      "excerpt": ".expect(\"shared-mime-info ships application/msword\");",
+      "line": 163,
       "literal": "shared-mime-info ships application/msword",
       "owner": "controller",
       "path": "src/backend/kind.rs",
@@ -143314,7 +143603,7 @@
     },
     {
       "excerpt": "assert!(msword.is_ascii(), \"got a translated comment: {msword}\");",
-      "line": 124,
+      "line": 164,
       "literal": "got a translated comment: {msword}",
       "owner": "controller",
       "path": "src/backend/kind.rs",
@@ -143323,7 +143612,7 @@
     },
     {
       "excerpt": "let mut db = Kinds::from_pairs(&[(\"text/plain\", Some(\"Plain Text Document\"))]);",
-      "line": 139,
+      "line": 179,
       "literal": "Plain Text Document",
       "owner": "controller",
       "path": "src/backend/kind.rs",
@@ -143331,8 +143620,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "assert_eq!(db.comment(\"text/plain\").as_deref(), Some(\"Plain Text Document\"));",
-      "line": 140,
+      "excerpt": "Some(\"Plain Text Document\")",
+      "line": 182,
       "literal": "Plain Text Document",
       "owner": "controller",
       "path": "src/backend/kind.rs",
@@ -188629,7 +188918,7 @@
     },
     {
       "excerpt": "(\"item not found\", \"feedback.os.not_found\"),",
-      "line": 73,
+      "line": 75,
       "literal": "item not found",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188638,7 +188927,7 @@
     },
     {
       "excerpt": "(\"permission denied\", \"feedback.os.permission_denied\"),",
-      "line": 74,
+      "line": 76,
       "literal": "permission denied",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188647,7 +188936,7 @@
     },
     {
       "excerpt": "(\"already exists\", \"feedback.os.already_exists\"),",
-      "line": 75,
+      "line": 77,
       "literal": "already exists",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188656,7 +188945,7 @@
     },
     {
       "excerpt": "(\"connection refused\", \"feedback.os.connection_refused\"),",
-      "line": 76,
+      "line": 78,
       "literal": "connection refused",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188665,7 +188954,7 @@
     },
     {
       "excerpt": "(\"connection reset\", \"feedback.os.connection_reset\"),",
-      "line": 77,
+      "line": 79,
       "literal": "connection reset",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188674,7 +188963,7 @@
     },
     {
       "excerpt": "(\"connection ended\", \"feedback.os.connection_ended\"),",
-      "line": 78,
+      "line": 80,
       "literal": "connection ended",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188683,7 +188972,7 @@
     },
     {
       "excerpt": "(\"not connected\", \"feedback.os.not_connected\"),",
-      "line": 79,
+      "line": 81,
       "literal": "not connected",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188692,7 +188981,7 @@
     },
     {
       "excerpt": "(\"address is already in use\", \"feedback.os.address_in_use\"),",
-      "line": 80,
+      "line": 82,
       "literal": "address is already in use",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188701,7 +188990,7 @@
     },
     {
       "excerpt": "(\"address is unavailable\", \"feedback.os.address_unavailable\"),",
-      "line": 81,
+      "line": 83,
       "literal": "address is unavailable",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188710,7 +188999,7 @@
     },
     {
       "excerpt": "(\"connection closed\", \"feedback.os.connection_closed\"),",
-      "line": 82,
+      "line": 84,
       "literal": "connection closed",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188719,7 +189008,7 @@
     },
     {
       "excerpt": "(\"the item is busy; try again\", \"feedback.os.would_block\"),",
-      "line": 83,
+      "line": 85,
       "literal": "the item is busy; try again",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188728,7 +189017,7 @@
     },
     {
       "excerpt": "(\"invalid input\", \"feedback.os.invalid_input\"),",
-      "line": 84,
+      "line": 86,
       "literal": "invalid input",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188737,7 +189026,7 @@
     },
     {
       "excerpt": "(\"invalid data\", \"feedback.os.invalid_data\"),",
-      "line": 85,
+      "line": 87,
       "literal": "invalid data",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188746,7 +189035,7 @@
     },
     {
       "excerpt": "(\"operation timed out\", \"feedback.os.timed_out\"),",
-      "line": 86,
+      "line": 88,
       "literal": "operation timed out",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188755,7 +189044,7 @@
     },
     {
       "excerpt": "(\"could not write all data\", \"feedback.os.write_zero\"),",
-      "line": 87,
+      "line": 89,
       "literal": "could not write all data",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188764,7 +189053,7 @@
     },
     {
       "excerpt": "(\"operation was interrupted\", \"feedback.os.interrupted\"),",
-      "line": 88,
+      "line": 90,
       "literal": "operation was interrupted",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188773,7 +189062,7 @@
     },
     {
       "excerpt": "(\"operation is not supported\", \"feedback.os.unsupported\"),",
-      "line": 89,
+      "line": 91,
       "literal": "operation is not supported",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188782,7 +189071,7 @@
     },
     {
       "excerpt": "(\"file ended unexpectedly\", \"feedback.os.unexpected_eof\"),",
-      "line": 90,
+      "line": 92,
       "literal": "file ended unexpectedly",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188791,7 +189080,7 @@
     },
     {
       "excerpt": "(\"not enough memory\", \"feedback.os.out_of_memory\"),",
-      "line": 91,
+      "line": 93,
       "literal": "not enough memory",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188800,7 +189089,7 @@
     },
     {
       "excerpt": "\"the drive could not read or write the data\",",
-      "line": 93,
+      "line": 95,
       "literal": "the drive could not read or write the data",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188809,7 +189098,7 @@
     },
     {
       "excerpt": "(\"file or device is busy\", \"feedback.os.busy\"),",
-      "line": 96,
+      "line": 98,
       "literal": "file or device is busy",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188818,7 +189107,7 @@
     },
     {
       "excerpt": "\"the source and destination are on different drives\",",
-      "line": 98,
+      "line": 100,
       "literal": "the source and destination are on different drives",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188827,7 +189116,7 @@
     },
     {
       "excerpt": "(\"the drive is unavailable\", \"feedback.os.no_device\"),",
-      "line": 101,
+      "line": 103,
       "literal": "the drive is unavailable",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188836,7 +189125,7 @@
     },
     {
       "excerpt": "\"part of the path is not a folder\",",
-      "line": 103,
+      "line": 105,
       "literal": "part of the path is not a folder",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188845,7 +189134,7 @@
     },
     {
       "excerpt": "(\"item is a folder\", \"feedback.os.is_a_folder\"),",
-      "line": 106,
+      "line": 108,
       "literal": "item is a folder",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188854,7 +189143,7 @@
     },
     {
       "excerpt": "(\"too many files are open\", \"feedback.os.too_many_open\"),",
-      "line": 107,
+      "line": 109,
       "literal": "too many files are open",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188863,7 +189152,7 @@
     },
     {
       "excerpt": "(\"file is too large\", \"feedback.os.too_large\"),",
-      "line": 108,
+      "line": 110,
       "literal": "file is too large",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188872,7 +189161,7 @@
     },
     {
       "excerpt": "(\"the drive is full\", \"feedback.os.full\"),",
-      "line": 109,
+      "line": 111,
       "literal": "the drive is full",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188881,7 +189170,7 @@
     },
     {
       "excerpt": "(\"the drive is read-only\", \"feedback.os.read_only\"),",
-      "line": 110,
+      "line": 112,
       "literal": "the drive is read-only",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188890,7 +189179,7 @@
     },
     {
       "excerpt": "(\"that name is too long\", \"feedback.os.name_too_long\"),",
-      "line": 111,
+      "line": 113,
       "literal": "that name is too long",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188899,7 +189188,7 @@
     },
     {
       "excerpt": "(\"folder is not empty\", \"feedback.os.not_empty\"),",
-      "line": 112,
+      "line": 114,
       "literal": "folder is not empty",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188908,7 +189197,7 @@
     },
     {
       "excerpt": "(\"the path has too many links\", \"feedback.os.too_many_links\"),",
-      "line": 113,
+      "line": 115,
       "literal": "the path has too many links",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188917,7 +189206,7 @@
     },
     {
       "excerpt": "(\"file is no longer available\", \"feedback.os.stale\"),",
-      "line": 114,
+      "line": 116,
       "literal": "file is no longer available",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188926,7 +189215,7 @@
     },
     {
       "excerpt": "(\"storage quota exceeded\", \"feedback.os.quota\"),",
-      "line": 115,
+      "line": 117,
       "literal": "storage quota exceeded",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188935,7 +189224,7 @@
     },
     {
       "excerpt": "\"the operation could not finish\",",
-      "line": 117,
+      "line": 119,
       "literal": "the operation could not finish",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188944,7 +189233,7 @@
     },
     {
       "excerpt": "const TWINS_TAIL: &str = \"' would take one name on this drive, so nothing was extracted\";",
-      "line": 166,
+      "line": 179,
       "literal": "' would take one name on this drive, so nothing was extracted",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188953,7 +189242,7 @@
     },
     {
       "excerpt": "const REFUSED_AT: &str = \"' cannot be extracted onto this drive: \";",
-      "line": 167,
+      "line": 180,
       "literal": "' cannot be extracted onto this drive: ",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188962,7 +189251,7 @@
     },
     {
       "excerpt": "text.contains(\"file exists\") || text.contains(\"already exists\")",
-      "line": 215,
+      "line": 228,
       "literal": "file exists",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188971,7 +189260,7 @@
     },
     {
       "excerpt": "text.contains(\"file exists\") || text.contains(\"already exists\")",
-      "line": 215,
+      "line": 228,
       "literal": "already exists",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188980,7 +189269,7 @@
     },
     {
       "excerpt": "\"is not allowed in a name\",",
-      "line": 225,
+      "line": 238,
       "literal": "is not allowed in a name",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188989,7 +189278,7 @@
     },
     {
       "excerpt": "\"is reserved on this\",",
-      "line": 226,
+      "line": 239,
       "literal": "is reserved on this",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -188998,7 +189287,7 @@
     },
     {
       "excerpt": "\"cannot end in a dot\",",
-      "line": 227,
+      "line": 240,
       "literal": "cannot end in a dot",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -189007,7 +189296,7 @@
     },
     {
       "excerpt": "\"cannot end in a space\",",
-      "line": 228,
+      "line": 241,
       "literal": "cannot end in a space",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -189016,7 +189305,7 @@
     },
     {
       "excerpt": "\"cannot hold control character\",",
-      "line": 229,
+      "line": 242,
       "literal": "cannot hold control character",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -189025,7 +189314,7 @@
     },
     {
       "excerpt": "place == \"scan\" && lower(message).contains(\"permission denied\")",
-      "line": 237,
+      "line": 250,
       "literal": "permission denied",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -189034,7 +189323,7 @@
     },
     {
       "excerpt": "text.contains(\"stale\") || text.contains(\"no longer available\")",
-      "line": 242,
+      "line": 255,
       "literal": "no longer available",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -189043,7 +189332,7 @@
     },
     {
       "excerpt": "lower(message).contains(\"not connected\")",
-      "line": 246,
+      "line": 259,
       "literal": "not connected",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -189052,7 +189341,7 @@
     },
     {
       "excerpt": "text.contains(\"timed out\") || text.contains(\"timeout\")",
-      "line": 251,
+      "line": 264,
       "literal": "timed out",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -189061,7 +189350,7 @@
     },
     {
       "excerpt": "\"archive\" if message == \"the backend is not running\" => pick(",
-      "line": 291,
+      "line": 304,
       "literal": "the backend is not running",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -189070,7 +189359,7 @@
     },
     {
       "excerpt": ".eq_ignore_ascii_case(\"the clipboard holds no image\") =>",
-      "line": 300,
+      "line": 313,
       "literal": "the clipboard holds no image",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -189079,7 +189368,7 @@
     },
     {
       "excerpt": "\"transfer\" | \"archive\" | \"convert\" | \"link\" | \"linktarget\" | \"rename-stranded\"",
-      "line": 304,
+      "line": 317,
       "literal": "link",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -189119,6 +189408,69 @@
       "literal": "copied, but the drive did not confirm the folder",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/status.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "(\"this drive cannot hold links\", \"feedback.unheld.links\"),",
+      "line": 5,
+      "literal": "this drive cannot hold links",
+      "owner": "controller",
+      "path": "src/ui_logic_status_feedback/unheld.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"this drive cannot hold special files\",",
+      "line": 7,
+      "literal": "this drive cannot hold special files",
+      "owner": "controller",
+      "path": "src/ui_logic_status_feedback/unheld.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"this drive does not allow that name\",",
+      "line": 11,
+      "literal": "this drive does not allow that name",
+      "owner": "controller",
+      "path": "src/ui_logic_status_feedback/unheld.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"that name is too long for this drive\",",
+      "line": 15,
+      "literal": "that name is too long for this drive",
+      "owner": "controller",
+      "path": "src/ui_logic_status_feedback/unheld.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"this drive treats that name as the same as another in the folder\",",
+      "line": 19,
+      "literal": "this drive treats that name as the same as another in the folder",
+      "owner": "controller",
+      "path": "src/ui_logic_status_feedback/unheld.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "if let Some(path) = summary.strip_suffix(&format!(\" could not be {verb}\")) {",
+      "line": 56,
+      "literal": " could not be {verb}",
+      "owner": "controller",
+      "path": "src/ui_logic_status_feedback/unheld.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "let marker = format!(\" items inside could not be {verb}; the first is \");",
+      "line": 64,
+      "literal": " items inside could not be {verb}; the first is ",
+      "owner": "controller",
+      "path": "src/ui_logic_status_feedback/unheld.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "core/backend"
     },
@@ -252437,7 +252789,7 @@
     "crates/flea-gui/src/g2/settings_pages/input/session.rs": "97df33d49bacdc16fcf51a09e8020907e6fe9fe61a7ab792a1cbf2c953383895",
     "crates/flea-gui/src/g2/settings_pages/input_host.rs": "10514bff1111b04075442a5d2116a73f14cf43f3684d28c0e808faa8095aa6e1",
     "crates/flea-gui/src/g2/settings_pages/marks.rs": "4d0cce0fd6ba4aca53a7cbb0bab9f0ca238f9c014f2063e58c31966e0c113daa",
-    "crates/flea-gui/src/g2/settings_pages/mod.rs": "52773d3a8710f5d61e5e49b88192767cdf93789a29a95f33b789f0f4501c4229",
+    "crates/flea-gui/src/g2/settings_pages/mod.rs": "f9294c1c2de07cc6a0ed741df79d35227e6fb2fd55ba6697f0bfe61cb8d1cdf7",
     "crates/flea-gui/src/g2/settings_pages/panel.rs": "c1c8034bb3329677757a8337a55303e6d1e2098271cd89c83dece49b5f455f4f",
     "crates/flea-gui/src/g2/settings_pages/panel/scroll.rs": "6c87253c4f63c6d4d198acb9d2099a974f51a7a0988ee887b12727faaa88a0d2",
     "crates/flea-gui/src/g2/settings_pages/panel/search_keys.rs": "434c43413b154e492bbe43d464767aff678d7021ba4ec926a23333779f040fe3",
@@ -252450,9 +252802,9 @@
     "crates/flea-gui/src/g2/settings_pages/sheet_view.rs": "2203e4e9f118d3aa7878327f0bdade6aa05fcc56815863fd48dc33836c0ff020",
     "crates/flea-gui/src/g2/settings_pages/sheet_view/scroll.rs": "3f105801994ad253c9b7f53755d76894fa560c3612d6d731a8283ccd4dcbc526",
     "crates/flea-gui/src/g2/settings_pages/view.rs": "2ee96427b5e844d5198b4f3dbdbd67c30be92a612d9f770b9b843c181c960795",
-    "crates/flea-gui/src/g2/settings_pages/view_head.rs": "b9bbe2a91b60df69cbddba0b7b13b827acef4f2ad1d23c6b10a654df5d02ac7b",
+    "crates/flea-gui/src/g2/settings_pages/view_head.rs": "9870111090ba197a8034e9325de54587b32448d4a061553e16b08c43228650b7",
     "crates/flea-gui/src/g2/settings_pages/wheel.rs": "f87bf87c2c33d7348a5d1aa13c1349837ea20c8fd7f2673f841d37f75eccd041",
-    "crates/flea-gui/src/g2/settings_pages/wrap.rs": "6f1cfc287d48cc19552ec55c0cbc7d1e4b166c4a20ec0e00677f7f962def26d1",
+    "crates/flea-gui/src/g2/settings_pages/wrap.rs": "8dc99cd4b4d5d02902c0bc288920a5dff5c60ca2b082afc9e9e089814aa8c487",
     "crates/flea-gui/src/g2/status_feedback/brand.rs": "6a7ff5f2adb6ebc3c7d46fa033540c3d30fa7c86d553d15a3fa9d7ef9ecc0512",
     "crates/flea-gui/src/g2/status_feedback/caption.rs": "31c78db69eb21a131024aedc7c47b2d7ed9ab0c66f3e53170a69a9f7a5b8558e",
     "crates/flea-gui/src/g2/status_feedback/empty_omi.rs": "89cdcdc35f70cf5103d4d5b53387c4d49e2e5f712ae64b45ef3c22ecbcd1db29",
@@ -253136,7 +253488,7 @@
     "src/backend/jobwork.rs": "3885498b08aef09228c1eb357a187fc4f7c661a020eaa6e223ce5652c26cee62",
     "src/backend/journalgate.rs": "120f78481580dabc64dd13079b84c1f2d3f1efcf73028981e4b21edf93aa4e11",
     "src/backend/jump.rs": "4cd6727a1d7a6a39888933bf3612010dc189a56006c591fa12da82ab1e572c38",
-    "src/backend/kind.rs": "29cc369380abd40ae283efe5221ce3c7d6cbddc06779bb1d7dbccecb770b1322",
+    "src/backend/kind.rs": "102e2656ef608d6a4156716aa80a039c7d100f2e647b4e33f379f8583543b9d5",
     "src/backend/kind_comments.rs": "f5f621246f0a4ef50426490a0d3d24278564b5f8adfbd634ef1ae362613e35dc",
     "src/backend/landed.rs": "723e6fde48e340644213e3b1c8ddb554af989b673f768c51e06c2b3318d523c1",
     "src/backend/lazy.rs": "7004a94fcc2c18a9f37efd26e51df054fe879b60ec9829660181b658b2dfefe6",
@@ -253937,12 +254289,13 @@
     "src/ui_logic_status_feedback.rs": "239fb7a987ea5667a69e370377f394265ec1a6e630d7f33b55f81fa5bea8b7fd",
     "src/ui_logic_status_feedback/drive_names.rs": "d68de6e728f37524896d7315c924decb14fbba43bf6cbce445e071cc0a5bfefe",
     "src/ui_logic_status_feedback/empty.rs": "ac53114bb2370486a62a310eae5f438e9bdf3afa8f0fcd761d4384e45b6d7e9f",
-    "src/ui_logic_status_feedback/errors.rs": "afb022112fa5e7a18ad0374ed24b6381b7a63f0bf9800d15f2f666fa8218e974",
+    "src/ui_logic_status_feedback/errors.rs": "307cb2d548cad3544f24d71cee6378b66a401a623d2367573b930cc40ca6aab3",
     "src/ui_logic_status_feedback/lane.rs": "cbfe288450e2d3a02f733511258547aaecfec5f274440e148d60b90270980fc1",
     "src/ui_logic_status_feedback/messages.rs": "09a5751d4242c307e5a859f3131ef02fd33cf8a19535a2f26b2b7044331345f1",
     "src/ui_logic_status_feedback/messages/arm.rs": "df040c99357a86061f60a6b41746b702c9c70ee34d00afd68b2fd03ac43857c3",
     "src/ui_logic_status_feedback/messages/line.rs": "97f7600464cc6081b230eda373e0f42d01667ed67b5b134719b610fa3ede65b4",
     "src/ui_logic_status_feedback/status.rs": "5b827f351fffbba16991497ca94bc3b33903355bc9c1b630148f71ccaa72cbc2",
+    "src/ui_logic_status_feedback/unheld.rs": "f0aac6565334c7588a60e71c3c73520a5648a51d4be241ab43d74dbc39b026bf",
     "src/ui_logic_trash_browser.rs": "ba57a1939bae3b8e6139fddfaa2baf81eae79aa6cc5a5ddd82680d0b7440ced0",
     "src/ui_logic_trash_browser/dates.rs": "2947c888a56c2ce9e78a478eaac46e63e187d05527acde4fd0f34c93e6c0cf1e",
     "src/ui_logic_trash_browser/dropping.rs": "8f296a04dea4814263d67a742a3b0bb468215c8ed11878802f4870dcf52b7cad",
@@ -254538,13 +254891,13 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "1737ad6496f593f2e6baa96f18572b4685ac80fc",
-  "source_sha": "1737ad6496f593f2e6baa96f18572b4685ac80fc",
+  "source_ref_sha": "c3d8f8a18949ad25546cdbe43d7f7fe2651f6b7b",
+  "source_sha": "c3d8f8a18949ad25546cdbe43d7f7fe2651f6b7b",
   "surface_coverage": {
     "core/backend": {
-      "keys_with_occurrences": 1360,
-      "missing_literal_candidates": 5754,
-      "source_files": 869
+      "keys_with_occurrences": 1370,
+      "missing_literal_candidates": 5761,
+      "source_files": 870
     },
     "generated/tooling": {
       "keys_with_occurrences": 156,

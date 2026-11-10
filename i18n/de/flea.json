@@ -2634,5 +2634,21 @@
   "settings.hint.key_reserved": "%1 bleibt unbelegt, weil Flea die Tastenfolge für sich reserviert.",
   "settings.hint.key_taken": "%1 bleibt unbelegt, weil %2 die Tastenfolge in dieser Voreinstellung bereits verwendet.",
   "settings.hint.key_unknown": "%1 bleibt unbelegt, weil Flea keine Aktion namens %2 hat.",
-  "mime.png": "PNG-Bild"
+  "mime.png": "PNG-Bild",
+  "mime.plain": "Einfaches Textdokument",
+  "feedback.unheld.links": "Dieses Laufwerk kann keine Verknüpfungen speichern.",
+  "feedback.unheld.nodes": "Dieses Laufwerk kann keine Spezialdateien speichern.",
+  "feedback.unheld.name": "Dieses Laufwerk erlaubt diesen Namen nicht.",
+  "feedback.unheld.long": "Dieser Name ist für dieses Laufwerk zu lang.",
+  "feedback.unheld.taken": "Dieses Laufwerk behandelt diesen Namen wie einen anderen im Ordner.",
+  "feedback.unheld.copy_one": "%1 konnte nicht kopiert werden: %2",
+  "feedback.unheld.move_one": "%1 konnte nicht verschoben werden: %2",
+  "feedback.unheld.copy_many": {
+    "one": "%1 Element darin konnte nicht kopiert werden; das erste ist %2: %3",
+    "other": "%1 Elemente darin konnten nicht kopiert werden; das erste ist %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "one": "%1 Element darin konnte nicht verschoben werden; das erste ist %2: %3",
+    "other": "%1 Elemente darin konnten nicht verschoben werden; das erste ist %2: %3"
+  }
 }

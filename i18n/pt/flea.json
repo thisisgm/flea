@@ -2745,5 +2745,23 @@
   "settings.hint.key_reserved": "%1 fica sem atribuição porque o Flea reserva esta sequência para si próprio.",
   "settings.hint.key_taken": "%1 fica sem atribuição porque %2 já utiliza esta sequência nesta predefinição.",
   "settings.hint.key_unknown": "%1 fica sem atribuição porque o Flea não tem nenhuma ação chamada %2.",
-  "mime.png": "imagem PNG"
+  "mime.png": "imagem PNG",
+  "mime.plain": "documento de texto simples",
+  "feedback.unheld.links": "Esta unidade não suporta ligações.",
+  "feedback.unheld.nodes": "Esta unidade não suporta ficheiros especiais.",
+  "feedback.unheld.name": "Esta unidade não permite esse nome.",
+  "feedback.unheld.long": "Esse nome é demasiado longo para esta unidade.",
+  "feedback.unheld.taken": "Esta unidade considera esse nome igual a outro na pasta.",
+  "feedback.unheld.copy_one": "Não foi possível copiar %1: %2",
+  "feedback.unheld.move_one": "Não foi possível mover %1: %2",
+  "feedback.unheld.copy_many": {
+    "one": "Não foi possível copiar %1 item no interior; o primeiro é %2: %3",
+    "other": "Não foi possível copiar %1 itens no interior; o primeiro é %2: %3",
+    "many": "Não foi possível copiar %1 itens no interior; o primeiro é %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "one": "Não foi possível mover %1 item no interior; o primeiro é %2: %3",
+    "other": "Não foi possível mover %1 itens no interior; o primeiro é %2: %3",
+    "many": "Não foi possível mover %1 itens no interior; o primeiro é %2: %3"
+  }
 }

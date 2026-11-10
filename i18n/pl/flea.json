@@ -2856,5 +2856,25 @@
   "settings.hint.key_reserved": "%1 pozostaje bez przypisania, ponieważ Flea rezerwuje tę sekwencję dla siebie.",
   "settings.hint.key_taken": "%1 pozostaje bez przypisania, ponieważ %2 już używa tej sekwencji w tym zestawie.",
   "settings.hint.key_unknown": "%1 pozostaje bez przypisania, ponieważ Flea nie ma działania o nazwie %2.",
-  "mime.png": "Obraz PNG"
+  "mime.png": "Obraz PNG",
+  "mime.plain": "Zwykły dokument tekstowy",
+  "feedback.unheld.links": "Ten dysk nie obsługuje dowiązań.",
+  "feedback.unheld.nodes": "Ten dysk nie obsługuje plików specjalnych.",
+  "feedback.unheld.name": "Ten dysk nie zezwala na tę nazwę.",
+  "feedback.unheld.long": "Ta nazwa jest zbyt długa dla tego dysku.",
+  "feedback.unheld.taken": "Ten dysk traktuje tę nazwę tak samo jak inną nazwę w folderze.",
+  "feedback.unheld.copy_one": "Nie udało się skopiować %1: %2",
+  "feedback.unheld.move_one": "Nie udało się przenieść %1: %2",
+  "feedback.unheld.copy_many": {
+    "few": "Nie udało się skopiować elementów wewnątrz (%1); pierwszy to %2: %3",
+    "many": "Nie udało się skopiować elementów wewnątrz (%1); pierwszy to %2: %3",
+    "one": "Nie udało się skopiować elementów wewnątrz (%1); pierwszy to %2: %3",
+    "other": "Nie udało się skopiować elementów wewnątrz (%1); pierwszy to %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "few": "Nie udało się przenieść elementów wewnątrz (%1); pierwszy to %2: %3",
+    "many": "Nie udało się przenieść elementów wewnątrz (%1); pierwszy to %2: %3",
+    "one": "Nie udało się przenieść elementów wewnątrz (%1); pierwszy to %2: %3",
+    "other": "Nie udało się przenieść elementów wewnątrz (%1); pierwszy to %2: %3"
+  }
 }

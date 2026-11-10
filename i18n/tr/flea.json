@@ -2634,5 +2634,21 @@
   "settings.hint.key_reserved": "Flea kendisi için ayırdığı için %1 tuş dizisi atanmamış kalır.",
   "settings.hint.key_taken": "Bu ön ayarda %2 zaten kullandığı için %1 tuş dizisi atanmamış kalır.",
   "settings.hint.key_unknown": "Flea içinde %2 adlı bir eylem olmadığı için %1 tuş dizisi atanmamış kalır.",
-  "mime.png": "PNG görüntüsü"
+  "mime.png": "PNG görüntüsü",
+  "mime.plain": "Düz metin belgesi",
+  "feedback.unheld.links": "Bu sürücü bağlantıları desteklemiyor.",
+  "feedback.unheld.nodes": "Bu sürücü özel dosyaları desteklemiyor.",
+  "feedback.unheld.name": "Bu sürücü bu ada izin vermiyor.",
+  "feedback.unheld.long": "Bu ad bu sürücü için çok uzun.",
+  "feedback.unheld.taken": "Bu sürücü bu adı klasördeki başka bir adla aynı kabul ediyor.",
+  "feedback.unheld.copy_one": "%1 kopyalanamadı: %2",
+  "feedback.unheld.move_one": "%1 taşınamadı: %2",
+  "feedback.unheld.copy_many": {
+    "one": "İçerideki %1 öge kopyalanamadı; ilki %2: %3",
+    "other": "İçerideki %1 öge kopyalanamadı; ilki %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "one": "İçerideki %1 öge taşınamadı; ilki %2: %3",
+    "other": "İçerideki %1 öge taşınamadı; ilki %2: %3"
+  }
 }

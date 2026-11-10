@@ -2523,5 +2523,19 @@
   "settings.hint.key_reserved": "%1 ยังคงไม่ถูกผูก เพราะ Flea สงวนลำดับปุ่มนี้ไว้ใช้เอง",
   "settings.hint.key_taken": "%1 ยังคงไม่ถูกผูก เพราะ %2 ใช้ลำดับปุ่มนี้อยู่แล้วในชุดปุ่มลัดนี้",
   "settings.hint.key_unknown": "%1 ยังคงไม่ถูกผูก เพราะ Flea ไม่มีการกระทำชื่อ %2",
-  "mime.png": "ภาพ PNG"
+  "mime.png": "ภาพ PNG",
+  "mime.plain": "เอกสารข้อความธรรมดา",
+  "feedback.unheld.links": "ไดรฟ์นี้ไม่รองรับลิงก์",
+  "feedback.unheld.nodes": "ไดรฟ์นี้ไม่รองรับไฟล์พิเศษ",
+  "feedback.unheld.name": "ไดรฟ์นี้ไม่อนุญาตให้ใช้ชื่อนั้น",
+  "feedback.unheld.long": "ชื่อนั้นยาวเกินไปสำหรับไดรฟ์นี้",
+  "feedback.unheld.taken": "ไดรฟ์นี้ถือว่าชื่อนั้นเหมือนกับชื่ออื่นในโฟลเดอร์",
+  "feedback.unheld.copy_one": "คัดลอก %1 ไม่สำเร็จ: %2",
+  "feedback.unheld.move_one": "ย้าย %1 ไม่สำเร็จ: %2",
+  "feedback.unheld.copy_many": {
+    "other": "คัดลอก %1 รายการ ภายในไม่สำเร็จ รายการแรกคือ %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "other": "ย้าย %1 รายการ ภายในไม่สำเร็จ รายการแรกคือ %2: %3"
+  }
 }
