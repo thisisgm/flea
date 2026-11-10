@@ -62,6 +62,8 @@ mod status_undo;
 pub(crate) mod surfaces;
 #[path = "../state/text_input.rs"]
 pub(crate) mod text_input;
+#[cfg(test)]
+mod tight_window_tests;
 mod transitions;
 mod unlock;
 pub(crate) mod user_keys;

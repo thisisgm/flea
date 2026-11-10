@@ -7525,7 +7525,7 @@
       "call_sites": [
         {
           "excerpt": "let title = locale.catalog.tr(\"app.name\");",
-          "line": 100,
+          "line": 102,
           "path": "crates/flea-gui/src/window/mod.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -255026,7 +255026,7 @@
     "crates/flea-gui/src/tabs/held.rs": "07631e4f5fd64002554fb6a51b26999fd2ac063d281c548e03f06947acf2ba1b",
     "crates/flea-gui/src/tabs/host.rs": "da0969c122d28e92208bd975d7cb22db74046fd45a57f89f13c242f1910e5bae",
     "crates/flea-gui/src/tabs/icons.rs": "3b423e4d7b286393367b1e8f5e0d606052ae5962980d6b789a4e6fc9d2adf0fa",
-    "crates/flea-gui/src/tabs/landing.rs": "e64ee1bc878c31708c7ccb3b6249ec6f469cdc7af867b46834219fb265d71f0b",
+    "crates/flea-gui/src/tabs/landing.rs": "55179b60d2d7d7fab30b5b1c82a1b93a6a7eaa3e79a3681b89cf8ba71c5bac24",
     "crates/flea-gui/src/tabs/live.rs": "2a516fa2bf06f4b092ef6c6968abe67b76098c527c4cee1d0f60a30e08af004f",
     "crates/flea-gui/src/tabs/middle.rs": "90532746e9e7c745776295130a6142f9984aee2d754da952e99e22b19d3066ee",
     "crates/flea-gui/src/tabs/mod.rs": "7f94947bab5422e52a964344cca65c7a062d05188036967fc80e079567bd92d7",
@@ -255151,7 +255151,7 @@
     "crates/flea-gui/src/window/lifecycle.rs": "689767f40d95c0995fbca9ae443a57c406bb7f37e1db1c26376d7b6ed8a2824e",
     "crates/flea-gui/src/window/locale.rs": "db61d8c455cda0df357f3929a2e0993476fd6187722a9b2306c34b764c5bcc25",
     "crates/flea-gui/src/window/m9_g2rows_02_fixtures.rs": "b49f4e8ead91cd2bb902af7fc374950db77446671d739fba45a799ebe0ffb231",
-    "crates/flea-gui/src/window/mod.rs": "a9306eee0bb5099922812c0f2432fbf23b3b4d79ca1b421b15049d5d02960fd4",
+    "crates/flea-gui/src/window/mod.rs": "6d97159619ffbafb759dc4bb7ba0c29f6a1f525952af9db39526076c6823d0f0",
     "crates/flea-gui/src/window/navigate.rs": "4528992582b5ee387ecca04b1a3e1f2559bf55aabcdee2db4a4e8bdfb31255ee",
     "crates/flea-gui/src/window/network.rs": "9679683deb781852e704a6743bda610ca47706d50ef51163106c1aec47c161aa",
     "crates/flea-gui/src/window/network_cloud.rs": "3a3febd4a7fe3d9fc7bd67c97c77245c21a3f4a8c12314558d39d5ce542d6fee",
@@ -256827,8 +256827,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "5249ece68f1afb7df6660ec2d8938c93f87660cd",
-  "source_sha": "5249ece68f1afb7df6660ec2d8938c93f87660cd",
+  "source_ref_sha": "054592815155d1fcc4501d38cc500c2c7c410244",
+  "source_sha": "054592815155d1fcc4501d38cc500c2c7c410244",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1377,
