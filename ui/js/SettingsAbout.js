@@ -53,12 +53,12 @@ function autoCheck(data) {
     return ((data || {}).updates || {}).autoCheck !== false
 }
 
-// The signed repository package, src/update.rs's OPR_PACKAGE.
-var PACKAGES = { opr: "flea" }
+// The package names src/update.rs keys its kinds on, OPR_PACKAGE and RELEASE_PACKAGE.
+var PACKAGES = { opr: "flea", release: "flea-bin" }
 
 // Installed from, one sentence per kind src/update.rs derives, so this row and the Update Flea row name one source.
 var SOURCES = { opr: "Omarchy Package Repository",
-                local: "Local package", unowned: "Not from a package" }
+                local: "Local package", release: "Local package", unowned: "Not from a package" }
 
 // src/update.rs kind_for, over pacman -Qqo's owner ("" when no package owns Flea).
 function installKind(owner, signed) {
@@ -66,6 +66,8 @@ function installKind(owner, signed) {
         return "unowned"
     if (owner === PACKAGES.opr && signed)
         return "opr"
+    if (owner === PACKAGES.release)
+        return "release"
     return "local"
 }
 

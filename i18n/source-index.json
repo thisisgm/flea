@@ -250431,7 +250431,7 @@
       "surface": "qml-reference"
     },
     {
-      "excerpt": "local: \"Local package\", unowned: \"Not from a package\" }",
+      "excerpt": "local: \"Local package\", release: \"Local package\", unowned: \"Not from a package\" }",
       "line": 61,
       "literal": "Local package",
       "owner": "controller",
@@ -250440,7 +250440,16 @@
       "surface": "qml-reference"
     },
     {
-      "excerpt": "local: \"Local package\", unowned: \"Not from a package\" }",
+      "excerpt": "local: \"Local package\", release: \"Local package\", unowned: \"Not from a package\" }",
+      "line": 61,
+      "literal": "Local package",
+      "owner": "controller",
+      "path": "ui/js/SettingsAbout.js",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "qml-reference"
+    },
+    {
+      "excerpt": "local: \"Local package\", release: \"Local package\", unowned: \"Not from a package\" }",
       "line": 61,
       "literal": "Not from a package",
       "owner": "controller",
@@ -250450,7 +250459,7 @@
     },
     {
       "excerpt": "if (key === \"Name\")",
-      "line": 86,
+      "line": 88,
       "literal": "Name",
       "owner": "controller",
       "path": "ui/js/SettingsAbout.js",
@@ -250459,7 +250468,7 @@
     },
     {
       "excerpt": "else if (key === \"Version\")",
-      "line": 88,
+      "line": 90,
       "literal": "Version",
       "owner": "controller",
       "path": "ui/js/SettingsAbout.js",
@@ -250468,7 +250477,7 @@
     },
     {
       "excerpt": "else if (key === \"Build Date\")",
-      "line": 90,
+      "line": 92,
       "literal": "Build Date",
       "owner": "controller",
       "path": "ui/js/SettingsAbout.js",
@@ -250477,7 +250486,7 @@
     },
     {
       "excerpt": "else if (key === \"Validated By\")",
-      "line": 93,
+      "line": 95,
       "literal": "Validated By",
       "owner": "controller",
       "path": "ui/js/SettingsAbout.js",
@@ -250486,7 +250495,7 @@
     },
     {
       "excerpt": "facts.signed = value.split(/\\s+/).indexOf(\"Signature\") >= 0",
-      "line": 94,
+      "line": 96,
       "literal": "Signature",
       "owner": "controller",
       "path": "ui/js/SettingsAbout.js",
@@ -254021,7 +254030,7 @@
     "tools/flea-i18n-roster": "15ebc5b098f014643154e00a5a2c3f9f0f08568a09ccd254dcf2935bfc2d6783",
     "tools/flea-ipc": "68bf9a3290ea6bad56831a3e025fbe4870f058b2d027100714ac1d83524edc88",
     "tools/flea-ipc-pid": "111739583c9d10e2e7058e0eefb147c94a2a8b4a0777d09361b0c6827ab77518",
-    "tools/flea-keymap-gen": "a36c7ff57d665edf8cd72b5eea9384cea73ef494df55582df3c4476da3bac487",
+    "tools/flea-keymap-gen": "559b25f345efdb1fd9cc0f3ab65590b667e5f5b1fd7bda5c33ca85c6dfbbb4e4",
     "tools/flea-keymap-lint": "685dd15739937f99b51ddb241c104ed291b11c8c893d239a1ff6b41d6b68d7dd",
     "tools/flea-live-ops": "dc849d1a9222ff7a491a98db1c2ff7d91191e27358621828198680b5bbfcdeee",
     "tools/flea-localsend-battery": "9a799cb5e68d245363cdfb33401cc70e5bddd73f92a8a420cc542245145b0e7e",
@@ -254423,7 +254432,7 @@
     "ui/js/Input.js": "501db725b3b18a754a72dda3768f000a1fad9e07762c84a35302cded7d16f816",
     "ui/js/Jump.js": "827485027b030737ffe103e3d6d9b788b9c8bba0320b8adf100979000ee587e0",
     "ui/js/KeyName.js": "4a86a5216019ec9167f9a306fdd3dc45424a64376ad21b58e6581f2cc26022c4",
-    "ui/js/Keymap.js": "8677a7f782a0283701dcbf73f63f709f87ea8c757b9fc5165e9a9777a0c2cb89",
+    "ui/js/Keymap.js": "68bff02a278a0948bcdced44dad26cfc71f23d658e1f31e49a16b5452d797842",
     "ui/js/Kinds.js": "eeda8674e9f02f98caa30417a6932a995af33496f64fa9f7094ad9cbe8df281f",
     "ui/js/LangMarkPaths.js": "67d18b53b09ec821c28a0e3d2a13b5efb2624fe3cea920510c798e3c2a832f99",
     "ui/js/LangMarks.js": "fcad64db8c406546743e0241bed01d2a255ae7b2ffafd3ebd12224a220acadf0",
@@ -254509,7 +254518,7 @@
     "ui/js/Search.js": "6a7d7bca60fe4386c10bb2913c583050d1b3050445f27d346ed56cc37350845f",
     "ui/js/Selection.js": "adccbc00e173383fd4d1373303514612681b9bc2e588880a0065cc1d0d0001fc",
     "ui/js/Settings.js": "d758e9ea61863482b122dea1d844c622bfaf919268b30b314f336d80d6a8e4b5",
-    "ui/js/SettingsAbout.js": "be725682ecd1f431fe0b8c64017e38590db35fcee82a52380404ddbdc38a421a",
+    "ui/js/SettingsAbout.js": "e96f149732535ec69698343f57d615fe54bbead1e1a53f696d9b2e96cb912faa",
     "ui/js/SettingsShelf.js": "2eae51fbc0bf3fffeb7ed3baf15fb793a3b1e33238da23064b23ef3174ae7eee",
     "ui/js/SheetKeys.js": "ae38ddc6a24fb666c8eef7bc09cd8269a0c6bb321cc33a3525dc8e994abca903",
     "ui/js/SheetQuery.js": "b398e9d74c6bb5fddf9d1168f9920ee95bd0747018fb5d44bf4de935c050b09f",
@@ -254538,8 +254547,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "4976cc679a5ca4ee7c51027ebb98640c948058f6",
-  "source_sha": "4976cc679a5ca4ee7c51027ebb98640c948058f6",
+  "source_ref_sha": "55a48e0e9e9bfad2add0fab587fc8c61560453d8",
+  "source_sha": "55a48e0e9e9bfad2add0fab587fc8c61560453d8",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1360,
@@ -254558,7 +254567,7 @@
     },
     "qml-reference": {
       "keys_with_occurrences": 0,
-      "missing_literal_candidates": 2136,
+      "missing_literal_candidates": 2137,
       "source_files": 412
     },
     "tui": {
