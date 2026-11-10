@@ -100,7 +100,7 @@ impl Shell {
             if session.drops(host.search.rows_generation) {
                 host.search.kept = None;
             }
-            host.pane.swap.session = session;
+            host.pane.swap.publish_search(session, pending.pane.count);
         }
         let mut relisted = false;
         let mut send_failed = false;

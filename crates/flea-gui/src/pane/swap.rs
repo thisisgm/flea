@@ -121,6 +121,8 @@ pub struct Swap {
     pub(crate) unheld_own: Own,
     // The first-window count the committed listing asked for.
     pub(crate) listing_first: usize,
+    // The search generation and first-window count its query sent, including walking reanswers.
+    pub(crate) search_first: Option<(usize, usize)>,
     // The first-window count each sort still out asked for, oldest first.
     pub(crate) sorts_out: VecDeque<usize>,
     pub session: Session,
@@ -137,6 +139,13 @@ pub struct Swap {
 }
 
 impl Swap {
+    pub(crate) fn publish_search(&mut self, session: Session, first: usize) {
+        if session.generation != self.session.generation {
+            self.search_first = Some((session.generation, first));
+        }
+        self.session = session;
+    }
+
     /// inputToRows' second half: stamped once, and only after an input, as v0.3.12's PaneSwap.qml does; the launch listing is no input.
     pub(crate) fn stamp_rows(&mut self, now: u64) {
         if self.rows_at == 0 && self.input_at > 0 {
@@ -340,7 +349,11 @@ impl super::Pane {
             self.swap.pending = Some(Pending {
                 path: path.clone(),
                 total: Some(*total),
-                first: self.first_count(),
+                first: self
+                    .swap
+                    .search_first
+                    .filter(|(sent, _)| *sent == generation)
+                    .map_or_else(|| self.first_count(), |(_, first)| first),
                 ready: None,
                 following: None,
                 parked_until: None,
