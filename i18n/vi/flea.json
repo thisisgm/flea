@@ -2108,6 +2108,7 @@
   "settings.row.group_by_kind": "Nhóm theo loại",
   "settings.row.hidden_last": "Tệp ẩn cuối cùng",
   "settings.row.highlight_today": "Làm nổi bật các ngày là hôm nay",
+  "settings.row.highlight_hover": "Làm nổi bật khi trỏ chuột",
   "settings.row.tabs_as_icons": "Hiện thẻ dưới dạng biểu tượng",
   "settings.row.empty_omi": "Hiện Omi trong thư mục trống",
   "settings.row.empty_rotate": "Xoay vòng thông báo thư mục trống",

@@ -2339,6 +2339,7 @@
   "settings.row.group_by_kind": "Grupuj według rodzaju",
   "settings.row.hidden_last": "Ukryte pliki na końcu",
   "settings.row.highlight_today": "Wyróżniaj dzisiejsze daty",
+  "settings.row.highlight_hover": "Wyróżniaj pod wskaźnikiem",
   "settings.row.tabs_as_icons": "Pokaż karty jako ikony",
   "settings.row.empty_omi": "Pokaż Omi w pustych folderach",
   "settings.row.empty_rotate": "Zmieniaj komunikaty pustego folderu",

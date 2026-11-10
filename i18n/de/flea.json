@@ -685,6 +685,7 @@
   "settings.row.columns_limit": "Spalten in der Spaltenansicht",
   "settings.row.show_git_status": "Git-Status anzeigen",
   "settings.row.highlight_today": "Heutiges Datum hervorheben",
+  "settings.row.highlight_hover": "Beim Überfahren hervorheben",
   "settings.row.tabs_as_icons": "Tabs als Symbole anzeigen",
   "settings.row.empty_omi": "Omi in leeren Ordnern anzeigen",
   "settings.row.empty_rotate": "Meldungen in leeren Ordnern wechseln",

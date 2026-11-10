@@ -2563,6 +2563,7 @@
   "settings.row.group_by_kind": "تجميع حسب النوع",
   "settings.row.hidden_last": "الملفات المخفية أخيرًا",
   "settings.row.highlight_today": "تمييز تواريخ اليوم",
+  "settings.row.highlight_hover": "تمييز ما تحت المؤشر",
   "settings.row.tabs_as_icons": "إظهار التبويبات كأيقونات",
   "settings.row.empty_omi": "إظهار Omi في المجلدات الفارغة",
   "settings.row.empty_rotate": "تدوير رسائل المجلد الفارغ",

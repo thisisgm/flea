@@ -38,6 +38,7 @@ fn fixlist_crcmpo1_f3_f4_dual_marks_rest_in_the_muted_frame() {
     };
     let hovered = RowState {
         hovered: true,
+        hover_lit: true,
         ..RowState::default()
     };
     let target = RowState {

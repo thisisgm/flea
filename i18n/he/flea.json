@@ -2249,6 +2249,7 @@
   "settings.row.group_by_kind": "קיבוץ לפי סוג",
   "settings.row.hidden_last": "קבצים מוסתרים בסוף",
   "settings.row.highlight_today": "הדגשת תאריכי היום",
+  "settings.row.highlight_hover": "הדגשה במעבר העכבר",
   "settings.row.tabs_as_icons": "הצגת לשוניות כסמלים",
   "settings.row.empty_omi": "הצגת Omi בתיקיות ריקות",
   "settings.row.empty_rotate": "החלפת הודעות בתיקייה ריקה",

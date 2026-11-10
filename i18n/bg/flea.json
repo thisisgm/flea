@@ -2199,6 +2199,7 @@
   "settings.row.group_by_kind": "Групирай по вид",
   "settings.row.hidden_last": "Скритите файлове накрая",
   "settings.row.highlight_today": "Откроявай днешните дати",
+  "settings.row.highlight_hover": "Откроявай под показалеца",
   "settings.row.tabs_as_icons": "Показвай разделите като икони",
   "settings.row.empty_omi": "Показвай Omi в празните папки",
   "settings.row.empty_rotate": "Сменяй съобщенията в празна папка",

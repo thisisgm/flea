@@ -669,6 +669,7 @@
   "settings.row.columns_limit": "Had paparan lajur",
   "settings.row.show_git_status": "Tunjukkan status Git",
   "settings.row.highlight_today": "Serlahkan tarikh hari ini",
+  "settings.row.highlight_hover": "Serlahkan apabila penuding di atasnya",
   "settings.row.tabs_as_icons": "Tunjukkan tab sebagai ikon",
   "settings.row.empty_omi": "Tunjukkan Omi dalam folder kosong",
   "settings.row.empty_rotate": "Gilirkan mesej folder kosong",

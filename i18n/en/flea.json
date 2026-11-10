@@ -688,6 +688,7 @@
   "settings.row.columns_limit": "Columns view limit",
   "settings.row.show_git_status": "Show Git status",
   "settings.row.highlight_today": "Highlight today's dates",
+  "settings.row.highlight_hover": "Highlight on hover",
   "settings.row.tabs_as_icons": "Show tabs as icons",
   "settings.row.empty_omi": "Show Omi in empty folders",
   "settings.row.empty_rotate": "Rotate empty folder messages",

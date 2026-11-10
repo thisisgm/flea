@@ -2249,6 +2249,7 @@
   "settings.row.group_by_kind": "Grupează după tip",
   "settings.row.hidden_last": "Fișierele ascunse la urmă",
   "settings.row.highlight_today": "Evidențiază datele de azi",
+  "settings.row.highlight_hover": "Evidențiază sub cursor",
   "settings.row.tabs_as_icons": "Afișează filele ca pictograme",
   "settings.row.empty_omi": "Afișează Omi în dosarele goale",
   "settings.row.empty_rotate": "Alternează mesajele dosarelor goale",

@@ -733,6 +733,7 @@
   "settings.row.columns_limit": "Teorainn amharc na gcolún",
   "settings.row.show_git_status": "Taispeáin stádas Git",
   "settings.row.highlight_today": "Aibhsigh dátaí an lae inniu",
+  "settings.row.highlight_hover": "Aibhsigh faoin bpointeoir",
   "settings.row.tabs_as_icons": "Taispeáin cluaisíní mar dheilbhíní",
   "settings.row.empty_omi": "Taispeáin Omi i bhfillteáin fholmha",
   "settings.row.empty_rotate": "Athraigh na teachtaireachtaí i bhfillteáin fholmha",

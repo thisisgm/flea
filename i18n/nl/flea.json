@@ -2257,6 +2257,7 @@
   "settings.row.group_by_kind": "Groeperen op type",
   "settings.row.hidden_last": "Verborgen bestanden achteraan",
   "settings.row.highlight_today": "Datums van vandaag markeren",
+  "settings.row.highlight_hover": "Markeren onder de aanwijzer",
   "settings.row.tabs_as_icons": "Tabbladen als pictogrammen tonen",
   "settings.row.empty_omi": "Omi tonen in lege mappen",
   "settings.row.empty_rotate": "Berichten in lege mappen afwisselen",

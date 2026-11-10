@@ -293,3 +293,52 @@ case_text_menu_path() (
     click_at "$(ipc pathCentre)" right || return 1
     snap
 )
+
+# Boards 0402-rail-hover, 0401-list-nohover and 0401-settings-hover: all five surfaces with both settings.
+CASES+=("rail-hover 1100x700"
+        "rail-hover-off 1100x700"
+        "list-hover 1100x700" "list-hover-off 1100x700"
+        "columns-hover 1100x700" "columns-hover-off 1100x700"
+        "grid-hover 1100x700" "grid-hover-off 1100x700"
+        "crumb-hover 1100x700" "crumb-hover-off 1100x700"
+        "tab-hover 1100x700" "tab-hover-off 1100x700")
+hover_rest_shot() {
+    local tries
+    kdcap_point "$1" || return 1
+    sleep 0.5
+    tries=$(stable_shot "$shots/$case_name-1100x700.png") || return 1
+    echo "SHOT $case_name-1100x700 tries=$tries" >> "$results"
+}
+hover_surface() (
+    local view=$1 target=$2 on=$3 i row= at
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    LAUNCH_STATE=",\"highlightHover\":$on" launch "$view" "$W" || return 1
+    size_window 1100 700 || return 1
+    case $target in
+        rail) at=$(ipc railRowCentre "$(kdcap_rail_index Trash)") ;;
+        crumb) at=$(ipc crumbCentre 1) ;;
+        tab)
+            key t; wait_ipc tabCount 2 || return 1
+            at=$(ipc tabCentre 0) ;;
+        row)
+            for i in $(seq 0 $(($(ipc visibleRows) - 1))); do
+                [[ "$(ipc visibleRowName "$i")" == Docs ]] && { row=$i; break; }
+            done
+            [ -n "$row" ] || { state_failure "no visible Docs row"; return 1; }
+            at=$(ipc rowCentre "$row") ;;
+        *) return 1 ;;
+    esac
+    hover_rest_shot "$at"
+)
+case_rail_hover() { hover_surface list rail true; }
+case_rail_hover_off() { hover_surface list rail false; }
+case_list_hover() { hover_surface list row true; }
+case_list_hover_off() { hover_surface list row false; }
+case_columns_hover() { hover_surface columns row true; }
+case_columns_hover_off() { hover_surface columns row false; }
+case_grid_hover() { hover_surface grid row true; }
+case_grid_hover_off() { hover_surface grid row false; }
+case_crumb_hover() { hover_surface list crumb true; }
+case_crumb_hover_off() { hover_surface list crumb false; }
+case_tab_hover() { hover_surface list tab true; }
+case_tab_hover_off() { hover_surface list tab false; }

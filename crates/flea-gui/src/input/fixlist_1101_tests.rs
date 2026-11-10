@@ -201,6 +201,8 @@ fn fixlist_ey117_list_hover_follows_the_rows_a_wheel_brings_under_the_pointer(
     cx: &mut TestAppContext,
 ) {
     let (shell, cx) = mounted(cx, SUNSET, false);
+    // The wash under test is Settings > View > Highlight on hover ticked; unticked it never draws.
+    cx.update(|_, cx| cx.set_global(crate::list::hover_wash::HoverWash(true)));
     draw(cx);
     let frame = shell.read_with(cx, |shell, _| {
         shell.panes[0].as_ref().unwrap().input.frame.unwrap()

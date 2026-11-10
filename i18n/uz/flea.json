@@ -2199,6 +2199,7 @@
   "settings.row.group_by_kind": "Tur boʻyicha guruhlash",
   "settings.row.hidden_last": "Yashirin fayllar oxirida",
   "settings.row.highlight_today": "Bugungi sanalarni ajratib koʻrsatish",
+  "settings.row.highlight_hover": "Koʻrsatkich ostida ajratib koʻrsatish",
   "settings.row.tabs_as_icons": "Varaqlarni belgi sifatida koʻrsatish",
   "settings.row.empty_omi": "Boʻsh jildlarda Omi koʻrsatish",
   "settings.row.empty_rotate": "Boʻsh jild xabarlarini almashtirish",

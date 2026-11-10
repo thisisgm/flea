@@ -27,6 +27,8 @@ pub fn view_rows(state: &State<'_>) -> Vec<Row> {
         // 0.4.0: Git status sits before Highlight today's dates and ships off.
         check("showGitStatus", "settings.row.show_git_status", "folder-git-2", is_true(data, &["showGitStatus"])),
         check("highlightToday", "settings.row.highlight_today", "history", is_true(data, &["highlightToday"])),
+        // 0401-settings-hover: the pointer's wash on rows, tiles and the rail, off as decision hover-default ships it.
+        check("highlightHover", "settings.row.highlight_hover", "pointer", is_true(data, &["highlightHover"])),
         // 0401-settings-view-c: the window's resting look, tab marks then Omi before the messages it sits over.
         check("tabsAsIcons", "settings.row.tabs_as_icons", "app-window", is_true(data, &["tabsAsIcons"])),
         check("emptyFolderOmi", "settings.row.empty_omi", "bot", not_false(data, &["emptyFolderOmi"])),

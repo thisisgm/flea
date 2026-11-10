@@ -1,4 +1,5 @@
 # Native-undriven G2 scenes: <id> BLOCKED <owner>: <reason>; only the four op1 card ids are compiled from ci/visual/scenes/g2-op1.json.
+g2.send-share.hover BLOCKED FX-RAILHOVER: the retained ShareBrowser painter has no production caller; its hover toggle is checked by send_share::view_tests and a native component fixture against the v0.4.1 painter.
 uts.ey380.trash-view-14 BLOCKED U-TEXT-SIZE: text-size variants of the existing Trash surface are outside the fixed-size visual lane; guarded native uts.tsv compares 14 and 20 px with v0.3.12.
 g2.pl3.trash-window-read BLOCKED B22: rows kept during a Trash window read is a timing state between a scroll and a delayed backend reply, which a still fixture frame cannot hold; crates/flea-gui/src/g2/trash_browser/window_tests.rs pins it.
 uts.ey400.toolbar-collide-14 BLOCKED U-TEXT-SIZE: toolbar and collision mark scaling needs a real text-size change; guarded native uts.tsv compares 14 and 20 px with v0.3.12.

@@ -2159,6 +2159,7 @@
   "settings.row.group_by_kind": "Igrupo ayon sa uri",
   "settings.row.hidden_last": "Mga nakatagong file sa huli",
   "settings.row.highlight_today": "I-highlight ang mga petsa ngayong araw",
+  "settings.row.highlight_hover": "I-highlight kapag itinapat ang pointer",
   "settings.row.tabs_as_icons": "Ipakita ang mga tab bilang icon",
   "settings.row.empty_omi": "Ipakita si Omi sa mga walang lamang folder",
   "settings.row.empty_rotate": "Paikutin ang mga mensahe ng walang lamang folder",

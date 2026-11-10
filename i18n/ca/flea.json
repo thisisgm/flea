@@ -2249,6 +2249,7 @@
   "settings.row.group_by_kind": "Agrupa per tipus",
   "settings.row.hidden_last": "Fitxers ocults al final",
   "settings.row.highlight_today": "Ressalta les dates d'avui",
+  "settings.row.highlight_hover": "Ressalta en passar el punter",
   "settings.row.tabs_as_icons": "Mostra les pestanyes com a icones",
   "settings.row.empty_omi": "Mostra l'Omi a les carpetes buides",
   "settings.row.empty_rotate": "Alterna els missatges de carpeta buida",

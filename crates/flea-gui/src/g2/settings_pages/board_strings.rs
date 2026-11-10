@@ -30,6 +30,7 @@ pub(super) const VIEW: &[&str] = &[
     "5",
     "Show Git status",
     "Highlight today's dates",
+    "Highlight on hover",
     "Show tabs as icons",
     "Show Omi in empty folders",
     "Rotate empty folder messages",

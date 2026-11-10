@@ -62,6 +62,7 @@ impl Element for RailElement {
         }
         let metrics = RailMetrics::for_typeface(&self.typeface);
         let model = self.model.borrow();
+        let hover_wash = crate::list::hover_wash::HoverWash::on(cx);
         let laid = self.laid.borrow();
         self.attach_rename(&model, &laid, bounds, window, cx);
         crate::window::glass::producers::paint(
@@ -95,6 +96,7 @@ impl Element for RailElement {
                     self.listen_add(add, window);
                 }
             }
+            let hairline = crate::list::Metrics::for_typeface(&self.typeface).hairline;
             for (at, row) in laid.rows.iter().enumerate() {
                 if row.rect.y + metrics.row <= f32::from(bounds.top())
                     || row.rect.y >= f32::from(bounds.bottom())
@@ -115,7 +117,7 @@ impl Element for RailElement {
                 } else {
                     grounds
                 };
-                super::paint::paint_ground(row, &model, &grounds, window);
+                super::paint::paint_ground(row, &model, &grounds, hairline, hover_wash, window);
                 super::paint::paint_mark(
                     row,
                     &palette,

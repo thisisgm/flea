@@ -78,7 +78,7 @@ crates/flea-gui/src/g2/device_rail/unlock_tests.rs 594
 crates/flea-gui/src/g2/device_rail/view_quad_tests.rs 517
 crates/flea-gui/src/g2/model_preview/frame_tests.rs 512
 crates/flea-gui/src/g2/model_preview/tests.rs 410
-crates/flea-gui/src/g2/settings_pages/board_strings.rs 893
+crates/flea-gui/src/g2/settings_pages/board_strings.rs 894
 crates/flea-gui/src/g2/settings_pages/draw.rs 648
 crates/flea-gui/src/g2/settings_pages/tests.rs 459
 crates/flea-gui/src/g2/settings_pages/view.rs 493
@@ -87,7 +87,7 @@ crates/flea-gui/src/g2/plugin_settings/view.rs 558
 crates/flea-gui/src/columns/mod.rs 404
 crates/flea-gui/src/g2/open_with_properties/card_tests.rs 474
 crates/flea-gui/src/g2/trash_browser/pane.rs 456
-crates/flea-gui/src/g2/trash_browser/list.rs 419
+crates/flea-gui/src/g2/trash_browser/list.rs 422
 crates/flea-gui/src/g2/settings_pages/panel.rs 421
 crates/flea-gui/src/window/settings/fix1_tests.rs 409
 crates/flea-gui/src/g2/trash_browser/tests.rs 527
@@ -173,7 +173,7 @@ src/tui/input.rs 455
 src/tui/model.rs 1293
 src/tui/mod.rs 459
 src/tui/render.rs 260
-src/uischema.rs 646
+src/uischema.rs 650
 src/uistate.rs 856
 src/uistore.rs 568
 src/vulkan.rs 751

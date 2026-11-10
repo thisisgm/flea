@@ -421,7 +421,7 @@ impl Element for ListElement {
                         } else {
                             palette.marked
                         })
-                    } else if s.hovered {
+                    } else if s.hover_lit {
                         Some(palette.foreground.opacity(HOVER))
                     } else {
                         None

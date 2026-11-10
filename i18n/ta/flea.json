@@ -2199,6 +2199,7 @@
   "settings.row.group_by_kind": "வகையால் குழுவாக்கு",
   "settings.row.hidden_last": "மறைந்த கோப்புகள் கடைசியில்",
   "settings.row.highlight_today": "இன்றைய தேதிகளைத் தனிப்படுத்திக் காட்டு",
+  "settings.row.highlight_hover": "சுட்டியின் கீழ் தனிப்படுத்திக் காட்டு",
   "settings.row.tabs_as_icons": "தாவல்களைச் சின்னங்களாகக் காட்டு",
   "settings.row.empty_omi": "காலியான கோப்புறைகளில் Omi-ஐக் காட்டு",
   "settings.row.empty_rotate": "காலியான கோப்புறைச் செய்திகளைச் சுழற்று",

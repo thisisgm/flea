@@ -96,8 +96,9 @@ pub fn open(
     cx: &mut App,
 ) -> Result<WindowHandle<Root>, String> {
     let title = locale.catalog.tr("app.name");
-    // Every empty hero reads Settings > View's two empty folder rows from the first frame.
+    // Every empty hero reads Settings > View's two empty folder rows, and every row Highlight on hover, from the first frame.
     crate::g2::status_feedback::hero::EmptyLook::apply(&launch.settings.data, cx);
+    crate::list::hover_wash::HoverWash::apply(&launch.settings.data, cx);
     let appearance = cx
         .try_global::<crate::palette::Theme>()
         .copied()

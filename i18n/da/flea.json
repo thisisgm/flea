@@ -2159,6 +2159,7 @@
   "settings.row.group_by_kind": "Gruppér efter type",
   "settings.row.hidden_last": "Skjulte filer sidst",
   "settings.row.highlight_today": "Fremhæv dagens datoer",
+  "settings.row.highlight_hover": "Fremhæv under markøren",
   "settings.row.tabs_as_icons": "Vis faner som ikoner",
   "settings.row.empty_omi": "Vis Omi i tomme mapper",
   "settings.row.empty_rotate": "Skift beskeder i tomme mapper",

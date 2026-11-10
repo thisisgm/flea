@@ -47,6 +47,7 @@ pub struct ListPaint {
     pub scroll_y: f32,
     pub cursor: usize,
     pub hover: Option<usize>,
+    pub hover_wash: bool,
     /// The cursor's accent edge shows only while the list holds the keyboard.
     pub edge: bool,
     shaped: Vec<Option<Shaped>>,
@@ -80,6 +81,7 @@ impl ListPaint {
             scroll_y: 0.,
             cursor: 0,
             hover: None,
+            hover_wash: false,
             edge: true,
             shaped: Vec::new(),
             shaped_for: (u64::MAX, 0),
@@ -121,7 +123,7 @@ impl ListPaint {
             Some(self.ink.accent.opacity(WASH))
         } else if marked {
             Some(self.ink.mark_fill)
-        } else if self.hover == Some(index) {
+        } else if self.hover_wash && self.hover == Some(index) {
             Some(self.ink.foreground.opacity(HOVER))
         } else {
             None
@@ -228,6 +230,7 @@ impl Element for TrashList {
         cx: &mut App,
     ) {
         let mut state = self.0.borrow_mut();
+        state.hover_wash = crate::list::hover_wash::HoverWash::on(cx);
         state.bounds = Some(bounds);
         let visible = bounds
             .intersect(&window.content_mask().bounds)

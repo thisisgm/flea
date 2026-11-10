@@ -109,6 +109,7 @@ impl Shell {
                 .hover
                 .as_ref()
                 .map(|hover| (hover.slot, hover.index)),
+            hover_wash: crate::list::hover_wash::HoverWash::on(cx),
             grey,
         });
         drop(list);

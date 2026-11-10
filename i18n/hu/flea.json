@@ -685,6 +685,7 @@
   "settings.row.columns_limit": "Oszlopnézet korlátja",
   "settings.row.show_git_status": "Git-állapot megjelenítése",
   "settings.row.highlight_today": "Mai dátumok kiemelése",
+  "settings.row.highlight_hover": "Kiemelés rámutatáskor",
   "settings.row.tabs_as_icons": "Lapok megjelenítése ikonként",
   "settings.row.empty_omi": "Omi megjelenítése üres mappákban",
   "settings.row.empty_rotate": "Üres mappa üzeneteinek váltogatása",

@@ -246,8 +246,11 @@ impl TrashPane {
         self.pump(cx);
     }
     pub fn hover(&mut self, index: Option<usize>, cx: &mut Context<Self>) {
-        if self.paint.borrow().hover != index {
-            self.paint.borrow_mut().hover = index;
+        let wash = crate::list::hover_wash::HoverWash::on(cx);
+        if self.paint.borrow().hover != index || self.paint.borrow().hover_wash != wash {
+            let mut paint = self.paint.borrow_mut();
+            paint.hover = index;
+            paint.hover_wash = wash;
             cx.notify();
         }
     }

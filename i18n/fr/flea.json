@@ -2249,6 +2249,7 @@
   "settings.row.group_by_kind": "Regrouper par type",
   "settings.row.hidden_last": "Fichiers cachés en dernier",
   "settings.row.highlight_today": "Mettre en évidence les dates d’aujourd’hui",
+  "settings.row.highlight_hover": "Mettre en évidence au survol",
   "settings.row.tabs_as_icons": "Afficher les onglets sous forme d’icônes",
   "settings.row.empty_omi": "Afficher Omi dans les dossiers vides",
   "settings.row.empty_rotate": "Alterner les messages des dossiers vides",

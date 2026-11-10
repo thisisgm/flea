@@ -10,10 +10,13 @@ fn row_grounds(
         let laid = producer.laid.borrow();
         (laid.row(index).unwrap().rect, laid.palette.unwrap())
     });
+    // Rail grounds stop short of the divider hair, which Metrics fixes at one pixel.
+    let hairline =
+        crate::list::Metrics::for_typeface(&crate::list::Typeface::omarchy_default()).hairline;
     let grounds = cx.update(|window, _| {
         let bounds = gpui::Bounds::new(
             gpui::point(gpui::px(rect.x), gpui::px(rect.y)),
-            gpui::size(gpui::px(rect.width), gpui::px(rect.height)),
+            gpui::size(gpui::px(rect.width - hairline), gpui::px(rect.height)),
         )
         .scale(window.scale_factor());
         window
@@ -152,6 +155,14 @@ fn rail_devices_releasable_rows_draw_the_eject_mark_in_the_square_slot(cx: &mut 
         Some(index),
         "the pointer on the mark lifts its ink to the foreground"
     );
+    let (grounds, _) = row_grounds(&producer, index, cx);
+    assert_eq!(
+        grounds,
+        [],
+        "unticked Highlight on hover: the row draws nothing while the mark lifts"
+    );
+    cx.update(|_, cx| cx.set_global(crate::list::hover_wash::HoverWash(true)));
+    frame(cx);
     let (grounds, palette) = row_grounds(&producer, index, cx);
     assert_eq!(
         grounds,
