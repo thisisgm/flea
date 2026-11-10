@@ -837,6 +837,8 @@
   "keys.action.expand": "拡大表示",
   "keys.action.extendDown": "下へ選択範囲を拡張",
   "keys.action.extendUp": "上へ選択範囲を拡張",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.factsToggle": "詳細情報",
   "keys.action.filter": "フィルター",
   "keys.action.focusNext": "次の領域",

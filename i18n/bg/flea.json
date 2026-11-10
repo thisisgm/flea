@@ -919,6 +919,8 @@
   "keys.action.expand": "Разгъни",
   "keys.action.extendDown": "Разшири надолу",
   "keys.action.extendUp": "Разшири нагоре",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.factsToggle": "Сведения",
   "keys.action.filter": "Филтър",
   "keys.action.focusNext": "Следваща област",

@@ -963,6 +963,8 @@
   "keys.action.expand": "Прошири",
   "keys.action.extendDown": "Прошири избор надоле",
   "keys.action.extendUp": "Прошири избор нагоре",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.factsToggle": "Подаци",
   "keys.action.filter": "Филтер",
   "keys.action.focusNext": "Следећа област",

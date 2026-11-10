@@ -919,6 +919,8 @@
   "keys.action.expand": "Utöka",
   "keys.action.extendDown": "Utöka markeringen nedåt",
   "keys.action.extendUp": "Utöka markeringen uppåt",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.factsToggle": "Fakta",
   "keys.action.filter": "Filtrera",
   "keys.action.focusNext": "Nästa område",

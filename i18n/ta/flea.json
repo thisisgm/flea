@@ -919,6 +919,8 @@
   "keys.action.expand": "விரி",
   "keys.action.extendDown": "தேர்வைக் கீழே நீட்டு",
   "keys.action.extendUp": "தேர்வை மேலே நீட்டு",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.factsToggle": "விவரங்கள்",
   "keys.action.filter": "வடிகட்டு",
   "keys.action.focusNext": "அடுத்த பகுதி",

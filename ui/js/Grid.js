@@ -19,8 +19,8 @@ function arrow(event, action, root) {
     var across = sideways(event)
     var delta = (action === "cursorDown" || action === "extendDown") ? columns
               : (action === "cursorUp" || action === "extendUp") ? -columns
-              : across < 0 && action === "cursorLeft" ? -1
-              : across > 0 && action === "cursorRight" ? 1 : 0
+              : across < 0 && (action === "cursorLeft" || action === "extendLeft") ? -1
+              : across > 0 && (action === "cursorRight" || action === "extendRight") ? 1 : 0
     if (!delta) return false
     var index = Filter.viewOf(root.shown, root.cursorIndex)
     var nextIndex = index + delta
@@ -32,7 +32,8 @@ function arrow(event, action, root) {
         if (root.gridWrapRows !== true || index + 1 >= root.shownTotal) return true
     }
     if (nextIndex < 0 || nextIndex >= root.shownTotal) return true
-    if (action === "extendDown" || action === "extendUp") root.extendSelection(delta)
+    if (action === "extendDown" || action === "extendUp"
+            || action === "extendLeft" || action === "extendRight") root.extendSelection(delta)
     else { Filter.moveCursor(root, delta); Marks.follow(root) }
     return true
 }

@@ -919,6 +919,8 @@
   "keys.action.expand": "প্রসারিত করুন",
   "keys.action.extendDown": "নিচে নির্বাচন বাড়ান",
   "keys.action.extendUp": "উপরে নির্বাচন বাড়ান",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.factsToggle": "তথ্য",
   "keys.action.filter": "ফিল্টার",
   "keys.action.focusNext": "পরের এলাকা",

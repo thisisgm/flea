@@ -874,6 +874,8 @@
   "keys.action.expand": "ขยาย",
   "keys.action.extendDown": "ขยายการเลือกลง",
   "keys.action.extendUp": "ขยายการเลือกขึ้น",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.factsToggle": "ข้อมูล",
   "keys.action.filter": "กรอง",
   "keys.action.focusNext": "พื้นที่ถัดไป",

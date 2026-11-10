@@ -2269,6 +2269,8 @@
   "keys.action.eject": "Auswerfen",
   "keys.action.extendDown": "Auswahl abwärts dehnen",
   "keys.action.extendUp": "Auswahl aufwärts dehnen",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.invertSelection": "Auswahl umkehren",
   "keys.action.markdownView": "Gerendert/Quelltext",
   "keys.action.menu": "Menü",

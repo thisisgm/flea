@@ -18,16 +18,33 @@ fn issue_434_grid_horizontal_wrap_obeys_setting_filter_and_listing_ends(cx: &mut
     handle.update(cx, |shell, _, cx| {
         shell.panes[0].as_mut().unwrap().pane.cursor = columns - 1;
         assert!(shell.grid_key("cursorRight", cx));
+        assert!(shell.grid_key("extendRight", cx));
     }).unwrap();
     assert_eq!(cursor(cx), columns - 1, "the default keeps row edges clamped");
+    assert!(handle.read_with(cx, |shell, _| shell.panes[0].as_ref().unwrap().selected.is_empty()).unwrap(),
+        "a blocked extension does not start a range");
     handle.update(cx, |shell, window, cx| {
         shell.change_settings(flea::jsondoc::parse(r#"{"gridWrapRows":true}"#).unwrap(), window, cx);
         shell.panes[0].as_mut().unwrap().pane.cursor = columns - 1;
         assert!(shell.grid_key("cursorRight", cx));
     }).unwrap();
     assert_eq!(cursor(cx), columns, "enabled wrapping enters the next row");
-    handle.update(cx, |shell, _, cx| assert!(shell.grid_key("cursorLeft", cx))).unwrap();
-    assert_eq!(cursor(cx), columns - 1);
+    handle.update(cx, |shell, _, _| {
+        let host = shell.panes[0].as_mut().unwrap();
+        host.input.selection.toggle(&mut host.selected, 0);
+        host.pane.cursor = columns - 1;
+    }).unwrap();
+    handle.update(cx, |shell, _, cx| {
+        assert!(shell.grid_key("extendRight", cx));
+        assert_eq!(shell.panes[0].as_ref().unwrap().selected, [0, columns - 1, columns]);
+        assert!(shell.grid_key("extendRight", cx));
+        assert!(shell.grid_key("extendLeft", cx));
+        assert_eq!(shell.panes[0].as_ref().unwrap().selected, [0, columns - 1, columns]);
+        assert!(shell.grid_key("extendLeft", cx));
+        assert_eq!(shell.panes[0].as_ref().unwrap().selected, [0, columns - 1]);
+    }).unwrap();
+    handle.update(cx, |shell, _, cx| assert!(shell.grid_key("cursorRight", cx))).unwrap();
+    assert_eq!(cursor(cx), columns, "ordinary movement follows the range gesture");
     handle.update(cx, |shell, _, cx| {
         shell.panes[0].as_mut().unwrap().pane.cursor = 0;
         assert!(shell.grid_key("cursorLeft", cx));

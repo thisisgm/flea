@@ -919,6 +919,8 @@
   "keys.action.expand": "විහිදුවන්න",
   "keys.action.extendDown": "පහළට තේරීම දිගු කරන්න",
   "keys.action.extendUp": "ඉහළට තේරීම දිගු කරන්න",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.factsToggle": "විස්තර",
   "keys.action.filter": "පෙරහන",
   "keys.action.focusNext": "ඊළඟ ප්‍රදේශය",

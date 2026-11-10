@@ -875,6 +875,8 @@
   "keys.action.expand": "展開",
   "keys.action.extendDown": "向下延伸選取",
   "keys.action.extendUp": "向上延伸選取",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.factsToggle": "詳細資訊",
   "keys.action.filter": "篩選",
   "keys.action.focusNext": "下一個區域",

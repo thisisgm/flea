@@ -945,6 +945,8 @@
   "keys.action.expand": "Išplėsti",
   "keys.action.extendDown": "Plėsti pažymėjimą žemyn",
   "keys.action.extendUp": "Plėsti žymėjimą aukštyn",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.factsToggle": "Duomenys",
   "keys.action.filter": "Filtras",
   "keys.action.focusNext": "Kita sritis",

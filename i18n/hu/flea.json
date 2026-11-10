@@ -2269,6 +2269,8 @@
   "keys.action.eject": "Kiadás",
   "keys.action.extendDown": "Kijelölés bővítése le",
   "keys.action.extendUp": "Kijelölés bővítése fel",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.invertSelection": "Kijelölés megfordítása",
   "keys.action.markdownView": "Formázott/forrás",
   "keys.action.menu": "Menü",

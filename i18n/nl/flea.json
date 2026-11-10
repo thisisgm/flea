@@ -1173,6 +1173,8 @@
   "keys.escape": "Sluiten of teruggaan",
   "keys.action.extendDown": "Meer omlaag selecteren",
   "keys.action.extendUp": "Meer omhoog selecteren",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.factsToggle": "Gegevens",
   "keys.action.filter": "Filter",
   "keys.filter": "Filter",

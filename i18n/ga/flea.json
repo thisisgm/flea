@@ -2563,6 +2563,8 @@
   "keys.action.eject": "Díchuir",
   "keys.action.extendDown": "Leathnaigh síos",
   "keys.action.extendUp": "Leathnaigh suas",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.invertSelection": "Inbhéartaigh an roghnú",
   "keys.action.markdownView": "Rindreáilte/foinse",
   "keys.action.menu": "Roghchlár",

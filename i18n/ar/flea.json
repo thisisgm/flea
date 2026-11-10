@@ -1095,6 +1095,8 @@
   "keys.action.expand": "توسيع",
   "keys.action.extendDown": "توسيع للأسفل",
   "keys.action.extendUp": "توسيع للأعلى",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.factsToggle": "المعلومات",
   "keys.action.filter": "الترشيح",
   "keys.action.focusNext": "المنطقة التالية",

@@ -1,10 +1,12 @@
-/// Grid arrows; Page, Home and End are shared cursor moves.
+/// Grid arrows and range-extension actions; Page, Home and End are shared cursor moves.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Arrow {
     Up,
     Down,
     Left,
     Right,
+    ExtendLeft,
+    ExtendRight,
     ExtendUp,
     ExtendDown,
 }
@@ -26,19 +28,19 @@ pub fn arrow_with_wrap(
     let next = match step {
         Arrow::Down | Arrow::ExtendDown => view.checked_add(columns)?,
         Arrow::Up | Arrow::ExtendUp => view.checked_sub(columns)?,
-        Arrow::Left if view % columns == 0 => {
+        Arrow::Left | Arrow::ExtendLeft if view % columns == 0 => {
             if !wrap_rows || view == 0 {
                 return None;
             }
             let previous_start = view - columns;
             previous_start + columns.min(total - previous_start) - 1
         }
-        Arrow::Left => view - 1,
-        Arrow::Right if view + 1 == total => return None,
-        Arrow::Right if (view + 1) % columns == 0 && !wrap_rows => {
+        Arrow::Left | Arrow::ExtendLeft => view - 1,
+        Arrow::Right | Arrow::ExtendRight if view + 1 == total => return None,
+        Arrow::Right | Arrow::ExtendRight if (view + 1) % columns == 0 && !wrap_rows => {
             return None;
         }
-        Arrow::Right => view + 1,
+        Arrow::Right | Arrow::ExtendRight => view + 1,
     };
     (next < total).then_some(next)
 }

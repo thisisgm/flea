@@ -963,6 +963,8 @@
   "keys.action.expand": "Rozšíriť",
   "keys.action.extendDown": "Rozšíriť výber nadol",
   "keys.action.extendUp": "Rozšíriť výber nahor",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.factsToggle": "Údaje",
   "keys.action.filter": "Filtrovať",
   "keys.action.focusNext": "Ďalšia oblasť",

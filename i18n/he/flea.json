@@ -945,6 +945,8 @@
   "keys.action.expand": "הרחבה",
   "keys.action.extendDown": "הרחבת הבחירה למטה",
   "keys.action.extendUp": "הרחבת הבחירה למעלה",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.factsToggle": "פרטים",
   "keys.action.filter": "סינון",
   "keys.action.focusNext": "האזור הבא",

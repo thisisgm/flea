@@ -1,8 +1,11 @@
 //! EY-445: Grid tile presses keep the List's selection model, the margin band crosses whole cells, and Home reveals the top.
 use super::test_shell::{land, open_root_with, row};
 use crate::state::Shell;
+use crate::window::startup::View;
+use flea::keys::{Context, Match};
 use gpui::{
-    point, px, Entity, Modifiers, MouseButton, Pixels, Point, TestAppContext, VisualTestContext,
+    point, px, Entity, KeyDownEvent, Keystroke, Modifiers, MouseButton, Pixels, Point,
+    TestAppContext, VisualTestContext,
 };
 
 fn open(cx: &mut TestAppContext, count: usize) -> (Entity<Shell>, &mut VisualTestContext) {
@@ -245,6 +248,90 @@ fn ey445_grid_keyboard_range_shrinks_and_stays_deliberate(cx: &mut TestAppContex
     cx.simulate_keystrokes("down");
     cx.run_until_parked();
     assert_eq!(marks(&shell, cx), (vec![0], end));
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+#[gpui::test]
+fn issue_433_grid_shift_horizontal_uses_keymap_wrap_policy_and_keeps_list_unchanged(
+    cx: &mut TestAppContext,
+) {
+    let (shell, cx) = open(cx, 61);
+    let columns = shell.read_with(cx, |shell, _| {
+        let host = shell.panes[0].as_ref().unwrap();
+        host.grid
+            .as_ref()
+            .unwrap()
+            .view
+            .layout(crate::grid::Shown::All(host.pane.held.total))
+            .columns
+    });
+    assert!(columns > 1);
+    click(&shell, cx, columns - 1, Modifiers::none());
+    assert_eq!(marks(&shell, cx), (vec![columns - 1], columns - 1));
+
+    cx.simulate_keystrokes("shift-right");
+    cx.run_until_parked();
+    assert_eq!(
+        marks(&shell, cx),
+        (vec![columns - 1], columns - 1),
+        "the default row-edge policy blocks Shift+Right"
+    );
+
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            shell.change_settings(
+                flea::jsondoc::parse(r#"{"gridWrapRows":true}"#).unwrap(),
+                window,
+                cx,
+            );
+        })
+    });
+    assert!(shell.read_with(cx, |shell, _| {
+        flea::ui_logic_st1::pages::is_true(&shell.launch.settings.data, &["gridWrapRows"])
+    }));
+    let event = KeyDownEvent {
+        keystroke: Keystroke::parse("shift-right").unwrap(),
+        is_held: false,
+        prefer_character_input: false,
+    };
+    assert_eq!(
+        shell.read_with(cx, |shell, _| {
+            shell.keyboard.lookup(
+                "default",
+                Context::Listing,
+                &event,
+                event.keystroke.modifiers,
+                false,
+            )
+        }),
+        Match::Action("extendRight"),
+        "the generated native key table resolves Shift+Right"
+    );
+    shell.update(cx, |shell, cx| assert!(shell.grid_key("extendRight", cx)));
+    assert_eq!(
+        marks(&shell, cx),
+        (vec![columns - 1, columns], columns),
+        "native Grid input wraps and extends through the generated action"
+    );
+    shell.update(cx, |shell, cx| assert!(shell.grid_key("extendLeft", cx)));
+    assert_eq!(marks(&shell, cx), (vec![columns - 1], columns - 1));
+    shell.update(cx, |shell, cx| assert!(shell.grid_key("extendLeft", cx)));
+    assert_eq!(
+        marks(&shell, cx),
+        (vec![columns - 2, columns - 1], columns - 2),
+        "reversing past the anchor extends left across the row"
+    );
+
+    cx.update(|window, cx| shell.update(cx, |shell, cx| shell.set_view(View::List, window, cx)));
+    assert!(!shell.update(cx, |shell, cx| shell.grid_key("extendRight", cx)));
+    let before = marks(&shell, cx);
+    cx.simulate_keystrokes("shift-right");
+    cx.run_until_parked();
+    assert_eq!(
+        marks(&shell, cx),
+        before,
+        "horizontal extension remains Grid-only"
+    );
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 

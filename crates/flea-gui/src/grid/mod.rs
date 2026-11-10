@@ -20,6 +20,9 @@ mod arrow_tests;
 pub(crate) mod host;
 mod input;
 #[cfg(test)]
+#[path = "input_tests.rs"]
+mod input_tests;
+#[cfg(test)]
 mod join_landing_tests;
 #[cfg(test)]
 mod join_tests;

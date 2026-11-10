@@ -945,6 +945,8 @@
   "keys.action.expand": "Proširi",
   "keys.action.extendDown": "Proširi odabir dolje",
   "keys.action.extendUp": "Proširi odabir gore",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.factsToggle": "Podaci",
   "keys.action.filter": "Filtar",
   "keys.action.focusNext": "Sljedeće područje",

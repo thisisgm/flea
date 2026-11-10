@@ -901,6 +901,8 @@
   "keys.action.expand": "Palawakin",
   "keys.action.extendDown": "Pumili pa pababa",
   "keys.action.extendUp": "Pumili pa pataas",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.factsToggle": "Mga detalye",
   "keys.action.filter": "Salain",
   "keys.action.focusNext": "Susunod na bahagi",

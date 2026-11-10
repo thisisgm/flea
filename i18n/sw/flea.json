@@ -919,6 +919,8 @@
   "keys.action.expand": "Panua",
   "keys.action.extendDown": "Panua uteuzi chini",
   "keys.action.extendUp": "Panua uteuzi juu",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.factsToggle": "Maelezo",
   "keys.action.filter": "Chuja",
   "keys.action.focusNext": "Eneo linalofuata",

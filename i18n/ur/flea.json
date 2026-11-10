@@ -918,6 +918,8 @@
   "keys.action.expand": "پھیلائیں",
   "keys.action.extendDown": "انتخاب نیچے بڑھائیں",
   "keys.action.extendUp": "انتخاب اوپر بڑھائیں",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.factsToggle": "حقائق",
   "keys.action.filter": "فلٹر",
   "keys.action.focusNext": "اگلا حصہ",

@@ -2367,6 +2367,8 @@
   "keys.action.eject": "Ejetar",
   "keys.action.extendDown": "Alargar para baixo",
   "keys.action.extendUp": "Alargar para cima",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.invertSelection": "Inverter seleção",
   "keys.action.markdownView": "Formatado/código-fonte",
   "keys.action.menu": "Menu",

@@ -989,6 +989,8 @@
   "keys.action.expand": "Rozwiń",
   "keys.action.extendDown": "Rozszerz wybór w dół",
   "keys.action.extendUp": "Rozszerz wybór w górę",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.factsToggle": "Informacje",
   "keys.action.filter": "Filtruj",
   "keys.action.focusNext": "Następny obszar",

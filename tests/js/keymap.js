@@ -1,5 +1,7 @@
 .import "../../ui/js/Keymap.js" as Keymap
 .import "../../ui/js/KeyName.js" as KeyName
+.import "keymap-horizontal.js" as HorizontalSuite
+.import "keymap-hints.js" as HintSuite
 
 function run(check) {
     // The hints the status strip draws follow the preset, so this suite hands it back as it found it.
@@ -222,30 +224,8 @@ function run(check) {
     }
     check("Copy as hints its opener", Keymap.hintFor("copyAs"), "c")
     check("a shift chord fills an action no plain key names", Keymap.hintFor("deletePermanently"), "shift-delete")
-    // A preset shift row for an action the table binds plain: the plain key must speak for it, since a shift chord only fills what no text or plain row names.
-    var keepRows = Keymap.bindingRows
-    Keymap.bindingRows = function (name, frontend) {
-        return [{ mods: "none", key: "Delete", keys: "delete", action: "trash", preset: "all" },
-                { mods: "shift", key: "X", keys: "shift-x", action: "trash", preset: name }]
-    }
-    Keymap.setPreset("vim")
-    check("a preset shift row never replaces the plain hint", Keymap.hintFor("trash"), "delete")
-    Keymap.bindingRows = keepRows
-    Keymap.setPreset("vim")
-    check("deletePermanently still gets its shift hint where no plain row exists", Keymap.hintFor("deletePermanently"), "shift-delete")
-    // The status strip asks for this one key while the first window builds; the whole table was about 9,700 calls there.
-    Keymap.setPreset("default")
-    var keepLookup = Keymap.lookupFor, lookups = 0
-    Keymap.lookupFor = function () { lookups++; return keepLookup.apply(null, arguments) }
-    var firstAsk = Keymap.hintFor("deletePermanently")
-    Keymap.lookupFor = keepLookup
-    var ownRows = Keymap.PRESET_KEYS.concat(Keymap.SHARED_KEYS).filter(function (row) {
-        return (row.preset === "all" || row.preset === "default") && Keymap.applies(row, "listing", "gui")
-            && Keymap.actionGroup(row.action) === "deletePermanently"
-    }).length
-    check("the action asked for has rows of its own, so the count below can go red", ownRows > 0, true)
-    check("a first hint ask looks up only the rows of the action it asks for", lookups, ownRows)
-    check("and still answers the shift chord", firstAsk, "shift-delete")
+    HintSuite.run(check)
+    HorizontalSuite.run(check)
     // Asked one action at a time, every preset answers exactly what its whole table says.
     var hintMismatches = []
     for (var hp = 0; hp < Keymap.PRESETS.length; hp++) {

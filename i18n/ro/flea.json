@@ -945,6 +945,8 @@
   "keys.action.expand": "Extinde",
   "keys.action.extendDown": "Extinde în jos",
   "keys.action.extendUp": "Extinde în sus",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.factsToggle": "Detalii",
   "keys.action.filter": "Filtrează",
   "keys.action.focusNext": "Zona următoare",

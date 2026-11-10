@@ -918,6 +918,8 @@
   "keys.action.expand": "Genişlet",
   "keys.action.extendDown": "Seçimi aşağı genişlet",
   "keys.action.extendUp": "Seçimi yukarı genişlet",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.factsToggle": "Bilgiler",
   "keys.action.filter": "Filtrele",
   "keys.action.focusNext": "Sonraki alan",

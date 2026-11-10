@@ -945,6 +945,8 @@
   "keys.action.expand": "Rozbalit",
   "keys.action.extendDown": "Rozšířit výběr dolů",
   "keys.action.extendUp": "Rozšířit výběr nahoru",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.factsToggle": "Podrobnosti",
   "keys.action.filter": "Filtrovat",
   "keys.action.focusNext": "Další oblast",

@@ -945,6 +945,8 @@
   "keys.action.expand": "Expandir",
   "keys.action.extendDown": "Extender hacia abajo",
   "keys.action.extendUp": "Extender hacia arriba",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.factsToggle": "Datos",
   "keys.action.filter": "Filtrar",
   "keys.action.focusNext": "Área siguiente",

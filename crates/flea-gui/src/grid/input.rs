@@ -64,6 +64,8 @@ impl Shell {
             "cursorDown" => Some(Arrow::Down),
             "cursorLeft" => Some(Arrow::Left),
             "cursorRight" => Some(Arrow::Right),
+            "extendLeft" => Some(Arrow::ExtendLeft),
+            "extendRight" => Some(Arrow::ExtendRight),
             "extendUp" => Some(Arrow::ExtendUp),
             "extendDown" => Some(Arrow::ExtendDown),
             _ => None,
@@ -101,7 +103,10 @@ impl Shell {
                 grid.refollow();
             }
             if next != cursor {
-                if matches!(action, "extendUp" | "extendDown") {
+                if matches!(
+                    action,
+                    "extendLeft" | "extendRight" | "extendUp" | "extendDown"
+                ) {
                     let pulled = host.input.take_pull(cursor, host.pane.held.listing);
                     host.input.selection.extend(
                         &mut host.selected,

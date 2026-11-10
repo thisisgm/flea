@@ -901,6 +901,8 @@
   "keys.action.expand": "Víkka",
   "keys.action.extendDown": "Víkka val niður",
   "keys.action.extendUp": "Víkka val upp",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.factsToggle": "Upplýsingar",
   "keys.action.filter": "Sía",
   "keys.action.focusNext": "Næsta svæði",

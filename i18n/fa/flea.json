@@ -901,6 +901,8 @@
   "keys.action.expand": "گسترش",
   "keys.action.extendDown": "گسترش انتخاب به پایین",
   "keys.action.extendUp": "گسترش انتخاب به بالا",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.factsToggle": "اطلاعات",
   "keys.action.filter": "پالایه",
   "keys.action.focusNext": "ناحیهٔ بعدی",

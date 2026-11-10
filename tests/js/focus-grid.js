@@ -33,6 +33,8 @@ function run(check) {
     var hPress = key(Qt.Key_H, "h", none)
     var lPress = key(Qt.Key_L, "l", none)
     var shiftJ = key(Qt.Key_J, "J", shift)
+    var shiftLeft = key(Qt.Key_Left, "", shift)
+    var shiftRight = key(Qt.Key_Right, "", shift)
     var ctrlH = key(Qt.Key_H, "h", ctrl)
 
     var gridPane = pane("grid")
@@ -131,6 +133,14 @@ function run(check) {
     gridPane.cursorIndex = 3
     Grid.arrow(jPress, "cursorDown", gridPane)
     check("grid j uses the reflowed column count too", gridPane.cursorIndex, 5)
+    gridPane.gridWrapRows = true
+    gridPane.cursorIndex = 4
+    gridPane.selection.clear()
+    Grid.arrow(shiftRight, "extendRight", gridPane)
+    check("horizontal extension uses the reflowed column count", gridPane.cursorIndex, 5)
+    check("the reflowed horizontal range includes only the adjacent cell", Fixture.picks(gridPane), "4,5")
+    gridPane.selection.clear()
+
     // Filtered coordinates: "screen" matches rows 0, 5 and 6, so a two-tile row's third cell is row 6.
     gridPane.filterQuery = "screen"
     gridPane.refresh()
@@ -164,6 +174,60 @@ function run(check) {
     // A modifier takes the letter out of the pair: ctrl+j resolves to nothing, and shift+J extends.
     check("ctrl j is not an arrow", Focus.lookup(key(Qt.Key_J, "", ctrl), gridPane), "")
     check("shift J is the extension pair", Focus.lookup(shiftJ, gridPane), "extendDown")
+    check("Shift+Left resolves to horizontal extension", Focus.lookup(shiftLeft, gridPane), "extendLeft")
+    check("Shift+Right resolves to horizontal extension", Focus.lookup(shiftRight, gridPane), "extendRight")
+    check("Ctrl+Shift+Left stays unbound", Focus.lookup(key(Qt.Key_Left, "", ctrl | shift), gridPane), "")
+    check("Ctrl+Shift+Right stays unbound", Focus.lookup(key(Qt.Key_Right, "", ctrl | shift), gridPane), "")
+    check("Meta+Shift+Left stays unbound", Focus.lookup(key(Qt.Key_Left, "", Qt.MetaModifier | shift), gridPane), "")
+    check("Meta+Shift+Right stays unbound", Focus.lookup(key(Qt.Key_Right, "", Qt.MetaModifier | shift), gridPane), "")
+
+    // Horizontal ranges use the existing anchor/base gesture and share #434's row-edge policy.
+    gridPane.gridWrapRows = false
+    gridPane.cursorIndex = 2
+    gridPane.selection.clear()
+    Grid.arrow(shiftRight, "extendRight", gridPane)
+    check("Shift+Right stops at a row edge when wrapping is off", gridPane.cursorIndex, 2)
+    check("a blocked horizontal extension leaves selection untouched", Fixture.picks(gridPane), "")
+    gridPane.gridWrapRows = true
+    Grid.arrow(shiftRight, "extendRight", gridPane)
+    check("Shift+Right wraps into the next row", gridPane.cursorIndex, 3)
+    Grid.arrow(shiftRight, "extendRight", gridPane)
+    check("repeated Shift+Right extends the same range", Fixture.picks(gridPane), "2,3,4")
+    Grid.arrow(shiftLeft, "extendLeft", gridPane)
+    check("reversing Shift+Left shrinks toward the anchor", Fixture.picks(gridPane), "2,3")
+    Grid.arrow(shiftLeft, "extendLeft", gridPane)
+    check("the range shrinks back to its anchor", Fixture.picks(gridPane), "2")
+    Grid.arrow(shiftLeft, "extendLeft", gridPane)
+    check("moving past the anchor extends on its other side", Fixture.picks(gridPane), "1,2")
+    gridPane.cursorIndex = 0
+    gridPane.selection.clear()
+    Grid.arrow(shiftLeft, "extendLeft", gridPane)
+    check("Shift+Left stops at the listing start", gridPane.cursorIndex, 0)
+    gridPane.cursorIndex = 6
+    Grid.arrow(shiftRight, "extendRight", gridPane)
+    check("Shift+Right stops at the incomplete listing end", gridPane.cursorIndex, 6)
+    gridPane.cursorIndex = 5
+    gridPane.selection.clear()
+    Grid.arrow(shiftRight, "extendRight", gridPane)
+    Grid.arrow(shiftRight, "extendRight", gridPane)
+    check("a failed end-boundary step leaves the active cursor in place", gridPane.cursorIndex, 6)
+    Grid.arrow(shiftLeft, "extendLeft", gridPane)
+    check("the active range still shrinks correctly after a failed step", Fixture.picks(gridPane), "5")
+
+    // A filtered grid steps and extends over visible indices only.
+    var filtered = pane("grid")
+    filtered.filterQuery = "s"
+    filtered.refresh()
+    filtered.gridWrapRows = true
+    filtered.cursorIndex = 6
+    Grid.arrow(shiftLeft, "extendLeft", filtered)
+    check("filtered Shift+Left wraps by visible item order", filtered.cursorIndex, 5)
+    check("filtered range does not select hidden entries", Fixture.picks(filtered), "5,6")
+    var listed = pane("list")
+    listed.cursorIndex = 2
+    Focus.handleKey(shiftRight, listed, null)
+    check("Shift+Right leaves List cursor navigation unchanged", listed.cursorIndex, 2)
+    check("Shift+Right leaves List selection unchanged", Fixture.picks(listed), "")
 
     gridPane.cursorIndex = 1
     gridPane.selection.clear()

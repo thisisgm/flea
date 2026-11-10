@@ -945,6 +945,8 @@
   "keys.action.expand": "Amplia la vista",
   "keys.action.extendDown": "Estén la selecció avall",
   "keys.action.extendUp": "Estén la selecció amunt",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.factsToggle": "Informació",
   "keys.action.filter": "Filtra",
   "keys.action.focusNext": "Àrea següent",

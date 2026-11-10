@@ -1007,6 +1007,8 @@
   "keys.action.expand": "Razširi",
   "keys.action.extendDown": "Razširi izbor navzdol",
   "keys.action.extendUp": "Razširi izbor navzgor",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.factsToggle": "Podatki",
   "keys.action.filter": "Filter",
   "keys.action.focusNext": "Naslednje območje",

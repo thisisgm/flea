@@ -283,6 +283,12 @@ impl Shell {
                 .map(Dispatch::Action)
                 .unwrap_or(resolved)
         };
+        let dispatch = match dispatch {
+            Dispatch::Action("extendLeft" | "extendRight") if self.view != startup::View::Grid => {
+                Dispatch::Unbound
+            }
+            other => other,
+        };
         let listing = self.keyboard.context == flea::keys::Context::Listing;
         self.operations
             .fileops

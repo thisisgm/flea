@@ -2140,6 +2140,8 @@
   "keys.action.eject": "弹出",
   "keys.action.extendDown": "向下扩展选择",
   "keys.action.extendUp": "向上扩展选择",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.invertSelection": "反向选择",
   "keys.action.markdownView": "渲染/源码",
   "keys.action.menu": "菜单",

@@ -901,6 +901,8 @@
   "keys.action.expand": "Utvid",
   "keys.action.extendDown": "Utvid utvalget nedover",
   "keys.action.extendUp": "Utvid utvalget oppover",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.factsToggle": "Fakta",
   "keys.action.filter": "Filter",
   "keys.action.focusNext": "Neste område",

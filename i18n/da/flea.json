@@ -901,6 +901,8 @@
   "keys.action.expand": "Udvid",
   "keys.action.extendDown": "Udvid nedad",
   "keys.action.extendUp": "Udvid opad",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.factsToggle": "Fakta",
   "keys.action.filter": "Filter",
   "keys.action.focusNext": "Næste område",

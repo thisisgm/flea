@@ -901,6 +901,8 @@
   "keys.action.expand": "विस्तृत करें",
   "keys.action.extendDown": "चयन नीचे बढ़ाएँ",
   "keys.action.extendUp": "चयन ऊपर बढ़ाएँ",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.factsToggle": "विवरण",
   "keys.action.filter": "फ़िल्टर",
   "keys.action.focusNext": "अगला क्षेत्र",

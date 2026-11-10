@@ -2485,6 +2485,8 @@
   "keys.action.eject": "Eject",
   "keys.action.extendDown": "Extend down",
   "keys.action.extendUp": "Extend up",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.invertSelection": "Invert selection",
   "keys.action.markdownView": "Rendered/source",
   "keys.action.menu": "Menu",

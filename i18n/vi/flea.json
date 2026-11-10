@@ -874,6 +874,8 @@
   "keys.action.expand": "Mở rộng",
   "keys.action.extendDown": "Mở rộng vùng chọn xuống",
   "keys.action.extendUp": "Mở rộng vùng chọn lên",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.factsToggle": "Thông tin",
   "keys.action.filter": "Lọc",
   "keys.action.focusNext": "Vùng tiếp theo",

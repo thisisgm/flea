@@ -101,6 +101,23 @@ function run(check) {
     Marks.extend(t, 1)
     check("Shift after Ctrl+A still marks every row", t.selection.count(), 10)
 
+    // A new gesture keeps its base whether the cursor begins inside or outside those marks.
+    var inside = Fixture.pane()
+    inside.selection.toggle(2)
+    inside.selection.toggle(3)
+    inside.selection.toggle(4)
+    inside.cursorIndex = 3
+    Marks.extend(inside, 1)
+    Marks.extend(inside, -1)
+    check("a horizontal-style gesture inside an existing selection keeps its base", Fixture.picks(inside), "2,3,4")
+    var outside = Fixture.pane()
+    outside.selection.toggle(0)
+    outside.cursorIndex = 3
+    Marks.extend(outside, 1)
+    check("a gesture outside existing marks adds its range without replacing them", Fixture.picks(outside), "0,3,4")
+    Marks.extend(outside, -1)
+    check("reversing that gesture restores only its original base plus anchor", Fixture.picks(outside), "0,3")
+
     // Filtered: the range covers drawn rows only, and narrowing mid-gesture never resurrects one.
     var f = Fixture.pane("scr")
     Filter.setCursor(f, 1)

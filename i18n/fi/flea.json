@@ -901,6 +901,8 @@
   "keys.action.expand": "Laajenna",
   "keys.action.extendDown": "Laajenna valintaa alas",
   "keys.action.extendUp": "Laajenna valintaa ylös",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.factsToggle": "Tiedot",
   "keys.action.filter": "Suodata",
   "keys.action.focusNext": "Seuraava alue",

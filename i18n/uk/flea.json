@@ -1006,6 +1006,8 @@
   "keys.action.expand": "Розгорнути",
   "keys.action.extendDown": "Розширити вибір униз",
   "keys.action.extendUp": "Розширити вибір угору",
+  "keys.action.extendLeft": "Extend left",
+  "keys.action.extendRight": "Extend right",
   "keys.action.factsToggle": "Відомості",
   "keys.action.filter": "Фільтр",
   "keys.action.focusNext": "Наступна область",
