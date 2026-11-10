@@ -86,7 +86,7 @@ impl Drop for SyncBatch {
 
 // The raw bytes a .trashinfo record's Path= names; its value is ASCII once encoded.
 // Sample input: "[Trash Info]\nPath=/home/u/caf%E9.txt\nDeletionDate=2026-10-09T22:41:03\n"
-fn recorded_path(body: &[u8]) -> Option<Vec<u8>> {
+pub(crate) fn recorded_path(body: &[u8]) -> Option<Vec<u8>> {
     let text = std::str::from_utf8(body).ok()?;
     text.lines().find_map(|line| line.strip_prefix("Path=")).map(percent_decode_bytes)
 }

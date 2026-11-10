@@ -143,6 +143,28 @@ pub(crate) fn raw_mount_options_in(path: &Path, body: &str) -> Option<String> {
     best.map(|(_, options)| options)
 }
 
+// The deepest mount's point and the root within its filesystem, so a caller tells a subvolume or a bind mount (a root that is not "/") from a whole-filesystem one.
+// Sample: `28 22 259:1 /@data /mnt/data rw - btrfs /dev/nvme0n1p1 rw` answers ("/mnt/data", "/@data") for a path under /mnt/data.
+pub(crate) fn mount_point_and_root_in(path: &Path, body: &str) -> Option<(PathBuf, PathBuf)> {
+    let mut best: Option<(usize, PathBuf, PathBuf)> = None;
+    for line in body.lines() {
+        let fields: Vec<&str> = line.split_whitespace().collect();
+        let Some(split) = fields.iter().position(|field| *field == "-") else { continue };
+        if fields.len() <= split + 2 || fields.len() < 6 {
+            continue;
+        }
+        let mount = PathBuf::from(OsString::from_vec(unescape(fields[4])));
+        if !path.starts_with(&mount) {
+            continue;
+        }
+        let depth = mount.components().count();
+        if best.as_ref().map(|(old, _, _)| depth >= *old).unwrap_or(true) {
+            best = Some((depth, mount, PathBuf::from(OsString::from_vec(unescape(fields[3])))));
+        }
+    }
+    best.map(|(_, mount, root)| (mount, root))
+}
+
 // Sample line as above: the fields after the source are the filesystem's super options.
 fn super_options(line: &str) -> String {
     let fields: Vec<&str> = line.split_whitespace().collect();

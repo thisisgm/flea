@@ -157,7 +157,9 @@ pub(crate) fn trash_announcing(paths: &[PathBuf], selection: Option<&[super::men
         return Ok((Vec::new(), if quiet_gone { 0 } else { missing.len() }, reason));
     }
     // An item on the home Trash's own filesystem is renamed in and names its own entry, so only the rest need gio and its lists.
-    let (home, mut rest): (Vec<usize>, Vec<usize>) = (0..present.len()).partition(|&i| super::hometrash::renames_to_home(present[i]));
+    let (home, rest): (Vec<usize>, Vec<usize>) = (0..present.len()).partition(|&i| super::hometrash::renames_to_home(present[i]));
+    // A mount whose mountinfo root is not "/" (a btrfs subvolume or a bind mount) is system-internal to GLib, whose trash refuses it outright (GLib issue 1271), so such an item is renamed into that mount's own topdir Trash and names its entry too.
+    let (topdir, mut rest): (Vec<usize>, Vec<usize>) = rest.into_iter().partition(|&i| super::topdirtrash::renames_to_topdir(present[i]));
     let mut before = if rest.is_empty() { None } else { Some(list()) };
     super::menu_actions::validate_sources(selection, paths)?;
     let mut entries: Vec<Option<Entry>> = vec![None; present.len()];
@@ -165,6 +167,15 @@ pub(crate) fn trash_announcing(paths: &[PathBuf], selection: Option<&[super::men
     let (mut unsynced, mut durable) = (std::collections::BTreeSet::new(), None);
     for i in home {
         match super::hometrash::rename_to_home(present[i], &mut unsynced, &mut durable) {
+            Some(Ok(entry)) => entries[i] = Some(entry),
+            // Gone before its move, the Issue 88 refusal; the rename left no info file behind.
+            Some(Err(_)) => failed += 1,
+            // EXDEV, EBUSY or a taken name: nothing moved, so gio gets this one as it would have.
+            None => rest.push(i),
+        }
+    }
+    for i in topdir {
+        match super::topdirtrash::rename_to_topdir(present[i], &mut unsynced, &mut durable) {
             Some(Ok(entry)) => entries[i] = Some(entry),
             // Gone before its move, the Issue 88 refusal; the rename left no info file behind.
             Some(Err(_)) => failed += 1,
@@ -257,6 +268,10 @@ pub fn restore(entry: &Entry) -> Result<(), FleaError> {
     if !entry.uri.is_empty() {
         // A home Trash entry whose own record names this path goes back in-process, so undo spawns no gio for it.
         if let Some(done) = super::homerestore::restore_from_home(entry) {
+            return done.map_err(|msg| err(&msg));
+        }
+        // A topdir Trash entry on a mount gio refuses to name restores in-process the same way, on its own record's proof.
+        if let Some(done) = super::topdirtrash::restore_from_topdir(entry) {
             return done.map_err(|msg| err(&msg));
         }
         return restore_uri(entry);
