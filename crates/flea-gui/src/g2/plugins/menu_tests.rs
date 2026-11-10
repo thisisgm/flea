@@ -18,7 +18,6 @@ use flea::{
 use gpui::{AppContext, Context, TestAppContext, Window, WindowHandle};
 use std::{
     cell::RefCell,
-    os::unix::fs::PermissionsExt,
     path::{Path, PathBuf},
     process::Command,
     rc::Rc,
@@ -102,12 +101,7 @@ fn plugin(example: &str, root: &Path) -> (Plugin, Runtime) {
     let script = std::fs::read_to_string(source.join("plugin.py")).unwrap();
     let script = script.replace("        request = json.loads(line)", &format!(
         "        request = json.loads(line)\n        with open('requests.jsonl', 'a') as receipt:\n            receipt.write(json.dumps(request) + '\\n')\n        os.environ['XDG_DATA_HOME'] = {0:?} + '/data'\n        os.environ['XDG_CONFIG_HOME'] = {0:?} + '/config'\n        os.environ['XDG_CACHE_HOME'] = {0:?} + '/cache'\n        os.environ['XDG_STATE_HOME'] = {0:?} + '/state'", root.to_string_lossy()));
-    std::fs::write(folder.join("plugin.py"), script).unwrap();
-    std::fs::set_permissions(
-        folder.join("plugin.py"),
-        std::fs::Permissions::from_mode(0o755),
-    )
-    .unwrap();
+    flea::executable_file::write(&folder.join("plugin.py"), script.as_bytes(), 0o755).unwrap();
     let protocol = jsondoc::parse(flea::plugin_runtime::protocol::CONTRACT).unwrap();
     let runtime = Runtime::new(Config {
         folder,

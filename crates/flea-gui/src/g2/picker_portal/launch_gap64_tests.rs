@@ -72,7 +72,7 @@ fn sol_gap64_picker_open_refusal_quits_its_running_loop_without_a_reply() {
         ),
     )
     .unwrap();
-    std::fs::set_permissions(&stand_in, std::fs::Permissions::from_mode(0o700)).unwrap();
+    flea::executable_file::write(&stand_in, &std::fs::read(&stand_in).unwrap(), 0o700).unwrap();
     let mut command = Command::new(std::env::current_exe().unwrap());
     command
         .args(["--exact", TEST, "--nocapture"])

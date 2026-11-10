@@ -4,7 +4,7 @@ use super::airdrop_shared::{Seen, Shared};
 use crate::{backend::Backend, state::tests::shell_with, state::Shell};
 use flea::ui_logic_send_share::airdrop::{Adapter, Readiness};
 use gpui::{TestAppContext, VisualTestContext};
-use std::os::unix::fs::PermissionsExt;
+
 use std::path::PathBuf;
 use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
@@ -21,7 +21,7 @@ fn stand_in(tag: &str) -> (PathBuf, String, PathBuf) {
     );
     let owly = root.join("owly");
     std::fs::write(&owly, script).unwrap();
-    std::fs::set_permissions(&owly, std::fs::Permissions::from_mode(0o755)).unwrap();
+    flea::executable_file::write(&owly, &std::fs::read(&owly).unwrap(), 0o755).unwrap();
     (root.clone(), owly.to_string_lossy().into_owned(), log)
 }
 

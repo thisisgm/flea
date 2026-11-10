@@ -1,6 +1,6 @@
 //! Exercise real tagger commands and process-wide warning suppression with an isolated fake hyprctl.
 use super::{Sources, Tagger};
-use std::os::unix::fs::PermissionsExt;
+
 use std::process::Command;
 
 fn check(reply: &str, glassy: bool, warnings: usize) {
@@ -68,7 +68,7 @@ esac
         ),
     )
     .unwrap();
-    std::fs::set_permissions(&program, std::fs::Permissions::from_mode(0o700)).unwrap();
+    flea::executable_file::write(&program, &std::fs::read(&program).unwrap(), 0o700).unwrap();
     let tagger = Tagger::new(
         std::process::id(),
         program.into_os_string(),

@@ -7,7 +7,7 @@ use super::glass_tag::{
 };
 use std::collections::BTreeSet;
 use std::ffi::{OsStr, OsString};
-use std::os::unix::fs::PermissionsExt;
+
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
@@ -268,7 +268,7 @@ fn fake_hyprctl(root: &Path) -> OsString {
         std::process::id()
     );
     std::fs::write(&path, script).unwrap();
-    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
+    flea::executable_file::write(&path, &std::fs::read(&path).unwrap(), 0o700).unwrap();
     path.into_os_string()
 }
 

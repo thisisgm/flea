@@ -1,6 +1,6 @@
 //! The painted rail asks the real favorites CLI about its visible local paths.
 use super::*;
-use std::os::unix::fs::PermissionsExt;
+
 use std::process::Command;
 
 struct Rail(gpui::Entity<Producer>);
@@ -77,7 +77,7 @@ fn failing_rail(
         ),
     )
     .unwrap();
-    std::fs::set_permissions(&exe, std::fs::Permissions::from_mode(0o700)).unwrap();
+    flea::executable_file::write(&exe, &std::fs::read(&exe).unwrap(), 0o700).unwrap();
     let records = (0..40)
         .map(|i| favourite(i, &format!("/missing/{i}")))
         .collect();
@@ -286,7 +286,7 @@ fn rail_favourites_inspect_real_visible_paths_and_newly_scrolled_rows(
         "#!/bin/sh\nexport XDG_STATE_HOME={}\nexport XDG_CONFIG_HOME={}\nprintf '%s\\n' \"$2\" >> {}\nexec {} \"$@\"\n",
         quoted(&root.join("state")), quoted(root), quoted(&root.join("requests")), quoted(&backend),
     )).unwrap();
-    std::fs::set_permissions(&exe, std::fs::Permissions::from_mode(0o700)).unwrap();
+    flea::executable_file::write(&exe, &std::fs::read(&exe).unwrap(), 0o700).unwrap();
     let (parent, view) = cx.add_window_view(|_, cx| {
         Rail(cx.new(|cx| {
             let mut producer =

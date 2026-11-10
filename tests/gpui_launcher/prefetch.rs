@@ -50,7 +50,7 @@ print(json.dumps({'pid':str(os.getpid()),'env':{key:os.environ.get(key) for key 
 "#
         .as_bytes(),
     );
-    fs::set_permissions(path, fs::Permissions::from_mode(0o755)).unwrap();
+    flea::executable_file::write(&path, &std::fs::read(&path).unwrap(), 0o755).unwrap();
 }
 
 fn handoff(output: &Output) -> (String, Option<String>, Option<String>) {

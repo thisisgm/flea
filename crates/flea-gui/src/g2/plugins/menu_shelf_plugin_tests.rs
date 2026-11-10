@@ -17,8 +17,7 @@ fn pile(root: &Path, run: &str) -> (Plugin, PathBuf) {
     let folder = root.join("config/flea/plugins/example.pile");
     std::fs::create_dir_all(&folder).unwrap();
     std::fs::write(folder.join("manifest.json"), MANIFEST).unwrap();
-    std::fs::write(folder.join("run"), run).unwrap();
-    std::fs::set_permissions(folder.join("run"), std::fs::Permissions::from_mode(0o755)).unwrap();
+    flea::executable_file::write(&folder.join("run"), run.as_bytes(), 0o755).unwrap();
     std::fs::create_dir_all(root.join("state/flea")).unwrap();
     std::fs::write(
         root.join("state/flea/ui.json"),

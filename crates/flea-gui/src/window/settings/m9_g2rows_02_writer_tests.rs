@@ -3,10 +3,7 @@ use crate::{
     state::Shell,
     window::settings::store::{Update, Worker},
 };
-use std::{
-    os::unix::fs::PermissionsExt,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
 const CHILD: &str = "window::settings::apply::m9_g2rows_02_writer::m9_g2rows_02_store_child";
 
@@ -21,7 +18,7 @@ impl Shell {
         let executable = std::env::current_exe().unwrap();
         let script = format!("#!/bin/sh\n[ \"$1\" = --ui-state ] || exit 2\n/usr/bin/env -i PATH=/usr/bin:/bin M9_G2ROWS_02_ROOT={} M9_G2ROWS_02_PATCH=\"$2\" /usr/bin/setsid -w {} --exact {} --nocapture > {} 2>&1 || exit $?\ncat {}\n", quote(root.to_str().unwrap()), quote(executable.to_str().unwrap()), quote(CHILD), quote(root.join("writer-child.log").to_str().unwrap()), quote(root.join("writer-reply.json").to_str().unwrap()));
         std::fs::write(&program, script).unwrap();
-        std::fs::set_permissions(&program, std::fs::Permissions::from_mode(0o700)).unwrap();
+        flea::executable_file::write(&program, &std::fs::read(&program).unwrap(), 0o700).unwrap();
         let worker = Worker::at(root.join("state/flea/ui.json"), program).unwrap();
         let updates = worker.updates.clone();
         self.settings.worker = Some(worker);

@@ -22,8 +22,8 @@ impl Recorder {
             ),
         )
         .unwrap();
-        use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+
+        flea::executable_file::write(&script, &std::fs::read(&script).unwrap(), 0o755).unwrap();
         Self(dir)
     }
     fn wire(&self) -> String {

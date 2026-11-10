@@ -1,5 +1,5 @@
 use super::{read_rounding, rounding};
-use std::{os::unix::fs::PermissionsExt, path::PathBuf, process::Command};
+use std::{path::PathBuf, process::Command};
 
 struct Fixture(PathBuf);
 impl Fixture {
@@ -47,7 +47,7 @@ fn m9_corner_tui_nonzero_exit_is_square() {
     let root = Fixture::new();
     let program = root.0.join("hyprctl");
     std::fs::write(&program, "#!/bin/sh\nprintf '{\"int\":8}'\nexit 1\n").unwrap();
-    std::fs::set_permissions(&program, std::fs::Permissions::from_mode(0o700)).unwrap();
+    flea::executable_file::write(&program, &std::fs::read(&program).unwrap(), 0o700).unwrap();
     assert!(!read_rounding(&mut Command::new(program)));
 }
 
@@ -90,6 +90,6 @@ fn m9_corner_tui_successful_command_is_rounded() {
     let root = Fixture::new();
     let program = root.0.join("hyprctl");
     std::fs::write(&program, "#!/bin/sh\nprintf '{\"int\":8}'\nexit 0\n").unwrap();
-    std::fs::set_permissions(&program, std::fs::Permissions::from_mode(0o700)).unwrap();
+    flea::executable_file::write(&program, &std::fs::read(&program).unwrap(), 0o700).unwrap();
     assert!(read_rounding(&mut Command::new(program)));
 }
