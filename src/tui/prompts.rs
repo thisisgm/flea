@@ -1,5 +1,5 @@
 // The status row's prompts and receipts, the paste question, and the undo steps an undo of a trash lands the cursor on.
-use super::{cells::{ellipsis, fit, text_width}, editor::Editor, input::Key, model::Model, theme::Theme,
+use super::{cells::{ellipsis, text_width}, editor::Editor, input::Key, model::Model, theme::Theme,
     wire::{count, flag, number, text, word, Wire}};
 use crate::jsondoc::Json;
 use flea::{i18n::I18n, ui_logic_sr1::{scope_label, Kind, Session}};
@@ -70,7 +70,11 @@ pub fn status(m: &Model, theme: &Theme, columns: usize, elapsed: Duration) -> (S
     let mut out = format!(
         "{}{}",
         theme.muted,
-        if used < label_width { ellipsis(&label, used) } else { label.clone() }
+        if used < label_width {
+            ellipsis(&label, used)
+        } else {
+            label.clone()
+        }
     );
     used = used.min(columns);
     let ghost = if editor.kind == "path" { m.completion.strip_prefix(editor.value.as_str()).unwrap_or("") } else { "" };
