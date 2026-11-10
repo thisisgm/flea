@@ -126,6 +126,7 @@ footer_after=''
 fixture_root="$scratch/fixtures"
 sandbox_make "$fixture_root"
 flea_bin=/usr/bin/true
+test_frontend=gpui
 # The replay owns its 7z and theme, so the leg never depends on what the host or CI image installs.
 mkdir -p "$scratch/bin" && printf '#!/bin/sh\nexit 0\n' > "$scratch/bin/7z" && chmod +x "$scratch/bin/7z"
 PATH="$scratch/bin:$PATH"

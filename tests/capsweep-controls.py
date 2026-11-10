@@ -117,6 +117,7 @@ def picker_controls(group):
 
 
 SHELL_PRELUDE = r'''set -euo pipefail
+test_frontend=gpui
 repo=$1
 sweep_root=$2
 good=$3

@@ -88,26 +88,43 @@ sweep_shot successful > "$scratch/success.log"
 [[ "$(cat "$scratch/success.log")" == 'SWEEP sweep-successful 1320x820' ]] || fail 'per-shot line is wrong'
 [[ "$(cat "$scratch/manifest.tsv")" == $'sweep-successful\t1320x820' ]] || fail 'manifest is wrong'
 printf 'CAPSWEEP_CHECK refusal-controls=4 success=1\n'
-# The collision card's focus walk ends on replace, and a walk that comes round without it fails by name instead of looping.
+# The collision card's focus walk ends on Keep Both, and a walk that comes round without it fails by name instead of looping.
 . "$repo/tests/ui-captures-collide.sh"
 walk_run() {
     local focuses=("$@")
     : > "$scratch/walk.asked"
     : > "$scratch/walk.shots"
+    printf '%s\n' "$((${#focuses[@]} - 1))" > "$scratch/walk.focus"
     (
         cap_collide_park() { :; }
-        key() { :; }
-        menus_expect() { :; }
-        ipc() { local asked; asked=$(wc -l < "$scratch/walk.asked"); printf 'x\n' >> "$scratch/walk.asked"; printf '{"focus":"%s"}\n' "${focuses[asked % ${#focuses[@]}]}"; }
+        key() {
+            local current
+            current=$(<"$scratch/walk.focus")
+            case "$1" in
+                h) (( current == 0 )) || current=$((current - 1)) ;;
+                l) current=$(((current + 1) % ${#focuses[@]})) ;;
+            esac
+            printf '%s\n' "$current" > "$scratch/walk.focus"
+        }
+        menus_expect() { ipc "$1" | jq -e "$2" >/dev/null || fail "$3"; }
+        ipc() {
+            local current
+            current=$(<"$scratch/walk.focus")
+            printf 'x\n' >> "$scratch/walk.asked"
+            jq -nc --arg focus "${focuses[current]}" --args \
+                '{focus:$focus,buttons:($ARGS.positional | map({name:.,visible:true}))}' "${focuses[@]}"
+        }
         shot() { printf '%s\n' "$1" >> "$scratch/walk.shots"; [[ $(wc -l < "$scratch/walk.shots") -lt 20 ]] || { printf 'WALK_UNBOUNDED\n' >&2; exit 3; }; }
         cap_collide_card walk
     ) 2>&1
 }
-walk_out=$(walk_run cancel skip replace) || fail "a focus walk that reaches replace was refused: $walk_out"
-[[ "$(wc -l < "$scratch/walk.shots")" -eq 4 ]] || fail 'the focus walk did not shoot the rest and each button once'
-if walk_out=$(walk_run cancel skip); then fail 'a focus walk that never reaches replace was accepted'; fi
-[[ "$walk_out" == *"came round to cancel before it reached replace"* ]] || fail "a looping focus walk did not fail by name: $walk_out"
-printf 'CAPSWEEP_CHECK focus-walk=2\n'
+walk_out=$(walk_run cancel skip replace keep) || fail "a file card focus walk that reaches Keep Both was refused: $walk_out"
+[[ "$(<"$scratch/walk.shots")" == $'walk-rest\nwalk-focus-cancel\nwalk-focus-skip\nwalk-focus-replace\nwalk-focus-keep' ]] || fail 'the file card did not shoot the rest and each button once'
+walk_out=$(walk_run cancel skip merge replace keep) || fail "a folder card focus walk that reaches Keep Both was refused: $walk_out"
+[[ "$(<"$scratch/walk.shots")" == $'walk-rest\nwalk-focus-cancel\nwalk-focus-skip\nwalk-focus-merge\nwalk-focus-replace\nwalk-focus-keep' ]] || fail 'the folder card did not shoot the rest and each button once'
+if walk_out=$(walk_run cancel skip replace); then fail 'a focus walk that never reaches Keep Both was accepted'; fi
+[[ "$walk_out" == *"came round to cancel before it reached keep"* ]] || fail "a looping focus walk did not fail by name: $walk_out"
+printf 'CAPSWEEP_CHECK focus-walk=3\n'
 # Run the real state composer with native side effects stubbed, to catch invalid default JSON.
 fixture_root="$scratch"
 sweep_root="$scratch/suite"
