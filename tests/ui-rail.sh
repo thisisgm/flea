@@ -631,8 +631,8 @@ EOS
     # The pointer glides to the slot centre railDetails gives, and railMarkHovered must read true before the shot.
     command -v ydotool >/dev/null || fail "kernelrows: no ydotool on PATH, so the mark cannot be hovered"
     [[ -S "${XDG_RUNTIME_DIR:-}/.ydotool_socket" ]] || fail "kernelrows: no ydotool socket, so the mark cannot be hovered"
-    ipc railEntries | jq -e '[.[] | select(.label == "FLEASTICK" and .group == "device" and .kind == "volume" and .mounted == true and .removable == true)] | length == 1' >/dev/null \
-        || fail "kernelrows: FLEASTICK is not a mounted removable volume, entries $(ipc railEntries | jq -c 'map({label,mounted,removable})')"
+    ipc railEntries | jq -e '[.[] | select(.label == "FLEASTICK" and .group == "device" and .kind == "volume" and .mounted == true and .releasable == true)] | length == 1' >/dev/null \
+        || fail "kernelrows: FLEASTICK is not a mounted releasable volume, entries $(ipc railEntries | jq -c 'map({label,mounted,releasable})')"
     idx=$(rail_row_of FLEASTICK)
     centre=$(ipc railRowCentre "$idx")
     [[ -n "$centre" ]] || fail "kernelrows: rail row $idx has no on-screen centre"

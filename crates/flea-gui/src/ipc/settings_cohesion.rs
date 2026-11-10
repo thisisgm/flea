@@ -67,3 +67,13 @@ pub(super) fn controls(view: &SettingsView) -> Option<Json> {
         ("controls".into(), Json::Arr(controls)),
     ]))
 }
+pub(super) fn rail_width(
+    view: Option<&crate::g2::settings_pages::view::SettingsView>,
+    opened: bool,
+) -> String {
+    view.filter(|_| opened)
+        .and_then(|view| view.probe.bounds("rail"))
+        .map_or_else(String::new, |bounds| {
+            f32::from(bounds.size.width).round().to_string()
+        })
+}

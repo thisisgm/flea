@@ -65,6 +65,9 @@ pub(crate) const STRIP_SLOTS: usize = flea::ui_logic_doc_preview::viewer::CONTRO
 
 #[derive(Default)]
 pub(crate) struct Observations {
+    pub title: Option<Bounds<Pixels>>,
+    pub copy: Option<Bounds<Pixels>>,
+    pub copy_hovered: bool,
     pub close: Option<Bounds<Pixels>>,
     pub close_hovered: bool,
     pub surface: Option<Bounds<Pixels>>,
@@ -85,6 +88,9 @@ pub(crate) type Shared = Rc<RefCell<Observations>>;
 
 impl Observations {
     pub fn opened(&mut self, now: u64, ready: bool) {
+        self.title = None;
+        self.copy = None;
+        self.copy_hovered = false;
         if let Some(start) = self.swap.loading_since.take() {
             self.swap.shown_ms = now.saturating_sub(start);
         }
@@ -122,6 +128,9 @@ impl Observations {
     }
 
     pub fn closed(&mut self, now: u64) {
+        self.title = None;
+        self.copy = None;
+        self.copy_hovered = false;
         self.close = None;
         self.close_hovered = false;
         self.swap.release(now, "cancelled", false);

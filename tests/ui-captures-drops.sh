@@ -2,7 +2,20 @@
 . "$repo/tests/lib/pointer-glide.sh"
 # The focused drag suite owns its launch, marked fixtures, input teardown and both mid-drag PNGs.
 case_cap_raildrop() {
-    FLEA_BIN="$flea_bin" /bin/bash "$repo/tests/drag.sh" raildrop || fail "cap_raildrop: focused native proof failed"
+    local log="$evidence_dir/raildrop.log" proof status=0
+    kill_flea
+    mkdir -p "$evidence_dir" || fail "cap_raildrop: evidence directory creation failed"
+    [[ ! -e "$log" ]] || fail "cap_raildrop: refusing existing evidence log"
+    FLEA_BIN="$flea_bin" /bin/bash "$repo/tests/drag.sh" raildrop > "$log" 2>&1 || status=$?
+    cat "$log"
+    proof=$(sed -n 's/^RAILDROP_EVIDENCE_ROOT=//p' "$log" | head -n 1)
+    if [[ "$proof" == "${FLEA_FIXTURE_ROOT:-/home/flea-sandbox}"/native.???????? && -d "$proof/raildrop-evidence" ]]; then
+        mkdir -p "$evidence_dir/raildrop"
+        cp -a "$proof/raildrop-evidence/." "$evidence_dir/raildrop/" || fail "cap_raildrop: evidence copy failed"
+    elif [[ "$status" == 0 ]]; then
+        fail "cap_raildrop: the passing proof left no evidence directory, root '$proof'"
+    fi
+    [[ "$status" == 0 ]] || fail "cap_raildrop: focused native proof failed"
 }
 cap_drops_fat_skip() {
     printf 'CAP SKIP fat-card: needs a FAT mount, driven by the controller\n'
@@ -199,7 +212,7 @@ case_cap_drops() {
     read -r tx ty <<< "$dst_pt"
     cap_drops_press "$cx" "$cy"
     cap_drops_steer "$tx" "$ty"
-    cap_drops_wait_target "Move 1 item to Photos · Ctrl copies, Shift moves"
+    cap_drops_wait_target "Move 1 item to Photos · ctrl copies, shift moves"
     # The setting is on, so a rest of 700 ms (DragOut.OPEN_MS) opens Photos; one ipc round trip alone is 190 to 565 ms, so a steer to the same point (a move restarts the rest) leaves the shot and then the release their own 700 ms.
     cap_drops_steer "$tx" "$ty"
     shot drops-drop-target
@@ -214,7 +227,7 @@ case_cap_drops() {
     read -r tx ty <<< "$dst_pt"
     cap_drops_press "$cx" "$cy"
     cap_drops_steer "$tx" "$ty"
-    cap_drops_wait_target "Move 1 item to Photos · Ctrl copies, Shift moves"
+    cap_drops_wait_target "Move 1 item to Photos · ctrl copies, shift moves"
     wait_path "$dir/Photos"
     shot drops-hover-open
     cap_drops_release
@@ -258,7 +271,7 @@ case_cap_drops() {
     read -r cx cy <<< "$src_pt"
     cap_drops_press "$cx" "$cy"
     cap_drops_steer "$tx" "$ty"
-    cap_drops_wait_target "Move 1 item to outer/ · Ctrl copies, Shift moves"
+    cap_drops_wait_target "Move 1 item to outer/ · ctrl copies, shift moves"
     shot drops-crumb
     read -r ax ay aw ah <<< "$(ipc listAreaRect)"
     cap_drops_steer "$((ax + aw / 2))" "$((ay + ah - 20))"
@@ -294,12 +307,12 @@ case_cap_drops() {
     read -r cx cy <<< "$src_pt"
     cap_drops_press "$cx" "$cy"
     cap_drops_steer "$tx" "$ty"
-    cap_drops_wait_target "Move 1 item to deep · Ctrl copies, Shift moves"
+    cap_drops_wait_target "Move 1 item to deep · ctrl copies, shift moves"
     shot drops-columns-parent
     read -r tx ty <<< "$held_pt"
     cap_drops_steer "$tx" "$ty"
     # A file row in the peek column takes no drop, so the line falls to the bare "a folder" one (ui/js/Drag.js line()) once the pointer leaves the parent row for held_pt.
-    cap_drops_wait_target "Move 1 item to a folder · Ctrl copies, Shift moves"
+    cap_drops_wait_target "Move 1 item to a folder · ctrl copies, shift moves"
     cap_drops_release
     [[ ! -e "$dir/deep/p1.txt" ]] || fail "cap_drops: the columns release moved p1.txt"
     [[ -f "$dir/deep/outer/p1.txt" ]] || fail "cap_drops: the columns leg lost p1.txt"

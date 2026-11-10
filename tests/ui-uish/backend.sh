@@ -7,8 +7,12 @@ case_terminal() {
     wait_listing 1
     local qs_pid backend_pid
     qs_pid=$(flea_pid)
-    backend_pid=$(pgrep -P "$qs_pid" -x flea)
-    [[ -n "$backend_pid" ]] || fail "no flea backend child of qs $qs_pid"
+    # flea-gui starts two flea children, flea --backend and flea --plugin-host, so the backend is picked by its flag.
+    local child
+    for child in $(pgrep -P "$qs_pid" -x flea); do
+        tr '\0' '\n' < "/proc/$child/cmdline" 2>/dev/null | grep -qx -- --backend && backend_pid="${backend_pid:+$backend_pid }$child"
+    done
+    [[ "$backend_pid" =~ ^[0-9]+$ ]] || fail "no single flea --backend child of $qs_pid, found '$backend_pid'"
     printf 'TERMINAL qs=%s backend=%s before state=%s total=%s row=%q\n' \
         "$qs_pid" "$backend_pid" "$(ipc state)" "$(ipc total)" "$(ipc rowAt 0)"
     # flea-gui states a pane error on stderr as well as in the pane, so the death this case causes is registered once.

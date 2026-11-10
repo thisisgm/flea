@@ -107,6 +107,8 @@ pub struct StripState {
     pub prepared: Option<Prepared>,
     pub shapings: u64,
     pub edit: QueryPaint,
+    // The strip as last laid out, for the searchRect reader.
+    pub bounds: Option<Bounds<Pixels>>,
 }
 
 impl StripState {
@@ -116,6 +118,7 @@ impl StripState {
             prepared: None,
             shapings: 0,
             edit: QueryPaint::default(),
+            bounds: None,
         }
     }
 }
@@ -276,6 +279,7 @@ impl Element for StripElement {
         cx: &mut App,
     ) {
         let mut state = self.state.borrow_mut();
+        state.bounds = Some(bounds);
         let width = f32::from(bounds.size.width);
         let fresh = state.prepared.as_ref().is_some_and(|prepared| {
             prepared.key.0 == *self.words

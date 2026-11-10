@@ -19,14 +19,6 @@ pub(crate) struct DialogAdapter<'a> {
     pub input_ready: bool,
 }
 
-// An open card's painted bounds are not recorded, so its reader refuses instead of inventing them.
-fn open_card(function: &str, fields: &str) -> Reply {
-    Reply::error(
-        3,
-        format!("FLEA_IPC_ERROR flea.{function} unavailable fields: {fields} (GPUI does not record the card's painted bounds)"),
-    )
-}
-
 impl Adapter for DialogAdapter<'_> {
     fn call(&self, function: &str, _: &[String]) -> Option<Reply> {
         let value = match function {
@@ -44,7 +36,7 @@ impl Adapter for DialogAdapter<'_> {
                 .and_then(|rail| rail.unlock.as_ref())
                 .and_then(|unlock| unlock.view.read(self.cx).reading())
                 .unwrap_or_else(|| "{\"opened\":false}".into()),
-            // The menu actions' card is Open With, the run card or Delete permanently's review; with none open the Root has no dialog to describe.
+            // The menu actions' card is Open With, the run card, Copy To or Move To, or Delete permanently's review; with none open the Root has no dialog to describe.
             "menuDialogState" => {
                 if let Some(state) = plugin_input_state(self.shell) {
                     return Some(Reply::value(state));
@@ -54,13 +46,20 @@ impl Adapter for DialogAdapter<'_> {
                         open.card.ipc_state(&self.shell.locale.catalog, &open.probe),
                     ));
                 }
-                if self.shell.open_with.is_some() || self.shell.run_card.is_some() {
-                    return Some(open_card(function, "rect, controls, confirmation"));
+                if self.shell.open_with.is_some() {
+                    return self.call("openWithState", &[]);
+                }
+                if self.shell.run_card.is_some() {
+                    return self.call("runCardState", &[]);
                 }
                 self.shell
                     .overlay
                     .as_ref()
-                    .and_then(|overlay| menu_delete_state(overlay.read(self.cx)))
+                    .and_then(|overlay| {
+                        let overlay = overlay.read(self.cx);
+                        super::copy_to_card::menu_copy_to_state(overlay)
+                            .or_else(|| menu_delete_state(overlay))
+                    })
                     .unwrap_or_else(|| "{\"opened\":false}".into())
             }
             // The card's model facts and painted parts the design CI drives; every other ui/Ipc.qml field is named under unavailable, as a refusal would.
@@ -74,15 +73,13 @@ impl Adapter for DialogAdapter<'_> {
                         &self.shell.locale.catalog,
                     ),
                     &self.shell.locale.catalog,
+                    &open.frame,
                 ),
                 None => "{\"opened\":false}".into(),
             },
             "runCardState" => self.shell.run_card.as_ref().map_or_else(
                 || "{\"opened\":false}".into(),
-                |open| {
-                    open.card
-                        .ipc_state(&self.shell.locale.catalog, &open.probe.probe)
-                },
+                |open| open.card.ipc_state(&self.shell.locale.catalog, &open.probe),
             ),
             // An open card answers its own state; a closed one only the list's rest input state.
             "permissionsState" => match self.shell.permissions_state(self.cx) {
@@ -118,7 +115,7 @@ fn plugin_input_state(shell: &Shell) -> Option<String> {
 }
 
 /// The ui/Ipc.qml openWithState fields this reader does not send: the controls' painted state.
-const OPEN_WITH_UNAVAILABLE: &str = "controls[].visible, controls[].hovered, controls[].pressed, controls[].centre, controls[].rect";
+const OPEN_WITH_UNAVAILABLE: &str = "controls[].hovered, controls[].pressed";
 
 /// ui/Ipc.qml's row shapes: an eyebrow with its rule, or an application with its default claim.
 fn open_with_rows(card: &OpenWith, i18n: &flea::i18n::I18n) -> String {
@@ -148,18 +145,30 @@ fn open_with_rows(card: &OpenWith, i18n: &flea::i18n::I18n) -> String {
         .join(",")
 }
 
-fn open_with_state(card: &OpenWith, painted: &str, i18n: &flea::i18n::I18n) -> String {
+fn open_with_state(
+    card: &OpenWith,
+    painted: &str,
+    i18n: &flea::i18n::I18n,
+    frame: &crate::g2::file_ops::measured::Frame,
+) -> String {
+    use crate::g2::file_ops::measured;
     let controls = [
-        ("Field", Stop::Search, true),
-        ("Applications", Stop::List, true),
-        ("Always", Stop::Always, true),
-        ("Cancel", Stop::Cancel, true),
-        ("Open", Stop::Open, card.can_open()),
+        ("Field", Stop::Search, true, "field"),
+        ("Applications", Stop::List, true, "applications"),
+        ("Always", Stop::Always, true, "check:0"),
+        ("Cancel", Stop::Cancel, true, "button:0"),
+        ("Open", Stop::Open, card.can_open(), "button:1"),
     ]
-    .map(|(name, stop, enabled)| {
+    .map(|(name, stop, enabled, id)| {
+        let part = frame.part(id);
+        let visible = part.as_ref().is_some_and(|part| {
+            part.bounds.size.width > gpui::px(0.) && part.bounds.size.height > gpui::px(0.)
+        });
         format!(
-            r#"{{"name":"{name}","focused":{},"enabled":{enabled}}}"#,
-            card.focus == stop
+            r#"{{"name":"{name}","focused":{},"enabled":{enabled},"visible":{visible},"centre":"{}","rect":"{}"}}"#,
+            card.focus == stop,
+            measured::centre(part.as_ref()),
+            measured::rect(part.as_ref()),
         )
     })
     .join(",");
@@ -167,7 +176,7 @@ fn open_with_state(card: &OpenWith, painted: &str, i18n: &flea::i18n::I18n) -> S
     let fact = |pick: fn(&Catalogue) -> &str| flea::json::escape(catalogue.map_or("", pick));
     format!(
         r#"{{"opened":true,"busy":{},"committing":{},"kind":"{}","mime":"{}","name":"{}","always":{},"error":"{}","search":"{}","cursor":{},"rows":[{}],"controls":[{controls}],{painted},"unavailable":"{OPEN_WITH_UNAVAILABLE}"}}"#,
-        catalogue.is_none() && card.error().is_none(),
+        card.opening() || catalogue.is_none() && card.error().is_none(),
         card.opening(),
         fact(|c| &c.kind),
         fact(|c| &c.mime),

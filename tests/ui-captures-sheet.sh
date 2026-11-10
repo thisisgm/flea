@@ -128,13 +128,13 @@ menu_dialog_state() {
         "$count" "$confirm_danger" "$count"
 }
 
-# Sample input: [{"keys":"m","label":"mute","where":" in Preview","disabled":false}], the sheet's result rows with the where each delegate draws.
+# Sample input: [{"keys":"m","label":"mute","where":"in Preview","disabled":false}], the sheet's result rows with the where each delegate draws.
 sheet_results() {
-    local mix_where=" in ~/Documents/claude" flea_where=" in Favorites" mute_where=" in Preview"
+    local mix_where="in ~/Documents/claude" flea_where="in Favorites" mute_where="in Preview"
     [[ "$scenario" == mute-no-where ]] && mute_where=""
-    [[ "$scenario" == mute-wrong-where ]] && mute_where=" in Places"
+    [[ "$scenario" == mute-wrong-where ]] && mute_where="in Places"
     [[ "$scenario" == fl-no-fav-where ]] && flea_where=""
-    [[ "$scenario" == fl-recent-where-moved ]] && mix_where=" in ~/Documents"
+    [[ "$scenario" == fl-recent-where-moved ]] && mix_where="in ~/Documents"
     case "$typed_query" in
         mute) [[ "$scenario" == mute-missing ]] && printf '[]\n' \
             || printf '[{"keys":"m","label":"mute","where":"%s","disabled":false}]\n' "$mute_where" ;;

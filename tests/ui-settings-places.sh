@@ -570,9 +570,9 @@ case_settingsplaces() {
     seek_row_named proof.txt
     click_row "$(ipc cursor)" right
     settle
-    ipc contextMenuModel | jq -e 'any(.[]; .action == "addFavourite" and .disabled == true)' >/dev/null \
-        || fail "places: file row can be pinned as a directory"
-    places_click_menu 'Add to Favorites'
+    # Only a folder can be a favourite, so a file's menu hides the row instead of dimming it (HIG file-menu, CHANGES APL-MENU-30).
+    ipc contextMenuModel | jq -e 'length > 0 and all(.[]; .action != "addFavourite")' >/dev/null \
+        || fail "places: a file row offers Add to Favorites"
     places_wait_records "$expected"
     key -k Escape >/dev/null; settle
     click_background; settle

@@ -13,7 +13,11 @@ use gpui::{
     Entity, KeyDownEvent, MouseButton, MouseDownEvent, MouseMoveEvent, Pixels, Point,
     ScrollWheelEvent, Window,
 };
-use std::{cell::RefCell, rc::Rc, sync::Arc};
+use std::{
+    cell::RefCell,
+    rc::{Rc, Weak},
+    sync::Arc,
+};
 
 /// Undo, then Cut, Copy and Paste, then Select All; Undo dims with nothing to undo, Paste with nothing to paste.
 pub(crate) fn rows(entry: &Entry, paste: bool) -> Vec<Row> {
@@ -93,6 +97,25 @@ pub(crate) fn apply(entry: &mut Entry, action: &str, cx: &mut App) -> Applied {
     }
 }
 
+type OpenMenu = (gpui::WindowId, Weak<RefCell<Menu>>);
+
+thread_local! {
+    // Every field menu card opened on this thread, so the window's menu readers can report one that shows.
+    static OPENED: RefCell<Vec<OpenMenu>> = const { RefCell::new(Vec::new()) };
+}
+
+/// The field menu card that shows now, if any; the window's own menu is read first.
+pub(crate) fn shown(window: gpui::WindowId) -> Option<Rc<RefCell<Menu>>> {
+    OPENED.with_borrow_mut(|opened| {
+        opened.retain(|(_, menu)| menu.strong_count() > 0);
+        opened
+            .iter()
+            .filter(|(owner, _)| *owner == window)
+            .filter_map(|(_, menu)| Weak::upgrade(menu))
+            .find(|menu| menu.borrow().opened())
+    })
+}
+
 /// One field's menu card, opened over the window at the press.
 #[derive(Default)]
 pub(crate) struct TextMenu {
@@ -153,6 +176,18 @@ impl TextMenu {
         );
         self.catalog = Some(catalog.clone());
         self.typeface = Some(typeface);
+        OPENED.with_borrow_mut(|opened| {
+            opened.retain(|(_, menu)| menu.strong_count() > 0);
+            if !opened
+                .iter()
+                .any(|(_, menu)| menu.as_ptr() == Rc::as_ptr(&self.menu))
+            {
+                opened.push((
+                    window.window_handle().window_id(),
+                    Rc::downgrade(&self.menu),
+                ));
+            }
+        });
     }
 
     pub fn close(&mut self) {

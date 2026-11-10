@@ -106,6 +106,7 @@ fn u32_the_other_pane_keeps_keys_and_a_trash_row_click_takes_focus_back() {
             host: shell.trash.as_ref(),
             message: message.as_deref(),
             overlay: shell.overlay.as_ref(),
+            rail: shell.rail_trash_badge(cx),
             cx,
         };
         assert!(

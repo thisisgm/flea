@@ -96,6 +96,7 @@ fn check_width(menu: &Rc<RefCell<Menu>>, catalog: &I18n, work_width: f32) {
         joined: &joined,
         identity: "a".into(),
         catalog,
+        field: None,
     }
     .call("menuState", &[])
     .unwrap()

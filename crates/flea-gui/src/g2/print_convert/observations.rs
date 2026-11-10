@@ -7,6 +7,7 @@ const CARD_BORDER: f32 = 1.;
 
 #[derive(Default)]
 pub struct Observations {
+    pub probe: crate::g2::settings_pages::probe::Probe,
     pub card: Rc<Cell<Option<Bounds<Pixels>>>>,
     pub title: Rc<Cell<Option<Bounds<Pixels>>>>,
     pub convert_card: Rc<Cell<Option<Bounds<Pixels>>>>,

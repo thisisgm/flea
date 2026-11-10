@@ -422,35 +422,6 @@ fn mounted_search_uses_header_slot_and_keeps_columns(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
-fn mounted_empty_answer_keeps_query_case_and_does_not_stamp_a_result(cx: &mut TestAppContext) {
-    let (handle, _read) = open(cx);
-    key(cx, handle, "f", Some("f"));
-    for character in ["M", "i", "X", "e", "D"] {
-        key(cx, handle, character, Some(character));
-    }
-    let generation = edit(cx, handle, |shell, _, _| {
-        let session = &shell.panes[0].as_ref().unwrap().search.owner.session;
-        assert_eq!(
-            session.query, "MiXeD",
-            "each typed character must retain its case before the answer"
-        );
-        assert_eq!(
-            session.gen, 5,
-            "five typed characters must send five query generations"
-        );
-        session.gen as usize
-    });
-    answer(cx, handle, 0, generation, None);
-    frame(cx, handle);
-    edit(cx, handle, |shell, window, cx| {
-        let host = shell.panes[0].as_ref().unwrap();
-        assert_eq!(host.search.owner.session.query, "MiXeD");
-        assert_eq!(host.search.owner.session.stamps.first_rows_at, 0);
-        assert!(shell.search_empty(0, window, cx).is_some());
-    });
-}
-
-#[gpui::test]
 fn mounted_search_does_not_take_another_editors_keyboard(cx: &mut TestAppContext) {
     let (handle, _read) = open(cx);
     key(cx, handle, "f", Some("f"));
@@ -479,3 +450,6 @@ fn mounted_search_does_not_take_another_editors_keyboard(cx: &mut TestAppContext
 }
 #[path = "search_density_tests.rs"]
 mod density;
+
+#[path = "search_uish_tests.rs"]
+mod uish;

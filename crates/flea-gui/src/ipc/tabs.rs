@@ -103,11 +103,19 @@ pub fn send_taken(pid: &str, token: &str) -> Reply {
 pub struct SwapWithStrip<'a> {
     pub pane: &'a dyn Adapter,
     pub strip: String,
+    /// The positions the view draws under a standing filter, listingWindowState's shownTotal.
+    pub shown: usize,
 }
 
 impl Adapter for SwapWithStrip<'_> {
     fn call(&self, function: &str, arguments: &[String]) -> Option<Reply> {
         let mut reply = self.pane.call(function, arguments)?;
+        // Sample input: {"held":40,"loaded":40,"windowSize":40,"total":120,"shownTotal":120}, ipc/pane.rs's shape, shownTotal last.
+        if function == "listingWindowState" && reply.code == 0 {
+            if let Some((head, _)) = reply.stdout.trim_end().rsplit_once(",\"shownTotal\":") {
+                reply = Reply::value(format!("{head},\"shownTotal\":{}}}", self.shown));
+            }
+        }
         if function == "swapState" && reply.code == 0 {
             if let Some(body) = reply.stdout.trim_end().strip_suffix('}') {
                 reply = Reply::value(format!("{body},\"strip\":{}}}", self.strip));

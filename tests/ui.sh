@@ -7,6 +7,18 @@ set -o pipefail
 
 fail() {
     printf 'FAIL: %s\n' "$*" >&2
+    if [[ "${test_frontend-}" == gpui && "${ipc_pid-}" =~ ^[0-9]+$ && "$ipc_pid" == "${FLEA_TEST_PID-}" && "${run_root-}" == /* \
+          && -f "$run_root/.flea-test-sandbox" && ( "${evidence_dir-}" == "$run_root/evidence" || "${evidence_dir-}" == "$run_root/evidence/"* ) ]] \
+       && declare -F flea_test_call >/dev/null \
+       && [[ "$(flea_test_call call flea ready 2>/dev/null)" == true ]]; then
+        local address png="$evidence_dir/failure-${BASHPID:-$$}.png"
+        address=$(hyprctl clients -j 2>/dev/null | jq -er --arg class "${flea_window_class:-com.thisisgm.flea}" --argjson pid "$ipc_pid" \
+            '[.[] | select(.class == $class and .pid == $pid)] | select(length == 1) | .[0].address') || address=""
+        if [[ -n "$address" && ! -e "$png" && ! -L "$png" ]] && mkdir -p "$evidence_dir" \
+           && omarchy-drive shot "$png" "$address" >/dev/null 2>&1 && [[ -s "$png" ]]; then
+            printf 'SHOT %s\n' "$png" >&2
+        fi
+    fi
     exit 1
 }
 
@@ -69,7 +81,7 @@ fi
 flea_bin="${FLEA_BIN:-$repo/target/release/flea}"
 # The build these cases launch while their flea_bin points at a stub that stands in for the backend only.
 flea_launch_bin="$flea_bin"
-flea_backend_stub_cases=" dirsortstale openterminal hanglisting hanginspect noblank searchnoblank "
+flea_backend_stub_cases=" dirsortstale openterminal hanglisting hanginspect cap_heldcolumns noblank searchnoblank "
 flea_ipc_init "$flea_bin"
 # Sample input: let finished = Command::new("gio")
 # Every opener stub below is named from the product's own exec target, the same derivation
@@ -1066,16 +1078,26 @@ fact_labels() {
 
 # Walks the cursor to a row by name from the top, sort-proof; the shown view stands in for the unbuilt list delegate.
 seek_row_named() {
-    local want="$1" i n cur got
+    local want="$1" i n cur got deadline
     n=$(ipc total)
     [[ "$n" =~ ^[0-9]+$ ]] && (( n > 40 )) || n=40
     key g >/dev/null || fail "seek_row_named: key g was refused on the way to $want, so no key can move the cursor"
+    deadline=$(( $(date +%s%3N) + async_wait_ms ))
+    until [[ "$(ipc cursor)" == 0 ]]; do
+        (( $(date +%s%3N) < deadline )) || fail "seek_row_named: g did not reach the first row on the way to $want"
+        sleep 0.05
+    done
     for i in $(seq 1 "$n"); do
         cur=$(ipc cursor)
         got=$(ipc rowAt "$cur")
         [[ "$got" == "$want|"* ]] && return 0
         [[ "$got" == loading && "$(ipc visibleRowName "$cur")" == "$want" ]] && return 0
         key j >/dev/null || fail "seek_row_named: key j was refused on the way to $want, so no key can move the cursor"
+        deadline=$(( $(date +%s%3N) + async_wait_ms ))
+        while [[ "$(ipc cursor)" == "$cur" ]]; do
+            (( $(date +%s%3N) < deadline )) || fail "seek_row_named: j did not leave row $cur on the way to $want"
+            sleep 0.05
+        done
     done
     fail "could not put the cursor on $want"
 }
@@ -1126,7 +1148,7 @@ assert_invalid_network_port() {
         "$port" "$seen_port" "${uri:-empty}" "$dialog" "$error" "$bytes"
 
     # The first refused port is shot while the dialog stands, after the reader confirmed its line.
-    if [[ "$port" == "22/path" && "$error" == "visible" ]]; then
+    if [[ "$port" == "${network_shot_port:-22/path}" && "$error" == "visible" ]]; then
         shot network-invalid-port
     fi
 
@@ -1134,6 +1156,30 @@ assert_invalid_network_port() {
     settle
     [[ "$seen_port" == "$port" && -z "$uri" && "$dialog" == "true" \
         && "$error" == "visible" && "$bytes" == "unchanged" ]]
+}
+
+# A digits-only port field drops every other character as it is typed, so 22/path enters 22 and nothing is submitted.
+assert_network_port_filters() {
+    local typed="$1" want="$2" seen_port
+    key -k Escape >/dev/null
+    settle
+    [[ "$(ipc focusView)" == "list" ]] || return 1
+    key -k Tab >/dev/null
+    settle
+    [[ "$(ipc focusView)" == "rail" ]] || return 1
+    key a >/dev/null
+    settle
+    [[ "$(ipc dialogOpen)" == "true" ]] || return 1
+    key "203.0.113.1" >/dev/null
+    key -k Tab >/dev/null
+    key -M ctrl -k a -m ctrl >/dev/null
+    key "$typed" >/dev/null
+    settle
+    seen_port=$(ipc networkPort)
+    printf 'NETWORK filtered-port=%s entered=%s\n' "$typed" "$seen_port"
+    key -k Escape >/dev/null
+    settle
+    [[ "$seen_port" == "$want" && "$(ipc dialogOpen)" == "false" ]]
 }
 
 assert_network_attempt_reset() {
@@ -5826,7 +5872,7 @@ case_status() {
     [[ "$(ipc lastMessage)" == "$failure" ]] || fail "status: clipboard notice acknowledged error"
     key f >/dev/null
     key notes >/dev/null
-    key -k Return >/dev/null
+    key -M ctrl -k Return -m ctrl >/dev/null
     settle
     [[ "$(ipc statusPrimary)" == "$failure" ]] || fail "status: search hid error"
     transient_beside_disk "single pane, error"
@@ -6459,7 +6505,8 @@ grid_chrome_controls() {
     key file-0 >/dev/null
     menus_expect keyDeliveryState '.filterTyping and .filterQuery == "file-0"' "Grid Filter receives actual typed text"
     cardsize_expect drawnCount 9
-    key -k Return -k Home >/dev/null
+    # One Enter on the line acts on the highlighted row since B01 (62985e07f), so Down commits the filter and Home returns.
+    key -k Down -k Home >/dev/null
     menus_expect keyDeliveryState '(.filterTyping | not) and .filterQuery == "file-0" and (.paneFocus or .listFocus)' \
         "Grid Filter commits with keyboard focus in the results"
     cardsize_expect visibleRowName file-01.txt 0
@@ -6494,7 +6541,7 @@ grid_chrome_controls() {
         done
         shot "grid-chrome-$preset-search-$view-disabled"
         if [[ "$view" == typing ]]; then
-            key file-0 -k Return >/dev/null
+            key file-0 -M ctrl -k Return -m ctrl >/dev/null
             menus_expect keyDeliveryState '.searchMode == "results" and .searchQuery == "file-0" and (.searchRunning | not)' \
                 "Grid Search finishes its actual fixture walk"
             cardsize_expect path "$dir"
@@ -12699,7 +12746,7 @@ case_dualsort() {
         key f >/dev/null
         menus_expect keyDeliveryState '.searchMode == "typing"' "dual Search $mode starts through native key"
         if [[ "$mode" == results ]]; then
-            key file- -k Return >/dev/null
+            key file- -M ctrl -k Return -m ctrl >/dev/null
             menus_expect keyDeliveryState '.searchMode == "results" and (.searchRunning | not)' 'dual Search finishes its private fixture walk'
         fi
         click_chrome sliders
@@ -13064,8 +13111,10 @@ settings_about() {
     settings_section about
     local rows
     rows=$(ipc settingsModel)
-    printf '%s' "$rows" | jq -e 'any(.[]; .kind == "fact" and .label == "Language" and .value == "English")' >/dev/null \
-        || fail "settings: About language is not passive metadata"
+    local language_kind=fact
+    [[ "$test_frontend" != gpui ]] || language_kind=action
+    printf '%s' "$rows" | jq -e --arg kind "$language_kind" 'any(.[]; .kind == $kind and .label == "Language" and .value == "English")' >/dev/null \
+        || fail "settings: About language does not match the settings-about board"
     printf '%s' "$rows" | jq -e 'any(.[]; .id == "support" and .kind == "action") and any(.[]; .id == "reportIssue" and .kind == "action")' >/dev/null \
         || fail "settings: About omitted support routes"
     shot settings-about
@@ -13125,6 +13174,9 @@ settings_read_refused() {
     before_sha=$(sha256sum "$stored" | cut -d' ' -f1)
     before_ino=$(stat -c '%i' "$stored")
     chmod 000 "$stored" || fail "settings: the state file could not be made unreadable"
+    if [[ "$test_frontend" == gpui ]]; then
+        printf '%s\n' 'flea-gui: The folder setting could not be saved.' >> "$expected_warnings"
+    fi
     launch "$dir"
     wait_listing 3
     [[ "$(ipc lastMessage)" == "Your saved settings could not be read, so these are the defaults." ]] \
@@ -13573,22 +13625,40 @@ settings_keys() {
 cache_snapshot
 trap cleanup EXIT
 
-# rows_run_under "<x y w h>" <label>: rows other than the parked row 0 lie under the whole card, so a press that runs on moves the cursor.
+# The list must extend below the card; each actual control target is checked separately.
 rows_run_under() {
     local card="$1" label="$2" cx cy cw ch visible last first second
     [[ "$card" =~ ^[0-9]+\ [0-9]+\ [0-9]+\ [0-9]+$ ]] || fail "clickthrough: no card rect for $label, ipc answered [$card]"
     read -r cx cy cw ch <<< "$card"
     visible=$(ipc visibleRows)
     [[ "$visible" =~ ^[1-9][0-9]*$ ]] || fail "clickthrough: no visible row count for $label, ipc answered [$visible]"
-    last=$(ipc rowCentre $(( visible - 1 )))
+    # visibleRows counts a part-drawn last row that rowCentre leaves out, so the last row is the last one with a centre.
+    local at
+    for (( at = visible - 1; at >= 1; at-- )); do
+        last=$(ipc rowCentre "$at")
+        [[ "$last" =~ ^[0-9]+\ [0-9]+$ ]] && break
+    done
     first=$(ipc rowCentre 0)
     second=$(ipc rowCentre 1)
     [[ "$last" =~ ^[0-9]+\ [0-9]+$ && "$first" =~ ^[0-9]+\ [0-9]+$ && "$second" =~ ^[0-9]+\ [0-9]+$ ]] \
-        || fail "clickthrough: no row centres for $label (row $(( visible - 1 )) [$last], row 0 [$first], row 1 [$second])"
+        || fail "clickthrough: no row centres for $label (row $at [$last], row 0 [$first], row 1 [$second])"
     [[ "${last#* }" -gt $(( cy + ch )) ]] || fail "clickthrough: the list does not run under $label (last visible row centre y ${last#* }, card bottom $(( cy + ch )))"
-    # The seam between rows 0 and 1 is the bottom of the parked row, and it must clear the card's top edge.
-    [[ $(( (${first#* } + ${second#* }) / 2 )) -lt "$cy" ]] \
-        || fail "clickthrough: the parked row 0 reaches under $label (rows 0 and 1 centres y ${first#* } ${second#* }, card top $cy)"
+}
+
+# A leaked control click must hit a different row, or an unchanged cursor proves nothing.
+clickthrough_target() {
+    local centre="$1" what="$2" parked="$3" cx cy at rx ry rw rh visible
+    read -r cx cy <<< "$centre"
+    visible=$(ipc visibleRows)
+    for (( at = 0; at < visible; at++ )); do
+        read -r rx ry rw rh <<< "$(ipc rowRect "$at")"
+        [[ -n "$rh" ]] || continue
+        if (( cx >= rx && cx < rx + rw && cy >= ry && cy < ry + rh )); then
+            [[ "$at" != "$parked" ]] || fail "clickthrough: $what lies over the parked row"
+            return
+        fi
+    done
+    fail "clickthrough: $what has no different underlying row at $centre"
 }
 
 # A folder named at launch goes to the side of a saved dual view that had focus, and the other side
@@ -14943,6 +15013,7 @@ clickthrough_wait() {
 clickthrough_click() {
     local centre="$1" what="$2" dir="$3" parked="$4" cx cy wx wy
     [[ "$centre" =~ ^[0-9]+\ [0-9]+$ ]] || fail "clickthrough: $what has no centre, ipc answered [$centre]"
+    clickthrough_target "$centre" "$what" "$parked"
     read -r cx cy <<< "$centre"
     read -r wx wy _ww _wh < <(window_box) || fail "native window coordinates unavailable"
     omarchy-drive click "$((cx + wx))" "$((cy + wy))" >/dev/null
@@ -16377,7 +16448,7 @@ flea_uish_load || fail "invalid GPUI override inventory"
 declare -a wanted=("$@")
 default_run=0
 [[ ${#wanted[@]} -ne 0 ]] || default_run=1
-[[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor scroll scrollbar terminal open rows click clickedge ctrlclick shiftscroll querypaste viewrestart dd ddclick griddrop collide sortrestart foldersort duallaunch dirsortstale editplace mute placemenu runscript unmounted sidebar menu background hidden xwsettings selection watch xwwatch reload optical select colour lifted icons thumbs hashcache stale nosweep oem header columnresize columnautofit overflow focus railpointer dualautohidereveal preview pdffocus network netmark networkauth networktimeout gvfs sharebrowser unmount phones trasharm eject poweroff rename renamefirst renamelife renamefar taildrop providers grid columns columnsbackground operations tabs tabdrag openterminal makeexec renderer settings makedefault scrolllane clickthrough wheelunder overlays views formats previewviews reclick colroot colwatch hangshare hanglisting hanginspect openwithdesign noblank previewswap searchnoblank lookopen transferlive recent middleclick opentab xwundo folderviews hiddenlast marqueemargin relstart userthumbnailer dualtab dualdivider)
+[[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor scroll scrollbar terminal open rows click clickedge ctrlclick shiftscroll querypaste viewrestart dd ddclick griddrop collide sortrestart foldersort duallaunch dirsortstale editplace mute placemenu runscript unmounted sidebar menu background hidden xwsettings selection watch xwwatch reload optical select colour lifted icons thumbs hashcache stale nosweep oem header columnresize columnautofit overflow focus railpointer dualautohidereveal preview pdffocus network netmark networkauth networktimeout gvfs sharebrowser unmount phones trasharm eject poweroff rename renamefirst renamelife renamefar taildrop providers grid columns columnsbackground operations tabs tabdrag openterminal makeexec renderer settings makedefault scrolllane clickthrough wheelunder overlays views formats previewviews reclick colroot colwatch hangshare hanglisting hanginspect openwithdesign noblank previewswap searchnoblank lookopen transferlive recent middleclick opentab xwundo folderviews hiddenlast marqueemargin relstart userthumbnailer dualtab dualdivider dualfoldersort)
 
 for name in "${wanted[@]}"; do
     declare -F "case_$name" >/dev/null || fail "unknown UI case: $name"

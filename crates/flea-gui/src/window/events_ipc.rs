@@ -57,14 +57,7 @@ impl Shell {
                     grid: host.grid.as_ref(),
                     active: host.drawn_view == Some(crate::window::startup::View::Grid),
                 };
-                let chrome_glyph = self.chrome.view.as_ref().and_then(|chrome| {
-                    let frame = chrome.read(cx).frame.borrow();
-                    frame
-                        .controls
-                        .iter()
-                        .position(|control| control.focused)
-                        .map(|at| crate::path::chrome::GLYPHS[at])
-                });
+                let chrome_glyph = self.ipc_chrome_glyph(cx);
                 let focus = crate::ipc::focus::FocusAdapter {
                     view: Some(self.focus_view(window, cx))
                         .filter(|view| !view.is_empty())
@@ -106,12 +99,14 @@ impl Shell {
                 let pane = crate::ipc::tabs::SwapWithStrip {
                     pane: &pane,
                     strip: self.strip.frames.borrow().json(),
+                    shown: host.filter.shown_total(host.pane.held.total),
                 };
                 let trash_message = self.trash_message();
                 let trash = crate::g2::trash_browser::readers::TrashAdapter {
                     host: self.trash.as_ref(),
                     message: trash_message.as_deref(),
                     overlay: self.overlay.as_ref(),
+                    rail: self.rail_trash_badge(cx),
                     cx,
                 };
                 let omi = crate::g2::file_ops::ipc::OmiAdapter {
@@ -191,6 +186,7 @@ impl Shell {
                     joined: &self.menu,
                     identity: self.menu_identity(),
                     catalog: &self.locale.catalog,
+                    field: crate::path::text_menu::shown(window.window_handle().window_id()),
                 };
                 let operations = crate::g2::file_ops::ipc::LiveOperationsAdapter {
                     overlay: self.overlay.as_ref().map(|view| view.read(cx)),
@@ -238,8 +234,10 @@ impl Shell {
                     search: &host.search.owner,
                 };
                 let query = super::super::search::QueryReader {
-                    search: &host.search.owner,
+                    search: &host.search,
                     focused: self.focus.is_focused(window) && !self.input_blocked(cx),
+                    filter_typing: host.filter.owner.typing(),
+                    no_match: self.no_match_headline(self.focus_side),
                 };
                 let network_result = crate::g2::network_shares::result::Adapter(
                     self.rail

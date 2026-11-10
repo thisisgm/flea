@@ -19,6 +19,7 @@ pub(crate) struct JoinedAdapter<'a> {
     pub joined: &'a Joined,
     pub identity: String,
     pub catalog: &'a I18n,
+    pub field: Option<std::rc::Rc<std::cell::RefCell<super::super::menu::Menu>>>,
 }
 
 fn row(entry: Row<'_>) -> String {
@@ -87,7 +88,7 @@ fn leaf(entry: &Entry, catalog: &I18n) -> String {
         text.as_ref()
             .map_or(String::new(), |text| text.resolve(catalog))
     };
-    let mut output = row(Row {
+    let output = row(Row {
         id: &entry.id,
         action: &entry.action,
         label: &text(&entry.label),
@@ -105,7 +106,14 @@ fn leaf(entry: &Entry, catalog: &I18n) -> String {
                 .join(",")
         }),
     });
-    if let Some(state) = entry.tag_state {
+    with_tag_state(output, entry.tag_state)
+}
+
+fn with_tag_state(
+    mut output: String,
+    state: Option<flea::ui_logic_rail_places::tags::State>,
+) -> String {
+    if let Some(state) = state {
         let state = match state {
             flea::ui_logic_rail_places::tags::State::Applied => "applied",
             flea::ui_logic_rail_places::tags::State::Mixed => "mixed",
@@ -128,27 +136,30 @@ pub(crate) fn model(card: Option<&Card>, catalog: &I18n) -> String {
                     if line.separator {
                         return "{\"separator\":true}".into();
                     }
-                    row(Row {
-                        id: &line.id,
-                        action: &line.action,
-                        label: label(line),
-                        glyph: glyph(line),
-                        mark: match &line.lead {
-                            super::super::lines::Lead::Brand(brand) => Some(brand_name(*brand)),
-                            _ => None,
-                        },
-                        icon: entry.icon.as_deref(),
-                        disabled: line.disabled,
-                        ink: line.ink,
-                        hint: line.word.as_ref().map_or("", |word| word.text.as_str()),
-                        leaves: entry.submenu.as_ref().map(|leaves| {
-                            leaves
-                                .iter()
-                                .map(|entry| leaf(entry, catalog))
-                                .collect::<Vec<_>>()
-                                .join(",")
+                    with_tag_state(
+                        row(Row {
+                            id: &line.id,
+                            action: &line.action,
+                            label: label(line),
+                            glyph: glyph(line),
+                            mark: match &line.lead {
+                                super::super::lines::Lead::Brand(brand) => Some(brand_name(*brand)),
+                                _ => None,
+                            },
+                            icon: entry.icon.as_deref(),
+                            disabled: line.disabled,
+                            ink: line.ink,
+                            hint: line.word.as_ref().map_or("", |word| word.text.as_str()),
+                            leaves: entry.submenu.as_ref().map(|leaves| {
+                                leaves
+                                    .iter()
+                                    .map(|entry| leaf(entry, catalog))
+                                    .collect::<Vec<_>>()
+                                    .join(",")
+                            }),
                         }),
-                    })
+                        line.tag_state,
+                    )
                 })
                 .collect::<Vec<String>>()
         })
@@ -232,6 +243,17 @@ impl Adapter for JoinedAdapter<'_> {
             "contextMenuModel" => Some(Reply::value(model(menu.card.as_ref(), self.catalog))),
             "contextMenuRowProbe" => {
                 Some(base.row_probe(arguments, self.joined.pointer, self.joined.resting))
+            }
+            // A field's own text menu card (the path bar, a card field, Settings search) answers the contextMenu readers while it shows.
+            _ if !menu.opened() && function.starts_with("contextMenu") => {
+                match self.field.as_ref() {
+                    Some(field) => MenuAdapter {
+                        menu: &field.borrow(),
+                        origin: (0., 0.),
+                    }
+                    .call(function, arguments),
+                    None => base.call(function, arguments),
+                }
             }
             _ => base.call(function, arguments),
         }

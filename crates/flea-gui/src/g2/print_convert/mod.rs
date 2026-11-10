@@ -28,6 +28,7 @@ mod printer_menu;
 #[cfg(test)]
 mod printer_menu_tests;
 pub mod printing;
+mod readers;
 mod replies;
 pub mod seam;
 #[cfg(test)]

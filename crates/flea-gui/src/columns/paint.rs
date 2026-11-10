@@ -179,6 +179,7 @@ impl FolderSizes for DirSizes {
 pub struct TrackPaint {
     pub(super) drop_line: Option<crate::list::painted_row::DropLine>,
     pub drawn: Option<Drawn>,
+    pub paint_serial: u64,
     pub typeface: Typeface,
     pub cache: TrackCache,
     advance: Option<Pixels>,
@@ -206,6 +207,7 @@ impl TrackPaint {
     pub fn new(typeface: Typeface) -> Self {
         Self {
             drawn: None,
+            paint_serial: 0,
             typeface,
             cache: TrackCache::default(),
             advance: None,

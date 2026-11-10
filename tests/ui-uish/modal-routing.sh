@@ -19,6 +19,20 @@ case_collide() {
     collide_bus_pid=${bus[1]}
     trap '( kill_flea ) >/dev/null 2>&1 || true; kill "$collide_bus_pid" 2>/dev/null || true' EXIT
     export DBUS_SESSION_BUS_ADDRESS="${bus[0]}"
+    # Enter on a marked set opens every marked file (APL-FILE-11), so the open handoff is a recording stub nothing may reach.
+    local collide_opened="$fixture_root/collide-opened.log" collide_bin="$fixture_root/collide-bin" collide_path="$PATH"
+    sandbox_scratch "$collide_bin"
+    : > "$collide_opened"
+    {
+      printf '#!/bin/sh\n'
+      printf '[ "$1" = open ] || exec /usr/bin/gio "$@"\n'
+      printf 'printf "OPENED %%s\\n" "$2" >> %q\n' "$collide_opened"
+    } > "$collide_bin/$open_handoff"
+    chmod +x "$collide_bin/$open_handoff"
+    export PATH="$collide_bin:$PATH"
+    collide_nothing_opened() {
+        [[ ! -s "$collide_opened" ]] || fail "collide: $1 handed files to the opener: $(tr '\n' ' ' < "$collide_opened")"
+    }
 
     # A finished transfer's own line, polled because it stands only until the bar clears it; the undo hint tells it from the clipboard's.
     collide_said() {
@@ -52,9 +66,15 @@ case_collide() {
         [[ "$(ipc selectedIndices)" == "1,2,3,4,5,6" ]] || fail "collide: the six files are not selected, $(ipc selectedIndices) is"
         key y >/dev/null
         menus_expect keyDeliveryState '(.clipboard.paths | length) == 6 and (.clipboard.cut | not)' "the six files are on the clipboard"
+        # Escape drops the marks and keeps the clipboard, so Return on to enters it instead of opening the six.
+        key -k Escape >/dev/null
+        settle
+        [[ -z "$(ipc selectedIndices)" ]] || fail "collide: Escape left $(ipc selectedIndices) marked"
+        menus_expect keyDeliveryState '(.clipboard.paths | length) == 6' "the clipboard keeps the six after Escape"
         seek_row_named "to"
         key -k Return >/dev/null
         wait_path "$dir/to"
+        collide_nothing_opened "entering to"
     }
     # Nothing on the card can wrap: the title and the names elide, and the one explanation line stays one line.
     collide_one_line() {
@@ -66,7 +86,7 @@ case_collide() {
 
     echo "-- asked once, on Keep both, and Cancel sends nothing --"
     key p >/dev/null
-    menus_expect collideState '.opened and .title == "photo.txt already exists in to" and .names == ["photo.txt"] and .more == ""
+    menus_expect collideState '.opened and .title == "photo.txt already exists in to." and .names == ["photo.txt"] and .more == ""
         and .explain == "Replaced items go to Trash, and Undo restores them." and .focus == "keep"' "one collision is asked about once, on Keep both"
     collide_one_line "the one-name card keeps every line to one line"
     menus_expect collideState '[.buttons[] | select(.name == "merge") | .visible] == [false]' "a file-on-file card hides Merge"
@@ -117,7 +137,9 @@ case_collide() {
     key p >/dev/null
     menus_expect collideState '.opened' "the card opens for Skip"
     key h >/dev/null
-    menus_expect collideState '.focus == "skip"' "h moves the focus to Skip"
+    menus_expect collideState '.focus == "replace"' "h moves from Keep Both to its left neighbour Replace"
+    key h >/dev/null
+    menus_expect collideState '.focus == "skip"' "h moves from Replace to Skip"
     key -k Return >/dev/null
     collide_said "Copied 5 of 6 · 1 skipped · z undoes"
     # The files are small, so the transfer card is gone by now and the line it leaves is what shows.
@@ -131,8 +153,8 @@ case_collide() {
     echo "-- Replace sends the old item to Trash, and one Undo swaps them back --"
     key p >/dev/null
     menus_expect collideState '.opened' "the card opens for Replace"
-    key l >/dev/null
-    menus_expect collideState '.focus == "replace"' "l moves the focus to Replace"
+    key h >/dev/null
+    menus_expect collideState '.focus == "replace"' "h moves from Keep Both to Replace"
     shot collide-one-replace
     trash_trap_own "$collide_trash" "$dir" "collide" photo.txt
     key -k Return >/dev/null
@@ -150,7 +172,7 @@ case_collide() {
     echo "-- several names, all of them listed --"
     for name in a b; do printf 'there %s\n' "$name" > "$dir/to/$name.txt"; done
     key p >/dev/null
-    menus_expect collideState '.opened and .title == "3 items already exist in to" and .names == ["a.txt","b.txt","photo.txt"] and .more == ""' \
+    menus_expect collideState '.opened and .title == "3 items already exist in to." and .names == ["a.txt","b.txt","photo.txt"] and .more == ""' \
         "three collisions are all named, with no more line"
     collide_one_line "the several-name card keeps every line to one line"
     shot collide-several
@@ -160,14 +182,24 @@ case_collide() {
     echo "-- more names than the card lists: three of them, and the rest counted --"
     for name in c d; do printf 'there %s\n' "$name" > "$dir/to/$name.txt"; done
     key p >/dev/null
-    menus_expect collideState '.opened and .title == "5 items already exist in to" and .names == ["a.txt","b.txt","c.txt"] and .more == "and 2 more"' \
+    menus_expect collideState '.opened and .title == "5 items already exist in to." and .names == ["a.txt","b.txt","c.txt"] and .more == "and 2 more"' \
         "five collisions name three and count the rest"
     collide_one_line "the and-more card keeps every line to one line"
     shot collide-more
     key -k Tab >/dev/null
-    menus_expect collideState '.focus == "replace"' "Tab moves on from Keep both"
+    menus_expect collideState '.focus == "cancel"' "Tab wraps from Keep Both to Cancel"
     key -k Tab >/dev/null
-    menus_expect collideState '.focus == "cancel"' "and comes round to Cancel"
+    menus_expect collideState '.focus == "skip"' "Tab walks to Skip"
+    key -k Tab >/dev/null
+    menus_expect collideState '.focus == "replace"' "Tab walks to Replace"
+    key -k Tab >/dev/null
+    menus_expect collideState '.focus == "keep"' "Tab completes the button cycle"
+    key -M shift -k Tab -m shift >/dev/null
+    menus_expect collideState '.focus == "replace"' "reverse Tab reaches Replace"
+    key -M shift -k Tab -m shift >/dev/null
+    menus_expect collideState '.focus == "skip"' "reverse Tab reaches Skip"
+    key -M shift -k Tab -m shift >/dev/null
+    menus_expect collideState '.focus == "cancel"' "reverse Tab reaches Cancel"
     key -k Return >/dev/null
     menus_expect collideState '.opened | not' "Enter on Cancel cancels"
     settle
@@ -186,6 +218,8 @@ case_collide() {
     key -k Escape >/dev/null
     menus_expect collideState '.opened | not' "Escape cancels at the largest stop"
     kill_flea
+    collide_nothing_opened "the case"
+    export PATH="$collide_path"
     # A mount-top trash is shared, so only this run's own entry goes, each pair checked in the command.
     if [[ "$collide_trash" != "$XDG_DATA_HOME/Trash/files" ]]; then
         sandbox_trash_remove_own "$collide_trash" "$dir" photo.txt \
@@ -332,6 +366,7 @@ case_clickthrough() {
     local p
     for p in SFTP FTPS WebDAV NFS SMB; do
         rows_run_under "$(ipc networkCardRect)" "the network card"
+        clickthrough_target "$(ipc networkChipCentre "$p")" "$p chip" "$parked"
         click_chip "$p"
         settle
         [[ "$(ipc networkProtocol)" == "$p" ]] || fail "clickthrough: the $p chip did not take its click, protocol is $(ipc networkProtocol)"
@@ -352,10 +387,7 @@ case_clickthrough() {
         rows_run_under "$(ipc settingsCardRect)" "the settings card"
         centre=$(ipc settingsRailRowCentre "$section")
         [[ -n "$centre" ]] || fail "clickthrough: the settings rail has no $section row"
-        read -r cx cy <<< "$centre"
-        read -r wx wy _ww _wh < <(window_box) || fail "native window coordinates unavailable"
-        omarchy-drive click "$((cx + wx))" "$((cy + wy))" >/dev/null
-        settle
+        clickthrough_click "$centre" "$section rail row" "$dir" "$parked"
         [[ "$(ipc settingsSection)" == "$section" ]] || fail "clickthrough: the $section rail row did not take its click, section is $(ipc settingsSection)"
         [[ "$(ipc cursor)" == "$parked" && "$(ipc path)" == "$dir" ]] \
             || fail "clickthrough: the $section rail row click reached the pane beneath, cursor $(ipc cursor), path $(ipc path)"

@@ -327,6 +327,15 @@ fn error_height_is_the_drawn_band(cx: &mut TestAppContext, view: View) {
         (reported - drawn).abs() < 0.01,
         "{view:?} reports the band it drew: {reported} against {drawn}"
     );
+    let state = flea::jsondoc::parse(&read(&shell, cx, "renameState", &[])).unwrap();
+    let height = |key| {
+        state
+            .get(key)
+            .and_then(flea::jsondoc::Json::as_f64)
+            .unwrap()
+    };
+    assert!(height("rowHeight") > height("normalRowHeight"), "{state:?}");
+    assert_eq!(height("currentRowHeight"), height("rowHeight"));
     close(&shell, cx);
 }
 

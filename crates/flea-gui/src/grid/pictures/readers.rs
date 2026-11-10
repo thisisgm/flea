@@ -119,8 +119,14 @@ impl Pictures {
         map.order
             .iter()
             .filter_map(|&row| {
-                let facts = held.row(row).filter(|facts| policy.allowed(facts))?;
+                let facts = held.row(row)?;
                 let slot = map.slots.get(&row)?;
+                let retained = matches!(slot, Slot::Ready { .. })
+                    && map.listing == held.listing
+                    && slot.identity().is_some_and(|identity| identity.is(facts));
+                if !policy.allowed(facts) && !retained {
+                    return None;
+                }
                 let terminal = match slot {
                     Slot::Refused { observed } | Slot::Missed { observed } => Some(observed),
                     _ => None,
@@ -132,7 +138,7 @@ impl Pictures {
                     {
                         return None;
                     }
-                } else {
+                } else if !retained {
                     map.current(held, row)?;
                 }
                 let value = match slot {

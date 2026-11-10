@@ -199,8 +199,8 @@ case_previewviews() {
         goto_row "$(row_index_of shut.jpg)"
         switch_view "$mode"
         key -k space >/dev/null
-        for _attempt in $(seq 1 40); do [[ "$(ipc previewState)" == "This image could not be read." ]] && break; sleep 0.1; done
-        [[ "$(ipc previewState)" == "This image could not be read." ]] || fail "$mode: Space on shut.jpg reads '$(ipc previewState)'"
+        for _attempt in $(seq 1 40); do [[ "$(ipc previewState)" == "This file could not be read." ]] && break; sleep 0.1; done
+        [[ "$(ipc previewState)" == "This file could not be read." ]] || fail "$mode: Space on shut.jpg reads '$(ipc previewState)'"
         key k >/dev/null
         key k >/dev/null
         for _attempt in $(seq 1 60); do [[ "$(ipc previewState)" == "image" ]] && break; sleep 0.1; done

@@ -20,7 +20,7 @@ pub enum Control {
 }
 
 impl Control {
-    fn code(self) -> u64 {
+    pub(super) fn code(self) -> u64 {
         match self {
             Self::Field(f) => 100 + f as u64,
             Self::Choice(f, i) => 1000 + f as u64 * 300 + i as u64,
@@ -39,6 +39,10 @@ pub fn wire(
     element: Div,
     cx: &mut Context<OutputView>,
 ) -> Stateful<Div> {
+    let element = view
+        .observed
+        .probe
+        .attach(element, format!("control:{}", control.code()));
     let element = view.body_scroll.observe(control, element);
     let out = element.id(ElementId::NamedInteger(
         SharedString::new_static("op4-control"),

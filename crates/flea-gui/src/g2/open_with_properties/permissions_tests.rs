@@ -330,3 +330,41 @@ fn several_items_permissions_close_every_inspect_id_and_a_failed_batch_names_its
         "a done batch closes every inspect id too"
     );
 }
+
+#[test]
+fn fx_uish_permissions_state_carries_facts_box_words_and_the_applying_note() {
+    let i18n = english();
+    let mut card = permissions();
+    let state = card.state();
+    let facts = state.get("facts").expect("facts");
+    assert_eq!(facts.get("ok").and_then(|v| v.as_bool()), Some(true));
+    assert_eq!(
+        facts.get("directory").and_then(|v| v.as_bool()),
+        Some(false)
+    );
+    assert_eq!(facts.get("mode").and_then(|v| v.as_str()), Some("0644"));
+    assert_eq!(facts.get("uid").and_then(|v| v.as_f64()), Some(1000.));
+    let words: Vec<_> = state
+        .get("controls")
+        .and_then(|v| v.as_array())
+        .unwrap()
+        .iter()
+        .filter_map(|c| c.get("value").and_then(|v| v.as_str()))
+        .collect();
+    assert_eq!(
+        words.join(","),
+        "on,on,off,on,off,off,on,off,off",
+        "0644 as v0.3.12 box words"
+    );
+    card.key(Key::Enter);
+    let painted = card.painted_state(&i18n, None, &Default::default());
+    let note = painted
+        .get("displayedNote")
+        .and_then(|v| v.as_str())
+        .unwrap();
+    assert!(note.starts_with("Applying permissions"), "{note}");
+    assert_eq!(
+        painted.get("displayedError").and_then(|v| v.as_str()),
+        Some("")
+    );
+}

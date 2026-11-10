@@ -14,12 +14,9 @@ use crate::{
 use flea::{ui_logic_doc_preview::archive::Meta, ui_logic_media_preview::frame::Event};
 use gpui::{Entity, TestAppContext, VisualTestContext};
 
-fn mounted_view(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> View {
-    let Some(Body::Doc(doc)) = body(shell, cx) else {
-        panic!("a document is mounted")
-    };
-    doc.view
-}
+#[path = "uish_media_tests.rs"]
+mod media_readers;
+use media_readers::mounted_view;
 
 #[gpui::test]
 fn quick_look_state_duration_reads_the_player_length(cx: &mut TestAppContext) {
@@ -49,6 +46,9 @@ fn quick_look_state_markdown_reads_view_text_length_and_end_gap(cx: &mut TestApp
         panic!("Markdown view")
     };
     assert_eq!(read(&shell, cx, "previewMarkdownView", &[]), "rendered");
+    let raw = "# Remote\n![Image](https://cdn.example.com/preview.png)\n";
+    markdown.update(cx, |view, _| view.doc.text = Some(raw.into()));
+    assert_eq!(read(&shell, cx, "previewText", &[]), raw.trim_end());
     cx.simulate_keystrokes("r");
     draw(cx);
     assert_eq!(
@@ -59,6 +59,7 @@ fn quick_look_state_markdown_reads_view_text_length_and_end_gap(cx: &mut TestApp
     markdown.update(cx, |view, _| {
         view.doc.text = Some("a\u{1F600}".into());
     });
+    assert_eq!(read(&shell, cx, "previewText", &[]), "a\u{1F600}");
     assert_eq!(
         read(&shell, cx, "previewTextLength", &[]),
         "3",
@@ -189,36 +190,6 @@ fn quick_look_state_media_strip_reads_the_painted_seek_and_mute_centres(cx: &mut
         "",
         "a closed card has no seek track"
     );
-    close(&shell, cx);
-}
-
-#[gpui::test]
-fn quick_look_state_video_strip_retires_hidden_paint_geometry(cx: &mut TestAppContext) {
-    let (shell, cx, _requests, script) = mounted(cx);
-    open_kind(&shell, cx, "clip.mp4");
-    assert!(script.feeds.borrow()[0].event(Event::Loaded {
-        video: true,
-        duration_ms: 20_000,
-    }));
-    draw(cx);
-    let paused = read(&shell, cx, "previewStrip", &[]);
-    assert!(paused.starts_with(r#"{"visible":true,"muted":false,"mute":""#));
-    assert!(!paused.contains(r#""mute":"""#));
-    assert!(script.feeds.borrow()[0].event(Event::Playing));
-    cx.executor()
-        .advance_clock(std::time::Duration::from_secs(4));
-    draw(cx);
-    let hidden = read(&shell, cx, "previewStrip", &[]);
-    assert!(
-        hidden.starts_with(r#"{"visible":false,"muted":false,"mute":""}"#),
-        "a hidden video strip has no visible paint or mute target: {hidden}"
-    );
-    assert_eq!(read(&shell, cx, "previewSliderCentre", &[]), "");
-    assert!(script.feeds.borrow()[0].event(Event::Paused));
-    draw(cx);
-    let paused_again = read(&shell, cx, "previewStrip", &[]);
-    assert!(paused_again.starts_with(r#"{"visible":true,"muted":false,"mute":""#));
-    assert!(!paused_again.contains(r#""mute":"""#));
     close(&shell, cx);
 }
 

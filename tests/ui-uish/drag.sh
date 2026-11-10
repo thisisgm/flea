@@ -140,8 +140,13 @@ case_railpointer() {
         key -k Tab >/dev/null
         settle
         [[ "$(ipc focusView)" == "rail" ]] || fail "railpointer: $mode: the second Tab did not reach the rail (focusView=$(ipc focusView))"
+        local context_cursor
+        context_cursor=$(ipc cursor)
+        [[ "$mode" != columns ]] || expected=$((context_cursor + stride))
         click_row "$click" right
         settle
+        shot "railpointer-$mode-context"
+        [[ "$mode" != columns || "$(ipc cursor)" == "$context_cursor" ]] || fail 'railpointer: a Columns menu moved the cursor'
         [[ "$(ipc focusView)" == "list" ]] || fail "railpointer: $mode: a right click left the keyboard on $(ipc focusView) instead of returning it to the list"
         key -k Escape >/dev/null
         settle

@@ -223,7 +223,8 @@ marquee_filter() {
     marquee_state '.filterTyping and .filterQuery == ""' "filter entry is ready" keyDeliveryState
     key "$query" >/dev/null || fail "marquee: filter text delivery failed"
     marquee_state ".filterTyping and .filterQuery == \"$query\"" "filter receives exact text" keyDeliveryState
-    key -k Return >/dev/null || fail "marquee: filter commit delivery failed"
+    # One Enter on the line acts on the highlighted row since B01 (62985e07f), so Down and Up commit the filter and keep the row.
+    key -k Down -k Up >/dev/null || fail "marquee: filter commit delivery failed"
     marquee_state "(.filterTyping | not) and .filterQuery == \"$query\"" "filter retains committed text" keyDeliveryState
 }
 

@@ -23,6 +23,11 @@ impl Draw<'_> {
             Control::Applications => "applications".into(),
             Control::Application(at) => format!("application:{at}"),
         };
+        let element = if self.measure.is_some() {
+            self.track(element.relative(), &id)
+        } else {
+            element
+        };
         let element = match self.probe {
             Some(probe) => probe.track(element, id),
             None => element,

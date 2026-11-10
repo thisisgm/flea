@@ -59,7 +59,9 @@ case_openterminal() {
         || fail "openterminal: the menu offers no terminal row, got $(ipc contextMenuEntries)"
     menu_seek "Open in Terminal"
     key -k Return >/dev/null
-    wait_terminal "$ran" "$dir" "the context menu"
+    # The cursor row is the folder bin, and a folder row's menu opens its terminal in that folder (FIX-373, v0.4.0).
+    [[ "$(ipc rowAt "$(ipc cursor)")" == "bin|"* ]] || fail "openterminal: the menu half did not start on the folder bin, row is $(ipc rowAt "$(ipc cursor)")"
+    wait_terminal "$ran" "$dir/bin" "the context menu on the folder bin"
     printf 'OPENTERMINAL menu log=%q\n' "$(cat "$ran")"
 
     # The keyboard half, from the list.

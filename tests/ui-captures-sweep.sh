@@ -1,6 +1,6 @@
 # Sourced by ui.sh; native ui:capsweep and ui:capsweeplow keep separate evidence directories.
 
-# Seconds one IPC poll waits for its state, used by the two polling helpers below.
+# Seconds one IPC poll waits for its state, used by the polling helpers below.
 sweep_wait_seconds=30
 # Eight wheel notches reach the two-page PDF stack's end at the capture window size.
 sweep_pdf_end_notches=8
@@ -42,6 +42,20 @@ sweep_text() {
         sleep 0.1
     done
     fail "capsweep: $reader never contained '$fragment'"
+}
+
+sweep_json() {
+    local reader="$1" expression="$2" label="$3" seen='' end=$((SECONDS + sweep_wait_seconds))
+    shift 3
+    while (( SECONDS < end )); do
+        seen=$(ipc "$reader" "$@") || fail "capsweep: $reader unavailable"
+        if jq -e "$expression" <<< "$seen" >/dev/null; then
+            printf 'SWEEP_CHECK %s observed=%s\n' "$label" "$seen"
+            return
+        fi
+        sleep 0.1
+    done
+    fail "capsweep: $label: $seen"
 }
 
 # Each surface starts from the same owned state, with size 14 pinned through the shipped schema.
@@ -173,7 +187,7 @@ PY
 
 # Preview column and Quick Look: JPEG, alpha PNG, PDF pages, Markdown modes, audio and text.
 sweep_previews() {
-    local file kind tag expected state before after text_bytes text_tail
+    local file kind tag expected state before after text_lines text_tail
     sweep_preview_fixture
     sweep_launch "$sweep_root/previews" '{"view":"columns"}'
     for tag in jpeg alpha pdf markdown remote audio text large overlimit; do
@@ -217,11 +231,16 @@ sweep_previews() {
         if [[ "$tag" == pdf ]]; then pdf_expect true '.page == 0 and .pages == 2' 'sweep first page decoded'; fi
         if [[ "$tag" == text ]]; then [[ "$(ipc previewText)" == *'hello from flea'* ]] || fail 'capsweep: Quick Look text missing'; fi
         if [[ "$tag" == large ]]; then
-            # The ASCII fixture's byte count equals its text length; only the last line crosses IPC.
-            text_bytes=$(wc -c < "$sweep_root/previews/$file")
+            # textShown returns retained windows; the paged owner supplies the whole file's line count.
+            text_lines=$(wc -l < "$sweep_root/previews/$file")
             text_tail=$(tail -n 1 "$sweep_root/previews/$file")
-            sweep_wait previewTextLength "$text_bytes"
+            sweep_json previewTextState ".visible and .ready and .total == $text_lines" 'large preview reports the total line count from its paged owner' false
+            menus_equal 'large preview owns the requested file' "$sweep_root/previews/$file" "$(ipc previewTextState false | jq -er .path)"
+            sweep_shot quicklook-large-first-window
+            key -k End >/dev/null
+            sweep_json previewTextState ".visible and .ready and .total == $text_lines and .y > .minY" 'native End moves the large preview through its paged owner' false
             sweep_wait previewTextTail "$text_tail" "$(( ${#text_tail} + 1 ))"
+            state=last-line
         fi
         if [[ "$tag" == remote ]]; then [[ "$(ipc previewText)" == *'cdn.example.com'* ]] || fail 'capsweep: Quick Look remote image missing'; fi
         [[ "$tag" != audio ]] || state=playing
@@ -539,6 +558,7 @@ sweep_run() {
     sandbox_make "$sweep_root"
     sweep_home="$sweep_root/home"
     fixture_home_make "$sweep_home"
+    local real_state_dir="$sweep_home/.local/state/omarchy/current"
     if [[ "$sweep_theme" == cool-dawn ]]; then
         cp "$repo/tests/fixtures/cool-dawn/colors.toml" "$sweep_home/.local/state/omarchy/current/theme/colors.toml"
         printf 'cool-dawn\n' > "$sweep_home/.local/state/omarchy/current/theme.name"
@@ -548,9 +568,14 @@ sweep_run() {
     mkdir -p "$evidence_dir" "$sweep_root/views"
     [[ ! -e "$evidence_dir/manifest.tsv" ]] || fail 'capsweep: evidence directory already used'
     # Only the child receives HOME; the operator environment and every session file stay intact.
-    flea_bin="$sweep_root/launcher"
-    { printf '#!/usr/bin/env bash\n'; printf 'exec env HOME=%q %q "$@"\n' "$sweep_home" "$sweep_real_bin"; } > "$flea_bin"
-    chmod +x "$flea_bin"
+    local -a flea_launch_wrap=()
+    if [[ "$test_frontend" == gpui ]]; then
+        flea_launch_wrap=(env "HOME=$sweep_home" "XDG_CONFIG_HOME=$sweep_home/.config")
+    else
+        flea_bin="$sweep_root/launcher"
+        { printf '#!/usr/bin/env bash\n'; printf 'exec env HOME=%q %q "$@"\n' "$sweep_home" "$sweep_real_bin"; } > "$flea_bin"
+        chmod +x "$flea_bin"
+    fi
     printf 'SWEEP_THEME %s textSize=14 seam=display.textSize childHome=%s\n' "$sweep_theme" "$sweep_home"
     for section in "${sweep_sections[@]}"; do
         case "$section" in
@@ -582,94 +607,44 @@ case_capsweeplow() { sweep_run cool-dawn; }
 # Columns only at size 14 on the live theme, for one native columns specimen.
 case_cap_columns14() { sweep_run current columns; }
 
-# Quick Look on an STL keeps the seeded cache thumbnail as its picture, at text size 14, with no thumbnailer run; a second STL whose thumbnail is still being made waits on the loading state and ends on the thumbnail.
+# An STL previews as a flat-shaded model, in the column and in Quick Look (HIG ql-stl, GM 2026-10-17 3D previews), never a cache thumbnail or the unreadable sentence.
+capsweepstl_wait_column() {
+    local file="$1" end=$((SECONDS + 25)) path="" state=""
+    while (( SECONDS < end )); do
+        path=$(ipc previewSelectionState | jq -r .path)
+        state=$(ipc previewColumnState)
+        [[ "$path" == *"$file" && "$state" == model3d ]] && return 0
+        sleep 0.1
+    done
+    fail "capsweepstl: the column shows $path as '$state', want $file as model3d"
+}
+
 case_capsweepstl() {
-    local dir="$fixture_root/capsweepstl" stl_home="$fixture_root/capsweepstl-home"
-    local real_home="$HOME" key stl_mtime cache_png stl_uri key_uri seen end
-    command -v magick >/dev/null || fail 'capsweepstl: magick is missing, so the thumbnail fixture cannot be built'
-    command -v python3 >/dev/null || fail 'capsweepstl: python3 is missing, so the cache entry cannot be keyed'
+    local dir="$fixture_root/capsweepstl" seen end
     sandbox_scratch "$dir"
-    printf 'solid capsweepstl-fixture\nendsolid capsweepstl-fixture\n' > "$dir/model.stl" \
+    # One facet is the smallest model the renderer can shade.
+    printf 'solid capsweepstl\nfacet normal 0 0 1\nouter loop\nvertex 0 0 0\nvertex 1 0 0\nvertex 0 1 0\nendloop\nendfacet\nendsolid capsweepstl\n' > "$dir/model.stl" \
         || fail 'capsweepstl: the STL fixture failed'
-    fixture_home_make "$stl_home"
-    mkdir -p "$stl_home/.local/share/thumbnailers"
-    # The seeded STL is a cache hit and never runs this; the second one makes its thumbnail in six seconds, so Quick Look opens first.
-    printf '[Thumbnailer Entry]\nExec=/bin/sh -c "/usr/bin/sleep 6; exec /usr/bin/magick -size 256x192 xc:#9ece6a png:\\$0" %%o\nMimeType=model/stl;model/3mf;\n' \
-        > "$stl_home/.local/share/thumbnailers/stl-seed.thumbnailer"
-    stl_mtime=$(stat -c %Y "$dir/model.stl")
-    magick -size 256x192 xc:'#7aa2f7' "$dir/.stl-thumb-tmp.png" \
-        || fail 'capsweepstl: the thumbnail fixture failed'
-    # The freedesktop key is the md5 of the file URI, with GLib's literal bytes left bare.
-    key_uri=$(python3 - "$dir/model.stl" <<'PY'
-import hashlib, sys
-literal = b"!$&'()*+,-./:=@_~"
-uri = "file://"
-for byte in sys.argv[1].encode():
-    if (48 <= byte <= 57 or 65 <= byte <= 90 or 97 <= byte <= 122) or byte in literal:
-        uri += chr(byte)
-    else:
-        uri += "%%%02X" % byte
-print(hashlib.md5(uri.encode()).hexdigest())
-print(uri)
-PY
-    ) || fail 'capsweepstl: the cache key failed'
-    key=${key_uri%%$'\n'*}
-    stl_uri=${key_uri#*$'\n'}
-    mkdir -p "${XDG_CACHE_HOME}/thumbnails/large"
-    cache_png="${XDG_CACHE_HOME}/thumbnails/large/$key.png"
-    # lookup() trusts only a cache entry stamped with the file's own mtime, as uncompressed tEXt.
-    python3 - "$dir/.stl-thumb-tmp.png" "$stl_mtime" "$stl_uri" "$cache_png" <<'PY'
-import struct, sys, zlib
-data = open(sys.argv[1], "rb").read()
-assert data[:8] == b"\x89PNG\r\n\x1a\n"
-assert data[8:16] == struct.pack(">I", 13) + b"IHDR"
-def text(key, value):
-    payload = key + b"\x00" + value
-    return struct.pack(">I", len(payload)) + b"tEXt" + payload + struct.pack(">I", zlib.crc32(b"tEXt" + payload) & 0xffffffff)
-# PNG orders IHDR first: signature 8 plus IHDR 25 is offset 33, so both stamps splice there.
-stamps = text(b"Thumb::URI", sys.argv[3].encode()) + text(b"Thumb::MTime", sys.argv[2].encode())
-open(sys.argv[4], "wb").write(data[:33] + stamps + data[33:])
-PY
-    [[ "$(grep -ao 'Thumb::MTime' "$cache_png" | wc -l | tr -d ' ')" == 1 ]] \
-        || fail 'capsweepstl: the seeded cache entry carries no mtime stamp'
     seed_ui_state "$fixture_root/capsweepstl-state" '{"keys":"default","view":"columns","display":{"textSize":{"mode":14}}}'
-    export HOME="$stl_home"
     launch "$dir"
     wait_listing 1
     settle
     seek_row_named model.stl
-    matrix_wait_column image model.stl
-    sweep_shot column-stl-thumbnail
+    capsweepstl_wait_column model.stl
+    sweep_shot column-stl-model
     key -k Space >/dev/null
     sweep_wait previewOpen true
-    sweep_wait previewKind image
-    sweep_wait previewState image
-    sweep_shot quicklook-stl-thumbnail
-    key -k Escape >/dev/null
-    sweep_wait previewOpen false
-    # A file made after the listing has no cache entry, so Space meets the row before its thumbnail exists.
-    printf 'solid capsweepstl-late\nendsolid capsweepstl-late\n' > "$dir/model-late.stl" \
-        || fail 'capsweepstl: the late STL fixture failed'
-    wait_listing 2
-    seek_row_named model-late.stl
-    key -k Space >/dev/null
-    sweep_wait previewOpen true
-    sweep_wait previewKind image
-    [[ "$(ipc previewState)" == loading ]] || fail "capsweepstl: an STL with no thumbnail yet read '$(ipc previewState)', want loading"
-    sweep_shot quicklook-stl-pending
-    # Every sample until the thumbnail lands is the loading state, and none is the sentence.
-    seen=loading
+    sweep_wait previewKind model3d
     end=$((SECONDS + sweep_wait_seconds))
+    seen=$(ipc previewState)
     while (( SECONDS < end )) && [[ "$seen" == loading ]]; do
-        seen=$(ipc previewState) || fail 'capsweepstl: previewState unavailable'
-        [[ "$seen" == 'This image could not be read.' ]] && fail 'capsweepstl: the late STL showed the unreadable sentence before its thumbnail'
         sleep 0.1
+        seen=$(ipc previewState) || fail 'capsweepstl: previewState unavailable'
     done
-    [[ "$seen" == image ]] || fail "capsweepstl: the late STL ended on '$seen', want image"
-    sweep_shot quicklook-stl-late-thumbnail
+    [[ "$seen" == model3d ]] || fail "capsweepstl: Quick Look on the STL ended on '$seen', want model3d"
+    sweep_shot quicklook-stl-model
     key -k Escape >/dev/null
     sweep_wait previewOpen false
-    printf 'CAPSWEEPSTL column=thumbnail quicklook=image late=image\n'
+    printf 'CAPSWEEPSTL column=model3d quicklook=model3d state=%s\n' "$seen"
     kill_flea
-    export HOME="$real_home"
 }

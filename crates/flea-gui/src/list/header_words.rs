@@ -24,7 +24,14 @@ pub(super) fn label(view: &ListView, column: Option<Column>) -> &str {
 
 /// Header.titles(): every title's plain word, whatever is drawn, as the header case reads them.
 pub fn titles(view: &ListView) -> String {
-    CELLS.map(|column| label(view, column)).join("|")
+    // Recent lays Kind out at 0 px, so its header reads the four columns it draws, as v0.3.12's did.
+    let recent = view.place_recent.is_some();
+    CELLS
+        .into_iter()
+        .filter(|column| !(recent && *column == Some(Column::Kind)))
+        .map(|column| label(view, column))
+        .collect::<Vec<_>>()
+        .join("|")
 }
 
 pub(super) fn painted(view: &ListView, column: Option<Column>) -> String {

@@ -4,6 +4,7 @@ pub(crate) mod card_geometry;
 pub mod chrome;
 pub mod columns;
 pub(crate) mod columns_preview;
+pub(crate) mod copy_to_card;
 pub mod devices;
 pub(crate) mod dialog_cards;
 pub(crate) mod drag_state;
@@ -80,5 +81,7 @@ mod vfix_table_tests;
 
 #[cfg(test)]
 mod pc2_output_geometry_tests;
+#[cfg(test)]
+mod uish_readers_tests;
 #[cfg(test)]
 mod vfix_card_tests;

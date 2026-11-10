@@ -92,7 +92,7 @@ fn rev_u06_r3_real_font_wrapped_geometry_matrix() {
                     }
                     drop(held);
                     let joined = Joined { menu: Rc::clone(&menu), ..Joined::default() };
-                    let state = JoinedAdapter { joined: &joined, identity: "a".into(), catalog: &catalog }.call("menuState", &[]).unwrap().stdout;
+                    let state = JoinedAdapter { joined: &joined, identity: "a".into(), catalog: &catalog, field: None }.call("menuState", &[]).unwrap().stdout;
                     let doc = jsondoc::parse(state.trim()).unwrap();
                     let row = &doc.get("rows").and_then(Json::as_array).unwrap()[0];
                     let need = ["markLeft","slot","labelLeft","label","labelRight","hintRight","status","chevron","chevronRight"].iter().map(|key| number(row,key)).sum::<f64>().ceil();
@@ -224,6 +224,7 @@ fn rev_u06_r4_default_wrapped_refusal_is_not_reported_as_elided() {
         joined: &joined,
         identity: "a".into(),
         catalog: &catalog,
+        field: None,
     }
     .call("menuState", &[])
     .unwrap()

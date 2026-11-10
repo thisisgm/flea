@@ -285,6 +285,22 @@ case_phones() {
     mkdir -p "$state/flea"
     phones_gio_stub "$dir"
     local fuse="$phones_fuse" mtp_uri="$phones_mtp_uri" afc_fuse="$phones_afc_fuse" unmount_log="$phones_unmount_log"
+    local gvfs_parent="$dir/gvfs" gvfs_count=1
+    local -a flea_launch_wrap=()
+    if [[ "$test_frontend" == gpui ]]; then
+        gvfs_parent="/run/user/$(id -u)/gvfs"
+        [[ -d "$gvfs_parent" ]] || fail 'phones: canonical GVFS mountpoint is unavailable'
+        cp -a "$afc_fuse" "$dir/gvfs/"
+        : > "$dir/gvfs/.flea-test-sandbox"
+        local virtual_fuse="$gvfs_parent/${fuse##*/}" virtual_afc="$gvfs_parent/${afc_fuse##*/}"
+        python3 "$repo/tests/lib/flea_phone_paths.py" "$dir/bin/gio" "$fuse" "$virtual_fuse" "$afc_fuse" "$virtual_afc" \
+            || fail 'phones: private GIO paths could not be mapped'
+        fuse=$virtual_fuse
+        afc_fuse=$virtual_afc
+        gvfs_count=2
+        flea_launch_wrap=(/bin/bash "$repo/tests/lib/flea-gvfs-namespace.sh" --enter "$dir/gvfs" "$gvfs_parent"
+            "$(readlink /proc/self/ns/user)" "$(readlink /proc/self/ns/mnt)")
+    fi
 
     local fixture_home="$fixture_root/phones-home"
     fixture_home_make "$fixture_home"
@@ -384,8 +400,8 @@ case_phones() {
     # One directory up is the folder the mount sits in rather than the mount, so the same key does arm
     # there: the silence above is the guard and not a keyboard that stopped answering.
     key h >/dev/null
-    wait_path "$dir/gvfs"
-    wait_listing 1
+    wait_path "$gvfs_parent"
+    wait_listing "$gvfs_count"
     key j >/dev/null
     settle
     key d >/dev/null
@@ -450,7 +466,7 @@ case_phones() {
     [[ "$(ipc deviceEntries)" == *"SAMSUNG Android|device|phone|false"* ]] \
         || fail "phones: the row did not come back unmounted for the keyboard leg, got $(ipc deviceEntries)"
     # Off the mount first, so the wait below can only be satisfied by this leg's own open.
-    [[ "$(ipc path)" != "$fuse" ]] || { key h >/dev/null; wait_path "$dir/gvfs"; }
+    [[ "$(ipc path)" != "$fuse" ]] || { key h >/dev/null; wait_path "$gvfs_parent"; }
     key -k Tab >/dev/null
     settle
     [[ "$(ipc focusView)" == "rail" ]] || fail "phones: Tab did not reach the rail, focus is $(ipc focusView)"

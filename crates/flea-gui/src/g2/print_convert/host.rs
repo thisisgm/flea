@@ -287,6 +287,7 @@ impl OutputView {
 
 impl Render for OutputView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        self.observed.probe.clear();
         for image in self.released.drain(..) {
             let _ = window.drop_image(image);
         }

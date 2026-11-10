@@ -12,6 +12,8 @@ pub struct TrashAdapter<'a> {
     pub host: Option<&'a TrashHost>,
     pub message: Option<&'a str>,
     pub overlay: Option<&'a gpui::Entity<crate::g2::file_ops::host::Overlay>>,
+    /// The rail's Trash count and the text its Trash row draws (Shell::rail_trash_badge).
+    pub rail: (u64, String),
     pub cx: &'a App,
 }
 fn object(fields: Vec<(&str, Json)>) -> Json {
@@ -40,11 +42,20 @@ impl TrashAdapter<'_> {
             && pane.paint.borrow().drawn()
     }
 
+    /// v0.3.12's rail half: whether the window shows Trash, and the count the rail's Trash row draws.
+    fn rail(&self, current: bool) -> Json {
+        object(vec![
+            ("current", Json::Bool(current)),
+            ("countText", Json::Str(self.rail.1.clone())),
+        ])
+    }
+
     fn state(&self) -> String {
         let Some(host) = self.host else {
             return jsondoc::render(&object(vec![
                 ("opened", Json::Bool(false)),
-                ("count", number(0)),
+                ("count", number(self.rail.0)),
+                ("rail", self.rail(false)),
             ]));
         };
         let pane = host.pane.read(self.cx);
@@ -128,6 +139,7 @@ impl TrashAdapter<'_> {
                 Json::Arr(pane.header_labels().into_iter().map(Json::Str).collect()),
             ),
             ("upEnabled", Json::Bool(false)),
+            ("rail", self.rail(view.opened)),
             ("rows", Json::Arr(rows)),
             ("confirmation", confirmation),
             (

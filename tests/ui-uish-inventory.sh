@@ -62,7 +62,7 @@ class Controls(unittest.TestCase):
     def test_inventory(self):
         result = inventory.check(self.repo)
         self.assertEqual((result["wanted"], result["inline"], result["sourced"], result["declared_overrides"]),
-                         (111, 84, 27, 84))
+                         (112, 85, 27, 86))
         self.assertGreaterEqual(result["installed_overrides"], 68)
         print("INVENTORY " + json.dumps(result, sort_keys=True))
 
@@ -141,7 +141,7 @@ class Controls(unittest.TestCase):
         self.assertNotIn("NATIVE_RUN", result.stdout + result.stderr)
         self.assertFalse(any(line.startswith("PASS ") for line in result.stdout.splitlines()))
 
-    def test_headless_default_forwards_all_111_in_order(self):
+    def test_headless_default_forwards_all_112_in_order(self):
         helper = self.repo / "tests/lib/flea_uish_headless.py"
         helper.write_text('import json,sys\nprint(json.dumps(sys.argv[sys.argv.index("--")+1:]))\n')
         result = self.ui(driver="headless")
@@ -354,4 +354,6 @@ if result.result.testsRun == 0 or not result.result.wasSuccessful():
     raise SystemExit(1)
 print(f"PASS ui-uish-inventory {result.result.testsRun} controls")
 PY
+python3 -B "$repo/tests/lib/test_flea_gvfs_namespace.py" </dev/null
+python3 -B "$repo/tests/lib/test_flea_colhold_frames.py" </dev/null
 exec setsid -w env -i PATH="$PATH" python3 -B "$root/controls.py" "$repo" "$root" </dev/null

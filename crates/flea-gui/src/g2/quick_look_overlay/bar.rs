@@ -34,8 +34,17 @@ pub fn bar_mark(glyph: Glyph, look: &Look) -> impl IntoElement {
         .child(mark(glyph, look::CHROME_MARK, look.foreground))
 }
 
-pub(super) fn name_parts(name: &Name, look: &Look) -> Vec<AnyElement> {
+pub(super) fn name_parts(
+    name: &Name,
+    look: &Look,
+    observations: &super::observations::Shared,
+) -> Vec<AnyElement> {
     let mut parts = vec![div()
+        .relative()
+        .child(super::observations::bounds(
+            observations,
+            |observed, bounds| observed.title = Some(bounds),
+        ))
         .min_w_0()
         .overflow_hidden()
         .whitespace_nowrap()
@@ -84,7 +93,7 @@ pub fn bar(
         .text_size(px(look::CAPTION))
         .whitespace_nowrap()
         .child(bar_mark(glyph, look))
-        .children(name_parts(&name, look))
+        .children(name_parts(&name, look, &state.observations))
         .child(div().flex_1());
     if filled {
         row = row.bg(look.surface);
@@ -135,6 +144,11 @@ pub fn refusal_bar(
         .child(bar_mark(glyph, look))
         .child(
             div()
+                .relative()
+                .child(super::observations::bounds(
+                    &state.observations,
+                    |observed, bounds| observed.title = Some(bounds),
+                ))
                 .ml(px(look::GAP))
                 .text_color(look.foreground)
                 .child(SharedString::from(title.to_owned())),
@@ -265,6 +279,7 @@ pub(super) fn ring_slot(
 /// Copy Patch: a bare caption word in the foreground, as the bar's marks are bare (CHANGES compare).
 fn word(text: &str, look: &Look, state: &QuickLook, cx: &mut Context<QuickLook>) -> AnyElement {
     let focused = state.focused == Some(Hit::CopyPatch);
+    let observed = state.observations.clone();
     let mut word = div()
         .id("pv1-copy-patch")
         .debug_selector(|| "pv1-copy-patch".into())
@@ -274,7 +289,12 @@ fn word(text: &str, look: &Look, state: &QuickLook, cx: &mut Context<QuickLook>)
         .text_size(px(look::CAPTION))
         .text_color(look.foreground)
         .cursor_pointer()
+        .on_hover(move |hovered, _, _| observed.borrow_mut().copy_hovered = *hovered)
         .child(SharedString::from(text.to_owned()))
+        .child(super::observations::bounds(
+            &state.observations,
+            |observed, bounds| observed.copy = Some(bounds),
+        ))
         .on_mouse_down(MouseButton::Left, cx.listener(press(Hit::CopyPatch)))
         .on_click(cx.listener(click(Hit::CopyPatch)));
     if focused {

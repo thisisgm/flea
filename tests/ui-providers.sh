@@ -6,6 +6,11 @@ providers_write() {
     printf '%s' "$2" > "$menu_box/$1" || fail "providers: cannot write $1"
 }
 
+# The menu row a provider verb names: under GPUI the Tailscale row is its plugin's send row (HIG CHANGES:687).
+providers_row_action() {
+    if [[ "$1" == taildrop && "${test_frontend:-qml}" == gpui ]]; then printf 'plugin-send:flea.tailscale'; else printf '%s' "$1"; fi
+}
+
 providers_expect() {
     local expression="$1" label="$2" observed deadline=$((SECONDS + 25))
     while (( SECONDS < deadline )); do
@@ -21,19 +26,17 @@ providers_expect() {
 }
 
 providers_seek() {
-    local action="$1" state cursor target step index
-    local -a events=()
-    state=$(ipc menuState) || fail "providers: menu observer failed"
-    target=$(jq -er --arg action "$action" '.entries | to_entries[] | select(.value.action == $action and (.value.disabled | not)) | .key' <<< "$state") \
-        || fail "providers: unavailable action $action: $state"
-    cursor=$(jq -r .cursor <<< "$state")
-    if (( target > cursor )); then step=1; else step=-1; fi
-    for ((index = cursor + step; index != target + step; index += step)); do
-        if jq -e --argjson index "$index" '.entries[$index] | (.separator | not) and (.disabled | not)' <<< "$state" >/dev/null; then
-            if (( step > 0 )); then events+=(-k Down); else events+=(-k Up); fi
-        fi
+    local action state cursor target step
+    action=$(providers_row_action "$1")
+    for ((step = 0; step < 80; step++)); do
+        state=$(ipc menuState) || fail "providers: menu observer failed"
+        target=$(jq -er --arg action "$action" '.entries | to_entries[] | select(.value.action == $action and (.value.disabled | not)) | .key' <<< "$state") \
+            || fail "providers: unavailable action $action: $state"
+        cursor=$(jq -r .cursor <<< "$state")
+        [[ "$cursor" != "$target" ]] || break
+        if (( target > cursor )); then key -k Down >/dev/null; else key -k Up >/dev/null; fi
+        settle
     done
-    if (( ${#events[@]} )); then key "${events[@]}" >/dev/null || fail "providers: menu keys failed"; fi
     menus_expect menuState ".entries[.cursor].action == \"$action\"" "keyboard reaches $action"
 }
 
@@ -133,7 +136,8 @@ providers_open() {
 }
 
 providers_disabled() {
-    local action="$1" reason="$2" word="$3" state target before
+    local action reason="$2" word="$3" state target before
+    action=$(providers_row_action "$1")
     # A provider that cannot answer reads as red with its own state word, never its reason.
     [[ -n "$word" ]] || fail "providers: no expected word for $action ($reason)"
     # GPUI follows GM's 2026-10-29 ruling: an unavailable row only draws red, with no state word beside it.

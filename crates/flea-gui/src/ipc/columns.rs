@@ -22,7 +22,7 @@ pub struct ColumnsAdapter<'a> {
     pub preview: Option<&'a dyn PreviewProducer>,
 }
 
-fn slot_named(name: &str) -> Option<Slot> {
+pub(crate) fn slot_named(name: &str) -> Option<Slot> {
     match name {
         "greatGrandparent" => Some(Slot::GreatGrandparent),
         "grandparent" => Some(Slot::Grandparent),

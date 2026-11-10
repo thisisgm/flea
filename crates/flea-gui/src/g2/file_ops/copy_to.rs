@@ -39,6 +39,7 @@ pub(super) fn card(
         })
         .rounded(px(palette.radius))
         .bg(palette.background);
+    let field = scene.track(field, "copy-field", path.to_owned());
     let field = match &scene.copy_field {
         Some(view) => super::field::mount(view.clone(), field, scene.typeface).into_any_element(),
         None => field.into_any_element(),

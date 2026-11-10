@@ -58,7 +58,7 @@ case_cap_bulk() {
     [[ "$(ipc selectionCount)" == "6" ]] || fail "cap_bulk: ctrl-a selected $(ipc selectionCount), not 6"
     key -k F2 >/dev/null
     cap_bulk_expect ".opened" "F2 over six rows opened no bulk card"
-    cap_bulk_expect '.count == 6 and .footer == "0 renamed · 6 unchanged" and .rename == "Rename 0" and .canRename == false' "the fresh card"
+    cap_bulk_expect '.count == 6 and .footer == "0 renamed · 6 unchanged" and .rename == "Rename" and .canRename == false' "the fresh card"
     shot bulk-card
     cap_bulk_expect '.focus == "Find"' "Find did not take the caret on open"
     key "IMG_" >/dev/null

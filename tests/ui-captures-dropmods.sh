@@ -119,7 +119,7 @@ case_cap_dropmods() {
     dst_pt=$(ipc rowCentre "$(row_index_of sub)"); read -r tx ty <<< "$dst_pt"
     cap_drops_press "$cx" "$cy"
     cap_drops_steer "$tx" "$ty"
-    cap_drops_wait_target "Move 1 item to sub · Ctrl copies, Shift moves"
+    cap_drops_wait_target "Move 1 item to sub · ctrl copies, shift moves"
     cap_dropmods_key 29 1
     cap_drops_release
     cap_dropmods_key 29 0
@@ -165,7 +165,7 @@ case_cap_dropmods() {
     seen=$(focused_pid)
     [[ "$seen" == "$win2" ]] || { cap_dropmods_abandon; fail "cap_dropmods: focus never followed the drag to qs pid $win2 (the active window is $seen), so no mid-drag key could reach it"; }
     # Win2 must show the hover line before Ctrl, or the release can land on its listing floor.
-    ipc_pid="$win2"; cap_drops_wait_target "Move 1 item to sub2 · Ctrl copies, Shift moves"; ipc_pid="$win1"
+    ipc_pid="$win2"; cap_drops_wait_target "Move 1 item to sub2 · ctrl copies, shift moves"; ipc_pid="$win1"
     cap_dropmods_key 29 1
     cap_dropmods_release
     cap_dropmods_key 29 0
@@ -239,7 +239,7 @@ case_cap_dropmods() {
     cap_dropmods_press_at "$((cx + wx))" "$((cy + wy))"
     cap_dropmods_steer_to "$tx" "$ty"
     printf 'CAP_DROPMODS c1 aim %s,%s cursor %s windows %s\n' "$tx" "$ty" "$(hyprctl cursorpos)" "$(hyprctl clients -j | jq -c '[.[] | select(.title == "DropProbe" or .class == "com.thisisgm.flea") | [.title, .floating, .at, .size]]')"
-    cap_drops_wait_target "Move 1 item to a folder · Ctrl copies, Shift moves"
+    cap_drops_wait_target "Move 1 item to a folder · ctrl copies, shift moves"
     sleep 0.5
     cap_dropmods_release
     local offered1="" offered2=""
@@ -262,7 +262,7 @@ case_cap_dropmods() {
     cap_dropmods_probe_clear_of "$((cx + wx))" "$((cy + wy))"
     cap_dropmods_press_at "$((cx + wx))" "$((cy + wy))"
     cap_dropmods_steer_to "$tx" "$ty"
-    cap_drops_wait_target "Move 1 item to a folder · Ctrl copies, Shift moves"
+    cap_drops_wait_target "Move 1 item to a folder · ctrl copies, shift moves"
     sleep 0.5
     cap_dropmods_key 29 1
     cap_dropmods_release
