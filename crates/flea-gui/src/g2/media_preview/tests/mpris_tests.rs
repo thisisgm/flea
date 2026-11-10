@@ -14,11 +14,7 @@ fn stub(root: &Path) -> (PathBuf, PathBuf) {
     let starts = root.join("starts");
     let body = format!("#!/bin/sh\nprintf 'start\\n' >> '{}'\nprintf 'Pause\\n'\nwhile IFS= read -r line; do printf '%s\\n' \"$line\" >> '{}'; done\n", starts.display(), lines.display());
     std::fs::write(&program, body).expect("stub");
-    std::fs::set_permissions(
-        &program,
-        std::os::unix::fs::PermissionsExt::from_mode(0o755),
-    )
-    .expect("chmod");
+    flea::executable_file::write(&program, &std::fs::read(&program).unwrap(), 0o755).unwrap();
     (program, lines)
 }
 

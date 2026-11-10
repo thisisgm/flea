@@ -115,7 +115,7 @@ fn review_a_second_edit_names_the_records_the_first_committed(cx: &mut TestAppCo
     let exe = dir.join("flea-fake");
     let argv = dir.join("argv");
     std::fs::write(&exe, format!("#!/bin/sh\nprintf '%s\\n' \"$2\" >> '{}'\nprintf '%s' '{{\"places\":{{\"favourites\":[{{\"label\":\"B\",\"path\":\"/b\"}}]}}}}'\n", argv.display())).unwrap();
-    std::fs::set_permissions(&exe, std::os::unix::fs::PermissionsExt::from_mode(0o755)).unwrap();
+    flea::executable_file::write(&exe, &std::fs::read(&exe).unwrap(), 0o755).unwrap();
     let places = cx.new(|_| Places::new(Arc::new(english()), exe.clone()));
     places.update(cx, |p, _| {
         p.favourites.records = vec![record("A", "/a"), record("B", "/b")]
@@ -207,7 +207,7 @@ fn a_change_another_window_made_is_counted_for_the_rows(cx: &mut TestAppContext)
     let dir = root("ext");
     let exe = dir.join("flea-fake");
     std::fs::write(&exe, "#!/bin/sh\nprintf '%s' '{\"places\":{\"favourites\":[{\"label\":\"C\",\"path\":\"/c\"}]}}'\n").unwrap();
-    std::fs::set_permissions(&exe, std::os::unix::fs::PermissionsExt::from_mode(0o755)).unwrap();
+    flea::executable_file::write(&exe, &std::fs::read(&exe).unwrap(), 0o755).unwrap();
     let places = cx.new(|_| Places::new(Arc::new(english()), exe.clone()));
     places.update(cx, |p, _| p.favourites.records = vec![record("A", "/a")]);
     places.update(cx, |p, cx| p.write(&Operation::Remove { index: 0 }, cx));
@@ -224,7 +224,7 @@ fn an_inspection_lands_its_statuses_and_a_hung_one_times_out(cx: &mut TestAppCon
     let dir = root("inspect");
     let exe = dir.join("flea-fake");
     std::fs::write(&exe, "#!/bin/sh\ncase \"$2\" in *hang*) exec sleep 30 ;; esac\nprintf '%s' '{\"statuses\":[{\"index\":0,\"record\":{\"label\":\"A\",\"path\":\"/a\"},\"error\":\"gone\"}]}'\n").unwrap();
-    std::fs::set_permissions(&exe, std::os::unix::fs::PermissionsExt::from_mode(0o755)).unwrap();
+    flea::executable_file::write(&exe, &std::fs::read(&exe).unwrap(), 0o755).unwrap();
     let places = cx.new(|_| Places::new(Arc::new(english()), exe.clone()));
     places.update(cx, |p, _| p.favourites.records = vec![record("A", "/a")]);
     places.update(cx, |p, cx| p.inspect(&[0], cx));
@@ -242,7 +242,7 @@ fn an_inspection_lands_its_statuses_and_a_hung_one_times_out(cx: &mut TestAppCon
         format!("#!/bin/sh\nexec '{}' \"$1\" hang\n", exe.display()),
     )
     .unwrap();
-    std::fs::set_permissions(&hang, std::os::unix::fs::PermissionsExt::from_mode(0o755)).unwrap();
+    flea::executable_file::write(&hang, &std::fs::read(&hang).unwrap(), 0o755).unwrap();
     let started = std::time::Instant::now();
     places.update(cx, |p, cx| {
         p.exe = hang.clone();

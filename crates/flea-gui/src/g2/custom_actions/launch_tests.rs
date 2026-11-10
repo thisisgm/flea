@@ -1,7 +1,7 @@
 //! Open in Agent's spawn: a fixture argv records the folder, process group, stdio targets and argv.
 use super::launch::{launch_argv, launch_reaped};
 use std::fs;
-use std::os::unix::fs::PermissionsExt;
+
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
@@ -54,7 +54,7 @@ fn fixture(root: &Path) -> PathBuf {
         record.display()
     );
     fs::write(&program, script).unwrap();
-    fs::set_permissions(&program, fs::Permissions::from_mode(0o755)).unwrap();
+    flea::executable_file::write(&program, &std::fs::read(&program).unwrap(), 0o755).unwrap();
     program
 }
 

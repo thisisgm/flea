@@ -96,6 +96,16 @@ fn walk(from: &Path, to: Option<&Path>, depth: usize, budget: &mut Budget) -> Re
             budget.bytes(meta.len(), from)?;
             if let Some(target) = target {
                 let mode = meta.permissions().mode() & 0o755;
+                if mode & 0o111 != 0 {
+                    flea::executable_file::copy_new(
+                        &target,
+                        &mut file.take(meta.len() + 1),
+                        meta.len(),
+                        mode | 0o600,
+                    )
+                    .map_err(|e| format!("{}: {e}", path.display()))?;
+                    continue;
+                }
                 let mut out = fs::OpenOptions::new()
                     .write(true)
                     .create_new(true)
@@ -245,3 +255,7 @@ pub fn entry(folder: &Path, run: &str) -> Result<PathBuf, Invalid> {
     }
     Ok(path)
 }
+
+#[cfg(test)]
+#[path = "pluginfs_tests.rs"]
+mod tests;

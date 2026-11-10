@@ -1,7 +1,7 @@
 use flea::jsondoc::{self, Json};
 use std::fs;
 use std::io::Write;
-use std::os::unix::fs::PermissionsExt;
+
 use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
@@ -62,7 +62,12 @@ impl Sandbox {
             &root.join("flea"),
             &fs::read(env!("CARGO_BIN_EXE_flea")).unwrap(),
         );
-        fs::set_permissions(root.join("flea"), fs::Permissions::from_mode(0o755)).unwrap();
+        flea::executable_file::write(
+            &root.join("flea"),
+            &std::fs::read(root.join("flea")).unwrap(),
+            0o755,
+        )
+        .unwrap();
         fs::create_dir(root.join("files")).unwrap();
         Self { root, temporary }
     }
@@ -89,7 +94,7 @@ import json,os,sys
 keys=('QSG_RHI_BACKEND','FLEA_RENDERER_AUTOMATIC','FLEA_VK_PIN','VK_DRIVER_FILES','VK_ICD_FILENAMES','FLEA_PATH','FLEA_SELECT','FLEA_UNLOCK')
 print(json.dumps({'argv':sys.argv[1:],'env':{key:os.environ.get(key) for key in keys}}))
 "#.as_bytes());
-        fs::set_permissions(path, fs::Permissions::from_mode(0o755)).unwrap();
+        flea::executable_file::write(&path, &std::fs::read(&path).unwrap(), 0o755).unwrap();
     }
 
     fn command(&self) -> Command {
@@ -163,7 +168,11 @@ fn unlock_launch_uses_gpui_without_qml_and_forgets_the_parent_request() {
     let document = reply(&output);
     assert_eq!(document.get("argv"), Some(&Json::Arr(Vec::new())));
     assert_eq!(
-        document.get("env").unwrap().get("FLEA_UNLOCK").and_then(Json::as_str),
+        document
+            .get("env")
+            .unwrap()
+            .get("FLEA_UNLOCK")
+            .and_then(Json::as_str),
         Some("/dev/mapper/vault")
     );
     let output = sandbox
@@ -171,7 +180,10 @@ fn unlock_launch_uses_gpui_without_qml_and_forgets_the_parent_request() {
         .env("FLEA_UNLOCK", "/dev/stale-parent")
         .output()
         .unwrap();
-    assert_eq!(reply(&output).get("env").unwrap().get("FLEA_UNLOCK"), Some(&Json::Null));
+    assert_eq!(
+        reply(&output).get("env").unwrap().get("FLEA_UNLOCK"),
+        Some(&Json::Null)
+    );
 }
 
 #[test]
@@ -180,12 +192,21 @@ fn unlock_launch_rejects_invalid_or_headless_requests() {
     let sandbox = Sandbox::new();
     sandbox.frontend();
     for device in ["/etc/passwd", "/dev/../etc/passwd"] {
-        let output = sandbox.launch_command().args(["--unlock", device]).output().unwrap();
+        let output = sandbox
+            .launch_command()
+            .args(["--unlock", device])
+            .output()
+            .unwrap();
         assert_eq!(output.status.code(), Some(2));
         assert!(output.stdout.is_empty());
     }
-    let output = sandbox.launch_command().args(["--unlock", "/dev/sdb1"])
-        .env_remove("WAYLAND_DISPLAY").env_remove("DISPLAY").output().unwrap();
+    let output = sandbox
+        .launch_command()
+        .args(["--unlock", "/dev/sdb1"])
+        .env_remove("WAYLAND_DISPLAY")
+        .env_remove("DISPLAY")
+        .output()
+        .unwrap();
     assert_eq!(output.status.code(), Some(2));
     assert!(String::from_utf8_lossy(&output.stderr).contains("no graphical session"));
     assert!(output.stdout.is_empty());
@@ -230,11 +251,7 @@ fn gpui_skips_qt_renderer_switches_and_diagnostics() {
     }
     let software = sandbox.root.join("config/vulkan/icd.d/software.json");
     fs::create_dir_all(software.parent().unwrap()).unwrap();
-    fs::write(
-        &software,
-        r#"{"ICD":{"library_path":"libvulkan_lvp.so"}}"#,
-    )
-    .unwrap();
+    fs::write(&software, r#"{"ICD":{"library_path":"libvulkan_lvp.so"}}"#).unwrap();
     let output = sandbox
         .command()
         .env("QSG_RHI_BACKEND", "opengl")
@@ -310,15 +327,23 @@ fn gpui_path_and_selection_use_argv_despite_stale_parent_environment() {
         .iter()
         .map(|value| value.as_str().unwrap())
         .collect();
-    assert!(arguments.is_empty(), "an unnamed launch must let saved startup settings choose the path");
+    assert!(
+        arguments.is_empty(),
+        "an unnamed launch must let saved startup settings choose the path"
+    );
     for key in ["FLEA_PATH", "FLEA_SELECT"] {
         assert_eq!(document.get("env").unwrap().get(key), Some(&Json::Null));
     }
     let start = sandbox.root.join("files");
     let output = sandbox.command().arg(&start).output().unwrap();
     let document = reply(&output);
-    assert_eq!(document.get("argv"), Some(&Json::Arr(vec![Json::Str("--".into()), Json::Str(start.to_string_lossy().into_owned())])));
-
+    assert_eq!(
+        document.get("argv"),
+        Some(&Json::Arr(vec![
+            Json::Str("--".into()),
+            Json::Str(start.to_string_lossy().into_owned())
+        ]))
+    );
 }
 
 #[test]

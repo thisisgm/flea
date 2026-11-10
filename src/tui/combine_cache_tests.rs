@@ -4,7 +4,7 @@ use super::*;
 pub(super) fn stale_cache_revision(root: &Path) {
     use crate::backend::thumbcache::{self, Cache};
     use std::fs::{File, FileTimes};
-    use std::os::unix::fs::{MetadataExt, PermissionsExt};
+    use std::os::unix::fs::MetadataExt;
     use std::time::{Duration, UNIX_EPOCH};
 
     fixture(root);
@@ -81,7 +81,7 @@ exec /usr/bin/bwrap "$@"
 "#,
     )
     .unwrap();
-    std::fs::set_permissions(&wrapper, std::fs::Permissions::from_mode(0o755)).unwrap();
+    flea::executable_file::write(&wrapper, &std::fs::read(&wrapper).unwrap(), 0o755).unwrap();
     let graphics = preview(&mut m, &mut w, Protocol::Kitty);
     assert_current_pixels(root, &m, &graphics, "initial");
     let decodes = || {

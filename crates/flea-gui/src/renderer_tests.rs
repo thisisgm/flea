@@ -2,7 +2,7 @@ use super::{finish_opening, renderer};
 use flea::i18n::{I18n, Paths};
 use flea_gui::driver_notice::DriverNotice;
 use gpui::WindowingRequest;
-use std::os::unix::fs::PermissionsExt;
+
 use std::path::PathBuf;
 use std::process::Command;
 use std::time::Duration;
@@ -74,7 +74,7 @@ fn neither_renderer_exits_during_startup() {
         ),
     )
     .unwrap();
-    std::fs::set_permissions(&stand_in, std::fs::Permissions::from_mode(0o700)).unwrap();
+    flea::executable_file::write(&stand_in, &std::fs::read(&stand_in).unwrap(), 0o700).unwrap();
     command.env("PATH", format!("{}:/usr/bin:/bin", bin.display()));
     for (key, name) in [
         ("HOME", "home"),

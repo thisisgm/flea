@@ -36,12 +36,7 @@ pub(super) fn attach(
 ) -> PathBuf {
     let folder = root.join("config/flea/plugins").join(&plugin.manifest.id);
     std::fs::create_dir_all(&folder).unwrap();
-    std::fs::copy(
-        root.join(example).join("plugin.py"),
-        folder.join("plugin.py"),
-    )
-    .unwrap();
-    let script = std::fs::read_to_string(folder.join("plugin.py")).unwrap().replace(
+    let script = std::fs::read_to_string(root.join(example).join("plugin.py")).unwrap().replace(
         "        operation = request.get(\"op\")",
         "        operation = request.get(\"op\")\n        if operation in ('run', 'send') and os.path.exists('malformed-response'):\n            print('not-json', flush=True)\n            continue",
     );
@@ -51,7 +46,7 @@ pub(super) fn attach(
     } else {
         script
     };
-    std::fs::write(folder.join("plugin.py"), script).unwrap();
+    flea::executable_file::write(&folder.join("plugin.py"), script.as_bytes(), 0o755).unwrap();
     let source = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../examples/plugins")
         .join(example)

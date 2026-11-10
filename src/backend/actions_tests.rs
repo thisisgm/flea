@@ -77,8 +77,12 @@ fn scripts_list_sorted_by_name_with_the_stem_as_the_label() {
     )
     .unwrap();
     for name in ["ocr.sh", "convert-to-webp", "upload-to-s3.py"] {
-        std::fs::set_permissions(scripts.join(name), std::fs::Permissions::from_mode(0o755))
-            .unwrap();
+        flea::executable_file::write(
+            &scripts.join(name),
+            &std::fs::read(scripts.join(name)).unwrap(),
+            0o755,
+        )
+        .unwrap();
     }
     let (loaded, _) = load_from(root.path());
     let rows: Vec<(&str, &str)> = loaded
@@ -171,7 +175,7 @@ fn terminal_root_selection_answers_with_the_root_working_directory() {
         "#!/bin/sh\nprintf '%s\\n' \"$@\" > \"$FLEA_TEST_ROOT_TERMINAL/argv\"\n",
     )
     .unwrap();
-    std::fs::set_permissions(&launcher, std::fs::Permissions::from_mode(0o700)).unwrap();
+    flea::executable_file::write(&launcher, &std::fs::read(&launcher).unwrap(), 0o700).unwrap();
     std::env::set_var("PATH", &bin);
     let action = Action {
         id: "test".into(),
@@ -243,11 +247,10 @@ fn a_raw_name_inside_a_longer_argument_keeps_its_bytes() {
 fn a_raw_named_script_runs_on_a_raw_named_file() {
     use flea::bytename::ExactText as _;
     use std::os::unix::ffi::OsStrExt;
-    use std::os::unix::fs::PermissionsExt;
     let root = TestDir::new("raw-script");
     let script = root.path().join(std::ffi::OsStr::from_bytes(b"run\xff.sh"));
     std::fs::write(&script, "#!/bin/sh\nprintf '%s' \"$1\" > \"${0%/*}/out\"\n").unwrap();
-    std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+    flea::executable_file::write(&script, &std::fs::read(&script).unwrap(), 0o755).unwrap();
     let file = root
         .path()
         .join(std::ffi::OsStr::from_bytes(b"pick\xfe.txt"));

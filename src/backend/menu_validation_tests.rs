@@ -4,14 +4,13 @@ use std::time::Duration;
 
 #[test]
 fn uish_misc_hung_catalogue_keeps_all_menu_choices_answerable() {
-    use std::os::unix::fs::PermissionsExt;
     const CHILD: &str = "FLEA_TEST_UISH_CATALOGUE_ROOT";
     if std::env::var_os(CHILD).is_none() {
         let root = TestDir::new("uish-catalogue");
         let bin = root.dir("bin");
         let gio = bin.join("gio");
         std::fs::write(&gio, "#!/bin/sh\nprintf x > \"$FLEA_TEST_UISH_CATALOGUE_ROOT/entered\"\nexec /usr/bin/sleep 30\n").unwrap();
-        std::fs::set_permissions(&gio, std::fs::Permissions::from_mode(0o700)).unwrap();
+        flea::executable_file::write(&gio, &std::fs::read(&gio).unwrap(), 0o700).unwrap();
         std::fs::write(root.join("selected.txt"), "selected").unwrap();
         let result = std::process::Command::new(std::env::current_exe().unwrap())
             .args(["--exact", "backend::menu_actions::worker::tests::uish_misc_hung_catalogue_keeps_all_menu_choices_answerable", "--nocapture"])

@@ -263,3 +263,15 @@ fn plugin_runtime_builtin_shelf_requests_move_the_bar_each_way() {
     }
     assert_eq!(SYNCED.with(|s| s.borrow().clone()), [true, false], "the Shelf's own requests switch the bar");
 }
+
+#[test]
+fn plugin_ready_deadline_matches_the_published_contract() {
+    let contract = flea::jsondoc::parse(flea::plugin_runtime::protocol::CONTRACT).unwrap();
+    assert_eq!(
+        crate::backend::plugins::READY_DEADLINE.as_secs_f64(),
+        contract
+            .get("readyTimeoutSeconds")
+            .and_then(flea::jsondoc::Json::as_f64)
+            .unwrap(),
+    );
+}

@@ -1,7 +1,6 @@
 use std::{
     fs::{self, OpenOptions},
     io::{self, Write},
-    os::unix::fs::PermissionsExt,
     path::{Component, Path, PathBuf},
     process::{Command, Stdio},
 };
@@ -125,7 +124,7 @@ impl Fixture {
 
     pub(crate) fn executable(&self, path: &Path) {
         self.check(path).unwrap();
-        fs::set_permissions(path, fs::Permissions::from_mode(0o755)).unwrap();
+        flea::executable_file::write(path, &fs::read(path).unwrap(), 0o755).unwrap();
     }
 
     pub(crate) fn cleanup(self) {

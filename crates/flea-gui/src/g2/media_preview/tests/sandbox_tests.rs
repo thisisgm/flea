@@ -243,8 +243,7 @@ fn pv3_the_helper_inherits_no_descriptor_of_the_gui() {
         ));
     }
     std::fs::write(&probe, body).expect("probe");
-    std::fs::set_permissions(&probe, std::os::unix::fs::PermissionsExt::from_mode(0o755))
-        .expect("chmod");
+    flea::executable_file::write(&probe, &std::fs::read(&probe).unwrap(), 0o755).unwrap();
     let sandbox = Sandbox {
         executable: probe,
         bwrap: "bwrap".into(),

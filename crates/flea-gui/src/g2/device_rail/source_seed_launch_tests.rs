@@ -1,6 +1,6 @@
 //! A separate test process gives startup its own lsblk fixture without mutating another test's environment.
 use super::*;
-use std::os::unix::fs::PermissionsExt;
+
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -31,7 +31,7 @@ fn rail_seed_launch_drains_large_lsblk() {
     std::fs::write(&executable, format!(
         "#!/usr/bin/python3\nimport sys\nsys.stdout.write('{{\"blockdevices\":[],\"padding\":\"' + 'x' * {LARGE_OUTPUT} + '\"}}')\n"
     )).unwrap();
-    std::fs::set_permissions(&executable, std::fs::Permissions::from_mode(0o700)).unwrap();
+    flea::executable_file::write(&executable, &std::fs::read(&executable).unwrap(), 0o700).unwrap();
     let output = Command::new(std::env::current_exe().unwrap())
         .args(["--exact", HELPER, "--nocapture"])
         .env("FLEA_RAIL_SEED_CHECK", "large")

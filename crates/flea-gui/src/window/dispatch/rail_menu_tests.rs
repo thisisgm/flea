@@ -184,7 +184,6 @@ fn pb_rail_2_quiet_default_keeps_the_remove_only_favourite_menu(cx: &mut TestApp
 #[ignore = "BLOCKED-LEASE g2/rail_places: favourite inspection, see RESULT.md"]
 #[gpui::test]
 fn pb_rail_2_visible_favourite_is_inspected_and_carries_the_diagnostic(cx: &mut TestAppContext) {
-    use std::os::unix::fs::PermissionsExt;
     let root =
         std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.superpowers/PB-RAIL-2");
     std::fs::create_dir_all(&root).unwrap();
@@ -199,7 +198,7 @@ fn pb_rail_2_visible_favourite_is_inspected_and_carries_the_diagnostic(cx: &mut 
     std::fs::write(&exe, r###"#!/bin/sh
 printf '%s\n' '{"statuses":[{"index":0,"record":{"label":"Missing","path":"/gone"},"error":"Not mounted"}]}'
 "###).unwrap();
-    std::fs::set_permissions(&exe, std::fs::Permissions::from_mode(0o700)).unwrap();
+    flea::executable_file::write(&exe, &std::fs::read(&exe).unwrap(), 0o700).unwrap();
     let (shell, cx) = open(cx, true);
     cx.update(|window, cx| {
         shell.update(cx, |shell, cx| {

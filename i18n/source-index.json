@@ -128215,7 +128215,7 @@
     },
     {
       "excerpt": "Err(error) => panic!(\"fixture parent: {error}\"),",
-      "line": 38,
+      "line": 37,
       "literal": "fixture parent: {error}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/presentation/fixture.rs",
@@ -158860,7 +158860,7 @@
     },
     {
       "excerpt": "return Err(format!(\"{} changed while it was copied\", path.display()));",
-      "line": 109,
+      "line": 119,
       "literal": "{} changed while it was copied",
       "owner": "controller",
       "path": "src/backend/pluginfs.rs",
@@ -158869,7 +158869,7 @@
     },
     {
       "excerpt": "return Err(format!(\"{} is not a folder\", dir.display()));",
-      "line": 159,
+      "line": 169,
       "literal": "{} is not a folder",
       "owner": "controller",
       "path": "src/backend/pluginfs.rs",
@@ -158878,7 +158878,7 @@
     },
     {
       "excerpt": "return Err(\"timed out\".into());",
-      "line": 206,
+      "line": 216,
       "literal": "timed out",
       "owner": "controller",
       "path": "src/backend/pluginfs.rs",
@@ -158887,7 +158887,7 @@
     },
     {
       "excerpt": "\"{} is not inside {}\",",
-      "line": 225,
+      "line": 235,
       "literal": "{} is not inside {}",
       "owner": "controller",
       "path": "src/backend/pluginfs.rs",
@@ -164016,8 +164016,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "\"test temporary root {} must resolve to an absolute directory outside HOME\", std::env::temp_dir().display()));",
-      "line": 52,
+      "excerpt": "\"test temporary root {} must resolve to an absolute directory outside HOME\",",
+      "line": 54,
       "literal": "test temporary root {} must resolve to an absolute directory outside HOME",
       "owner": "controller",
       "path": "src/backend/testdir.rs",
@@ -164026,7 +164026,7 @@
     },
     {
       "excerpt": "let root = allowed_root(root).expect(\"test sandbox root must be absolute and outside HOME\");",
-      "line": 57,
+      "line": 62,
       "literal": "test sandbox root must be absolute and outside HOME",
       "owner": "controller",
       "path": "src/backend/testdir.rs",
@@ -164035,7 +164035,7 @@
     },
     {
       "excerpt": "std::fs::create_dir(&path).expect(\"test sandbox could not be created\");",
-      "line": 61,
+      "line": 66,
       "literal": "test sandbox could not be created",
       "owner": "controller",
       "path": "src/backend/testdir.rs",
@@ -164043,8 +164043,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "eprintln!(\"test sandbox initialization left a directory behind: {}: {error}\", path.display());",
-      "line": 65,
+      "excerpt": "\"test sandbox initialization left a directory behind: {}: {error}\",",
+      "line": 72,
       "literal": "test sandbox initialization left a directory behind: {}: {error}",
       "owner": "controller",
       "path": "src/backend/testdir.rs",
@@ -164052,8 +164052,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "}).expect(\"hold the newly created test sandbox\");",
-      "line": 68,
+      "excerpt": ".expect(\"hold the newly created test sandbox\");",
+      "line": 78,
       "literal": "hold the newly created test sandbox",
       "owner": "controller",
       "path": "src/backend/testdir.rs",
@@ -164062,7 +164062,7 @@
     },
     {
       "excerpt": "let mut marker = rollback.marker().expect(\"test sandbox marker\");",
-      "line": 69,
+      "line": 79,
       "literal": "test sandbox marker",
       "owner": "controller",
       "path": "src/backend/testdir.rs",
@@ -164070,8 +164070,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "marker.write_all(b\"flea test sandbox\\n\").expect(\"test sandbox marker\");",
-      "line": 70,
+      "excerpt": ".write_all(b\"flea test sandbox\\n\")",
+      "line": 81,
       "literal": "flea test sandbox\n",
       "owner": "controller",
       "path": "src/backend/testdir.rs",
@@ -164079,8 +164079,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "marker.write_all(b\"flea test sandbox\\n\").expect(\"test sandbox marker\");",
-      "line": 70,
+      "excerpt": ".expect(\"test sandbox marker\");",
+      "line": 82,
       "literal": "test sandbox marker",
       "owner": "controller",
       "path": "src/backend/testdir.rs",
@@ -164088,8 +164088,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "assert!(removable_in(&self.path, &self.root), \"test sandbox is not owned: {}\", self.path.display());",
-      "line": 80,
+      "excerpt": "\"test sandbox is not owned: {}\",",
+      "line": 94,
       "literal": "test sandbox is not owned: {}",
       "owner": "controller",
       "path": "src/backend/testdir.rs",
@@ -164097,8 +164097,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "\"test path escapes sandbox: {}\", path.display());",
-      "line": 84,
+      "excerpt": "\"test path escapes sandbox: {}\",",
+      "line": 104,
       "literal": "test path escapes sandbox: {}",
       "owner": "controller",
       "path": "src/backend/testdir.rs",
@@ -164107,7 +164107,7 @@
     },
     {
       "excerpt": "std::fs::write(&p, body).expect(\"test sandbox file\");",
-      "line": 94,
+      "line": 116,
       "literal": "test sandbox file",
       "owner": "controller",
       "path": "src/backend/testdir.rs",
@@ -164115,8 +164115,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": ".expect(\"test script writer\");",
-      "line": 114,
+      "excerpt": "flea::executable_file::write(&p, body, mode).expect(\"test script writer\");",
+      "line": 128,
       "literal": "test script writer",
       "owner": "controller",
       "path": "src/backend/testdir.rs",
@@ -164124,44 +164124,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "writer.stdin.take().expect(\"test script writer stdin\").write_all(body).expect(\"test script body\");",
-      "line": 115,
-      "literal": "test script writer stdin",
-      "owner": "controller",
-      "path": "src/backend/testdir.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "writer.stdin.take().expect(\"test script writer stdin\").write_all(body).expect(\"test script body\");",
-      "line": 115,
-      "literal": "test script body",
-      "owner": "controller",
-      "path": "src/backend/testdir.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "assert!(writer.wait().expect(\"test script writer exit\").success(), \"test script not written: {}\", p.display());",
-      "line": 116,
-      "literal": "test script writer exit",
-      "owner": "controller",
-      "path": "src/backend/testdir.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "assert!(writer.wait().expect(\"test script writer exit\").success(), \"test script not written: {}\", p.display());",
-      "line": 116,
-      "literal": "test script not written: {}",
-      "owner": "controller",
-      "path": "src/backend/testdir.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
       "excerpt": "std::fs::create_dir_all(&p).expect(\"test sandbox dir\");",
-      "line": 122,
+      "line": 134,
       "literal": "test sandbox dir",
       "owner": "controller",
       "path": "src/backend/testdir.rs",
@@ -164170,7 +164134,7 @@
     },
     {
       "excerpt": "let held = std::fs::File::open(path).expect(\"hold the file being replaced\");",
-      "line": 129,
+      "line": 141,
       "literal": "hold the file being replaced",
       "owner": "controller",
       "path": "src/backend/testdir.rs",
@@ -164179,7 +164143,7 @@
     },
     {
       "excerpt": "let old = held.metadata().expect(\"the file being replaced\");",
-      "line": 130,
+      "line": 142,
       "literal": "the file being replaced",
       "owner": "controller",
       "path": "src/backend/testdir.rs",
@@ -164188,7 +164152,7 @@
     },
     {
       "excerpt": "std::fs::remove_file(path).expect(\"test sandbox remove\");",
-      "line": 131,
+      "line": 143,
       "literal": "test sandbox remove",
       "owner": "controller",
       "path": "src/backend/testdir.rs",
@@ -164197,7 +164161,7 @@
     },
     {
       "excerpt": "std::fs::write(path, body).expect(\"test sandbox file\");",
-      "line": 132,
+      "line": 144,
       "literal": "test sandbox file",
       "owner": "controller",
       "path": "src/backend/testdir.rs",
@@ -164206,7 +164170,7 @@
     },
     {
       "excerpt": "let now = path.symlink_metadata().expect(\"the replacement\");",
-      "line": 133,
+      "line": 145,
       "literal": "the replacement",
       "owner": "controller",
       "path": "src/backend/testdir.rs",
@@ -164214,8 +164178,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "assert_ne!(old.ino(), now.ino(), \"the replacement must have a new inode: {}\", path.display());",
-      "line": 134,
+      "excerpt": "\"the replacement must have a new inode: {}\",",
+      "line": 149,
       "literal": "the replacement must have a new inode: {}",
       "owner": "controller",
       "path": "src/backend/testdir.rs",
@@ -164223,8 +164187,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "assert_eq!(std::fs::read_to_string(path).expect(\"read the replacement\"), body, \"the replacement must hold the new body: {}\", path.display());",
-      "line": 135,
+      "excerpt": "std::fs::read_to_string(path).expect(\"read the replacement\"),",
+      "line": 153,
       "literal": "read the replacement",
       "owner": "controller",
       "path": "src/backend/testdir.rs",
@@ -164232,8 +164196,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "assert_eq!(std::fs::read_to_string(path).expect(\"read the replacement\"), body, \"the replacement must hold the new body: {}\", path.display());",
-      "line": 135,
+      "excerpt": "\"the replacement must hold the new body: {}\",",
+      "line": 155,
       "literal": "the replacement must hold the new body: {}",
       "owner": "controller",
       "path": "src/backend/testdir.rs",
@@ -164241,8 +164205,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "eprintln!(\"flea test sandbox left behind: {}: {}\", self.path.display(), e);",
-      "line": 172,
+      "excerpt": "\"flea test sandbox left behind: {}: {}\",",
+      "line": 201,
       "literal": "flea test sandbox left behind: {}: {}",
       "owner": "controller",
       "path": "src/backend/testdir.rs",
@@ -164251,7 +164215,7 @@
     },
     {
       "excerpt": "child.status().expect(\"a sibling fork runs\");",
-      "line": 232,
+      "line": 271,
       "literal": "a sibling fork runs",
       "owner": "controller",
       "path": "src/backend/testdir.rs",
@@ -171977,6 +171941,24 @@
       "literal": "ENOTCONN and ETIMEDOUT share no sentence",
       "owner": "controller",
       "path": "src/error.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"executable writer exited with {status}: {}\",",
+      "line": 119,
+      "literal": "executable writer exited with {status}: {}",
+      "owner": "controller",
+      "path": "src/executable_file.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"file changed while it was copied\",",
+      "line": 128,
+      "literal": "file changed while it was copied",
+      "owner": "controller",
+      "path": "src/executable_file.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "core/backend"
     },
@@ -181940,6 +181922,15 @@
       "literal": "model source changed",
       "owner": "t11",
       "path": "src/tui/still.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "tui"
+    },
+    {
+      "excerpt": "\"the half-block decode did not finish\"",
+      "line": 32,
+      "literal": "the half-block decode did not finish",
+      "owner": "t11",
+      "path": "src/tui/still_fixture.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "tui"
     },
@@ -254976,7 +254967,7 @@
     "crates/flea-gui/src/presentation/epoch.rs": "905b0920fcc7905ce18ddb46f0c1c253b7868f70d24175e0842c86bbc5868397",
     "crates/flea-gui/src/presentation/face.rs": "917a13a173df62d9f82734657866f33fe19b32a95a70d7f57bcf08c8236cdffa",
     "crates/flea-gui/src/presentation/face_cache.rs": "887388dccd56b336da94812c3e4b9a572c5419311945fae941e28e5a8b3fdfbc",
-    "crates/flea-gui/src/presentation/fixture.rs": "f41ebc8068521304f6c6fb83004ed979dc495ebb88eaa073345578d789b9bfaa",
+    "crates/flea-gui/src/presentation/fixture.rs": "21fdc85553fc14eb0ac77d96d3246f97d28a0682e02ca6e956663cac02f5c2ab",
     "crates/flea-gui/src/presentation/fonts.rs": "b43e6b10780cb0217a2a48706c871cb248b38bc11bdd94d24de00d53a31c9914",
     "crates/flea-gui/src/presentation/frame_census.rs": "77369ccf1c65732d775aa809100ead6ca8f3190d7adc4303a46f891eb7b3d7b4",
     "crates/flea-gui/src/presentation/frame_gate.rs": "4298b5315f6f714d19a060cad63fe1c2371f3181139a09e433488168e607869d",
@@ -255529,7 +255520,7 @@
     "src/backend/picker.rs": "00455baf6ebbdf1a9975d7568a45d41572037436992c42e50ba41c5bb8d3dd56",
     "src/backend/picker_limits.rs": "16ce628a55875765c65dd784298b98971e9dc65d40bbc8b2cc746b188135c73a",
     "src/backend/pluginadd.rs": "e106150f714770640c6f2beedcd7827a15438b1b828bf0975ebbcaac925f14e3",
-    "src/backend/pluginfs.rs": "ac5dd79085918efba61a86f7d006691e9dda6183895c1740ea781dbc472c159f",
+    "src/backend/pluginfs.rs": "af655e9c43c170bb02d88f8098f599fbfcbbff8eedc37ad1970d03f2d5fff831",
     "src/backend/plugingit.rs": "98f962a158105c6421af0c4b5c9db17cfa4839263262b71f924e8066efcc78cb",
     "src/backend/pluginhost.rs": "cd1ebf938694c10ce0a2735814a0cbd7edb2b1fd2a5e0c5f3234b1e464a2a9bc",
     "src/backend/pluginops.rs": "cf778ddb846a762ae4cf1d1dc5e49d80c8c7e3904f3a1a5fd9b36b668656f625",
@@ -255633,7 +255624,7 @@
     "src/backend/tagsreq.rs": "329d62e22f13d570e584bef7a529206d69c7e853e6515e3513889798f73e3ffa",
     "src/backend/tagsreq_targets.rs": "afef6abae131fad40f63788e93f25d9ae1ce73f21201e7a868d759b9d09fcc6c",
     "src/backend/tagsundo.rs": "fd6f603c4bda3db30c14971f718b4cc82994b72831f44b2ae5fe1a5e3d106acf",
-    "src/backend/testdir.rs": "bdc9252604a815081ea839bbf0760a184b3bc6dfd284c94cb9273db5da97619e",
+    "src/backend/testdir.rs": "84983002e460d8f0fea818256a833b5a524b03eb55947d6518a58aac969e152e",
     "src/backend/testdir_init.rs": "290650a11658d2e7d97527d45469df7a355a9bbcd1974e5940cddf7cc40949ff",
     "src/backend/thumbargv.rs": "cf2726e90c306537ddeea34b4fc7fd3b46bbf95d126994c5d9587f4c64e9826a",
     "src/backend/thumbbind.rs": "dab8a3d759f03c76f45d084130e0becc58df571dd470a10bc474fc617e84aed1",
@@ -255718,6 +255709,7 @@
     "src/defaults.rs": "80730ed711b174817a2783dc46b380f6497287c3daae9870c1d225892a944990",
     "src/desktopid.rs": "a8246c7f15fb391d3b4515b659c5cee2b6ccfa5de48a5f2f129abb9569704986",
     "src/error.rs": "c534ef0d29af389eb3e2cae5a4672a82ca40a08dad1b9a9a69c1ce0d808f310d",
+    "src/executable_file.rs": "92379546e0afdab40d44e36b096bee37d897c3038881a479b6e2fc6a7f5b6d0a",
     "src/favourites.rs": "68a64fc0aa7146ef34366b883601d3bae42c70717c179d5ad704fed8ed2cbfd1",
     "src/figurebuild.rs": "8cf4b8eb4f1420ac07b9bbce3756c089140aab2905849e359b75f2e810f4aed3",
     "src/figurecache.rs": "f9de7409e009c84afb7d57d3124df7a8787a9579c1d3f2fe108a984f4bc894a7",
@@ -255766,7 +255758,7 @@
     "src/launchargs.rs": "40831d17fc2da1aa5043bb25fbba3049e759f734fcd6bb00eb202eef9c974a02",
     "src/launcher/mod.rs": "7068625788f93dff5a0e078350d5004caab8c78dd4c5fdcd0e9b118dd7fcaaa2",
     "src/launcher/prewarm.rs": "d8e90380d092979c9e8bcb13c9c1fbe8d1f4536cb06ae4dd5b657ca475782e33",
-    "src/lib.rs": "2c9264aed4f91a0612b6324171311ed95363dcf1790d2c712bf95ef7a76fd9a5",
+    "src/lib.rs": "347929709e67deb7445ffe1cde92d89b0aaa029b611a19effc5d8fb7851bfa23",
     "src/main.rs": "cda83a4424980d826048824ed435967f767a2728e8ec4cff748662c524b26e94",
     "src/oflags.rs": "f1ab53c13e4e3d754d5392ee37ea8b734bb7750de6a7c443caa6f121010b873b",
     "src/open.rs": "5c5443a6f03f87fa92e8459d8fe189ec4dd60630319bb179330de30860b09054",
@@ -255889,6 +255881,7 @@
     "src/tui/sort_actions.rs": "d7e3e2f06fa53fdc0f8ccc8d83fc6d5de6aabb7b9d4070d1498557c5469d06e6",
     "src/tui/stage.rs": "6bc1a61b139ffb8a408251234c0ed6763bec47bfb9ab922b4ba3d61b1706ec69",
     "src/tui/still.rs": "89ebaa9d4ac24915cfef8be0fc65c47f0131b60d06630a73f24b9a66d360efaa",
+    "src/tui/still_fixture.rs": "9437f1fc9bbae026a45208fcef8c8727dfab4099fcfc85b244e23701e9377238",
     "src/tui/syntax.rs": "3cb79da2ee7849c2eceafec9fe22a0f162ab7de7f3d2bae9bd7760034e2c6fb4",
     "src/tui/taildrop.rs": "bf225310d0e7f455c7ad4d583d2d1228ca696922ae0f05717b1e2ea65f480867",
     "src/tui/terminal.rs": "b855eda8fc1ab45104e380b3aae2d94d535cb0097cca491cdead241029531c89",
@@ -256834,13 +256827,13 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "6329338459af1ea65df073836ff7d4ae4b337ccf",
-  "source_sha": "6329338459af1ea65df073836ff7d4ae4b337ccf",
+  "source_ref_sha": "bd9059745586063536afefb97431bf0479b4439e",
+  "source_sha": "bd9059745586063536afefb97431bf0479b4439e",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1377,
-      "missing_literal_candidates": 5798,
-      "source_files": 879
+      "missing_literal_candidates": 5796,
+      "source_files": 880
     },
     "generated/tooling": {
       "keys_with_occurrences": 157,
@@ -256859,8 +256852,8 @@
     },
     "tui": {
       "keys_with_occurrences": 492,
-      "missing_literal_candidates": 385,
-      "source_files": 93
+      "missing_literal_candidates": 386,
+      "source_files": 94
     }
   },
   "unlocated_keys": [

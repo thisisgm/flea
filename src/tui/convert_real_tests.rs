@@ -249,7 +249,6 @@ pub fn safe(root: &Path, w: &mut Wire) {
     assert_eq!(std::fs::read(source).unwrap(), original);
 }
 fn controlled_converter(root: &Path) {
-    use std::os::unix::fs::PermissionsExt;
     assert!(root.is_absolute() && root.join(".flea-test-sandbox").is_file());
     let bwrap = root.join("bin/bwrap");
     let script = r#"#!/bin/sh
@@ -265,7 +264,7 @@ done
 exit 99
 "#;
     std::fs::write(&bwrap, script).unwrap();
-    std::fs::set_permissions(&bwrap, std::fs::Permissions::from_mode(0o755)).unwrap();
+    flea::executable_file::write(&bwrap, &std::fs::read(&bwrap).unwrap(), 0o755).unwrap();
     let magick = root.join("bin/magick");
     let script = r#"#!/bin/sh
 set -eu
@@ -276,5 +275,5 @@ printf '%s\n' "$$" > "$root/held"
 exec /bin/sleep 300
 "#;
     std::fs::write(&magick, script).unwrap();
-    std::fs::set_permissions(&magick, std::fs::Permissions::from_mode(0o755)).unwrap();
+    flea::executable_file::write(&magick, &std::fs::read(&magick).unwrap(), 0o755).unwrap();
 }

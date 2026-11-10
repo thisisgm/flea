@@ -1,7 +1,6 @@
 //! Review regressions drive actual key routing, painted cells and sandboxed decoders.
 use super::super::input::Key;
 use super::*;
-use std::os::unix::fs::PermissionsExt;
 
 pub(super) fn navigation(root: &Path) {
     fixture(root);
@@ -148,7 +147,7 @@ fi
 exit "$status"
 "#;
     std::fs::write(&wrapper, script).unwrap();
-    std::fs::set_permissions(wrapper, std::fs::Permissions::from_mode(0o755)).unwrap();
+    flea::executable_file::write(&wrapper, &std::fs::read(&wrapper).unwrap(), 0o755).unwrap();
     let graphics = preview(&mut m, &mut w, Protocol::Kitty);
     assert!(
         root.join("replaced").is_file(),
