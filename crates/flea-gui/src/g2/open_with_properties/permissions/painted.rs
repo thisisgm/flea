@@ -6,8 +6,7 @@ use crate::{
 };
 use flea::{i18n::I18n, jsondoc::Json};
 
-/// The shown notes by ink (error notes, the summary and foreground notes, muted notes such as Applying) and the
-/// focused field or check.
+/// The shown notes by ink (errors, summary and foreground, muted such as Applying) and the focused field or check.
 fn notes(blocks: &[Block], shown: &mut [Vec<String>; 3], focus: &mut Option<Stop>) {
     for block in blocks {
         match block {
