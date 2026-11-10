@@ -223,7 +223,7 @@ Item {
                     restColor: Theme.color.muted
                     inputLive: !root.picker.backendUnavailable && !root.picker.submitting
                     dropPane: null
-                    onChosen: function (path) { root.picker.open(path) }
+                    onChosen: function (path) { root.picker.open(path); root.picker.focusDefault() }
                     onEditRequested: if (!root.picker.recent) root.startEdit()
                 }
             }
