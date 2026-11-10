@@ -110,7 +110,7 @@ var ACTION_GLYPHS = {
   copy: "M9 8h12v13H9z M4 16V3h13",
   zip: "M2 3h20v5H2z M4 8v13h16V8 M10 12h4",
   send: "",
-  paths: "M4 22V2h10l6 6v14H4z M14 2v6h6 M8 9h2 M8 13h8 M8 17h8",
+  clipboard: "M9 2h6v4H9z M6 4H3v18h18V4h-3 M8 12h8 M8 16h5",
   pin: "M9 3h6v6l3 3v2H6v-2l3-3z M12 14v7",
   remove: "M6 6l12 12 M18 6 6 18"
 }

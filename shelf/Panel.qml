@@ -171,11 +171,8 @@ Panel {
     if (paths.length === 0) {
       return
     }
-    if (id === "paths") {
-      Quickshell.clipboardText = doing.yank(paths)
-      root.error = ""
-      root.result = Run.copiedPathsText(paths.length)
-      transient.restart()
+    if (id === "clipboard") {
+      doing.clip(paths)
       return
     }
     if (id === "zip") {

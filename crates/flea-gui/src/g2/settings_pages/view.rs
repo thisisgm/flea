@@ -15,7 +15,7 @@ use flea::ui_logic_settings_pages::{
 use gpui::{
     div, linear_color_stop, linear_gradient, prelude::*, px, Context, Div, EventEmitter,
     FocusHandle, KeyDownEvent, MouseButton, MouseUpEvent, Render, ScrollWheelEvent, SharedString,
-    Stateful, TextRun, Window,
+    Stateful, Window,
 };
 
 #[cfg(test)]
@@ -28,6 +28,7 @@ pub struct SettingsView {
     pub focus: FocusHandle,
     pub typeface: Typeface,
     pub probe: super::probe::Probe,
+    pub cover: super::cover::Cover,
     pub plugins: Option<gpui::Entity<crate::g2::plugin_settings::view::PluginsPane>>,
 }
 
@@ -40,6 +41,7 @@ impl SettingsView {
             editor: Editor::default(),
             plugins: None,
             probe: super::probe::Probe::default(),
+            cover: super::cover::Cover::default(),
             focus: cx.focus_handle(),
             typeface: Typeface::omarchy_default(),
         }
@@ -261,39 +263,6 @@ impl SettingsView {
         super::hint_bidi::hint_units_in(&text, rtl, room, |unit| self.unit_width(unit, window))
     }
 
-    /// The width a wrapping hint's units pack into: the pane less the hint's own inset.
-    fn hint_room(&self, row: &Row, width: f32) -> f32 {
-        let s = self.panel.scale;
-        let inset = if row.footer {
-            2. * s.of(PAD_X)
-        } else {
-            s.label_x() + s.of(PAD_X)
-        };
-        (width - inset).max(0.)
-    }
-
-    fn unit_width(&self, unit: &str, window: &Window) -> f32 {
-        let run = TextRun {
-            len: unit.len(),
-            font: self.typeface.font.clone(),
-            color: Default::default(),
-            background_color: None,
-            underline: None,
-            strikethrough: None,
-        };
-        f32::from(
-            window
-                .text_system()
-                .shape_line(
-                    SharedString::from(unit.to_owned()),
-                    self.typeface.caption,
-                    &[run],
-                    None,
-                )
-                .width,
-        )
-    }
-
     fn pane(&mut self, ink: &Ink, window: &Window, cx: &mut Context<Self>) -> Stateful<Div> {
         if self.panel.section == "plugins" && !self.panel.searching() {
             if let Some(view) = &self.plugins {
@@ -432,6 +401,11 @@ impl Render for SettingsView {
         let corner = self.panel.facts.corner;
         let left = ((f32::from(viewport.width) - card_w) / 2.).round();
         let top = ((f32::from(viewport.height) - card_h) / 2.).round();
+        let card = gpui::Bounds::new(
+            gpui::point(px(left), px(top)),
+            gpui::size(px(card_w), px(card_h)),
+        );
+        self.cover.set(Some(card));
         marks::ground(
             div()
                 .on_children_prepainted(self.probe.first_child("card"))

@@ -253,7 +253,7 @@ fn sol_i18n_fit_native_oem_catalogs_at_text_14() {
 
 #[test]
 fn sol_i18n_fit_german_about_caption_keeps_the_exact_board_string() {
-    use crate::g2::settings_pages::geometry::{pane_size, Scale, BOARD_CARD_H, CARD_W};
+    use crate::g2::settings_pages::geometry::{pane_size, Scale, BOARD_CARD_H, CARD_FLOOR};
     let root = Path::new(env!("CARGO_MANIFEST_DIR"))
         .ancestors()
         .nth(2)
@@ -272,7 +272,7 @@ fn sol_i18n_fit_german_about_caption_keeps_the_exact_board_string() {
             .unwrap()
     );
     let (text, face) = text_system(false);
-    let pane = pane_size(CARD_W, BOARD_CARD_H, Scale::at(&face)).0;
+    let pane = pane_size(CARD_FLOOR, BOARD_CARD_H, Scale::at(&face)).0;
     let slot = (pane * 0.5).round();
     assert!(width(&text, &face, caption, face.caption) <= slot);
     assert!(

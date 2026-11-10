@@ -293,3 +293,13 @@ case_text_menu_path() (
     click_at "$(ipc pathCentre)" right || return 1
     snap
 )
+# Board 0401-settings-wide-b-900: the 760px card at a 900px window; a chrome or rail mark under it is whole or absent.
+CASES+=("settings-card-900 900x700 surface:SettingsPanel")
+case_settings_card_900() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    launch list "$W" || return 1
+    key ,
+    wait_ipc settingsOpen true || return 1
+    sleep 0.5
+    snap
+)

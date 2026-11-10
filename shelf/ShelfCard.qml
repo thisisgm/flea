@@ -299,7 +299,7 @@ Item {
     { id: "copy", label: "Copy", key: "c" },
     { id: "zip", label: "Zip", key: "a" },
     { id: "send", label: "Send", key: "t" },
-    { id: "paths", label: "Paths", key: "y" },
+    { id: "clipboard", label: "Copy to Clipboard", key: "y" },
     { id: "pin", label: "Pin", key: "p" }
   ].filter(function (action) { return action.id !== "send" || root.sendable })
 

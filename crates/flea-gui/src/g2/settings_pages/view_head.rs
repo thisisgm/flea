@@ -236,6 +236,26 @@ impl SettingsView {
 }
 
 impl SettingsView {
+    /// The width a wrapping hint's units pack into: the pane less the hint's own inset.
+    pub(super) fn hint_room(&self, row: &Row, width: f32) -> f32 {
+        let s = self.panel.scale;
+        let inset = if row.footer {
+            2. * s.of(PAD_X)
+        } else {
+            s.label_x() + s.of(PAD_X)
+        };
+        (width - inset).max(0.)
+    }
+
+    pub(super) fn unit_width(&self, unit: &str, window: &Window) -> f32 {
+        shaped_in(
+            &self.typeface.font,
+            unit.to_owned(),
+            self.typeface.caption,
+            window,
+        )
+    }
+
     /// Plugin dialogs center over the Settings window and retain the plugin keyboard owner.
     pub(super) fn plugin_card(&self, cx: &gpui::App) -> Option<Div> {
         self.plugins

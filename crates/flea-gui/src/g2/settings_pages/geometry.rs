@@ -4,8 +4,10 @@ use flea::ui_logic_settings_pages::{
     visible, Text,
 };
 
-// At text size 14 the 630 by 684 card has a 27px head, 168px rail, 29px rail rows and 37px pane rows.
-pub const CARD_W: f32 = 630.;
+// At text size 14 the 760 by 684 card has a 27px head, 168px rail, 29px rail rows and 37px pane rows.
+pub const CARD_W: f32 = 760.;
+// 0401-settings-wide-b: the card narrows with a small window to v0.3.12's 630px, which it reaches at 646px.
+pub const CARD_FLOOR: f32 = 630.;
 pub const BOARD_CARD_H: f32 = 684.;
 pub const CLAMP: f32 = 8.;
 pub const BORDER: f32 = 1.;
@@ -244,13 +246,13 @@ pub fn fade_shown(heights: &[f32], scroll: f32, viewport: f32) -> bool {
     heights.iter().sum::<f32>() - scroll - viewport > BORDER
 }
 
-/// The card's size in a window: the board's width and as tall as View needs at the text size, both 8px clear of every edge.
+/// The card keeps the board's width floor and grows as tall as View needs, with 8px margins where the window has room.
 pub fn card_size(window_w: f32, window_h: f32, view_h: f32, s: Scale) -> (f32, f32) {
     let rail = s.of(RAIL_PAD_TOP) + 8. * s.rail_row + s.of(RAIL_PAD_TOP);
     let want = s.head + 2. * BORDER + rail.max(view_h + s.of(PANE_FOOT));
     let span = |want: f32, room: f32| want.ceil().min(room.floor()).max(0.);
     (
-        span(s.of(CARD_W), window_w - 2. * CLAMP),
+        span(s.of(CARD_W), window_w - 2. * CLAMP).max(s.of(CARD_FLOOR)),
         span(want, window_h - 2. * CLAMP),
     )
 }

@@ -214,6 +214,8 @@ pub struct RowsModel {
     pub drop_target: Option<(usize, gpui::SharedString)>,
     /// A Favorites row held by its reorder drag, SidebarRow.qml's DragHandler.
     pub reorder: Option<Reorder>,
+    /// The open Settings card, whose marks underneath are left undrawn.
+    pub cover: crate::g2::settings_pages::cover::Cover,
 }
 
 /// The held favourite: its rail row, its store index, the press and active heights, and where the bar lands.
