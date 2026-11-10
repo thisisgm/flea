@@ -38,7 +38,9 @@ pub enum Route {
 }
 
 pub fn route(action: &str) -> Route {
-    if action == "keymapSheet" || action == "pathBar" || action.starts_with("textSize") {
+    if matches!(action, "keymapSheet" | "pathBar" | "undo" | "redo")
+        || action.starts_with("textSize")
+    {
         Route::Direct
     } else if action == "settings" || action == "sidebar" || action.starts_with("tab") {
         Route::Act
@@ -67,12 +69,19 @@ pub fn menu_target(total: usize, marked: usize, cursor_marked: bool) -> MenuTarg
 
 /// The running preset's keys for the prompt: the arming key, and the key that trashes alone, empty when none is bound.
 pub fn prompt_keys(preset: &str) -> (String, String) {
-    (crate::keys::presentation::key_for(preset, "trash"), crate::keys::presentation::key_of(preset, "trash", "none"))
+    (
+        crate::keys::presentation::key_for(preset, "trash"),
+        crate::keys::presentation::key_of(preset, "trash", "none"),
+    )
 }
 
 /// Ops.targetIndices for the pair: the marked rows win over the cursor row.
 pub fn targets(selected: &[usize], cursor: usize) -> Vec<usize> {
-    if selected.is_empty() { vec![cursor] } else { selected.to_vec() }
+    if selected.is_empty() {
+        vec![cursor]
+    } else {
+        selected.to_vec()
+    }
 }
 
 /// The dd prompt: the arming key, and the key that acts alone when the preset binds one; the count picks it or them.
@@ -120,7 +129,9 @@ pub fn confirm_title(i18n: &I18n, snapshot: &Snapshot) -> String {
 }
 
 pub fn confirm_body(i18n: &I18n, snapshot: &Snapshot, scope: Scope) -> String {
-    let Some(count) = snapshot.count else { return String::new() };
+    let Some(count) = snapshot.count else {
+        return String::new();
+    };
     if snapshot.all {
         let size = i18n.locale().format_size(snapshot.bytes);
         return i18n.trn_args("trash.confirm.empty_body", count, &[&size]);
@@ -138,7 +149,11 @@ pub fn strip_count(i18n: &I18n, total: usize, bytes: Option<(u64, bool)>) -> Str
         None => count,
         Some((bytes, partial)) => {
             let size = i18n.locale().format_size(bytes);
-            let key = if partial { "trash.strip.size_partial" } else { "trash.strip.size" };
+            let key = if partial {
+                "trash.strip.size_partial"
+            } else {
+                "trash.strip.size"
+            };
             i18n.tr_args(key, &[&count, &size])
         }
     }
@@ -146,13 +161,20 @@ pub fn strip_count(i18n: &I18n, total: usize, bytes: Option<(u64, bool)>) -> Str
 
 /// "Restored 1 of 2 items", with the failures counted after it.
 pub fn done_line(i18n: &I18n, restored: bool, done: usize, failed: usize) -> String {
-    let key = if restored { "trash.done.restored" } else { "trash.done.deleted" };
+    let key = if restored {
+        "trash.done.restored"
+    } else {
+        "trash.done.deleted"
+    };
     let done_text = i18n.locale().format_count(done as i64);
     let line = i18n.trn_args(key, (done + failed) as i64, &[&done_text]);
     if failed == 0 {
         return line;
     }
-    i18n.tr_args("trash.done.failed", &[&line, &i18n.locale().format_count(failed as i64)])
+    i18n.tr_args(
+        "trash.done.failed",
+        &[&line, &i18n.locale().format_count(failed as i64)],
+    )
 }
 
 /// The finished line, adding how many entries the listing left out that Empty Trash could not remove.

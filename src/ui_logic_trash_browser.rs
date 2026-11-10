@@ -4,8 +4,8 @@ pub mod dropping;
 pub mod host;
 pub mod monitor;
 pub mod rows;
-pub mod thumbs;
 pub mod selection;
+pub mod thumbs;
 pub mod view;
 mod view_ops;
 mod view_reply;
@@ -23,6 +23,8 @@ mod parity_tests;
 mod recovery_tests;
 #[cfg(test)]
 mod thumbs_tests;
+#[cfg(test)]
+mod undo_tests;
 #[cfg(test)]
 mod view_tests;
 #[cfg(test)]

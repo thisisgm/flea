@@ -3836,7 +3836,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
-      "line": 142,
+      "line": 157,
       "path": "src/ui_logic_trash_browser/words.rs",
       "pattern": null,
       "possible_keys": [],
@@ -3846,7 +3846,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
-      "line": 151,
+      "line": 170,
       "path": "src/ui_logic_trash_browser/words.rs",
       "pattern": null,
       "possible_keys": [],
@@ -62645,7 +62645,7 @@
         },
         {
           "excerpt": "let count = i18n.trn(\"items.count\", total as i64);",
-          "line": 136,
+          "line": 147,
           "path": "src/ui_logic_trash_browser/words.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -63744,7 +63744,7 @@
         },
         {
           "excerpt": "self.locale.catalog.tr(\"jobs.delete.failed\")",
-          "line": 260,
+          "line": 261,
           "path": "crates/flea-gui/src/window/dispatch/fileops_wire.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -64104,7 +64104,7 @@
       "call_sites": [
         {
           "excerpt": "let line = catalog.tr_args(\"jobs.done.duplicated\", &[leaf]);",
-          "line": 90,
+          "line": 91,
           "path": "crates/flea-gui/src/window/dispatch/fileops_wire.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -104715,7 +104715,7 @@
       "call_sites": [
         {
           "excerpt": "(false, true) => i18n.tr_args(\"trash.arm.many\", &[arm_key, alone_key]),",
-          "line": 83,
+          "line": 92,
           "path": "src/ui_logic_trash_browser/words.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -104740,7 +104740,7 @@
       "call_sites": [
         {
           "excerpt": "(true, true) => i18n.tr_args(\"trash.arm.many_alone\", &[arm_key]),",
-          "line": 85,
+          "line": 94,
           "path": "src/ui_logic_trash_browser/words.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -104764,7 +104764,7 @@
       "call_sites": [
         {
           "excerpt": "(false, false) => i18n.tr_args(\"trash.arm.one\", &[arm_key, alone_key]),",
-          "line": 82,
+          "line": 91,
           "path": "src/ui_logic_trash_browser/words.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -104789,7 +104789,7 @@
       "call_sites": [
         {
           "excerpt": "(true, false) => i18n.tr_args(\"trash.arm.one_alone\", &[arm_key]),",
-          "line": 84,
+          "line": 93,
           "path": "src/ui_logic_trash_browser/words.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -104813,7 +104813,7 @@
       "call_sites": [
         {
           "excerpt": "i18n.tr_args(\"trash.arm.review\", &[arm_key, alone_key])",
-          "line": 94,
+          "line": 103,
           "path": "src/ui_logic_trash_browser/words.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -104838,7 +104838,7 @@
       "call_sites": [
         {
           "excerpt": "i18n.tr_args(\"trash.arm.review_alone\", &[arm_key])",
-          "line": 92,
+          "line": 101,
           "path": "src/ui_logic_trash_browser/words.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -105004,7 +105004,7 @@
       "call_sites": [
         {
           "excerpt": "Some(count) => i18n.trn(\"trash.confirm.delete_title\", count),",
-          "line": 118,
+          "line": 127,
           "path": "src/ui_logic_trash_browser/words.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -105037,7 +105037,7 @@
       "call_sites": [
         {
           "excerpt": "return i18n.trn_args(\"trash.confirm.empty_body\", count, &[&size]);",
-          "line": 126,
+          "line": 137,
           "path": "src/ui_logic_trash_browser/words.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -105093,7 +105093,7 @@
       "call_sites": [
         {
           "excerpt": "Some(_) if snapshot.all => i18n.tr(\"trash.confirm.empty_title\"),",
-          "line": 117,
+          "line": 126,
           "path": "src/ui_logic_trash_browser/words.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -105115,7 +105115,7 @@
       "call_sites": [
         {
           "excerpt": "Scope::Items => i18n.trn(\"trash.confirm.items_body\", count),",
-          "line": 130,
+          "line": 141,
           "path": "src/ui_logic_trash_browser/words.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -105146,7 +105146,7 @@
       "call_sites": [
         {
           "excerpt": "Scope::Trash => i18n.trn(\"trash.confirm.trash_body\", count),",
-          "line": 129,
+          "line": 140,
           "path": "src/ui_logic_trash_browser/words.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -105200,8 +105200,8 @@
     "trash.done.deleted": {
       "call_sites": [
         {
-          "excerpt": "let key = if restored { \"trash.done.restored\" } else { \"trash.done.deleted\" };",
-          "line": 149,
+          "excerpt": "\"trash.done.deleted\"",
+          "line": 167,
           "path": "src/ui_logic_trash_browser/words.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -105234,8 +105234,8 @@
     "trash.done.failed": {
       "call_sites": [
         {
-          "excerpt": "i18n.tr_args(\"trash.done.failed\", &[&line, &i18n.locale().format_count(failed as i64)])",
-          "line": 155,
+          "excerpt": "\"trash.done.failed\",",
+          "line": 175,
           "path": "src/ui_logic_trash_browser/words.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -105260,7 +105260,7 @@
       "call_sites": [
         {
           "excerpt": "i18n.tr_args(\"trash.done.failure\", &[name, error])",
-          "line": 168,
+          "line": 190,
           "path": "src/ui_logic_trash_browser/words.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -105285,7 +105285,7 @@
       "call_sites": [
         {
           "excerpt": "i18n.trn_args(\"trash.done.leftover\", leftover as i64, &[&line])",
-          "line": 163,
+          "line": 185,
           "path": "src/ui_logic_trash_browser/words.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -105318,8 +105318,8 @@
     "trash.done.restored": {
       "call_sites": [
         {
-          "excerpt": "let key = if restored { \"trash.done.restored\" } else { \"trash.done.deleted\" };",
-          "line": 149,
+          "excerpt": "\"trash.done.restored\"",
+          "line": 165,
           "path": "src/ui_logic_trash_browser/words.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -105943,7 +105943,7 @@
       "call_sites": [
         {
           "excerpt": "i18n.trn(\"trash.recovered\", count)",
-          "line": 172,
+          "line": 194,
           "path": "src/ui_logic_trash_browser/words.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -106019,8 +106019,8 @@
     "trash.strip.size": {
       "call_sites": [
         {
-          "excerpt": "let key = if partial { \"trash.strip.size_partial\" } else { \"trash.strip.size\" };",
-          "line": 141,
+          "excerpt": "\"trash.strip.size\"",
+          "line": 155,
           "path": "src/ui_logic_trash_browser/words.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -106044,8 +106044,8 @@
     "trash.strip.size_partial": {
       "call_sites": [
         {
-          "excerpt": "let key = if partial { \"trash.strip.size_partial\" } else { \"trash.strip.size\" };",
-          "line": 141,
+          "excerpt": "\"trash.strip.size_partial\"",
+          "line": 153,
           "path": "src/ui_logic_trash_browser/words.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -106099,14 +106099,14 @@
       "call_sites": [
         {
           "excerpt": ".unwrap_or_else(|| i18n.tr(\"trash.unknown\"))",
-          "line": 178,
+          "line": 200,
           "path": "src/ui_logic_trash_browser/words.rs",
           "surface": "core/backend",
           "usage": "translated-call"
         },
         {
           "excerpt": ".unwrap_or_else(|| i18n.tr(\"trash.unknown\"))",
-          "line": 185,
+          "line": 207,
           "path": "src/ui_logic_trash_browser/words.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -125515,7 +125515,7 @@
     },
     {
       "excerpt": ".unwrap_or(\"default\");",
-      "line": 111,
+      "line": 121,
       "literal": "default",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/trash_browser/join_input.rs",
@@ -125524,7 +125524,7 @@
     },
     {
       "excerpt": "&& matches!(input.key, \"Return\" | \"space\")",
-      "line": 119,
+      "line": 129,
       "literal": "Return",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/trash_browser/join_input.rs",
@@ -254359,7 +254359,7 @@
     "crates/flea-gui/src/g2/file_ops/cards.rs": "d6f8107835a8a53f9bdcf476cc4f6d2711985aac8faac3252f25918a6f2e3313",
     "crates/flea-gui/src/g2/file_ops/cards_copy.rs": "d3fcf427e9d7e852b545cea26525281a5e6ed2b0ca6557e15abe107ef6d967c0",
     "crates/flea-gui/src/g2/file_ops/cards_open.rs": "218a37f57766cec384eec1c569f29d988c2c405c75847c97838c923849bc8f7e",
-    "crates/flea-gui/src/g2/file_ops/chosen.rs": "d7ad8b6e2421fd0b5332a04a07bcd771cd97ddf61044ccd0d1c450dba5f65820",
+    "crates/flea-gui/src/g2/file_ops/chosen.rs": "100dba6d751a88ae0a72aad5451fd72fa1552674368bdeb8f91f6e62e2aca578",
     "crates/flea-gui/src/g2/file_ops/collision.rs": "c7cc27851e14b674d69ca21edb7ef6ab6f4da4e9157d524f719fee8157b3be61",
     "crates/flea-gui/src/g2/file_ops/copy_to.rs": "8c9aaeb478e0d94b8d8e286a47c1d13be66a6968f4a6d89a9cf2070cac741916",
     "crates/flea-gui/src/g2/file_ops/dialog.rs": "10fae35868914ebf06a7dff4c46dc9a1985b797bbaeeda44d72748eac295213a",
@@ -254745,15 +254745,15 @@
     "crates/flea-gui/src/g2/trash_browser/join.rs": "d97932dea78fb7d9c4bf13982e5c2635ef072a7a24dde9844946d62c56dad368",
     "crates/flea-gui/src/g2/trash_browser/join_atomic.rs": "f77214343965fc19fe619afbad8dabf9a4c33fb7a956677f593a057f33a0ec2d",
     "crates/flea-gui/src/g2/trash_browser/join_cards.rs": "c5bfbb277b9261f31de4f6d9661070f30d47b255203deb7fda3fc37d69e139be",
-    "crates/flea-gui/src/g2/trash_browser/join_input.rs": "8113e2581aa54b8295d43c540c2a77a309b161b884cba6da3d43c56ad6cab0e7",
+    "crates/flea-gui/src/g2/trash_browser/join_input.rs": "aea58bc2e9b46b1c8eb48d65d4558bc5f2d4bb838d6c4599031abe8002e91a29",
     "crates/flea-gui/src/g2/trash_browser/join_ipc.rs": "1cff192b0a254859b32f0a1acdb8546118ebe192d4685326536cb4ca300be0eb",
     "crates/flea-gui/src/g2/trash_browser/join_menu.rs": "45608c6d542cd516c900fe7dc165e5c087a55c8fadfb854be7cf1662cb5634fe",
     "crates/flea-gui/src/g2/trash_browser/join_sheet.rs": "53c39a92a173fa8a59f18010d65c89b6774e08ce9fcdff8d088fa5117879fdf6",
-    "crates/flea-gui/src/g2/trash_browser/join_status.rs": "0b2a2883852259888dff17b291910172f0760c5878df5c916c65bc6f884ab12d",
+    "crates/flea-gui/src/g2/trash_browser/join_status.rs": "db39279bdf04022918b3a4847c3d386d14fc9ad59a9317348e3397503c484c0b",
     "crates/flea-gui/src/g2/trash_browser/join_sweep.rs": "835d88d863130143919ea7d204ee8b01a52eb6b62dc845862e94129671d98dfe",
     "crates/flea-gui/src/g2/trash_browser/list.rs": "7009e93be7127eb7741194bfa3e37b434ffe523dbcad71fe3d520980b3f90736",
     "crates/flea-gui/src/g2/trash_browser/list_ground.rs": "169b556f8a30d7c77026e897c082bb058b0bb208cb259b4c936bd3edfe0494a4",
-    "crates/flea-gui/src/g2/trash_browser/mod.rs": "8d4ac78f7608c04fbec687865bd6c04282771db80eb559ef4f89d284db5908d5",
+    "crates/flea-gui/src/g2/trash_browser/mod.rs": "1c1039dbc340d082f31b92c75e5a4cb88e8e8a18b66fb91217b3df54033277cf",
     "crates/flea-gui/src/g2/trash_browser/monitor.rs": "66771c64700b1ff3479f94149b258b1516071a67d2e6cf2e04772d6819eac069",
     "crates/flea-gui/src/g2/trash_browser/paint_sync.rs": "da6e867e3437793a51b0c5313423cca53aaab929d4ef86687958930c4685728b",
     "crates/flea-gui/src/g2/trash_browser/pane.rs": "5ac14da374a6da613abda2b62baa17ff0b5e52a34f8423d27304b552a3fc3f66",
@@ -255086,7 +255086,7 @@
     "crates/flea-gui/src/window/dispatch/fileops.rs": "c3b62fff1a261a470f6ca378f1aae6565822641447341762ff12941a04d08d40",
     "crates/flea-gui/src/window/dispatch/fileops_created.rs": "a9865f340288542eec69309ddbeed2807b80f092cf7915ca9a7a5e4ae80a48e5",
     "crates/flea-gui/src/window/dispatch/fileops_route.rs": "09e2b7c09d7b795ac871d9aa63aa3b668aa334f27ac6ac30f2bac61da368b493",
-    "crates/flea-gui/src/window/dispatch/fileops_wire.rs": "0dbf8146e33ed37b62d9236f25c02ea40a6db23c555cc905758170bc670a4c29",
+    "crates/flea-gui/src/window/dispatch/fileops_wire.rs": "411c20129871d37551e9a72bb1ee8db447aaa10032c47f96d5286e90de895496",
     "crates/flea-gui/src/window/dispatch/gh_preview_fixture.rs": "85d025e506e9faa7a6b368611a43a103037d3b24d65cefdc5e1d643f20907d77",
     "crates/flea-gui/src/window/dispatch/gh_rename_proof_lane.rs": "79911dd08bf148c35622bf7370b9724c488736a37534d05c36513b5acbd094ec",
     "crates/flea-gui/src/window/dispatch/gm_prevsel_tests/focus.rs": "0d6d528a90a4b5f1d9718e6d688306ac1b9c17354434255f6e47a68ac499c537",
@@ -256238,7 +256238,7 @@
     "src/ui_logic_status_feedback/messages/line.rs": "97f7600464cc6081b230eda373e0f42d01667ed67b5b134719b610fa3ede65b4",
     "src/ui_logic_status_feedback/status.rs": "dd12aa31f1d81509bd0acfe03c54b9b213c62caf905f71b53118bb20033eb732",
     "src/ui_logic_status_feedback/unheld.rs": "f0aac6565334c7588a60e71c3c73520a5648a51d4be241ab43d74dbc39b026bf",
-    "src/ui_logic_trash_browser.rs": "ba57a1939bae3b8e6139fddfaa2baf81eae79aa6cc5a5ddd82680d0b7440ced0",
+    "src/ui_logic_trash_browser.rs": "51497664e9a26ac7934b921780465b4aca7cc9078ee736cc175999d9c90400dc",
     "src/ui_logic_trash_browser/dates.rs": "2947c888a56c2ce9e78a478eaac46e63e187d05527acde4fd0f34c93e6c0cf1e",
     "src/ui_logic_trash_browser/dropping.rs": "8f296a04dea4814263d67a742a3b0bb468215c8ed11878802f4870dcf52b7cad",
     "src/ui_logic_trash_browser/host.rs": "723614cc0ce4b90625a8e8bd590574fc9564980130ccaf2261a5db50f72d2f34",
@@ -256249,7 +256249,7 @@
     "src/ui_logic_trash_browser/view.rs": "64ccd76b259057921a177e49c2374ef26a655015d28c69aaa5c38987e49275a9",
     "src/ui_logic_trash_browser/view_ops.rs": "5216f5ae42adb1302b2426fe99e32340165c5c39d0e084fc6a65757d533d410c",
     "src/ui_logic_trash_browser/view_reply.rs": "94f237c5631f0d0202d33dab227f96bb52b402e139a0f811c171c1ffe3c4b848",
-    "src/ui_logic_trash_browser/words.rs": "6db504ee9859dfef3699586f6849d7f24f002f4449843ce3155ca455b8e4f818",
+    "src/ui_logic_trash_browser/words.rs": "48d27c893f0749b12116c45665887e86ece58795ae19f282afcb28354ea75be9",
     "src/uimigrate.rs": "b9058d067dc758d77f67a5204621c21863178071a3701d01b0874c0e72888203",
     "src/uiplugins.rs": "1086f1baed33a410a40c71f3c733b4c5496955da2afb5284d92a56609a74ec32",
     "src/uischema.rs": "17ded13e83919538fb33da0f6d79a9eec526306eeeaaddbe97378e0eb04cf521",
@@ -256834,8 +256834,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "053117489f396b575b0f252078d6944e2ee4fbf6",
-  "source_sha": "053117489f396b575b0f252078d6944e2ee4fbf6",
+  "source_ref_sha": "6329338459af1ea65df073836ff7d4ae4b337ccf",
+  "source_sha": "6329338459af1ea65df073836ff7d4ae4b337ccf",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1377,

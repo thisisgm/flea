@@ -8,6 +8,12 @@ impl Shell {
         let host = self.trash.as_ref().expect("mounted");
         let messages = host.messages.clone();
         let pane = host.pane.clone();
+        let shell = cx.entity().downgrade();
+        messages.update(cx, |line, _| {
+            line.on_undo(std::rc::Rc::new(move |window, cx| {
+                let _ = shell.update(cx, |shell, cx| shell.run_builtin_action("undo", window, cx));
+            }));
+        });
         let arm = cx.subscribe(&messages, move |_, _, _: &ArmLost, cx| {
             pane.update(cx, |pane, cx| {
                 pane.host.view.arm.clear();

@@ -10,6 +10,16 @@ use flea::keys::{self, Context as KeyContext, Match};
 use gpui::{Context, KeyDownEvent, Window};
 
 impl Shell {
+    /// A successful journal receipt re-reads Trash even when its watch sends no notice.
+    pub(crate) fn trash_journal_finished(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if let Some(pane) = self.trash.as_ref().map(|host| host.pane.clone()) {
+            pane.update(cx, |pane, cx| {
+                pane.heard(super::monitor::Heard::Changed, cx)
+            });
+            self.flush_trash(window, cx);
+        }
+    }
+
     /// The ring's list stop is the page covering the folder when one does: Trash takes a forward step on Empty Trash… and a backward one on its list.
     pub(crate) fn enter_list_stop(
         &mut self,
@@ -166,6 +176,9 @@ impl Shell {
         }
         if action == "windowNew" {
             self.new_window();
+            return;
+        }
+        if self.operation_action(action, cx) {
             return;
         }
         if self.settings_action(action, window, cx) {
