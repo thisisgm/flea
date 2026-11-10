@@ -19,6 +19,17 @@ search_root_expect() {
     return 1
 }
 
+# visibleRowName takes a row index, so the first painted result row is read as row 0.
+search_root_row() {
+    local want=$1 got="" attempt
+    for attempt in $(seq 1 "$search_root_attempts"); do
+        got=$(ipc visibleRowName 0) && [ "$got" = "$want" ] && return 0
+        sleep "$search_root_interval"
+    done
+    state_failure "search root wants first painted row $want, read $got"
+    return 1
+}
+
 case_search_root_folder() (
     [ "$VISUAL_FRONTEND" = gpui ] || return 77
     local original_home=$HOME input
@@ -41,7 +52,7 @@ case_search_root_folder() (
     key f || return 1
     key searchroot451 || return 1
     search_root_expect "$HOME/Here" 1 || return 1
-    wait_ipc visibleRowName searchroot451.txt || return 1
+    search_root_row searchroot451.txt || return 1
     key -k Escape || return 1
     wait_ipc searchMode '' || return 1
     key -M ctrl g -m ctrl || return 1
@@ -59,6 +70,6 @@ case_search_root_folder() (
     key f || return 1
     key searchroot451 || return 1
     search_root_expect "$HOME/Here" 1 || return 1
-    wait_ipc visibleRowName searchroot451.txt || return 1
+    search_root_row searchroot451.txt || return 1
     snap
 )
