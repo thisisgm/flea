@@ -62,10 +62,17 @@ pub fn status(m: &Model, theme: &Theme, columns: usize, elapsed: Duration) -> (S
     // A row this narrow still owes the field cells to show the name and the caret; past that the rule gives way.
     const FIELD_FLOOR: usize = 12;
     let label_width = text_width(&label);
-    let mut used = if label_width + 1 + FIELD_FLOOR <= columns {
+    // An error sentence must draw cells, or Enter reads as doing nothing on a narrow row: it takes
+    // room from the rule first, then from the field, and never past the field's floor.
+    let error_room = if editor.error.is_empty() {
+        0
+    } else {
+        text_width(&editor.error).min(columns / 2).max(1)
+    };
+    let mut used = if label_width + 1 + FIELD_FLOOR + error_room <= columns {
         label_width
     } else {
-        columns.saturating_sub(1 + FIELD_FLOOR)
+        columns.saturating_sub(1 + FIELD_FLOOR + error_room)
     };
     let mut out = format!(
         "{}{}",
@@ -78,7 +85,8 @@ pub fn status(m: &Model, theme: &Theme, columns: usize, elapsed: Duration) -> (S
     );
     used = used.min(columns);
     let ghost = if editor.kind == "path" { m.completion.strip_prefix(editor.value.as_str()).unwrap_or("") } else { "" };
-    let (field, cells, caret) = editor.field(ghost, columns.saturating_sub(used + 1), theme);
+    let (field, cells, caret) =
+        editor.field(ghost, columns.saturating_sub(used + 1 + error_room), theme);
     let caret = caret.filter(|_| cells > 0).map(|at| used + 1 + at);
     if cells > 0 {
         out.push_str(&format!("{base} {field}"));

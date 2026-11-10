@@ -380,3 +380,18 @@ fn undo_of_a_partly_failed_trash_lands_on_the_item_that_moved() {
     assert_eq!(m.restore_path.as_deref(), Some(std::path::Path::new("/fx/v/work/todo.md")), "the undo lands on the item that moved");
     finish(w, reader);
 }
+
+// tui-prompt-narrow-error: at 64 columns the rule gives way so the refused name's one sentence still draws.
+#[test]
+fn a_refused_name_still_says_its_sentence_on_a_64_column_row() {
+    let theme = Theme::from_text("");
+    let sandbox = TestDir::new("tui-prompt-narrow-error");
+    let path = sandbox.file("notes.txt", "kept");
+    let mut m = frame_tests::model();
+    let mut editor = Editor::rename("notes.txt".into(), path, false).unwrap();
+    editor.error = "A name cannot contain /.".into();
+    m.editor = Some(editor);
+    let (row, _caret) = status(&m, &theme, 64, Duration::ZERO);
+    assert!(row.contains("cannot"), "the sentence draws: {row:?}");
+    assert_eq!(inks(&row).len(), 64, "and the row is exactly 64 cells");
+}
