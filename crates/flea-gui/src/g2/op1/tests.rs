@@ -275,11 +275,26 @@ fn an_unchanged_job_line_asks_for_no_redraw() {
 fn a_queued_move_takes_the_card_after_the_first_says_it_finished() {
     let cat = catalog();
     let mut ops = Operations::new("default");
-    ops.line(&cat, r#"{"t":"transferstarted","id":7,"n":1,"moving":true}"#, 0);
-    ops.line(&cat, r#"{"t":"transferstarted","id":8,"n":2,"moving":true}"#, 0);
+    ops.line(
+        &cat,
+        r#"{"t":"transferstarted","id":7,"n":1,"moving":true}"#,
+        0,
+    );
+    ops.line(
+        &cat,
+        r#"{"t":"transferstarted","id":8,"n":2,"moving":true}"#,
+        0,
+    );
     assert!(ops.sticky.starts_with("Moving 1 of 1"), "{}", ops.sticky);
-    ops.line(&cat, r#"{"t":"transferdone","id":7,"ok":1,"failed":0,"skipped":0}"#, 0);
-    assert!(ops.said.iter().any(|said| said.text.starts_with("Moved ") && !said.error));
+    ops.line(
+        &cat,
+        r#"{"t":"transferdone","id":7,"ok":1,"failed":0,"skipped":0}"#,
+        0,
+    );
+    assert!(ops
+        .said
+        .iter()
+        .any(|said| said.text.starts_with("Moved ") && !said.error));
     assert_eq!(ops.wire.transfer.id, 8);
     assert!(ops.sticky.starts_with("Moving 1 of 2"), "{}", ops.sticky);
 }
@@ -290,13 +305,20 @@ fn a_cancelled_extract_hands_the_card_over_still_cancellable() {
     let cat = catalog();
     let mut ops = Operations::new("default");
     ops.line(&cat, r#"{"t":"extractstarted","id":3}"#, 0);
-    ops.line(&cat, r#"{"t":"transferstarted","id":4,"n":1,"moving":true}"#, 0);
+    ops.line(
+        &cat,
+        r#"{"t":"transferstarted","id":4,"n":1,"moving":true}"#,
+        0,
+    );
     ops.cancel_transfer();
     assert!(ops.extract_done(&cat, 3));
     assert!(ops.wire.transfer.id == 4 && !ops.transfer_cancelling);
     ops.outbox.clear();
     ops.cancel_transfer();
-    assert_eq!(ops.outbox, vec![r#"{"c":"transfercancel","id":4}"#.to_string()]);
+    assert_eq!(
+        ops.outbox,
+        vec![r#"{"c":"transfercancel","id":4}"#.to_string()]
+    );
 }
 
 // A queued copy running beside a move names its first failure as an error, in its own verb.
@@ -304,10 +326,26 @@ fn a_cancelled_extract_hands_the_card_over_still_cancellable() {
 fn a_queued_copys_failure_is_said_at_once_as_a_copy() {
     let cat = catalog();
     let mut ops = Operations::new("default");
-    ops.line(&cat, r#"{"t":"transferstarted","id":5,"n":1,"moving":true}"#, 0);
-    ops.line(&cat, r#"{"t":"transferstarted","id":6,"n":2,"moving":false}"#, 0);
-    ops.line(&cat, r#"{"t":"transferitem","id":6,"index":0,"name":"a.txt","ok":false,"err":"denied"}"#, 0);
+    ops.line(
+        &cat,
+        r#"{"t":"transferstarted","id":5,"n":1,"moving":true}"#,
+        0,
+    );
+    ops.line(
+        &cat,
+        r#"{"t":"transferstarted","id":6,"n":2,"moving":false}"#,
+        0,
+    );
+    ops.line(
+        &cat,
+        r#"{"t":"transferitem","id":6,"index":0,"name":"a.txt","ok":false,"err":"denied"}"#,
+        0,
+    );
     let said = ops.said.last().expect("the failure is said");
-    assert!(said.error && said.text == "Copy failed: a.txt · denied", "{}", said.text);
+    assert!(
+        said.error && said.text == "Copy failed: a.txt · denied",
+        "{}",
+        said.text
+    );
     assert_eq!(ops.wire.transfer.id, 5);
 }

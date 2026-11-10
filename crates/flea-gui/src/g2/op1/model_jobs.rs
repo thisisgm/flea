@@ -126,7 +126,13 @@ impl Operations {
     // An extract ends on its archive line, never a transfer reply, so that line ends the card and lets the held job row land.
     pub fn extract_done(&mut self, catalog: &I18n, id: u64) -> bool {
         let presented = self.wire.transfer.id == id;
-        if !self.wire.queued.iter().chain([&self.wire.transfer]).any(|t| t.extract && t.id == id) {
+        if !self
+            .wire
+            .queued
+            .iter()
+            .chain([&self.wire.transfer])
+            .any(|t| t.extract && t.id == id)
+        {
             return false;
         }
         self.wire.finish(id);

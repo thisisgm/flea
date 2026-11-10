@@ -103,7 +103,11 @@ fn s4_second_paste_queues_behind_the_running_copy(cx: &mut TestAppContext) {
         r#"{"t":"transferdone","id":7,"ok":1,"failed":0,"skipped":0}"#,
     );
     assert_eq!(presented(&shell, cx), (8, true));
-    assert!(status(&shell, cx).starts_with("Copied "), "{}", status(&shell, cx));
+    assert!(
+        status(&shell, cx).starts_with("Copied "),
+        "{}",
+        status(&shell, cx)
+    );
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 

@@ -346,19 +346,11 @@ impl Wire {
             let Some(t) = self.queued_mut(id) else {
                 return Fold::Nothing;
             };
-            let first = !ok && error != "cancelled" && !t.failure_reported;
-            *t = Transfer {
-                failure_reported: t.failure_reported || first,
-                ..t.item_done(index, name)
-            };
-            return if first {
-                Fold::Failed {
-                    name: name.into(),
-                    error: error.into(),
-                }
-            } else {
-                Fold::Nothing
-            };
+            if ok {
+                *t = t.item_done(index, name);
+                return Fold::Nothing;
+            }
+            return fail_item(t, index, name, error).unwrap_or(Fold::Nothing);
         }
         if ok {
             self.held.push(Held {
@@ -369,19 +361,7 @@ impl Wire {
             return Fold::Nothing;
         }
         self.flush();
-        let first = error != "cancelled" && !self.transfer.failure_reported;
-        self.transfer = Transfer {
-            failure_reported: self.transfer.failure_reported || first,
-            ..self.transfer.item_done(index, name)
-        };
-        if first {
-            Fold::Failed {
-                name: name.into(),
-                error: error.into(),
-            }
-        } else {
-            Fold::Drawn
-        }
+        fail_item(&mut self.transfer, index, name, error).unwrap_or(Fold::Drawn)
     }
 
     // The beat's own tick: the held lines land once BEAT_MS has passed since the first of them.
@@ -400,4 +380,17 @@ impl Wire {
         let error = failed > 1 || failed > 0 && !transfer.failure_reported;
         Fold::Done { transfer, error }
     }
+}
+
+// A failed item counts whole; only a transfer's first real failure names itself.
+fn fail_item(t: &mut Transfer, index: u64, name: &str, error: &str) -> Option<Fold> {
+    let first = error != "cancelled" && !t.failure_reported;
+    *t = Transfer {
+        failure_reported: t.failure_reported || first,
+        ..t.item_done(index, name)
+    };
+    first.then(|| Fold::Failed {
+        name: name.into(),
+        error: error.into(),
+    })
 }
