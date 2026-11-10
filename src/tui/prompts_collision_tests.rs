@@ -1,5 +1,41 @@
 use super::*;
 
+#[test]
+fn answering_without_a_pending_paste_has_no_effects() {
+    let (mut w, reader) = echo_wire();
+    let mut m = frame_tests::model();
+    for key in [Key::character('r', ""), Key::named("Escape", "")] {
+        answer(&mut m, &key, &mut w).unwrap();
+        assert!(m.prompts.question.is_none());
+    }
+    assert!(drain(&mut w).is_empty());
+    finish(w, reader);
+}
+
+#[test]
+fn a_stale_collision_leaves_the_pending_paste_available() {
+    let (mut w, reader) = echo_wire();
+    let mut m = frame_tests::model();
+    m.clipboard = vec!["/elsewhere/notes.txt".into()];
+    press(&mut m, &mut w, Key::character('p', ""));
+    let id = count(requests(&drain(&mut w), "collisions")[0], "id");
+    event(
+        &mut m,
+        &mut w,
+        &format!(r#"{{"t":"collisions","id":{},"total":0}}"#, id + 1),
+    );
+    assert_eq!(m.prompts.asked.as_ref().map(|paste| paste.id), Some(id));
+    assert!(drain(&mut w).is_empty());
+    event(
+        &mut m,
+        &mut w,
+        &format!(r#"{{"t":"collisions","id":{id},"total":0}}"#),
+    );
+    assert_eq!(requests(&drain(&mut w), "transfer").len(), 1);
+    assert!(m.prompts.asked.is_none());
+    finish(w, reader);
+}
+
 // tui-collision: the cursor waits on the name the paste meets; a listing left before the answer keeps its cursor.
 #[test]
 fn a_collision_puts_the_cursor_on_the_name_the_paste_meets() {

@@ -41,9 +41,16 @@ struct Level {
     fd: Option<File>,
 }
 
+struct Held {
+    name: OsString,
+    id: Identity,
+    fd: File,
+}
+
 // A path of directories below a held base, each entered by name with O_NOFOLLOW and O_DIRECTORY.
 pub(crate) struct Chain {
     base: File,
+    top: Option<Held>,
     levels: Vec<Level>,
 }
 
@@ -51,20 +58,19 @@ impl Chain {
     pub(crate) fn new(base: File) -> Chain {
         Chain {
             base,
+            top: None,
             levels: Vec::new(),
         }
     }
 
     #[cfg(test)]
     pub(crate) fn depth(&self) -> usize {
-        self.levels.len()
+        self.levels.len() + usize::from(self.top.is_some())
     }
 
     // The top level always holds its descriptor: push opens it and pop reopens it before anything reads it.
     pub(crate) fn top(&self) -> &File {
-        self.levels.last().map_or(&self.base, |level| {
-            level.fd.as_ref().expect("the top level is held")
-        })
+        self.top.as_ref().map_or(&self.base, |held| &held.fd)
     }
 
     // The folder the chain started from, for the work that follows the walk.
@@ -73,18 +79,25 @@ impl Chain {
     }
 
     pub(crate) fn top_name(&self) -> Option<&OsStr> {
-        self.levels.last().map(|level| level.name.as_os_str())
+        self.top.as_ref().map(|held| held.name.as_os_str())
     }
 
     // Takes a directory already opened below the top; answers the level whose descriptor was let go, if any.
     pub(crate) fn push_open(&mut self, name: &OsStr, dir: File) -> io::Result<Option<usize>> {
         let id = identity_of(&dir)?;
-        self.levels.push(Level {
+        let held = Held {
             name: name.to_os_string(),
             id,
-            fd: Some(dir),
-        });
-        let Some(shallow) = self.levels.len().checked_sub(HELD_LEVELS + 1) else {
+            fd: dir,
+        };
+        if let Some(parent) = self.top.replace(held) {
+            self.levels.push(Level {
+                name: parent.name,
+                id: parent.id,
+                fd: Some(parent.fd),
+            });
+        }
+        let Some(shallow) = self.levels.len().checked_sub(HELD_LEVELS) else {
             return Ok(None);
         };
         Ok(self.levels[shallow].fd.take().map(|_| shallow))
@@ -98,27 +111,39 @@ impl Chain {
 
     // Leaves the top level and hands back its descriptor; a parent that let its own go is reopened through "..".
     pub(crate) fn pop(&mut self) -> io::Result<File> {
-        let left = self.levels.pop().expect("pop below the base");
-        let child = left.fd.expect("the top level is held");
-        let Some(parent) = self.levels.last_mut() else {
-            return Ok(child);
+        let no_child = || io::Error::new(io::ErrorKind::InvalidInput, "the chain is at its base");
+        let child = self.top.as_ref().ok_or_else(no_child)?;
+        let parent_fd = match self.levels.last_mut() {
+            Some(parent) => Some(match parent.fd.take() {
+                Some(dir) => dir,
+                None => {
+                    let dir = open_dir(&held_path(&child.fd).join(".."))?;
+                    if identity_of(&dir)? != parent.id {
+                        return Err(moved_meanwhile());
+                    }
+                    dir
+                }
+            }),
+            None => None,
         };
-        if parent.fd.is_none() {
-            let dir = open_dir(&held_path(&child).join(".."))?;
-            if identity_of(&dir)? != parent.id {
-                return Err(moved_meanwhile());
-            }
-            parent.fd = Some(dir);
-        }
-        Ok(child)
+        let parent = self.levels.pop().zip(parent_fd).map(|(level, fd)| Held {
+            name: level.name,
+            id: level.id,
+            fd,
+        });
+        std::mem::replace(&mut self.top, parent)
+            .map(|held| held.fd)
+            .ok_or_else(no_child)
     }
 
     #[cfg(test)]
     pub(crate) fn held(&self) -> usize {
-        self.levels
-            .iter()
-            .filter(|level| level.fd.is_some())
-            .count()
+        usize::from(self.top.is_some())
+            + self
+                .levels
+                .iter()
+                .filter(|level| level.fd.is_some())
+                .count()
     }
 }
 
@@ -263,6 +288,10 @@ pub(crate) fn open_long(path: &Path) -> io::Result<File> {
 fn within(held: Option<&File>, stretch: &Path) -> PathBuf {
     held.map_or_else(|| stretch.to_path_buf(), |dir| held_path(dir).join(stretch))
 }
+
+#[cfg(test)]
+#[path = "deeptree_tests.rs"]
+mod tests;
 
 #[cfg(test)]
 #[test]

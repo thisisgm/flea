@@ -84,7 +84,9 @@ impl Mounts {
         effects
     }
     pub(super) fn opened(&mut self, path: &str) -> Vec<Effect> {
-        let f = self.flight.take().unwrap();
+        let Some(f) = self.flight.take() else {
+            return Vec::new();
+        };
         let mut effects = completion(&f.request, None);
         effects.push(Effect::Open {
             path: path.into(),

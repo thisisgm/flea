@@ -3,6 +3,13 @@ use super::{
     mount::{Effect, Mounts, Phase, Request},
     relay,
 };
+
+#[test]
+fn opening_without_a_mount_flight_has_no_effects() {
+    let mut mounts = Mounts::default();
+    assert!(mounts.opened("/fixture/served").is_empty());
+    assert!(!mounts.busy());
+}
 use crate::g2::device_rail::{process::Outcome, secret::Secret};
 use flea::ui_logic_network_shares::{browser::Browser, form::Form, networkaddress};
 

@@ -23065,15 +23065,15 @@
     "collide.keys": {
       "call_sites": [
         {
-          "excerpt": "let keys_width = columns.saturating_sub(head_width + 2).min(text_width(&i18n.tr(\"collide.keys\")));",
-          "line": 112,
+          "excerpt": ".min(text_width(&i18n.tr(\"collide.keys\")));",
+          "line": 184,
           "path": "src/tui/prompts/paste_question.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
-          "excerpt": "ellipsis(&i18n.tr(\"collide.keys\"), keys_width), \" \".repeat(columns - head_width - gap - keys_width))",
-          "line": 116,
+          "excerpt": "ellipsis(&i18n.tr(\"collide.keys\"), keys_width),",
+          "line": 193,
           "path": "src/tui/prompts/paste_question.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -23094,8 +23094,8 @@
     "collide.many": {
       "call_sites": [
         {
-          "excerpt": "else { i18n.trn_args(\"collide.many\", question.total as i64, &[&folder]) };",
-          "line": 110,
+          "excerpt": "i18n.trn_args(\"collide.many\", question.total as i64, &[&folder])",
+          "line": 179,
           "path": "src/tui/prompts/paste_question.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -23128,8 +23128,8 @@
     "collide.one": {
       "call_sites": [
         {
-          "excerpt": "let head = if question.total == 1 { i18n.tr_args(\"collide.one\", &[&flea::bytename::display(&question.name), &folder]) }",
-          "line": 109,
+          "excerpt": "\"collide.one\",",
+          "line": 175,
           "path": "src/tui/prompts/paste_question.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -82037,8 +82037,8 @@
           "usage": "key-declaration"
         },
         {
-          "excerpt": "if m.clipboard.is_empty() { m.say_key(\"paste.nothing\"); return Ok(()); }",
-          "line": 10,
+          "excerpt": "m.say_key(\"paste.nothing\");",
+          "line": 17,
           "path": "src/tui/prompts/paste_question.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -82059,8 +82059,8 @@
     "paste.waiting": {
       "call_sites": [
         {
-          "excerpt": "if m.prompts.asked.is_some() || m.prompts.question.is_some() { m.fail_key(\"paste.waiting\"); return Ok(()); }",
-          "line": 11,
+          "excerpt": "m.fail_key(\"paste.waiting\");",
+          "line": 21,
           "path": "src/tui/prompts/paste_question.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -107434,7 +107434,7 @@
         },
         {
           "excerpt": "m.fail_key(\"tui.editor.selected_item_changed_reopen_rename\");",
-          "line": 16,
+          "line": 43,
           "path": "src/tui/prompts/paste_question.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -139831,18 +139831,9 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": ".expect(\"the walk holds its top folder\")",
-      "line": 167,
-      "literal": "the walk holds its top folder",
-      "owner": "controller",
-      "path": "src/backend/copytree.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "let level = self.levels.pop().expect(\"a level below the top\");",
-      "line": 267,
-      "literal": "a level below the top",
+      "excerpt": "\"the copy walk has no parent folder\",",
+      "line": 275,
+      "literal": "the copy walk has no parent folder",
       "owner": "controller",
       "path": "src/backend/copytree.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -139957,27 +139948,9 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "level.fd.as_ref().expect(\"the top level is held\")",
-      "line": 66,
-      "literal": "the top level is held",
-      "owner": "controller",
-      "path": "src/backend/deeptree.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "let left = self.levels.pop().expect(\"pop below the base\");",
-      "line": 101,
-      "literal": "pop below the base",
-      "owner": "controller",
-      "path": "src/backend/deeptree.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "let child = left.fd.expect(\"the top level is held\");",
-      "line": 102,
-      "literal": "the top level is held",
+      "excerpt": "let no_child = || io::Error::new(io::ErrorKind::InvalidInput, \"the chain is at its base\");",
+      "line": 114,
+      "literal": "the chain is at its base",
       "owner": "controller",
       "path": "src/backend/deeptree.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -181331,7 +181304,7 @@
     },
     {
       "excerpt": "(\"c\", word(if linked { \"link\" } else { \"transfer\" })),",
-      "line": 74,
+      "line": 124,
       "literal": "link",
       "owner": "t11",
       "path": "src/tui/prompts/paste_question.rs",
@@ -181339,8 +181312,8 @@
       "surface": "tui"
     },
     {
-      "excerpt": "let cancel = key.name == \"Escape\" || (m.preset == \"yazi\" && key.mods == \"ctrl\" && matches!(key.name.as_str(), \"C\" | \"BracketLeft\"));",
-      "line": 94,
+      "excerpt": "let cancel = key.name == \"Escape\"",
+      "line": 144,
       "literal": "Escape",
       "owner": "t11",
       "path": "src/tui/prompts/paste_question.rs",
@@ -181349,7 +181322,7 @@
     },
     {
       "excerpt": "(\"Return\" | \"Enter\", _, \"\") | (_, \"b\", \"\") => \"keep\",",
-      "line": 97,
+      "line": 150,
       "literal": "Return",
       "owner": "t11",
       "path": "src/tui/prompts/paste_question.rs",
@@ -181358,7 +181331,7 @@
     },
     {
       "excerpt": "(\"Return\" | \"Enter\", _, \"\") | (_, \"b\", \"\") => \"keep\",",
-      "line": 97,
+      "line": 150,
       "literal": "Enter",
       "owner": "t11",
       "path": "src/tui/prompts/paste_question.rs",
@@ -253972,7 +253945,7 @@
     "crates/flea-gui/src/g2/network_shares/mount.rs": "0af2a1be927184591ffef187d50a216294f62586f04f0d48e0b214fd98b516a6",
     "crates/flea-gui/src/g2/network_shares/mount_bridge.rs": "f7b33e230a7aa50ba79678abd0796d815a578b408c9f16f22d715f10c4f58dc1",
     "crates/flea-gui/src/g2/network_shares/mount_lifetime.rs": "8a5ee0464141f93d05623db14c515976a6cc51eea65249dfaa5a20e85584070f",
-    "crates/flea-gui/src/g2/network_shares/mount_peek.rs": "823da1f0b77d46a3f1c0935863af5267e39b833d825befa506a621668fd582c4",
+    "crates/flea-gui/src/g2/network_shares/mount_peek.rs": "c34b82047cf11144917346c3b4a6e1d94b3c5970fb8cd69db573acbf5dd5932b",
     "crates/flea-gui/src/g2/network_shares/mount_process.rs": "202246b02709484c4f542bcea6be85c7eb5690731e23834777e642a023c6bac9",
     "crates/flea-gui/src/g2/network_shares/nearby.rs": "8229dc63b182a05119e47143fd65adee836b359693db1d3f57363dc2e9b116c6",
     "crates/flea-gui/src/g2/network_shares/pointer.rs": "d4a94575d3dc9cb6e4cc079170ecbbbe4f523c94dddbe4f016a721577a23a471",
@@ -254773,7 +254746,7 @@
     "crates/flea-gui/src/window/settings/update.rs": "5bc2c66a4044ac2baf80ac3666b749f9fe17a877efc0e0b60b3a6267de8d8713",
     "crates/flea-gui/src/window/settings/view_choice.rs": "e401a1e024588ec24ce67958faffd63d0a10208e7e99e6e36b6048e722f0d99a",
     "crates/flea-gui/src/window/sidebar_edge.rs": "e0139d3c27a8a35164a803b86f5d19a117930160992a29a7e1a459e129e67d09",
-    "crates/flea-gui/src/window/sniff.rs": "14bef60c98321710f46d0f95b8cdf7d2ee54d3147ef14738bff7dea5f48f9b85",
+    "crates/flea-gui/src/window/sniff.rs": "f77c874302a8e7b860cd3b8b21f530391bbf70710870e3b77e07c5367cda48f3",
     "crates/flea-gui/src/window/startup.rs": "eff627aae5088d4b5dbaa51078696d460c6504831cfa48ee473c2d1ec135fb97",
     "crates/flea-gui/src/window/status.rs": "d19d7814b8ad1c4f5391a521878c86c126ef96945242d84b7eefa0ebcdae0e52",
     "crates/flea-gui/src/window/status_counts.rs": "cce3917bffeea1e6afcfe620dd64e263a4b5837ca359e19d44a40e10e8a1b632",
@@ -254838,10 +254811,10 @@
     "src/backend/copyread.rs": "7781b9f609005a79c8d3ea6eb6839179f768cf2a5a3469495c9adaee0b91538c",
     "src/backend/copystage.rs": "733c84efd3a0817a8cc6b9df9564e4246f5c222f8d9404fe158d0dee227c7deb",
     "src/backend/copysweep.rs": "d7522b1952177646ee81899dfc02632553765801dcaef7b327f4a319a90c4d1b",
-    "src/backend/copytree.rs": "6ef0ad50a44eadc823fd74ad64bb672964bceaba434cf5f61e226ff3cbfba81c",
+    "src/backend/copytree.rs": "847dad0a8ea4284934ba70e946cd70170c02c18703b671ccd06b54d8c3eaf658",
     "src/backend/created_request.rs": "e1a5426890d42ecd67109c5e55d910fec3ca77cf39190dab733c4d62705d174d",
     "src/backend/csvrange.rs": "1b00338fd1b22d9407e2b11cc5cc497bf7b411d072a7c556297d879eb4fb566c",
-    "src/backend/deeptree.rs": "45482cf9f56ee8ee78f2a06b8e9feb15ff50f8dfd8e6e98adbf82a3e5b0605f5",
+    "src/backend/deeptree.rs": "599fda24b2e2dea5b3803496ffdd9b19a8fd802e60d6d9d3f62fb38b10461b18",
     "src/backend/devsreq.rs": "85b6f379f781e1b522f2ed9e3316a78fb7207feb29fbed046e66fc78ad1d020e",
     "src/backend/dirsize.rs": "b9c4ddd743892cfe0f38ad43178a079641dd0472e065f7d1a0b978317542d600",
     "src/backend/dirsizereq.rs": "eb8738b88445c7e4bc02db1e21636c2b7ed1214e19ac76351b9d8c334a7d09d7",
@@ -255378,7 +255351,7 @@
     "src/tui/print/input.rs": "2feadebdca18d18e77e604d762044c371781dfc4c265662d47e8e71d8920cc98",
     "src/tui/print/replies.rs": "02b5a80fe69671d8c07e3695746f8e2dd0983c51085271f7fead1a6a7655f76b",
     "src/tui/prompts.rs": "68d8f4020f570cc1e089abdb10f31378c284a5d53ae6810d254e05ca3aa85ee4",
-    "src/tui/prompts/paste_question.rs": "a674c98a59227efb0544576cd86200059a5da2f248e4ff34737e514e8e96974c",
+    "src/tui/prompts/paste_question.rs": "5e1e6a4c4571dde6046ac93e66fadd3f0e1428a42e3c9f802124f1b5713eac65",
     "src/tui/render.rs": "fb84016269338e2c3ca6c5d08ee66b182269593bf51c5deb5538e83db7bc55ca",
     "src/tui/sort_actions.rs": "d7e3e2f06fa53fdc0f8ccc8d83fc6d5de6aabb7b9d4070d1498557c5469d06e6",
     "src/tui/stage.rs": "6bc1a61b139ffb8a408251234c0ed6763bec47bfb9ab922b4ba3d61b1706ec69",
@@ -255644,7 +255617,7 @@
     "src/ui_logic_plugin_settings/shelf.rs": "a23edd66fc6a9c082414d7791431612551e17855f8b3fd39ae962e16b782e7dd",
     "src/ui_logic_plugin_settings/store.rs": "e7c1ca25ecaae948b4377cebedea28dc249b5650caca049b6773dff374f7fb17",
     "src/ui_logic_plugin_settings/wire.rs": "4c34e85f164684e1b017b3e65cc3ac080798c9cac26f18c43d44905002dc0761",
-    "src/ui_logic_preview_core.rs": "703b1fedc96a108e397a59b73e2d7327a80c9753efdac2110a39163e3cf04a16",
+    "src/ui_logic_preview_core.rs": "0261b265c8f749daf30ea2fae7aa9150d7c44d8482e38d6d990ec8bff41015e6",
     "src/ui_logic_preview_core/ask.rs": "24a84ccd456f1a97fb95fcc509c82c240a9f0a068e43944bbf840b78877b3e55",
     "src/ui_logic_preview_core/compare.rs": "3c121b9ccccf74539d9360a16b0fc720c45fa2ccd97830d2d52f4d95a6dbf3bb",
     "src/ui_logic_preview_core/facts.rs": "64a218e6410c7890ed64491b093ef1a24a3ea6b461999d1ef30e6ad005138b66",
@@ -255658,6 +255631,7 @@
     "src/ui_logic_preview_core/rect.rs": "34d91ccbc1682f0f0ca622fb46ad0973a3faf79b81087bb9630c6a79c9e9acde",
     "src/ui_logic_preview_core/scroll.rs": "adb935afd371a4198a4c72838a2215f0498630c575a2ae7a5aac1c06e53c1aa8",
     "src/ui_logic_preview_core/settle.rs": "7ad32ab3acdc70a30c99043490c4968e52c2efeb2cb3552a872dd40cdb6c78e3",
+    "src/ui_logic_preview_core/sniff.rs": "579c702b28a043d1f87bdfb7d1fad2722c0c5e0c1e785617308150c95fbbb6de",
     "src/ui_logic_preview_core/swap.rs": "568afa4d0798e8a605cad017206ff6d578bb03f605a46cbe26b790d267cf7c73",
     "src/ui_logic_preview_core/thumbs.rs": "371fe456e523a2ec485348ed9d12e8a1e1a2aebc3fa30bdc72fa199bdedf5fce",
     "src/ui_logic_print_convert.rs": "d7f7990d2e9f884cab0fef1406cad2ce4fb21a237669c53d626db7ecb46c48e7",
@@ -256327,13 +256301,13 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "87dd84b54ba9af85f426e57f857252cd1b4df2ac",
-  "source_sha": "87dd84b54ba9af85f426e57f857252cd1b4df2ac",
+  "source_ref_sha": "90f9710a0387066d756b7615fd42e0700e525a7c",
+  "source_sha": "90f9710a0387066d756b7615fd42e0700e525a7c",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1377,
-      "missing_literal_candidates": 5787,
-      "source_files": 872
+      "missing_literal_candidates": 5784,
+      "source_files": 873
     },
     "generated/tooling": {
       "keys_with_occurrences": 157,
