@@ -131,15 +131,17 @@ impl Operations {
         }
         self.wire.finish(id);
         if presented {
-            self.release_transfer_job();
-            self.next_transfer(catalog);
+            self.card_ended(catalog);
         }
         self.changed = true;
         true
     }
 
-    // The status line follows the transfer the card presents next, or clears when none is left.
-    fn next_transfer(&mut self, catalog: &I18n) {
+    // The card's transfer ended: its held job row lands, its cancel ends with it, and the
+    // status line follows the next queued transfer or clears when none is left.
+    fn card_ended(&mut self, catalog: &I18n) {
+        self.release_transfer_job();
+        self.transfer_cancelling = false;
         self.sticky = if self.wire.transfer.running {
             lines::progress_line(catalog, &self.wire.transfer)
         } else {
@@ -164,8 +166,7 @@ impl Operations {
         let presented = self.wire.transfer.id == done.id;
         if let transfer::Fold::Done { transfer, error } = self.wire.done(done.id, done.failed) {
             if presented {
-                self.release_transfer_job();
-                self.transfer_cancelling = false;
+                self.card_ended(catalog);
             }
             let undo = self
                 .jobs
@@ -181,7 +182,6 @@ impl Operations {
                 }
             }
             self.transfer_receipt = undo.map(|_| Receipt::new(catalog, &self.preset, &line));
-            self.next_transfer(catalog);
             self.say(line.clone(), error);
             if error {
                 self.say(line, false);

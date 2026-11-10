@@ -211,9 +211,15 @@ fn a_transfer_started_during_another_waits_and_takes_the_card_next() {
     let mut wire = Wire::default();
     assert!(wire.started(1, true, 1, false));
     assert!(!wire.started(2, true, 3, false));
-    // A queued transfer on another drive runs at once; its samples and failures wait with it.
+    // A queued transfer on another drive runs at once: its samples wait with it, its first failure names itself.
     wire.progress(2, 0, "x", 10, 20, 0, "", "");
-    assert_eq!(wire.item(2, 0, "x", false, "denied", 0), Fold::Nothing);
+    assert_eq!(
+        wire.item(2, 0, "x", false, "denied", 0),
+        Fold::Failed {
+            name: "x".into(),
+            error: "denied".into()
+        }
+    );
     assert_eq!(wire.transfer.id, 1);
     match wire.done(1, 0) {
         Fold::Done { transfer, error } => assert!(transfer.id == 1 && !error),
@@ -222,7 +228,7 @@ fn a_transfer_started_during_another_waits_and_takes_the_card_next() {
     assert!(wire.transfer.id == 2 && wire.transfer.running && wire.transfer.done == 1);
     assert!(wire.queued.is_empty());
     match wire.done(2, 1) {
-        Fold::Done { transfer, error } => assert!(transfer.id == 2 && error),
+        Fold::Done { transfer, error } => assert!(transfer.id == 2 && !error),
         other => panic!("queued transfer did not finish: {other:?}"),
     }
     assert!(!wire.transfer.running);

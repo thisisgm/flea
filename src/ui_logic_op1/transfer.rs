@@ -341,11 +341,24 @@ impl Wire {
         now: u64,
     ) -> Fold {
         if id != self.transfer.id {
-            // Unnamed here, a queued transfer's failure goes out with its done line.
-            if let Some(t) = self.queued_mut(id) {
-                *t = t.item_done(index, name);
-            }
-            return Fold::Nothing;
+            // A queued transfer on another drive can already run: its items count at once, and its
+            // first failure names itself as the card's would.
+            let Some(t) = self.queued_mut(id) else {
+                return Fold::Nothing;
+            };
+            let first = !ok && error != "cancelled" && !t.failure_reported;
+            *t = Transfer {
+                failure_reported: t.failure_reported || first,
+                ..t.item_done(index, name)
+            };
+            return if first {
+                Fold::Failed {
+                    name: name.into(),
+                    error: error.into(),
+                }
+            } else {
+                Fold::Nothing
+            };
         }
         if ok {
             self.held.push(Held {
