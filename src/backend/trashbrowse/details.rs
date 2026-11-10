@@ -16,9 +16,32 @@ pub(super) fn records(manifest: &Manifest, cursor: &mut u64) -> Result<Vec<Strin
 }
 
 pub(super) fn many(items: &[Item]) -> Result<Vec<Detail>, Refusal> {
+    let provider: Vec<_> = items
+        .iter()
+        .filter(|item| !item.uri.starts_with(crate::backend::topdirtrash::PREFIX))
+        .cloned()
+        .collect();
     let mut args = vec!["info", "--nofollow-symlinks", ATTRIBUTES];
-    args.extend(items.iter().map(|item| item.uri.as_str()));
-    parse(items, &gio(&args)?)
+    args.extend(provider.iter().map(|item| item.uri.as_str()));
+    let mut supplied = if provider.is_empty() {
+        Vec::new()
+    } else {
+        parse(&provider, &gio(&args)?)?
+    }
+    .into_iter();
+    let resolve = crate::backend::topdirtrash::resolver();
+    items
+        .iter()
+        .map(|item| {
+            if item.uri.starts_with(crate::backend::topdirtrash::PREFIX) {
+                super::topdir::detail_with(&resolve, item)
+            } else {
+                supplied
+                    .next()
+                    .ok_or_else(|| unreadable("The Trash helper returned incomplete item details."))
+            }
+        })
+        .collect()
 }
 
 // Sample input: "type: regular\nsize:  1\nuri: trash:///a\nattributes:\n  standard::size: 1\n  id::file: a\n  id::filesystem: fs\n".

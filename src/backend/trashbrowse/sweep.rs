@@ -121,6 +121,7 @@ impl Sweep {
         let mut roots: BTreeSet<PathBuf> = crate::backend::hometrash::home_trash_root()
             .into_iter()
             .collect();
+        roots.extend(crate::backend::topdirtrash::roots());
         let mut seen = HashSet::new();
         let mut sweep = Self::default();
         let text = read(&[

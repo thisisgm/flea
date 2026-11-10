@@ -156,15 +156,24 @@ pub(crate) fn trash_announcing(paths: &[PathBuf], selection: Option<&[super::men
         let reason = if quiet_gone || missing.is_empty() { String::new() } else { "those items are already gone".to_string() };
         return Ok((Vec::new(), if quiet_gone { 0 } else { missing.len() }, reason));
     }
-    // An item on the home Trash's own filesystem is renamed in and names its own entry, so only the rest need gio and its lists.
-    let (home, mut rest): (Vec<usize>, Vec<usize>) = (0..present.len()).partition(|&i| super::hometrash::renames_to_home(present[i]));
+    // Home renames win; subvolume and bind mounts gio refuses use their own topdir Trash.
+    let mut topdir = super::topdirtrash::Batch::read();
+    let (direct, mut rest): (Vec<usize>, Vec<usize>) = (0..present.len()).partition(|&i| {
+        super::hometrash::renames_to_home(present[i])
+            || super::topdirtrash::renames_to_topdir(&mut topdir, present[i])
+    });
     let mut before = if rest.is_empty() { None } else { Some(list()) };
     super::menu_actions::validate_sources(selection, paths)?;
     let mut entries: Vec<Option<Entry>> = vec![None; present.len()];
     let mut failed = if quiet_gone { 0 } else { missing.len() };
     let (mut unsynced, mut durable) = (std::collections::BTreeSet::new(), None);
-    for i in home {
-        match super::hometrash::rename_to_home(present[i], &mut unsynced, &mut durable) {
+    for i in direct {
+        // Equal st_dev does not make a rename cross a bind mount, so EXDEV from home still tries topdir.
+        let moved = super::hometrash::rename_to_home(present[i], &mut unsynced, &mut durable)
+            .or_else(|| {
+                super::topdirtrash::rename_to_topdir(&mut topdir, present[i], &mut unsynced)
+            });
+        match moved {
             Some(Ok(entry)) => entries[i] = Some(entry),
             // Gone before its move, the Issue 88 refusal; the rename left no info file behind.
             Some(Err(_)) => failed += 1,
@@ -257,6 +266,10 @@ pub fn restore(entry: &Entry) -> Result<(), FleaError> {
     if !entry.uri.is_empty() {
         // A home Trash entry whose own record names this path goes back in-process, so undo spawns no gio for it.
         if let Some(done) = super::homerestore::restore_from_home(entry) {
+            return done.map_err(|msg| err(&msg));
+        }
+        // A topdir Trash entry on a mount gio refuses to name restores in-process the same way, on its own record's proof.
+        if let Some(done) = super::topdirtrash::restore_from_topdir(entry) {
             return done.map_err(|msg| err(&msg));
         }
         return restore_uri(entry);

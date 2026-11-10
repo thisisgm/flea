@@ -99,8 +99,12 @@ const TRASH_DATES: &str = "trash:///a%20b.txt\t0\t(regular)\ttrash::deletion-dat
 fn read_gio(dates: Result<&'static str, &'static str>) -> impl Fn(&[&str]) -> Result<String, Refusal> {
     // Both calls list dot names too, so a trashed .hidden is listed and dated.
     move |args: &[&str]| match args {
-        ["list", "-u", "-h", "-a", "trash::orig-path", "trash:///"] => Ok(TRASH_LIST.to_string()),
-        ["list", "-u", "-h", "-a", "trash::deletion-date", "trash:///"] => dates.map(String::from).map_err(unreadable),
+        ["list", "-u", "-h", "-a", "trash::orig-path,standard::target-uri", "trash:///"] => {
+            Ok(TRASH_LIST.to_string())
+        }
+        ["list", "-u", "-h", "-a", "trash::deletion-date", "trash:///"] => {
+            dates.map(String::from).map_err(unreadable)
+        }
         _ => panic!("unexpected gio call {args:?}"),
     }
 }

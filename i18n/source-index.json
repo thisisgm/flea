@@ -143670,7 +143670,7 @@
     },
     {
       "excerpt": "let body = format!(\"[Trash Info]\\nPath={}\\nDeletionDate={}\\n\", percent_encode(original.as_os_str().as_bytes()), deletion_date_local());",
-      "line": 160,
+      "line": 166,
       "literal": "[Trash Info]\nPath={}\nDeletionDate={}\n",
       "owner": "controller",
       "path": "src/backend/hometrash.rs",
@@ -143679,7 +143679,7 @@
     },
     {
       "excerpt": "Err(std::io::Error::other(\"every Trash name is taken\"))",
-      "line": 167,
+      "line": 173,
       "literal": "every Trash name is taken",
       "owner": "controller",
       "path": "src/backend/hometrash.rs",
@@ -151554,7 +151554,7 @@
     },
     {
       "excerpt": "let info = \"1 0 8:1 / / rw - ext4 /dev/a rw\\n\\\n                    2 1 0:9 / /home/pi/My\\\\040Drive rw - fuse.rclone remote: rw\\n\\\n                    3 2 0:10 / /home/pi/My\\\\040Drive/nested rw - tmpfs tmpfs rw\\n\";",
-      "line": 259,
+      "line": 257,
       "literal": "1 0 8:1 / / rw - ext4 /dev/a rw\\n\\\n                    2 1 0:9 / /home/pi/My\\\\040Drive rw - fuse.rclone remote: rw\\n\\\n                    3 2 0:10 / /home/pi/My\\\\040Drive/nested rw - tmpfs tmpfs rw\\n",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -151563,7 +151563,7 @@
     },
     {
       "excerpt": "mount_type_in(Path::new(\"/home/pi/My Drive/file\"), info).as_deref(),",
-      "line": 263,
+      "line": 261,
       "literal": "/home/pi/My Drive/file",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -151572,7 +151572,7 @@
     },
     {
       "excerpt": "mount_type_in(Path::new(\"/home/pi/My Drive/nested/file\"), info).as_deref(),",
-      "line": 267,
+      "line": 265,
       "literal": "/home/pi/My Drive/nested/file",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -151581,7 +151581,7 @@
     },
     {
       "excerpt": "let info = \"1 0 8:1 / / rw - ext4 /dev/a rw\\n\\\n                    30 1 8:17 / /media/stick rw - vfat /dev/sdb1 rw\\n\\\n                    31 1 0:45 / /media/nas rw - nfs nas:/share rw\\n\\\n                    32 1 0:46 / /media/cloud rw - fuse.rclone remote: rw\\n\";",
-      "line": 278,
+      "line": 276,
       "literal": "1 0 8:1 / / rw - ext4 /dev/a rw\\n\\\n                    30 1 8:17 / /media/stick rw - vfat /dev/sdb1 rw\\n\\\n                    31 1 0:45 / /media/nas rw - nfs nas:/share rw\\n\\\n                    32 1 0:46 / /media/cloud rw - fuse.rclone remote: rw\\n",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -151590,7 +151590,7 @@
     },
     {
       "excerpt": "let list = script.split(\"var exact = [\").nth(1).and_then(|rest| rest.split(']').next()).expect(\"isSystemPath keeps its exact list\");",
-      "line": 292,
+      "line": 290,
       "literal": "var exact = [",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -151599,7 +151599,7 @@
     },
     {
       "excerpt": "let list = script.split(\"var exact = [\").nth(1).and_then(|rest| rest.split(']').next()).expect(\"isSystemPath keeps its exact list\");",
-      "line": 292,
+      "line": 290,
       "literal": "isSystemPath keeps its exact list",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -151608,7 +151608,7 @@
     },
     {
       "excerpt": "assert_eq!(named, SYSTEM_MOUNTS, \"ui/js/Devices.js and this list name the same mountpoints\");",
-      "line": 294,
+      "line": 292,
       "literal": "ui/js/Devices.js and this list name the same mountpoints",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -151617,7 +151617,7 @@
     },
     {
       "excerpt": "let rules = script.split(\"function isSystemPath(p) {\").nth(1).and_then(|body| body.split(\"var exact\").next()).expect(\"isSystemPath keeps its rules above its list\");",
-      "line": 295,
+      "line": 293,
       "literal": "function isSystemPath(p) {",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -151626,7 +151626,7 @@
     },
     {
       "excerpt": "let rules = script.split(\"function isSystemPath(p) {\").nth(1).and_then(|body| body.split(\"var exact\").next()).expect(\"isSystemPath keeps its rules above its list\");",
-      "line": 295,
+      "line": 293,
       "literal": "var exact",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -151635,7 +151635,7 @@
     },
     {
       "excerpt": "let rules = script.split(\"function isSystemPath(p) {\").nth(1).and_then(|body| body.split(\"var exact\").next()).expect(\"isSystemPath keeps its rules above its list\");",
-      "line": 295,
+      "line": 293,
       "literal": "isSystemPath keeps its rules above its list",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -151644,7 +151644,7 @@
     },
     {
       "excerpt": "assert_eq!(literals, [\"/\", \"/.\", \"/dev\", \"/proc\", \"/sys\", \"/dev/\", \"/proc/\", \"/sys/\"], \"isSystemPath's other rules are the ones is_system_mount mirrors\");",
-      "line": 297,
+      "line": 295,
       "literal": "isSystemPath's other rules are the ones is_system_mount mirrors",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -151653,7 +151653,7 @@
     },
     {
       "excerpt": "assert!(is_system_mount(Path::new(path)), \"{path} is a system mountpoint\");",
-      "line": 299,
+      "line": 297,
       "literal": "{path} is a system mountpoint",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -151662,7 +151662,7 @@
     },
     {
       "excerpt": "assert!(!is_system_mount(Path::new(path)), \"{path} is not\");",
-      "line": 302,
+      "line": 300,
       "literal": "{path} is not",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -151671,7 +151671,7 @@
     },
     {
       "excerpt": "let info = \"1 0 8:1 / / rw - ext4 /dev/sda1 rw\\n\\\n                    30 1 8:17 / /mnt/data rw - ext4 /dev/sdb1 rw\\n\\\n                    31 1 8:17 /sub /home/gm/Data rw - ext4 /dev/sdb1 rw\\n\\\n                    32 1 0:50 / /home/gm/gdrive rw - fuse.rclone remote: rw\\n\";",
-      "line": 309,
+      "line": 307,
       "literal": "1 0 8:1 / / rw - ext4 /dev/sda1 rw\\n\\\n                    30 1 8:17 / /mnt/data rw - ext4 /dev/sdb1 rw\\n\\\n                    31 1 8:17 /sub /home/gm/Data rw - ext4 /dev/sdb1 rw\\n\\\n                    32 1 0:50 / /home/gm/gdrive rw - fuse.rclone remote: rw\\n",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -151680,7 +151680,7 @@
     },
     {
       "excerpt": "assert!(on_system(\"/etc\", info), \"the device holding / is the system volume\");",
-      "line": 313,
+      "line": 311,
       "literal": "the device holding / is the system volume",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -151689,7 +151689,7 @@
     },
     {
       "excerpt": "assert!(!on_system(\"/mnt/data/x\", info), \"a data volume mounted twice, on no system path\");",
-      "line": 314,
+      "line": 312,
       "literal": "a data volume mounted twice, on no system path",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -151698,7 +151698,7 @@
     },
     {
       "excerpt": "assert!(!on_system(\"/home/gm/gdrive/x\", info), \"a FUSE mount under home is no system volume\");",
-      "line": 315,
+      "line": 313,
       "literal": "a FUSE mount under home is no system volume",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -151707,7 +151707,7 @@
     },
     {
       "excerpt": "assert!(!on_system(\"/elsewhere\", \"30 1 8:17 / /mnt/data rw - ext4 /dev/sdb1 rw\\n\"), \"a path no mount owns is no claim\");",
-      "line": 316,
+      "line": 314,
       "literal": "30 1 8:17 / /mnt/data rw - ext4 /dev/sdb1 rw\n",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -151716,7 +151716,7 @@
     },
     {
       "excerpt": "assert!(!on_system(\"/elsewhere\", \"30 1 8:17 / /mnt/data rw - ext4 /dev/sdb1 rw\\n\"), \"a path no mount owns is no claim\");",
-      "line": 316,
+      "line": 314,
       "literal": "a path no mount owns is no claim",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -151725,7 +151725,7 @@
     },
     {
       "excerpt": "assert!(on_system(\"/mnt/data/x\", &format!(\"{info}33 1 8:17 / /srv rw - ext4 /dev/sdb1 rw\\n\")), \"any one mount of the device on a system path decides\");",
-      "line": 317,
+      "line": 315,
       "literal": "{info}33 1 8:17 / /srv rw - ext4 /dev/sdb1 rw\n",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -151734,7 +151734,7 @@
     },
     {
       "excerpt": "assert!(on_system(\"/mnt/data/x\", &format!(\"{info}33 1 8:17 / /srv rw - ext4 /dev/sdb1 rw\\n\")), \"any one mount of the device on a system path decides\");",
-      "line": 317,
+      "line": 315,
       "literal": "any one mount of the device on a system path decides",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -151743,7 +151743,7 @@
     },
     {
       "excerpt": "let info = \"1 0 0:29 /@ / rw - btrfs /dev/mapper/root rw\\n\\\n                    2 1 0:29 /@home /home rw - btrfs /dev/mapper/root rw\\n\\\n                    3 1 0:29 /@log /var/log rw - btrfs /dev/mapper/root rw\\n\\\n                    4 2 0:29 /@home/flea-sandbox /home/flea-sandbox rw - btrfs /dev/mapper/root rw\\n\\\n                    5 1 0:52 / /mnt/backup rw - btrfs /dev/sdc1 rw\\n\";",
-      "line": 323,
+      "line": 321,
       "literal": "1 0 0:29 /@ / rw - btrfs /dev/mapper/root rw\\n\\\n                    2 1 0:29 /@home /home rw - btrfs /dev/mapper/root rw\\n\\\n                    3 1 0:29 /@log /var/log rw - btrfs /dev/mapper/root rw\\n\\\n                    4 2 0:29 /@home/flea-sandbox /home/flea-sandbox rw - btrfs /dev/mapper/root rw\\n\\\n                    5 1 0:52 / /mnt/backup rw - btrfs /dev/sdc1 rw\\n",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -151752,7 +151752,7 @@
     },
     {
       "excerpt": "assert!(on_system(\"/etc\", info), \"the root subvolume\");",
-      "line": 328,
+      "line": 326,
       "literal": "the root subvolume",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -151761,7 +151761,7 @@
     },
     {
       "excerpt": "assert!(on_system(\"/home/flea-sandbox/cap-sysrefusal/listing\", info), \"a subvolume mounted under home shares the filesystem's number with /\");",
-      "line": 329,
+      "line": 327,
       "literal": "a subvolume mounted under home shares the filesystem's number with /",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -151770,7 +151770,7 @@
     },
     {
       "excerpt": "assert!(!on_system(\"/mnt/backup/photos\", info), \"a second btrfs filesystem has its own number and is judged alone\");",
-      "line": 330,
+      "line": 328,
       "literal": "a second btrfs filesystem has its own number and is judged alone",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -151779,7 +151779,7 @@
     },
     {
       "excerpt": "let info = \"1 0 8:1 / / rw - ext4 /dev/a rw\\n\\\n                    30 1 8:17 / /media/stick rw - vfat /dev/sdb1 rw\\n\";",
-      "line": 340,
+      "line": 338,
       "literal": "1 0 8:1 / / rw - ext4 /dev/a rw\\n\\\n                    30 1 8:17 / /media/stick rw - vfat /dev/sdb1 rw\\n",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -151788,7 +151788,7 @@
     },
     {
       "excerpt": "let entry = mount_entry_in(Path::new(\"/media/stick/photo.jpg\"), info).expect(\"the stick owns its files\");",
-      "line": 342,
+      "line": 340,
       "literal": "the stick owns its files",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -151797,7 +151797,7 @@
     },
     {
       "excerpt": "assert_eq!(entry.source, \"/dev/sdb1\", \"the source rides the entry for the batch gate\");",
-      "line": 345,
+      "line": 343,
       "literal": "the source rides the entry for the batch gate",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -151806,7 +151806,7 @@
     },
     {
       "excerpt": "let root = mount_entry_in(Path::new(\"/elsewhere\"), info).expect(\"the root owns the rest\");",
-      "line": 346,
+      "line": 344,
       "literal": "the root owns the rest",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -151815,7 +151815,7 @@
     },
     {
       "excerpt": "let info = \"1 0 8:1 / / rw - ext4 /dev/a rw\\n\\\n                    30 1 8:17 / /media/stick rw,noexec - vfat /dev/sdb1 rw\\n\";",
-      "line": 362,
+      "line": 360,
       "literal": "1 0 8:1 / / rw - ext4 /dev/a rw\\n\\\n                    30 1 8:17 / /media/stick rw,noexec - vfat /dev/sdb1 rw\\n",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -151824,7 +151824,7 @@
     },
     {
       "excerpt": "assert!(modes_are_real(Path::new(\"/file\"), &body), \"{fstype} stores POSIX modes\");",
-      "line": 376,
+      "line": 374,
       "literal": "{fstype} stores POSIX modes",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -151833,7 +151833,7 @@
     },
     {
       "excerpt": "assert!(!modes_are_real(Path::new(\"/file\"), &body), \"{fstype} reports a mount default for every file, not the file's own mode\");",
-      "line": 380,
+      "line": 378,
       "literal": "{fstype} reports a mount default for every file, not the file's own mode",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -151842,7 +151842,7 @@
     },
     {
       "excerpt": "assert!(modes_are_real(Path::new(\"/file\"), \"junk\\n\"), \"an unknown mount preserves the reported mode\");",
-      "line": 382,
+      "line": 380,
       "literal": "an unknown mount preserves the reported mode",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -151851,7 +151851,7 @@
     },
     {
       "excerpt": "let body = format!(\"1 0 0:30 / / rw - {fstype} //server/root rw,posix\\n\\\n                                2 1 0:31 / /share rw,posix,unix - {fstype} //server/share rw\\n\\\n                                3 2 0:32 / /share/unix rw - {fstype} //server/unix rw,unix\\n\");",
-      "line": 388,
+      "line": 386,
       "literal": "1 0 0:30 / / rw - {fstype} //server/root rw,posix\\n\\\n                                2 1 0:31 / /share rw,posix,unix - {fstype} //server/share rw\\n\\\n                                3 2 0:32 / /share/unix rw - {fstype} //server/unix rw,unix\\n",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -151860,7 +151860,7 @@
     },
     {
       "excerpt": "assert!(!modes_are_real(Path::new(\"/share/file\"), &body), \"raw or parent options cannot enable real modes\");",
-      "line": 392,
+      "line": 390,
       "literal": "raw or parent options cannot enable real modes",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -151869,7 +151869,7 @@
     },
     {
       "excerpt": "let stacked = format!(\"{body}4 1 0:33 / /share/unix rw - {fstype} //server/fixed rw\\n\");",
-      "line": 394,
+      "line": 392,
       "literal": "{body}4 1 0:33 / /share/unix rw - {fstype} //server/fixed rw\n",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -151878,7 +151878,7 @@
     },
     {
       "excerpt": "assert!(!modes_are_real(Path::new(\"/share/unix/file\"), &stacked), \"the later mount wins the same depth\");",
-      "line": 395,
+      "line": 393,
       "literal": "the later mount wins the same depth",
       "owner": "controller",
       "path": "src/backend/mountinfo.rs",
@@ -164684,6 +164684,42 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": ".ok_or_else(|| \"the Trash entry could not be verified\".to_string())?;",
+      "line": 148,
+      "literal": "the Trash entry could not be verified",
+      "owner": "controller",
+      "path": "src/backend/topdirtrash.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "return Err(\"the Trash entry's original location changed\".into());",
+      "line": 150,
+      "literal": "the Trash entry's original location changed",
+      "owner": "controller",
+      "path": "src/backend/topdirtrash.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": ".ok_or(\"test mount is missing\")?;",
+      "line": 160,
+      "literal": "test mount is missing",
+      "owner": "controller",
+      "path": "src/backend/topdirtrash.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "return Err(\"test mount is not sandboxed\".into());",
+      "line": 162,
+      "literal": "test mount is not sandboxed",
+      "owner": "controller",
+      "path": "src/backend/topdirtrash.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": ".expect(\"queued job completes\");",
       "line": 73,
       "literal": "queued job completes",
@@ -164856,7 +164892,7 @@
     },
     {
       "excerpt": "\"those items are still there\".to_string()",
-      "line": 237,
+      "line": 246,
       "literal": "those items are still there",
       "owner": "controller",
       "path": "src/backend/trash.rs",
@@ -164865,7 +164901,7 @@
     },
     {
       "excerpt": "\"those items are already gone\".to_string()",
-      "line": 239,
+      "line": 248,
       "literal": "those items are already gone",
       "owner": "controller",
       "path": "src/backend/trash.rs",
@@ -164874,7 +164910,7 @@
     },
     {
       "excerpt": "return Err(err(\"this item was trashed without a Trash entry, so it cannot be restored\"));",
-      "line": 266,
+      "line": 279,
       "literal": "this item was trashed without a Trash entry, so it cannot be restored",
       "owner": "controller",
       "path": "src/backend/trash.rs",
@@ -164883,7 +164919,7 @@
     },
     {
       "excerpt": "return Err(err(\"the Trash could not be listed, so that item cannot be restored yet\"));",
-      "line": 270,
+      "line": 283,
       "literal": "the Trash could not be listed, so that item cannot be restored yet",
       "owner": "controller",
       "path": "src/backend/trash.rs",
@@ -164892,7 +164928,7 @@
     },
     {
       "excerpt": "\"that item was trashed at {} but the Trash holds more than one new item from that place, so it cannot be restored\",",
-      "line": 276,
+      "line": 289,
       "literal": "that item was trashed at {} but the Trash holds more than one new item from that place, so it cannot be restored",
       "owner": "controller",
       "path": "src/backend/trash.rs",
@@ -164901,7 +164937,7 @@
     },
     {
       "excerpt": "return Err(err(&format!(\"that item was trashed at {} but is no longer listed, so it cannot be restored\", shown(&entry.trashed_at))));",
-      "line": 281,
+      "line": 294,
       "literal": "that item was trashed at {} but is no longer listed, so it cannot be restored",
       "owner": "controller",
       "path": "src/backend/trash.rs",
@@ -164910,7 +164946,7 @@
     },
     {
       "excerpt": "return Err(err(&format!(\"that item was trashed at {} but the Trash holds no item from that time, so it cannot be restored\", shown(&entry.trashed_at))));",
-      "line": 285,
+      "line": 298,
       "literal": "that item was trashed at {} but the Trash holds no item from that time, so it cannot be restored",
       "owner": "controller",
       "path": "src/backend/trash.rs",
@@ -164919,7 +164955,7 @@
     },
     {
       "excerpt": "Err(err(msg.lines().last().unwrap_or(\"the item could not be restored from the Trash\")))",
-      "line": 358,
+      "line": 371,
       "literal": "the item could not be restored from the Trash",
       "owner": "controller",
       "path": "src/backend/trash.rs",
@@ -164928,7 +164964,7 @@
     },
     {
       "excerpt": "None => Err(err(\"gio is not installed, so nothing can be restored from the Trash\")),",
-      "line": 360,
+      "line": 373,
       "literal": "gio is not installed, so nothing can be restored from the Trash",
       "owner": "controller",
       "path": "src/backend/trash.rs",
@@ -164937,7 +164973,7 @@
     },
     {
       "excerpt": "Refusal::new(Outcome::Indistinct(selecting), \"The Trash provider did not report a stable item identity.\").logged()",
-      "line": 60,
+      "line": 61,
       "literal": "The Trash provider did not report a stable item identity.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -164946,7 +164982,7 @@
     },
     {
       "excerpt": "Refusal::new(Outcome::Unchecked(op), \"The backing identity for the Trash item is unavailable.\").logged()",
-      "line": 63,
+      "line": 64,
       "literal": "The backing identity for the Trash item is unavailable.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -164955,7 +164991,7 @@
     },
     {
       "excerpt": "let output = output.map_err(|e| unreadable(format!(\"Could not start the Trash helper: {}\", e)))?;",
-      "line": 159,
+      "line": 160,
       "literal": "Could not start the Trash helper: {}",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -164964,7 +165000,7 @@
     },
     {
       "excerpt": "return Err(Refusal::new(Outcome::TookTooLong, \"The Trash helper exceeded its deadline.\").logged());",
-      "line": 162,
+      "line": 163,
       "literal": "The Trash helper exceeded its deadline.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -164973,7 +165009,7 @@
     },
     {
       "excerpt": "return Err(unreadable(String::from_utf8_lossy(&output.stderr).lines().last().unwrap_or(\"The gio Trash helper failed.\")));",
-      "line": 164,
+      "line": 165,
       "literal": "The gio Trash helper failed.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -164982,7 +165018,7 @@
     },
     {
       "excerpt": "String::from_utf8(output.stdout).map_err(|_| unreadable(\"The Trash helper returned invalid text.\"))",
-      "line": 166,
+      "line": 167,
       "literal": "The Trash helper returned invalid text.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -164991,7 +165027,7 @@
     },
     {
       "excerpt": "\"Trash left out what gio could not describe: {}\",",
-      "line": 209,
+      "line": 210,
       "literal": "Trash left out what gio could not describe: {}",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165000,7 +165036,7 @@
     },
     {
       "excerpt": "left_out.join(\", \")",
-      "line": 210,
+      "line": 211,
       "literal": ", ",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165009,7 +165045,7 @@
     },
     {
       "excerpt": ".ok_or_else(|| unreadable(\"The Trash helper did not report the item's size.\"))?;",
-      "line": 301,
+      "line": 324,
       "literal": "The Trash helper did not report the item's size.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165018,7 +165054,7 @@
     },
     {
       "excerpt": "directory: attribute(text, \"standard::type\") == Some(\"2\"),",
-      "line": 326,
+      "line": 349,
       "literal": "2",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165027,7 +165063,7 @@
     },
     {
       "excerpt": ".split(\", \")",
-      "line": 329,
+      "line": 352,
       "literal": ", ",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165036,7 +165072,7 @@
     },
     {
       "excerpt": "return Err(selection_changed(format!(\"Trash selection changed for {}.\", item.item.uri)));",
-      "line": 374,
+      "line": 397,
       "literal": "Trash selection changed for {}.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165045,7 +165081,7 @@
     },
     {
       "excerpt": "String::from_utf8(bytes).map_err(|_| damaged(\"Invalid text in Trash review.\"))",
-      "line": 380,
+      "line": 403,
       "literal": "Invalid text in Trash review.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165054,7 +165090,7 @@
     },
     {
       "excerpt": "Ok(Item { uri: field_str(text, \"uri\").ok_or_else(|| damaged(\"Missing reviewed Trash URI.\"))?,",
-      "line": 383,
+      "line": 406,
       "literal": "Missing reviewed Trash URI.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165063,7 +165099,7 @@
     },
     {
       "excerpt": "original: field_str(text, \"original\").ok_or_else(|| damaged(\"Missing reviewed original path.\"))? })",
-      "line": 384,
+      "line": 407,
       "literal": "Missing reviewed original path.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165072,7 +165108,7 @@
     },
     {
       "excerpt": "escape(&item.identity), escape(&item.backing.as_ref().ok_or_else(|| damaged(\"Missing Trash backing review.\"))?.saved()?)));",
-      "line": 390,
+      "line": 413,
       "literal": "Missing Trash backing review.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165081,7 +165117,7 @@
     },
     {
       "excerpt": "size: field_usize(text, \"size\").ok_or_else(|| damaged(\"Missing reviewed Trash size.\"))? as u64,",
-      "line": 396,
+      "line": 419,
       "literal": "Missing reviewed Trash size.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165090,7 +165126,7 @@
     },
     {
       "excerpt": "identity: field_str(text, \"providerIdentity\").ok_or_else(|| damaged(\"Missing reviewed provider identity.\"))?,",
-      "line": 398,
+      "line": 421,
       "literal": "Missing reviewed provider identity.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165099,7 +165135,7 @@
     },
     {
       "excerpt": "backing: Some(Reviewed::from_saved(&field_str(text, \"backing\").ok_or_else(|| damaged(\"Missing Trash backing review.\"))?, trees)?),",
-      "line": 401,
+      "line": 424,
       "literal": "Missing Trash backing review.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165108,7 +165144,7 @@
     },
     {
       "excerpt": "failure(&item, \"\", \"One Trash record could not be read, so that item was left in place.\")",
-      "line": 428,
+      "line": 451,
       "literal": "One Trash record could not be read, so that item was left in place.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165117,7 +165153,7 @@
     },
     {
       "excerpt": "failure(&Item { uri: String::new(), original: String::new() }, \"\", &format!(\"{count} Trash records could not be read, so those items were left in place.\"))",
-      "line": 432,
+      "line": 455,
       "literal": "{count} Trash records could not be read, so those items were left in place.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165126,7 +165162,7 @@
     },
     {
       "excerpt": "_ => Err(\"Unknown Trash request.\".into()),",
-      "line": 527,
+      "line": 550,
       "literal": "Unknown Trash request.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165135,7 +165171,7 @@
     },
     {
       "excerpt": "if self.confirmation.is_some() { return Err(\"Finish or cancel the Trash confirmation before selecting items.\".into()); }",
-      "line": 575,
+      "line": 598,
       "literal": "Finish or cancel the Trash confirmation before selecting items.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165144,7 +165180,7 @@
     },
     {
       "excerpt": "if !same_items(&list()?, &self.items) { return Err(\"Trash changed while selecting its contents; select again.\".into()); }",
-      "line": 587,
+      "line": 610,
       "literal": "Trash changed while selecting its contents; select again.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165153,7 +165189,7 @@
     },
     {
       "excerpt": "return Err(selection_changed(\"The reviewed identity for the Trash selection is missing.\").into());",
-      "line": 629,
+      "line": 652,
       "literal": "The reviewed identity for the Trash selection is missing.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165162,7 +165198,7 @@
     },
     {
       "excerpt": ".ok_or_else(|| selection_changed(\"The saved Trash selection is no longer current.\"))?;",
-      "line": 642,
+      "line": 665,
       "literal": "The saved Trash selection is no longer current.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165171,7 +165207,7 @@
     },
     {
       "excerpt": ".ok_or_else(|| selection_changed(\"The saved Trash selection is no longer current.\"))?;",
-      "line": 657,
+      "line": 680,
       "literal": "The saved Trash selection is no longer current.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165180,7 +165216,7 @@
     },
     {
       "excerpt": "if expected.is_empty() { return Err(selection_changed(\"The reviewed identity for the Trash selection is missing.\").into()); }",
-      "line": 658,
+      "line": 681,
       "literal": "The reviewed identity for the Trash selection is missing.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165189,7 +165225,7 @@
     },
     {
       "excerpt": "if targets.len() == 0 { return Err(if all { \"Trash is empty.\" } else { \"Select at least one Trash item.\" }.into()); }",
-      "line": 663,
+      "line": 686,
       "literal": "Trash is empty.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165198,7 +165234,7 @@
     },
     {
       "excerpt": "if targets.len() == 0 { return Err(if all { \"Trash is empty.\" } else { \"Select at least one Trash item.\" }.into()); }",
-      "line": 663,
+      "line": 686,
       "literal": "Select at least one Trash item.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165207,7 +165243,7 @@
     },
     {
       "excerpt": "if targets.len() == 0 { return Err(\"The selected Trash items are no longer present.\".into()); }",
-      "line": 692,
+      "line": 715,
       "literal": "The selected Trash items are no longer present.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165216,7 +165252,7 @@
     },
     {
       "excerpt": ".ok_or(\"Trash confirmation expired; start the action again.\")?;",
-      "line": 702,
+      "line": 725,
       "literal": "Trash confirmation expired; start the action again.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165225,7 +165261,7 @@
     },
     {
       "excerpt": "nodes = nodes.checked_add(current.backing.as_ref().unwrap().reviewed_nodes()).ok_or(\"Trash file total exceeds the supported range.\")?;",
-      "line": 726,
+      "line": 749,
       "literal": "Trash file total exceeds the supported range.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165234,7 +165270,7 @@
     },
     {
       "excerpt": "bytes = bytes.checked_add(size).ok_or(\"Trash byte total exceeds the supported range.\")?;",
-      "line": 727,
+      "line": 750,
       "literal": "Trash byte total exceeds the supported range.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165243,7 +165279,7 @@
     },
     {
       "excerpt": "return Err(\"Trash changed while reviewing its contents; try the action again.\".into());",
-      "line": 740,
+      "line": 763,
       "literal": "Trash changed while reviewing its contents; try the action again.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165251,8 +165287,17 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": ".ok_or_else(|| unreadable(\"The Trash helper returned incomplete item details.\"))",
+      "line": 41,
+      "literal": "The Trash helper returned incomplete item details.",
+      "owner": "controller",
+      "path": "src/backend/trashbrowse/details.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "\"The Trash helper returned duplicate item details.\",",
-      "line": 37,
+      "line": 60,
       "literal": "The Trash helper returned duplicate item details.",
       "owner": "controller",
       "path": "src/backend/trashbrowse/details.rs",
@@ -165261,7 +165306,7 @@
     },
     {
       "excerpt": "\"The Trash helper returned duplicate item details.\",",
-      "line": 49,
+      "line": 72,
       "literal": "The Trash helper returned duplicate item details.",
       "owner": "controller",
       "path": "src/backend/trashbrowse/details.rs",
@@ -165270,7 +165315,7 @@
     },
     {
       "excerpt": "\"The Trash helper returned incomplete item details.\",",
-      "line": 55,
+      "line": 78,
       "literal": "The Trash helper returned incomplete item details.",
       "owner": "controller",
       "path": "src/backend/trashbrowse/details.rs",
@@ -165279,7 +165324,7 @@
     },
     {
       "excerpt": "unreadable(\"The Trash helper returned a different item identity.\")",
-      "line": 62,
+      "line": 85,
       "literal": "The Trash helper returned a different item identity.",
       "owner": "controller",
       "path": "src/backend/trashbrowse/details.rs",
@@ -165387,7 +165432,7 @@
     },
     {
       "excerpt": "\"Empty Trash could not list the Trash's backing files through gio: {}\",",
-      "line": 136,
+      "line": 137,
       "literal": "Empty Trash could not list the Trash's backing files through gio: {}",
       "owner": "controller",
       "path": "src/backend/trashbrowse/sweep.rs",
@@ -165396,7 +165441,7 @@
     },
     {
       "excerpt": "left += kept(record, \"it changed\");",
-      "line": 242,
+      "line": 243,
       "literal": "it changed",
       "owner": "controller",
       "path": "src/backend/trashbrowse/sweep.rs",
@@ -165405,7 +165450,7 @@
     },
     {
       "excerpt": "skipped(&orphan.path, \"it changed\");",
-      "line": 254,
+      "line": 255,
       "literal": "it changed",
       "owner": "controller",
       "path": "src/backend/trashbrowse/sweep.rs",
@@ -165414,10 +165459,82 @@
     },
     {
       "excerpt": "left += kept(&orphan.path, \"it changed\");",
-      "line": 258,
+      "line": 259,
       "literal": "it changed",
       "owner": "controller",
       "path": "src/backend/trashbrowse/sweep.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": ".ok_or_else(|| damaged(\"The mount Trash entry is no longer available.\"))?;",
+      "line": 40,
+      "literal": "The mount Trash entry is no longer available.",
+      "owner": "controller",
+      "path": "src/backend/trashbrowse/topdir.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"The mount Trash entry's original location changed.\",",
+      "line": 43,
+      "literal": "The mount Trash entry's original location changed.",
+      "owner": "controller",
+      "path": "src/backend/trashbrowse/topdir.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "return Err(damaged(\"The mount Trash entry changed while reading it.\"));",
+      "line": 53,
+      "literal": "The mount Trash entry changed while reading it.",
+      "owner": "controller",
+      "path": "src/backend/trashbrowse/topdir.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "let original = d.file(\"mount/same.txt\", \"mount bytes\");",
+      "line": 97,
+      "literal": "mount bytes",
+      "owner": "controller",
+      "path": "src/backend/trashbrowse/topdir.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"a home filename cannot enter the mount URI namespace\"",
+      "line": 111,
+      "literal": "a home filename cannot enter the mount URI namespace",
+      "owner": "controller",
+      "path": "src/backend/trashbrowse/topdir.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "let original = d.file(\"mount/kept.txt\", \"mount bytes\");",
+      "line": 149,
+      "literal": "mount bytes",
+      "owner": "controller",
+      "path": "src/backend/trashbrowse/topdir.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"[Trash Info]\\nPath=gone.txt\\nDeletionDate=2026-11-10T00:00:00\\n\",",
+      "line": 166,
+      "literal": "[Trash Info]\nPath=gone.txt\nDeletionDate=2026-11-10T00:00:00\n",
+      "owner": "controller",
+      "path": "src/backend/trashbrowse/topdir.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"the mount Trash's orphan record is swept\"",
+      "line": 187,
+      "literal": "the mount Trash's orphan record is swept",
+      "owner": "controller",
+      "path": "src/backend/trashbrowse/topdir.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "core/backend"
     },
@@ -254912,8 +255029,8 @@
     "src/backend/gitstatus.rs": "787e9de1b0a20741cd796a46b17ae602b5b22247be574136990649e32534c0ad",
     "src/backend/gvfslist.rs": "04bb8cc3cd8b1a7af679b657f85d6674778767ff026c9a7d1e820346167b07c6",
     "src/backend/gvfsroot.rs": "35485a16b88f9e56cd1a8ebcbfcb1070d073314bedebf6fe1ee0b66d85a71795",
-    "src/backend/homerestore.rs": "663f6f31e51f53738d70bce0729fb0ab39dc7f6e2495e18dcdb850fb3fc0f53c",
-    "src/backend/hometrash.rs": "48c02749d77fef6c63f9704f2c94c71a3189d59a6ff5a64ff802a165b8d9c43c",
+    "src/backend/homerestore.rs": "fffa5740f965e5459ee8085000f6b814427cc910f47e84d66d6f728124cfaead",
+    "src/backend/hometrash.rs": "a1c1d34d898e9077144c9891ba7dc4e383c346050bd5bc2c9b3818a45aca096b",
     "src/backend/htmlcache.rs": "cf0dcc43f7cf26fcb4c109825e595c0aa2d5be4d574a2877de00d7d7e3f4df33",
     "src/backend/htmldeps.rs": "15dec66125c973827778c7e27c559bf7a24f56489f4039a7744eb504496060df",
     "src/backend/htmlrender.qml": "9cc7eb0ba657419b04f3b2993db447b2b302505cba98a8a4b669392d7ab12c85",
@@ -254977,7 +255094,7 @@
     "src/backend/metarow.rs": "7aa447b2e60755e1c6df3514b514b9bfbeba34b63fb5b1d41209ee6192a7ce22",
     "src/backend/metasort.rs": "b147824816ec8aa7b2428fba5d6d8a70ab6f338bc64f2b5218d548bb0850239c",
     "src/backend/mime.rs": "6db356f71fc26d01c3704ea243bb46c36e85ad65d609d77840b4b1ebddf9eb47",
-    "src/backend/mod.rs": "bfa3ff71776178af0832671c9066cad30f8cd9c861af2c91cba77f8c1b2abd27",
+    "src/backend/mod.rs": "7bae5135f73a93bda68868d7b9ea5d8e412cad7b71cb4db555219f51ae098f5c",
     "src/backend/model3d/amf.rs": "8213147933005346105ec28f5ceadabaa6a669db1ad2ceb3cf3ccdaf5e8a5505",
     "src/backend/model3d/bgcode.rs": "28f87b299f411af3d35f46852c8e618f52f77a1f1a25086fe3262c018af1892c",
     "src/backend/model3d/codecs.rs": "5efc5aa7b4e2053d238f2e541982ab048472333d7425683960757c70c4daad7c",
@@ -255003,7 +255120,8 @@
     "src/backend/model3dadmit.rs": "6b71a0309ef368f9881510a6df67d7b1dd2628b66c985f32526aeadcacdd85ad",
     "src/backend/model3dcache.rs": "3e7daeb007678ba7f7115d673eda718c2c2708dd0e8a96b727e05d13ca47d771",
     "src/backend/model3dreq.rs": "c151ec9106ca958dc34989930f1754259754abac440bde132369bb26d562b598",
-    "src/backend/mountinfo.rs": "1bc3a6e227a8fb965df98190d91f4e40965d2378f9c125c94a2906de7b1ca78d",
+    "src/backend/mountinfo.rs": "6a4591c5610a8bdabc1c6058d2d49d0137273c8768a6d3a9798dccb3e1b4282b",
+    "src/backend/mountinfo/topdir.rs": "e398050ef0877ade2c0cc25c81a695dfacb3a2f5d31f74aad3d3ac62ebd0a10d",
     "src/backend/movebatch.rs": "c824360e1913fea18951f79e0bde3af13840218d50d659e353ab3c3e6566aeef",
     "src/backend/nearby.rs": "fea7787215f1d6ebceedda2a1bf77f99212d0450ea716ef40b81c069c0b961db",
     "src/backend/nearbyjson.rs": "e187519391a97e5d01747d633d817b2dfc720a2c9306b1a47d591c7e3060c282",
@@ -255161,16 +255279,20 @@
     "src/backend/thumbworker.rs": "39e127b3788555c37ff1f6c015c24dfc56134da337d3c9e876a34edd4f0cf7c0",
     "src/backend/thumbwrite.rs": "615c6859b0e771a60c8a9f51656b183f422d598440a45c7388b2cb8d5d36ffac",
     "src/backend/timing.rs": "5a94332dff4d75f478acb922436ac2420ee8690e79b3610696f0e7183b7f74e3",
+    "src/backend/topdirtrash.rs": "b0acc90aa3d8fa4e5cf42bb2d3a2561035049765795ead3df56c055fd4f307d4",
+    "src/backend/topdirtrash/locations.rs": "9eaa39098397367715c5a4666d082e39dfa894fcaaee59febbe164f23c54558f",
+    "src/backend/topdirtrash/records.rs": "491a2d7f2d4a575bc51d4a08c007a4a72f04120a574d35f2f242104941471c0c",
     "src/backend/transferitem.rs": "c7e13c100c83409b646457b2691caa7f2561473c1190fd6e0a96a53c1e6c7f0d",
     "src/backend/transferstart.rs": "f4ed10d9b49f8cd9c83c6eff2963a10b00bc82e6a2390ef6e59f842717acdbb4",
-    "src/backend/trash.rs": "773955f0c978f8fd20c37244c11ff082d3416c572a2cb156eebc88662cc106b1",
-    "src/backend/trashbrowse.rs": "d8e62cbdd9e612a1c7fa5bb1d0bb8334acc47cd340a88ba97f8873a93f7d8ec1",
-    "src/backend/trashbrowse/details.rs": "3a96ced3090d8002c0d466e4cc6e1c0ba4629637ee093c6b942586a7f6802c65",
+    "src/backend/trash.rs": "8181882db991bcc78c0ec0408f3b9deb2789fa4de9e7615826899f8d75219291",
+    "src/backend/trashbrowse.rs": "c7e1f7bfe5046ce46e8c76420b916d742ae078a0a8ce83b0213ed2cf9a35a018",
+    "src/backend/trashbrowse/details.rs": "1215848d52b0ee3545cadc6341ab825a2d0535ec74d019873cf419bfc96a793b",
     "src/backend/trashbrowse/job.rs": "61687e953c36180e46dd21fa21bae4a830e76c84437422dcffa96dfadcdd8e2f",
     "src/backend/trashbrowse/restore.rs": "1c93b22f7ac2f93a5b9a70f5320ded8c4ec0d8ff7ea1ff8124cb1bdecb546bc0",
-    "src/backend/trashbrowse/sweep.rs": "27c7c2fd54f9908954f8f2ea8d269df9a0f21d71f7ffa6b20bb8f2e5b30436c1",
+    "src/backend/trashbrowse/sweep.rs": "f4674f549a1cbdab741aa2bc324400e937de5666dd55ba7043b5cca124d4bd3e",
+    "src/backend/trashbrowse/topdir.rs": "06168ca3ddad697cbafd77cf5df0520574d39fa3c04819d4f863e886434965dd",
     "src/backend/trashdate.rs": "a6312b012015592eedd2497a52af2d53bec49e58e5deb40327ae80ce75bbd8c1",
-    "src/backend/trashdelete.rs": "905a866b1f98e87064a410fa62187dcd532c9e184dc2eeb88124c94d9f6bfca4",
+    "src/backend/trashdelete.rs": "5596187035f4918deb6c9ffe3e026e5ed2b2d87d61856cbd7d766639b1c522f8",
     "src/backend/trashdelete/cancel.rs": "40ca4b37e9d0873594832957bb6e0b8db0f4f586128d6ff69cf8aceb3340cc25",
     "src/backend/trashdelete/deletetest.rs": "54dcc4855047a92d9c48829c321d246dff9a3971d4795617a214500b2ad8ecba",
     "src/backend/trashdelete/parents.rs": "bd955bbe82831383059637f8eeff457a8d0017861799b4c76cdff6c81c7667d1",
@@ -255808,7 +255930,7 @@
     "tools/flea-field-nav": "36bc42104edb84c4194b4b6d28c3e67d915a2a144692aaa49953981a4a5bdbf8",
     "tools/flea-field-search": "70ec859809b73cb1bf58fccb4129b05622023a0686991fe7370aafd8fe7805a6",
     "tools/flea-figure-bench": "60d312818e6af2fa0989d50275907d2a0f9e6019787caae93e8d8a4e440dc8e7",
-    "tools/flea-file-budget": "b8c43dd45dd3993e2b03c1a9631b041e159923b0417002ba901ee58ee8daeea0",
+    "tools/flea-file-budget": "6c0ce07a152c2f5894ac76aa2d581868edb211ea3ccbd04704e80ea16a7f9c1a",
     "tools/flea-filemanager1": "ebccc20a6b2be787dcf7e817d353a21dcca5ff57de184161f12e28ee5b0322e1",
     "tools/flea-first-paint": "6b9555b0a20b6d4bec057bd9c405823a1b742c14d27304b83a5a95d801ac5526",
     "tools/flea-framecap-build": "7c9433d4c4774f8810fd4e4c8ee92d0b5810dcbc7645231205a8155d557f5f2e",
@@ -256345,13 +256467,13 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "95cd6c24febb0334def49395d00f46ce3220ec7f",
-  "source_sha": "95cd6c24febb0334def49395d00f46ce3220ec7f",
+  "source_ref_sha": "447ac00f031996e61e76136cac4eb14f6c5b4846",
+  "source_sha": "447ac00f031996e61e76136cac4eb14f6c5b4846",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1377,
-      "missing_literal_candidates": 5785,
-      "source_files": 874
+      "missing_literal_candidates": 5798,
+      "source_files": 879
     },
     "generated/tooling": {
       "keys_with_occurrences": 157,
