@@ -20,8 +20,7 @@ pub(super) struct Rail {
     armed: Option<Instant>,
 }
 
-/// Each plugin's rows under its own title, empty when it names none; the rail producer merges titles and sets the
-/// untitled ones under PLUGINS (plugin::plugin_headings).
+/// Each plugin's rows under its own title, empty when it names none; plugin::plugin_headings merges and files them.
 pub(crate) fn sections(host: &Host) -> Vec<RailSection> {
     let mut sections = Vec::new();
     for p in host.plugins.iter().filter(|p| host.healthy(p)) {
