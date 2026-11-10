@@ -1,5 +1,7 @@
-use super::{DURATION, VIDEO};
-use flea::ui_logic_media_preview::{frame::Event, tonemap::Tonemap, transport::Transport};
+use super::{rotation::Rotation, DURATION, MAX_SIDE, VIDEO};
+use flea::ui_logic_media_preview::{
+    frame::Event, picture::decode_size, tonemap::Tonemap, transport::Transport,
+};
 
 /// What the loop knows about the open file.
 pub(super) struct State {
@@ -13,6 +15,7 @@ pub(super) struct State {
     pub(super) clip: (i64, i64),
     pub(super) box_size: (u32, u32),
     pub(super) size: (u32, u32),
+    pub(super) rotation: Rotation,
     pub(super) tonemap: Tonemap,
 }
 
@@ -28,6 +31,7 @@ impl State {
             seeking: None,
             clip: (0, 0),
             size: (0, 0),
+            rotation: Rotation::None,
             box_size: (0, 0),
             tonemap: Tonemap::default(),
         }
@@ -38,6 +42,22 @@ impl State {
             video: self.video,
             duration_ms: self.duration_ms,
         }
+    }
+
+    /// Fit upright dimensions so the wire bounds and the host's box apply after rotation.
+    pub(super) fn update_size(&mut self) {
+        let source = (
+            self.clip.0.clamp(0, MAX_SIDE) as u32,
+            self.clip.1.clamp(0, MAX_SIDE) as u32,
+        );
+        let (width, height) = self.rotation.dimensions(source);
+        self.size = decode_size(width, height, self.box_size.0, self.box_size.1);
+    }
+
+    /// A metadata angle that arrives after the clip size refits the upright picture at once.
+    pub(super) fn rotate(&mut self, degrees: i64) {
+        self.rotation = Rotation::from_degrees(degrees);
+        self.update_size();
     }
 
     pub(super) fn metadata(&mut self, property: u64, value: i64) -> Option<Event> {
