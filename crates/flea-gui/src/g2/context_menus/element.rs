@@ -63,7 +63,7 @@ impl MenuElement {
 
 pub(super) fn paint_mark(
     key: gpui::SharedString,
-    data: &'static [u8],
+    data: &[u8],
     bounds: Bounds<Pixels>,
     color: Hsla,
     window: &mut Window,
@@ -162,6 +162,14 @@ fn paint_lead(
                 window,
                 cx,
             ) => {}
+        Lead::Plugin(own) => paint_mark(
+            format!("flea-menu-plugin:{}", own.path).into(),
+            &own.svg,
+            slot(at, metrics.slot, metrics.slot, metrics),
+            mark,
+            window,
+            cx,
+        ),
         Lead::Icon(_) => {
             let (key, data) = glyphs::mark("app-window");
             paint_mark(
