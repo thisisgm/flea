@@ -340,7 +340,7 @@
   "device.send_running": "Tá seoladh ar %1 fós ar siúl. Bain triail eile as nuair a bheidh sé críochnaithe.",
   "device.action_running": "Tá gníomh ar %1 fós ar siúl. Bain triail eile as nuair a bheidh sé críochnaithe.",
   "device.system_drive": "Is é %1 tiomántán an chórais, agus ní dhífheistíonn Flea é riamh",
-  "device.system_volume": "Tá an fillteán seo ar imleabhar córais, agus ní dhífheistíonn Flea é riamh",
+  "device.system_volume": "Níl an fillteán seo ar thiomántán ar féidir le Flea é a dhíchur.",
   "device.no_volume": "Níl an fillteán seo ar thiomántán ar féidir le Flea é a dhíchur.",
   "device.safe": "Díchuireadh %1. Tá sé sábháilte é a dhíphlugáil.",
   "device.safe_image": "Díchuireadh %1.",

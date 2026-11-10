@@ -227,7 +227,7 @@
   "device.still_unmounting": "%1 hali fayl tizimidan ajratilmoqda; natijasini kuting",
   "device.still_unmounting_try_again": "%1 hali fayl tizimidan ajratilmoqda. Tugagach qayta urining",
   "device.system_drive": "%1 tizim diski, Flea uni hech qachon fayl tizimidan ajratmaydi",
-  "device.system_volume": "Bu jild tizim tomida, Flea uni hech qachon fayl tizimidan ajratmaydi",
+  "device.system_volume": "Bu jild Flea chiqara oladigan diskda emas.",
   "device.transfer_using": "%1 ni fayl tizimidan ajratib boʻlmadi. Undan fayl uzatish amali foydalanayotgan boʻlishi mumkin.",
   "device.copy_running": "%1 da nusxalash hali davom etmoqda. Tugagach qayta urining.",
   "device.move_running": "%1 da koʻchirish hali davom etmoqda. Tugagach qayta urining.",

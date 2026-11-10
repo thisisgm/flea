@@ -70,6 +70,17 @@ impl Shell {
                 if path.is_some_and(|path| path != destination) {
                     return false;
                 }
+                // A dot name leaves the listing while hidden files are off, so the footer says where the row went.
+                let hidden = self.panes[side]
+                    .as_ref()
+                    .is_some_and(|host| !host.nav.folders.borrow().hidden);
+                if hidden && leaf(&destination).starts_with('.') {
+                    let said = self
+                        .locale
+                        .catalog
+                        .tr_args("path.filtered", &[leaf(&destination)]);
+                    self.rename_say(said, false, cx);
+                }
                 self.rename_landed(side, Some(destination), window, cx);
                 true
             }

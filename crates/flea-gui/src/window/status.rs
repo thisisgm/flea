@@ -180,16 +180,15 @@ impl Shell {
         let free = fs
             .facts
             .as_ref()
-            .map(|facts| catalog.locale().format_size(facts.free));
+            .and_then(|facts| facts.free)
+            .map(|free| catalog.locale().format_size(free));
+        let name = fs.facts.as_ref().map_or_else(String::new, |facts| {
+            status_host::place_name(catalog, &facts.name, &facts.class, free.is_some())
+        });
         let filesystem = if recent {
             status_host::disk(catalog, "", None, false)
         } else {
-            status_host::disk(
-                catalog,
-                fs.facts.as_ref().map_or("", |facts| facts.name.as_str()),
-                free.as_deref(),
-                !fs.answered,
-            )
+            status_host::disk(catalog, &name, free.as_deref(), !fs.answered)
         };
         // HIG search.png: the landed receipt stands before the disk facts while search lives.
         let (path, state_message, retry, search) = if in_trash || in_flash {
@@ -268,8 +267,10 @@ impl Shell {
     }
 
     pub(crate) fn status_escape(&mut self, cx: &mut Context<Self>) -> bool {
+        // Focus.js:187-190: a standing filter or search takes Escape before the status line acknowledges an error.
         if self.panes[self.focus_side].as_ref().is_some_and(|host| {
-            host.pane.state.search
+            host.filter.owner.up()
+                || host.pane.state.search
                 || host.pane.swap.session.open
                 || !host.pane.state.query.is_empty()
         }) {

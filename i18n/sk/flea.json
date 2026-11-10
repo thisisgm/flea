@@ -237,7 +237,7 @@
   "device.still_unmounting": "%1 sa ešte odpája. Počkajte na výsledok",
   "device.still_unmounting_try_again": "%1 sa ešte odpája. Skúste to znova po dokončení",
   "device.system_drive": "%1 je systémová jednotka, ktorú Flea nikdy neodpája",
-  "device.system_volume": "Tento priečinok je na systémovom zväzku, ktorý Flea nikdy neodpája",
+  "device.system_volume": "Tento priečinok nie je na jednotke, ktorú Flea dokáže vysunúť.",
   "device.transfer_using": "%1 sa nepodarilo odpojiť. Prenos ho možno ešte používa.",
   "device.copy_running": "Na %1 ešte prebieha kopírovanie. Skúste to znova po dokončení.",
   "device.move_running": "Na %1 ešte prebieha presun. Skúste to znova po dokončení.",

@@ -227,7 +227,7 @@
   "device.still_unmounting": "Avmonterer fortsatt %1. Vent på resultatet",
   "device.still_unmounting_try_again": "%1 avmonteres fortsatt. Prøv igjen når den er ferdig",
   "device.system_drive": "%1 er systemdisken, som Flea aldri avmonterer",
-  "device.system_volume": "Denne mappen ligger på et systemvolum, som Flea aldri avmonterer",
+  "device.system_volume": "Denne mappen ligger ikke på en disk Flea kan løse ut.",
   "device.transfer_using": "Kunne ikke avmontere %1. En overføring kan fortsatt bruke den.",
   "device.copy_running": "En kopiering på %1 pågår fortsatt. Prøv igjen når den er ferdig.",
   "device.move_running": "En flytting på %1 pågår fortsatt. Prøv igjen når den er ferdig.",

@@ -172,8 +172,13 @@ impl Operations {
             }
             self.transfer_receipt = undo.map(|_| Receipt::new(catalog, &self.preset, &line));
             self.sticky.clear();
-            self.say(line.clone(), error);
+            // A transfer that failed anywhere keeps its errors: its receipt waits behind them.
             if error {
+                self.say(line.clone(), true);
+            }
+            if done.failed > 0 {
+                self.say_behind(line);
+            } else {
                 self.say(line, false);
             }
         }

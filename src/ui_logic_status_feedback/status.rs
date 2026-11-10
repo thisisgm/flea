@@ -98,9 +98,9 @@ impl Hint {
         }
     }
 
-    /// Whether the notice stands until replaced or withdrawn: an undo target, or a carry that still rides.
-    pub fn stands(self, preset: &str) -> bool {
-        self == Self::Carry || (self != Self::TransientUndo && self.has_undo(preset))
+    /// Whether the notice stands until replaced or withdrawn: only a carry that still rides; an undo receipt leaves on its clock and z still undoes.
+    pub fn stands(self) -> bool {
+        self == Self::Carry
     }
 
     /// Whether the hint ends in the undo key, which makes that key a click target.

@@ -130,7 +130,11 @@ pub fn name_for(f_type: i64) -> String {
 // A system mountpoint holding the dir adds "system":true, sent only then so every other line reads as it always did.
 pub fn fsinfo_line(info: &Option<Info>, path: &str, class: &str, tagable: bool, system: bool) -> String {
     let mut line = match info {
-        Some(i) => format!(r#"{{"t":"fsinfo","fs":"{}","free":{},"path":"{}","class":"{}","tagable":{}}}"#, escape(&i.name), i.free, escape(path), escape(class), tagable),
+        // A zero-block statfs, as gvfsd-fuse answers for a share with no size, sends free -1: unknown room, never a full drive.
+        Some(i) => {
+            let free = if i.blocks == 0 { "-1".to_string() } else { i.free.to_string() };
+            format!(r#"{{"t":"fsinfo","fs":"{}","free":{},"path":"{}","class":"{}","tagable":{}}}"#, escape(&i.name), free, escape(path), escape(class), tagable)
+        }
         // An unreadable path answers an empty name, so the client draws nothing rather than a wrong number.
         None => format!(r#"{{"t":"fsinfo","fs":"","free":0,"path":"{}","class":"{}","tagable":{}}}"#, escape(path), escape(class), tagable),
     };
@@ -190,6 +194,12 @@ mod tests {
     fn the_line_carries_the_name_the_free_bytes_and_the_directory_they_are_of() {
         let line = fsinfo_line(&Some(Info { name: "btrfs".to_string(), free: 442_000_000_000, blocks: 100 }), "/home/gm", "", true, false);
         assert_eq!(line, r#"{"t":"fsinfo","fs":"btrfs","free":442000000000,"path":"/home/gm","class":"","tagable":true}"#);
+    }
+
+    #[test]
+    fn a_filesystem_with_no_blocks_sends_unknown_room_rather_than_zero() {
+        let line = fsinfo_line(&Some(Info { name: "fuse".to_string(), free: 0, blocks: 0 }), "/run/user/1000/gvfs/dav:host=h", "network", false, false);
+        assert_eq!(line, r#"{"t":"fsinfo","fs":"fuse","free":-1,"path":"/run/user/1000/gvfs/dav:host=h","class":"network","tagable":false}"#);
     }
 
     #[test]

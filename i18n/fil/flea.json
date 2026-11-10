@@ -227,7 +227,7 @@
   "device.still_unmounting": "Ina-unmount pa ang %1; hintayin ang resulta nito",
   "device.still_unmounting_try_again": "Ina-unmount pa ang %1. Subukan muli kapag tapos na",
   "device.system_drive": "Ang %1 ang system drive, na hindi kailanman ina-unmount ng Flea",
-  "device.system_volume": "Nasa system volume ang folder na ito, na hindi kailanman ina-unmount ng Flea",
+  "device.system_volume": "Wala sa drive na kayang i-eject ng Flea ang folder na ito.",
   "device.transfer_using": "Hindi ma-unmount ang %1. Maaaring ginagamit pa ito ng paglilipat.",
   "device.copy_running": "May kopya pang tumatakbo sa %1. Subukan muli kapag tapos na.",
   "device.move_running": "May paglipat pang tumatakbo sa %1. Subukan muli kapag tapos na.",

@@ -227,7 +227,7 @@
   "device.still_unmounting": "%1 hâlâ ayrılıyor; sonucu bekleyin",
   "device.still_unmounting_try_again": "%1 hâlâ ayrılıyor. Bitince tekrar deneyin",
   "device.system_drive": "%1 sistem sürücüsüdür; Flea bunu asla ayırmaz",
-  "device.system_volume": "Bu klasör bir sistem birimindedir; Flea bunu asla ayırmaz",
+  "device.system_volume": "Bu klasör, Flea uygulamasının çıkarabileceği bir sürücüde değil.",
   "device.transfer_using": "%1 ayrılamadı. Bir aktarım hâlâ onu kullanıyor olabilir.",
   "device.copy_running": "%1 üzerinde bir kopyalama hâlâ sürüyor. Bitince tekrar deneyin.",
   "device.move_running": "%1 üzerinde bir taşıma hâlâ sürüyor. Bitince tekrar deneyin.",

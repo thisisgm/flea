@@ -247,7 +247,7 @@
   "device.still_unmounting": "Odklapljanje %1 še poteka; počakajte na rezultat",
   "device.still_unmounting_try_again": "Odklapljanje %1 še poteka. Poskusite znova, ko se konča",
   "device.system_drive": "%1 je sistemski pogon, ki ga Flea nikoli ne odklopi",
-  "device.system_volume": "Ta mapa je na sistemskem nosilcu, ki ga Flea nikoli ne odklopi",
+  "device.system_volume": "Ta mapa ni na pogonu, ki ga Flea lahko izvrže.",
   "device.transfer_using": "%1 ni bilo mogoče odklopiti. Morda ga še uporablja prenos.",
   "device.copy_running": "Kopiranje na %1 še poteka. Poskusite znova, ko se konča.",
   "device.move_running": "Premikanje na %1 še poteka. Poskusite znova, ko se konča.",

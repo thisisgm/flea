@@ -1,5 +1,5 @@
 use super::english;
-use crate::ui_logic_status_feedback::messages::{Escape, Messages, MESSAGE_MS};
+use crate::ui_logic_status_feedback::messages::{Escape, Messages, ERROR_MS, MESSAGE_MS};
 use crate::ui_logic_status_feedback::status::{Hint, Note};
 
 #[test]
@@ -46,11 +46,14 @@ fn a_stale_withdraw_keeps_the_later_notice() {
     bar.say("Later notice.", false, "", Hint::None, 0);
     bar.withdraw(stale, 0);
     assert_eq!(bar.notice(), "Later notice.");
-    assert_eq!(bar.errors().len(), 1);
+    assert!(
+        bar.errors().is_empty(),
+        "the newer notice replaced the error"
+    );
 }
 
 #[test]
-fn a_notice_times_out_but_one_carrying_undo_stands() {
+fn a_notice_times_out_and_so_does_one_carrying_undo() {
     let mut bar = Messages::new("default");
     bar.say("Renamed to notes.txt", false, "", Hint::None, 100);
     assert_eq!(bar.next_deadline(), Some(100 + MESSAGE_MS));
@@ -58,7 +61,7 @@ fn a_notice_times_out_but_one_carrying_undo_stands() {
     assert!(bar.tick(100 + MESSAGE_MS).notice_cleared);
     assert_eq!((bar.notice(), bar.next_deadline()), ("", None));
     bar.say("Moved 4 items to Trash", false, "", Hint::Undo, 0);
-    assert_eq!(bar.next_deadline(), None);
+    assert_eq!(bar.next_deadline(), Some(MESSAGE_MS));
     bar.say(
         "Copied 5 items",
         false,
@@ -66,17 +69,20 @@ fn a_notice_times_out_but_one_carrying_undo_stands() {
         Hint::Note(Note::Background, true),
         0,
     );
-    assert_eq!(bar.next_deadline(), None);
+    assert_eq!(bar.next_deadline(), Some(MESSAGE_MS));
+    assert!(bar.tick(MESSAGE_MS).notice_cleared);
+    bar.say("Carrying 3 items", false, "", Hint::Carry, 0);
+    assert_eq!(bar.next_deadline(), None, "a carry stands while it rides");
 }
 
 #[test]
 fn a_notice_hidden_behind_an_error_keeps_its_whole_time_after_acknowledgement() {
     let mut bar = Messages::new("default");
-    bar.say("Copy failed.", true, "", Hint::None, 0);
-    bar.say("Renamed to notes.txt", false, "", Hint::None, 10);
-    assert_eq!(bar.next_deadline(), None);
-    assert_eq!(bar.escape(true, 9000), Escape::Dismissed);
-    assert_eq!(bar.next_deadline(), Some(9000 + MESSAGE_MS));
+    bar.say("Renamed to notes.txt", false, "", Hint::None, 0);
+    bar.say("Copy failed.", true, "", Hint::None, 10);
+    assert_eq!(bar.next_deadline(), Some(10 + ERROR_MS));
+    assert_eq!(bar.escape(true, 3000), Escape::Dismissed);
+    assert_eq!(bar.next_deadline(), Some(3000 + MESSAGE_MS));
     assert_eq!(bar.shown().text, "Renamed to notes.txt");
 }
 

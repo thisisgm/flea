@@ -237,7 +237,7 @@
   "device.still_unmounting": "%1 este încă în curs de demontare; așteaptă rezultatul",
   "device.still_unmounting_try_again": "%1 este încă în curs de demontare. Încearcă din nou după terminare",
   "device.system_drive": "%1 este unitatea de sistem, pe care Flea nu o demontează niciodată",
-  "device.system_volume": "Acest dosar se află pe un volum de sistem, pe care Flea nu îl demontează niciodată",
+  "device.system_volume": "Acest dosar nu se află pe o unitate pe care Flea o poate ejecta.",
   "device.transfer_using": "%1 nu a putut fi demontat. Este posibil să fie încă folosit de un transfer.",
   "device.copy_running": "O copiere pe %1 este încă în curs. Încearcă din nou după terminare.",
   "device.move_running": "O mutare pe %1 este încă în curs. Încearcă din nou după terminare.",

@@ -237,7 +237,7 @@
   "device.still_unmounting": "Démontage de %1 en cours ; attendez le résultat",
   "device.still_unmounting_try_again": "Le démontage de %1 est encore en cours. Réessayez une fois terminé",
   "device.system_drive": "%1 est le disque système, que Flea ne démonte jamais",
-  "device.system_volume": "Ce dossier est sur un volume système, que Flea ne démonte jamais",
+  "device.system_volume": "Ce dossier ne se trouve pas sur un disque que Flea peut éjecter.",
   "device.transfer_using": "Impossible de démonter %1. Un transfert l’utilise peut-être encore.",
   "device.copy_running": "Une copie sur %1 est encore en cours. Réessayez une fois terminée.",
   "device.move_running": "Un déplacement sur %1 est encore en cours. Réessayez une fois terminé.",

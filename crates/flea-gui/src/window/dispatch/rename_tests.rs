@@ -1,4 +1,6 @@
 //! F2, every preset's rename key, the editor's commit, refusals and replies, an outside click, and the bulk card, on the production Shell.
+#[path = "rename_hidden_tests.rs"]
+mod hidden;
 #[path = "rename_mouse_tests.rs"]
 mod mouse;
 use super::test_shell::{keystroke, land, lists, open, row, set_cursor};

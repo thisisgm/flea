@@ -9,6 +9,7 @@ mod confirm;
 mod extract_job;
 mod heads;
 mod jobs;
+mod jobs_retry;
 mod lines;
 mod lines_claim;
 mod lines_more;

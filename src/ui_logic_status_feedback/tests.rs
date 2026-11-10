@@ -1,8 +1,10 @@
 //! Ports of tests/js/errors.js, status.js, statusfix.js and motion.js, tests/emptybeats.qml and the message half of tests/statusbar-hint.qml.
+mod capitalised;
 mod empty;
 mod errors;
 mod lane;
 mod locale;
+mod message_life;
 mod messages;
 mod motion;
 mod status;

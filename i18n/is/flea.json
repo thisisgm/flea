@@ -227,7 +227,7 @@
   "device.still_unmounting": "Enn er verið að aftengja %1; bíddu eftir niðurstöðunni",
   "device.still_unmounting_try_again": "%1 er enn að aftengjast. Reyndu aftur þegar því lýkur",
   "device.system_drive": "%1 er kerfisdrifið, sem Flea aftengir aldrei",
-  "device.system_volume": "Þessi mappa er á kerfisdiski, sem Flea aftengir aldrei",
+  "device.system_volume": "Þessi mappa er ekki á drifi sem Flea getur kastað út.",
   "device.transfer_using": "Ekki tókst að aftengja %1. Flutningur gæti enn verið að nota það.",
   "device.copy_running": "Afritun á %1 er enn í gangi. Reyndu aftur þegar henni lýkur.",
   "device.move_running": "Flutningur á %1 er enn í gangi. Reyndu aftur þegar honum lýkur.",

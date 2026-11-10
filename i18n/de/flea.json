@@ -316,7 +316,7 @@
   "device.send_running": "Ein Sendevorgang auf %1 läuft noch. Versuche es nach Abschluss erneut.",
   "device.action_running": "Eine Aktion auf %1 läuft noch. Versuche es nach Abschluss erneut.",
   "device.system_drive": "%1 ist das Systemlaufwerk. Flea hängt es niemals aus",
-  "device.system_volume": "Dieser Ordner liegt auf einem Systemvolume. Flea hängt es niemals aus",
+  "device.system_volume": "Dieser Ordner liegt auf keinem Laufwerk, das Flea auswerfen kann.",
   "device.no_volume": "Dieser Ordner liegt auf keinem Laufwerk, das Flea auswerfen kann.",
   "device.safe": "%1 ausgeworfen. Das Laufwerk kann sicher entfernt werden.",
   "device.safe_image": "%1 ausgeworfen.",

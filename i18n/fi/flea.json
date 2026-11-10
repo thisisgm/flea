@@ -227,7 +227,7 @@
   "device.still_unmounting": "Kohteen %1 liitoksen irrottaminen on kesken. Odota tulosta",
   "device.still_unmounting_try_again": "Kohteen %1 liitosta irrotetaan vielä. Yritä uudelleen sen valmistuttua",
   "device.system_drive": "%1 on järjestelmäasema, jonka liitosta Flea ei koskaan irrota",
-  "device.system_volume": "Kansio on järjestelmätaltiolla, jonka liitosta Flea ei koskaan irrota",
+  "device.system_volume": "Kansio ei ole asemalla, jonka Flea voi poistaa turvallisesti.",
   "device.transfer_using": "Kohteen %1 liitosta ei voitu irrottaa. Tiedostosiirto saattaa yhä käyttää sitä.",
   "device.copy_running": "Kopiointi kohteessa %1 on vielä käynnissä. Yritä uudelleen sen valmistuttua.",
   "device.move_running": "Siirto kohteessa %1 on vielä käynnissä. Yritä uudelleen sen valmistuttua.",

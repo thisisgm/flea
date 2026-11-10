@@ -153,6 +153,10 @@ impl Shell {
                 }
                 if let Some(side) = self.network_side(*origin) {
                     let text = crate::g2::device_rail::words::say(&self.locale.catalog, note);
+                    // A failed connect, the card's own included, is retired by the next connect on this side as a Retry's is.
+                    if role == SayRole::Error && note.key != "network.unmount_failed" {
+                        self.network_connect_error(side, &text);
+                    }
                     self.network_say(side, text, role == SayRole::Error, cx);
                 }
             }

@@ -237,7 +237,7 @@
   "device.still_unmounting": "Smontaggio di %1 in corso; attendi il risultato",
   "device.still_unmounting_try_again": "Smontaggio di %1 in corso. Riprova al termine",
   "device.system_drive": "%1 è l'unità di sistema, che Flea non smonta mai",
-  "device.system_volume": "Questa cartella è su un volume di sistema, che Flea non smonta mai",
+  "device.system_volume": "Questa cartella non è su un'unità che Flea può espellere.",
   "device.transfer_using": "Impossibile smontare %1. Un trasferimento potrebbe ancora usarlo.",
   "device.copy_running": "Una copia su %1 è ancora in corso. Riprova al termine.",
   "device.move_running": "Uno spostamento su %1 è ancora in corso. Riprova al termine.",

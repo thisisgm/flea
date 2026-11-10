@@ -874,7 +874,7 @@ being deduplicated against the job that was just dropped.
 `{"c":"fsinfo"}`
 
 Answers one `fsinfo` line for the directory the current listing came from:
-`{"t":"fsinfo","fs":"<string>","free":<uint>,"path":"<string>","class":"<string>","tagable":<bool>}`.
+`{"t":"fsinfo","fs":"<string>","free":<int>,"path":"<string>","class":"<string>","tagable":<bool>}`.
 `fs` is the filesystem's own name and `free` its bytes available to an unprivileged
 process; `path` is the directory they are of, so a client that has since moved can
 tell they describe somewhere else. `tagable` is that directory's once-per-change probe
@@ -886,7 +886,10 @@ the field reads `true` until it lands, and a refusal sends the line again with `
 beside this line and never per row: network is cifs, smb3, nfs, sshfs, rclone, 9p,
 ceph and any gvfs FUSE share, phone is gvfs mtp, gphoto2 and afc, and usb is a block
 device whose sysfs path runs through USB or whose removable flag is 1. An unreadable
-path answers an empty `fs` with a free of 0 rather than a wrong number.
+path answers an empty `fs` with a free of 0 rather than a wrong number, and a client draws no free
+figure for an empty `fs`. A filesystem whose statfs reports no blocks, as gvfsd-fuse does for a share
+with no size, keeps its `fs` and sends a free of -1, the only negative value: unknown room rather than
+a full drive.
 A local directory held by a system mountpoint adds `"system":true` after `class`, and no other line carries the key.
 The mounts are matched by the directory's own device number in `/proc/self/mountinfo`, so a symlink,
 a bind mount or a second mountpoint of one volume answers as the volume does, and a mountpoint counts as a

@@ -1,14 +1,17 @@
 //! One window's message service: notices, the error queue, an arm's prompt and activities, driven by a caller's millisecond clock.
 use super::status::{
-    activity_changed, arm_live, cancel_activity, errors_at, notice_shown, transient_of, with_error,
-    Activity, Arm, ErrorEntry, Hint, Shown, Slot,
+    activity_changed, arm_live, cancel_activity, errors_at, transient_of, with_error, Activity,
+    Arm, ErrorEntry, Hint, Shown, Slot,
 };
 mod arm;
+mod clock;
 mod line;
 pub use line::Line;
 
 /// How long a plain notice stands before it leaves on its own.
 pub const MESSAGE_MS: u64 = 4000;
+/// How long a drawn error stands before it leaves on its own: twice a notice, since an error takes longer to read.
+pub const ERROR_MS: u64 = 2 * MESSAGE_MS;
 
 /// What escape did to the strip.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -37,8 +40,9 @@ pub struct Messages {
     notice_hint: Hint,
     notice_serial: u64,
     notice_until: Option<u64>,
-    /// An explanation the user's own key asked for, drawn over the standing errors until it leaves.
-    notice_first: bool,
+    /// The error the error clock runs for while it is drawn, and when that clock ends.
+    error_drawn: Option<ErrorEntry>,
+    error_until: Option<u64>,
     prompt: String,
     arm: Option<Arm>,
     arm_until: Option<u64>,
@@ -94,9 +98,6 @@ impl Messages {
     }
 
     pub fn shown(&self) -> Shown {
-        if self.notice_first && !self.notice.is_empty() && !self.arm_live() {
-            return transient_of(&[], &self.notice, "", false);
-        }
         transient_of(&self.errors, &self.notice, &self.prompt, self.arm_live())
     }
 
@@ -156,22 +157,26 @@ impl Messages {
         }
     }
 
-    /// Completion notices cannot acknowledge a failure; each error waits for its own dismissal.
+    /// Errors queue behind each other, each drawn for its own time; a newer notice replaces every standing error.
     pub fn say(&mut self, text: &str, error: bool, detail: &str, hint: Hint, now: u64) {
         if text.is_empty() {
             self.dismiss(now);
             return;
         }
-        self.notice_first = false;
         if error {
             with_error(&mut self.errors, text, detail, hint, None);
             self.follow(now);
         } else {
-            self.notice = text.into();
-            self.notice_hint = hint;
-            self.notice_serial += 1;
-            self.sync_notice_timer(now);
+            self.errors.clear();
+            self.set_notice(text, hint, now);
         }
+    }
+
+    fn set_notice(&mut self, text: &str, hint: Hint, now: u64) {
+        self.notice = text.into();
+        self.notice_hint = hint;
+        self.notice_serial += 1;
+        self.sync_notice_timer(now);
     }
 
     /// An operation line that already ends in the undo advice: the advice leaves the sentence for its own timed target, as Status.js hintOf splits it (EY-360).
@@ -191,16 +196,30 @@ impl Messages {
         self.say(&text, error, detail, hint, now);
     }
 
-    /// Why a key did nothing when nothing failed: a plain notice that stands over the errors until dismissed or expired.
+    /// A failed operation's own receipt: split like any receipt, but it waits behind that operation's errors instead of replacing them.
+    pub fn say_receipt_behind(&mut self, catalog: &crate::i18n::I18n, text: &str, now: u64) {
+        if !text.is_empty() {
+            let (text, hint) = super::status::split_undo(text, catalog, &self.preset);
+            self.set_notice(&text, hint, now);
+        }
+    }
+
+    /// Why a key did nothing when nothing failed: a plain notice, newer than any standing error.
     pub fn explain(&mut self, text: &str, hint: Hint, now: u64) {
         self.say(text, false, "", hint, now);
-        self.notice_first = !text.is_empty();
-        self.follow(now);
     }
 
     /// A refusal that belongs to the place it was raised in, such as a location with no Trash.
     pub fn say_placed(&mut self, text: &str, hint: Hint, now: u64) {
         let place = self.path.clone();
+        // Raised again where it already stands, it takes its whole time again.
+        if self
+            .errors
+            .first()
+            .is_some_and(|head| head.text == text && head.place == place)
+        {
+            self.error_drawn = None;
+        }
         with_error(&mut self.errors, text, "", hint, Some(&place));
         self.follow(now);
     }
@@ -236,6 +255,7 @@ impl Messages {
     pub fn dismiss(&mut self, now: u64) {
         if self.shown().is_error {
             self.errors.remove(0);
+            self.error_drawn = None;
         } else {
             self.clear_notice();
         }
@@ -330,49 +350,5 @@ impl Messages {
             Some(id) => Escape::Cancel(id),
             None => Escape::Cancelling,
         }
-    }
-
-    /// Restarts the notice's whole time, or stops it while the notice is hidden or carries undo.
-    fn sync_notice_timer(&mut self, now: u64) {
-        let shown = self.shown();
-        let slot = self.slot(&shown);
-        let visible = notice_shown(&slot);
-        self.edges = (slot.transient_is_error, slot.sticky_here, slot.searching);
-        self.notice_until =
-            (!self.notice.is_empty() && visible && !self.notice_hint.stands(&self.preset))
-                .then_some(now + MESSAGE_MS);
-    }
-
-    /// Any other change touches the clock only when an edge flips; a cleared notice needs no wake.
-    fn follow(&mut self, now: u64) {
-        let shown = self.shown();
-        let slot = self.slot(&shown);
-        let edges = (slot.transient_is_error, slot.sticky_here, slot.searching);
-        if edges != self.edges {
-            self.sync_notice_timer(now);
-        } else if self.notice.is_empty() {
-            self.notice_until = None;
-        }
-    }
-
-    /// The next instant a timer must wake the strip, None at rest.
-    pub fn next_deadline(&self) -> Option<u64> {
-        match (self.notice_until, self.arm_until) {
-            (Some(a), Some(b)) => Some(a.min(b)),
-            (a, b) => a.or(b),
-        }
-    }
-
-    pub fn tick(&mut self, now: u64) -> Tick {
-        let mut tick = Tick::default();
-        if self.notice_until.is_some_and(|until| now >= until) {
-            self.clear_notice();
-            self.notice_until = None;
-            tick.notice_cleared = true;
-        }
-        if self.arm_until.is_some_and(|until| now >= until) {
-            tick.arm_lost = self.lose_arm(now);
-        }
-        tick
     }
 }

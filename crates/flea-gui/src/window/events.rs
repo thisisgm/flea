@@ -252,8 +252,11 @@ impl Shell {
                     || (operation == "scan"
                         && listed
                         && flea::ui_logic_status_feedback::errors::denied(&operation, &message));
-                let shown = flea::bytename::display(path.rsplit('/').next().unwrap_or_default());
-                let named = if this_folder { "" } else { &*shown };
+                let named = if this_folder {
+                    String::new()
+                } else {
+                    crate::path::crumbs::failed_name(&path, &self.chrome.aliases)
+                };
                 let ended = host
                     .pane
                     .fail(&operation, &path, &message, mode, host.pane.now());
@@ -272,11 +275,11 @@ impl Shell {
                 self.run_navigation(side, window, cx);
                 if !ended {
                     if !matches!(operation.as_str(), "scan" | "list" | "window") || current {
-                        self.status_refused(&operation, &message, named, cx);
+                        self.status_refused(&operation, &message, &named, cx);
                     }
                     return;
                 }
-                self.status_refused(&operation, &message, named, cx);
+                self.status_refused(&operation, &message, &named, cx);
             }
             BackendEvent::ReloadChanged(changed) => {
                 host.nav.reload_changed = Some(changed);

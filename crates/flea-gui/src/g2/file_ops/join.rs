@@ -225,6 +225,7 @@ impl Shell {
             text: message.into(),
             error: true,
             detail: String::new(),
+            behind: false,
         });
         if let Some(view) = self.operations.views[side].clone() {
             view.update(cx, |overlay, cx| {
@@ -376,6 +377,7 @@ fn disconnect(overlay: &mut Overlay, cx: &mut Context<Overlay>) {
         text: overlay.catalog.tr("window.backend_stopped"),
         error: true,
         detail: String::new(),
+        behind: false,
     });
     overlay.model.outbox.clear();
     for job in &mut overlay.model.jobs.rows {
