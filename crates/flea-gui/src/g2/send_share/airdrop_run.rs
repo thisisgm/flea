@@ -1,5 +1,5 @@
 //! The window's owly runs as host processes: doctor, radio, receiver and browse, and the look a second while the radio is up.
-use super::airdrop::Proc;
+use super::airdrop::{Proc, Radio};
 use super::airdrop_shared::Seen;
 use super::join::now_ms;
 use crate::state::Shell;
@@ -171,17 +171,18 @@ impl Shell {
         .detach();
     }
 
-    // The machine's radio is read off the window's thread after the window's earlier asks; None when a Receiving choice came meanwhile.
+    // The machine's radio is read off the window's thread after its earlier asks, and with `claim` a look that finds no radio up takes the machine's lock; None when a Receiving choice came meanwhile.
     pub(super) fn airdrop_probe(
         &mut self,
         keep: bool,
+        claim: bool,
         window: &mut Window,
         cx: &mut Context<Self>,
         then: impl FnOnce(&mut Self, Option<&Seen>, &mut Window, &mut Context<Self>) + 'static,
     ) {
         let air = &mut self.menu.providers.airdrop;
         let (done, next) = async_channel::bounded::<()>(1);
-        let (probe, asks, before) = (air.shared.probe(), air.asks, air.io.replace(next));
+        let (probe, asks, before) = (air.shared.probe(), air.asks, air.shared.io.replace(next));
         let (unwritten, (looked, seen)) =
             (keep.then(|| air.shared.hold()), async_channel::bounded(1));
         // The whole chain runs on the background executor, so a quit that ends the event loop never holds it up.
@@ -194,20 +195,47 @@ impl Shell {
                     probe.keep();
                 }
                 drop(unwritten);
-                let _ = looked.try_send(probe.seen());
+                let seen = probe.seen();
+                let lock = (claim && seen.radio == Radio::Off)
+                    .then(|| probe.claim())
+                    .flatten();
+                let _ = looked.try_send((seen, lock));
                 drop(done);
             })
             .detach();
         cx.spawn_in(window, async move |this, cx| {
-            let Ok(seen) = seen.recv().await else {
+            let Ok((seen, lock)) = seen.recv().await else {
                 return;
             };
             let _ = this.update_in(cx, |shell, window, cx| {
-                let fresh = shell.menu.providers.airdrop.asks == asks;
+                let air = &mut shell.menu.providers.airdrop;
+                air.shared.offer(lock);
+                let fresh = air.asks == asks;
                 then(shell, fresh.then_some(&seen), window, cx);
+                // A lock no step took goes back here, after the window's earlier writes.
+                shell.airdrop_write(cx);
             });
         })
         .detach();
+    }
+
+    // The machine's state this window changed is written off its thread, after its earlier looks, asks and writes.
+    pub(super) fn airdrop_write(&mut self, cx: &mut Context<Self>) {
+        let shared = &mut self.menu.providers.airdrop.shared;
+        let Some((dir, writes)) = shared.writes() else {
+            return;
+        };
+        let (done, next) = async_channel::bounded::<()>(1);
+        let before = shared.io.replace(next);
+        cx.background_executor()
+            .spawn(async move {
+                if let Some(before) = before {
+                    let _ = before.recv().await;
+                }
+                writes.into_iter().for_each(|write| write.run(&dir));
+                drop(done);
+            })
+            .detach();
     }
 
     // A look that a Receiving choice overtook is taken again, so what it shows is never older than that choice.
@@ -218,6 +246,7 @@ impl Shell {
         then: impl FnOnce(&mut Self, &Seen, &mut Window, &mut Context<Self>) + 'static,
     ) {
         self.airdrop_probe(
+            false,
             false,
             window,
             cx,
@@ -231,8 +260,11 @@ impl Shell {
     pub(super) fn airdrop_ask_stop(&mut self, cx: &mut Context<Self>) {
         let air = &mut self.menu.providers.airdrop;
         let (done, next) = async_channel::bounded::<()>(1);
-        let (probe, before, unwritten) =
-            (air.shared.probe(), air.io.replace(next), air.shared.hold());
+        let (probe, before, unwritten) = (
+            air.shared.probe(),
+            air.shared.io.replace(next),
+            air.shared.hold(),
+        );
         // Detached, so a stop asked just before the window closes is still written.
         cx.background_executor()
             .spawn(async move {
@@ -255,7 +287,10 @@ impl Shell {
             cx.background_executor().timer(WATCH).await;
             let (done, going) = async_channel::bounded(1);
             let asked = this.update_in(cx, |shell, window, cx| {
-                shell.airdrop_probe(false, window, cx, move |shell, seen, window, cx| {
+                // A Receiving On waiting for the radio to come free has this look take the lock.
+                let air = &shell.menu.providers.airdrop;
+                let claim = air.waits() && air.claims();
+                shell.airdrop_probe(false, claim, window, cx, move |shell, seen, window, cx| {
                     // A look a Receiving choice overtook waits for the next second.
                     let Some(seen) = seen else {
                         let _ = done.try_send(true);

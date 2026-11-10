@@ -88062,7 +88062,7 @@
       "call_sites": [
         {
           "excerpt": "self.locale.catalog.tr(\"plugins.airdrop.folder\"),",
-          "line": 257,
+          "line": 259,
           "path": "crates/flea-gui/src/g2/send_share/airdrop_join.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -95209,7 +95209,7 @@
       "call_sites": [
         {
           "excerpt": "let stale = vec![Act::Say(i18n.tr(\"send.providers.menu_stale\"), true)];",
-          "line": 325,
+          "line": 323,
           "path": "crates/flea-gui/src/g2/send_share/airdrop.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -118967,7 +118967,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: the folder chooser {binary:?} did not start: {error}\")",
-      "line": 269,
+      "line": 271,
       "literal": "flea: the folder chooser {binary:?} did not start: {error}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/send_share/airdrop_join.rs",
@@ -118994,7 +118994,7 @@
     },
     {
       "excerpt": "Radio::On => \"on\",",
-      "line": 78,
+      "line": 91,
       "literal": "on",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/send_share/airdrop_shared.rs",
@@ -119003,7 +119003,7 @@
     },
     {
       "excerpt": ".inspect_err(|error| eprintln!(\"flea: AirDrop keeps to this window: {error}\"))",
-      "line": 95,
+      "line": 108,
       "literal": "flea: AirDrop keeps to this window: {error}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/send_share/airdrop_shared.rs",
@@ -119012,7 +119012,7 @@
     },
     {
       "excerpt": "Some(\"on\") => Radio::On,",
-      "line": 110,
+      "line": 123,
       "literal": "on",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/send_share/airdrop_shared.rs",
@@ -119021,10 +119021,10 @@
     },
     {
       "excerpt": "eprintln!(\"flea: AirDrop could not share its state: {error}\");",
-      "line": 201,
+      "line": 40,
       "literal": "flea: AirDrop could not share its state: {error}",
       "owner": "I50-07",
-      "path": "crates/flea-gui/src/g2/send_share/airdrop_shared.rs",
+      "path": "crates/flea-gui/src/g2/send_share/airdrop_writes.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "gui"
     },
@@ -231097,8 +231097,17 @@
       "surface": "generated/tooling"
     },
     {
-      "excerpt": "\"reason\": \"Outside::status queues a Trash message for the feedback service and performs no process or I/O call\"",
+      "excerpt": "\"reason\": \"Combine::output validates composition settings and builds an output path string without I/O\"",
       "line": 17,
+      "literal": "Combine::output validates composition settings and builds an output path string without I/O",
+      "owner": "controller",
+      "path": "tools/gpui-lint.json",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "\"reason\": \"Outside::status queues a Trash message for the feedback service and performs no process or I/O call\"",
+      "line": 22,
       "literal": "Outside::status queues a Trash message for the feedback service and performs no process or I/O call",
       "owner": "controller",
       "path": "tools/gpui-lint.json",
@@ -231107,17 +231116,8 @@
     },
     {
       "excerpt": "\"reason\": \"Test helper polling the stub backend's reply channel between try_recv attempts; it runs on the test thread, never a UI callback\"",
-      "line": 22,
-      "literal": "Test helper polling the stub backend's reply channel between try_recv attempts; it runs on the test thread, never a UI callback",
-      "owner": "controller",
-      "path": "tools/gpui-lint.json",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "generated/tooling"
-    },
-    {
-      "excerpt": "\"reason\": \"Called only inside cx.background_spawn in network_rows; the call-graph walk does not see the closure\"",
       "line": 27,
-      "literal": "Called only inside cx.background_spawn in network_rows; the call-graph walk does not see the closure",
+      "literal": "Test helper polling the stub backend's reply channel between try_recv attempts; it runs on the test thread, never a UI callback",
       "owner": "controller",
       "path": "tools/gpui-lint.json",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -231133,8 +231133,17 @@
       "surface": "generated/tooling"
     },
     {
-      "excerpt": "\"reason\": \"Builds the clients closure only; ask_tab_geometry calls it inside cx.background_executor().spawn, and the call-graph walk does not see the stored closure\"",
+      "excerpt": "\"reason\": \"Called only inside cx.background_spawn in network_rows; the call-graph walk does not see the closure\"",
       "line": 37,
+      "literal": "Called only inside cx.background_spawn in network_rows; the call-graph walk does not see the closure",
+      "owner": "controller",
+      "path": "tools/gpui-lint.json",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "\"reason\": \"Builds the clients closure only; ask_tab_geometry calls it inside cx.background_executor().spawn, and the call-graph walk does not see the stored closure\"",
+      "line": 42,
       "literal": "Builds the clients closure only; ask_tab_geometry calls it inside cx.background_executor().spawn, and the call-graph walk does not see the stored closure",
       "owner": "controller",
       "path": "tools/gpui-lint.json",
@@ -231143,7 +231152,7 @@
     },
     {
       "excerpt": "\"reason\": \"Parses Omarchy colours and reuses the existing QML canvas and TUI foreground fallbacks.\"",
-      "line": 45,
+      "line": 50,
       "literal": "Parses Omarchy colours and reuses the existing QML canvas and TUI foreground fallbacks.",
       "owner": "controller",
       "path": "tools/gpui-lint.json",
@@ -231359,7 +231368,7 @@
     },
     {
       "excerpt": "COLOR_TYPES = {\"Hsla\", \"Hsla32\", \"Rgba\", \"Rgb\", \"Color\", \"Srgb\", \"Srgba\"}",
-      "line": 8,
+      "line": 9,
       "literal": "Hsla",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -231368,7 +231377,7 @@
     },
     {
       "excerpt": "COLOR_TYPES = {\"Hsla\", \"Hsla32\", \"Rgba\", \"Rgb\", \"Color\", \"Srgb\", \"Srgba\"}",
-      "line": 8,
+      "line": 9,
       "literal": "Rgba",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -231377,7 +231386,7 @@
     },
     {
       "excerpt": "COLOR_TYPES = {\"Hsla\", \"Hsla32\", \"Rgba\", \"Rgb\", \"Color\", \"Srgb\", \"Srgba\"}",
-      "line": 8,
+      "line": 9,
       "literal": "Rgb",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -231386,7 +231395,7 @@
     },
     {
       "excerpt": "COLOR_TYPES = {\"Hsla\", \"Hsla32\", \"Rgba\", \"Rgb\", \"Color\", \"Srgb\", \"Srgba\"}",
-      "line": 8,
+      "line": 9,
       "literal": "Color",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -231395,7 +231404,7 @@
     },
     {
       "excerpt": "COLOR_TYPES = {\"Hsla\", \"Hsla32\", \"Rgba\", \"Rgb\", \"Color\", \"Srgb\", \"Srgba\"}",
-      "line": 8,
+      "line": 9,
       "literal": "Srgb",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -231404,7 +231413,7 @@
     },
     {
       "excerpt": "COLOR_TYPES = {\"Hsla\", \"Hsla32\", \"Rgba\", \"Rgb\", \"Color\", \"Srgb\", \"Srgba\"}",
-      "line": 8,
+      "line": 9,
       "literal": "Srgba",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -231413,7 +231422,7 @@
     },
     {
       "excerpt": "COLOR_NAMES = set(\"\"\"aliceblue antiquewhite aqua aquamarine azure beige bisque black blanchedalmond blue blueviolet\nbrown burlywood cadetblue chartreuse chocolate coral cornflowerblue cornsilk crimson cyan darkblue darkcyan\ndarkgoldenrod darkgray darkgreen darkgrey darkkhaki darkmagenta darkolivegreen darkorange darkorchid darkred\ndarksalmon darkseagreen darkslateblue darkslategray darkslategrey darkturquoise darkviolet deeppink deepskyblue\ndimgray dimgrey dodgerblue firebrick floralwhite forestgreen fuchsia gainsboro ghostwhite gold goldenrod gray\ngreen greenyellow grey honeydew hotpink indianred indigo ivory khaki lavender lavenderblush lawngreen lemonchiffon\nlightblue lightcoral lightcyan lightgoldenrodyellow lightgray lightgreen lightgrey lightpink lightsalmon\nlightseagreen lightskyblue lightslategray lightslategrey lightsteelblue lightyellow lime limegreen linen magenta\nmaroon mediumaquamarine mediumblue mediumorchid mediumpurple mediumseagreen mediumslateblue mediumspringgreen\nmediumturquoise mediumvioletred midnightblue mintcream mistyrose moccasin navajowhite navy oldlace olive olivedrab\norange orangered orchid palegoldenrod palegreen paleturquoise palevioletred papayawhip peachpuff peru pink plum\npowderblue purple rebeccapurple red rosybrown royalblue saddlebrown salmon sandybrown seagreen seashell sienna\nsilver skyblue slateblue slategray slategrey snow springgreen steelblue tan teal thistle tomato transparent\nturquoise violet wheat white whitesmoke yellow yellowgreen\"\"\".split())",
-      "line": 11,
+      "line": 12,
       "literal": "aliceblue antiquewhite aqua aquamarine azure beige bisque black blanchedalmond blue blueviolet\nbrown burlywood cadetblue chartreuse chocolate coral cornflowerblue cornsilk crimson cyan darkblue darkcyan\ndarkgoldenrod darkgray darkgreen darkgrey darkkhaki darkmagenta darkolivegreen darkorange darkorchid darkred\ndarksalmon darkseagreen darkslateblue darkslategray darkslategrey darkturquoise darkviolet deeppink deepskyblue\ndimgray dimgrey dodgerblue firebrick floralwhite forestgreen fuchsia gainsboro ghostwhite gold goldenrod gray\ngreen greenyellow grey honeydew hotpink indianred indigo ivory khaki lavender lavenderblush lawngreen lemonchiffon\nlightblue lightcoral lightcyan lightgoldenrodyellow lightgray lightgreen lightgrey lightpink lightsalmon\nlightseagreen lightskyblue lightslategray lightslategrey lightsteelblue lightyellow lime limegreen linen magenta\nmaroon mediumaquamarine mediumblue mediumorchid mediumpurple mediumseagreen mediumslateblue mediumspringgreen\nmediumturquoise mediumvioletred midnightblue mintcream mistyrose moccasin navajowhite navy oldlace olive olivedrab\norange orangered orchid palegoldenrod palegreen paleturquoise palevioletred papayawhip peachpuff peru pink plum\npowderblue purple rebeccapurple red rosybrown royalblue saddlebrown salmon sandybrown seagreen seashell sienna\nsilver skyblue slateblue slategray slategrey snow springgreen steelblue tan teal thistle tomato transparent\nturquoise violet wheat white whitesmoke yellow yellowgreen",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -231422,7 +231431,7 @@
     },
     {
       "excerpt": "if parts[:2] == [\"std\", \"io\"] and any(p in parts for p in (\"Read\", \"BufRead\", \"Write\")):",
-      "line": 46,
+      "line": 47,
       "literal": "Read",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -231431,7 +231440,7 @@
     },
     {
       "excerpt": "if parts[:2] == [\"std\", \"io\"] and any(p in parts for p in (\"Read\", \"BufRead\", \"Write\")):",
-      "line": 46,
+      "line": 47,
       "literal": "Write",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -231440,7 +231449,7 @@
     },
     {
       "excerpt": "\"\"\"Only a named module-level constant can exempt its exact non-colour hex value.\"\"\"",
-      "line": 88,
+      "line": 89,
       "literal": "Only a named module-level constant can exempt its exact non-colour hex value.",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -231449,7 +231458,7 @@
     },
     {
       "excerpt": "errors.append(f\"callback registration names no function: {name}\")",
-      "line": 114,
+      "line": 115,
       "literal": "callback registration names no function: {name}",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -231458,7 +231467,7 @@
     },
     {
       "excerpt": "errors.append(f\"{function.path}:{line}: UI blocking call {target} in {name}\")",
-      "line": 137,
+      "line": 141,
       "literal": "{function.path}:{line}: UI blocking call {target} in {name}",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -231467,7 +231476,7 @@
     },
     {
       "excerpt": "errors.append(f\"{unit['path']}: drawing/callback modules cannot be colour parsing exemptions\")",
-      "line": 147,
+      "line": 151,
       "literal": "{unit['path']}: drawing/callback modules cannot be colour parsing exemptions",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -231476,7 +231485,7 @@
     },
     {
       "excerpt": "errors.append(f\"{unit['path']}:{token.line}: literal colour-sized hex {token.value}; use theme roles or a named non-colour constant exception\")",
-      "line": 158,
+      "line": 162,
       "literal": "{unit['path']}:{token.line}: literal colour-sized hex {token.value}; use theme roles or a named non-colour constant exception",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -231485,7 +231494,7 @@
     },
     {
       "excerpt": "image_pixel = path[:2] in ((\"image\", \"Rgb\"), (\"image\", \"Rgba\")) and not image_shadowed",
-      "line": 171,
+      "line": 175,
       "literal": "Rgb",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -231494,7 +231503,7 @@
     },
     {
       "excerpt": "image_pixel = path[:2] in ((\"image\", \"Rgb\"), (\"image\", \"Rgba\")) and not image_shadowed",
-      "line": 171,
+      "line": 175,
       "literal": "Rgba",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -231503,7 +231512,7 @@
     },
     {
       "excerpt": "errors.append(f\"{unit['path']}:{token.line}: literal colour { '::'.join(path) }; use theme roles\")",
-      "line": 184,
+      "line": 188,
       "literal": "{unit['path']}:{token.line}: literal colour { '::'.join(path) }; use theme roles",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -231512,7 +231521,7 @@
     },
     {
       "excerpt": "errors.append(\"hot surfaces must register list, columns, grid and long_menus\")",
-      "line": 189,
+      "line": 193,
       "literal": "hot surfaces must register list, columns, grid and long_menus",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -231521,7 +231530,7 @@
     },
     {
       "excerpt": "errors.append(f\"{entry['path']}: pending surface exists; register its Element and row_height\")",
-      "line": 195,
+      "line": 199,
       "literal": "{entry['path']}: pending surface exists; register its Element and row_height",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -231530,7 +231539,7 @@
     },
     {
       "excerpt": "errors.append(f\"{entry['path']}: registered hot surface has no custom Element {entry['element']}\")",
-      "line": 199,
+      "line": 203,
       "literal": "{entry['path']}: registered hot surface has no custom Element {entry['element']}",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -231539,7 +231548,7 @@
     },
     {
       "excerpt": "errors.append(f\"{entry['path']}: custom Element must implement layout, prepaint and paint\")",
-      "line": 204,
+      "line": 208,
       "literal": "{entry['path']}: custom Element must implement layout, prepaint and paint",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -231548,7 +231557,7 @@
     },
     {
       "excerpt": "errors.append(f\"{entry.get('row_height_path', entry['path'])}: missing fixed row height {entry['row_height']}\")",
-      "line": 209,
+      "line": 213,
       "literal": "{entry.get('row_height_path', entry['path'])}: missing fixed row height {entry['row_height']}",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -231557,7 +231566,7 @@
     },
     {
       "excerpt": "errors.append(f\"{entry['path']}: Element file does not use its fixed row height {entry['row_height']}\")",
-      "line": 211,
+      "line": 215,
       "literal": "{entry['path']}: Element file does not use its fixed row height {entry['row_height']}",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -231566,7 +231575,7 @@
     },
     {
       "excerpt": "errors.append(f\"{function.path}:{line}: hot surface builds child tree with {symbol}\")",
-      "line": 222,
+      "line": 226,
       "literal": "{function.path}:{line}: hot surface builds child tree with {symbol}",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
@@ -231575,10 +231584,37 @@
     },
     {
       "excerpt": "errors.append(\"empty native source or hot-surface scan\")",
-      "line": 227,
+      "line": 231,
       "literal": "empty native source or hot-surface scan",
       "owner": "controller",
       "path": "tools/gpui_lint/checks.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "\"\"\"Declared struct field types, so a method called on a field resolves to its type's method.\"\"\"",
+      "line": 1,
+      "literal": "Declared struct field types, so a method called on a field resolves to its type's method.",
+      "owner": "controller",
+      "path": "tools/gpui_lint/fields.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "\"\"\"Each struct's named fields with their type names, and each field name's type when every struct agrees.\"\"\"",
+      "line": 21,
+      "literal": "Each struct's named fields with their type names, and each field name's type when every struct agrees.",
+      "owner": "controller",
+      "path": "tools/gpui_lint/fields.py",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "\"\"\"The type of a field chain a method is called on: `self.shared` in an AirDrop method is Shared.\"\"\"",
+      "line": 88,
+      "literal": "The type of a field chain a method is called on: `self.shared` in an AirDrop method is Shared.",
+      "owner": "controller",
+      "path": "tools/gpui_lint/fields.py",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "generated/tooling"
     },
@@ -232187,7 +232223,7 @@
     },
     {
       "excerpt": "if \"Element\" in header[:header.index(\"for\")] and not (test or test_only or inner_test(opening + 1, closing)):",
-      "line": 114,
+      "line": 115,
       "literal": "Element",
       "owner": "controller",
       "path": "tools/gpui_lint/rust.py",
@@ -232196,7 +232232,7 @@
     },
     {
       "excerpt": "if parent == (\"std\", \"thread\", \"Builder\", \"new\") and path in ((\"name\",), (\"stack_size\",)):",
-      "line": 177,
+      "line": 178,
       "literal": "Builder",
       "owner": "controller",
       "path": "tools/gpui_lint/rust.py",
@@ -232205,7 +232241,7 @@
     },
     {
       "excerpt": "\"\"\"Only closures passed to a proven background executor/thread are excluded.\"\"\"",
-      "line": 185,
+      "line": 186,
       "literal": "Only closures passed to a proven background executor/thread are excluded.",
       "owner": "controller",
       "path": "tools/gpui_lint/rust.py",
@@ -232214,7 +232250,7 @@
     },
     {
       "excerpt": "if path == (\"std\", \"process\", \"Command\", \"new\"):",
-      "line": 196,
+      "line": 197,
       "literal": "Command",
       "owner": "controller",
       "path": "tools/gpui_lint/rust.py",
@@ -232223,7 +232259,7 @@
     },
     {
       "excerpt": "return any(path_at(signature, j, target.aliases)[0] == (\"std\", \"process\", \"Command\")",
-      "line": 205,
+      "line": 206,
       "literal": "Command",
       "owner": "controller",
       "path": "tools/gpui_lint/rust.py",
@@ -232232,7 +232268,7 @@
     },
     {
       "excerpt": "if k < len(signature) and path_at(signature, k, aliases)[0] == (\"std\", \"process\", \"Command\"):",
-      "line": 213,
+      "line": 214,
       "literal": "Command",
       "owner": "controller",
       "path": "tools/gpui_lint/rust.py",
@@ -232241,7 +232277,7 @@
     },
     {
       "excerpt": "path = (\"std\", \"process\", \"Command\", \"spawn\")",
-      "line": 247,
+      "line": 248,
       "literal": "Command",
       "owner": "controller",
       "path": "tools/gpui_lint/rust.py",
@@ -232250,7 +232286,7 @@
     },
     {
       "excerpt": "builder = receiver == (\"std\", \"thread\", \"Builder\", \"new\")",
-      "line": 249,
+      "line": 250,
       "literal": "Builder",
       "owner": "controller",
       "path": "tools/gpui_lint/rust.py",
@@ -232259,7 +232295,7 @@
     },
     {
       "excerpt": "elif parts[0] == \"Self\":",
-      "line": 276,
+      "line": 281,
       "literal": "Self",
       "owner": "controller",
       "path": "tools/gpui_lint/rust.py",
@@ -252730,12 +252766,13 @@
     "crates/flea-gui/src/g2/rclone_send/seams.rs": "c73fcd8e41f136e07286ea6ee26a5cc6d3fca819c0c759eb40d42fefd58442e8",
     "crates/flea-gui/src/g2/rclone_send/sweep.rs": "5571f45759e3227efc363a61b60a0c7ec8079cace7626b6b54ff8314b1f8fcdb",
     "crates/flea-gui/src/g2/send_share/activation.rs": "752793714fabbadeb2473a18cb082481e3ef1e690267e4fa1c524f4ed903cd2d",
-    "crates/flea-gui/src/g2/send_share/airdrop.rs": "0d3560778e123e679668566ff24755a6299b3b7c25378f45831d047291728c31",
-    "crates/flea-gui/src/g2/send_share/airdrop_join.rs": "8c3de40881eafa460fb86eb99a7793935247c25d99d35d5483e94ffecd5680f5",
-    "crates/flea-gui/src/g2/send_share/airdrop_machine.rs": "e829069ed41d7b57a98be2871fd4fe84119acef410fbc7cd0fa540d7358416da",
-    "crates/flea-gui/src/g2/send_share/airdrop_pids.rs": "c8ba72f4ac90650d83706f2c708df49f7484a27433916e9c8fd17077a832dbe9",
-    "crates/flea-gui/src/g2/send_share/airdrop_run.rs": "2f17c14e3ddd8638ebd0dbe95b7da58d9d432ea16586fac492d28c0aad9447e3",
-    "crates/flea-gui/src/g2/send_share/airdrop_shared.rs": "0f65553fc41903d283c3c130e9e5261356e940ead6fc01c06eee3b0eb339ae9d",
+    "crates/flea-gui/src/g2/send_share/airdrop.rs": "1373320a9f8ae1e7874779219d8a3727b4e8f5acfc7844dd8642d81e781e5a59",
+    "crates/flea-gui/src/g2/send_share/airdrop_join.rs": "699b2d4613675e9a1f89eebbd02f79bc4f76829edd868db51380807449b5eac6",
+    "crates/flea-gui/src/g2/send_share/airdrop_machine.rs": "cb2903cfd814912474487b0ea1fa4b2beda15c1342bc7d1c408c78e8ab61a384",
+    "crates/flea-gui/src/g2/send_share/airdrop_pids.rs": "073314e00f6016c5c6bb69113909a7d288432b1fdcab70db408f3d76e42a510c",
+    "crates/flea-gui/src/g2/send_share/airdrop_run.rs": "e4752877c70c29962594714af528b6ad798861b2eb1917b174d882db6ffda516",
+    "crates/flea-gui/src/g2/send_share/airdrop_shared.rs": "8bb37271f6b929f4305f14d6217654bc19aa07261b951c21990d79ef8cb4a6fd",
+    "crates/flea-gui/src/g2/send_share/airdrop_writes.rs": "6de30056caf42124126b97d9d2c0274ebbf3ef4fa4a47e1b2d28668c63c6f87d",
     "crates/flea-gui/src/g2/send_share/dropbox_status.rs": "0ec2b8a3e9bd14d2eaf2e706f40a175a50b7cf67128e3430162e462349c4be36",
     "crates/flea-gui/src/g2/send_share/ipc.rs": "998b0efe47af0b80837dbb260ec6697db421af9e4d5adc59b1f212e5ecc5c1b6",
     "crates/flea-gui/src/g2/send_share/join.rs": "2b51c35db7d44dd775f640e88d822935d8a4ea656e6975e68270240ac01e7b50",
@@ -254430,13 +254467,14 @@
     "tools/flea-walkbench/src/stats.rs": "139a67b8a175124ad459004107c3069b920bb07b1907171a6a4cc0a35c1ef2b9",
     "tools/flea_bench_product.py": "32b0d9109cde20e6629c2ae5d156b381de678158e8e6066ea206df196795c09d",
     "tools/flea_ipc.py": "d088ef240adc6fce6fbe5ea848e59adcb99e5075dfcf809fae9c1905fa474871",
-    "tools/gpui-lint.json": "b534be1430272ee4396ec9070704c05f823c66ece3872372393e76bb6331db68",
+    "tools/gpui-lint.json": "b30c303379a99772ca36ca6dbb4c8f015c6d71b73b968ff8ae5d31359b8e56ce",
     "tools/gpui_lint/__init__.py": "f4287efa39701462a6d8573e3ef7aca5a0bd9ad8f26c9c4ac3e832259b79f810",
     "tools/gpui_lint/bindings.py": "97e85be963d79df4a629cb9b4ef064e2ac9e2bb10fea25f0b9bc11888fad7afa",
     "tools/gpui_lint/cargo.py": "d696a197480762215ae69e81a723c7993c1ecd5c0fad4cfa14c0abed0278dfbd",
-    "tools/gpui_lint/checks.py": "c30e4174c4ec0fd5032780f60173d1402ab27293c498ef44f60033a4f53a83c9",
+    "tools/gpui_lint/checks.py": "9ce4de4bb03d9acba6773e5a5adb065cfa010e8f11d07b5c617e50a25a1fa083",
+    "tools/gpui_lint/fields.py": "159c7d71dfd64c761243d1abf169f4a790c3f420d76ff5311d729e6e966d889e",
     "tools/gpui_lint/lex.py": "abe3dcd4cfc820f9680e705716bd0e8688dd9356b4beab6e3c69624fec63bab4",
-    "tools/gpui_lint/rust.py": "565f301b3910a542f009c31aac909aaa821bb4283a2b1ff875543ad62395ff03",
+    "tools/gpui_lint/rust.py": "f19ca09e64e61b9b5ba932f8b6c15e08d71c40fc768a497b89b99a7c458af723",
     "tools/keymap_rust.py": "3c40a74fa6c255a8f1243b8eb2d53d415152c4f4977ddeb47e4feadec1656d33",
     "tools/theme-golden/check-runner.py": "2648c20129c1cdd72d56bc61fd2300068a2aa0dcf89fa1320f92d40e86884a30",
     "tools/theme-golden/check.py": "7f07d88cd52c40341d818b0ee5ae328987e8a1e926d757b2b288776310a4b98a",
@@ -254861,8 +254899,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "fdb024bc0c0f85f1897886c6580327d3d491d8c9",
-  "source_sha": "fdb024bc0c0f85f1897886c6580327d3d491d8c9",
+  "source_ref_sha": "428b57b69fd854922323043f6bd08d9e48e03dd5",
+  "source_sha": "428b57b69fd854922323043f6bd08d9e48e03dd5",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1365,
@@ -254871,13 +254909,13 @@
     },
     "generated/tooling": {
       "keys_with_occurrences": 156,
-      "missing_literal_candidates": 5257,
-      "source_files": 160
+      "missing_literal_candidates": 5261,
+      "source_files": 161
     },
     "gui": {
       "keys_with_occurrences": 559,
       "missing_literal_candidates": 2236,
-      "source_files": 1181
+      "source_files": 1182
     },
     "qml-reference": {
       "keys_with_occurrences": 0,

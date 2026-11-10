@@ -93,7 +93,7 @@ fn two_windows_never_run_two_radios_and_the_second_reads_the_first(cx: &mut Test
         window
             .update(cx, |shell, window, cx| {
                 let air = &mut shell.menu.providers.airdrop;
-                air.shared = Shared::at(machine.clone());
+                air.shared = Shared::queued(machine.clone());
                 air.facts(&owly);
                 air.adapter = ready();
                 shell.airdrop_receiving(true, &root.to_string_lossy(), window, cx);
@@ -179,7 +179,7 @@ fn receiving_off_while_the_look_runs_starts_no_radio(cx: &mut TestAppContext) {
     let (shell, cx) = cx.add_window_view(|_, cx| shell_with(backend, cx));
     shell.update_in(cx, |shell, window, cx| {
         let air = &mut shell.menu.providers.airdrop;
-        air.shared = Shared::at(root.join("machine"));
+        air.shared = Shared::queued(root.join("machine"));
         air.facts(&owly);
         air.adapter = ready();
         shell.airdrop_receiving(true, &root.to_string_lossy(), window, cx);
@@ -219,7 +219,7 @@ fn two_on_one_radio(cx: &mut TestAppContext, tag: &str) -> (PathBuf, Windows) {
         window
             .update(cx, |shell, window, cx| {
                 let air = &mut shell.menu.providers.airdrop;
-                air.shared = Shared::at(machine.clone());
+                air.shared = Shared::queued(machine.clone());
                 air.facts(&owly);
                 air.adapter = ready();
                 shell.airdrop_receiving(true, &root.to_string_lossy(), window, cx);

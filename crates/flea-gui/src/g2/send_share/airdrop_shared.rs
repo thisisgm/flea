@@ -1,7 +1,6 @@
 //! The machine's one AirDrop radio: the window that turned it on owns it under a lock in XDG_RUNTIME_DIR, and every other window reads it there.
 use super::airdrop::Radio;
 use std::fs::{DirBuilder, File, OpenOptions};
-use std::io::Write;
 use std::os::fd::AsRawFd;
 use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
 use std::path::{Path, PathBuf};
@@ -33,9 +32,18 @@ pub(crate) struct Shared {
     dir: Option<PathBuf>,
     // Held while this window owns the radio; the kernel lets it go when the process ends, however it ends.
     lock: Option<File>,
+    // A lock the look before a Receiving On took, until that On takes it or gives it back.
+    offered: Option<Claim>,
     token: String,
     // The process's count a quit waits on; a unit test's window counts on its own.
     unwritten: &'static AtomicUsize,
+    // What this window changed in the machine's state, written off its thread in the order it changed.
+    writes: Vec<Write>,
+    // Closes once the window's last look, ask or write has run, so the next one waits for it.
+    pub(super) io: Option<async_channel::Receiver<()>>,
+    // A unit test's window writes each change at once, as its chain would before another window looks.
+    #[cfg(test)]
+    inline: bool,
 }
 
 // What one look at the machine's state found: another window's radio and card, or this owner's stop asked elsewhere.
@@ -61,8 +69,13 @@ impl Default for Shared {
         Shared {
             dir,
             lock: None,
+            offered: None,
             token: String::new(),
             unwritten: &UNWRITTEN,
+            writes: Vec::new(),
+            io: None,
+            #[cfg(test)]
+            inline: false,
         }
     }
 }
@@ -124,9 +137,21 @@ impl Shared {
         Shared {
             dir: Some(dir),
             lock: None,
+            offered: None,
             token: String::new(),
             unwritten: Box::leak(Box::new(AtomicUsize::new(0))),
+            writes: Vec::new(),
+            io: None,
+            inline: true,
         }
+    }
+
+    // A unit test's window whose writes wait, as in the product, until its chain runs them.
+    #[cfg(test)]
+    pub(crate) fn queued(dir: PathBuf) -> Self {
+        let mut shared = Shared::at(dir);
+        shared.inline = false;
+        shared
     }
 
     #[cfg(test)]
@@ -134,19 +159,16 @@ impl Shared {
         self.unwritten
     }
 
-    // Taken when a stop is asked or withdrawn, and dropped once its file is written.
+    // Taken when a stop is asked or withdrawn, and dropped once its file is written; a SIGTERM waits for it too.
     pub(crate) fn hold(&self) -> Unwritten {
         self.unwritten.fetch_add(1, Ordering::SeqCst);
+        super::airdrop_pids::arm();
         Unwritten(self.unwritten)
     }
 
     // Other windows can see this window's radio and ask it to stop.
     pub(crate) fn machine_wide(&self) -> bool {
         self.dir.is_some()
-    }
-
-    fn file(&self, name: &str) -> Option<PathBuf> {
-        self.dir.as_ref().map(|dir| dir.join(name))
     }
 
     // Taken on the window's thread and run off it, so the look sees the lock as this window held it when asked.
@@ -157,49 +179,59 @@ impl Shared {
         }
     }
 
-    // True when this window now owns the radio, or when there is no shared state to own.
-    pub(crate) fn claim(&mut self, card: &str) -> bool {
-        if self.lock.is_some() {
+    // The lock a look took for a Receiving On, held until that On takes it or the next writes give it back.
+    pub(crate) fn offer(&mut self, lock: Option<Claim>) {
+        if let Some(Claim::Lock(spare)) = std::mem::replace(&mut self.offered, lock) {
+            self.push(Write::Release(spare));
+        }
+    }
+
+    fn push(&mut self, write: Write) {
+        self.writes.push(write);
+        #[cfg(test)]
+        if self.inline {
+            let writes = self.drain();
+            self.run(writes);
+        }
+    }
+
+    // The radio's run has exited: this window's lock is offered to a Receiving On asked meanwhile.
+    pub(crate) fn hand_over(&mut self) {
+        let lock = self.lock.take();
+        self.token.clear();
+        self.offer(lock.map(Claim::Lock));
+    }
+
+    // True when this window now owns the radio under the lock offered to it, or when there is no shared state to own.
+    pub(crate) fn adopt(&mut self, card: &str) -> bool {
+        if self.lock.is_some() || self.dir.is_none() {
             return true;
         }
-        let Some(lock) = self.dir.as_deref().and_then(open_lock) else {
+        let Some(lock) = self.offered.take() else {
+            return false;
+        };
+        let Claim::Lock(lock) = lock else {
             return true;
         };
-        // A reader's look holds a shared lock for microseconds, so a few quick tries tell it from a live owner.
-        let mut tries = 0;
-        while !try_flock(&lock, LOCK_EX) {
-            tries += 1;
-            if tries == CLAIM_TRIES {
-                return false;
-            }
-            std::thread::sleep(std::time::Duration::from_millis(1));
-        }
         let since = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map_or(0, |d| d.as_nanos());
         self.token = format!("{}-{since}", std::process::id());
         self.lock = Some(lock);
-        if let Some(stop) = self.file(STOP) {
-            let _ = std::fs::remove_file(stop);
-        }
-        self.publish(Radio::Starting, card);
+        self.state(Radio::Starting, card, true);
         true
     }
 
-    // The owner writes its radio whole under a temporary name, so a reader never sees half a state.
-    pub(crate) fn publish(&self, radio: Radio, card: &str) {
-        let (Some(_), Some(path), Some(temp)) =
-            (&self.lock, self.file(STATE), self.file("airdrop.state.new"))
-        else {
-            return;
-        };
-        let body = format!("{}\n{}\n{card}\n", self.token, word(radio));
-        let written = File::create(&temp)
-            .and_then(|mut f| f.write_all(body.as_bytes()))
-            .and_then(|()| std::fs::rename(&temp, &path));
-        if let Err(error) = written {
-            eprintln!("flea: AirDrop could not share its state: {error}");
+    fn state(&mut self, radio: Radio, card: &str, fresh: bool) {
+        if self.lock.is_some() {
+            let body = format!("{}\n{}\n{card}\n", self.token, word(radio));
+            self.push(Write::State { body, fresh });
         }
+    }
+
+    // The owner's radio, written whole under a temporary name, so a reader never sees half a state.
+    pub(crate) fn publish(&mut self, radio: Radio, card: &str) {
+        self.state(radio, card, false);
     }
 
     // The radio is going down: every window reads Off from here, while the lock stays held until owly has exited.
@@ -207,18 +239,51 @@ impl Shared {
         if self.lock.is_none() {
             return;
         }
-        for name in [STATE, STOP] {
-            if let Some(path) = self.file(name) {
-                let _ = std::fs::remove_file(path);
-            }
-        }
+        self.push(Write::Withdraw);
         self.token.clear();
     }
 
     // owly has exited: the state goes first, then the lock, so the next owner never meets this one's state.
     pub(crate) fn release(&mut self) {
-        self.withdraw();
-        self.lock = None;
+        self.hand_over();
+        self.offer(None);
+    }
+
+    // The writes this window's thread queued, with an offered lock no On took given back last.
+    pub(crate) fn writes(&mut self) -> Option<(PathBuf, Vec<Write>)> {
+        self.offer(None);
+        self.drain()
+    }
+
+    fn drain(&mut self) -> Option<(PathBuf, Vec<Write>)> {
+        let writes = std::mem::take(&mut self.writes);
+        let dir = self.dir.clone()?;
+        (!writes.is_empty()).then_some((dir, writes))
+    }
+
+    // A unit test writes what the window's chain would, in the same order, on its own thread.
+    #[cfg(test)]
+    pub(crate) fn flush(&mut self) {
+        let writes = self.writes();
+        self.run(writes);
+    }
+
+    #[cfg(test)]
+    fn run(&self, writes: Option<(PathBuf, Vec<Write>)>) {
+        if let Some((dir, writes)) = writes {
+            writes.into_iter().for_each(|write| write.run(&dir));
+        }
+    }
+
+    // A unit test's Receiving On: the look's claim, then the window's own step, then its writes.
+    #[cfg(test)]
+    pub(crate) fn claim(&mut self, card: &str) -> bool {
+        if self.lock.is_none() {
+            self.offer(self.probe().claim());
+        }
+        let owned = self.adopt(card);
+        self.flush();
+        owned
     }
 
     // The owner's look: another window asked this owner, and not an earlier one, to stop.
@@ -260,6 +325,25 @@ impl Probe {
         }
     }
 
+    // Before a Receiving On, with no radio up: the machine's lock, which the window's thread then takes or gives back.
+    pub(crate) fn claim(&self) -> Option<Claim> {
+        let Some(lock) = self.dir.as_deref().and_then(open_lock) else {
+            return Some(Claim::Local);
+        };
+        // A reader's look holds a shared lock for microseconds, so a few quick tries tell it from a live owner.
+        let mut tries = 0;
+        while !try_flock(&lock, LOCK_EX) {
+            tries += 1;
+            if tries == CLAIM_TRIES {
+                return None;
+            }
+            std::thread::sleep(Duration::from_millis(1));
+        }
+        // An owner that died left its state behind, which no window may read as this one's.
+        let _ = std::fs::remove_file(self.dir.as_deref()?.join(STATE));
+        Some(Claim::Lock(lock))
+    }
+
     // Receiving set to Off in a window that does not own the radio: the owner stops it on its next look.
     pub(crate) fn ask_stop(&self) {
         let Some(dir) = self.dir.as_deref() else {
@@ -278,12 +362,6 @@ impl Probe {
     }
 }
 
-impl Drop for Shared {
-    fn drop(&mut self) {
-        self.release();
-    }
-}
-
 pub(crate) struct Unwritten(&'static AtomicUsize);
 
 impl Drop for Unwritten {
@@ -292,7 +370,7 @@ impl Drop for Unwritten {
     }
 }
 
-// Closing the last window ends the event loop at once, so a stop asked just before it lands before Flea exits.
+// A stop asked just before the last window closes lands before Flea exits; an atomic, the clock and nanosleep only, so the SIGTERM handler waits the same way.
 pub fn settle_stops() {
     wait_written(&UNWRITTEN, SETTLE);
 }
@@ -303,6 +381,10 @@ fn wait_written(unwritten: &AtomicUsize, within: Duration) {
         std::thread::sleep(SETTLE_SLICE);
     }
 }
+
+#[path = "airdrop_writes.rs"]
+mod writes;
+pub(crate) use writes::{Claim, Write};
 
 #[cfg(test)]
 #[path = "airdrop_shared_tests.rs"]

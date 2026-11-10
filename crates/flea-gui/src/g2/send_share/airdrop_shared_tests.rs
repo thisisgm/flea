@@ -1,9 +1,13 @@
+use super::super::airdrop_pids::SIGTERM;
 use super::*;
 
 fn dir(tag: &str) -> PathBuf {
-    let root =
-        std::env::temp_dir().join(format!("flea-airdrop-shared-{tag}-{}", std::process::id()));
-    let _ = std::fs::create_dir_all(&root);
+    let output = std::process::Command::new("mktemp")
+        .args(["-d", &format!("/tmp/flea-airdrop-shared-{tag}.XXXXXXXX")])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let root = PathBuf::from(String::from_utf8(output.stdout).unwrap().trim());
     std::fs::write(root.join(".flea-test-sandbox"), "").unwrap();
     root
 }
@@ -143,5 +147,87 @@ fn a_quit_waits_for_a_stop_still_being_written_and_never_past_its_bound() {
     assert!(
         held >= Duration::from_millis(30) && held < Duration::from_secs(1),
         "a stop never written holds the quit only until the bound"
+    );
+}
+
+// Runs only as the child of the next two tests: a reader's Off whose stop is still being written when SIGTERM comes.
+#[test]
+fn sigterm_stop_child() {
+    let Some(root) = std::env::var_os("FLEA_AIRDROP_SIGTERM_ROOT") else {
+        return;
+    };
+    let root = PathBuf::from(root);
+    assert!(root.is_absolute() && root.starts_with("/tmp"));
+    assert!(root.join(".flea-test-sandbox").is_file());
+    let delay = std::fs::read_to_string(root.join("delay-ms")).unwrap();
+    let delay = Duration::from_millis(delay.trim().parse().unwrap());
+    // The process's own count, the one a SIGTERM waits on.
+    let mut reader = Shared::queued(root.clone());
+    reader.unwritten = &UNWRITTEN;
+    let (probe, held) = (reader.probe(), reader.hold());
+    std::thread::spawn(move || {
+        std::thread::sleep(delay);
+        probe.ask_stop();
+        drop(held);
+    });
+    std::fs::write(root.join("asked"), "").unwrap();
+    loop {
+        std::thread::sleep(Duration::from_millis(10));
+    }
+}
+
+// The owner's state in a marked root, a child Flea that asks it to stop, and SIGTERM sent while the stop is pending.
+fn sigterm_while_a_stop_is_pending(tag: &str, delay_ms: u64) -> (PathBuf, Option<i32>, Duration) {
+    use std::os::unix::process::ExitStatusExt;
+    use std::process::{Command, Stdio};
+    let root = dir(tag);
+    std::fs::write(root.join(STATE), "4242-1\non\nIntel AX210\n").unwrap();
+    std::fs::write(root.join("delay-ms"), delay_ms.to_string()).unwrap();
+    let mut child = Command::new(std::env::current_exe().unwrap())
+        .args([
+            "--exact",
+            "g2::send_share::airdrop_shared::tests::sigterm_stop_child",
+            "--test-threads=1",
+        ])
+        .env("FLEA_AIRDROP_SIGTERM_ROOT", &root)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .unwrap();
+    let started = Instant::now();
+    while !root.join("asked").exists() && started.elapsed() < Duration::from_secs(10) {
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    let sent = Instant::now();
+    let killed = Command::new("kill")
+        .args(["-TERM", &child.id().to_string()])
+        .status()
+        .unwrap();
+    assert!(killed.success());
+    let status = child.wait().unwrap();
+    (root, status.signal(), sent.elapsed())
+}
+
+#[test]
+fn flea_killed_by_sigterm_writes_a_pending_stop_first_then_dies_by_it() {
+    let (root, signal, took) = sigterm_while_a_stop_is_pending("termstop", 300);
+    let asked = std::fs::read_to_string(root.join(STOP)).unwrap_or_default();
+    let _ = std::fs::remove_dir_all(&root);
+    assert_eq!(signal, Some(SIGTERM));
+    assert_eq!(asked, "4242-1", "the owner was never asked to stop");
+    assert!(took < SETTLE + Duration::from_secs(2), "{took:?}");
+}
+
+#[test]
+fn a_stop_never_written_holds_a_sigterm_only_until_the_bound() {
+    let (root, signal, took) = sigterm_while_a_stop_is_pending("termbound", 30_000);
+    let asked = root.join(STOP).exists();
+    let _ = std::fs::remove_dir_all(&root);
+    assert_eq!(signal, Some(SIGTERM));
+    assert!(!asked);
+    assert!(
+        took >= SETTLE && took < SETTLE + Duration::from_secs(2),
+        "{took:?}"
     );
 }
