@@ -264,11 +264,12 @@ impl Operations {
                 moving,
                 extract,
             } => {
-                self.release_transfer_job();
-                self.transfer_cancelling = false;
-                self.transfer_receipt = None;
-                self.wire.started(id, moving, n, extract);
-                self.sticky = lines::progress_line(catalog, &self.wire.transfer);
+                if self.wire.started(id, moving, n, extract) {
+                    self.release_transfer_job();
+                    self.transfer_cancelling = false;
+                    self.transfer_receipt = None;
+                    self.sticky = lines::progress_line(catalog, &self.wire.transfer);
+                }
             }
             Event::TransferProgress {
                 id,

@@ -235,9 +235,11 @@ pub fn grouped(catalog: &I18n, value: u64) -> String {
 // The held-items beat: ok item lines wait up to BEAT_MS so a burst of small files repaints once.
 pub const BEAT_MS: u64 = 100;
 
+// The card presents one transfer; ones started while it runs wait behind it in start order.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Wire {
     pub transfer: Transfer,
+    pub queued: Vec<Transfer>,
     pub held: Vec<Held>,
     pub held_since: Option<u64>,
 }
@@ -253,10 +255,36 @@ pub enum Fold {
 }
 
 impl Wire {
-    pub fn started(&mut self, id: u64, moving: bool, count: u64, extract: bool) {
+    // True when the card now presents this transfer, false when it queued behind a running one.
+    pub fn started(&mut self, id: u64, moving: bool, count: u64, extract: bool) -> bool {
+        let started = Transfer::started(id, moving, count, extract);
+        if self.transfer.running {
+            self.queued.push(started);
+            return false;
+        }
         self.held.clear();
         self.held_since = None;
-        self.transfer = Transfer::started(id, moving, count, extract);
+        self.transfer = started;
+        true
+    }
+
+    fn queued_mut(&mut self, id: u64) -> Option<&mut Transfer> {
+        self.queued.iter_mut().find(|t| t.id == id)
+    }
+
+    // Ends a transfer by id: the presented one hands the card to the next queued transfer.
+    pub fn finish(&mut self, id: u64) -> Option<Transfer> {
+        if id == self.transfer.id {
+            self.flush();
+            let next = if self.queued.is_empty() {
+                Transfer::default()
+            } else {
+                self.queued.remove(0)
+            };
+            return Some(std::mem::replace(&mut self.transfer, next));
+        }
+        let at = self.queued.iter().position(|t| t.id == id)?;
+        Some(self.queued.remove(at))
     }
 
     // Held lines land before the line after them, so the card never steps backwards.
@@ -283,6 +311,14 @@ impl Wire {
         drive: &str,
     ) -> Fold {
         if id != self.transfer.id {
+            // A queued transfer on another drive can already run; its card picks up from here.
+            if let Some(t) = self.queued_mut(id) {
+                *t = if phase == "writing" {
+                    t.mark_writing(drive)
+                } else {
+                    t.sampled(index, name, bytes, total, scanned)
+                };
+            }
             return Fold::Nothing;
         }
         self.flush();
@@ -305,6 +341,10 @@ impl Wire {
         now: u64,
     ) -> Fold {
         if id != self.transfer.id {
+            // Unnamed here, a queued transfer's failure goes out with its done line.
+            if let Some(t) = self.queued_mut(id) {
+                *t = t.item_done(index, name);
+            }
             return Fold::Nothing;
         }
         if ok {
@@ -341,12 +381,10 @@ impl Wire {
 
     // A failure nobody has named yet goes out as an error; the card is spent either way.
     pub fn done(&mut self, id: u64, failed: u64) -> Fold {
-        if id != self.transfer.id {
+        let Some(transfer) = self.finish(id) else {
             return Fold::Nothing;
-        }
-        self.flush();
-        let error = failed > 1 || failed > 0 && !self.transfer.failure_reported;
-        let transfer = std::mem::take(&mut self.transfer);
+        };
+        let error = failed > 1 || failed > 0 && !transfer.failure_reported;
         Fold::Done { transfer, error }
     }
 }

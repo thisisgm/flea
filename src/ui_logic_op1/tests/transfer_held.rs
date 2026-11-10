@@ -177,6 +177,7 @@ fn held_line_of_one_transfer_never_lands_on_the_next() {
     wire.started(9, false, 5, false);
     wire.item(9, 0, "a", true, "", 0);
     wire.started(10, false, 5, false);
+    wire.done(9, 0);
     wire.item(9, 1, "stale", true, "", 0);
     // oracle tests/transferhold.qml:142
     assert!(wire.held.is_empty());
@@ -204,3 +205,34 @@ fn failure_reaches_the_card_without_the_beat() {
 
 // oracle tests/transferhold.qml:102
 const _: () = assert!(BEAT_MS <= 100);
+
+#[test]
+fn a_transfer_started_during_another_waits_and_takes_the_card_next() {
+    let mut wire = Wire::default();
+    assert!(wire.started(1, true, 1, false));
+    assert!(!wire.started(2, true, 3, false));
+    // A queued transfer on another drive runs at once; its samples and failures wait with it.
+    wire.progress(2, 0, "x", 10, 20, 0, "", "");
+    assert_eq!(wire.item(2, 0, "x", false, "denied", 0), Fold::Nothing);
+    assert_eq!(wire.transfer.id, 1);
+    match wire.done(1, 0) {
+        Fold::Done { transfer, error } => assert!(transfer.id == 1 && !error),
+        other => panic!("first transfer did not finish: {other:?}"),
+    }
+    assert!(wire.transfer.id == 2 && wire.transfer.running && wire.transfer.done == 1);
+    assert!(wire.queued.is_empty());
+    match wire.done(2, 1) {
+        Fold::Done { transfer, error } => assert!(transfer.id == 2 && error),
+        other => panic!("queued transfer did not finish: {other:?}"),
+    }
+    assert!(!wire.transfer.running);
+}
+
+#[test]
+fn a_queued_transfer_that_ends_first_leaves_the_card_alone() {
+    let mut wire = Wire::default();
+    wire.started(1, false, 4, false);
+    wire.started(2, false, 1, false);
+    assert!(matches!(wire.done(2, 0), Fold::Done { ref transfer, .. } if transfer.id == 2));
+    assert!(wire.transfer.id == 1 && wire.transfer.running && wire.queued.is_empty());
+}
