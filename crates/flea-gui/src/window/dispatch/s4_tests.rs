@@ -1,4 +1,4 @@
-//! SOL-S4: running transfers leave navigation live, refuse another paste, and retain select-all during a sort.
+//! SOL-S4: running transfers leave navigation and a second paste live, and retain select-all during a sort.
 use super::test_shell::{asked, land, open_root, row, sent, status};
 use crate::{backend::Backend, state::Shell};
 use gpui::{Entity, TestAppContext, VisualTestContext};
@@ -72,14 +72,96 @@ fn s4_running_copy_keeps_dispatched_navigation(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
-fn s4_second_paste_refuses_with_the_oracle_sentence(cx: &mut TestAppContext) {
+fn s4_second_paste_queues_behind_the_running_copy(cx: &mut TestAppContext) {
     let (shell, cx) = copying(cx);
     sent();
     cx.simulate_keystrokes("ctrl-v");
-    assert_eq!(status(&shell, cx), "An operation is already running.");
-    assert!(!sent().iter().any(|line| {
-        line.contains(r#""c":"collisions""#) || line.contains(r#""c":"transfer""#)
-    }));
+    assert!(sent()
+        .iter()
+        .any(|line| line.contains(r#""c":"collisions""#)));
+    line(
+        &shell,
+        cx,
+        r#"{"t":"collisions","id":2,"total":0,"names":[],"mergeable":false}"#,
+    );
+    assert!(sent().iter().any(|line| line.contains(r#""c":"transfer""#)));
+    line(
+        &shell,
+        cx,
+        r#"{"t":"transferstarted","id":8,"n":1,"moving":false}"#,
+    );
+    let presented = |shell: &Entity<Shell>, cx: &mut VisualTestContext| {
+        shell.read_with(cx, |shell, cx| {
+            let wire = &shell.operation_view(0).unwrap().read(cx).model.wire;
+            (wire.transfer.id, wire.transfer.running)
+        })
+    };
+    assert_eq!(presented(&shell, cx), (7, true));
+    line(
+        &shell,
+        cx,
+        r#"{"t":"transferdone","id":7,"ok":1,"failed":0,"skipped":0}"#,
+    );
+    assert_eq!(presented(&shell, cx), (8, true));
+    assert!(
+        status(&shell, cx).starts_with("Copied "),
+        "{}",
+        status(&shell, cx)
+    );
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+#[gpui::test]
+fn s4_disconnect_clears_queued_transfers_and_revokes_their_undo(cx: &mut TestAppContext) {
+    let (shell, cx) = copying(cx);
+    line(
+        &shell,
+        cx,
+        r#"{"t":"transferstarted","id":8,"n":1,"moving":true}"#,
+    );
+    line(
+        &shell,
+        cx,
+        r#"{"t":"jobs","jobs":[{"id":7,"kind":"copy","state":"running","undo":true},{"id":8,"kind":"move","state":"waiting","undo":true}]}"#,
+    );
+    shell.read_with(cx, |shell, cx| {
+        assert_eq!(
+            shell
+                .operation_view(0)
+                .unwrap()
+                .read(cx)
+                .model
+                .wire
+                .queued
+                .len(),
+            1
+        );
+    });
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            shell.receive(
+                0,
+                crate::backend::Event::Failed(crate::backend::Failure {
+                    key: "window.backend_stopped",
+                    detail: String::new(),
+                }),
+                window,
+                cx,
+            );
+        });
+    });
+    shell.read_with(cx, |shell, cx| {
+        let model = &shell.operation_view(0).unwrap().read(cx).model;
+        assert!(!model.wire.transfer.running && model.wire.queued.is_empty());
+        assert!(model.sticky.is_empty() && model.outbox.is_empty());
+        assert_eq!(model.due(), None);
+        assert_eq!(model.jobs.rows.len(), 2);
+        assert!(model
+            .jobs
+            .rows
+            .iter()
+            .all(|job| job.state == "failed" && !job.undo));
+    });
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 

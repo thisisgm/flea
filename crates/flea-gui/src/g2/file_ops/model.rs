@@ -276,11 +276,12 @@ impl Operations {
                 moving,
                 extract,
             } => {
-                self.release_transfer_job();
-                self.transfer_cancelling = false;
-                self.transfer_receipt = None;
-                self.wire.started(id, moving, n, extract);
-                self.sticky = lines::progress_line(catalog, &self.wire.transfer);
+                if self.wire.started(id, moving, n, extract) {
+                    self.release_transfer_job();
+                    self.transfer_cancelling = false;
+                    self.transfer_receipt = None;
+                    self.sticky = lines::progress_line(catalog, &self.wire.transfer);
+                }
             }
             Event::TransferProgress {
                 id,
@@ -318,7 +319,12 @@ impl Operations {
                 err,
             } => match self.wire.item(id, index, &name, ok, &err, now) {
                 transfer::Fold::Failed { name, error } => {
-                    let moving = self.wire.transfer.moving;
+                    let moving = self
+                        .wire
+                        .queued
+                        .iter()
+                        .chain([&self.wire.transfer])
+                        .any(|t| t.id == id && t.moving);
                     self.say(
                         lines::transfer_failure(catalog, moving, &name, &error),
                         true,

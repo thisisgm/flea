@@ -46,6 +46,8 @@ mod join_tests;
 #[cfg(test)]
 mod line_tests;
 #[cfg(test)]
+mod queued_paste_tests;
+#[cfg(test)]
 mod tests;
 
 mod collision;

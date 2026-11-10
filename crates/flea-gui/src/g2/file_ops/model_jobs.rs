@@ -129,15 +129,34 @@ impl Operations {
     }
 
     // An extract ends on its archive line, never a transfer reply, so that line ends the card and lets the held job row land.
-    pub fn extract_done(&mut self, id: u64) -> bool {
-        if !self.wire.transfer.extract || self.wire.transfer.id != id {
+    pub fn extract_done(&mut self, catalog: &I18n, id: u64) -> bool {
+        let presented = self.wire.transfer.id == id;
+        if !self
+            .wire
+            .queued
+            .iter()
+            .chain([&self.wire.transfer])
+            .any(|t| t.extract && t.id == id)
+        {
             return false;
         }
-        self.wire.transfer = Default::default();
-        self.release_transfer_job();
-        self.sticky.clear();
+        self.wire.finish(id);
+        if presented {
+            self.card_ended(catalog);
+        }
         self.changed = true;
         true
+    }
+
+    // The card's transfer ended: its held row lands, its cancel ends, the next queued transfer takes the status line.
+    fn card_ended(&mut self, catalog: &I18n) {
+        self.release_transfer_job();
+        self.transfer_cancelling = false;
+        self.sticky = if self.wire.transfer.running {
+            lines::progress_line(catalog, &self.wire.transfer)
+        } else {
+            String::new()
+        };
     }
 
     pub(super) fn release_transfer_job(&mut self) {
@@ -154,9 +173,11 @@ impl Operations {
         if self.emptying.finish(done.id) {
             return;
         }
+        let presented = self.wire.transfer.id == done.id;
         if let transfer::Fold::Done { transfer, error } = self.wire.done(done.id, done.failed) {
-            self.release_transfer_job();
-            self.transfer_cancelling = false;
+            if presented {
+                self.card_ended(catalog);
+            }
             let undo = self
                 .jobs
                 .rows
@@ -171,7 +192,6 @@ impl Operations {
                 }
             }
             self.transfer_receipt = undo.map(|_| Receipt::new(catalog, &self.preset, &line));
-            self.sticky.clear();
             // A transfer that failed anywhere keeps its errors: its receipt waits behind them.
             if error {
                 self.say(line.clone(), true);

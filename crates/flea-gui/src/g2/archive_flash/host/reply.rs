@@ -128,7 +128,7 @@ impl Shell {
         if let Some(view) = self.operation_view(side) {
             let id = done.id;
             view.update(cx, |overlay, cx| {
-                if overlay.model.extract_done(id) {
+                if overlay.model.extract_done(&overlay.catalog, id) {
                     cx.notify();
                 }
             });
