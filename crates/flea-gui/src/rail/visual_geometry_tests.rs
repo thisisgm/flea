@@ -13,6 +13,7 @@ fn section(heading: &'static str, group: Group, labels: &[&str]) -> DrawnSection
             .map(|label| DrawnRow {
                 label: label.to_string().into(),
                 glyph: "house",
+                owned: None,
                 mark: RowMark::None,
                 group,
                 kind: Kind::Home,

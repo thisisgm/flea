@@ -58,7 +58,7 @@ pub fn saved_places(state: &Json) -> SavedPlaces {
     }
 }
 
-// A section title: a catalog key for a built-in, the plugin's own resolved title for a plugin, or none drawn.
+// A section title: a catalog key for a built-in, the plugin's own title (empty when it names none), or none drawn.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Heading {
     None,

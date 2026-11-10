@@ -97,6 +97,15 @@ pub struct RailEntry {
     // The plugin section a row belongs to and the row's own id there, empty for built-in rows.
     pub section: String,
     pub id: String,
+    // A plugin row's own mark.svg, drawn in place of its glyph; none for built-in rows.
+    pub mark: Option<OwnedMark>,
+}
+
+// A plugin's mark.svg as read from its folder: the path keys the painter's cache, the bytes paint as an alpha mask.
+#[derive(Clone, Debug, PartialEq)]
+pub struct OwnedMark {
+    pub path: String,
+    pub svg: std::sync::Arc<[u8]>,
 }
 
 // Two rows name the same place when this matches, whatever their mount state or count.

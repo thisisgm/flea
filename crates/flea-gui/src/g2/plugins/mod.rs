@@ -3,6 +3,7 @@ mod host;
 pub(crate) mod input;
 mod join;
 pub(crate) mod limits;
+mod marks;
 mod shelf;
 pub(crate) use host::{service, Closed, Host, Response, WireLine};
 pub(crate) use join::Join;
@@ -17,6 +18,8 @@ pub(crate) mod rail;
 mod place_validation_tests;
 #[cfg(test)]
 mod plugin_place_paste_tests;
+#[cfg(test)]
+mod rail_heading_tests;
 #[cfg(test)]
 mod rail_place_fixture;
 #[cfg(test)]

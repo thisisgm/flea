@@ -19,7 +19,7 @@ print_card() {
     chmod +x "$bin/lpstat" "$bin/lpoptions" || return 1
     export PATH="$bin:$PATH"
     launch list "$W/Docs" || return 1
-    cursor_to notes.txt || return 1
+    cursor_to report.pdf || return 1
     key -M ctrl p -m ctrl || return 1
     for attempt in $(seq 1 60); do
         [ -f "$VISUAL_PRINT_QUERY_DONE" ] && break
@@ -242,7 +242,7 @@ case_cols_density_pictures_end() (
     local root=$C/pictures last=119 decode_limit=100 poll_seconds=0.1 i attempt
     mkdir -p "$root" || return 1
     : > "$root/.flea-test-sandbox" || return 1
-    for i in $(seq -f %03g 0 "$last"); do cp "$W/Media/photo.png" "$root/picture-$i.png" || return 1; done
+    for i in $(seq -f %03g 0 "$last"); do ln "$W/Media/photo.png" "$root/picture-$i.png" || return 1; done
     LAUNCH_STATE=',"density":"comfortable","display":{"textSize":{"mode":14}}' launch columns "$root" || return 1
     wait_ipc bodyPx 14 || return 1
     key G
@@ -454,5 +454,32 @@ case_trash_cursor_hover() (
     read -r ax ay <<< "$(win_json | jq -r '.at | "\(.[0]) \(.[1])"')"
     omarchy-drive move "$(awk -v a="$ax" -v b="$x" 'BEGIN {printf "%.0f", a+b}')" "$(awk -v a="$ay" -v b="$y" 'BEGIN {printf "%.0f", a+b}')" > /dev/null || return 1
     nudge_pointer 3 || return 1
+    snap
+)
+
+# FX-PLACES418 (0.4.2, #418): board 0402-plugin-rail-mark, Syncthing under its own title, Example Files under PLUGINS.
+CASES+=("plugin-rail-mark 1100x700")
+
+case_plugin_rail_mark() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    local root=$C/plugin-rail rows_limit=200 poll_seconds=0.1 settle_seconds=0.3 attempt id
+    local ready='any(.[]; .label == "Photos") and any(.[]; .label == "Example Files" and has("mark"))'
+    mkdir -p "$root/sync/Photos" "$root/sync/Notes" "$root/sync/Music" || return 1
+    : > "$root/.flea-test-sandbox" || return 1
+    # The installed copies leave with the case, so no later Settings shot gains a plugin row.
+    trap '"$flea_bin" plugin remove example.syncthing >> "$case_notes" 2>&1; "$flea_bin" plugin remove example.virtual-place >> "$case_notes" 2>&1' EXIT
+    for id in syncthing virtual-place; do
+        "$flea_bin" plugin add "/src/examples/plugins/$id" >> "$case_notes" 2>&1 || return 1
+    done
+    export FLEA_EXAMPLE_FOLDERS=$root/sync XDG_STATE_HOME="/tmp/vstate/$case_name"
+    export LAUNCH_STATE=',"plugins":{"example.syncthing":{"enabled":true},"example.virtual-place":{"enabled":true}}'
+    launch list "$W" || return 1
+    # Both runtimes start and Syncthing answers its first section before the rail holds every row.
+    for attempt in $(seq 1 "$rows_limit"); do
+        ipc railEntries | jq -e "$ready" > /dev/null 2>&1 && break
+        sleep "$poll_seconds"
+    done
+    ipc railEntries | jq -e "$ready" > /dev/null 2>&1 || { state_failure "plugin rail rows never arrived"; return 1; }
+    sleep "$settle_seconds"
     snap
 )

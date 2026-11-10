@@ -2,6 +2,7 @@
 use super::*;
 use flea::ui_logic_rail_places::{
     order::{Heading, RailSection},
+    plugin::PLUGINS_HEADING,
     rail::{Group, RailEntry},
 };
 use std::{fs, path::PathBuf, time::Duration};
@@ -110,6 +111,14 @@ fn runtime_language_switch_relabels_fixed_places(cx: &mut TestAppContext) {
                         label: "Documents".into(),
                         ..Default::default()
                     }],
+                }, RailSection {
+                    heading: Heading::Plugin("Geräte".into()),
+                    rows: vec![RailEntry {
+                        group: Group::Plugin,
+                        kind: Kind::PluginRow,
+                        label: "Phone".into(),
+                        ..Default::default()
+                    }],
                 }],
                 cx,
             );
@@ -200,6 +209,18 @@ fn runtime_language_switch_relabels_fixed_places(cx: &mut TestAppContext) {
                     crate::g2::rail_places::content::heading_text(&catalog, &Heading::Key(key))
                 );
             }
+            // The plugin's title is German's DEVICES word, so only German files its row under PLUGINS (PLUGINS.md, Rail headings).
+            let plugin = producer.provider.drawn.last().unwrap();
+            let heading = match language {
+                "de" => Heading::Key(PLUGINS_HEADING),
+                _ => Heading::Plugin("Geräte".into()),
+            };
+            assert_eq!(
+                plugin.heading,
+                crate::g2::rail_places::content::heading_text(&catalog, &heading),
+                "{language}: the plugin row's heading"
+            );
+            assert_eq!(plugin.rows[0].label.as_ref(), "Phone");
             let painted = producer.laid.borrow();
             assert!(painted.painted);
             for row in &painted.rows {

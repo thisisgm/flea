@@ -25,6 +25,8 @@ pub(crate) struct Response {
 pub(crate) struct Host {
     pub plugins: Vec<Plugin>,
     pub answers: HashMap<(String, String), Json>,
+    /// Each community plugin's mark.svg by path, none while it loads or when it cannot be read.
+    pub marks: HashMap<String, Option<std::sync::Arc<[u8]>>>,
     ready: HashSet<String>,
     pending: HashMap<u64, (String, Json)>,
     waiters: HashMap<u64, async_channel::Sender<Response>>,
@@ -51,6 +53,7 @@ impl Host {
         let mut host = Self {
             plugins: Vec::new(),
             answers: HashMap::new(),
+            marks: HashMap::new(),
             ready: HashSet::new(),
             pending: HashMap::new(),
             waiters: HashMap::new(),
@@ -183,6 +186,7 @@ impl Host {
             self.ready.retain(|p| healthy.contains(p));
             self.answers
                 .retain(|(plugin, _), _| healthy.contains(plugin));
+            self.load_marks(cx);
             cx.notify();
             return;
         }
