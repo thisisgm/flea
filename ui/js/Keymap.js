@@ -84,6 +84,7 @@ var PRESET_KEYS = [
     {"mods":"alt","key":"Up","keys":"alt-up","action":"parent","label":"up one level","frontend":"all","context":"listing","preset":"windows","code":"Key_Up","text":"","ctrl":false,"shift":false,"alt":true,"super":false,"keycode":Qt.Key_Up,"mask":(Qt.AltModifier)},
     {"mods":"none","key":"Escape","keys":"escape","action":"escape","label":"escape","frontend":"all","context":"rail,menu,panel,preview,pdf,media","preset":"all","code":"Key_Escape","text":"","ctrl":false,"shift":false,"alt":false,"super":false,"keycode":Qt.Key_Escape,"mask":(0)},
     {"mods":"none","key":"Menu","keys":"menu","action":"menu","label":"context menu","frontend":"all","context":"listing,rail","preset":"all","code":"Key_Menu","text":"","ctrl":false,"shift":false,"alt":false,"super":false,"keycode":Qt.Key_Menu,"mask":(0)},
+    {"mods":"none","key":"F3","keys":"f3","action":"viewDual","label":"dual pane","frontend":"gui","context":"listing","preset":"all","code":"Key_F3","text":"","ctrl":false,"shift":false,"alt":false,"super":false,"keycode":Qt.Key_F3,"mask":(0)},
     {"mods":"none","key":"F4","keys":"f4","action":"autofitColumns","label":"autofit columns","frontend":"gui","context":"listing","preset":"all","code":"Key_F4","text":"","ctrl":false,"shift":false,"alt":false,"super":false,"keycode":Qt.Key_F4,"mask":(0)},
     {"mods":"shift","key":"F10","keys":"shift-f10","action":"menu","label":"context menu","frontend":"all","context":"listing,rail","preset":"all","code":"Key_F10","text":"","ctrl":false,"shift":true,"alt":false,"super":false,"keycode":Qt.Key_F10,"mask":(Qt.ShiftModifier)},
     {"mods":"none","key":"Down","keys":"down","action":"cursorDown","label":"cursorDown","frontend":"all","context":"rail,menu,panel,preview,pdf,media","preset":"all","code":"Key_Down","text":"","ctrl":false,"shift":false,"alt":false,"super":false,"keycode":Qt.Key_Down,"mask":(0)},
@@ -361,6 +362,12 @@ function sheetFor(name, frontend) {
         result[g].alone = keys
         for (var k = 1; k < spellings.length; k++) {
             var both = keys + " / " + spellings[k].keys
+            // Keep a short function key visible when the preset chord leaves no room for both.
+            if (both.length > SHEET_CAP_BUDGET && spellings[k].mods === "none" && /^F[0-9]+$/.test(spellings[k].key) && spellings[k].keys.length < keys.length) {
+                keys = spellings[k].keys
+                result[g].alone = keys
+                break
+            }
             if (spellings[k].keys === keys || both.length > SHEET_CAP_BUDGET) continue
             keys = both
             break

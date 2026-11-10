@@ -4,6 +4,8 @@ use gpui::{Context, FocusHandle, Window};
 
 pub struct Focus {
     pub last_side: usize,
+    /// The single view Dual was entered from, where the Dual key returns; List when the window opened in Dual.
+    pub before: View,
     pub rail: FocusHandle,
     pub chrome: FocusHandle,
     pub strip: FocusHandle,
@@ -13,6 +15,7 @@ impl Focus {
     pub fn new(cx: &mut Context<Shell>) -> Self {
         Self {
             last_side: 0,
+            before: View::List,
             rail: cx.focus_handle(),
             chrome: cx.focus_handle(),
             strip: cx.focus_handle(),

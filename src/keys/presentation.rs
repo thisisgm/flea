@@ -172,12 +172,22 @@ pub fn sheet(name: &str, frontend: Frontend, catalog: &I18n) -> Vec<SheetRow> {
                 secondary,
             )
         });
-        let first = spellings[0].keys;
+        let mut first = spellings[0].keys;
         let mut keys = first.to_owned();
         for candidate in spellings.iter().skip(1) {
             let length = first.encode_utf16().count() + 3 + candidate.keys.encode_utf16().count();
             if candidate.keys != first && length <= SHEET_CAP_BUDGET {
                 keys = format!("{first} / {}", candidate.keys);
+                break;
+            }
+            // Keep a short function key visible when the preset chord leaves no room for both.
+            let function_key = candidate
+                .key
+                .strip_prefix('F')
+                .is_some_and(|suffix| suffix.parse::<u8>().is_ok());
+            if candidate.mods == "none" && function_key && candidate.keys.len() < first.len() {
+                first = candidate.keys;
+                keys = first.to_owned();
                 break;
             }
         }

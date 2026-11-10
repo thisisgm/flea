@@ -293,3 +293,40 @@ case_text_menu_path() (
     click_at "$(ipc pathCentre)" right || return 1
     snap
 )
+
+# FX-F3: boards dual and keymap; F3 enters Dual and returns to the originating view.
+CASES+=("f3-dual-list 1100x700 view:dual"
+        "f3-dual-columns 1100x700 view:dual"
+        "f3-dual-grid 1100x700 view:dual")
+
+f3_wait_dual() {
+    local active=$1 view=${2:-} attempt dual_limit=100 poll_seconds=0.1
+    for attempt in $(seq 1 "$dual_limit"); do
+        # Sample input: {"active":true,"focused":0,"panes":[{"path":"/home/p"},null]}
+        if ipc dualState | jq -e --argjson active "$active" '.active == $active' >/dev/null; then
+            [ -n "$view" ] || return 0
+            # Sample input: {"side":0,"active":false,"focused":0,"path":"/home/p","view":"grid","loading":false,"total":3}
+            ipc dragPaneGeometry 0 0 | jq -e --arg view "$view" '.view == $view' >/dev/null && return 0
+        fi
+        sleep "$poll_seconds"
+    done
+    state_failure "F3 did not reach dual active=$active"
+    return 1
+}
+
+f3_roundtrip() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    local view=$1
+    launch "$view" "$W" || return 1
+    key -k F3
+    f3_wait_dual true || return 1
+    key -k F3
+    f3_wait_dual false "$view" || return 1
+    key -k F3
+    f3_wait_dual true || return 1
+    snap
+)
+
+case_f3_dual_list() ( f3_roundtrip list )
+case_f3_dual_columns() ( f3_roundtrip columns )
+case_f3_dual_grid() ( f3_roundtrip grid )

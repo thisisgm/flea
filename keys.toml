@@ -2120,6 +2120,17 @@ label = "context menu"
 frontend = "all"
 context = "listing,rail"
 
+# F3 turns the dual pane on, and off again to the view it left, in every preset (GUI only).
+[[preset]]
+name = "all"
+mods = "none"
+key = "F3"
+keys = "f3"
+action = "viewDual"
+label = "dual pane"
+frontend = "gui"
+context = "listing"
+
 # ListColumns040: F4 fits every drawn list column, the keyboard twin of the header's double click (GUI only).
 [[preset]]
 name = "all"
