@@ -193,7 +193,7 @@ fn step_key(op: &str) -> Option<&'static str> {
     let key = match op {
         "trash" => "step.trash", "rename" | "bulkrename" => "step.rename", "duplicate" => "step.duplicate", "mkdir" => "step.mkdir",
         "newfile" => "step.newfile", "copy" => "step.copy", "move" => "step.move", "merge" => "step.merge", "link" => "step.link",
-        "permissions" => "step.permissions", _ => return None,
+        "permissions" => "step.permissions", "convert" => "step.convert", _ => return None,
     };
     Some(key)
 }

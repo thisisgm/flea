@@ -165,3 +165,28 @@ fn magick_output_doubles_percent_and_keeps_raw_bytes() {
         b"/d/a%%\xff/o.png"
     );
 }
+
+// A taken output steps to Duplicate's copy names, keeping a raw name's own bytes.
+#[test]
+fn a_taken_output_steps_to_duplicates_copy_names() {
+    use std::os::unix::ffi::OsStrExt;
+    let asked = std::path::Path::new("/d/photo (converted).jpg");
+    assert_eq!(output::copy_path(asked, 0).unwrap(), asked);
+    assert_eq!(
+        output::copy_path(asked, 1).unwrap(),
+        std::path::Path::new("/d/photo (converted) copy.jpg")
+    );
+    assert_eq!(
+        output::copy_path(asked, 2).unwrap(),
+        std::path::Path::new("/d/photo (converted) copy 2.jpg")
+    );
+    let raw = std::path::Path::new(std::ffi::OsStr::from_bytes(b"/d/a-\xff (converted).png"));
+    assert_eq!(
+        output::copy_path(raw, 1).unwrap().as_os_str().as_bytes(),
+        b"/d/a-\xff (converted) copy.png"
+    );
+    assert!(
+        output::copy_path(std::path::Path::new("/"), 1).is_none(),
+        "a path with no last name has no copy name"
+    );
+}

@@ -396,7 +396,7 @@ fn handle_line(
             .get_or_insert_with(|| super::gitreq::Worker::new(loop_tx.clone()))
             .request(line),
         Request::Plugins { line } => super::plugins::request(line, ops.tx.clone()),
-        Request::Permissions { line } => say(out, &ops.permissions.handle(&line)),
+        Request::Permissions { line } => say(out, &ops.permissions.handle(&line, &mut ops.journal)),
         Request::Picker { line } => {
             let replies = ops.tx.clone();
             ops.picker.get_or_insert_with(|| super::picker::Picker::new(replies)).request(line);

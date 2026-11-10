@@ -173,11 +173,21 @@ impl OutputView {
         for effect in std::mem::take(&mut self.model.effects) {
             match effect {
                 Effect::CheckOutputs { ticket, paths } => {
-                    let pdf_pages = matches!(&self.model.card, Some(Card::Convert(c)) if c.kind == flea::ui_logic_print_convert::output::Kind::Pdf);
+                    let convert = match &self.model.card {
+                        Some(Card::Convert(c)) => {
+                            Some(c.kind == flea::ui_logic_print_convert::output::Kind::Pdf)
+                        }
+                        _ => None,
+                    };
                     self.check = Some(cx.spawn(async move |this, cx| {
                         let result = cx
                             .background_executor()
-                            .spawn(async move { super::check::paths(paths, pdf_pages) })
+                            .spawn(async move {
+                                match convert {
+                                    Some(pdf_pages) => super::check::converted(paths, pdf_pages),
+                                    None => super::check::paths(paths),
+                                }
+                            })
                             .await;
                         let _ = this.update(cx, |this, cx| {
                             this.model.checked_paths(ticket, result, &this.catalog);

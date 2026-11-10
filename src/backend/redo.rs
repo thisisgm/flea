@@ -71,7 +71,8 @@ impl Replay {
     pub fn capture(entry: Entry) -> Result<Self, FleaError> {
         let mut steps = Vec::new();
         for step in entry.steps {
-            if matches!(step, Step::Created { .. } | Step::Barrier) {
+            // A convert's step names the file it read, and a copy of that file is not the conversion.
+            if matches!(step, Step::Created { .. } | Step::Barrier) || entry.op == "convert" {
                 return Err(error(Path::new(""), "this operation cannot be redone"));
             }
             let input = match &step {

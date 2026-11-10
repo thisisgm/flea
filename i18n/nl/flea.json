@@ -466,6 +466,7 @@
   "dialogs.file.properties.permissions": "Rechten",
   "properties.permissions": "Rechten",
   "step.permissions": "Rechten",
+  "step.convert": "Converteren",
   "dialogs.file.permissions.title_many": {
     "one": "Rechten voor %1 item",
     "other": "Rechten voor %1 items"
@@ -1126,6 +1127,7 @@
   "jobs.undone.link": "Koppeling ongedaan gemaakt",
   "jobs.undone.merge": "Samenvoegen ongedaan gemaakt",
   "jobs.undone.mkdir": "Nieuwe map verwijderd.",
+  "jobs.undone.convert": "Converteren ongedaan gemaakt",
   "jobs.undone.move": "Verplaatsen ongedaan gemaakt",
   "jobs.undone.newfile": "Nieuw bestand verwijderd",
   "jobs.undone.other": "Laatste actie ongedaan gemaakt",

@@ -16,20 +16,44 @@ fn vacant(path: &str) -> Result<(), OutputError> {
     }
 }
 
-pub fn paths(paths: Vec<String>, pdf_pages: bool) -> Result<Vec<String>, OutputError> {
+// Combine names its own output, so a taken name refuses there.
+pub fn paths(paths: Vec<String>) -> Result<Vec<String>, OutputError> {
+    paths
+        .into_iter()
+        .map(|path| vacant(&path).map(|()| path))
+        .collect()
+}
+
+// A Convert lands a taken output under Duplicate's next free copy name, as the backend does, so the card names that one.
+pub fn converted(paths: Vec<String>, pdf_pages: bool) -> Result<Vec<String>, OutputError> {
+    use flea::ui_logic_print_convert::output::{copy_path, page_fallback, COPY_TRIES};
+    let free = |path: &Path| {
+        for n in 0..=COPY_TRIES {
+            let Some(candidate) = copy_path(path, n) else {
+                break;
+            };
+            let candidate = candidate.to_string_lossy().into_owned();
+            match vacant(&candidate) {
+                Err(OutputError::Exists(_)) => continue,
+                found => return found.map(|()| candidate),
+            }
+        }
+        Err(OutputError::Exists(
+            path.file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .into_owned(),
+        ))
+    };
     paths
         .into_iter()
         .map(|path| {
-            if pdf_pages && vacant(&path).is_err() {
-                let file = Path::new(&path);
-                let fallback =
-                    file.with_file_name(flea::ui_logic_print_convert::output::page_fallback(file));
-                let fallback = fallback.to_string_lossy().into_owned();
-                vacant(&fallback)?;
-                Ok(fallback)
-            } else {
-                vacant(&path)?;
-                Ok(path)
+            let file = Path::new(&path);
+            match vacant(&path) {
+                Err(OutputError::Exists(_)) if pdf_pages => {
+                    free(&file.with_file_name(page_fallback(file)))
+                }
+                _ => free(file),
             }
         })
         .collect()
@@ -39,7 +63,7 @@ pub fn paths(paths: Vec<String>, pdf_pages: bool) -> Result<Vec<String>, OutputE
 mod tests {
     use super::*;
     #[test]
-    fn op4_real_output_probe_refuses_dangling_links_and_resolves_page_fallback() {
+    fn op4_real_output_probe_refuses_dangling_links_and_steps_to_free_names() {
         let parent = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.superpowers/g2-op4");
         let parent = std::fs::canonicalize(&parent).unwrap_or_else(|_| {
             std::fs::create_dir_all(&parent).unwrap();
@@ -58,13 +82,19 @@ mod tests {
         std::os::unix::fs::symlink(root.join("absent"), &candidate).unwrap();
         let candidate = candidate.to_string_lossy().into_owned();
         assert!(matches!(
-            paths(vec![candidate.clone()], false),
+            paths(vec![candidate.clone()]),
             Err(OutputError::Exists(_))
         ));
-        let fallback = paths(vec![candidate.clone()], true).unwrap();
+        let image = converted(vec![candidate.clone()], false).unwrap();
+        assert!(image[0].ends_with("report (page 1) copy.png"), "{image:?}");
+        let fallback = converted(vec![candidate.clone()], true).unwrap();
         assert!(fallback[0].ends_with("report (page 1) (converted).png"));
         std::fs::write(&fallback[0], b"kept").unwrap();
-        assert!(paths(vec![candidate], true).is_err());
+        let stepped = converted(vec![candidate], true).unwrap();
+        assert!(
+            stepped[0].ends_with("report (page 1) (converted) copy.png"),
+            "{stepped:?}"
+        );
         assert_eq!(std::fs::read(&fallback[0]).unwrap(), b"kept");
         assert!(
             root.is_absolute()

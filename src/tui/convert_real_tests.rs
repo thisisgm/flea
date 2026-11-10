@@ -209,8 +209,13 @@ pub fn safe(root: &Path, w: &mut Wire) {
     std::fs::write(&collision, b"keep collision").unwrap();
     let mut m = open(&files, w, &["photo.png"]);
     submit(&mut m, w);
-    assert!(m.error.contains("already exists"));
+    assert!(m.error.is_empty(), "{}", m.error);
     assert_eq!(std::fs::read(collision).unwrap(), b"keep collision");
+    let landed = std::fs::read(files.join("photo (converted) copy.jpg")).unwrap();
+    assert!(
+        landed.starts_with(&[0xff, 0xd8]),
+        "a taken output lands as a JPEG under the copy name"
+    );
     controlled_converter(root);
     let mut m = open(&files, w, &["photo.png"]);
     press(&mut m, w, Key::named("Down", ""));
