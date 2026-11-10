@@ -167,6 +167,10 @@ impl Shell {
         if self.search_action(action, window, cx) {
             return;
         }
+        if action == "viewDual" {
+            self.choose_settings_view(View::Dual, window, cx);
+            return;
+        }
         if self.settings_action(action, window, cx) {
             return;
         }

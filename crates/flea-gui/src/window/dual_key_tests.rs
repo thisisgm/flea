@@ -32,6 +32,67 @@ fn view(cx: &mut TestAppContext, handle: Handle) -> View {
 }
 
 #[gpui::test]
+fn chrome_dual_selects_from_every_view_and_keeps_the_keyboard_return_view(cx: &mut TestAppContext) {
+    for start in [View::List, View::Columns, View::Grid] {
+        let handle = single(cx, "default", start);
+        for _ in 0..2 {
+            edit(cx, handle, |shell, window, cx| {
+                shell.chrome_action("viewDual", window, cx);
+            });
+            frame(cx, handle);
+            assert_eq!(view(cx, handle), View::Dual, "Dual segment from {start:?}");
+        }
+        key(cx, handle, "f3");
+        assert_eq!(view(cx, handle), start, "F3 returns to {start:?}");
+        key(cx, handle, "ctrl-4");
+        assert_eq!(view(cx, handle), View::Dual);
+        key(cx, handle, "ctrl-4");
+        assert_eq!(view(cx, handle), start, "Ctrl+4 returns to {start:?}");
+    }
+}
+
+#[gpui::test]
+fn chrome_dual_keeps_a_pending_dual_choice(cx: &mut TestAppContext) {
+    let handle = single(cx, "default", View::Columns);
+    edit(cx, handle, |shell, window, cx| {
+        shell.set_view(View::Dual, window, cx);
+        shell.view = View::Columns;
+        shell.dual_pending = true;
+        shell.chrome_action("viewDual", window, cx);
+        assert!(shell.view == View::Dual || shell.dual_pending);
+        assert_eq!(shell.dual_focus.before, View::Columns);
+    });
+    frame(cx, handle);
+    assert_eq!(view(cx, handle), View::Dual);
+}
+
+#[gpui::test]
+fn sheet_dual_row_selects_instead_of_toggling(cx: &mut TestAppContext) {
+    let handle = single(cx, "default", View::Columns);
+    for _ in 0..2 {
+        edit(cx, handle, |shell, window, cx| {
+            shell.open_sheet(window, cx);
+            shell
+                .settings
+                .sheet
+                .clone()
+                .unwrap()
+                .update(cx, |view, cx| {
+                    view.sheet.decided =
+                        Some(flea::ui_logic_settings_pages::sheet::Decision::Action {
+                            action: "viewDual".into(),
+                        });
+                    cx.emit(crate::g2::settings_pages::Request::Close);
+                });
+        });
+        frame(cx, handle);
+        assert_eq!(view(cx, handle), View::Dual);
+    }
+    key(cx, handle, "f3");
+    assert_eq!(view(cx, handle), View::Columns);
+}
+
+#[gpui::test]
 fn f3_enters_dual_and_returns_to_the_view_it_left_in_every_preset(cx: &mut TestAppContext) {
     for preset in flea::keys::PRESETS {
         for start in [View::List, View::Columns, View::Grid] {
