@@ -196,6 +196,7 @@ impl Shell {
     }
 
     // The Delete permanently snapshot this family sent, then its review, which opens the permanent-delete card.
+    /// Advances Delete permanently from snapshot to prepareDelete, opening its card, or refuses
     fn fileops_delete_reply(
         &mut self,
         side: usize,
@@ -248,6 +249,7 @@ impl Shell {
     }
 
     // A refused review says why and closes the snapshot it was taken on.
+    /// Reports what a refused review said and closes its snapshot
     fn fileops_delete_refused(&mut self, side: usize, reply: &Reply, cx: &mut Context<Self>) {
         self.operations.fileops.deleting[side] = None;
         let close = format!(

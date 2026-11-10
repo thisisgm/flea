@@ -27,8 +27,10 @@ const BOARD: [&str; 22] = [
     "           1–9  Select tab",
     "             q  Quit",
 ];
+/// The sheet row whose action list contains this action
 fn row(action: &str) -> &'static Row { ROWS.iter().find(|row| row.1.contains(&action)).unwrap() }
 
+/// The drawn sheet frames the board's own cells, rows and inks
 #[test]
 fn keys_sheet_matches_its_board_cells_and_inks() {
     let theme = Theme::from_text(PALETTE);
@@ -48,6 +50,7 @@ fn keys_sheet_matches_its_board_cells_and_inks() {
     assert_eq!(ink[2][6].0, role(&theme.frame));
 }
 
+/// Every key the sheet prints resolves back to its row's action in each preset
 #[test]
 fn every_printed_key_reaches_its_action_in_every_preset() {
     let map = Map::load();
@@ -80,6 +83,7 @@ fn every_printed_key_reaches_its_action_in_every_preset() {
     }
 }
 
+/// A chord that needs the kitty protocol prints beside one that does not
 #[test]
 fn a_key_that_needs_the_kitty_protocol_prints_beside_one_that_does_not() {
     let map = Map::load();
@@ -96,6 +100,7 @@ fn a_key_that_needs_the_kitty_protocol_prints_beside_one_that_does_not() {
     }
 }
 
+/// Arm letters print doubled, and the view switches stay off the sheet
 #[test]
 fn arm_letters_print_doubled_and_the_sheet_keeps_the_view_switches_off() {
     let map = Map::load();
@@ -111,6 +116,7 @@ fn arm_letters_print_doubled_and_the_sheet_keeps_the_view_switches_off() {
     }
 }
 
+/// A group never splits across columns and the card fits, from 250 down to 12 columns
 #[test]
 fn each_group_stays_whole_in_at_most_three_columns_at_every_width() {
     let map = Map::load();
@@ -139,6 +145,7 @@ fn each_group_stays_whole_in_at_most_three_columns_at_every_width() {
     assert!(stacked.columns[0].iter().any(|line| matches!(line, Line::Key(keys) if keys == "ctrl-shift-z / ctrl-y")), "a narrow sheet gives a key its own line");
 }
 
+/// A hint takes the first spelling that carries no ctrl or alt
 #[test]
 fn hints_name_the_first_key_without_ctrl_or_alt() {
     let map = Map::load();
@@ -148,6 +155,7 @@ fn hints_name_the_first_key_without_ctrl_or_alt() {
     }
 }
 
+/// Turkish headings take the locale's dotted İ where plain uppercasing draws a bare I
 #[test]
 fn turkish_headings_keep_the_dotted_capital_i() {
     let mut m = model();
@@ -160,6 +168,7 @@ fn turkish_headings_keep_the_dotted_capital_i() {
     assert_eq!(headings, ["HAREKET", "GÖRÜNÜM", "BUL", "DEĞİŞTİR"]);
 }
 
+/// A binding column keeps its full width at every terminal width from 12 to 300
 #[test]
 fn tui_words_review_binding_columns_are_never_clipped_to_key_width() {
     let map = Map::load();
@@ -187,6 +196,7 @@ fn tui_words_review_binding_columns_are_never_clipped_to_key_width() {
     }
 }
 
+/// Yazi's prefix routes print as sequences, and the other presets keep their single keys
 #[test]
 fn yazi_prefix_routes_are_shown_as_sequences_without_changing_other_presets() {
     let map = Map::load();
@@ -199,6 +209,7 @@ fn yazi_prefix_routes_are_shown_as_sequences_without_changing_other_presets() {
     }
 }
 
+/// A layout's labels keep every sequence part and protocol pair whole, or the snapshot is refused
 #[test]
 fn explicit_layout_snapshots_keep_sequence_parts_and_protocol_pairs_complete() {
     let map = Map::load();
@@ -227,6 +238,7 @@ fn explicit_layout_snapshots_keep_sequence_parts_and_protocol_pairs_complete() {
     }
 }
 
+/// Each part of a yazi sequence takes its own label from the layout
 #[test]
 fn yazi_sequence_keycaps_relabel_each_part_of_the_sequence() {
     let map = Map::load();
@@ -247,6 +259,7 @@ fn yazi_sequence_keycaps_relabel_each_part_of_the_sequence() {
     }
 }
 
+/// An editor label keeps its modifiers and takes the layout's atom for each key
 #[test]
 fn yazi_editor_labels_compose_the_snapshots_actual_letter_and_named_key_atoms() {
     for layout in ["us","ru"] {
@@ -257,6 +270,7 @@ fn yazi_editor_labels_compose_the_snapshots_actual_letter_and_named_key_atoms() 
 }
 
 // Keycaps keep Omarchy's own key words in every language; only the words beside them follow the language.
+/// Draws the sheet in Russian and Persian: the keycaps stay Omarchy's, only the words beside them translate
 #[test]
 fn i50_keycap_words_stay_omarchys_in_a_non_latin_and_an_rtl_language() {
     let theme = Theme::from_text(PALETTE);
@@ -301,6 +315,7 @@ fn i50_keycap_words_stay_omarchys_in_a_non_latin_and_an_rtl_language() {
 }
 
 // The per-chord rule from the strict core label: an ambiguous atom keeps its own spelling, any other atom is relabelled.
+/// The label one canonical chord should print under this layout, counting the ambiguous atoms it leaves as they are
 fn i50_ambig_expected(canonical: &str, snapshot: &flea::keys::display::KeycapSnapshot, ambiguous: &mut usize) -> String {
     let mut atom = |part: &str| {
         if snapshot.ambiguous().contains(&part) { *ambiguous += 1; return part.to_owned(); }
@@ -313,6 +328,7 @@ fn i50_ambig_expected(canonical: &str, snapshot: &flea::keys::display::KeycapSna
     canonical.split(" / ").map(|alternative| alternative.split(' ').map(&mut atom).collect::<Vec<_>>().join(" ")).collect::<Vec<_>>().join(" / ")
 }
 
+/// German and French relabel every resolvable chord and keep an ambiguous one canonical
 #[test]
 fn i50_ambig_de_and_fr_relabel_every_resolvable_chord_and_keep_ambiguous_ones_canonical() {
     let map = Map::load();
@@ -342,6 +358,7 @@ fn i50_ambig_de_and_fr_relabel_every_resolvable_chord_and_keep_ambiguous_ones_ca
     }
 }
 
+/// An ambiguous atom inside a sequence keeps its spelling while the rest of the sequence relabels
 #[test]
 fn i50_ambig_sequence_parts_relabel_independently() {
     let dash = Map::parse("[[tui]]\nname = \"yazi\"\nmods = \"text\"\nkey = \",\"\naction = \"prefix:,\"\ncontext = \"listing\"\n\n[[tui]]\nname = \"yazi\"\nmods = \"text\"\nkey = \"-\"\naction = \"tabNew\"\ncontext = \"listing\"\nprefix = \",\"\n");
@@ -355,6 +372,7 @@ fn i50_ambig_sequence_parts_relabel_independently() {
     }
 }
 
+/// Relabelling keeps the canonical ids, and a chord no layout knows keeps the last epoch
 #[test]
 fn i50_ambig_relabel_keeps_the_canonical_ids_and_an_unknown_chord_still_keeps_the_last_epoch() {
     let map = Map::load();
@@ -380,6 +398,7 @@ fn i50_ambig_relabel_keeps_the_canonical_ids_and_an_unknown_chord_still_keeps_th
     assert_eq!((m.keycaps, m.keycap_labels.clone(), m.hints.keys.clone()), before, "a failed snapshot keeps its complete epoch");
 }
 
+/// The Japanese layout relabels yazi's tilde rather than refusing the epoch
 #[test]
 fn a_japanese_group_relabels_the_yazi_tilde_instead_of_refusing_the_epoch() {
     let tilde = Map::parse("[[tui]]\nname = \"yazi\"\nmods = \"text\"\nkey = \"~\"\naction = \"keymapSheet\"\ncontext = \"listing\"\n");

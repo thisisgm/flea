@@ -9,11 +9,13 @@ use std::{rc::Rc, sync::Arc};
 
 struct Wire;
 impl st2::seam::PluginsWire for Wire {
+    /// Swallows every line the pane sends; the frames read the pane, not the wire
     fn send(&self, _: String) -> Result<(), String> {
         Ok(())
     }
 }
 
+/// Frames every settings section, the search field, the sheet and the plugins pane
 pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
     let (shell, _, vcx) = mounted(cx, corner, |shell, window, cx| {
         shell.open_settings(window, cx);

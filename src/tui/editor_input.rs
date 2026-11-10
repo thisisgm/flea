@@ -5,6 +5,7 @@ use super::{
 };
 use std::{io, path::PathBuf};
 
+/// Routes a key to the open editor and sends its request on Enter
 pub fn edit(m: &mut Model, key: &Key, w: &mut Wire) -> io::Result<()> {
     let mut editor = m.editor.take().unwrap();
     let kind = editor.kind;

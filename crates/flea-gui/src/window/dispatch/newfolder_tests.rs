@@ -3,6 +3,7 @@ use crate::window::dispatch::fileops_tests::create_card;
 
 struct CatalogRoot(std::path::PathBuf);
 impl Drop for CatalogRoot {
+    /// Removes the temp catalog root once, and only while the test still owns it
     fn drop(&mut self) {
         assert!(
             self.0.is_absolute()
@@ -13,6 +14,7 @@ impl Drop for CatalogRoot {
     }
 }
 
+/// Ctrl+Shift+N sends the loaded catalog's folder name as the explicit base, whatever the script
 #[gpui::test]
 fn newfolder_gui_key_sends_the_explicit_catalog_base(cx: &mut TestAppContext) {
     let out = std::process::Command::new("mktemp")

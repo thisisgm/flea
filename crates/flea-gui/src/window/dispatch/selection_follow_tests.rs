@@ -10,6 +10,7 @@ use crate::{state::Shell, window::u07_tests::read};
 use flea::protocol::RowFacts;
 use gpui::{Entity, TestAppContext, VisualTestContext};
 
+/// A row with a size, as the footer counts it
 fn sized(name: &str, dir: bool, size: u64) -> RowFacts {
     RowFacts {
         size,
@@ -17,6 +18,7 @@ fn sized(name: &str, dir: bool, size: u64) -> RowFacts {
     }
 }
 
+/// The footer's left text as the status element published it
 fn footer(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> String {
     let value = flea::jsondoc::parse(&read(shell, cx, "statusFooterState", &[])).unwrap();
     value
@@ -29,6 +31,7 @@ fn footer(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> String {
         .to_owned()
 }
 
+/// A home folder's rows, with an optional new folder before the files
 fn home(folder: Option<&str>) -> Vec<RowFacts> {
     let mut rows: Vec<_> = [
         "A", "Code", "Docs", "Empty", "Kinds", "Locked", "Many", "Media",
@@ -42,6 +45,7 @@ fn home(folder: Option<&str>) -> Vec<RowFacts> {
     rows
 }
 
+/// Down after New Folder moves cursor, selection and footer together
 #[gpui::test]
 fn ey166_down_after_new_folder_moves_selection_and_footer(cx: &mut TestAppContext) {
     let (shell, cx) = open_root_with(
@@ -89,6 +93,7 @@ fn ey166_down_after_new_folder_moves_selection_and_footer(cx: &mut TestAppContex
 
 // The same move after the folder is renamed: the card no longer renames by itself, so this covers
 // what used to happen for free when Ctrl+Shift+N landed with the name field open.
+/// The same move holds after the created folder is renamed
 #[gpui::test]
 fn ey166_down_after_the_created_folder_is_renamed_moves_selection_and_footer(
     cx: &mut TestAppContext,

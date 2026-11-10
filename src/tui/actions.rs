@@ -12,6 +12,7 @@ use std::{io, path::PathBuf};
 mod pointer;
 use pointer::pointer_key;
 
+/// Dispatches a key to the open surface or the bound action, honouring armed presses
 pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Result<()> {
     let armed = std::mem::take(&mut model.key_arm);
     if model.choose_pending {
@@ -253,6 +254,7 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
     }
     act(model, &action, wire)
 }
+/// Runs a named action, refusing the ones the current state forbids
 pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
     if action == "print" && super::contents::holding(m) {
         return super::print::open(m, w, false);
@@ -793,6 +795,7 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
     m.remember_selection();
     Ok(())
 }
+/// Navigates to path, remembering the tab and history for an undo restore
 pub(super) fn navigate(m: &mut Model, path: PathBuf, w: &mut Wire) -> io::Result<()> {
     if m.pending.is_some() {
         return Ok(());
@@ -802,6 +805,7 @@ pub(super) fn navigate(m: &mut Model, path: PathBuf, w: &mut Wire) -> io::Result
     m.forward.clear();
     m.open(path, w)
 }
+/// Steps back or forward through the history stack
 fn history(m: &mut Model, forward: bool, w: &mut Wire) -> io::Result<()> {
     if m.pending.is_some() {
         return Ok(());
@@ -823,6 +827,7 @@ fn history(m: &mut Model, forward: bool, w: &mut Wire) -> io::Result<()> {
     Ok(())
 }
 // Both front ends cap the strip at nine, so a tenth tab is refused with the same words; the status line takes no final period.
+/// Whether the tab strip is at its limit, saying so when it is
 fn tab_full(m: &mut Model) -> bool {
     if m.tabs.len() >= crate::uischema::MAX_LAST_TABS {
         m.say_key("tui.actions.nine_tabs_is_the_most");
@@ -831,6 +836,7 @@ fn tab_full(m: &mut Model) -> bool {
     false
 }
 // Both arms push a fresh tab on the given path and switch to it.
+/// Adds a tab on path and switches to it
 fn push_tab(m: &mut Model, path: std::path::PathBuf, w: &mut Wire) -> io::Result<()> {
     m.tabs.push(Tab {
         path,
@@ -842,6 +848,7 @@ fn push_tab(m: &mut Model, path: std::path::PathBuf, w: &mut Wire) -> io::Result
     tab(m, index, w)
 }
 // The folders the other tabs show, so the backend keeps their settled sizes across this listing.
+/// The folders the other tabs show, so their sizes survive this listing
 pub(super) fn other_tabs(m: &Model) -> Json {
     let paths = m.tabs.iter().enumerate().filter(|&(i, _)| i != m.tab);
     Json::Arr(
@@ -850,6 +857,7 @@ pub(super) fn other_tabs(m: &Model) -> Json {
             .collect(),
     )
 }
+/// Saves the current tab and switches to index
 fn tab(m: &mut Model, index: usize, w: &mut Wire) -> io::Result<()> {
     if m.pending.is_some() || index >= m.tabs.len() || index == m.tab {
         return Ok(());
@@ -868,6 +876,7 @@ fn tab(m: &mut Model, index: usize, w: &mut Wire) -> io::Result<()> {
     m.forward = next.forward;
     m.open(next.path, w)
 }
+/// Writes one settings key, reporting a store failure in the footer
 pub(super) fn save(key: &str, value: Json, m: &mut Model) {
     let saved = match m.store.as_ref() {
         Some(store) => store.update(&Json::Obj(vec![(key.into(), value)])),
@@ -880,6 +889,7 @@ pub(super) fn save(key: &str, value: Json, m: &mut Model) {
         ));
     }
 }
+/// Persists whether the preview column is open
 fn save_preview_column(m: &mut Model) {
     save(
         "preview",
@@ -888,6 +898,7 @@ fn save_preview_column(m: &mut Model) {
     );
 }
 // A held frame has a presentation path, but only navigation, query editing and cancellation may act on it.
+/// Whether a held Find frame refuses this action
 fn find_holds(m: &Model, action: &str) -> bool {
     super::contents::holding(m)
         && !matches!(
@@ -907,6 +918,7 @@ fn find_holds(m: &Model, action: &str) -> bool {
                 | "tabPrevious"
         )
 }
+/// Sends the find request for a query, or the open and query pair for a folder search
 pub(super) fn send_find(
     m: &Model,
     ask: &super::contents::Query,

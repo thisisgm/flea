@@ -15,10 +15,12 @@ use gpui::{
 };
 use std::time::Duration;
 
+/// The bounds the rename field drew last
 fn frame(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> Option<Bounds<Pixels>> {
     shell.read_with(cx, |shell, _| shell.rename.edit.as_ref()?.line.frame)
 }
 
+/// Switches views and waits for the new element to mount and draw
 fn switch(shell: &Entity<Shell>, cx: &mut VisualTestContext, view: View) {
     cx.update(|window, cx| shell.update(cx, |shell, cx| shell.set_view(view, window, cx)));
     draw(cx);
@@ -36,6 +38,7 @@ fn switch(shell: &Entity<Shell>, cx: &mut VisualTestContext, view: View) {
 }
 
 // Typing replaces the selected stem and Enter sends the rename, the same in every view.
+/// Drives typing and Enter through the field and checks the rename line
 fn types_and_sends(
     shell: &Entity<Shell>,
     cx: &mut VisualTestContext,
@@ -52,6 +55,7 @@ fn types_and_sends(
     );
 }
 
+/// F2 in Columns draws the field over the active track's name, inside the cursor row
 #[gpui::test]
 fn f2_in_columns_draws_the_field_over_the_active_tracks_name(cx: &mut TestAppContext) {
     let (shell, cx, mut lines) = ready(cx, "default");
@@ -91,6 +95,7 @@ fn f2_in_columns_draws_the_field_over_the_active_tracks_name(cx: &mut TestAppCon
     close(&shell, cx);
 }
 
+/// F2 in Grid draws the field in place of the tile's caption
 #[gpui::test]
 fn f2_in_grid_draws_the_field_in_place_of_the_tiles_caption(cx: &mut TestAppContext) {
     let (shell, cx, mut lines) = ready(cx, "default");
@@ -130,6 +135,7 @@ fn f2_in_grid_draws_the_field_in_place_of_the_tiles_caption(cx: &mut TestAppCont
 }
 
 // PaneWire.qml openRenameOnArrival: New Folder's arrival opens the same field in Columns and Grid, its whole name selected.
+/// A New Folder arrival opens the field in Columns and Grid with its whole name selected
 #[gpui::test]
 fn a_new_folder_arrival_opens_the_field_in_columns_and_grid(cx: &mut TestAppContext) {
     let (shell, cx, _lines) = ready(cx, "default");
@@ -161,6 +167,7 @@ fn a_new_folder_arrival_opens_the_field_in_columns_and_grid(cx: &mut TestAppCont
 }
 
 // A New Folder that sorts past the first screen still opens its field: the landing reveals it before the field asks where it stands.
+/// New Folder past the first screen still opens its field, the landing having scrolled it into view
 fn new_folder_off_screen(cx: &mut TestAppContext, view: View) {
     let (shell, cx, mut lines) = ready(cx, "default");
     let mut rows: Vec<_> = (0..120)
@@ -222,6 +229,7 @@ cx.simulate_keystrokes("ctrl-shift-n");
 }
 
 // The scroll offset the side's view drew last.
+/// The offset the current view scrolled to in its last draw
 fn scrolled(shell: &Entity<Shell>, cx: &mut VisualTestContext, view: View) -> f32 {
     shell.read_with(cx, |shell, _| {
         let host = shell.panes[0].as_ref().unwrap();
@@ -238,6 +246,7 @@ fn scrolled(shell: &Entity<Shell>, cx: &mut VisualTestContext, view: View) -> f3
 }
 
 // The bounds the side's view drew last: the active track, the grid or the list.
+/// Where the active track, the grid or the list last laid itself out
 fn clip(shell: &Entity<Shell>, cx: &mut VisualTestContext, view: View) -> Bounds<Pixels> {
     shell.read_with(cx, |shell, _| {
         let host = shell.panes[0].as_ref().unwrap();
@@ -253,22 +262,26 @@ fn clip(shell: &Entity<Shell>, cx: &mut VisualTestContext, view: View) -> Bounds
     })
 }
 
+/// List keeps the off-screen arrival's field drawn inside it
 #[gpui::test]
 fn a_new_folder_off_screen_keeps_its_field_in_list(cx: &mut TestAppContext) {
     new_folder_off_screen(cx, View::List);
 }
 
+/// Columns keeps the off-screen arrival's field drawn inside it
 #[gpui::test]
 fn a_new_folder_off_screen_keeps_its_field_in_columns(cx: &mut TestAppContext) {
     new_folder_off_screen(cx, View::Columns);
 }
 
+/// Grid keeps the off-screen arrival's field drawn inside it
 #[gpui::test]
 fn a_new_folder_off_screen_keeps_its_field_in_grid(cx: &mut TestAppContext) {
     new_folder_off_screen(cx, View::Grid);
 }
 
 // A Grid edit stays while any of its tile shows, even with the field itself scrolled away, and drops uncommitted once the tile has gone.
+/// A Grid edit survives while any of its tile shows and drops uncommitted once the tile has gone
 #[gpui::test]
 fn a_grid_edit_drops_only_once_its_whole_tile_leaves_the_view(cx: &mut TestAppContext) {
     let (shell, cx, mut lines) = ready(cx, "default");
@@ -314,6 +327,7 @@ fn a_grid_edit_drops_only_once_its_whole_tile_leaves_the_view(cx: &mut TestAppCo
 }
 
 // A List or Columns edit outlives its field band while the row still shows, and drops uncommitted, typed draft and all, once the whole row has gone.
+/// A List or Columns edit survives while its row shows and drops uncommitted once the row has gone
 fn drops_once_row_leaves(cx: &mut TestAppContext, view: View) {
     let (shell, cx, mut lines) = ready(cx, "default");
     let rows: Vec<_> = (0..120)
@@ -363,6 +377,7 @@ fn drops_once_row_leaves(cx: &mut TestAppContext, view: View) {
     close(&shell, cx);
 }
 
+/// Scrolls the grid to an offset and draws
 fn grid_scroll(shell: &Entity<Shell>, cx: &mut VisualTestContext, to: f32) {
     shell.update(cx, |shell, _| {
         shell.panes[0]
@@ -377,6 +392,7 @@ fn grid_scroll(shell: &Entity<Shell>, cx: &mut VisualTestContext, to: f32) {
     draw(cx);
 }
 
+/// Scrolls the pane's list to an offset and draws
 fn list_scroll(shell: &Entity<Shell>, cx: &mut VisualTestContext, to: f32) {
     shell.update(cx, |shell, _| {
         shell.panes[0].as_mut().unwrap().pane.scroll_to(to)

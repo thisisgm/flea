@@ -5,6 +5,7 @@ use flea::ui_logic_op1::{
     trash::{Review, Scope},
 };
 
+/// Opens every dialog the gate would otherwise skip and returns the names whose frames failed
 pub(super) fn check() -> Vec<String> {
     let mut failed = Vec::new();
     surfaces::case("bulk-rename", &mut failed, |shell, window, cx| {

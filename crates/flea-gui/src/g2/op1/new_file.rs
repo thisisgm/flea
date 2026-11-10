@@ -9,6 +9,7 @@ use super::{
 use flea::ui_logic_op1::card::{self, Kind};
 use gpui::{div, prelude::*, px, Div};
 
+/// The New File card: the name field under its label, the rule or refusal beneath, and Cancel and Create
 pub(super) fn card(
     scene: &Scene,
     window: (f32, f32),

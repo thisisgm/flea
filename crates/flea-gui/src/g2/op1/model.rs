@@ -120,6 +120,7 @@ pub struct Operations {
 }
 
 impl Operations {
+    /// An operations model with the preset name and every card, transfer and job slot empty
     pub fn new(preset: &str) -> Self {
         Self {
             preset: preset.into(),
@@ -154,6 +155,7 @@ impl Operations {
     }
 
     // The Jobs card's blocks: an unchanged row keeps the block already built from it.
+    /// Rebuilds the Jobs card's blocks, keeping any block whose row did not change
     pub fn refresh_blocks(&mut self, catalog: &I18n) {
         super::progress::blocks(
             &mut self.blocks,
@@ -163,14 +165,17 @@ impl Operations {
         );
     }
 
+    /// Whether a card is open
     pub fn open(&self) -> bool {
         self.dialog.is_some()
     }
 
+    /// Queues a status line with no backend detail under it
     pub(super) fn say(&mut self, text: String, error: bool) {
         self.say_detail(text, error, String::new());
     }
 
+    /// Queues a status line and the backend's own sentence under its headline
     pub(super) fn say_detail(&mut self, text: String, error: bool, detail: String) {
         self.said.push(Said {
             text,
@@ -179,6 +184,7 @@ impl Operations {
         });
     }
 
+    /// Applies a collision host step: refuse, send, or open the card it names
     pub(super) fn step(&mut self, catalog: &I18n, step: Step) {
         match step {
             Step::Nothing => {}
@@ -224,6 +230,7 @@ impl Operations {
     }
 
     // A paste, a drop or Copy To asks here first; nothing goes out until the card is answered.
+    /// Asks the collision host before a paste, drop or Copy To, reporting whether a card took it
     pub fn ask(&mut self, catalog: &I18n, request: &Request, probe: &[&str], cut: bool) -> bool {
         let step = self.collide.ask(request, probe, cut, self.held_listing);
         let asked = step != Step::Refuse;
@@ -232,6 +239,7 @@ impl Operations {
     }
 
     // One backend line; anything that is not an operations line is left for the other readers.
+    /// Offers one backend line to the operations readers, leaving anything else to the others
     pub fn line(&mut self, catalog: &I18n, text: &str, now: u64) -> bool {
         let Some(event) = parse(text) else {
             return false;
@@ -368,6 +376,7 @@ impl Operations {
     }
 
     // The beat that lands held item lines, and the open confirmation's identity check.
+    /// Runs the beat: lands held item lines and asks the open confirmation's check for a line
     pub fn tick(&mut self, catalog: &I18n, now: u64) -> bool {
         let landed = self.wire.tick(now);
         if landed {
@@ -386,6 +395,7 @@ impl Operations {
     }
 
     // Seam: part of the Trash view's busy; the view's open and close still send, as v0.3.12 does, and a later request supersedes this one quietly.
+    /// Whether a Trash card still has its own request out, over any of the three confirmation slots
     pub fn trash_request_out(&self) -> bool {
         [
             self.confirm.as_ref(),
@@ -398,6 +408,7 @@ impl Operations {
     }
 
     // The Trash delete whose request id this is, held on the card or moved aside under another card.
+    /// The Trash delete waiting on this request id, on the card or moved aside under another card
     fn trash_delete(&self, request_id: u64) -> Option<&Confirm> {
         [
             self.confirm.as_ref(),
@@ -410,6 +421,7 @@ impl Operations {
     }
 
     // Seam: the Trash view closed; a Trash confirmation with no delete out ends with it, never drawn later over another view.
+    /// Ends a Trash confirmation the closed Trash view leaves behind, unless its delete is out
     pub fn trash_closed(&mut self) {
         if self
             .confirm
@@ -424,6 +436,7 @@ impl Operations {
     }
 
     // When the host's timer next has work: the held items' beat or the confirmation's check.
+    /// The next moment the host's timer has work, the earliest of the held beat and the check
     pub fn due(&self) -> Option<u64> {
         let beat = self.wire.held_since.map(|since| since + transfer::BEAT_MS);
         let check = self
@@ -434,6 +447,7 @@ impl Operations {
         beat.into_iter().chain(check).min()
     }
 
+    /// Drops the Collide or Fat card when the host says its reply failed
     pub fn failed(&mut self, place: &str, input: &str) {
         if self.collide.failed(place, input)
             && matches!(
@@ -446,6 +460,7 @@ impl Operations {
     }
 
     // A key while a card is open: the card takes every key, so nothing reaches the listing under it.
+    /// Gives a key to the open card and reports whether one took it
     pub fn key(&mut self, catalog: &I18n, name: &str, shift: bool) -> bool {
         let Some(dialog) = self.dialog.clone() else {
             return false;
@@ -500,6 +515,7 @@ impl Operations {
     }
 
     // A pointer press on a button does what Enter does on it; a disabled button's press does nothing.
+    /// Applies a pointer press to the button it names, as a key press would
     pub fn press(&mut self, catalog: &I18n, press: Press) {
         match press {
             Press::Collide(choice) if matches!(self.dialog, Some(Dialog::Collide { .. })) => {
@@ -536,18 +552,21 @@ impl Operations {
         }
     }
 
+    /// Sets the Collide card's focused button
     fn focus_collide(&mut self, next: Choice) {
         if let Some(Dialog::Collide { focus, .. }) = &mut self.dialog {
             *focus = next;
         }
     }
 
+    /// Answers the Collide card with a choice and ends it
     pub fn choose(&mut self, catalog: &I18n, choice: Choice) {
         self.dialog = None;
         let step = self.collide.chosen(choice);
         self.step(catalog, step);
     }
 
+    /// Answers the Fat card with a choice and ends it
     pub fn choose_fat(&mut self, catalog: &I18n, choice: Fat) {
         self.dialog = None;
         let step = self.collide.decide_fat(choice);

@@ -9,6 +9,7 @@ use crate::backend::testdir::TestDir;
 use crate::jsondoc::parse;
 use flea::i18n::{I18n, Paths};
 
+/// An i18n whose only key is a newFolder prompt in the given base name
 fn catalog(d: &TestDir, base: &str) -> I18n {
     d.dir("catalog/en");
     d.file(
@@ -25,6 +26,7 @@ fn catalog(d: &TestDir, base: &str) -> I18n {
 // Enter on the suggestion keeps the folder this key has always made: the suggested name carries
 // the trailing slash that asks for one, and its base travels as defaultBase so the backend takes
 // the first free name.
+/// Enter on the suggestion asks for the folder in the user's language, with defaultBase and an empty name
 #[test]
 fn newfolder_tui_return_submits_localized_default_as_the_folder_it_suggests() {
     for base in [
@@ -56,6 +58,7 @@ fn newfolder_tui_return_submits_localized_default_as_the_folder_it_suggests() {
 
 // One prompt makes either entry: a typed name without a trailing slash is a file, and the same
 // name with one is the folder of that name, which is the rule yazi's create prompt follows.
+/// A bare typed name asks for a file, and the same name with a trailing slash asks for the folder
 #[test]
 fn newfolder_tui_types_a_file_and_asks_a_folder_with_a_trailing_slash() {
     for (typed, kind, name) in [
@@ -87,6 +90,7 @@ fn newfolder_tui_types_a_file_and_asks_a_folder_with_a_trailing_slash() {
 
 // The yazi preset's own file prompt takes the same rule, so `a` creates a folder once the name
 // ends in a slash, and a bare name still creates a file.
+/// Yazi's own file prompt takes the same trailing-slash rule
 #[test]
 fn newfile_tui_takes_the_same_trailing_slash_rule() {
     let d = TestDir::new("newfile-tui-slash");
@@ -106,6 +110,7 @@ fn newfile_tui_takes_the_same_trailing_slash_rule() {
     wire::finish(w, reader);
 }
 
+/// The prompt keeps the parent and suggestion it opened with, and refuses a draft that escapes or hides a slash
 #[test]
 fn newfolder_tui_keeps_captured_suggestion_parent_and_invalid_draft() {
     let d = TestDir::new("newfolder-tui-draft");
@@ -137,6 +142,7 @@ fn newfolder_tui_keeps_captured_suggestion_parent_and_invalid_draft() {
 
 // Dropping the slash from the suggestion asks for a file of that name, so the folder's default
 // name must not reach the file request as an empty name the backend would refuse.
+/// Dropping the slash asks for a file named after the suggestion, with no defaultBase
 #[test]
 fn newfolder_tui_dropped_slash_asks_for_a_file_named_after_the_suggestion() {
     let d = TestDir::new("newfolder-tui-dropped-slash");
@@ -156,6 +162,7 @@ fn newfolder_tui_dropped_slash_asks_for_a_file_named_after_the_suggestion() {
 
 // The create prompt sends either request from either kind, so a refusal from one releases the
 // draft the other opened instead of leaving it pending and deaf to Escape.
+/// A refusal from either create request releases the pending draft
 #[test]
 fn newfolder_tui_refusal_releases_the_create_draft_whichever_kind_asked() {
     for (kind, typed, where_) in [

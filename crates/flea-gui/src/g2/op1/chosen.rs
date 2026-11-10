@@ -3,6 +3,7 @@ use super::*;
 
 impl Shell {
     // The folder's background New File row opens its card; the menu's own check finds the row claimed and nothing refuses.
+    /// Opens the New File card for a background row, refusing Recent and unbacked panes before any request goes out
     fn open_new_file(
         &mut self,
         chosen: &crate::g2::mn1::join::Chosen,
@@ -41,6 +42,7 @@ impl Shell {
         self.flush_operations(side, cx);
     }
 
+    /// Subscribes the shell to chosen menu actions and to operation status updates, once per shell
     pub(crate) fn observe_operations(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if self.operations.chosen_subscription.is_some() {
             return;

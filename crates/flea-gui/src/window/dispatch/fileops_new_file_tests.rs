@@ -14,6 +14,7 @@ use flea::ui_logic_op1::lines;
 use gpui::{point, px, Entity, Modifiers, MouseButton, TestAppContext, VisualTestContext};
 
 // Every line the pane's backend is asked for, in the order it was asked.
+/// The pane's backend becomes a recorder the test reads back in order
 fn asked(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> impl FnMut() -> Vec<String> {
     let (backend, mut read) = Backend::test_lines();
     shell.update(cx, |shell, _| {
@@ -38,6 +39,7 @@ pub(super) fn background_menu(shell: &Entity<Shell>, cx: &mut VisualTestContext)
 }
 
 // The card on the window's operations overlay, if one is open.
+/// The dialog the operations overlay is showing, if any
 fn card(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> Option<Dialog> {
     shell.read_with(cx, |shell, cx| {
         shell
@@ -47,6 +49,7 @@ fn card(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> Option<Dialog> {
 }
 
 // The created line the notice shows, as the operation sentences publish it.
+/// The notice the footer shows for the last operation
 fn notice(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> String {
     shell.update(cx, |shell, cx| {
         let catalog = shell.locale.catalog.clone();
@@ -54,12 +57,14 @@ fn notice(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> String {
     })
 }
 
+/// Opens the New File card from the folder's background menu
 fn open_card(shell: &Entity<Shell>, cx: &mut VisualTestContext) {
     background_menu(shell, cx);
     choose(shell, cx, "newFile");
     frame(cx);
 }
 
+/// The row opens its card with the name prefilled and sends nothing until Create
 #[gpui::test]
 fn new_file_row_opens_its_card_with_the_name_prefilled_and_sends_nothing(cx: &mut TestAppContext) {
     let (shell, mut cx) = opened(cx);
@@ -101,6 +106,7 @@ fn new_file_row_opens_its_card_with_the_name_prefilled_and_sends_nothing(cx: &mu
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
+/// Create makes the file and selects it once, with no rename armed
 #[gpui::test]
 fn new_file_create_makes_the_file_and_selects_it_without_a_rename(cx: &mut TestAppContext) {
     let (shell, mut cx) = opened(cx);
@@ -164,6 +170,7 @@ fn new_file_create_makes_the_file_and_selects_it_without_a_rename(cx: &mut TestA
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
+/// Escape and Cancel close the card without a request
 #[gpui::test]
 fn new_file_escape_and_cancel_close_without_a_request(cx: &mut TestAppContext) {
     let (shell, mut cx) = opened(cx);
@@ -181,6 +188,7 @@ fn new_file_escape_and_cancel_close_without_a_request(cx: &mut TestAppContext) {
 }
 
 // Pane.qml act: Recent is a history, so New File refuses there before any card opens.
+/// Recent refuses New File before any card opens
 #[gpui::test]
 fn new_file_in_recent_refuses_before_any_card(cx: &mut TestAppContext) {
     let (shell, mut cx) = opened(cx);
@@ -222,6 +230,7 @@ fn new_file_in_recent_refuses_before_any_card(cx: &mut TestAppContext) {
 }
 
 // MenuActionDialog.qml:170 refuses "." and ".." with the slash sentence, so the card does too.
+/// A dot name refuses in the card with the slash sentence
 #[gpui::test]
 fn new_file_dot_names_refuse_in_the_card_with_the_slash_sentence(cx: &mut TestAppContext) {
     let (shell, mut cx) = opened(cx);
@@ -251,6 +260,7 @@ fn new_file_dot_names_refuse_in_the_card_with_the_slash_sentence(cx: &mut TestAp
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
+/// A refused create keeps the card open with its sentence
 #[gpui::test]
 fn new_file_refusal_keeps_the_card_open_with_its_sentence(cx: &mut TestAppContext) {
     let (shell, mut cx) = opened(cx);
@@ -287,6 +297,7 @@ fn new_file_refusal_keeps_the_card_open_with_its_sentence(cx: &mut TestAppContex
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
+/// A name with a slash is refused in the card
 #[gpui::test]
 fn new_file_name_with_a_slash_is_refused_in_the_card(cx: &mut TestAppContext) {
     let (shell, mut cx) = opened(cx);
@@ -315,6 +326,7 @@ fn new_file_name_with_a_slash_is_refused_in_the_card(cx: &mut TestAppContext) {
 }
 
 // The TUI's create rule in the card: one trailing slash asks mkdir for the folder it names.
+/// One trailing slash asks mkdir for the folder it names
 #[gpui::test]
 fn new_file_trailing_slash_makes_a_folder_through_mkdir(cx: &mut TestAppContext) {
     let (shell, mut cx) = opened(cx);
@@ -375,6 +387,7 @@ fn new_file_trailing_slash_makes_a_folder_through_mkdir(cx: &mut TestAppContext)
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
+/// A refused folder keeps the card open with its sentence
 #[gpui::test]
 fn new_file_folder_refusal_keeps_the_card_open_with_its_sentence(cx: &mut TestAppContext) {
     let (shell, mut cx) = opened(cx);
@@ -404,6 +417,7 @@ fn new_file_folder_refusal_keeps_the_card_open_with_its_sentence(cx: &mut TestAp
 }
 
 // A second slash and a lone one still name nothing the rule can file.
+/// A second slash and a lone slash still refuse in the card
 #[gpui::test]
 fn new_file_folder_drafts_refuse_a_second_or_a_lone_slash(cx: &mut TestAppContext) {
     let (shell, mut cx) = opened(cx);

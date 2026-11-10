@@ -2363,7 +2363,7 @@
     {
       "coverage": "dynamic-needs-owner-verification",
       "excerpt": "let mut lines = vec![Line::Heading(m.heading(&format!(\"keys.group.{group}\")))];",
-      "line": 156,
+      "line": 160,
       "path": "src/tui/key_sheet.rs",
       "pattern": "keys.group.{group}",
       "possible_keys": [
@@ -2378,7 +2378,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "row.2",
-      "line": 161,
+      "line": 165,
       "path": "src/tui/key_sheet.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2548,7 +2548,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "if m.cut { \"clipboard.cut\" } else { \"clipboard.copied\" }",
-      "line": 158,
+      "line": 162,
       "path": "src/tui/prompts.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2558,7 +2558,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "if undone { \"receipt.undid\" } else { \"receipt.redid\" }",
-      "line": 203,
+      "line": 210,
       "path": "src/tui/prompts.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2568,7 +2568,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "step",
-      "line": 203,
+      "line": 210,
       "path": "src/tui/prompts.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2578,7 +2578,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "if undone { \"receipt.undidLast\" } else { \"receipt.redidLast\" }",
-      "line": 204,
+      "line": 211,
       "path": "src/tui/prompts.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2588,7 +2588,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "if m.transfer_moving { \"receipt.moved\" } else { \"receipt.copied\" }",
-      "line": 233,
+      "line": 240,
       "path": "src/tui/prompts.rs",
       "pattern": null,
       "possible_keys": [],
@@ -21836,7 +21836,7 @@
         },
         {
           "excerpt": "let need = total(&sheet.columns).max(text_width(&m.i18n.tr(\"keys.title\")) + 2 + text_width(&m.i18n.tr(\"card.esc\")));",
-          "line": 238,
+          "line": 244,
           "path": "src/tui/key_sheet.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -21951,14 +21951,14 @@
       "call_sites": [
         {
           "excerpt": "m.prompts.i18n.trn(if m.cut { \"clipboard.cut\" } else { \"clipboard.copied\" }, m.clipboard.len() as i64)",
-          "line": 158,
+          "line": 162,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "super::words::Text::Plural(if m.cut { \"clipboard.cut\" } else { \"clipboard.copied\" }, m.clipboard.len(), vec![])",
-          "line": 249,
+          "line": 258,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -21998,14 +21998,14 @@
       "call_sites": [
         {
           "excerpt": "m.prompts.i18n.trn(if m.cut { \"clipboard.cut\" } else { \"clipboard.copied\" }, m.clipboard.len() as i64)",
-          "line": 158,
+          "line": 162,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "super::words::Text::Plural(if m.cut { \"clipboard.cut\" } else { \"clipboard.copied\" }, m.clipboard.len(), vec![])",
-          "line": 249,
+          "line": 258,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -22186,7 +22186,7 @@
       "call_sites": [
         {
           "excerpt": "self.fail_key(\"clipboard.stale\");",
-          "line": 451,
+          "line": 456,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -22215,14 +22215,14 @@
       "call_sites": [
         {
           "excerpt": "let keys_width = columns.saturating_sub(head_width + 2).min(text_width(&i18n.tr(\"collide.keys\")));",
-          "line": 356,
+          "line": 370,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "ellipsis(&i18n.tr(\"collide.keys\"), keys_width), \" \".repeat(columns - head_width - gap - keys_width))",
-          "line": 360,
+          "line": 374,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -22244,7 +22244,7 @@
       "call_sites": [
         {
           "excerpt": "else { i18n.trn_args(\"collide.many\", question.total as i64, &[&folder]) };",
-          "line": 354,
+          "line": 368,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -22278,7 +22278,7 @@
       "call_sites": [
         {
           "excerpt": "let head = if question.total == 1 { i18n.tr_args(\"collide.one\", &[&question.name, &folder]) }",
-          "line": 353,
+          "line": 367,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -60404,7 +60404,7 @@
         },
         {
           "excerpt": "return Err(catalog.tr(\"filter.nothing_to_act_on\"));",
-          "line": 327,
+          "line": 335,
           "path": "crates/flea-gui/src/window/dispatch/fileops.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -60462,7 +60462,7 @@
         },
         {
           "excerpt": "m.prompts.i18n.tr_args(\"filter.shown\", &[&m.i18n.locale().format_count(m.filter_count() as i64), &m.i18n.locale().format_count(m.total as i64)])",
-          "line": 112,
+          "line": 113,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -60584,7 +60584,7 @@
       "call_sites": [
         {
           "excerpt": "else { m.prompts.i18n.tr_args(\"find.found\", &[&m.i18n.locale().format_count(m.total as i64)]) }",
-          "line": 135,
+          "line": 137,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -60608,7 +60608,7 @@
       "call_sites": [
         {
           "excerpt": "if m.searching { m.prompts.i18n.tr_args(\"find.scanning\", &[&m.i18n.locale().format_count(m.total as i64), &m.i18n.locale().format_count(scanned as i64)]) }",
-          "line": 134,
+          "line": 136,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -60640,7 +60640,7 @@
         },
         {
           "excerpt": "self.search = self.prompts.i18n.tr(\"find.starting\");",
-          "line": 556,
+          "line": 572,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -61193,14 +61193,14 @@
         },
         {
           "excerpt": "let cancel_label: gpui::SharedString = self.catalog.tr(\"jobs.button.cancel\").into();",
-          "line": 181,
+          "line": 192,
           "path": "crates/flea-gui/src/g2/op1/host.rs",
           "surface": "gui",
           "usage": "translated-call"
         },
         {
           "excerpt": "catalog.tr(\"jobs.button.cancel\"),",
-          "line": 81,
+          "line": 82,
           "path": "crates/flea-gui/src/g2/op1/new_file.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -61301,7 +61301,7 @@
       "call_sites": [
         {
           "excerpt": "let dismiss_label: gpui::SharedString = self.catalog.tr(\"jobs.button.dismiss\").into();",
-          "line": 182,
+          "line": 193,
           "path": "crates/flea-gui/src/g2/op1/host.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -62091,7 +62091,7 @@
       "call_sites": [
         {
           "excerpt": "catalog.tr(\"jobs.delete.failed\")",
-          "line": 211,
+          "line": 217,
           "path": "crates/flea-gui/src/g2/op1/cards.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -62105,7 +62105,7 @@
         },
         {
           "excerpt": "self.locale.catalog.tr(\"jobs.delete.failed\")",
-          "line": 259,
+          "line": 261,
           "path": "crates/flea-gui/src/window/dispatch/fileops_wire.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -62156,7 +62156,7 @@
       "call_sites": [
         {
           "excerpt": "let text = self.locale.catalog.tr(\"jobs.delete.finishing\");",
-          "line": 225,
+          "line": 231,
           "path": "crates/flea-gui/src/window/dispatch/fileops.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -63616,7 +63616,7 @@
       "call_sites": [
         {
           "excerpt": "catalog.tr(\"jobs.newfile.create\"),",
-          "line": 87,
+          "line": 88,
           "path": "crates/flea-gui/src/g2/op1/new_file.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -63667,7 +63667,7 @@
       "call_sites": [
         {
           "excerpt": "text: catalog.tr(\"jobs.newfile.field\").to_uppercase().into(),",
-          "line": 45,
+          "line": 46,
           "path": "crates/flea-gui/src/g2/op1/new_file.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -63689,7 +63689,7 @@
       "call_sites": [
         {
           "excerpt": "*error = catalog.tr(\"jobs.newfile.slash\");",
-          "line": 165,
+          "line": 171,
           "path": "crates/flea-gui/src/g2/op1/cards.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -63711,7 +63711,7 @@
       "call_sites": [
         {
           "excerpt": "let title = catalog.tr(\"jobs.newfile.title\");",
-          "line": 96,
+          "line": 97,
           "path": "crates/flea-gui/src/g2/op1/new_file.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -63733,7 +63733,7 @@
       "call_sites": [
         {
           "excerpt": "caption(scene, catalog.tr(\"jobs.newfile.working\"), palette.muted).into_any_element(),",
-          "line": 71,
+          "line": 72,
           "path": "crates/flea-gui/src/g2/op1/new_file.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -64596,14 +64596,14 @@
       "call_sites": [
         {
           "excerpt": "self.transfer_text(super::words::args(if self.transfer_moving { \"jobs.transfer.moving\" } else { \"jobs.transfer.copying\" }, vec![super::words::Text::Count(0), super::words::Text::Count(self.transfer_total)]));",
-          "line": 1057,
+          "line": 1096,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "self.transfer_text(super::words::args(if self.transfer_moving { \"jobs.transfer.moving\" } else { \"jobs.transfer.copying\" }, vec![super::words::Text::Count(count(&value, \"index\") + 1), super::words::Text::Count(self.transfer_total)]));",
-          "line": 1067,
+          "line": 1106,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -64696,14 +64696,14 @@
       "call_sites": [
         {
           "excerpt": "self.transfer_text(super::words::args(if self.transfer_moving { \"jobs.transfer.moving\" } else { \"jobs.transfer.copying\" }, vec![super::words::Text::Count(0), super::words::Text::Count(self.transfer_total)]));",
-          "line": 1057,
+          "line": 1096,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "self.transfer_text(super::words::args(if self.transfer_moving { \"jobs.transfer.moving\" } else { \"jobs.transfer.copying\" }, vec![super::words::Text::Count(count(&value, \"index\") + 1), super::words::Text::Count(self.transfer_total)]));",
-          "line": 1067,
+          "line": 1106,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -67355,7 +67355,7 @@
         },
         {
           "excerpt": "\"keys.action.openTerminal\"",
-          "line": 642,
+          "line": 644,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -69485,7 +69485,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let mut lines = vec![Line::Heading(m.heading(&format!(\"keys.group.{group}\")))];",
-          "line": 156,
+          "line": 160,
           "path": "src/tui/key_sheet.rs",
           "pattern": "keys.group.{group}",
           "possible_keys": [
@@ -69522,7 +69522,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let mut lines = vec![Line::Heading(m.heading(&format!(\"keys.group.{group}\")))];",
-          "line": 156,
+          "line": 160,
           "path": "src/tui/key_sheet.rs",
           "pattern": "keys.group.{group}",
           "possible_keys": [
@@ -69559,7 +69559,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let mut lines = vec![Line::Heading(m.heading(&format!(\"keys.group.{group}\")))];",
-          "line": 156,
+          "line": 160,
           "path": "src/tui/key_sheet.rs",
           "pattern": "keys.group.{group}",
           "possible_keys": [
@@ -69596,7 +69596,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let mut lines = vec![Line::Heading(m.heading(&format!(\"keys.group.{group}\")))];",
-          "line": 156,
+          "line": 160,
           "path": "src/tui/key_sheet.rs",
           "pattern": "keys.group.{group}",
           "possible_keys": [
@@ -71882,14 +71882,14 @@
       "call_sites": [
         {
           "excerpt": "let need = total(&sheet.columns).max(text_width(&m.i18n.tr(\"keys.title\")) + 2 + text_width(&m.i18n.tr(\"card.esc\")));",
-          "line": 238,
+          "line": 244,
           "path": "src/tui/key_sheet.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "cards::frame(out, m, theme, &card, &m.i18n.tr(\"keys.title\"));",
-          "line": 252,
+          "line": 259,
           "path": "src/tui/key_sheet.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -74083,7 +74083,7 @@
       "call_sites": [
         {
           "excerpt": "if self.recent_refuses(side, \"menu.refusal.recent_new_file\", cx) {",
-          "line": 17,
+          "line": 18,
           "path": "crates/flea-gui/src/g2/op1/chosen.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -79367,7 +79367,7 @@
         },
         {
           "excerpt": "let text = self.locale.catalog.tr(\"pane.busy\");",
-          "line": 84,
+          "line": 88,
           "path": "crates/flea-gui/src/window/dispatch/fileops_created.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -79585,7 +79585,7 @@
         },
         {
           "excerpt": "self.fail_key(\"pane.locked\");",
-          "line": 1258,
+          "line": 1297,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -79845,7 +79845,7 @@
         },
         {
           "excerpt": "let key = self.preview_state.refusal.unwrap_or(\"pane.unread\");",
-          "line": 953,
+          "line": 992,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -79888,7 +79888,7 @@
         },
         {
           "excerpt": "if m.clipboard.is_empty() { m.say_key(\"paste.nothing\"); return Ok(()); }",
-          "line": 281,
+          "line": 291,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -79910,7 +79910,7 @@
       "call_sites": [
         {
           "excerpt": "if m.prompts.asked.is_some() || m.prompts.question.is_some() { m.fail_key(\"paste.waiting\"); return Ok(()); }",
-          "line": 282,
+          "line": 292,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -83206,14 +83206,14 @@
       "call_sites": [
         {
           "excerpt": "if self.recent_refuses(side, \"places.recent.new_folder_refused\", cx) {",
-          "line": 273,
+          "line": 279,
           "path": "crates/flea-gui/src/window/dispatch/fileops.rs",
           "surface": "gui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "if self.recent_refuses(side, \"places.recent.new_folder_refused\", cx) {",
-          "line": 304,
+          "line": 311,
           "path": "crates/flea-gui/src/window/dispatch/fileops.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -91639,7 +91639,7 @@
       "call_sites": [
         {
           "excerpt": "body.push(caption(scene, catalog.tr(\"prompt.create\"), palette.muted).into_any_element());",
-          "line": 75,
+          "line": 76,
           "path": "crates/flea-gui/src/g2/op1/new_file.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -91675,7 +91675,7 @@
         },
         {
           "excerpt": "return vec![(theme.muted.as_str(), format!(\"{} {}\", i18n.tr(\"prompt.filter\"), m.filter), 0), (theme.foreground.as_str(), shown(m), 2)];",
-          "line": 124,
+          "line": 126,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -91733,7 +91733,7 @@
       "call_sites": [
         {
           "excerpt": "m.prompts.i18n.tr(\"prompt.newFile\"),",
-          "line": 608,
+          "line": 610,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -91762,21 +91762,21 @@
         },
         {
           "excerpt": "let base = self.locale.catalog.tr(\"prompt.newFolder\");",
-          "line": 289,
+          "line": 295,
           "path": "crates/flea-gui/src/window/dispatch/fileops.rs",
           "surface": "gui",
           "usage": "translated-call"
         },
         {
           "excerpt": "let base = self.locale.catalog.tr(\"prompt.newFolder\");",
-          "line": 314,
+          "line": 321,
           "path": "crates/flea-gui/src/window/dispatch/fileops.rs",
           "surface": "gui",
           "usage": "translated-call"
         },
         {
           "excerpt": "let base = m.prompts.i18n.tr(\"prompt.newFolder\");",
-          "line": 539,
+          "line": 541,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -92084,7 +92084,7 @@
       "call_sites": [
         {
           "excerpt": "m.properties = Some(vec![(String::new(), m.i18n.tr(\"properties.loading\"))]);",
-          "line": 709,
+          "line": 711,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -92372,14 +92372,14 @@
       "call_sites": [
         {
           "excerpt": "if flag(value, \"cancelled\") { line.push_str(&format!(\" {}\", i18n.tr(\"receipt.cancelled\"))); }",
-          "line": 236,
+          "line": 243,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "if flag(value, \"cancelled\") { parts.extend([Text::from(\" \"), Text::Key(\"receipt.cancelled\")]); }",
-          "line": 272,
+          "line": 282,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -92401,14 +92401,14 @@
       "call_sites": [
         {
           "excerpt": "let mut line = i18n.trn(if m.transfer_moving { \"receipt.moved\" } else { \"receipt.copied\" }, ok as i64);",
-          "line": 233,
+          "line": 240,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "let mut parts = vec![Text::Plural(if m.transfer_moving { \"receipt.moved\" } else { \"receipt.copied\" }, ok, vec![])];",
-          "line": 268,
+          "line": 278,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -92441,14 +92441,14 @@
       "call_sites": [
         {
           "excerpt": "\"duplicated\" => { record(m, \"duplicate\", vec![path]); undoable(m, m.prompts.i18n.tr(\"receipt.duplicated\")) }",
-          "line": 199,
+          "line": 206,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "\"duplicated\" => Text::Key(\"receipt.duplicated\"),",
-          "line": 257,
+          "line": 267,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -92470,14 +92470,14 @@
       "call_sites": [
         {
           "excerpt": "if failed > 0 { line.push_str(&format!(\" {}\", i18n.tr_args(\"receipt.failed\", &[&i18n.locale().format_count(failed as i64)]))); }",
-          "line": 235,
+          "line": 242,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "for (key, count) in [(\"receipt.skipped\", skipped), (\"receipt.failed\", failed)] {",
-          "line": 269,
+          "line": 279,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -92501,7 +92501,7 @@
       "call_sites": [
         {
           "excerpt": "self.say_text(super::prompts::undoable_text(self, super::words::Text::Key(\"receipt.fileCreated\")));",
-          "line": 1129,
+          "line": 1168,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -92523,14 +92523,14 @@
       "call_sites": [
         {
           "excerpt": "\"made\" => { record(m, \"mkdir\", vec![path]); undoable(m, m.prompts.i18n.tr(\"receipt.made\")) }",
-          "line": 198,
+          "line": 205,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "\"made\" => Text::Key(\"receipt.made\"),",
-          "line": 256,
+          "line": 266,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -92552,14 +92552,14 @@
       "call_sites": [
         {
           "excerpt": "let mut line = i18n.trn(if m.transfer_moving { \"receipt.moved\" } else { \"receipt.copied\" }, ok as i64);",
-          "line": 233,
+          "line": 240,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "let mut parts = vec![Text::Plural(if m.transfer_moving { \"receipt.moved\" } else { \"receipt.copied\" }, ok, vec![])];",
-          "line": 268,
+          "line": 278,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -92592,14 +92592,14 @@
       "call_sites": [
         {
           "excerpt": "Some(step) => i18n.tr_args(if undone { \"receipt.undid\" } else { \"receipt.redid\" }, &[&i18n.tr(step)]),",
-          "line": 203,
+          "line": 210,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "Some(step) => args(if undone { \"receipt.undid\" } else { \"receipt.redid\" }, vec![Text::Key(step)]),",
-          "line": 262,
+          "line": 272,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -92623,14 +92623,14 @@
       "call_sites": [
         {
           "excerpt": "None => i18n.tr(if undone { \"receipt.undidLast\" } else { \"receipt.redidLast\" }),",
-          "line": 204,
+          "line": 211,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "None => Text::Key(if undone { \"receipt.undidLast\" } else { \"receipt.redidLast\" }),",
-          "line": 263,
+          "line": 273,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -92652,14 +92652,14 @@
       "call_sites": [
         {
           "excerpt": "\"renamed\" => { record(m, \"rename\", vec![path]); undoable(m, m.prompts.i18n.tr(\"receipt.renamed\")) }",
-          "line": 197,
+          "line": 204,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "\"renamed\" => Text::Key(\"receipt.renamed\"),",
-          "line": 255,
+          "line": 265,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -92681,14 +92681,14 @@
       "call_sites": [
         {
           "excerpt": "if skipped > 0 { line.push_str(&format!(\" {}\", i18n.tr_args(\"receipt.skipped\", &[&i18n.locale().format_count(skipped as i64)]))); }",
-          "line": 234,
+          "line": 241,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "for (key, count) in [(\"receipt.skipped\", skipped), (\"receipt.failed\", failed)] {",
-          "line": 269,
+          "line": 279,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -92712,14 +92712,14 @@
       "call_sites": [
         {
           "excerpt": "let line = m.prompts.i18n.trn(\"receipt.trashed\", ok as i64);",
-          "line": 228,
+          "line": 235,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "\"trashed\" => Text::Plural(\"receipt.trashed\", ok, vec![]),",
-          "line": 258,
+          "line": 268,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -92752,14 +92752,14 @@
       "call_sites": [
         {
           "excerpt": "Some(step) => i18n.tr_args(if undone { \"receipt.undid\" } else { \"receipt.redid\" }, &[&i18n.tr(step)]),",
-          "line": 203,
+          "line": 210,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "Some(step) => args(if undone { \"receipt.undid\" } else { \"receipt.redid\" }, vec![Text::Key(step)]),",
-          "line": 262,
+          "line": 272,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -92783,14 +92783,14 @@
       "call_sites": [
         {
           "excerpt": "None => i18n.tr(if undone { \"receipt.undidLast\" } else { \"receipt.redidLast\" }),",
-          "line": 204,
+          "line": 211,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "None => Text::Key(if undone { \"receipt.undidLast\" } else { \"receipt.redidLast\" }),",
-          "line": 263,
+          "line": 273,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -92812,14 +92812,14 @@
       "call_sites": [
         {
           "excerpt": "if m.hints.undo.is_empty() { String::new() } else { format!(\" {}\", m.prompts.i18n.tr_args(\"receipt.undoes\", &[&m.hints.undo])) }",
-          "line": 138,
+          "line": 141,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "if m.hints.undo.is_empty() { line } else { Text::Joined(vec![line, Text::from(\" \"), args(\"receipt.undoes\", vec![Text::from(m.hints.undo.clone())])]) }",
-          "line": 246,
+          "line": 254,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -92874,7 +92874,7 @@
         },
         {
           "excerpt": "m.fail_key(\"search.contents.identity\");",
-          "line": 308,
+          "line": 310,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -101598,7 +101598,7 @@
       "call_sites": [
         {
           "excerpt": "\"newfile\" => \"step.newfile\", \"copy\" => \"step.copy\", \"move\" => \"step.move\", \"merge\" => \"step.merge\", \"link\" => \"step.link\",",
-          "line": 182,
+          "line": 188,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -101620,7 +101620,7 @@
       "call_sites": [
         {
           "excerpt": "\"trash\" => \"step.trash\", \"rename\" | \"bulkrename\" => \"step.rename\", \"duplicate\" => \"step.duplicate\", \"mkdir\" => \"step.mkdir\",",
-          "line": 181,
+          "line": 187,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -101649,7 +101649,7 @@
         },
         {
           "excerpt": "\"newfile\" => \"step.newfile\", \"copy\" => \"step.copy\", \"move\" => \"step.move\", \"merge\" => \"step.merge\", \"link\" => \"step.link\",",
-          "line": 182,
+          "line": 188,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -101671,7 +101671,7 @@
       "call_sites": [
         {
           "excerpt": "\"newfile\" => \"step.newfile\", \"copy\" => \"step.copy\", \"move\" => \"step.move\", \"merge\" => \"step.merge\", \"link\" => \"step.link\",",
-          "line": 182,
+          "line": 188,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -101693,7 +101693,7 @@
       "call_sites": [
         {
           "excerpt": "\"trash\" => \"step.trash\", \"rename\" | \"bulkrename\" => \"step.rename\", \"duplicate\" => \"step.duplicate\", \"mkdir\" => \"step.mkdir\",",
-          "line": 181,
+          "line": 187,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -101715,7 +101715,7 @@
       "call_sites": [
         {
           "excerpt": "\"newfile\" => \"step.newfile\", \"copy\" => \"step.copy\", \"move\" => \"step.move\", \"merge\" => \"step.merge\", \"link\" => \"step.link\",",
-          "line": 182,
+          "line": 188,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -101737,7 +101737,7 @@
       "call_sites": [
         {
           "excerpt": "\"newfile\" => \"step.newfile\", \"copy\" => \"step.copy\", \"move\" => \"step.move\", \"merge\" => \"step.merge\", \"link\" => \"step.link\",",
-          "line": 182,
+          "line": 188,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -101759,7 +101759,7 @@
       "call_sites": [
         {
           "excerpt": "\"permissions\" => \"step.permissions\", _ => return None,",
-          "line": 183,
+          "line": 189,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -101781,7 +101781,7 @@
       "call_sites": [
         {
           "excerpt": "\"trash\" => \"step.trash\", \"rename\" | \"bulkrename\" => \"step.rename\", \"duplicate\" => \"step.duplicate\", \"mkdir\" => \"step.mkdir\",",
-          "line": 181,
+          "line": 187,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -101803,7 +101803,7 @@
       "call_sites": [
         {
           "excerpt": "\"trash\" => \"step.trash\", \"rename\" | \"bulkrename\" => \"step.rename\", \"duplicate\" => \"step.duplicate\", \"mkdir\" => \"step.mkdir\",",
-          "line": 181,
+          "line": 187,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -102120,7 +102120,7 @@
       "call_sites": [
         {
           "excerpt": "if failed > 0 { m.fail_text(super::words::Text::Plural(\"transfer.failed\", failed, vec![])); }",
-          "line": 237,
+          "line": 244,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -102300,7 +102300,7 @@
       "call_sites": [
         {
           "excerpt": "(false, false) => \"trash.armOne\", (true, false) => \"trash.armMany\", (false, true) => \"trash.armOneAlone\", (true, true) => \"trash.armManyAlone\",",
-          "line": 166,
+          "line": 171,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -102325,7 +102325,7 @@
       "call_sites": [
         {
           "excerpt": "(false, false) => \"trash.armOne\", (true, false) => \"trash.armMany\", (false, true) => \"trash.armOneAlone\", (true, true) => \"trash.armManyAlone\",",
-          "line": 166,
+          "line": 171,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -102349,7 +102349,7 @@
       "call_sites": [
         {
           "excerpt": "(false, false) => \"trash.armOne\", (true, false) => \"trash.armMany\", (false, true) => \"trash.armOneAlone\", (true, true) => \"trash.armManyAlone\",",
-          "line": 166,
+          "line": 171,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -102374,7 +102374,7 @@
       "call_sites": [
         {
           "excerpt": "(false, false) => \"trash.armOne\", (true, false) => \"trash.armMany\", (false, true) => \"trash.armOneAlone\", (true, true) => \"trash.armManyAlone\",",
-          "line": 166,
+          "line": 171,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -102870,14 +102870,14 @@
       "call_sites": [
         {
           "excerpt": "let sentence = if why.is_empty() { i18n.trn(\"trash.failed\", failed as i64) } else { i18n.trn_args(\"trash.failedWhy\", failed as i64, &[why]) };",
-          "line": 221,
+          "line": 228,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "m.fail_text(super::words::Text::Plural(if why.is_empty() { \"trash.failed\" } else { \"trash.failedWhy\" }, failed, if why.is_empty() { vec![] } else { vec![why.into()] }));",
-          "line": 223,
+          "line": 230,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -102910,14 +102910,14 @@
       "call_sites": [
         {
           "excerpt": "let sentence = if why.is_empty() { i18n.trn(\"trash.failed\", failed as i64) } else { i18n.trn_args(\"trash.failedWhy\", failed as i64, &[why]) };",
-          "line": 221,
+          "line": 228,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "m.fail_text(super::words::Text::Plural(if why.is_empty() { \"trash.failed\" } else { \"trash.failedWhy\" }, failed, if why.is_empty() { vec![] } else { vec![why.into()] }));",
-          "line": 223,
+          "line": 230,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103568,7 +103568,7 @@
       "call_sites": [
         {
           "excerpt": "m.launched(\"tui.actions.agent\", child);",
-          "line": 653,
+          "line": 655,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103590,7 +103590,7 @@
       "call_sites": [
         {
           "excerpt": "m.fail_key(\"tui.actions.an_agent_needs_a_folder_to_open_in\");",
-          "line": 650,
+          "line": 652,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103612,7 +103612,7 @@
       "call_sites": [
         {
           "excerpt": "m.say_key(\"tui.actions.clipboard_cleared\");",
-          "line": 565,
+          "line": 567,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103634,7 +103634,7 @@
       "call_sites": [
         {
           "excerpt": "\"tui.actions.new_flea_window\"",
-          "line": 640,
+          "line": 642,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103656,7 +103656,7 @@
       "call_sites": [
         {
           "excerpt": "m.say_key(\"tui.actions.nine_tabs_is_the_most\");",
-          "line": 828,
+          "line": 833,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103678,7 +103678,7 @@
       "call_sites": [
         {
           "excerpt": "model.fail_key(\"tui.actions.no_action_for_that_key_sequence\");",
-          "line": 191,
+          "line": 192,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103700,7 +103700,7 @@
       "call_sites": [
         {
           "excerpt": "m.fail_key(\"tui.actions.no_home_folder_is_configured\");",
-          "line": 502,
+          "line": 504,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103722,7 +103722,7 @@
       "call_sites": [
         {
           "excerpt": "None => m.say_key(\"tui.actions.only_a_folder_opens_in_a_new_tab\"),",
-          "line": 633,
+          "line": 635,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103744,7 +103744,7 @@
       "call_sites": [
         {
           "excerpt": "m.fail_key(\"tui.actions.properties_requires_one_selected_item\");",
-          "line": 704,
+          "line": 706,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103766,7 +103766,7 @@
       "call_sites": [
         {
           "excerpt": "\"tui.actions.save_settings\",",
-          "line": 878,
+          "line": 887,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103790,7 +103790,7 @@
       "call_sites": [
         {
           "excerpt": "m.fail_key(\"tui.actions.select_one_available_item_to_duplicate\");",
-          "line": 601,
+          "line": 603,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103812,7 +103812,7 @@
       "call_sites": [
         {
           "excerpt": "m.fail_key(\"tui.actions.selected_item_is_unavailable_select_it_again_to_rename\");",
-          "line": 532,
+          "line": 534,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -103834,7 +103834,7 @@
       "call_sites": [
         {
           "excerpt": "m.fail_key(\"tui.actions.wait_for_the_selection_to_settle_before_choosing\");",
-          "line": 425,
+          "line": 427,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104750,7 +104750,7 @@
       "call_sites": [
         {
           "excerpt": "self.fail_key(\"tui.editor.enter_a_filename_before_the_extension\", i18n);",
-          "line": 91,
+          "line": 99,
           "path": "src/tui/editor.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104772,7 +104772,7 @@
       "call_sites": [
         {
           "excerpt": "\"tui.editor.invalid_name\"",
-          "line": 113,
+          "line": 121,
           "path": "src/tui/editor.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104794,7 +104794,7 @@
       "call_sites": [
         {
           "excerpt": "\"tui.editor.name_dots\"",
-          "line": 107,
+          "line": 115,
           "path": "src/tui/editor.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104816,7 +104816,7 @@
       "call_sites": [
         {
           "excerpt": "\"tui.editor.name_empty\"",
-          "line": 105,
+          "line": 113,
           "path": "src/tui/editor.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104838,7 +104838,7 @@
       "call_sites": [
         {
           "excerpt": "\"tui.editor.name_nul\"",
-          "line": 111,
+          "line": 119,
           "path": "src/tui/editor.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104860,7 +104860,7 @@
       "call_sites": [
         {
           "excerpt": "\"tui.editor.name_slash\"",
-          "line": 109,
+          "line": 117,
           "path": "src/tui/editor.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104882,14 +104882,14 @@
       "call_sites": [
         {
           "excerpt": "self.fail_key(\"tui.editor.selected_item_changed_reopen_rename\", i18n);",
-          "line": 123,
+          "line": 131,
           "path": "src/tui/editor.rs",
           "surface": "tui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "m.fail_key(\"tui.editor.selected_item_changed_reopen_rename\");",
-          "line": 287,
+          "line": 297,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -104911,7 +104911,7 @@
       "call_sites": [
         {
           "excerpt": "m.fail_key(\"tui.external_editor.only_a_regular_file_can_be_edited\");",
-          "line": 509,
+          "line": 511,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105052,7 +105052,7 @@
       "call_sites": [
         {
           "excerpt": "parts.push((&theme.muted, i18n.tr_args(\"tui.find.status\", &[&m.search_query, &scope(m, m.find.active.as_ref().is_some_and(|q| q.contents))]), 2));",
-          "line": 129,
+          "line": 131,
           "path": "src/tui/prompts.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -105323,14 +105323,14 @@
       "call_sites": [
         {
           "excerpt": "super::words::Text::Plural(if cancelled { \"tui.model.bulk_stopped\" } else { \"tui.model.bulk_done\" }, completed, vec![]).to_string()",
-          "line": 230,
+          "line": 233,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "else { super::words::Text::Plural(if batch.cancelled { \"tui.model.bulk_stopped\" } else { \"tui.model.bulk_done\" }, batch.completed, vec![]) });",
-          "line": 608,
+          "line": 629,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105363,7 +105363,7 @@
       "call_sites": [
         {
           "excerpt": "self.fail_key(\"tui.model.bulk_rename_selection_is_incomplete_select_the_items_again\");",
-          "line": 1199,
+          "line": 1238,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105385,7 +105385,7 @@
       "call_sites": [
         {
           "excerpt": "else { Err(super::words::error(\"tui.model.bulk_rename_stopped_a_rename_could_not_finish\")) };",
-          "line": 1077,
+          "line": 1116,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105407,14 +105407,14 @@
       "call_sites": [
         {
           "excerpt": "super::words::Text::Plural(if cancelled { \"tui.model.bulk_stopped\" } else { \"tui.model.bulk_done\" }, completed, vec![]).to_string()",
-          "line": 230,
+          "line": 233,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "else { super::words::Text::Plural(if batch.cancelled { \"tui.model.bulk_stopped\" } else { \"tui.model.bulk_done\" }, batch.completed, vec![]) });",
-          "line": 608,
+          "line": 629,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105447,21 +105447,21 @@
       "call_sites": [
         {
           "excerpt": "m.fail_key(\"tui.model.could_not_open_selected_file\");",
-          "line": 437,
+          "line": 439,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "self.fail_key(\"tui.model.could_not_open_selected_file\");",
-          "line": 1211,
+          "line": 1250,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "self.fail_key(\"tui.model.could_not_open_selected_file\");",
-          "line": 1219,
+          "line": 1258,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105483,7 +105483,7 @@
       "call_sites": [
         {
           "excerpt": "let mut line = vec![super::words::Text::Plural(\"tui.model.deleted\", self.menu_count, vec![super::words::Text::Count(count(&value, \"deleted\"))])];",
-          "line": 1152,
+          "line": 1191,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105517,7 +105517,7 @@
       "call_sites": [
         {
           "excerpt": "if flag(&value, \"cancelled\") { line.push(super::words::Text::Key(\"tui.model.deleted_cancelled\")); }",
-          "line": 1153,
+          "line": 1192,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105539,7 +105539,7 @@
       "call_sites": [
         {
           "excerpt": "if count(&value, \"failed\") > 0 { self.fail_text(super::words::args(\"tui.model.deleted_failed\", vec![super::words::Text::Count(count(&value, \"failed\")), text(&value, \"error\").into()])); }",
-          "line": 1155,
+          "line": 1194,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105564,14 +105564,14 @@
       "call_sites": [
         {
           "excerpt": "if flag(&value, \"cancelled\") { self.say_key(\"tui.model.deletion_cancelled\"); }",
-          "line": 1147,
+          "line": 1186,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "self.say_key(\"tui.model.deletion_cancelled\");",
-          "line": 1150,
+          "line": 1189,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105593,7 +105593,7 @@
       "call_sites": [
         {
           "excerpt": "if token == 0 { return Err(super::words::error(\"tui.model.deletion_could_not_be_confirmed_try_again\")); }",
-          "line": 1187,
+          "line": 1226,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105615,7 +105615,7 @@
       "call_sites": [
         {
           "excerpt": "super::preview::set_text(self, super::words::Text::Key(\"tui.model.empty_folder\"));",
-          "line": 964,
+          "line": 1003,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105637,7 +105637,7 @@
       "call_sites": [
         {
           "excerpt": "self.say_text(if batch.completed == 0 { super::words::Text::Key(if batch.cancelled { \"tui.model.rename_cancelled\" } else { \"tui.model.no_names_changed\" }) }",
-          "line": 607,
+          "line": 628,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105659,7 +105659,7 @@
       "call_sites": [
         {
           "excerpt": "self.say_text(if batch.completed == 0 { super::words::Text::Key(if batch.cancelled { \"tui.model.rename_cancelled\" } else { \"tui.model.no_names_changed\" }) }",
-          "line": 607,
+          "line": 628,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105681,7 +105681,7 @@
       "call_sites": [
         {
           "excerpt": "self.transfer_text(super::words::args(\"tui.model.renaming\", vec![super::words::Text::Count(batch.completed + 1), super::words::Text::Count(batch.total)]));",
-          "line": 601,
+          "line": 622,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105706,7 +105706,7 @@
       "call_sites": [
         {
           "excerpt": "} else { self.fail_text(super::words::args(\"tui.model.restore_deletion\", vec![text(value, \"error\").into()])); }",
-          "line": 633,
+          "line": 656,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105730,7 +105730,7 @@
       "call_sites": [
         {
           "excerpt": "self.say_key(\"tui.model.selection_changed_confirm_again\");",
-          "line": 1140,
+          "line": 1179,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105752,7 +105752,7 @@
       "call_sites": [
         {
           "excerpt": "Ok(()) => self.say_text(super::words::args(\"tui.model.sending\", vec![peer.label.clone().into()])),",
-          "line": 1228,
+          "line": 1267,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105776,7 +105776,7 @@
       "call_sites": [
         {
           "excerpt": "self.fail_key(\"tui.model.taildrop_cancelled_selection_changed\");",
-          "line": 650,
+          "line": 675,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105798,7 +105798,7 @@
       "call_sites": [
         {
           "excerpt": "let reason = if self.taildrop.error.is_empty() { super::words::Text::Key(\"tui.model.taildrop_device_is_unreachable\") }",
-          "line": 657,
+          "line": 683,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105820,7 +105820,7 @@
       "call_sites": [
         {
           "excerpt": "self.fail_key(\"tui.model.taildrop_selection_is_incomplete\");",
-          "line": 1225,
+          "line": 1264,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105842,7 +105842,7 @@
       "call_sites": [
         {
           "excerpt": "self.fail_key(\"tui.model.the_selection_changed_or_cannot_be_written_one_path_per_line_choose_it\");",
-          "line": 1018,
+          "line": 1057,
           "path": "src/tui/model.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -105888,7 +105888,7 @@
       "call_sites": [
         {
           "excerpt": "m.fail_key(\"tui.operation.search_busy\");",
-          "line": 335,
+          "line": 337,
           "path": "src/tui/actions.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -107621,7 +107621,7 @@
         },
         {
           "excerpt": "key: \"window.backend_stopped\",",
-          "line": 351,
+          "line": 360,
           "path": "crates/flea-gui/src/window/dispatch/fileops.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -109005,7 +109005,7 @@
     },
     {
       "excerpt": "title: \"File exists\".into(),",
-      "line": 51,
+      "line": 52,
       "literal": "File exists",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/compositor_surface_tests/operations.rs",
@@ -109014,7 +109014,7 @@
     },
     {
       "excerpt": "title: \"Names on this drive\".into(),",
-      "line": 65,
+      "line": 66,
       "literal": "Names on this drive",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/compositor_surface_tests/operations.rs",
@@ -109023,7 +109023,7 @@
     },
     {
       "excerpt": "let view = cx.new(|_| op1::host::Overlay::new(catalog, palette, \"default\"));",
-      "line": 115,
+      "line": 116,
       "literal": "default",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/compositor_surface_tests/operations.rs",
@@ -109032,7 +109032,7 @@
     },
     {
       "excerpt": ".unwrap_or_else(|| panic!(\"{name} must open its archive card\"))",
-      "line": 135,
+      "line": 137,
       "literal": "{name} must open its archive card",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/compositor_surface_tests/operations.rs",
@@ -109077,7 +109077,7 @@
     },
     {
       "excerpt": "let manifest = flea::ui_logic_st2::manifest::parse(r#\"{\"schemaVersion\":1,\"id\":\"test.corners\",\"name\":\"Corners\",\"version\":\"0.1.0\",\"author\":\"Test\",\"license\":\"MIT\",\"description\":\"Corner controls\",\"kinds\":[\"menu-action\"],\"entryPoints\":{\"run\":\"bin/test\"},\"menuActions\":[{\"id\":\"run\",\"label\":\"Run\",\"glyph\":\"file\",\"when\":{\"minItems\":1}}],\"access\":[\"selection\"],\"schema\":[{\"key\":\"choice\",\"type\":\"choice\",\"label\":\"Choice\",\"options\":[{\"value\":\"one\",\"label\":\"One\"},{\"value\":\"two\",\"label\":\"Two\"}],\"defaultValue\":\"one\"}]}\"#, false).unwrap();",
-      "line": 92,
+      "line": 94,
       "literal": "{\"schemaVersion\":1,\"id\":\"test.corners\",\"name\":\"Corners\",\"version\":\"0.1.0\",\"author\":\"Test\",\"license\":\"MIT\",\"description\":\"Corner controls\",\"kinds\":[\"menu-action\"],\"entryPoints\":{\"run\":\"bin/test\"},\"menuActions\":[{\"id\":\"run\",\"label\":\"Run\",\"glyph\":\"file\",\"when\":{\"minItems\":1}}],\"access\":[\"selection\"],\"schema\":[{\"key\":\"choice\",\"type\":\"choice\",\"label\":\"Choice\",\"options\":[{\"value\":\"one\",\"label\":\"One\"},{\"value\":\"two\",\"label\":\"Two\"}],\"defaultValue\":\"one\"}]}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/compositor_surface_tests/settings.rs",
@@ -109275,7 +109275,7 @@
     },
     {
       "excerpt": "\"Font gate encrypted drive\",",
-      "line": 28,
+      "line": 29,
       "literal": "Font gate encrypted drive",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/dialogs.rs",
@@ -109284,7 +109284,7 @@
     },
     {
       "excerpt": "token: \"5\".into(),",
-      "line": 71,
+      "line": 72,
       "literal": "5",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/dialogs.rs",
@@ -109293,7 +109293,7 @@
     },
     {
       "excerpt": "title: \"Rename incompatible names\".into(),",
-      "line": 108,
+      "line": 109,
       "literal": "Rename incompatible names",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/dialogs.rs",
@@ -109302,7 +109302,7 @@
     },
     {
       "excerpt": "note: \"Font gate FAT names\".into(),",
-      "line": 115,
+      "line": 116,
       "literal": "Font gate FAT names",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/dialogs.rs",
@@ -109311,7 +109311,7 @@
     },
     {
       "excerpt": "title: \"Replace existing files\".into(),",
-      "line": 120,
+      "line": 121,
       "literal": "Replace existing files",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/dialogs.rs",
@@ -109320,7 +109320,7 @@
     },
     {
       "excerpt": "r#\"{{\"t\":\"menuaction\",\"id\":{id},\"op\":\"applications\",\"ok\":true,\"kind\":\"Plain text document\",\"mime\":\"text/plain\",\"applications\":[{{\"id\":\"a.desktop\",\"label\":\"Font gate app\",\"icon\":\"\",\"default\":true}}],\"installed\":[]}}\"#",
-      "line": 165,
+      "line": 166,
       "literal": "{{\"t\":\"menuaction\",\"id\":{id},\"op\":\"applications\",\"ok\":true,\"kind\":\"Plain text document\",\"mime\":\"text/plain\",\"applications\":[{{\"id\":\"a.desktop\",\"label\":\"Font gate app\",\"icon\":\"\",\"default\":true}}],\"installed\":[]}}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/dialogs.rs",
@@ -109329,7 +109329,7 @@
     },
     {
       "excerpt": "flea::ui_logic_mn1::Text::Data(\"Font submenu\".into()),",
-      "line": 217,
+      "line": 218,
       "literal": "Font submenu",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/dialogs.rs",
@@ -109338,7 +109338,7 @@
     },
     {
       "excerpt": "flea::ui_logic_mn1::Text::Data(\"Font menu\".into()),",
-      "line": 221,
+      "line": 222,
       "literal": "Font menu",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/dialogs.rs",
@@ -109347,7 +109347,7 @@
     },
     {
       "excerpt": "\"the pane opened its menu\"",
-      "line": 254,
+      "line": 255,
       "literal": "the pane opened its menu",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/dialogs.rs",
@@ -109356,7 +109356,7 @@
     },
     {
       "excerpt": "for ch in \"Font gate query\".chars() {",
-      "line": 264,
+      "line": 265,
       "literal": "Font gate query",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/dialogs.rs",
@@ -109761,7 +109761,7 @@
     },
     {
       "excerpt": "let right = shell.panes[1].as_mut().expect(\"Dual starts the right pane\");",
-      "line": 18,
+      "line": 19,
       "literal": "Dual starts the right pane",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -109770,7 +109770,7 @@
     },
     {
       "excerpt": "assert_eq!(shell.view, View::Dual, \"the right pane settled Dual\");",
-      "line": 41,
+      "line": 42,
       "literal": "the right pane settled Dual",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -109779,7 +109779,7 @@
     },
     {
       "excerpt": "shell.status_note(\"Font gate footer\", cx);",
-      "line": 58,
+      "line": 59,
       "literal": "Font gate footer",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -109788,7 +109788,7 @@
     },
     {
       "excerpt": "file: \"Font gate copying.txt\".into(),",
-      "line": 68,
+      "line": 69,
       "literal": "Font gate copying.txt",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -109797,7 +109797,7 @@
     },
     {
       "excerpt": "head: \"Font gate job\".into(),",
-      "line": 69,
+      "line": 70,
       "literal": "Font gate job",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -109806,7 +109806,7 @@
     },
     {
       "excerpt": "r#\", \"total\":1,\"start\":0,\"rows\":[{\"uri\":\"trash:///font-gate-row\",\"original\":\"/files/Font gate trashed.txt\",\"size\":64,\"identity\":\"font-gate\"}]\"#,",
-      "line": 133,
+      "line": 134,
       "literal": ", \"total\":1,\"start\":0,\"rows\":[{\"uri\":\"trash:///font-gate-row\",\"original\":\"/files/Font gate trashed.txt\",\"size\":64,\"identity\":\"font-gate\"}]",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -109815,7 +109815,7 @@
     },
     {
       "excerpt": "\"status-message\" => vec![\"Font gate footer\"],",
-      "line": 178,
+      "line": 181,
       "literal": "Font gate footer",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -109824,7 +109824,7 @@
     },
     {
       "excerpt": "\"jobs\" => vec![\"Font gate copying.txt\"],",
-      "line": 179,
+      "line": 182,
       "literal": "Font gate copying.txt",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -109833,7 +109833,7 @@
     },
     {
       "excerpt": "\"settings-view\" => vec![\"Row density\"],",
-      "line": 180,
+      "line": 183,
       "literal": "Row density",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -109842,7 +109842,7 @@
     },
     {
       "excerpt": "\"settings-places\" => vec![\"Sidebar width\"],",
-      "line": 181,
+      "line": 184,
       "literal": "Sidebar width",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -109851,7 +109851,7 @@
     },
     {
       "excerpt": "\"settings-preview\" => vec![\"Thumbnail size\"],",
-      "line": 182,
+      "line": 185,
       "literal": "Thumbnail size",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -109860,7 +109860,7 @@
     },
     {
       "excerpt": "\"settings-keys\" => vec![\"Keybinding preset\"],",
-      "line": 183,
+      "line": 186,
       "literal": "Keybinding preset",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -109869,7 +109869,7 @@
     },
     {
       "excerpt": "\"settings-display\" => vec![\"Text size\"],",
-      "line": 184,
+      "line": 187,
       "literal": "Text size",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -109878,7 +109878,7 @@
     },
     {
       "excerpt": "\"settings-menus\" => vec![\"Show keyboard hints\"],",
-      "line": 185,
+      "line": 188,
       "literal": "Show keyboard hints",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -109887,7 +109887,7 @@
     },
     {
       "excerpt": "\"settings-about\" => vec![\"A file manager for Omarchy\"],",
-      "line": 186,
+      "line": 189,
       "literal": "A file manager for Omarchy",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -109896,7 +109896,7 @@
     },
     {
       "excerpt": "\"settings-search\" => vec![\"Settings\", \"font\"],",
-      "line": 187,
+      "line": 190,
       "literal": "Settings",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -109905,7 +109905,7 @@
     },
     {
       "excerpt": "\"keyboard-sheet\" => vec![\"Keyboard Shortcuts\"],",
-      "line": 188,
+      "line": 191,
       "literal": "Keyboard Shortcuts",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -109914,7 +109914,7 @@
     },
     {
       "excerpt": "\"copy-to-dialog\" => vec![\"Copy To\", \"DESTINATION FOLDER\"],",
-      "line": 189,
+      "line": 192,
       "literal": "Copy To",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -109923,7 +109923,7 @@
     },
     {
       "excerpt": "\"copy-to-dialog\" => vec![\"Copy To\", \"DESTINATION FOLDER\"],",
-      "line": 189,
+      "line": 192,
       "literal": "DESTINATION FOLDER",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -109932,7 +109932,7 @@
     },
     {
       "excerpt": "\"move-to-dialog\" => vec![\"Move To\", \"DESTINATION FOLDER\"],",
-      "line": 190,
+      "line": 193,
       "literal": "Move To",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -109941,7 +109941,7 @@
     },
     {
       "excerpt": "\"move-to-dialog\" => vec![\"Move To\", \"DESTINATION FOLDER\"],",
-      "line": 190,
+      "line": 193,
       "literal": "DESTINATION FOLDER",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -109950,7 +109950,7 @@
     },
     {
       "excerpt": "\"unlock\" => vec![\"Unlock Font gate encrypted drive\"],",
-      "line": 192,
+      "line": 195,
       "literal": "Unlock Font gate encrypted drive",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -109959,7 +109959,7 @@
     },
     {
       "excerpt": "\"properties\" => vec![\"Properties\", \"Close\"],",
-      "line": 193,
+      "line": 196,
       "literal": "Properties",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -109968,7 +109968,7 @@
     },
     {
       "excerpt": "\"properties\" => vec![\"Properties\", \"Close\"],",
-      "line": 193,
+      "line": 196,
       "literal": "Close",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -109977,7 +109977,7 @@
     },
     {
       "excerpt": "\"run-file\" => vec![\"run.sh is a program.\", \"Run in Terminal\"],",
-      "line": 194,
+      "line": 197,
       "literal": "run.sh is a program.",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -109986,7 +109986,7 @@
     },
     {
       "excerpt": "\"run-file\" => vec![\"run.sh is a program.\", \"Run in Terminal\"],",
-      "line": 194,
+      "line": 197,
       "literal": "Run in Terminal",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -109995,7 +109995,7 @@
     },
     {
       "excerpt": "\"confirm-delete\" => vec![\"Delete 2 items permanently?\"],",
-      "line": 195,
+      "line": 198,
       "literal": "Delete 2 items permanently?",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -110004,7 +110004,7 @@
     },
     {
       "excerpt": "\"confirm-empty-trash\" => vec![\"Empty Trash\"],",
-      "line": 196,
+      "line": 199,
       "literal": "Empty Trash",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -110013,7 +110013,7 @@
     },
     {
       "excerpt": "\"new-file\" => vec![\"New file\", \"Enter name for a new file or directory (dirs end with a \\\"/\\\"):\"],",
-      "line": 197,
+      "line": 200,
       "literal": "New file",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -110022,7 +110022,7 @@
     },
     {
       "excerpt": "\"new-file\" => vec![\"New file\", \"Enter name for a new file or directory (dirs end with a \\\"/\\\"):\"],",
-      "line": 197,
+      "line": 200,
       "literal": "Enter name for a new file or directory (dirs end with a \"/\"):",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -110031,7 +110031,7 @@
     },
     {
       "excerpt": "\"fat-name-confirm\" => vec![\"Rename incompatible names\"],",
-      "line": 198,
+      "line": 201,
       "literal": "Rename incompatible names",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -110040,7 +110040,7 @@
     },
     {
       "excerpt": "\"collision-confirm\" => vec![\"Replace existing files\"],",
-      "line": 199,
+      "line": 202,
       "literal": "Replace existing files",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -110049,7 +110049,7 @@
     },
     {
       "excerpt": "\"extract-password\" => vec![\"archive.7z is encrypted.\"],",
-      "line": 201,
+      "line": 204,
       "literal": "archive.7z is encrypted.",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -110058,7 +110058,7 @@
     },
     {
       "excerpt": "\"flash\" => vec![\"Flash image\"],",
-      "line": 202,
+      "line": 205,
       "literal": "Flash image",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -110067,7 +110067,7 @@
     },
     {
       "excerpt": "\"open-with\" => vec![\"With\"],",
-      "line": 203,
+      "line": 206,
       "literal": "With",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -110076,7 +110076,7 @@
     },
     {
       "excerpt": "\"permissions\" => vec![\"Permissions\"],",
-      "line": 204,
+      "line": 207,
       "literal": "Permissions",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -110085,7 +110085,7 @@
     },
     {
       "excerpt": "\"output-Print\" => vec![\"Print\"],",
-      "line": 205,
+      "line": 208,
       "literal": "Print",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -110094,7 +110094,7 @@
     },
     {
       "excerpt": "\"output-Convert\" => vec![\"Convert\"],",
-      "line": 206,
+      "line": 209,
       "literal": "Convert",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -110103,7 +110103,7 @@
     },
     {
       "excerpt": "\"output-Combine\" => vec![\"Combine\"],",
-      "line": 207,
+      "line": 210,
       "literal": "Combine",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -110112,7 +110112,7 @@
     },
     {
       "excerpt": "\"add-network-share\" => vec![\"Add a Network Share\"],",
-      "line": 208,
+      "line": 211,
       "literal": "Add a Network Share",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -110121,7 +110121,7 @@
     },
     {
       "excerpt": "\"settings-plugin-font.gate\" => vec![\"Font gate choice\"],",
-      "line": 209,
+      "line": 212,
       "literal": "Font gate choice",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -110130,7 +110130,7 @@
     },
     {
       "excerpt": "\"settings-plugin-add\" => vec![\"Add a Plugin\"],",
-      "line": 210,
+      "line": 213,
       "literal": "Add a Plugin",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -110139,7 +110139,7 @@
     },
     {
       "excerpt": "\"settings-plugin-remove\" => vec![\"Remove Font gate plugin?\"],",
-      "line": 211,
+      "line": 214,
       "literal": "Remove Font gate plugin?",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -110148,7 +110148,7 @@
     },
     {
       "excerpt": "\"context-menu-background\" => vec![\"Sort By\"],",
-      "line": 212,
+      "line": 215,
       "literal": "Sort By",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -110157,7 +110157,7 @@
     },
     {
       "excerpt": "required.extend([\"file-0.txt\", \"Home\", \"8 items\"]);",
-      "line": 217,
+      "line": 220,
       "literal": "Home",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -110166,7 +110166,7 @@
     },
     {
       "excerpt": "required.push(\"Font gate query\");",
-      "line": 223,
+      "line": 226,
       "literal": "Font gate query",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -110175,7 +110175,7 @@
     },
     {
       "excerpt": "required.push(\"esc clears\");",
-      "line": 226,
+      "line": 229,
       "literal": "esc clears",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -110184,7 +110184,7 @@
     },
     {
       "excerpt": "required.extend([\"Empty Trash\", \"Font gate trashed.txt\"]);",
-      "line": 229,
+      "line": 232,
       "literal": "Empty Trash",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -110193,7 +110193,7 @@
     },
     {
       "excerpt": "required.extend([\"Empty Trash\", \"Font gate trashed.txt\"]);",
-      "line": 229,
+      "line": 232,
       "literal": "Font gate trashed.txt",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -110202,7 +110202,7 @@
     },
     {
       "excerpt": "required.extend([\"Font menu\", \"Font submenu\"]);",
-      "line": 232,
+      "line": 235,
       "literal": "Font menu",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -110211,7 +110211,7 @@
     },
     {
       "excerpt": "required.extend([\"Font menu\", \"Font submenu\"]);",
-      "line": 232,
+      "line": 235,
       "literal": "Font submenu",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/surfaces.rs",
@@ -126222,7 +126222,7 @@
     },
     {
       "excerpt": "let id = self.operations.fileops.deleting[side].expect(\"accepted delete snapshot\");",
-      "line": 255,
+      "line": 261,
       "literal": "accepted delete snapshot",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/dispatch/fileops.rs",
@@ -126231,7 +126231,7 @@
     },
     {
       "excerpt": ".unwrap_or(\"default\")",
-      "line": 399,
+      "line": 410,
       "literal": "default",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/dispatch/fileops.rs",
@@ -174453,7 +174453,7 @@
     },
     {
       "excerpt": "if key.name == \"Space\" && key.mods == \"ctrl\" {",
-      "line": 78,
+      "line": 79,
       "literal": "Space",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -174462,7 +174462,7 @@
     },
     {
       "excerpt": "if key.name == \"Paste\" {",
-      "line": 174,
+      "line": 175,
       "literal": "Paste",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -174471,7 +174471,7 @@
     },
     {
       "excerpt": "if model.choosing && key.mods.is_empty() && matches!(key.name.as_str(), \"Return\" | \"Enter\")",
-      "line": 178,
+      "line": 179,
       "literal": "Return",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -174480,7 +174480,7 @@
     },
     {
       "excerpt": "if model.choosing && key.mods.is_empty() && matches!(key.name.as_str(), \"Return\" | \"Enter\")",
-      "line": 178,
+      "line": 179,
       "literal": "Enter",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -174489,7 +174489,7 @@
     },
     {
       "excerpt": "if key.name != \"Escape\" {",
-      "line": 190,
+      "line": 191,
       "literal": "Escape",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -174498,7 +174498,7 @@
     },
     {
       "excerpt": "\"H\" if matches!(model.preset.as_str(), \"default\" | \"vim\") => {",
-      "line": 244,
+      "line": 245,
       "literal": "default",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -174507,7 +174507,7 @@
     },
     {
       "excerpt": "\"L\" if matches!(model.preset.as_str(), \"default\" | \"vim\") => {",
-      "line": 247,
+      "line": 248,
       "literal": "default",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -174516,7 +174516,7 @@
     },
     {
       "excerpt": "\"goDownloads\" => home.join(\"Downloads\"),",
-      "line": 497,
+      "line": 499,
       "literal": "Downloads",
       "owner": "t11",
       "path": "src/tui/actions.rs",
@@ -175425,7 +175425,7 @@
     },
     {
       "excerpt": "\"Left\" | \"Right\" | \"Home\" | \"End\" => {",
-      "line": 168,
+      "line": 178,
       "literal": "Left",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -175434,7 +175434,7 @@
     },
     {
       "excerpt": "\"Left\" | \"Right\" | \"Home\" | \"End\" => {",
-      "line": 168,
+      "line": 178,
       "literal": "Right",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -175443,7 +175443,7 @@
     },
     {
       "excerpt": "\"Left\" | \"Right\" | \"Home\" | \"End\" => {",
-      "line": 168,
+      "line": 178,
       "literal": "Home",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -175452,7 +175452,7 @@
     },
     {
       "excerpt": "\"Left\" | \"Right\" | \"Home\" | \"End\" => {",
-      "line": 168,
+      "line": 178,
       "literal": "End",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -175461,7 +175461,7 @@
     },
     {
       "excerpt": "\"Home\" => 0,",
-      "line": 170,
+      "line": 180,
       "literal": "Home",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -175470,7 +175470,7 @@
     },
     {
       "excerpt": "\"End\" => self.editable_end,",
-      "line": 171,
+      "line": 181,
       "literal": "End",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -175479,7 +175479,7 @@
     },
     {
       "excerpt": "\"Left\" => {",
-      "line": 172,
+      "line": 182,
       "literal": "Left",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -175488,7 +175488,7 @@
     },
     {
       "excerpt": "\"Backspace\" | \"Delete\" if key.mods.is_empty() => {",
-      "line": 191,
+      "line": 201,
       "literal": "Backspace",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -175497,7 +175497,7 @@
     },
     {
       "excerpt": "\"Backspace\" | \"Delete\" if key.mods.is_empty() => {",
-      "line": 191,
+      "line": 201,
       "literal": "Delete",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -175506,7 +175506,7 @@
     },
     {
       "excerpt": "} else if key.name == \"Backspace\" {",
-      "line": 194,
+      "line": 204,
       "literal": "Backspace",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -175515,7 +175515,7 @@
     },
     {
       "excerpt": "(\"alt\", \"B\") | (\"ctrl\" | \"ctrlshift\", \"Left\") => Some(false),",
-      "line": 219,
+      "line": 230,
       "literal": "Left",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -175524,7 +175524,7 @@
     },
     {
       "excerpt": "(\"alt\", \"F\") | (\"ctrl\" | \"ctrlshift\", \"Right\") => Some(true),",
-      "line": 220,
+      "line": 231,
       "literal": "Right",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -175533,7 +175533,7 @@
     },
     {
       "excerpt": "(\"ctrl\", \"W\" | \"Backspace\") => {",
-      "line": 237,
+      "line": 248,
       "literal": "Backspace",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -175542,7 +175542,7 @@
     },
     {
       "excerpt": "(\"alt\", \"D\") | (\"ctrl\", \"Delete\") => {",
-      "line": 240,
+      "line": 251,
       "literal": "Delete",
       "owner": "t11",
       "path": "src/tui/editor.rs",
@@ -175551,7 +175551,7 @@
     },
     {
       "excerpt": "if key.name == \"Escape\"",
-      "line": 15,
+      "line": 16,
       "literal": "Escape",
       "owner": "t11",
       "path": "src/tui/editor_input.rs",
@@ -175560,7 +175560,7 @@
     },
     {
       "excerpt": "if key.name == \"Return\" || key.name == \"Enter\" {",
-      "line": 31,
+      "line": 32,
       "literal": "Return",
       "owner": "t11",
       "path": "src/tui/editor_input.rs",
@@ -175569,7 +175569,7 @@
     },
     {
       "excerpt": "if key.name == \"Return\" || key.name == \"Enter\" {",
-      "line": 31,
+      "line": 32,
       "literal": "Enter",
       "owner": "t11",
       "path": "src/tui/editor_input.rs",
@@ -175578,7 +175578,7 @@
     },
     {
       "excerpt": "} else if key.name == \"Tab\" && kind == \"path\" {",
-      "line": 89,
+      "line": 90,
       "literal": "Tab",
       "owner": "t11",
       "path": "src/tui/editor_input.rs",
@@ -175587,7 +175587,7 @@
     },
     {
       "excerpt": "} else if key.name == \"Tab\" && kind == \"search\" {",
-      "line": 95,
+      "line": 96,
       "literal": "Tab",
       "owner": "t11",
       "path": "src/tui/editor_input.rs",
@@ -176442,7 +176442,7 @@
     },
     {
       "excerpt": "_ if name == \"enter\" => vec![Key::named(\"Return\", mods), Key::named(\"Enter\", mods)],",
-      "line": 98,
+      "line": 100,
       "literal": "Return",
       "owner": "t11",
       "path": "src/tui/key_sheet.rs",
@@ -176451,7 +176451,7 @@
     },
     {
       "excerpt": "_ if name == \"enter\" => vec![Key::named(\"Return\", mods), Key::named(\"Enter\", mods)],",
-      "line": 98,
+      "line": 100,
       "literal": "Enter",
       "owner": "t11",
       "path": "src/tui/key_sheet.rs",
@@ -176460,7 +176460,7 @@
     },
     {
       "excerpt": "#[allow(dead_code, reason = \"called by the retained I50-11 snapshot consumer\")]",
-      "line": 167,
+      "line": 171,
       "literal": "called by the retained I50-11 snapshot consumer",
       "owner": "t11",
       "path": "src/tui/key_sheet.rs",
@@ -176703,7 +176703,7 @@
     },
     {
       "excerpt": "_ => \"default\",",
-      "line": 360,
+      "line": 364,
       "literal": "default",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -176712,7 +176712,7 @@
     },
     {
       "excerpt": "if flag(&value, \"cancelled\") { self.say_key(\"tui.model.deletion_cancelled\"); }",
-      "line": 1147,
+      "line": 1186,
       "literal": "cancelled",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -176721,7 +176721,7 @@
     },
     {
       "excerpt": "if flag(&value, \"cancelled\") { line.push(super::words::Text::Key(\"tui.model.deleted_cancelled\")); }",
-      "line": 1153,
+      "line": 1192,
       "literal": "cancelled",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -176730,7 +176730,7 @@
     },
     {
       "excerpt": "if !flag(&value, \"cancelled\") { self.fail(text(&value, \"error\").into()); }",
-      "line": 1173,
+      "line": 1212,
       "literal": "cancelled",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -176739,7 +176739,7 @@
     },
     {
       "excerpt": "if text(&value, \"where\") == \"scan\" && text(&value, \"msg\") == \"permission denied\" {",
-      "line": 1257,
+      "line": 1296,
       "literal": "permission denied",
       "owner": "t11",
       "path": "src/tui/model.rs",
@@ -177378,7 +177378,7 @@
     },
     {
       "excerpt": "\"newfile\" => \"step.newfile\", \"copy\" => \"step.copy\", \"move\" => \"step.move\", \"merge\" => \"step.merge\", \"link\" => \"step.link\",",
-      "line": 182,
+      "line": 188,
       "literal": "link",
       "owner": "t11",
       "path": "src/tui/prompts.rs",
@@ -177387,7 +177387,7 @@
     },
     {
       "excerpt": "if flag(value, \"cancelled\") { line.push_str(&format!(\" {}\", i18n.tr(\"receipt.cancelled\"))); }",
-      "line": 236,
+      "line": 243,
       "literal": "cancelled",
       "owner": "t11",
       "path": "src/tui/prompts.rs",
@@ -177396,7 +177396,7 @@
     },
     {
       "excerpt": "if flag(value, \"cancelled\") { parts.extend([Text::from(\" \"), Text::Key(\"receipt.cancelled\")]); }",
-      "line": 272,
+      "line": 282,
       "literal": "cancelled",
       "owner": "t11",
       "path": "src/tui/prompts.rs",
@@ -177405,7 +177405,7 @@
     },
     {
       "excerpt": "let mut fields = vec![(\"c\", word(if linked { \"link\" } else { \"transfer\" })), (\"op\", word(paste.op)), (\"paths\", Json::Arr(paste.paths.iter().map(|p| word(p)).collect())),",
-      "line": 330,
+      "line": 343,
       "literal": "link",
       "owner": "t11",
       "path": "src/tui/prompts.rs",
@@ -177414,7 +177414,7 @@
     },
     {
       "excerpt": "let cancel = key.name == \"Escape\" || (m.preset == \"yazi\" && key.mods == \"ctrl\" && matches!(key.name.as_str(), \"C\" | \"BracketLeft\"));",
-      "line": 338,
+      "line": 351,
       "literal": "Escape",
       "owner": "t11",
       "path": "src/tui/prompts.rs",
@@ -177423,7 +177423,7 @@
     },
     {
       "excerpt": "(\"Return\" | \"Enter\", _, \"\") | (_, \"b\", \"\") => \"keep\",",
-      "line": 341,
+      "line": 354,
       "literal": "Return",
       "owner": "t11",
       "path": "src/tui/prompts.rs",
@@ -177432,7 +177432,7 @@
     },
     {
       "excerpt": "(\"Return\" | \"Enter\", _, \"\") | (_, \"b\", \"\") => \"keep\",",
-      "line": 341,
+      "line": 354,
       "literal": "Enter",
       "owner": "t11",
       "path": "src/tui/prompts.rs",
@@ -179016,7 +179016,7 @@
     },
     {
       "excerpt": "cancelled: flag(doc, \"cancelled\"),",
-      "line": 227,
+      "line": 234,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/ui_logic_op1/wire.rs",
@@ -179025,7 +179025,7 @@
     },
     {
       "excerpt": "cancelled: flag(doc, \"cancelled\"),",
-      "line": 249,
+      "line": 257,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/ui_logic_op1/wire.rs",
@@ -179034,7 +179034,7 @@
     },
     {
       "excerpt": "cancelled: flag(&doc, \"cancelled\"),",
-      "line": 329,
+      "line": 338,
       "literal": "cancelled",
       "owner": "controller",
       "path": "src/ui_logic_op1/wire.rs",
@@ -249234,9 +249234,9 @@
     "crates/flea-gui/src/compositor_surface_tests/chrome.rs": "0c9a57ec41e027b556c74ffabb0faeb33bca8bd2540616f3c243faa632b11dd3",
     "crates/flea-gui/src/compositor_surface_tests/dialogs.rs": "30e2be38a8cd5f2364da2c9614ac59b7fbaf230d8738c569a44765165d1b48ee",
     "crates/flea-gui/src/compositor_surface_tests/network.rs": "1c65e060ceecd3fba2f1808d5fbcd2322a61a8bf675f3f8aeec986c52d0833bd",
-    "crates/flea-gui/src/compositor_surface_tests/operations.rs": "4d0e77d9321e3224019cf1f41fdf8d157fda49781582b13408acce7e51b09bb5",
+    "crates/flea-gui/src/compositor_surface_tests/operations.rs": "cd26e8644d2ab910d2ea924624dde1775c02bb3a26c92ac9f68e8c1858156a06",
     "crates/flea-gui/src/compositor_surface_tests/pictures.rs": "67977e246389ff324bbe8b6e54416fd917dab205e9d01acf0aa42916726f7bbc",
-    "crates/flea-gui/src/compositor_surface_tests/settings.rs": "87be57b9b478db77e4470d0624dc540b9fa159ed433a1b4d751d5c1a3e557820",
+    "crates/flea-gui/src/compositor_surface_tests/settings.rs": "76fa9f69876c32191efd7ca97c82eaf4647dac1abb68fa6f7caae713ab7c0b48",
     "crates/flea-gui/src/driver_notice.rs": "8714b4a2d74f5f3d4004355ba36baf34ace1dd31d704cab66ec43505e97b8557",
     "crates/flea-gui/src/dual/activation.rs": "705f426b4fa88e845bcba7918c1332cbc232ee474d2ce57f2d587b4fa39458ee",
     "crates/flea-gui/src/dual/element.rs": "d98523e6ed9a19b562fd8c282f0302e6ea2e30085fcde07b0b32cac1409946cc",
@@ -249250,14 +249250,14 @@
     "crates/flea-gui/src/feedback/spinner.rs": "17ad9c248ec709a8c7198cce2ca2df70012ed0ba527744403d9f174016b8217f",
     "crates/flea-gui/src/feedback/spinner_player.rs": "6bb2e0246bed3672b46c5b296a8b1bf7eb5cf2e57455ce2b94b8eeec869d8b4e",
     "crates/flea-gui/src/font_gate.rs": "ad607ca5b9dae4b047c82a47a079d3ff9aaf34fad71a477945f19ebc52fc6ce6",
-    "crates/flea-gui/src/font_gate/dialogs.rs": "816934464d811f9b5ca6951756ecb3497e68edc3d7b01d77a0c74df55464fa7d",
+    "crates/flea-gui/src/font_gate/dialogs.rs": "07cf6a768d21423095d58fdc3895682db4e8bfc4c7bce5a1cae51e4ff2d9a26f",
     "crates/flea-gui/src/font_gate/isolation.rs": "dd2e161ff9e00cb4d3ab8a223df801537a85a8a0520d51114ecd210119495a01",
     "crates/flea-gui/src/font_gate/picker.rs": "9ac3dfe6ba79d4ef9f1f4bd0b817a5bb341f16b331115a42a44e563494046616",
     "crates/flea-gui/src/font_gate/readers.rs": "2e0903b3f6c8f5684f48ff77361d7b29f3ada0967aa41ae5ff3fe46cf054667a",
     "crates/flea-gui/src/font_gate/receipt.rs": "c1bd793f85c42b7957da5a94dee5b6875b2144c4bdd313424a05d9f9f7d0bb74",
     "crates/flea-gui/src/font_gate/service.rs": "51bd2d02afbb0242d0db7603430d51e2f85ab490fef6daa9abe6416ddc195029",
     "crates/flea-gui/src/font_gate/settings.rs": "6c1ca878f72bd3f69ef1ad267bfcb0115344e1dabf4d09b6ae2569181e8c8c27",
-    "crates/flea-gui/src/font_gate/surfaces.rs": "7eb30db858de57b3a866ddc9a800f20ad6e3264a87dc7f8d94f363cd7ee988a9",
+    "crates/flea-gui/src/font_gate/surfaces.rs": "1bed6753f1a5cc2f798be21726c2bffae34abcbe4acfee273c036d710ceddb79",
     "crates/flea-gui/src/g2/dg1/carry.rs": "f26220925814e77e61d2ceb05b7675828bfa93df51437f061558f9404ae417c7",
     "crates/flea-gui/src/g2/dg1/carry_landing.rs": "9dabb526e4fcaea4406afe4104a34e82263466c4fa7feaf1b687ecf7d93d0fa0",
     "crates/flea-gui/src/g2/dg1/flock.rs": "8b21c93a9142b730acc3407bd3fd59dc4e05e37cf58fa1cad766dc327d6afa6b",
@@ -249356,23 +249356,23 @@
     "crates/flea-gui/src/g2/mn2/model.rs": "2f1d19a899fc0ab3a75101a88c89d0a12e479819bd1230567e62c4a7d61572cd",
     "crates/flea-gui/src/g2/mod.rs": "6a0a43968804b9a182dcd63cdf6e991db12cd45a1526610d35c23eb61306fddd",
     "crates/flea-gui/src/g2/op1/card_rate.rs": "5f879eccd1e2924b5cde044efe3d108022b506c987294c3ce7747b1f603ea3e8",
-    "crates/flea-gui/src/g2/op1/cards.rs": "dd49697a7410d9da250860cb4777f8d5d38250bd0769e98ffd505c0378f24334",
+    "crates/flea-gui/src/g2/op1/cards.rs": "9646a372c5b35b5b234250a76ed01976ee2653a5d09149ea4b722a240c4d4482",
     "crates/flea-gui/src/g2/op1/cards_copy.rs": "6c1c21c842ecc2ecaaf877bcdcb9a55cf2120ff4bbd8ec4084fbc6f2c69a492a",
     "crates/flea-gui/src/g2/op1/cards_open.rs": "218a37f57766cec384eec1c569f29d988c2c405c75847c97838c923849bc8f7e",
-    "crates/flea-gui/src/g2/op1/chosen.rs": "14a0afd9340671083349ae05a71ce4968808e5e9efc744e38f4ee0d43eb16390",
+    "crates/flea-gui/src/g2/op1/chosen.rs": "e87f8d9a3b5b68f76c42c5922ce059ac4800aaab60e30b4d9c4d05588cc3563d",
     "crates/flea-gui/src/g2/op1/collision.rs": "edf17c44af8bbbbfeaf4093ffd96afcc7ee816334aca065c042e617b03cff7bc",
     "crates/flea-gui/src/g2/op1/copy_to.rs": "f2680bf82f1102ecba723539d95cebbcfcea16f9d8bc0aa67443fb50ddbb267b",
     "crates/flea-gui/src/g2/op1/dialog.rs": "1e14ed1e95d2d7c66852b016c77f7cce5168b3254f85baf520298acdc31bdf93",
     "crates/flea-gui/src/g2/op1/dialog_editor.rs": "56eb6bb2f29352e0b6afe589d4acb823c45e0a7f2ea3d11800c7f308015af735",
     "crates/flea-gui/src/g2/op1/draw_fixture.rs": "0edd04aeb3641f685797b1465d615a1a6945ceb34d27d5c473d58a4c757848bb",
-    "crates/flea-gui/src/g2/op1/editor.rs": "0e725c233991c172ba46c504856d73e26d585b137d9d1848e3c5d35b4cc62494",
+    "crates/flea-gui/src/g2/op1/editor.rs": "39a8c6fe11da41d1e8095e360fc64c67fc483b0ba0bbf1bab128b85d61b7dec1",
     "crates/flea-gui/src/g2/op1/feedback.rs": "91d77e822d74c81130ea11b56d1ea9f6d5ddc33721cff69b441644289ae0740f",
     "crates/flea-gui/src/g2/op1/field.rs": "3450ea9ce2584393de2e9a77c7d59320889a818bf7f4aa069fc53f3aa529df90",
     "crates/flea-gui/src/g2/op1/field_view.rs": "c67b2bbfabea9bdba03badfa2909afae212bcca5365f15c03ca79b96e4b7aef2",
     "crates/flea-gui/src/g2/op1/focus.rs": "7d4e2a5a07a42e4caf7b7400783b4b8e1d88fb3ade6e2b7d659ad5c61eb42b10",
     "crates/flea-gui/src/g2/op1/geometry.rs": "9fecbc31134f1a9e0b4d44f24e61a023d9a6ac1d1a7811ff5e017faf40505c5e",
     "crates/flea-gui/src/g2/op1/glyph.rs": "c1dab0dc06b1f23bab0c0251a491e17cbacc367472f8dacc772b83ded0715e83",
-    "crates/flea-gui/src/g2/op1/host.rs": "b2577c039bcf198f6c8d1f35a5ff8ce86ac6be57ecf8570bd776f1f0f8fe693c",
+    "crates/flea-gui/src/g2/op1/host.rs": "fef27a0a284c943b7ca787dc4a663504124056e0adb3074fd193b29e7a365532",
     "crates/flea-gui/src/g2/op1/host_input.rs": "610a2d2dc115399913dce162e25ea60484bef3eaae1a04dab1cbc37cd6984bb3",
     "crates/flea-gui/src/g2/op1/input.rs": "7b7f94c8af33632d2d4085d32dc2af3f7c932cacebcf7a4bb2bb70bdd8369c57",
     "crates/flea-gui/src/g2/op1/ipc.rs": "fad70ec6d7fb7f59b9a10a930f484f7ba29438c46676728eb49e0153f7069e94",
@@ -249380,9 +249380,9 @@
     "crates/flea-gui/src/g2/op1/line.rs": "14957ee904b1e7e1dd0133ef31b85ba6308337b7b2f8a63c01e0ab96e8f9a7b7",
     "crates/flea-gui/src/g2/op1/measured.rs": "93efdcc88e9bf82d834e47a9dca97d04accb55900a452227d0babaa276d729fe",
     "crates/flea-gui/src/g2/op1/mod.rs": "492083bc4ff564efae4f57d75c37dfbe6918696bea4f9e5e878e214465651c32",
-    "crates/flea-gui/src/g2/op1/model.rs": "3388ca281fd4dcbcb1509d3bb619ebb33baf507ec5d74b5eea1f5ce5a5672aea",
+    "crates/flea-gui/src/g2/op1/model.rs": "5977193b8164c2846138bce9e1fabaff6587800a27445b028d6318758c26fbad",
     "crates/flea-gui/src/g2/op1/model_jobs.rs": "92c348cedbc4ec91a1e1fa876ac90c747f78349b79f6b11723fdceef718579e0",
-    "crates/flea-gui/src/g2/op1/new_file.rs": "3bb6907e72695026c6f3f5a4e182b3de234be7e3b47361a261bd0238762fded1",
+    "crates/flea-gui/src/g2/op1/new_file.rs": "5b7f4e975ea270d13acab70ae6c17ab49a0a8ea458658bab071a470c772985f0",
     "crates/flea-gui/src/g2/op1/palette.rs": "9c2edc9d1b15cacb050e130464fd7c15d49aad153f7fb91361b9e9bcc4b85378",
     "crates/flea-gui/src/g2/op1/press.rs": "ba2fbe2d873584fa2783d2eab8d0426f7eebca85039f69ce555379be72a3de23",
     "crates/flea-gui/src/g2/op1/progress.rs": "5328cc8f1d85be34c6d2f0e39e39aa09d8d6af9bcf11ec68e68fef4324978cf9",
@@ -250157,10 +250157,10 @@
     "crates/flea-gui/src/window/dispatch/clipboard.rs": "c2c9d2da6843d56ebaf50c9cd1795b3fe62a03e3ed69b9e03a75e1ad837fa559",
     "crates/flea-gui/src/window/dispatch/deletion.rs": "072e1f3bd78f3bb304a2c16aaf454e54af305f772513ab7b4fa94fd92edecd4b",
     "crates/flea-gui/src/window/dispatch/document_keys_fixture.rs": "a235c06ac48137a15b02f9e4f98592b7430e8bda05994dc5c6d57b6b61f5a23b",
-    "crates/flea-gui/src/window/dispatch/fileops.rs": "24763ce60e080c3e825ec51a84df2fd149156dd9d849c12d43fec4e8ba381180",
-    "crates/flea-gui/src/window/dispatch/fileops_created.rs": "3a0fb9b37d7240dfa22e872281fbcf21f54c5b19105a7631255571384ff44924",
+    "crates/flea-gui/src/window/dispatch/fileops.rs": "ace9cc3c4b92f7a96604530d28b9a6f458068942666a49cd61e1a8d784ade220",
+    "crates/flea-gui/src/window/dispatch/fileops_created.rs": "1ccd94e121c20325f5271f64bd09c5c05c550372c4e403471bb54c3a218878ae",
     "crates/flea-gui/src/window/dispatch/fileops_route.rs": "3c958730aab6640e00784257baae6119fe78860d5244b630da5e2a1dea1b9112",
-    "crates/flea-gui/src/window/dispatch/fileops_wire.rs": "17e411fc10760bda8067de2051eabd4e158b203564f303199263995c260d9e03",
+    "crates/flea-gui/src/window/dispatch/fileops_wire.rs": "670e5688d91e7bfd38813faf62847e09e47de2b2958fc405e4c3637f50a37766",
     "crates/flea-gui/src/window/dispatch/gh_preview_fixture.rs": "5fc938eebb2b952068fe84a4c7e2469903b47c85167e2bde5cb83193dfbc57e4",
     "crates/flea-gui/src/window/dispatch/gh_rename_proof_lane.rs": "d79cee95089856c049d867ee588d59851775b21671f6b31a6b2fbc2cfb5105b4",
     "crates/flea-gui/src/window/dispatch/gm_prevsel_tests/focus.rs": "0d6d528a90a4b5f1d9718e6d688306ac1b9c17354434255f6e47a68ac499c537",
@@ -250854,7 +250854,7 @@
     "src/theme/tokens.rs": "300da578de3add38d96788c85e0fd27f08f6a4c71f7165b93d67c3ca977dc016",
     "src/theme/watch.rs": "d8660ef8fd5bab6d239281aaeeb04fd87e0d1b459924611417db85a41600b88c",
     "src/thp.rs": "6dfac794c19696f80fe1ff33cea9f2d16ed5b69c6a186f989769db44f4fcf8f1",
-    "src/tui/actions.rs": "6ef01459c76b8012b0d7d74e285876e3297e9154d22f3a6b9d48fe7d298735e0",
+    "src/tui/actions.rs": "ec8e7050722103f7a22c7b3df4a34aae822ae5529de6ea95b13613299bdb50cd",
     "src/tui/actions_pointer.rs": "da68c95b814b7e168da30704faf7d2b077f0e5baca683b175f5ee12c4135498a",
     "src/tui/batch.rs": "79ae57c24af694b2f1cf643a348d4eae9ca47d85d6f54c40cc8980587c146b3f",
     "src/tui/calendar.rs": "203b5d1b559f78cae42cfdb6f2dc4bce95b437579db485f63615a3fb9eb96230",
@@ -250881,8 +250881,8 @@
     "src/tui/convert/replies.rs": "bcde36c7a1338d6208bd25ef7ff46279b2b431057a23074ea5305428e4e644e0",
     "src/tui/cwd.rs": "841f27783ae071620015378cea677de784cf83ef31e900686d0c178a0bdd263d",
     "src/tui/detail.rs": "64e7775dcb3eaf3b24030391828ccc003b9c32f290fb063b025bf77c8df24adf",
-    "src/tui/editor.rs": "68587dfbb76b856b509ddb5f5fd5999f28cab1f52d01e3cc2892feed9105a0e0",
-    "src/tui/editor_input.rs": "2c2d572b357b553a86de65e2e9f53e5239655a7f5209a77f3ad134611eec58d9",
+    "src/tui/editor.rs": "64e7091740b896f68d073c5dfc07c2b72a073cf406d646edbd31eb27f59a7a9a",
+    "src/tui/editor_input.rs": "d373e82829a4788d482e4a266583462dd8572a615ba89122989b40efffa082bb",
     "src/tui/editor_words.rs": "147da26c3bc92e3de9bfa1689a8873b35fa5926721b65f8dad4c1b7a5b637cab",
     "src/tui/empty.rs": "b8298bbd2187f9e0e0d0e048d1ec326abcf70885f4e4b799b09bfcabfb81454d",
     "src/tui/external_editor.rs": "65eb226f506519506ddc26a40ab9eea742a2e449a3ed77ce021f5d460843480a",
@@ -250895,7 +250895,7 @@
     "src/tui/input.rs": "d9768c9e39f50994fde6a0bdb011fb49a9a416b0c5e53426a950dd86ec95f66a",
     "src/tui/job.rs": "76758b70e86589e8b94c2ec873cc4139cb5f513ab0c0d878ce1a84124d2a0d3b",
     "src/tui/jobstatus.rs": "969480bbe62dbc75e775e1acbb14ca55d0a06068ed0b6995951c3bd3f6709864",
-    "src/tui/key_sheet.rs": "14e0f7b6b98cc50446ac9a7dd354db2204307f57f30eacdaa39b7fde9a31aa9c",
+    "src/tui/key_sheet.rs": "de9f114c1485f76ee82948ef71b9fd490c5d33c5ef7b7b0434ac2a92a9ef230f",
     "src/tui/keycaps.rs": "b039b08e4e69962e463a53a4dc56654a188937b12a2075f2bcedf3c6681bc48a",
     "src/tui/keymap.rs": "c43659252066174ea7ec6c32a337d6e510a215da80441f2e8270a3d6c019b45d",
     "src/tui/launch.rs": "84cc19c56ccf2c72666c11665d34dc46e376757ca56b3135605c5bd9886ea852",
@@ -250905,7 +250905,7 @@
     "src/tui/menu_layout.rs": "727fc220b8d74e47d429a15543e544ada4458dc8423e987194c447b6eef4a5c8",
     "src/tui/menu_run.rs": "64d336b4cb5e4614702f6d13e3f290a02241cb7ca9d91387b7200f1da8ba7fbb",
     "src/tui/mod.rs": "47818ccadd78edc7a16f433dfce9e3b4a50fedc8704321ad628aa4deac5dcb12",
-    "src/tui/model.rs": "c1315662f8d95b3e38b1c554fd7da9a33ce219cdd818f195a855f11973479c5e",
+    "src/tui/model.rs": "6c88138fd0654cb8a4b50cecdea61f6d53bb05928f9b2d4ec8c46ffe0cd7337d",
     "src/tui/model3d.rs": "411b95b4851090efd363fefecf527ee042c0239e2c14a51604c50abf5a738573",
     "src/tui/mounts.rs": "ac7b31e12ae0ee526a65fd8ea04d1594ec730c06a0765b9d8f76da9644621bf1",
     "src/tui/mpv.rs": "cbdc0c69cf48c259093532466139e5c090143cb54aa9d13e196ef5909c973909",
@@ -250923,7 +250923,7 @@
     "src/tui/print/card.rs": "7e513d5ef0fe27901abf502bf9372ae74c97d54df86066e0de71aea4ab7174b0",
     "src/tui/print/input.rs": "2feadebdca18d18e77e604d762044c371781dfc4c265662d47e8e71d8920cc98",
     "src/tui/print/replies.rs": "0d9558640c05dd6527bcf9f66ec702b77f9cd4c1a5afc48dd104de786766c810",
-    "src/tui/prompts.rs": "0027283042adb2a17bb0929a9a1e5a1213fee86877721dd31013dd280b590fbc",
+    "src/tui/prompts.rs": "ed308113214316087756d0b8ee656d35482bbdae1686c693e9ec4c452d4dc527",
     "src/tui/render.rs": "7e686a909f5934896a6978970f3cb995844068a4efdb23593fe73b6302f93307",
     "src/tui/sort_actions.rs": "10962bd7e3d0e4cd0bff680ba7c492d779f39625865f3b60c8181c1606119586",
     "src/tui/stage.rs": "6bc1a61b139ffb8a408251234c0ed6763bec47bfb9ab922b4ba3d61b1706ec69",
@@ -250998,7 +250998,7 @@
     "src/ui_logic_op1/testcat.rs": "d24fb6b7c74ed8c19d4d8b1693aa91bba2ebd8a7793487d1e301e2a5c5f439cd",
     "src/ui_logic_op1/transfer.rs": "453bb463cc3b176208135193cc15704d6d3a05b297fcbc6426d9f644fcea869a",
     "src/ui_logic_op1/trash.rs": "691395c9627cf04e93a6e06c317566db9f3589ee19f80a52b138d7281365111b",
-    "src/ui_logic_op1/wire.rs": "5bfba556ed4499b6f50c63922ec748278ed759c32253741e695f26ebb8ad9432",
+    "src/ui_logic_op1/wire.rs": "c45c0637773c343be453d703cd0f3b1958dee2d21628a7450d1a218357de34d9",
     "src/ui_logic_op2.rs": "cd886a6725b47f3579f591bd0d489d86aaef9e67450ee58d230b87ab453be2d1",
     "src/ui_logic_op2/archive.rs": "298cfccc8d673052121d4fef3a5dee35d68b00ad549fb9ce3e8888fd195a48b1",
     "src/ui_logic_op2/cards.rs": "f6d6ca08a4180ca322aac359a0396af31b0d473d6a98a0bb9cbffb12a526221f",
@@ -251867,8 +251867,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "409d273ca10a596341c5ca8cb707b98db1b926c5",
-  "source_sha": "409d273ca10a596341c5ca8cb707b98db1b926c5",
+  "source_ref_sha": "1b3be9c082eac9b0bc9d073be1583f9ea95c1de1",
+  "source_sha": "1b3be9c082eac9b0bc9d073be1583f9ea95c1de1",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1334,

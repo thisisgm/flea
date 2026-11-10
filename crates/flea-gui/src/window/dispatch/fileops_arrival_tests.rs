@@ -10,6 +10,7 @@ use crate::{
 use gpui::TestAppContext;
 use std::{cell::RefCell, rc::Rc};
 
+/// The folder lands on the pane that asked, cursor on it, and the answered card means no rename opens
 #[gpui::test]
 fn a_created_folder_lands_on_the_pane_that_asked(cx: &mut TestAppContext) {
     let (shell, cx) = open(cx, "default");
@@ -78,6 +79,7 @@ fn a_created_folder_lands_on_the_pane_that_asked(cx: &mut TestAppContext) {
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
+/// A hidden pane still re-reads the made folder but opens no Rename and leaves the left pane alone
 #[gpui::test]
 fn a_hidden_right_pane_finishes_new_folder_without_renaming_the_left_pane(cx: &mut TestAppContext) {
     let (shell, cx) = open(cx, "default");
@@ -176,6 +178,7 @@ cx.simulate_keystrokes("ctrl-shift-n");
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
+/// Duplicate selects the copy on arrival and arms no editor
 #[gpui::test]
 fn a_duplicate_lands_on_its_copy_without_rename(cx: &mut TestAppContext) {
     let (shell, cx) = open(cx, "default");

@@ -19,6 +19,7 @@ const CARD_WINDOW: (f32, f32) = (1100., 800.);
 // The output cards cap their scrolling body by the window height.
 const OUTPUT_WINDOW: (f32, f32) = (1100., 900.);
 
+/// Mounts each op1 dialog over the production overlay host and frames it at the rounded corner
 fn operations(cx: &mut TestAppContext) {
     use op1::model::{CopyFocus, Dialog};
     let cards = [
@@ -128,6 +129,7 @@ fn operations(cx: &mut TestAppContext) {
 // The production owner builds the card, palette, room and corner, as the root view asks it to.
 struct ArchiveLayer(Entity<Shell>, &'static str);
 impl Render for ArchiveLayer {
+    /// Draws the shell's archive card, panicking when the shell opened none
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let name = self.1;
         self.0
@@ -136,6 +138,7 @@ impl Render for ArchiveLayer {
     }
 }
 
+/// Opens the card through `open`, mounts it as production draws it and frames it
 fn archive_card(cx: &mut TestAppContext, name: &'static str, open: impl FnOnce(&mut Shell)) {
     let (shell, _, cx) = mounted(cx, ROUNDED, |shell, _, cx| {
         open(shell);
@@ -146,6 +149,7 @@ fn archive_card(cx: &mut TestAppContext, name: &'static str, open: impl FnOnce(&
     frames(name, &shell, cx, ROUNDED, &[]);
 }
 
+/// Frames the compress and extract password cards
 fn archives(cx: &mut TestAppContext) {
     archive_card(cx, "compress-password", |shell| {
         let (compress, _) = op2::compress::Compress::open(
@@ -166,6 +170,7 @@ fn archives(cx: &mut TestAppContext) {
     });
 }
 
+/// Opens each op4 output action on a two-image selection and frames the card
 fn outputs(cx: &mut TestAppContext) {
     for (name, action) in [
         ("print", op4::model::Action::Print),
@@ -205,14 +210,17 @@ fn outputs(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
+/// Frames every operation dialog card
 fn vf_frames_operation_cards(cx: &mut TestAppContext) {
     operations(cx);
 }
 #[gpui::test]
+/// Frames the archive password cards
 fn vf_frames_archive_cards(cx: &mut TestAppContext) {
     archives(cx);
 }
 #[gpui::test]
+/// Frames the print, convert and combine output cards
 fn vf_frames_output_cards(cx: &mut TestAppContext) {
     outputs(cx);
 }

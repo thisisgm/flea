@@ -4,6 +4,7 @@ use std::path::PathBuf;
 
 struct Root(PathBuf);
 impl Root {
+    /// A fresh `/tmp` directory marked as a sandbox its drop may remove
     fn new() -> Self {
         let output = std::process::Command::new("mktemp")
             .args(["-d", "/tmp/flea-ql336.XXXXXXXX"])
@@ -17,6 +18,7 @@ impl Root {
     }
 }
 impl Drop for Root {
+    /// Removes the sandbox, refusing unless its mark survived every test
     fn drop(&mut self) {
         assert!(
             self.0.is_absolute()
@@ -28,6 +30,7 @@ impl Drop for Root {
 }
 
 #[test]
+/// An EXIF-turned JPEG fits the asked size with the turned red top and green bottom in BGRA
 fn gh336_jpeg_physical_fit_applies_exif_turn_and_keeps_bgra_colours() {
     let root = Root::new();
     let picture = image::RgbImage::from_fn(40, 20, |x, _| {
@@ -63,6 +66,7 @@ fn gh336_jpeg_physical_fit_applies_exif_turn_and_keeps_bgra_colours() {
 }
 
 #[test]
+/// QOI keeps its colours through the static fallback; a renamed SVG and an oversized ask are refused
 fn gh336_static_fallback_keeps_qoi_and_rejects_renamed_vector() {
     let root = Root::new();
     let path = root.0.join("picture.qoi");
@@ -85,6 +89,7 @@ fn gh336_static_fallback_keeps_qoi_and_rejects_renamed_vector() {
     assert!(decode(&path, (8192, 8192), &|| true).is_err());
 }
 
+/// The process's peak resident set, VmHWM, in KiB
 fn high_water_kib() -> u64 {
     std::fs::read_to_string("/proc/self/status")
         .unwrap()
@@ -97,6 +102,7 @@ fn high_water_kib() -> u64 {
 }
 
 #[test]
+/// Decodes the input the parent handed over by path, whole or fitted, and prints its peak
 fn gh336_decode_memory_child() {
     let Some(path) = std::env::var_os("FLEA_QL336_MEMORY_INPUT") else {
         return;
@@ -124,6 +130,7 @@ fn gh336_decode_memory_child() {
 }
 
 #[test]
+/// Each format's fitted decode peaks well under a full-source decode in fresh processes
 fn gh336_physical_fit_avoids_full_photo_allocation_in_fresh_processes() {
     let root = Root::new();
     for extension in ["png", "jpg"] {
@@ -182,6 +189,7 @@ fn gh336_physical_fit_avoids_full_photo_allocation_in_fresh_processes() {
 }
 
 #[test]
+/// Adam7 PNG matches the source's straight BGRA and halves alpha without bleeding colour
 fn gh336_png_adam7_matches_source_colours_and_reduces_alpha_without_bleed() {
     let root = Root::new();
     // An 8x8 Adam7 fixture: half translucent red, half opaque green.
@@ -220,6 +228,7 @@ fn gh336_png_adam7_matches_source_colours_and_reduces_alpha_without_bleed() {
 }
 
 #[test]
+/// GIF and QOI at half coverage keep the red edge's straight colour through the fallback
 fn gh336_fallback_scaling_preserves_transparent_edge_colour() {
     let mut pixels = image::RgbaImage::new(2, 1);
     pixels.put_pixel(0, 0, image::Rgba([255, 0, 0, 255]));
@@ -256,6 +265,7 @@ fn gh336_fallback_scaling_preserves_transparent_edge_colour() {
 }
 
 #[test]
+/// decode_sharp's final downscale stays within a level of Catmull-Rom on a 29x23 source
 fn gh336_png_final_downscale_matches_original_catmull_rom() {
     let root = Root::new();
     let source = image::RgbaImage::from_fn(29, 23, |x, y| {
@@ -283,6 +293,7 @@ fn gh336_png_final_downscale_matches_original_catmull_rom() {
 }
 
 #[test]
+/// The signed filter returns straight BGRA with the alpha GPUI's compositor expects
 fn gh336_png_signed_filter_returns_straight_bgra_for_gpui() {
     let root = Root::new();
     let source = image::RgbaImage::from_raw(
@@ -299,6 +310,7 @@ fn gh336_png_signed_filter_returns_straight_bgra_for_gpui() {
 }
 
 #[test]
+/// Clipping encoded alpha past 255 keeps a constant colour from brightening
 fn gh336_png_signed_alpha_overshoot_preserves_constant_colour() {
     let root = Root::new();
     let source = image::RgbaImage::from_raw(

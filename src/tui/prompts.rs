@@ -21,7 +21,7 @@ pub struct Prompts {
 }
 #[cfg(test)]
 impl Prompts {
-    // Tests read English only; the fields are spelled out because Self::default() would still load the host's language.
+    /// Tests read English only; the fields are spelled out because Self::default() would still load the host's language.
     pub fn english() -> Self {
         Self {
             i18n: crate::i18n::test_catalogs::library_english(),
@@ -47,7 +47,7 @@ pub struct Paste {
 }
 struct Step { op: &'static str, paths: Vec<PathBuf> }
 
-// The status row: the paste question, an open prompt with its field, or the footer; and where the terminal's caret goes.
+/// The status row: the paste question, an open prompt with its field, or the footer; and where the terminal's caret goes.
 pub fn status(m: &Model, theme: &Theme, columns: usize, elapsed: Duration) -> (String, Option<usize>) {
     if let Some(question) = &m.prompts.question { return (ask(m, question, theme, columns), None); }
     let Some(editor) = &m.editor else { return (super::layout::footer(m, theme, columns, elapsed), None); };
@@ -96,7 +96,7 @@ pub fn status(m: &Model, theme: &Theme, columns: usize, elapsed: Duration) -> (S
     out.push_str(&" ".repeat(columns - used));
     (out, caret)
 }
-// What follows a prompt's field: its one error sentence, a working note, the filter's count, Find's scope or Rename's keys at the trailing end.
+/// What follows a prompt's field: its one error sentence, a working note, the filter's count, Find's scope or Rename's keys at the trailing end.
 fn after<'a>(m: &Model, editor: &Editor, theme: &'a Theme) -> (String, &'a str, bool) {
     let i18n = &m.prompts.i18n;
     if !editor.error.is_empty() { return (editor.error.clone(), &theme.error, false); }
@@ -108,16 +108,18 @@ fn after<'a>(m: &Model, editor: &Editor, theme: &'a Theme) -> (String, &'a str, 
         _ => (String::new(), &theme.muted, false),
     }
 }
+/// The filter's count: how many rows show of how many the folder holds
 fn shown(m: &Model) -> String {
     m.prompts.i18n.tr_args("filter.shown", &[&m.i18n.locale().format_count(m.filter_count() as i64), &m.i18n.locale().format_count(m.total as i64)])
 }
+/// Find's scope words for the prompt's folder, its root and whether the query reads names or contents
 fn scope(m: &Model, contents: bool) -> String {
     let folder = m.editor.as_ref().filter(|e| e.kind == "search").map_or(&m.path, |e| &e.path);
     let home = std::env::var("HOME").unwrap_or_default();
     let root = Session::scope_root(&folder.to_string_lossy(), &home, m.find.session.scope);
     scope_label(&m.prompts.i18n, root.as_deref(), &home, m.find.session.scope, if contents { Kind::Contents } else { Kind::Names })
 }
-// The footer's leading runs: an applied filter in muted ink with its count, Find's count and its query in muted ink, or the item count.
+/// The footer's leading runs: an applied filter in muted ink with its count, Find's count and its query in muted ink, or the item count.
 pub fn lead<'a>(m: &Model, theme: &'a Theme, count: String) -> Vec<(&'a str, String, usize)> {
     let i18n = &m.prompts.i18n;
     if !m.filter.is_empty() {
@@ -129,22 +131,23 @@ pub fn lead<'a>(m: &Model, theme: &'a Theme, count: String) -> Vec<(&'a str, Str
     parts.push((&theme.muted, i18n.tr_args("tui.find.status", &[&m.search_query, &scope(m, m.find.active.as_ref().is_some_and(|q| q.contents))]), 2));
     parts
 }
-// Find's status: what it found, and what it has scanned only while it is still walking.
+/// Find's status: what it found, and what it has scanned only while it is still walking.
 pub fn found(m: &Model, scanned: usize) -> String {
     if m.searching { m.prompts.i18n.tr_args("find.scanning", &[&m.i18n.locale().format_count(m.total as i64), &m.i18n.locale().format_count(scanned as i64)]) }
     else { m.prompts.i18n.tr_args("find.found", &[&m.i18n.locale().format_count(m.total as i64)]) }
 }
+/// The undo key's clause for a receipt, empty while no undo step stands
 fn hint(m: &Model) -> String {
     if m.hints.undo.is_empty() { String::new() } else { format!(" {}", m.prompts.i18n.tr_args("receipt.undoes", &[&m.hints.undo])) }
 }
-// A receipt for a step Undo can take back names the undo key after it.
+/// A receipt for a step Undo can take back names the undo key after it.
 pub fn undoable(m: &Model, line: String) -> String { format!("{line}{}", hint(m)) }
-// A receipt that names the undo key stays for the error time, then clears like every message.
+/// A receipt that names the undo key stays for the error time, then clears like every message.
 pub fn lasting(m: &Model) -> bool {
     let hint = hint(m);
     !hint.is_empty() && m.message.ends_with(&hint)
 }
-// The message run, with a trailing undo key in muted ink one cell after the receipt.
+/// The message run, with a trailing undo key in muted ink one cell after the receipt.
 pub fn message<'a>(m: &Model, theme: &'a Theme) -> Vec<(&'a str, String, usize)> {
     let hint = hint(m);
     match m.message.strip_suffix(&hint).filter(|head| !hint.is_empty() && !head.is_empty()) {
@@ -152,14 +155,16 @@ pub fn message<'a>(m: &Model, theme: &'a Theme) -> Vec<(&'a str, String, usize)>
         None => vec![(theme.foreground.as_str(), m.message.clone(), 2)],
     }
 }
+/// The clipboard receipt, Cut or Copied with the held count; tests read it in English
 #[cfg(test)]
 #[allow(dead_code)]
 pub fn clipboard(m: &Model) -> String {
     m.prompts.i18n.trn(if m.cut { "clipboard.cut" } else { "clipboard.copied" }, m.clipboard.len() as i64)
 }
-// The first trash press says what the second does, "it" for one item and "them" for a selection.
+/// The first trash press says what the second does, "it" for one item and "them" for a selection.
 #[cfg(test)]
 pub fn trash_arm(m: &Model, arm: &str) -> String { trash_arm_text(m, arm).render(&m.i18n) }
+/// The trash arm sentence as words, for one item or a selection, naming the key and its second press
 pub fn trash_arm_text(m: &Model, arm: &str) -> super::words::Text {
     let many = m.selected.len() > 1;
     let key = match (many, m.hints.trash.is_empty()) {
@@ -168,7 +173,7 @@ pub fn trash_arm_text(m: &Model, arm: &str) -> super::words::Text {
     let arm = m.keycaps.and_then(|snapshot| snapshot.label(arm).ok()).unwrap_or(arm);
     super::words::args(key, vec![arm.into(), m.hints.trash.clone().into()])
 }
-// Sends a trash of the selection or the cursor row under a request id, so its answer is recorded once and names what moved.
+/// Sends a trash of the selection or the cursor row under a request id, so its answer is recorded once and names what moved.
 pub fn trash(m: &mut Model, w: &mut Wire) -> io::Result<()> {
     if m.total == 0 { return Ok(()); }
     m.prompts.id = m.prompts.id.wrapping_add(1).max(1);
@@ -176,6 +181,7 @@ pub fn trash(m: &mut Model, w: &mut Wire) -> io::Result<()> {
     m.prompts.trashing.insert(request);
     w.send(vec![("c", word("trash")), ("id", number(request)), ("rows", m.indices())])
 }
+/// The catalog key naming an undo step's op, None for an op no receipt speaks of
 fn step_key(op: &str) -> Option<&'static str> {
     let key = match op {
         "trash" => "step.trash", "rename" | "bulkrename" => "step.rename", "duplicate" => "step.duplicate", "mkdir" => "step.mkdir",
@@ -184,11 +190,12 @@ fn step_key(op: &str) -> Option<&'static str> {
     };
     Some(key)
 }
+/// Records a step this client took so Undo can take it back, and drops the redo trail
 pub fn record(m: &mut Model, op: &'static str, paths: Vec<PathBuf>) {
     m.prompts.undo.push(Step { op, paths });
     m.prompts.redo.clear();
 }
-// The receipt for a finished step, its failures raised as one sentence; an undo of this client's trash anchors the cursor on what came back.
+/// The receipt for a finished step, its failures raised as one sentence; an undo of this client's trash anchors the cursor on what came back.
 pub fn receipt(m: &mut Model, value: &Json) -> String {
     let i18n = &m.prompts.i18n;
     let (ok, failed, skipped) = (count(value, "ok"), count(value, "failed"), count(value, "skipped"));
@@ -241,13 +248,16 @@ pub fn receipt(m: &mut Model, value: &Json) -> String {
         }
     }
 }
+/// A receipt's words with the undo key appended while an undo step stands
 pub fn undoable_text(m: &Model, line: super::words::Text) -> super::words::Text {
     use super::words::{Text, args};
     if m.hints.undo.is_empty() { line } else { Text::Joined(vec![line, Text::from(" "), args("receipt.undoes", vec![Text::from(m.hints.undo.clone())])]) }
 }
+/// The clipboard receipt as words, plural on the held count
 pub fn clipboard_text(m: &Model) -> super::words::Text {
     super::words::Text::Plural(if m.cut { "clipboard.cut" } else { "clipboard.copied" }, m.clipboard.len(), vec![])
 }
+/// A backend answer's receipt as words instead of ink, for the model to record and say
 pub fn receipt_text(m: &Model, value: &Json) -> super::words::Text {
     use super::words::{Text, args};
     let (ok, failed, skipped) = (count(value, "ok"), count(value, "failed"), count(value, "skipped"));
@@ -276,7 +286,7 @@ pub fn receipt_text(m: &Model, value: &Json) -> super::words::Text {
     };
     undoable_text(m, line)
 }
-// Paste asks which names already exist before anything is written; a second paste waits for the first question's answer.
+/// Paste asks which names already exist before anything is written; a second paste waits for the first question's answer.
 pub fn paste(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
     if m.clipboard.is_empty() { m.say_key("paste.nothing"); return Ok(()); }
     if m.prompts.asked.is_some() || m.prompts.question.is_some() { m.fail_key("paste.waiting"); return Ok(()); }
@@ -291,6 +301,7 @@ pub fn paste(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
     m.prompts.asked = Some(paste);
     Ok(())
 }
+/// Asks the backend which of the paste's names already exist in the destination
 fn ask_collisions(paste: &Paste, w: &mut Wire) -> io::Result<()> {
     let mut fields = vec![("c", word("collisions")), ("id", number(paste.id)), ("paths", Json::Arr(paste.paths.iter().map(|p| word(p)).collect())),
         ("dest", word(&paste.dest.to_string_lossy()))];
@@ -298,6 +309,7 @@ fn ask_collisions(paste: &Paste, w: &mut Wire) -> io::Result<()> {
     w.send(fields)
 }
 // Sample input: {"t":"collisions","id":7,"total":1,"names":[{"n":"notes.txt","d":false,"i":"text-plain"}],"mergeable":false}.
+/// Takes the collisions answer: a FAT drive asks again under drive-safe names, else the question stands or the transfer starts
 pub fn collided(m: &mut Model, value: &Json, w: &mut Wire) -> io::Result<()> {
     if m.prompts.asked.as_ref().map_or(true, |paste| paste.id != count(value, "id")) { return Ok(()); }
     let mut paste = m.prompts.asked.take().unwrap();
@@ -325,6 +337,7 @@ pub fn collided(m: &mut Model, value: &Json, w: &mut Wire) -> io::Result<()> {
     m.prompts.question = Some(paste);
     Ok(())
 }
+/// Sends the paste to the backend with the answer chosen, as a link when the op links
 fn transfer(paste: Paste, collide: &str, w: &mut Wire) -> io::Result<()> {
     let linked = matches!(paste.op, "relative" | "absolute" | "hard");
     let mut fields = vec![("c", word(if linked { "link" } else { "transfer" })), ("op", word(paste.op)), ("paths", Json::Arr(paste.paths.iter().map(|p| word(p)).collect())),
@@ -333,7 +346,7 @@ fn transfer(paste: Paste, collide: &str, w: &mut Wire) -> io::Result<()> {
     if let Some(fat) = paste.fat { fields.push(("fat", word(fat))); }
     w.send(fields)
 }
-// Enter or b keeps both, r replaces, s skips, Escape cancels; any other key leaves the question standing.
+/// Enter or b keeps both, r replaces, s skips, Escape cancels; any other key leaves the question standing.
 pub fn answer(m: &mut Model, key: &Key, w: &mut Wire) -> io::Result<()> {
     let cancel = key.name == "Escape" || (m.preset == "yazi" && key.mods == "ctrl" && matches!(key.name.as_str(), "C" | "BracketLeft"));
     let choice = match (key.name.as_str(), key.text.as_str(), key.mods.as_str()) {
@@ -347,6 +360,7 @@ pub fn answer(m: &mut Model, key: &Key, w: &mut Wire) -> io::Result<()> {
     if choice.is_empty() { return Ok(()); }
     transfer(paste, choice, w)
 }
+/// The collisions question's status row: what collides, then the keys that answer it
 fn ask(m: &Model, question: &Paste, theme: &Theme, columns: usize) -> String {
     let i18n = &m.prompts.i18n;
     let folder = question.dest.file_name().map_or_else(|| question.dest.to_string_lossy(), |name| name.to_string_lossy()).into_owned();
@@ -359,7 +373,7 @@ fn ask(m: &Model, question: &Paste, theme: &Theme, columns: usize) -> String {
     format!("{}{}{base}{}{}{}{base}{}", theme.foreground, ellipsis(&head, head_width), " ".repeat(gap), theme.muted,
         ellipsis(&i18n.tr("collide.keys"), keys_width), " ".repeat(columns - head_width - gap - keys_width))
 }
-// No preview stands for a cursor row the filter does not draw, so a query that matches nothing leaves the pane empty; one lookup, never a copy of the matches.
+/// No preview stands for a cursor row the filter does not draw, so a query that matches nothing leaves the pane empty; one lookup, never a copy of the matches.
 pub fn previewed(m: &Model) -> bool {
     #[cfg(test)]
     GATE.with(|gate| gate.set((gate.get().0 + 1, gate.get().1)));
@@ -376,7 +390,7 @@ pub fn previewed(m: &Model) -> bool {
 // The gate's calls and comparisons on this thread, for the cost test.
 #[cfg(test)]
 thread_local! { pub(super) static GATE: std::cell::Cell<(usize, usize)> = const { std::cell::Cell::new((0, 0)) }; }
-// The terminal's own bar cursor is the caret while a prompt holds a cell for it, and it hides otherwise.
+/// The terminal's own bar cursor is the caret while a prompt holds a cell for it, and it hides otherwise.
 pub fn caret(at: Option<usize>, lines: usize) -> String {
     at.map_or_else(|| "\x1b[?25l".into(), |x| format!("\x1b[{lines};{}H\x1b[6 q\x1b[?25h", x + 2))
 }

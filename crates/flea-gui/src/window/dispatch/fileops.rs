@@ -54,6 +54,7 @@ impl Held {
 }
 
 impl Held {
+    /// The dd arm's stamp for this side only, 0 when the seat sits elsewhere
     pub(crate) fn armed_at_side(&self, side: usize) -> u64 {
         self.seat
             .filter(|seat| seat.focus == side as u64)
@@ -61,6 +62,7 @@ impl Held {
     }
 }
 
+/// Runs a listing action or a menu row for this family; false when another family owns it
 pub(super) fn run(
     shell: &mut Shell,
     order: &Order,
@@ -92,6 +94,7 @@ pub(super) fn run(
 
 impl Shell {
     // A menu row runs on the captured snapshot, so the backend checks the rows the menu showed.
+    /// Runs the menu's trash, duplicate, delete or New Folder row once its snapshot still allows it
     fn fileops_menu(&mut self, chosen: &Chosen, _: &mut Window, cx: &mut Context<Self>) -> bool {
         let captured = &chosen.captured;
         let side = captured.side;
@@ -117,6 +120,7 @@ impl Shell {
     }
 
     // Ops.js duplicate: the cursor row, or the menu's one row; no row is quiet.
+    /// Duplicates the cursor row, or the menu's row, and sends the request
     fn fileops_duplicate(&mut self, side: usize, chosen: Option<&Chosen>, cx: &mut Context<Self>) {
         let (path, menu) = match chosen {
             Some(chosen) => match chosen.paths.first() {
@@ -160,6 +164,7 @@ impl Shell {
     }
 
     // Ops.js trash: the marked rows, or the cursor while the filter draws it; none says why.
+    /// Trashes the marked rows, or the cursor row, and keeps the anchor to restore them by
     fn fileops_trash(&mut self, side: usize, chosen: Option<&Chosen>, cx: &mut Context<Self>) {
         let Some(host) = self.panes[side].as_ref() else {
             return;
@@ -215,6 +220,7 @@ impl Shell {
     }
 
     // Pane.qml act: Delete permanently reviews the rows on a snapshot of its own, then opens the permanent-delete card.
+    /// Reviews Delete permanently's rows on a snapshot of its own, or says one is already finishing
     fn fileops_delete(&mut self, side: usize, chosen: Option<&Chosen>, cx: &mut Context<Self>) {
         if self.operations.fileops.deleting[side].is_some() {
             if let Some(chosen) = chosen.filter(|chosen| !chosen.captured.background) {
@@ -299,6 +305,7 @@ impl Shell {
     }
 
     // The backend takes the first free name from the client catalog's suggestion.
+    /// Asks the backend for a folder named from the catalog's base
     fn fileops_new_folder(&mut self, side: usize, chosen: Option<&Chosen>, cx: &mut Context<Self>) {
         // Focus.js:271: Recent holds no folder, so the refusal lands before any mkdir.
         if self.recent_refuses(side, "places.recent.new_folder_refused", cx) {
@@ -321,6 +328,7 @@ impl Shell {
     }
 
     // The rows an action takes, or the sentence that says why it takes none.
+    /// Resolves an action's rows through the selection and filter, or the refusal sentence
     fn fileops_targets(&self, side: usize) -> Result<(usize, Vec<usize>), String> {
         let catalog = &self.locale.catalog;
         let Some(host) = self.panes[side].as_ref() else {
@@ -338,6 +346,7 @@ impl Shell {
         .map_err(|refusal| crate::g2::sr2::present::refusal(refusal, catalog))
     }
 
+    /// Puts a creation on the wire under its request token, recording a failure in the pane
     pub(super) fn fileops_send(&mut self, side: usize, line: String, cx: &mut Context<Self>) {
         let Some(line) = self.fileops_creation_request(side, line, cx) else {
             return;
@@ -367,6 +376,7 @@ impl Shell {
         self.operations.fileops.arrival[side] = None;
     }
 
+    /// Says a sentence on the pane and on its status lane
     pub(crate) fn fileops_say(
         &mut self,
         side: usize,
@@ -393,6 +403,7 @@ impl Shell {
         flea::ui_logic_fb1::status::split_undo(text, &self.locale.catalog, &preset)
     }
 
+    /// The keys preset this launch runs under
     pub(super) fn fileops_preset(&self) -> String {
         let keys = self.launch.settings.data.get("keys");
         keys.and_then(flea::jsondoc::Json::as_str)
@@ -401,10 +412,12 @@ impl Shell {
     }
 }
 
+/// Appends a name to a base path without doubling the slash
 pub(super) fn join(base: &str, name: &str) -> String {
     format!("{}/{name}", base.trim_end_matches('/'))
 }
 
+/// The row numbers as the comma-joined array body a request wants
 fn numbers(rows: &[usize]) -> String {
     rows.iter()
         .map(usize::to_string)

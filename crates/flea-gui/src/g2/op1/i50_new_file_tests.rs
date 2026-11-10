@@ -11,6 +11,7 @@ use gpui::{
 };
 
 // New File on the window's operations overlay, opened and painted the way the folder menu's choice does it.
+/// A window with the New File card open on pane 0, plus the channel its requests arrive on
 fn opened(
     cx: &mut TestAppContext,
 ) -> (
@@ -35,6 +36,7 @@ fn opened(
     (handle, overlay, received)
 }
 
+/// Runs an update against the overlay in the visual context and parks the executor afterwards
 fn input<R>(
     visual: &mut VisualTestContext,
     view: &Entity<Overlay>,
@@ -45,11 +47,13 @@ fn input<R>(
     result
 }
 
+/// Paints one frame of the test window
 fn draw(visual: &mut VisualTestContext) {
     visual.update(|window, cx| window.draw(cx).clear(cx));
 }
 
 // The card's name, focus and busy flag, or None once the card has closed.
+/// The open card's name, focus and busy flag, or None when no create card is open
 fn named(view: &Entity<Overlay>, cx: &VisualTestContext) -> Option<(String, CopyFocus, bool)> {
     view.read_with(cx, |view, _| match &view.model.dialog {
         Some(Dialog::NewFile {
@@ -60,6 +64,7 @@ fn named(view: &Entity<Overlay>, cx: &VisualTestContext) -> Option<(String, Copy
 }
 
 // Sample input: {"c":"newfile","op":"newFile","id":81,"path":"/files","name":"notes.txt"}
+/// Drains the channel and returns the names of the newfile requests it carried
 fn created(received: &mut impl FnMut() -> Option<String>) -> Vec<String> {
     std::iter::from_fn(received)
         .filter(|line| line.contains(r#""c":"newfile""#))
@@ -73,6 +78,7 @@ fn created(received: &mut impl FnMut() -> Option<String>) -> Vec<String> {
         .collect()
 }
 
+/// A composition never creates, and Enter sends the committed name exactly once
 #[gpui::test]
 fn i50_new_file_name_composes_and_creates_the_committed_name_once(cx: &mut TestAppContext) {
     let (handle, view, mut received) = opened(cx);
@@ -115,6 +121,7 @@ fn i50_new_file_name_composes_and_creates_the_committed_name_once(cx: &mut TestA
     );
 }
 
+/// Callbacks that arrive after the card closes, or before a reopened card is painted, change nothing
 #[gpui::test]
 fn i50_new_file_late_callback_misses_a_closed_or_reopened_card(cx: &mut TestAppContext) {
     let (handle, view, mut received) = opened(cx);

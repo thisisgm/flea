@@ -17,10 +17,12 @@ struct Origin {
 pub(super) struct Targets([VecDeque<Origin>; 2]);
 
 impl Targets {
+    /// Drops every pending creation origin on the side
     pub(super) fn clear(&mut self, side: usize) {
         self.0[side].clear();
     }
 
+    /// Forgets the one origin a failed reply named, leaving its neighbours pending
     pub(super) fn failed(&mut self, side: usize, kind: &str, request: u64) {
         self.0[side].retain(|origin| origin.kind != kind || origin.request != request);
     }
@@ -36,6 +38,7 @@ impl Targets {
 
 impl Shell {
     // Sample inputs: {"c":"duplicate","path":"/a/f"}, {"c":"mkdir","path":"/b"}.
+    /// Stamps a mkdir or duplicate line with a fresh request token and records its origin
     pub(super) fn fileops_creation_request(
         &mut self,
         side: usize,
@@ -57,6 +60,7 @@ impl Shell {
         Some(format!("{prefix},\"request\":{request}}}"))
     }
 
+    /// Reserves the next request token and records what the created item should land on
     pub(crate) fn fileops_creation_requested(
         &mut self,
         side: usize,
@@ -89,6 +93,7 @@ impl Shell {
         Some(request)
     }
 
+    /// Lands a created item by re-read or by opening its parent, selecting it while the origin still matches
     pub(super) fn fileops_created_target(
         &mut self,
         side: usize,
