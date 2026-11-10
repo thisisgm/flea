@@ -323,7 +323,7 @@
   "device.archive_running": "Uma operação de arquivo em %1 ainda está a decorrer. Tenta novamente quando terminar.",
   "device.send_running": "Um envio em %1 ainda está a decorrer. Tenta novamente quando terminar.",
   "device.action_running": "Uma ação em %1 ainda está a decorrer. Tenta novamente quando terminar.",
-  "device.system_drive": "%1 é a unidade do sistema, que o Flea nunca desmonta",
+  "device.system_drive": "%1 é a unidade do sistema, que o Flea nunca ejeta.",
   "device.system_volume": "Esta pasta não está numa unidade que o Flea possa ejetar.",
   "device.no_volume": "Esta pasta não está numa unidade que o Flea possa ejetar.",
   "device.safe": "%1 ejetada. Podes desligá-la em segurança.",

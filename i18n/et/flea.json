@@ -315,7 +315,7 @@
   "device.archive_running": "Arhiveerimine kettal %1 kestab veel. Proovi pärast selle lõppu uuesti.",
   "device.send_running": "Saatmine kettal %1 kestab veel. Proovi pärast selle lõppu uuesti.",
   "device.action_running": "Toiming kettal %1 kestab veel. Proovi pärast selle lõppu uuesti.",
-  "device.system_drive": "%1 on süsteemiketas, mida Flea kunagi lahti ei haagi",
+  "device.system_drive": "%1 on süsteemiketas, mida Flea kunagi ei väljuta.",
   "device.system_volume": "See kaust ei asu kettal, mida Flea saab väljutada.",
   "device.no_volume": "See kaust ei asu kettal, mida Flea saab väljutada.",
   "device.safe": "%1 väljutatud. Selle võib ohutult eemaldada.",

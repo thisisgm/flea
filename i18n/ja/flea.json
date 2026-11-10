@@ -210,7 +210,7 @@
   "device.still_mounted": "%1 はまだマウントされています。使用中のアプリを閉じてください。",
   "device.still_unmounting": "%1 をアンマウント中です。結果をお待ちください",
   "device.still_unmounting_try_again": "%1 をアンマウント中です。完了後に再試行してください",
-  "device.system_drive": "%1 はシステムドライブのため、Flea はアンマウントしません",
+  "device.system_drive": "%1 はシステムドライブのため、Flea は決して取り出しません。",
   "device.system_volume": "このフォルダーは Flea が取り出せるドライブ上にありません。",
   "device.transfer_using": "%1 をアンマウントできませんでした。転送処理がまだ使用している可能性があります。",
   "device.copy_running": "%1 でコピーを実行中です。完了後に再試行してください。",

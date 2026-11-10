@@ -236,7 +236,7 @@
   "device.still_mounted": "%1 ainda está montado; feche o que está usando o volume.",
   "device.still_unmounting": "Ainda desmontando %1; aguarde o resultado",
   "device.still_unmounting_try_again": "%1 ainda está sendo desmontado. Tente novamente quando terminar",
-  "device.system_drive": "%1 é a unidade do sistema, que o Flea nunca desmonta",
+  "device.system_drive": "%1 é a unidade do sistema, que o Flea nunca ejeta.",
   "device.system_volume": "Esta pasta não está em uma unidade que o Flea possa ejetar.",
   "device.transfer_using": "Não foi possível desmontar %1. Uma transferência ainda pode estar usando o volume.",
   "device.copy_running": "Uma cópia em %1 ainda está em andamento. Tente novamente quando terminar.",

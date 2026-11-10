@@ -226,7 +226,7 @@
   "device.still_mounted": "%1 er stadig monteret. Luk det, der bruger det.",
   "device.still_unmounting": "Afmonterer stadig %1. Vent på resultatet",
   "device.still_unmounting_try_again": "%1 afmonteres stadig. Prøv igen, når det er færdigt",
-  "device.system_drive": "%1 er systemdrevet, som Flea aldrig afmonterer",
+  "device.system_drive": "%1 er systemdrevet, som Flea aldrig skubber ud.",
   "device.system_volume": "Mappen er ikke på et drev, som Flea kan skubbe ud.",
   "device.transfer_using": "%1 kunne ikke afmonteres. En overførsel bruger det muligvis stadig.",
   "device.copy_running": "En kopiering på %1 kører stadig. Prøv igen, når den er færdig.",

@@ -306,7 +306,7 @@
   "device.archive_running": "%1 上仍有压缩包操作正在进行。请在其完成后再试。",
   "device.send_running": "%1 上仍有发送正在进行。请在其完成后再试。",
   "device.action_running": "%1 上仍有操作正在进行。请在其完成后再试。",
-  "device.system_drive": "%1 是系统驱动器，Flea 从不卸载它",
+  "device.system_drive": "%1 是系统驱动器，Flea 从不弹出它。",
   "device.system_volume": "此文件夹不在 Flea 可以弹出的驱动器上。",
   "device.no_volume": "此文件夹不在 Flea 可以弹出的驱动器上。",
   "device.safe": "已弹出 %1。现在可以安全拔出。",

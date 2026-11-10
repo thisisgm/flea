@@ -236,7 +236,7 @@
   "device.still_mounted": "%1 joprojām ir piemontēts; aizveriet programmas, kas to izmanto.",
   "device.still_unmounting": "Vēl atmontē %1; gaidiet rezultātu",
   "device.still_unmounting_try_again": "%1 vēl tiek atmontēts. Mēģiniet vēlreiz, kad tas būs pabeigts",
-  "device.system_drive": "%1 ir sistēmas disks, ko Flea nekad neatmontē",
+  "device.system_drive": "%1 ir sistēmas disks, ko Flea nekad neizstumj.",
   "device.system_volume": "Šī mape neatrodas diskā, ko Flea var izstumt.",
   "device.transfer_using": "%1 nevarēja atmontēt. To, iespējams, vēl izmanto pārsūtīšana.",
   "device.copy_running": "Kopēšana uz %1 vēl notiek. Mēģiniet vēlreiz, kad tā būs pabeigta.",
