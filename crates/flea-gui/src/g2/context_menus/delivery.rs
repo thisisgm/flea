@@ -106,6 +106,9 @@ impl Shell {
                 .map(|(folder, _)| vec![folder])
                 .unwrap_or_default();
             self.deliver_menu(paths, window, cx);
+        } else if capture.ready && action == "rename" && capture.rows.len() == 1 {
+            // Pane.qml onChosen opens the inline editor now; its commit validates this snapshot.
+            self.deliver_menu(Vec::new(), window, cx);
         } else if capture.ready {
             self.menu.activating = true;
             if let Some(host) = &mut self.panes[capture.side] {

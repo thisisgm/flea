@@ -848,6 +848,7 @@ permissions_backenddeath() {
             continue
         fi
         permissions_backend_owned "$pid" || fail "permissions: backend identity changed before the failure signal"
+        [[ "$test_frontend" != gpui ]] || printf '%s\n' 'flea-gui: The backend closed its reply stream' >> "$expected_warnings"
         kill -KILL "$pid" || fail "permissions: could not terminate the owned backend"
         permissions_stopped=""
         trap - EXIT
@@ -965,3 +966,31 @@ case_permissions() {
     printf 'PERMISSIONS_NATIVE group=%s checks=%s root=%s; screenshots require separate inspection.\n' "$permissions_group" "$permissions_checks" "$permissions_box"
     kill_flea
 }
+
+case_fxdef2openwith() (
+    local menu_box="$fixture_root/menus" menu_dir="$fixture_root/menus/list" menus_checks=0
+    local trash_box="$fixture_root/menus" trash_checks=0 menus_trashed=0
+    local trash_parent_bus_id="" trash_private_bus_id="" trash_bus_address="" trash_bus_pid="" trash_provider_pid=""
+    local target
+    sandbox_scratch "$menu_box"
+    : > "$menu_box/.flea-test-sandbox"
+    for target in list state config cache data bin data/applications; do
+        menus_guard "$menu_box/$target"
+        mkdir -p "$menu_box/$target" || fail "menus: cannot create $target fixture"
+    done
+    printf 'alpha\n' > "$menu_dir/a.txt"
+    printf 'beta\n' > "$menu_dir/b.txt"
+    mkdir "$menu_dir/folder"
+    printf 'child\n' > "$menu_dir/folder/child.txt"
+    ln -s a.txt "$menu_dir/link"
+    export XDG_STATE_HOME="$menu_box/state" XDG_CONFIG_HOME="$menu_box/config" XDG_DATA_HOME="$menu_box/data" XDG_CACHE_HOME="$menu_box/cache"
+    [[ "$(realpath -e "$(command -v gio)")" == /usr/bin/gio ]] || fail "menus: GIO already resolves to a stub"
+    trash_start_bus
+    menus_launcher_fixture
+    "$flea_bin" --ui-state '{"view":"list","keys":"default","menu":{"hidden":[]}}' >/dev/null || fail "menus: fixture settings failed"
+    launch "$menu_dir"
+    wait_listing 4
+    trash_guard_store "$menus_trashed"
+    menus_open_with
+    kill_flea
+)

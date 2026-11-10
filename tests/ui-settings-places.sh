@@ -410,6 +410,27 @@ places_concurrent() (
     trap - EXIT
 )
 
+# GPUI resolves settings.error.favourites_unread; QML retains its raw read or parse reason.
+places_read_failure_matches() {
+    local legacy="$1" message
+    message=$(ipc lastMessage)
+    if [[ "${test_frontend:-qml}" == gpui ]]; then
+        [[ "$message" == 'Favorites could not be refreshed because ui.json could not be read. The old list stays.' ]]
+    else
+        [[ "$message" == *"$legacy"* ]]
+    fi
+}
+
+places_write_failure_matches() {
+    local message
+    message=$(ipc lastMessage)
+    if [[ "${test_frontend:-qml}" == gpui ]]; then
+        [[ "$message" == 'That setting could not be saved.' ]]
+    else
+        [[ "$message" == *'could not be read, so the state file was not written'* ]]
+    fi
+}
+
 # The sentences asserted here are the product's own: ViewState's watcher says "ui.json unreadable"
 # for a store it cannot read, ui/js/UiState.js says "invalid ui.json" for one it cannot parse, and
 # src/uistore.rs refuses a write it cannot read first. This case is not in tests/ui.sh's default
@@ -424,10 +445,10 @@ places_external_failure() {
     sandbox_require "$dir/removed-ui.json"
     mv "$doc" "$dir/removed-ui.json"
     for attempt in $(seq 1 30); do
-        [[ "$(ipc lastMessage)" == *'ui.json unreadable'* ]] && break
+        [[ "$(ipc statusError)" == true ]] && places_read_failure_matches 'ui.json unreadable' && break
         sleep 0.1
     done
-    [[ "$(ipc statusError)" == true && "$(ipc lastMessage)" == *'ui.json unreadable'* ]] \
+    [[ "$(ipc statusError)" == true ]] && places_read_failure_matches 'ui.json unreadable' \
         || fail "places: missing live store did not report its read failure"
     ipc uiSettings | jq -e --argjson expected "$expected" '.places.favourites == $expected' >/dev/null \
         || fail "places: missing live store erased visible records"
@@ -440,10 +461,10 @@ places_external_failure() {
     places_require_store
     : > "$doc"
     for attempt in $(seq 1 30); do
-        [[ "$(ipc lastMessage)" == *'invalid ui.json'* ]] && break
+        [[ "$(ipc statusError)" == true ]] && places_read_failure_matches 'invalid ui.json' && break
         sleep 0.1
     done
-    [[ "$(ipc statusError)" == true && "$(ipc lastMessage)" == *'invalid ui.json'* && ! -s "$doc" ]] \
+    [[ "$(ipc statusError)" == true && ! -s "$doc" ]] && places_read_failure_matches 'invalid ui.json' \
         || fail "places: empty live bytes were treated as a valid empty store"
     ipc uiSettings | jq -e --argjson expected "$expected" '.places.favourites == $expected' >/dev/null \
         || fail "places: empty live bytes dropped previously visible records"
@@ -456,10 +477,10 @@ places_external_failure() {
     places_require_store
     cp "$dir/malformed.original" "$doc"
     for attempt in $(seq 1 30); do
-        [[ "$(ipc lastMessage)" == *'invalid ui.json'* ]] && break
+        [[ "$(ipc statusError)" == true ]] && places_read_failure_matches 'invalid ui.json' && break
         sleep 0.1
     done
-    [[ "$(ipc statusError)" == true && "$(ipc lastMessage)" == *'invalid ui.json'* ]] \
+    [[ "$(ipc statusError)" == true ]] && places_read_failure_matches 'invalid ui.json' \
         || fail "places: external malformed state did not report its live read failure"
     ipc uiSettings | jq -e --argjson expected "$expected" '.places.favourites == $expected' >/dev/null \
         || fail "places: malformed external state dropped previously visible records"
@@ -488,10 +509,10 @@ places_external_failure() {
     places_require_store
     chmod 000 "$doc"
     for attempt in $(seq 1 30); do
-        [[ "$(ipc lastMessage)" == *'ui.json unreadable'* ]] && break
+        [[ "$(ipc statusError)" == true ]] && places_read_failure_matches 'ui.json unreadable' && break
         sleep 0.1
     done
-    [[ "$(ipc statusError)" == true && "$(ipc lastMessage)" == *'ui.json unreadable'* ]] \
+    [[ "$(ipc statusError)" == true ]] && places_read_failure_matches 'ui.json unreadable' \
         || fail "places: unreadable live store did not report its read failure: $(ipc statusActivityState)"
     key -k Return >/dev/null; settle
     # The refused write queues behind the standing read error. Not an exact count: the watcher reports
@@ -502,7 +523,7 @@ places_external_failure() {
     done
     ipc statusActivityState | jq -e '.errors >= 2' >/dev/null \
         || fail "places: unreadable Add did not queue its write refusal: $(ipc statusActivityState)"
-    [[ "$(ipc lastMessage)" == *'ui.json unreadable'* ]] || fail "places: Add displaced the unacknowledged read error"
+    places_read_failure_matches 'ui.json unreadable' || fail "places: Add displaced the unacknowledged read error"
     key -k Escape >/dev/null; settle
     [[ "$(ipc settingsOpen)" == false ]] || fail "places: Escape did not close Settings before acknowledging errors"
     key -k Escape >/dev/null; settle
@@ -511,10 +532,10 @@ places_external_failure() {
     # The refusal is queued behind the watcher's own reports, which an Add against an unreadable store
     # makes two of, so the queue is drained one Escape at a time until the writer's own sentence shows.
     for attempt in $(seq 1 6); do
-        [[ "$(ipc lastMessage)" == *'could not be read, so the state file was not written'* ]] && break
+        places_write_failure_matches && break
         key -k Escape >/dev/null; settle
     done
-    [[ "$(ipc statusError)" == true && "$(ipc lastMessage)" == *'could not be read, so the state file was not written'* ]] \
+    [[ "$(ipc statusError)" == true ]] && places_write_failure_matches \
         || fail "places: unreadable store did not refuse the real Add operation: $(ipc lastMessage)"
     places_wait_records "$expected"
     cmp "$doc" "$dir/readable.original" || fail "places: failed Add replaced an unreadable store"

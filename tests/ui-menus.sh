@@ -345,6 +345,7 @@ menus_open_with() {
     [[ "$cursor" == "$target" ]] || fail "menus: cannot focus the fixture viewer"
     key -k Return >/dev/null
     menus_expect menuDialogState '.opened and (.busy | not) and (.error | contains("23"))' "launcher failure reaches live dialog"
+    menus_shot openwith-exit23
     key -k Escape >/dev/null
     menus_guard "$menu_box/launcher.pid"
     rm -f -- "$menu_box/launcher.pid"
@@ -613,7 +614,7 @@ menus_stale_rename_commit() {
     menus_visit "$menu_dir" 4
 }
 
-# A hidden Copy as leaf still reaches wl-copy through the lone flyout.
+# A hidden Copy as leaf copies the path through the frontend's clipboard owner.
 menus_hidden_copy_as() {
     local directory="$menu_box/hidden-copyas"
     local log="$menu_box/wl-copy.log"
@@ -644,16 +645,22 @@ SH
     deadline=$((SECONDS + 15))
     while (( SECONDS < deadline ))
     do
-        observed=$(cat -- "$log") || fail "menus: cannot read wl-copy log"
-        if [[ "$observed" == *"$directory/a.txt"* ]]
+        # GPUI owns the Wayland clipboard directly; the pinned QML oracle keeps its wl-copy recorder.
+        if [[ "$test_frontend" == gpui ]]; then
+            observed=$(timeout 2 /usr/bin/wl-paste --no-newline --type text/plain 2>/dev/null) || observed=""
+        else
+            observed=$(cat -- "$log") || fail "menus: cannot read wl-copy log"
+        fi
+        if [[ "$test_frontend" == gpui && "$observed" == "$directory/a.txt" \
+            || "$test_frontend" != gpui && "$observed" == *"$directory/a.txt"* ]]
         then
             menus_checks=$((menus_checks + 1))
-            printf 'MENUS_CHECK %s %s\n' "$menus_checks" "hidden Copy as leaf reaches wl-copy"
+            printf 'MENUS_CHECK %s %s\n' "$menus_checks" "hidden Copy as leaf copies its exact path"
             return
         fi
         sleep 0.05
     done
-    fail "menus: hidden Copy as leaf never reached wl-copy: $observed"
+    fail "menus: hidden Copy as leaf never copied its path: $observed"
 }
 
 case_menuscoverage() (

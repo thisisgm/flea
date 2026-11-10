@@ -165,9 +165,9 @@ impl Shell {
 
     /// Escape: the draft goes and the row shows its name again.
     pub(crate) fn rename_abandon(&mut self, cx: &mut Context<Self>) {
-        let neighbour = self.rename.neighbour.take().is_some();
+        self.rename.neighbour = None;
         if let Some(edit) = self.rename.edit.take() {
-            if neighbour && edit.menu != 0 {
+            if edit.menu != 0 {
                 self.menu_send(
                     edit.side,
                     format!(r#"{{"c":"menuaction","op":"close","id":{}}}"#, edit.menu),

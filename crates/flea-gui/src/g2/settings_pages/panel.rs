@@ -15,6 +15,7 @@ use std::sync::Arc;
 
 mod scroll;
 mod search_keys;
+mod store;
 
 /// What a pointer pressed on a pane row.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -101,11 +102,6 @@ impl Panel {
         panel.rebuild();
         panel.cursor = first_row(&panel.rows);
         panel
-    }
-
-    pub fn replace_store(&mut self, store: Box<dyn Store>) {
-        self.store = store;
-        self.rebuild();
     }
 
     pub fn document(&self) -> &Json {
