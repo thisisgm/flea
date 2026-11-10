@@ -185,11 +185,11 @@ fn fx_eject2_a_transfer_on_the_phone_refuses_its_unmount(cx: &mut TestAppContext
             }
         })
     };
-    let copy = r#"{"c":"transfer","op":"copy","paths":["/run/user/1000/gvfs/mtp:host=pixel/DCIM/a.jpg"],"dest":"/fixture/home"}"#;
-    answer(&shell, copy, cx);
+    let moving = r#"{"c":"transfer","op":"move","paths":["/run/user/1000/gvfs/mtp:host=pixel/DCIM/a.jpg"],"dest":"/fixture/home"}"#;
+    answer(&shell, moving, cx);
     answer(
         &shell,
-        r#"{"t":"transferstarted","id":12,"n":1,"moving":false}"#,
+        r#"{"t":"transferstarted","id":12,"n":1,"moving":true}"#,
         cx,
     );
     let unmount = |shell: &Entity<Shell>, cx: &mut VisualTestContext| {
@@ -215,8 +215,8 @@ fn fx_eject2_a_transfer_on_the_phone_refuses_its_unmount(cx: &mut TestAppContext
             .unwrap_or_default()
     });
     assert_eq!(
-        said,
-        "A copy on Pixel 8 is still running. Try again when it finishes."
+        said, "A move on Pixel 8 is still running. Try again when it finishes.",
+        "the refusal names the move"
     );
     answer(
         &shell,

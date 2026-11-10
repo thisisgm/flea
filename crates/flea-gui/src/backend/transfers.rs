@@ -4,13 +4,49 @@ use flea::json::{field_bool, field_str, field_str_array, field_usize};
 use flea::ui_logic_device_rail::mounts::inside;
 use std::sync::PoisonError;
 
-/// One transfer, archive or action command, from its send until the backend answers it with its real paths.
+/// What a transfer does, which an eject it refuses names.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum Kind {
+    Copy,
+    Move,
+    Archive,
+    Send,
+    Action,
+}
+
+impl Kind {
+    /// Sample input: "copy", "move", "compress", "extract", "send" or "action", as a job or a roots line names it.
+    /// Anything else copies, as the backend's own transfer does.
+    fn named(kind: &str) -> Self {
+        match kind {
+            "move" => Self::Move,
+            "archive" | "compress" | "extract" => Self::Archive,
+            "send" => Self::Send,
+            "action" | "actions" => Self::Action,
+            _ => Self::Copy,
+        }
+    }
+
+    /// The catalog key of the refusal that names this kind and the volume it holds.
+    pub(crate) fn refusal(self) -> &'static str {
+        match self {
+            Self::Copy => "device.copy_running",
+            Self::Move => "device.move_running",
+            Self::Archive => "device.archive_running",
+            Self::Send => "device.send_running",
+            Self::Action => "device.action_running",
+        }
+    }
+}
+
+/// One transfer, archive, action or send command, from its send until the backend answers it with its real paths.
 struct Sent {
     seq: u64,
     command: &'static str,
+    kind: Kind,
     dest: String,
     id: Option<usize>,
-    /// An action run's request id, which its actionstarted names.
+    /// An action run's or a send's request id, which its actionstarted or roots line names.
     request: Option<usize>,
     /// A plugin place runs this one, so the backend never answers it.
     routed: bool,
@@ -23,6 +59,7 @@ struct Sent {
 struct Held {
     id: usize,
     job: bool,
+    kind: Kind,
     live: bool,
     paths: Vec<String>,
 }
@@ -44,13 +81,18 @@ impl Transfers {
         paths.extend(field_str(line, "path"));
         paths.push(dest.clone());
         paths.retain(|path| !path.is_empty());
+        let kind = match command {
+            "transfer" => Kind::named(&field_str(line, "op").unwrap_or_default()),
+            other => Kind::named(other),
+        };
         self.seq += 1;
         self.sent.push(Sent {
             seq: self.seq,
             command,
+            kind,
             dest,
             id: None,
-            request: (command == "actions")
+            request: matches!(command, "actions" | "send")
                 .then(|| field_usize(line, "id"))
                 .flatten(),
             routed: false,
@@ -92,7 +134,18 @@ impl Transfers {
                 self.roots(line, id);
                 return true;
             }
-            Some("transferstarted") => self.start("transfer", id),
+            Some("transferstarted") => {
+                self.start("transfer", id);
+                // A shelf drop's line names no op, so its start says whether it moves.
+                let moved = field_bool(line, "moving");
+                if let Some(sent) = self
+                    .sent
+                    .iter_mut()
+                    .find(|sent| sent.id == id && id.is_some())
+                {
+                    sent.kind = if moved { Kind::Move } else { Kind::Copy };
+                }
+            }
             Some("archivestarted") => self.start("archive", id),
             Some("transferdone") => {
                 self.end("transfer", id);
@@ -114,6 +167,13 @@ impl Transfers {
                         .filter(|sent| run(sent))
                         .for_each(|sent| sent.id = Some(id)),
                     _ => self.sent.retain(|sent| !run(sent)),
+                }
+            }
+            // A refused rclone send starts no job, so no roots line will take its paths over.
+            Some("rclonestarted") if !field_bool(line, "ok") => {
+                let request = field_usize(line, "requestId");
+                if let Some(index) = self.pending_send(request) {
+                    self.sent.remove(index);
                 }
             }
             Some("job" | "jobs") if self.held.iter().any(|held| held.job) => self.jobs(line),
@@ -144,6 +204,10 @@ impl Transfers {
         // An action's run ends with its job; a transfer or archive keeps its record for the done line that ends it.
         self.sent
             .retain(|sent| sent.command != "actions" || sent.id != Some(id));
+        // A send's job names the request that started it, whose own paths it now holds instead.
+        if let Some(index) = self.pending_send(field_usize(line, "requestId")) {
+            self.sent.remove(index);
+        }
         for sent in self.sent.iter_mut().filter(|sent| sent.id == Some(id)) {
             sent.paths.clear();
             sent.folder = None;
@@ -152,6 +216,7 @@ impl Transfers {
         self.held.push(Held {
             id,
             job: field_bool(line, "job"),
+            kind: Kind::named(&field_str(line, "kind").unwrap_or_default()),
             live: true,
             paths: field_str_array(line, "paths"),
         });
@@ -192,6 +257,14 @@ impl Transfers {
             .position(|sent| sent.command == command && sent.id.is_none() && !sent.routed)
     }
 
+    /// The oldest send of `request` no roots line has taken over yet.
+    fn pending_send(&self, request: Option<usize>) -> Option<usize> {
+        request?;
+        self.sent
+            .iter()
+            .position(|sent| sent.command == "send" && sent.request == request)
+    }
+
     fn start(&mut self, command: &str, id: Option<usize>) {
         if let (Some(index), Some(id)) = (self.oldest(command), id) {
             self.sent[index].id = Some(id);
@@ -219,29 +292,35 @@ impl Transfers {
     }
 
     fn touch(&self, volume: &str) -> bool {
-        !volume.is_empty() && self.touch_where(&|path| inside(path, volume))
+        !volume.is_empty() && self.touch_where(&|path| inside(path, volume)).is_some()
     }
 
-    fn touch_where(&self, on: &dyn Fn(&str) -> bool) -> bool {
+    /// The kind of the oldest transfer that names a path `on` accepts.
+    fn touch_where(&self, on: &dyn Fn(&str) -> bool) -> Option<Kind> {
         let sent = self
             .sent
             .iter()
-            .flat_map(|sent| sent.paths.iter().chain(&sent.folder));
-        let held = self
-            .held
-            .iter()
-            .filter(|held| held.live)
-            .flat_map(|held| &held.paths);
-        sent.chain(held).any(|path| on(path))
+            .find(|sent| sent.paths.iter().chain(&sent.folder).any(|path| on(path)))
+            .map(|sent| sent.kind);
+        let held = || {
+            self.held
+                .iter()
+                .filter(|held| held.live)
+                .find(|held| held.paths.iter().any(|path| on(path)))
+                .map(|held| held.kind)
+        };
+        sent.or_else(held)
     }
 }
 
-/// The command a kept line starts: a transfer, an archive or an action run.
+/// The command a kept line starts: a transfer, an archive, an action run or a LocalSend, AirDrop or rclone send.
 fn kept(line: &str) -> Option<&'static str> {
+    let op = field_str(line, "op");
     match field_str(line, "c").as_deref() {
         Some("transfer") => Some("transfer"),
         Some("archive") => Some("archive"),
-        Some("actions") if field_str(line, "op").as_deref() == Some("run") => Some("actions"),
+        Some("actions") if op.as_deref() == Some("run") => Some("actions"),
+        Some("localsend" | "airdrop" | "rclone") if op.as_deref() == Some("send") => Some("send"),
         _ => None,
     }
 }
@@ -275,8 +354,8 @@ impl Backend {
         self.lock().touch(volume)
     }
 
-    /// Whether a transfer sent here and not yet refused or ended names a path `on` accepts.
-    pub fn transfers_where(&self, on: &dyn Fn(&str) -> bool) -> bool {
+    /// The kind of a transfer sent here and not yet refused or ended that names a path `on` accepts.
+    pub(crate) fn transfers_where(&self, on: &dyn Fn(&str) -> bool) -> Option<Kind> {
         self.lock().touch_where(on)
     }
 
