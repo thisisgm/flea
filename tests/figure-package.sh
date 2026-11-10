@@ -25,6 +25,7 @@ for name in root flea-bin; do
             . "$repo/packaging/$name/PKGBUILD"
         fi
         printf '%s\n' "${depends[@]}" > "$box/$name.depends"
+        printf '%s\n' "${conflicts[@]}" > "$box/$name.conflicts"
         printf '%s\n' "${license[@]}" > "$box/$name.licenses"
         srcdir="$box/$name/src"
         pkgdir="$box/$name/pkg"
@@ -173,6 +174,10 @@ for package in ("root", "flea-bin"):
     if dependencies.count("quickjs-ng") != 1:
         failures += 1
         print(f"FAIL {package}: depends must declare quickjs-ng exactly once, matching the other PKGBUILDs")
+    checks += 1
+    if (root / f"{package}.conflicts").read_text().splitlines().count("mutt") != 1:
+        failures += 1
+        print(f"FAIL {package}: conflicts must declare mutt exactly once because it owns /usr/bin/flea")
     ui = root / package / "pkg/usr/share/flea/ui"
     modules = sorted(ui.glob("vendor/*.mjs")) + sorted(ui.glob("js/*.mjs"))
     required = ["js/FigureWorker.mjs", "vendor/figure-helper.mjs", "vendor/figure-bytecode.mjs", "vendor/figure-compile.mjs", "vendor/math.mjs", "vendor/mermaid.mjs"]
