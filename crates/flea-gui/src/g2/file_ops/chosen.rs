@@ -96,19 +96,29 @@ impl Shell {
             |shell, _, update: &OperationUpdate, _, cx| {
                 if let Some(said) = update.said.last() {
                     let catalog = shell.locale.catalog.clone();
-                    shell.status_messages(cx, |messages, now| {
-                        if said.behind {
-                            messages.say_receipt_behind(&catalog, &said.text, now);
-                        } else {
-                            messages.say_receipt(
-                                &catalog,
-                                &said.text,
-                                said.error,
-                                &said.detail,
-                                now,
-                            );
-                        }
-                    });
+                    shell.sync_footer_owner(cx);
+                    let footer = shell.footer(cx);
+                    let (line, shown) = footer
+                        .read_with(cx, |footer, _| (footer.line.clone(), footer.message_line()));
+                    // The folder line keeps the receipt and its expiry for after Trash closes; a covering Trash line shows a copy.
+                    let extra = (shown.entity_id() != line.entity_id()).then_some(shown);
+                    for line in std::iter::once(line).chain(extra) {
+                        line.update(cx, |line, cx| {
+                            line.update(cx, |messages, now| {
+                                if said.behind {
+                                    messages.say_receipt_behind(&catalog, &said.text, now);
+                                } else {
+                                    messages.say_receipt(
+                                        &catalog,
+                                        &said.text,
+                                        said.error,
+                                        &said.detail,
+                                        now,
+                                    );
+                                }
+                            });
+                        });
+                    }
                 }
             },
         ));

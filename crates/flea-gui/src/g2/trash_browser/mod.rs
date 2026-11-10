@@ -77,4 +77,6 @@ mod trashview_tests;
 #[cfg(test)]
 mod uish_def1_tests;
 #[cfg(test)]
+mod undo_tests;
+#[cfg(test)]
 mod window_tests;

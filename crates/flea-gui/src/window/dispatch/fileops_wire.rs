@@ -44,6 +44,7 @@ impl Shell {
             "undone" | "redone" => {
                 if document.get("ok").and_then(Json::as_bool) == Some(true) {
                     let _ = self.step(side, Step::Refresh(None), window, cx);
+                    self.trash_journal_finished(window, cx);
                 }
                 false
             }
