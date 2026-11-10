@@ -1,6 +1,26 @@
 //! Jobs card geometry measured from the shared overlay fixture.
 use super::{measured, open_card, TestAppContext};
 
+#[gpui::test]
+fn a_failed_archive_reason_wraps_to_two_lines(cx: &mut TestAppContext) {
+    use flea::ui_logic_file_ops::card;
+    let (_, vcx) = open_card(cx, 1100., 700., |o| {
+        let cat = o.catalog.clone();
+        o.model.line(&cat, r#"{"t":"job","job":{"id":18,"kind":"extract","head":"Extract failed","state":"failed","reason":"an entry in this archive would land outside its folder, so nothing was extracted"},"unfinished":1}"#, 0);
+    });
+    let block = measured(vcx, "op1-job-18");
+    let height = f32::from(block.size.height);
+    let expected = card::JOBS_HEAD_LINE
+        + 2. * card::JOBS_SMALL_LINE
+        + 2. * card::JOBS_GAP
+        + card::BUTTON_HEIGHT;
+    assert!(
+        (height - expected).abs() < 1.,
+        "the whole reason needs two lines, got block height {height}, expected {expected}"
+    );
+    assert!(block.right() <= measured(vcx, "op1-jobs").right());
+}
+
 // The Jobs card sits 14 from the right and 36 from the bottom at its board width.
 #[gpui::test]
 fn the_jobs_card_sits_at_its_board_place(cx: &mut TestAppContext) {

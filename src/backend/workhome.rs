@@ -1,11 +1,12 @@
 // Issue 370: a stage on a copy-fallback mount uploads while the job runs and will not go after, so it lives on this computer.
 use crate::backend::archivefree::format_size;
-use crate::backend::archivework::Work;
+use crate::backend::archivework::{Work, WORK_PREFIX};
 use crate::backend::fsinfo;
 use crate::backend::mountinfo::mount_type_in;
 use crate::backend::opsreq::op_err;
 use crate::error::{from_io, FleaError};
 use std::path::{Path, PathBuf};
+use std::time::{Duration, SystemTime};
 
 // The FUSE types renamecompat::needs_fuse_fallback_in copies onto; a test checks the two agree on every type it names.
 const COPY_FALLBACK_MOUNTS: [&str; 2] = ["fuse.rclone", "fuse.megafs"];
@@ -123,16 +124,73 @@ pub(crate) fn stages_off_in(dest: &Path, mountinfo: &str) -> bool {
         .is_some_and(|fstype| COPY_FALLBACK_MOUNTS.contains(&fstype.as_str()))
 }
 
+// A stage this old whose Flea is gone was left by a kill; a live job's stage always has its Flea running.
+pub(crate) const STALE_AFTER: Duration = Duration::from_secs(24 * 60 * 60);
+
+fn cache_root() -> PathBuf {
+    crate::userfile::cache_home().join("flea").join("work")
+}
+
+// Backend start: only the cache's own folder is swept, since /var/tmp and /tmp are shared and the system clears them.
+pub fn sweep_at_start() -> Option<std::thread::JoinHandle<usize>> {
+    let root = cache_root();
+    // The common case is no folder at all, which costs one stat and no thread.
+    if !root.is_dir() {
+        return None;
+    }
+    std::thread::Builder::new()
+        .name("flea-worksweep".into())
+        .spawn(move || sweep(&root, SystemTime::now()))
+        .ok()
+}
+
+// Removes every stage under root at least STALE_AFTER old whose process is gone, and answers how many went.
+pub(crate) fn sweep(root: &Path, now: SystemTime) -> usize {
+    let Ok(entries) = std::fs::read_dir(root) else {
+        return 0;
+    };
+    let mut cleared = 0;
+    for entry in entries.flatten() {
+        let Some(pid) = stage_pid(&entry.file_name().to_string_lossy()) else {
+            continue;
+        };
+        // symlink_metadata, so a link that happens to carry a stage's name is never followed out of the cache.
+        let Ok(meta) = entry.path().symlink_metadata() else {
+            continue;
+        };
+        let old = meta
+            .modified()
+            .ok()
+            .and_then(|at| now.duration_since(at).ok())
+            .is_some_and(|age| age >= STALE_AFTER);
+        if meta.is_dir() && old && !running(pid) && std::fs::remove_dir_all(entry.path()).is_ok() {
+            cleared += 1;
+        }
+    }
+    cleared
+}
+
+// Sample input: ".flea-work-ext-4123-7" is pid 4123's seventh stage (Work::new); any other name is not a stage.
+fn stage_pid(name: &str) -> Option<u32> {
+    let mut parts = name.strip_prefix(WORK_PREFIX)?.rsplitn(3, '-');
+    parts.next()?.parse::<usize>().ok()?;
+    let pid = parts.next()?.parse().ok()?;
+    parts.next().filter(|tag| !tag.is_empty())?;
+    Some(pid)
+}
+
+// A pid reused by another program also reads as running, which only keeps a stage one more start.
+fn running(pid: u32) -> bool {
+    pid == std::process::id() || Path::new("/proc").join(pid.to_string()).exists()
+}
+
 // The cache first because it is on disk, then /var/tmp, then the temp folder, which is often memory.
 fn local_roots() -> Vec<PathBuf> {
     #[cfg(test)]
     if let Some(roots) = ROOTS.with(|r| r.borrow().clone()) {
         return roots;
     }
-    let mut roots = vec![
-        crate::userfile::cache_home().join("flea").join("work"),
-        PathBuf::from("/var/tmp"),
-    ];
+    let mut roots = vec![cache_root(), PathBuf::from("/var/tmp")];
     let temp = std::env::temp_dir();
     if !roots.contains(&temp) {
         roots.push(temp);
@@ -190,3 +248,7 @@ pub(crate) fn files_bytes(paths: &[PathBuf]) -> u64 {
 #[cfg(test)]
 #[path = "workhome_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "workhome_sweep_tests.rs"]
+mod sweep_tests;

@@ -1,7 +1,7 @@
 //! Resolve translated labels outside input dispatch and paint/cache-hit paths.
 use super::{
     action_group, binding_rows, preset, Binding, Frontend, BASE_SHEET, PRESET_KEYS, SHARED_KEYS,
-    SHEET_CAP_BUDGET, SHEET_GROUPS, SHEET_MIRRORS, SHEET_TIE_PRIORITY,
+    SHEET_CAP_BUDGET, SHEET_EXTRA, SHEET_GROUPS, SHEET_MIRRORS, SHEET_TIE_PRIORITY,
 };
 use crate::i18n::I18n;
 
@@ -143,6 +143,12 @@ pub fn sheet(name: &str, frontend: Frontend, catalog: &I18n) -> Vec<SheetRow> {
             .any(|group| group.actions.contains(&row.action))
             && !listing_action(action_group(row.action))
             && !row.context.split(',').any(|context| context == "listing")
+            && (row.frontend == "all" || row.frontend == frontend.name())
+    }));
+    // Strip-owned keys are documented without entering the dispatch tables.
+    rows.extend(SHEET_EXTRA.iter().filter(|row| {
+        (row.preset == "all" || row.preset == name)
+            && (row.frontend == "all" || row.frontend == frontend.name())
     }));
     rows.retain(|row| row.sheet);
     let mut result: Vec<SheetRow> = Vec::new();

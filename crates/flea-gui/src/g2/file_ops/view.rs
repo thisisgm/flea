@@ -510,7 +510,7 @@ pub fn block(scene: &Scene, track: f32, block: &Block, mode: Mode) -> Div {
         .flex_col()
         .gap(px(card::JOBS_GAP))
         .child(head);
-    out = out.children(super::feedback::file(palette, &block.file, paint));
+    out = out.children(super::feedback::file(palette, block, paint));
     for line in &block.output {
         out = out.child(small(line.clone(), palette.muted));
     }

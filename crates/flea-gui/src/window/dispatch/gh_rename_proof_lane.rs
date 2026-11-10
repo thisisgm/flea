@@ -1,5 +1,6 @@
-//! The #305 proof harness: a scratch lane with a stand-in terminal and editor on PATH, and the production window the card opens in.
+//! The #305 proof harness: a scratch lane with a stand-in terminal and editor in the opener's stand-in slot, and the production window the card opens in.
 use crate::backend::Backend;
+use crate::g2::open_with_properties::lane::{Stand, STAND};
 use crate::navigation::folder_state::Writer;
 use crate::state::Shell;
 use crate::window::{
@@ -13,14 +14,17 @@ use std::sync::{Mutex, MutexGuard, PoisonError};
 
 const MARKER: &str = ".flea-test-sandbox";
 
-// Lanes share PATH, EDITOR, VISUAL and TMPDIR, so only one lane is alive at a time.
+// Lanes share the one stand-in slot, so only one lane is alive at a time.
 static LANE_SERIAL: Mutex<()> = Mutex::new(());
 
-// A marked scratch root holding a stand-in xdg-terminal-exec and an editor that keeps a copy of every names file it is given.
+fn stand_slot() -> MutexGuard<'static, Option<Stand>> {
+    STAND.lock().unwrap_or_else(PoisonError::into_inner)
+}
+
+// FL-B03: the lane hands its stand-ins to the opener's slot and never sets the process environment, which every parallel test reads.
 pub(super) struct Lane {
     root: PathBuf,
-    saved: Vec<(&'static str, Option<String>)>,
-    // Last on purpose: drop restores the environment first, then the guard is released.
+    // Last on purpose: drop empties the stand-in slot first, then the guard is released.
     _serial: MutexGuard<'static, ()>,
 }
 
@@ -52,22 +56,13 @@ impl Lane {
                 .status()
                 .unwrap();
         }
-        let saved = ["PATH", "EDITOR", "VISUAL", "TMPDIR"]
-            .into_iter()
-            .map(|key| (key, std::env::var(key).ok()))
-            .collect();
-        let path = format!(
-            "{}:{}",
-            bin.display(),
-            std::env::var("PATH").unwrap_or_default()
-        );
-        std::env::set_var("PATH", path);
-        std::env::set_var("EDITOR", bin.join("editor"));
-        std::env::remove_var("VISUAL");
-        std::env::set_var("TMPDIR", &root);
+        *stand_slot() = Some(Stand {
+            editor: bin.join("editor").display().to_string(),
+            base: root.display().to_string(),
+            terminal: bin.join("xdg-terminal-exec").display().to_string(),
+        });
         Self {
             root,
-            saved,
             _serial: serial,
         }
     }
@@ -110,12 +105,7 @@ impl Lane {
 
 impl Drop for Lane {
     fn drop(&mut self) {
-        for (key, value) in &self.saved {
-            match value {
-                Some(value) => std::env::set_var(key, value),
-                None => std::env::remove_var(key),
-            }
-        }
+        *stand_slot() = None;
         let root: &Path = &self.root;
         let named = root
             .file_name()
@@ -195,4 +185,27 @@ pub(super) fn rooted(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTest
     cx.simulate_resize(gpui::size(gpui::px(1100.), gpui::px(700.)));
     cx.run_until_parked();
     (shell, cx)
+}
+
+// FL-B03: a lane alive beside every other test leaves the process environment, and so temp_dir(), as it found them.
+#[test]
+fn a_lane_leaves_the_environment_every_parallel_test_reads() {
+    let read = || {
+        let vars = ["PATH", "EDITOR", "VISUAL", "TMPDIR"].map(std::env::var_os);
+        (vars, std::env::temp_dir())
+    };
+    let before = read();
+    let lane = Lane::new();
+    assert_eq!(
+        read(),
+        before,
+        "the lane's stand-ins live in the opener's slot"
+    );
+    let stand = stand_slot().clone().expect("the lane fills the slot");
+    assert!(Path::new(&stand.base).starts_with(&lane.root));
+    drop(lane);
+    assert_eq!(read(), before);
+    // Every lane empties the slot before it lets the next one start, so holding the turn shows it empty.
+    let _turn = LANE_SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
+    assert!(stand_slot().is_none(), "and empties it when it ends");
 }

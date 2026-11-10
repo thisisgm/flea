@@ -311,8 +311,13 @@ pub fn block(catalog: &I18n, row: &JobRow) -> Block {
         cancelling: row.state == "cancelling",
     };
     match st {
+        // Archive clauses read as the footer's sentence; other jobs may begin with an item's literal name.
         State::Failed => Block {
-            file: row.reason.clone(),
+            file: if matches!(row.kind.as_str(), "extract" | "compress") {
+                crate::ui_logic_status_feedback::errors::capitalised(&row.reason)
+            } else {
+                row.reason.clone()
+            },
             buttons: vec![Action::Retry, Action::Dismiss],
             ..base
         },

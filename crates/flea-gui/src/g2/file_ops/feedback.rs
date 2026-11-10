@@ -1,8 +1,12 @@
 //! Text observations are attached where each Jobs label and run is built.
 use super::palette::CardPalette;
 use crate::g2::status_feedback::observe::Paint;
-use flea::ui_logic_file_ops::Part;
-use gpui::{div, prelude::*, Div, SharedString, StyleRefinement};
+use flea::ui_logic_file_ops::{
+    card,
+    jobs::{Block, State},
+    Part,
+};
+use gpui::{div, prelude::*, px, Div, SharedString, StyleRefinement};
 
 pub(super) struct Label<'a> {
     element: Div,
@@ -16,11 +20,25 @@ pub(super) fn label(paint: Option<&Paint>) -> Label<'_> {
     }
 }
 
-pub(super) fn file(palette: &CardPalette, text: &str, paint: Option<&Paint>) -> Option<Div> {
+pub(super) fn file(palette: &CardPalette, block: &Block, paint: Option<&Paint>) -> Option<Div> {
+    let text = &block.file;
+    let id = block.id;
     if text.is_empty() {
         return None;
     }
-    let element = super::view::small(text.into(), palette.muted);
+    // A failure's reason is a sentence; only an in-flight file name stays on one line.
+    let element = if block.state == State::Failed {
+        div()
+            .text_size(px(card::JOBS_SMALL))
+            .line_height(px(card::JOBS_SMALL_LINE))
+            .text_color(palette.muted)
+            .whitespace_normal()
+            .line_clamp(2)
+            .child(text.clone())
+    } else {
+        super::view::small(text.clone(), palette.muted)
+    }
+    .debug_selector(move || format!("op1-job-{id}-source"));
     Some(match paint {
         Some(paint) => paint.watch(element.relative(), "source", text.to_owned().into()),
         None => element,

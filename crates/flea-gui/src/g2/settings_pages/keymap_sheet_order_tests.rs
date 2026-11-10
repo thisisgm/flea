@@ -70,10 +70,12 @@ const LOOK: &[&str] = &[
     "?|Keyboard Shortcuts",
 ];
 
+// FF-2 lists the find editor's Ctrl+Return under the search rows; keymap.html predates that key.
 const FIND: &[&str] = &[
     "/|Filter",
     "f / ctrl-f|Find",
     "ctrl-g|Search contents",
+    "ctrl-enter|Keep results",
     "o|Reveal",
     "s|Sort",
     "S|Reverse sort",
@@ -142,5 +144,38 @@ fn keymap_sheet_draws_every_row_once_in_every_preset() {
         drawn.sort_unstable();
         held.sort_unstable();
         assert_eq!(drawn, held, "{preset}");
+    }
+}
+
+#[test]
+fn keep_results_documents_the_search_strip_without_binding_other_editors() {
+    use flea::keys::{Context, Frontend, Input, Match, CONTROL};
+    for preset in flea::keys::PRESETS {
+        let sheet = Sheet::new(preset, english(), Sources::default());
+        assert!(sheet
+            .rows
+            .iter()
+            .any(|row| row.action == "keepResults" && row.keys == "ctrl-enter"));
+        for key in ["Return", "Enter"] {
+            assert_eq!(
+                flea::keys::lookup(
+                    preset,
+                    Context::Editor,
+                    Frontend::Gui,
+                    Input {
+                        key,
+                        text: "",
+                        modifiers: CONTROL,
+                    }
+                ),
+                Match::Unbound,
+                "{preset}: only the search strip handles this chord"
+            );
+        }
+        assert!(
+            !flea::keys::presentation::sheet(preset, Frontend::Tui, &english())
+                .iter()
+                .any(|row| row.action == "keepResults")
+        );
     }
 }
