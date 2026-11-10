@@ -45,7 +45,7 @@ fn csv_feed_column_draws_a_whole_first_screen() {
         vec![false, true, true, true],
         "numbers right-aligned, the rest left"
     );
-    assert!(feed.frozen, "the first screen froze the widths");
+    assert!(feed.frozen(), "the first screen froze the widths");
     let slots = feed.layout(400.);
     let end = slots.last().map(|s| s.x + s.w).unwrap();
     assert!(
@@ -173,7 +173,7 @@ fn csv_feed_big_file_widens_to_its_held_cells_and_jumps_in_one_ask() {
     let (mut feed, mut engine) = open(&text, ',', look(), 22);
     pump(&mut feed, &mut engine);
     assert_eq!(feed.body_rows(), 49_999, "the bar reads 49,999 rows");
-    assert!(feed.frozen);
+    assert!(feed.frozen());
     let widths = feed.widths.clone();
     let parsed = feed.counters.lines_parsed;
     assert!(

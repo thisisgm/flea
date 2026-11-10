@@ -4,6 +4,9 @@ pub use super::csv_geometry::{body_face, Face, Geometry};
 pub use super::csv_wire::{ask_line, parse_reply, Answer, Ask, Reply, LINE_CAP};
 use std::collections::BTreeMap;
 use std::sync::Arc;
+#[path = "csv_phase.rs"]
+mod phase;
+use phase::{Columns, Parse};
 
 /// The table rule under the header, the table rule of the Markdown preview.
 pub const RULE_OPACITY: f32 = 0.12;
@@ -61,14 +64,10 @@ pub struct Feed {
     /// The last record of the first screen, so the first screen is known whole before the table is drawn.
     pub first_to: usize,
     pub table: Table,
-    /// The first screen is whole: columns start from its rows, widths then grow to the widest held cell, alignments stay.
-    pub frozen: bool,
+    /// Columns wait for a whole first screen, then widen by bounded slices of held cells.
+    column_phase: Columns,
     /// How many measured columns each held record, by ordinal, has widened.
     pub folded: BTreeMap<usize, usize>,
-    /// A held cell may still widen its column, so `measure` has work even with every reached column measured.
-    pub widening: bool,
-    /// The table row the next widening starts at, so no frame walks again the rows an earlier frame finished.
-    pub widen_from: usize,
     /// Bumped whenever a measured column widens, so a layout kept for the old widths is laid out again.
     pub revision: u64,
     pub heads: Vec<f64>,
@@ -76,9 +75,8 @@ pub struct Feed {
     pub rights: Vec<bool>,
     /// The right edge the measured columns reach, in the same terms as `measure`'s target: Quick Look's grid or the fit.
     pub reach: f64,
-    /// A parse is out: no ask goes until it lands.
-    pub parsing: bool,
-    plain: bool,
+    /// Engine replies wait for their parse before another ask; plain text never asks the engine.
+    parse_phase: Parse,
     /// The frame's body rows and the record ordinal at its top.
     pub view: (usize, usize),
     pub counters: Counters,
@@ -98,10 +96,8 @@ impl Feed {
             token: 0,
             first_to: 0,
             table: csv::table(&BTreeMap::new(), 0, delim),
-            frozen: false,
+            column_phase: Columns::Waiting,
             folded: BTreeMap::new(),
-            widening: false,
-            widen_from: 0,
             revision: 0,
             heads: Vec::new(),
             widths: Vec::new(),
@@ -111,8 +107,7 @@ impl Feed {
             } else {
                 0.
             },
-            parsing: false,
-            plain: false,
+            parse_phase: Parse::Engine,
             view: (1, 2),
             counters: Counters::default(),
         }
@@ -205,7 +200,7 @@ impl Feed {
 
     /// The next ask the view needs, None while one is out, a parse is pending, or the file refused.
     pub fn ask(&mut self) -> Option<Ask> {
-        if self.answer.refused() || self.token != 0 || self.parsing || self.plain {
+        if self.answer.refused() || self.token != 0 || self.parse_phase != Parse::Engine {
             return None;
         }
         let (from, to) = self.needed();
@@ -259,7 +254,7 @@ impl Feed {
             }
         }
         self.counters.replies += 1;
-        self.parsing = true;
+        self.parse_phase = self.parse_phase.pending();
         true
     }
 
@@ -268,8 +263,7 @@ impl Feed {
         let (held, total) = plain_held(text);
         self.held = Arc::new(held);
         self.total = total;
-        self.plain = true;
-        self.parsing = true;
+        self.parse_phase = Parse::ParsingPlain;
     }
 
     /// The parse the held lines want now.

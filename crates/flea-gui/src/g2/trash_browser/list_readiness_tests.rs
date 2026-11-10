@@ -148,6 +148,11 @@ fn u32_list_prepaint_rejects_empty_off_window_and_parent_clipped_bounds() {
         .unwrap();
         let snapshot = paint.borrow();
         assert_eq!(snapshot.drawn(), visible, "{label}: {:?}", snapshot.bounds);
+        assert_eq!(
+            snapshot.laid_out,
+            visible.then_some(snapshot.committed),
+            "{label}"
+        );
         assert_eq!(snapshot.committed, 1, "{label}");
         if child.size.width > px(0.) && child.size.height > px(0.) {
             assert!(snapshot.bounds.unwrap().size.width > px(0.), "{label}");
@@ -163,6 +168,24 @@ fn u32_list_prepaint_rejects_empty_off_window_and_parent_clipped_bounds() {
             })
             .unwrap();
     }
+    {
+        let mut snapshot = paint.borrow_mut();
+        snapshot.committed += 1;
+        assert!(!snapshot.drawn(), "a new generation waits for prepaint");
+    }
+    cx.update_window(window.into(), |_, window, cx| {
+        window.refresh();
+        window.draw(cx).clear(cx);
+    })
+    .unwrap();
+    assert!(paint.borrow().drawn());
+    paint.borrow_mut().invalidate_surface();
+    assert_eq!(
+        paint.borrow().laid_out,
+        None,
+        "removal drops its generation"
+    );
+    assert!(!paint.borrow().drawn());
 }
 
 struct ClipPane {

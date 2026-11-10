@@ -1,6 +1,29 @@
 //! Keyboard focus within Trash stays inside its own strip and listing.
 use super::*;
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(in crate::g2::trash_browser) enum Pointer {
+    Absent,
+    Hover(gpui::Point<gpui::Pixels>),
+    Quiet(gpui::Point<gpui::Pixels>),
+}
+
+impl Pointer {
+    pub fn quiet(&mut self) {
+        if let Self::Hover(at) = *self {
+            *self = Self::Quiet(at);
+        }
+    }
+
+    pub fn moved(&mut self, at: gpui::Point<gpui::Pixels>) -> bool {
+        if *self == Self::Quiet(at) {
+            return false;
+        }
+        *self = Self::Hover(at);
+        true
+    }
+}
+
 impl TrashPane {
     /// A key action from the generated table, while Trash holds the keyboard.
     pub fn action(&mut self, name: &str, repeat: bool, cx: &mut Context<Self>) {
@@ -43,7 +66,7 @@ impl TrashPane {
         self.host
             .view
             .press(press, repeat, now, &self.catalog, keys);
-        self.quiet = true;
+        self.pointer.quiet();
         self.hover(None, cx);
         self.pump(cx);
     }

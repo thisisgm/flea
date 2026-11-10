@@ -32,6 +32,33 @@ fn a_key_hides_the_resting_pointer_wash_until_a_real_move() {
         .unwrap();
 }
 
+#[test]
+fn keyboard_before_the_first_pointer_and_repeated_quiet_moves_keep_their_transitions() {
+    let mut cx = real_cx();
+    let (window, _calls) = opened(&mut cx, &[row("a.txt", None), row("b.txt", None)]);
+    window
+        .update(&mut cx, |pane, _, cx| {
+            pane.action("cursorDown", false, cx);
+            let first = point(px(40.), px(60.));
+            pane.pointer_moved(first, Some(0), cx);
+            assert_eq!(pane.paint.borrow().hover, Some(0));
+            for _ in 0..2 {
+                pane.action("cursorUp", false, cx);
+                pane.pointer_moved(first, Some(0), cx);
+                assert_eq!(pane.paint.borrow().hover, None);
+            }
+            let next = point(px(41.), px(60.));
+            pane.pointer_moved(next, Some(0), cx);
+            assert_eq!(pane.paint.borrow().hover, Some(0));
+            pane.action("cursorDown", false, cx);
+            pane.pointer_moved(next, Some(0), cx);
+            assert_eq!(pane.paint.borrow().hover, None);
+            pane.pointer_moved(first, Some(0), cx);
+            assert_eq!(pane.paint.borrow().hover, Some(0));
+        })
+        .unwrap();
+}
+
 // 0401-list-nohover: unticked Highlight on hover, the fresh-install look, never washes a Trash row under the pointer.
 #[test]
 fn an_unticked_highlight_on_hover_never_washes_a_trash_row() {

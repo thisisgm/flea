@@ -1,5 +1,6 @@
 //! Measures a parsed table's columns once the first screen is whole: a reached column over the first screen's rows, then each held cell once, a bounded slice a frame.
 use super::csv;
+use super::phase::{Columns, Parse};
 use super::{body_face, Answer, Counters, Face, Feed};
 
 /// The characters of a long cell measured; the rest of its width is scaled from them by character count.
@@ -10,10 +11,12 @@ pub const WIDEN_CELLS: usize = 512;
 impl Feed {
     /// A parsed table lands; no column is measured until a view reaches it, and its new rows may widen the measured.
     pub fn apply(&mut self, table: csv::Table) {
-        self.parsing = false;
+        self.parse_phase = self.parse_phase.finish();
         self.table = table;
-        self.widen_from = 0;
-        if self.plain {
+        if self.widening() {
+            self.column_phase = Columns::Widening(0);
+        }
+        if self.parse_phase == Parse::Plain {
             self.records = self.table.rows.len() + usize::from(self.table.header.is_some());
             self.answer = Answer::Plain;
             self.first_to = self.needed().1;
@@ -22,18 +25,35 @@ impl Feed {
             return;
         }
         let last = self.first_last();
-        if !self.frozen && self.covered(1, last) && csv::ready(&self.table, last) {
-            self.frozen = true;
+        if self.frozen() || (self.covered(1, last) && csv::ready(&self.table, last)) {
+            self.column_phase = Columns::Widening(0);
         }
-        // Only a frozen table measures, so a table that never freezes never asks the view for another frame.
-        self.widening = self.frozen;
+    }
+
+    /// The first screen fixed the column alignments; later held cells may still widen them.
+    pub fn frozen(&self) -> bool {
+        self.column_phase != Columns::Waiting
+    }
+
+    /// Held cells remain to be measured by a later frame.
+    pub fn widening(&self) -> bool {
+        matches!(self.column_phase, Columns::Widening(_))
+    }
+
+    /// The next held row to widen, or the end once all held rows were measured.
+    pub fn widen_from(&self) -> usize {
+        match self.column_phase {
+            Columns::Waiting => 0,
+            Columns::Widening(from) => from,
+            Columns::Measured => self.table.rows.len(),
+        }
     }
 
     /// Whether `measure` has work for a view whose boxes reach `limit`: a column to take, or held cells to widen by.
     pub fn wants_measure(&self, limit: f64) -> bool {
-        self.frozen
+        self.frozen()
             && self.table.header.is_some()
-            && (self.widening || (self.widths.len() < self.table.cols && self.reach <= limit))
+            && (self.widening() || (self.widths.len() < self.table.cols && self.reach <= limit))
     }
 
     /// The reach a frame needs measured: Quick Look's right edge past the scroll, or the column's fit plus one gap.
@@ -62,8 +82,7 @@ impl Feed {
             table,
             first_to,
             folded,
-            widening,
-            widen_from,
+            column_phase,
             heads,
             widths,
             rights,
@@ -106,8 +125,7 @@ impl Feed {
             rights.push(right);
             at += width + span;
             // Every held row now owes this column a cell, so the next widening walks from the first row again.
-            *widening = true;
-            *widen_from = 0;
+            *column_phase = Columns::Widening(0);
         }
         self.reach = at;
     }
@@ -121,10 +139,12 @@ impl Feed {
             counters,
             reach,
             revision,
-            widening,
-            widen_from,
+            column_phase,
             ..
         } = self;
+        let Columns::Widening(widen_from) = column_phase else {
+            return;
+        };
         let mut left = WIDEN_CELLS;
         let mut grown = 0.;
         while let Some(row) = table.rows.get(*widen_from) {
@@ -148,7 +168,9 @@ impl Feed {
             }
             *widen_from += 1;
         }
-        *widening = *widen_from < table.rows.len();
+        if *widen_from >= table.rows.len() {
+            *column_phase = Columns::Measured;
+        }
         if grown > 0. {
             *reach += grown;
             *revision += 1;

@@ -71,7 +71,7 @@ fn review_u32_r4_identical_reopen_must_not_reuse_a_hidden_frame() {
         let raw = read(shell, window, cx, "trashState");
         let centre = read(shell, window, cx, "trashRowCentre");
         let paint = shell.trash.as_ref().unwrap().pane.read(cx).paint.borrow();
-        eprintln!("R4 identical reopen before frame: stamp {:?} -> ({}, {}), centre={centre:?}, state={raw}", before, paint.committed, paint.laid_out);
+        eprintln!("R4 identical reopen before frame: stamp {:?} -> ({}, {:?}), centre={centre:?}, state={raw}", before, paint.committed, paint.laid_out);
         (raw, centre)
     });
     let state = jsondoc::parse(&raw).unwrap();
@@ -127,7 +127,9 @@ fn review_u32_r4_scroll_changes_geometry_and_waits_for_the_next_frame() {
             .update(cx, |pane, cx| pane.wheel(9., cx));
         let paint = shell.trash.as_ref().unwrap().pane.read(cx).paint.borrow();
         assert_eq!(paint.scroll_y, 9.);
-        assert!(paint.committed > paint.laid_out);
+        assert!(paint
+            .laid_out
+            .is_some_and(|laid_out| paint.committed > laid_out));
         drop(paint);
         (
             read(shell, window, cx, "trashState"),

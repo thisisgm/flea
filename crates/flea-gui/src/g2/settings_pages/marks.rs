@@ -4,11 +4,12 @@ use super::{
     glyphs,
     seams::Ink,
 };
+use crate::leaf::{Leaf, Painted};
 use flea::ui_logic_settings_pages::rows::Master;
 use gpui::{
-    canvas, div, prelude::*, px, size, AnyElement, App, Bounds, ClickEvent, Div, Element,
-    ElementId, FontWeight, GlobalElementId, HighlightStyle, Hsla, InspectorElementId, LayoutId,
-    MouseButton, Pixels, SharedString, Style, StyledText, TransformationMatrix, Window,
+    canvas, div, prelude::*, px, size, AnyElement, App, Bounds, ClickEvent, Div, FontWeight,
+    HighlightStyle, Hsla, LayoutId, MouseButton, Pixels, SharedString, Style, StyledText,
+    TransformationMatrix, Window,
 };
 use std::{ops::Range, rc::Rc};
 
@@ -70,14 +71,14 @@ pub fn washed(
 ) -> Div {
     let (start, end) = run.map_or((0, 0), |(start, length)| (start, start + length));
     if spacing > 0. && label.chars().all(spaceable) {
-        return div().flex().child(Tracked {
+        return div().flex().child(Painted(Tracked {
             label: label.to_owned(),
             run: (start, end),
             lifted,
             wash,
             spacing,
             letters: Vec::new(),
-        });
+        }));
     }
     if run.is_none() {
         return div().child(SharedString::from(label.to_owned()));
@@ -99,30 +100,10 @@ struct Tracked {
     letters: Vec<AnyElement>,
 }
 
-impl IntoElement for Tracked {
-    type Element = Self;
-    fn into_element(self) -> Self {
-        self
-    }
-}
+impl Leaf for Tracked {
+    type Prepaint = ();
 
-impl Element for Tracked {
-    type RequestLayoutState = ();
-    type PrepaintState = ();
-
-    fn id(&self) -> Option<ElementId> {
-        None
-    }
-    fn source_location(&self) -> Option<&'static core::panic::Location<'static>> {
-        None
-    }
-    fn request_layout(
-        &mut self,
-        _: Option<&GlobalElementId>,
-        _: Option<&InspectorElementId>,
-        window: &mut Window,
-        cx: &mut App,
-    ) -> (LayoutId, ()) {
+    fn layout(&mut self, window: &mut Window, cx: &mut App) -> LayoutId {
         let face = window.text_style();
         let font_size = face.font_size.to_pixels(window.rem_size());
         let mut x = 0.;
@@ -160,31 +141,14 @@ impl Element for Tracked {
             flex_shrink: 0.,
             ..Style::default()
         };
-        (window.request_layout(style, letters, cx), ())
+        window.request_layout(style, letters, cx)
     }
-    fn prepaint(
-        &mut self,
-        _: Option<&GlobalElementId>,
-        _: Option<&InspectorElementId>,
-        _: Bounds<Pixels>,
-        _: &mut (),
-        window: &mut Window,
-        cx: &mut App,
-    ) {
+    fn prepaint(&mut self, _: Bounds<Pixels>, window: &mut Window, cx: &mut App) {
         for letter in &mut self.letters {
             letter.prepaint(window, cx);
         }
     }
-    fn paint(
-        &mut self,
-        _: Option<&GlobalElementId>,
-        _: Option<&InspectorElementId>,
-        _: Bounds<Pixels>,
-        _: &mut (),
-        _: &mut (),
-        window: &mut Window,
-        cx: &mut App,
-    ) {
+    fn paint(&mut self, _: Bounds<Pixels>, _: &mut (), window: &mut Window, cx: &mut App) {
         for letter in &mut self.letters {
             letter.paint(window, cx);
         }

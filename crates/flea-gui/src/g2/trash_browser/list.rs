@@ -2,11 +2,12 @@
 use super::board::Board;
 use super::elide;
 use super::ink::Ink;
+use crate::leaf::{fill_parent, Leaf, Painted};
 use crate::row::marks::Mark;
 use gpui::{
-    fill, point, px, relative, size, App, Bounds, ContentMask, Corners, Element, ElementId, Font,
-    GlobalElementId, GlyphRun, Hsla, ImageAssetLoader, InspectorElementId, IntoElement, LayoutId,
-    ObjectFit, Pixels, RenderImage, Resource, Style, TextRun, TransformationMatrix, Window,
+    fill, point, px, size, App, Bounds, ContentMask, Corners, Font, GlyphRun, Hsla,
+    ImageAssetLoader, IntoElement, LayoutId, ObjectFit, Pixels, RenderImage, Resource, TextRun,
+    TransformationMatrix, Window,
 };
 use std::{cell::RefCell, rc::Rc, sync::Arc};
 
@@ -40,10 +41,9 @@ pub struct ListPaint {
     /// Bumped whenever a line's text changes, so shaped text is rebuilt only then; marks and images never reshape.
     pub revision: u64,
     pub source_request: u64,
-    /// Bumped when layout inputs change; prepaint copies it into laid_out, so equal means the frame drew them.
+    /// Bumped when layout inputs change; prepaint records the generation only for a visible surface.
     pub committed: u64,
-    pub laid_out: u64,
-    surface_drawn: bool,
+    pub laid_out: Option<u64>,
     pub scroll_y: f32,
     pub cursor: usize,
     pub hover: Option<usize>,
@@ -78,8 +78,7 @@ impl ListPaint {
             revision: 0,
             source_request: 0,
             committed: 0,
-            laid_out: 0,
-            surface_drawn: false,
+            laid_out: None,
             scroll_y: 0.,
             cursor: 0,
             hover: None,
@@ -100,11 +99,11 @@ impl ListPaint {
 
     /// Whether this surface has prepainted the committed snapshot since its last removal or opening.
     pub fn drawn(&self) -> bool {
-        self.surface_drawn && self.committed == self.laid_out
+        self.laid_out == Some(self.committed)
     }
 
     pub(super) fn invalidate_surface(&mut self) {
-        self.surface_drawn = false;
+        self.laid_out = None;
     }
 
     pub fn line(&self, index: usize) -> Option<&Line> {
@@ -153,9 +152,9 @@ pub fn columns(board: &Board, width: f32) -> (f32, f32, f32, f32) {
 pub struct TrashList(pub Rc<RefCell<ListPaint>>);
 
 impl IntoElement for TrashList {
-    type Element = Self;
-    fn into_element(self) -> Self {
-        self
+    type Element = Painted<Self>;
+    fn into_element(self) -> Self::Element {
+        Painted(self)
     }
 }
 
@@ -178,40 +177,14 @@ fn paint_text(run: &GlyphRun, x: Pixels, top: Pixels, row: f32, ink: Hsla, windo
     let _ = window.paint_glyph_run(point(x, baseline), run, ink);
 }
 
-impl Element for TrashList {
-    type RequestLayoutState = ();
-    type PrepaintState = ();
+impl Leaf for TrashList {
+    type Prepaint = ();
 
-    fn id(&self) -> Option<ElementId> {
-        None
-    }
-    fn source_location(&self) -> Option<&'static core::panic::Location<'static>> {
-        None
+    fn layout(&mut self, window: &mut Window, cx: &mut App) -> LayoutId {
+        fill_parent(window, cx)
     }
 
-    fn request_layout(
-        &mut self,
-        _: Option<&GlobalElementId>,
-        _: Option<&InspectorElementId>,
-        window: &mut Window,
-        cx: &mut App,
-    ) -> (LayoutId, ()) {
-        let style = Style {
-            size: size(relative(1.).into(), relative(1.).into()),
-            ..Style::default()
-        };
-        (window.request_layout(style, None, cx), ())
-    }
-
-    fn prepaint(
-        &mut self,
-        _: Option<&GlobalElementId>,
-        _: Option<&InspectorElementId>,
-        bounds: Bounds<Pixels>,
-        _: &mut (),
-        window: &mut Window,
-        cx: &mut App,
-    ) {
+    fn prepaint(&mut self, bounds: Bounds<Pixels>, window: &mut Window, cx: &mut App) {
         let mut state = self.0.borrow_mut();
         state.hover_wash = crate::list::hover_wash::HoverWash::on(cx);
         state.bounds = Some(bounds);
@@ -219,14 +192,14 @@ impl Element for TrashList {
             .intersect(&window.content_mask().bounds)
             .intersect(&Bounds::new(point(px(0.), px(0.)), window.viewport_size()));
         state.visible_bounds = Some(visible);
-        state.surface_drawn = visible.size.width > px(0.) && visible.size.height > px(0.);
-        if !state.surface_drawn {
+        if visible.size.width <= px(0.) || visible.size.height <= px(0.) {
+            state.invalidate_surface();
             state.painted.clear();
             state.images.clear();
             state.drawn_images.clear();
             return;
         }
-        state.laid_out = state.committed;
+        state.laid_out = Some(state.committed);
         let advance = state.advance(window);
         let board = state.board;
         let (_, name_w, _, _) = columns(&board, f32::from(bounds.size.width));
@@ -303,16 +276,7 @@ impl Element for TrashList {
         }
     }
 
-    fn paint(
-        &mut self,
-        _: Option<&GlobalElementId>,
-        _: Option<&InspectorElementId>,
-        bounds: Bounds<Pixels>,
-        _: &mut (),
-        _: &mut (),
-        window: &mut Window,
-        cx: &mut App,
-    ) {
+    fn paint(&mut self, bounds: Bounds<Pixels>, _: &mut (), window: &mut Window, cx: &mut App) {
         let state = self.0.borrow();
         let ink = state.ink;
         let (left, width) = (bounds.origin.x, f32::from(bounds.size.width));
