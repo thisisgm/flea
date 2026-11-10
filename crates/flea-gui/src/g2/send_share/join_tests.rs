@@ -71,6 +71,16 @@ fn open(
     side: usize,
     receive: &mut impl FnMut() -> Option<String>,
 ) -> Captured {
+    open_at(shell, cx, side, 0, receive)
+}
+
+fn open_at(
+    shell: &Entity<Shell>,
+    cx: &mut VisualTestContext,
+    side: usize,
+    row: usize,
+    receive: &mut impl FnMut() -> Option<String>,
+) -> Captured {
     shell.update_in(cx, |shell, window, cx| {
         shell.follow_plugins(window, cx);
         let host = shell.plugins.host.clone().unwrap();
@@ -92,7 +102,7 @@ fn open(
                     .collect();
             }
         });
-        shell.open_menu(side, Some(0), (10., 10.), window, cx)
+        shell.open_menu(side, Some(row), (10., 10.), window, cx)
     });
     let asked = with(&drain(receive), "\"c\":\"formats\"");
     assert_eq!(

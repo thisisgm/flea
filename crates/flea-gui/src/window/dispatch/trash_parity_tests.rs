@@ -9,6 +9,35 @@ use gpui::TestAppContext;
 pub(super) const SMB: &str = "/run/user/1000/gvfs/smb-share:server=host,share=docs";
 
 #[gpui::test]
+fn uish_def1_phone_d_refuses_before_arming(cx: &mut TestAppContext) {
+    for path in [SMB, "/run/user/1000/gvfs/mtp:host=Phone/DCIM"] {
+        let (shell, cx) = super::test_shell::open_root_at(cx, path);
+        land(&shell, cx, path, vec![row("notes.txt", false)], 1);
+        let mut sent = wire(&shell, cx);
+        cx.simulate_keystrokes("d");
+        shell.update(cx, |shell, cx| {
+            assert_eq!(
+                shell.operations.fileops.armed_at(),
+                0,
+                "no Trash key pair on {path}"
+            );
+            assert!(
+                shell.keyboard.pending().is_none(),
+                "no pending key pair on {path}"
+            );
+            let text = shell.status_messages(cx, |messages, _| messages.shown().text);
+            assert!(text.contains("no Trash"), "{text}");
+        });
+        cx.simulate_keystrokes("d");
+        assert!(
+            sent().is_empty(),
+            "dd requests neither Trash nor permanent deletion"
+        );
+        shell.update(cx, |shell, _| shell.stop_for_app_quit());
+    }
+}
+
+#[gpui::test]
 fn trash_parity_replacement_row_is_selected_in_every_preset(cx: &mut TestAppContext) {
     for (preset, key) in [
         ("mac", "ctrl-delete"),
@@ -97,7 +126,7 @@ fn bfx325_no_trash_keys_review_before_permanent_delete(cx: &mut TestAppContext) 
         ("mac", "ctrl-delete"),
         ("vim", "shift-d"),
         ("windows", "ctrl-d"),
-        ("default", "d d"),
+        ("default", "shift-delete"),
     ] {
         for confirm in [false, true] {
             let (shell, cx) =
@@ -165,17 +194,21 @@ fn bfx325_no_trash_keys_review_before_permanent_delete(cx: &mut TestAppContext) 
 }
 
 #[gpui::test]
-fn bfx325_no_trash_pair_names_review_and_a_denied_review_never_deletes(cx: &mut TestAppContext) {
+fn bfx325_no_trash_refusal_keeps_explicit_delete_and_a_denied_review_never_deletes(
+    cx: &mut TestAppContext,
+) {
     let (shell, cx) = super::test_shell::open_root_at(cx, SMB);
     land(&shell, cx, SMB, vec![row("notes.txt", false)], 1);
     let mut sent = wire(&shell, cx);
     cx.simulate_keystrokes("d");
-    assert!(sent().is_empty(), "the first d only arms");
+    assert!(sent().is_empty(), "d refuses before arming");
     let text = shell.update(cx, |shell, cx| {
         shell.status_messages(cx, |messages, _| messages.shown().text)
     });
-    assert!(text.contains("review permanent deletion"), "{text}");
+    assert!(text.contains("no Trash"), "{text}");
     cx.simulate_keystrokes("d");
+    assert!(sent().is_empty(), "dd cannot request permanent deletion");
+    cx.simulate_keystrokes("delete");
     let snapshot = sent();
     assert_eq!(snapshot.len(), 1);
     let id = flea::json::field_usize(&snapshot[0], "id").unwrap();
