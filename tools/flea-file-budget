@@ -276,7 +276,7 @@ ui/PreviewColumn.qml 559
 ui/DeviceMounts.qml 540
 ui/js/Facts.js 402
 ui/PreviewPdf.qml 482
-ui/PickerChrome.qml 295
+ui/PickerChrome.qml 297
 ui/PreviewMarkdown.qml 676
 tests/markdown-code.qml 477
 ui/Row.qml 469
