@@ -87,8 +87,26 @@ pub const ACTIONS: &[Function] = &[
     function!("flea", "actionIds", "string", &[]),
 ];
 
+pub const CARRY: &[Function] = &[
+    function!(
+        "flea",
+        "carryOffer",
+        "bool",
+        &[("pid", "string"), ("token", "string")]
+    ),
+    function!("flea", "carryPeek", "string", &[("token", "string")]),
+    function!("flea", "carryCancel", "bool", &[("token", "string")]),
+    function!("flea", "carryTaken", "bool", &[("token", "string")]),
+    function!("flea", "carryClaim", "bool", &[("token", "string")]),
+];
+
 pub fn functions() -> impl Iterator<Item = &'static Function> {
-    ORACLE.iter().chain(LIFECYCLE).chain(VISUAL).chain(ACTIONS)
+    ORACLE
+        .iter()
+        .chain(LIFECYCLE)
+        .chain(VISUAL)
+        .chain(ACTIONS)
+        .chain(CARRY)
 }
 
 /// Quickshell's answer for a target with no seam loaded, which v0.3.12 gave until its first listing settled.

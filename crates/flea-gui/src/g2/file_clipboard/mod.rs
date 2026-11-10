@@ -1,6 +1,9 @@
 //! Clipboard file selections over the G1 shell: one selection, one queue per pane backend and the cut marks rows draw; the core flea::ui_logic_file_clipboard decides, and this host drains its outbox to the wire, sink, owner and status slot.
 pub mod carry;
+mod carry_bus;
+mod carry_ipc;
 mod carry_landing;
+mod carry_wire;
 pub mod flock;
 pub mod host;
 pub(crate) mod ipc;
@@ -13,7 +16,11 @@ pub mod seams;
 mod transport;
 
 #[cfg(test)]
+mod carry_ipc_tests;
+#[cfg(test)]
 mod carry_window_click_tests;
+#[cfg(test)]
+mod carry_wire_tests;
 #[cfg(test)]
 mod host_marks_tests;
 #[cfg(test)]

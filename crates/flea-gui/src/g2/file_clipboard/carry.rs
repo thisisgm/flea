@@ -1,4 +1,4 @@
-//! Carry over the live Shell: X lifts through the clipboard key hook, the backend's paths answer makes it ride, a click on a Flea folder lands it as the mouse drag's own Lift through dg2's facts and decide into op1, and esc or the source's end drops it; one process carry, so a click in another Flea window lands it too.
+//! Carry over the live Shell: captured paths land through DG2 and op1 in this process or another window's endpoint.
 use super::flock::{FlockElement, NameCache};
 use super::join::{picks, PaneWire};
 use super::seams::Wire;
@@ -19,6 +19,7 @@ pub struct Flock {
 #[derive(Default)]
 pub struct Carrying {
     pub carry: Carry,
+    pub(super) ipc: super::carry_ipc::State,
     pub flock: Rc<Flock>,
     name: Rc<RefCell<NameCache>>,
     said: HashMap<u64, (u64, u64)>,
@@ -27,6 +28,19 @@ pub struct Carrying {
 impl gpui::Global for Carrying {}
 
 impl Carrying {
+    pub(super) fn riding(&self) -> Option<&flea::ui_logic_file_clipboard::carry::Lifted> {
+        if !self.ipc.owned {
+            if let Some(offer) = self.ipc.current.as_ref().filter(|offer| offer.live()) {
+                return Some(&offer.lifted);
+            }
+        }
+        self.carry.riding()
+    }
+
+    pub(crate) fn active(&self) -> bool {
+        self.carry.active() || self.riding().is_some() || self.ipc.pending.is_some()
+    }
+
     /// Only the captured source listing excludes its carried rows from folder targets.
     pub(crate) fn source_rows(
         &self,
@@ -104,6 +118,7 @@ impl Shell {
                 });
             }
             LiftOut::Ask(line) => {
+                self.carry_replace_shared(cx);
                 self.carry_ended(window_id(window), cx);
                 let backend = self.panes[side]
                     .as_ref()
@@ -154,7 +169,10 @@ impl Shell {
                 .resolved(&catalog, id, side, paths.to_vec(), listing);
         self.carry_slot_released(side);
         match out {
-            Answer::Rides => self.carry_say(id, cx),
+            Answer::Rides => {
+                self.carry_say(id, cx);
+                self.carry_advertise(window, cx);
+            }
             Answer::Stale(said) => {
                 self.status_messages(cx, |messages, now| {
                     messages.say(&said.text, false, "", Hint::None, now)
@@ -243,6 +261,7 @@ impl Shell {
 
     // A carry that ended here repaints every other Flea window, so each withdraws its own notice and drops the flock on that frame.
     pub(super) fn carry_ended(&mut self, window: u64, cx: &mut gpui::Context<Self>) {
+        self.carry_end_shared(cx);
         for handle in cx.windows() {
             if handle.window_id().as_u64() != window {
                 let _ = handle.update(cx, |_, window, _| window.refresh());
@@ -252,14 +271,21 @@ impl Shell {
     }
 
     /// Once per frame: a carry that ended in another window leaves this window's notice behind, and this withdraws it.
-    pub(crate) fn carry_sync(&mut self, window: &Window, cx: &mut gpui::Context<Self>) {
+    pub(crate) fn carry_sync(&mut self, window: &mut Window, cx: &mut gpui::Context<Self>) {
+        self.carry_discover(window, cx);
         self.carry_end_said(window_id(window), cx);
     }
 
     /// Esc: drops a lifted or resolving carry; true when one was.
     pub(crate) fn carry_escape(&mut self, window: &Window, cx: &mut gpui::Context<Self>) -> bool {
-        let dropped =
-            cx.try_global::<Carrying>().is_some() && cx.global_mut::<Carrying>().carry.cancel();
+        let dropped = if let Some(carrying) = cx.try_global::<Carrying>() {
+            let active = carrying.active();
+            cx.global_mut::<Carrying>().carry.cancel();
+            self.carry_replace_shared(cx);
+            active
+        } else {
+            false
+        };
         if dropped {
             self.carry_ended(window_id(window), cx);
             cx.notify();
@@ -304,7 +330,7 @@ impl Shell {
     /// The flock to paint at the resting pointer while a carry rides, else None.
     pub(crate) fn carry_flock(&self, window: &Window, cx: &App) -> Option<FlockElement> {
         let carrying = cx.try_global::<Carrying>()?;
-        carrying.carry.riding()?;
+        carrying.riding()?;
         let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
         Some(FlockElement {
             flock: Rc::clone(&carrying.flock),
