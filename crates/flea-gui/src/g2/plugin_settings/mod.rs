@@ -4,7 +4,7 @@ mod airdrop;
 mod card;
 pub mod glyphs;
 mod input;
-mod load;
+pub(crate) mod load;
 pub mod mark;
 pub mod page;
 mod scroll;

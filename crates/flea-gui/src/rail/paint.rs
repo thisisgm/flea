@@ -87,7 +87,20 @@ pub(super) fn paint_mark(
             ));
         }
         RowMark::None => {
-            if let Some((key, data)) = glyph::svg(row.glyph) {
+            // A plugin's own mark.svg fills the icon square as an alpha mask in the row's ink, as its Settings row does.
+            if let Some((key, data)) = &row.owned {
+                let _ = window.paint_svg(
+                    Bounds::new(
+                        point(px(x), px(y)),
+                        size(px(metrics.icon), px(metrics.icon)),
+                    ),
+                    key.clone(),
+                    Some(data),
+                    TransformationMatrix::unit(),
+                    palette.foreground,
+                    cx,
+                );
+            } else if let Some((key, data)) = glyph::svg(row.glyph) {
                 let _ = window.paint_svg(
                     Bounds::new(
                         point(px(x), px(y)),

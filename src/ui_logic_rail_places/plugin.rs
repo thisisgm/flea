@@ -1,4 +1,5 @@
 //! Plugin rail sections: a `section` answer read as untrusted rows, drawn after every built-in section.
+use super::order::{Heading, RailSection};
 use super::rail::{Group, Kind, RailEntry, Square};
 use super::{has_control, js_trim};
 use crate::jsondoc::{self, Json};
@@ -162,6 +163,55 @@ pub fn sections(descriptors: &[Descriptor], answers: &[(String, Vec<RailEntry>)]
             })
         })
         .collect()
+}
+
+// The heading Flea draws over plugin rows that name no title of their own: the Settings page's own word.
+pub const PLUGINS_HEADING: &str = "settings.section.plugins";
+// Every heading the rail draws for itself; a plugin title that reads as one of these goes under PLUGINS.
+pub const BUILT_IN_HEADINGS: [&str; 7] = [
+    "places.heading.places",
+    "places.heading.favorites",
+    "places.heading.tags",
+    "places.heading.network",
+    "settings.places.network",
+    "settings.places.devices",
+    PLUGINS_HEADING,
+];
+
+// Sample: SYNCTHING from two plugins, then MEGA and a title "Devices" under one PLUGINS. Built-in sections keep their
+// places; plugin sections merge by title as `drawn` sets it, in plugin order, and untitled or clashing rows go last.
+pub fn plugin_headings(
+    sections: Vec<RailSection>,
+    drawn: impl Fn(&Heading) -> String,
+) -> Vec<RailSection> {
+    let reserved: Vec<String> = BUILT_IN_HEADINGS
+        .iter()
+        .map(|key| drawn(&Heading::Key(key)).trim().to_owned())
+        .collect();
+    let mut out = Vec::new();
+    let mut titled: Vec<(String, RailSection)> = Vec::new();
+    let mut untitled = Vec::new();
+    for section in sections {
+        let Heading::Plugin(_) = &section.heading else {
+            out.push(section);
+            continue;
+        };
+        let set = drawn(&section.heading).trim().to_owned();
+        if set.is_empty() || reserved.contains(&set) {
+            untitled.extend(section.rows);
+        } else if let Some((_, group)) = titled.iter_mut().find(|(seen, _)| *seen == set) {
+            group.rows.extend(section.rows);
+        } else {
+            titled.push((set, section));
+        }
+    }
+    out.extend(titled.into_iter().map(|(_, section)| section));
+    out.push(RailSection {
+        heading: Heading::Key(PLUGINS_HEADING),
+        rows: untitled,
+    });
+    out.retain(|s| !s.rows.is_empty());
+    out
 }
 
 // Built-in sections first, then plugin rows, so PLACES, NETWORK and DEVICES never move when a plugin comes or goes.

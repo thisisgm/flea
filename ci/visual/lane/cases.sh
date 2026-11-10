@@ -293,3 +293,31 @@ case_text_menu_path() (
     click_at "$(ipc pathCentre)" right || return 1
     snap
 )
+
+# FX-PLACES418 (0.4.2, #418): board 0402-plugin-rail-mark, Syncthing under its own title after DEVICES and the untitled
+# Example Files place under PLUGINS, drawing the example's own mark.svg in the row's ink.
+CASES+=("plugin-rail-mark 1100x700")
+
+case_plugin_rail_mark() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    local root=$C/plugin-rail attempt id
+    local ready='any(.[]; .label == "Photos") and any(.[]; .label == "Example Files" and has("mark"))'
+    mkdir -p "$root/sync/Photos" "$root/sync/Notes" "$root/sync/Music" || return 1
+    : > "$root/.flea-test-sandbox" || return 1
+    # The installed copies leave with the case, so no later Settings shot gains a plugin row.
+    trap '"$flea_bin" plugin remove example.syncthing >> "$case_notes" 2>&1; "$flea_bin" plugin remove example.virtual-place >> "$case_notes" 2>&1' EXIT
+    for id in syncthing virtual-place; do
+        "$flea_bin" plugin add "/src/examples/plugins/$id" >> "$case_notes" 2>&1 || return 1
+    done
+    export FLEA_EXAMPLE_FOLDERS=$root/sync XDG_STATE_HOME="/tmp/vstate/$case_name"
+    export LAUNCH_STATE=',"plugins":{"example.syncthing":{"enabled":true},"example.virtual-place":{"enabled":true}}'
+    launch list "$W" || return 1
+    # Both runtimes start and Syncthing answers its first section before the rail holds every row.
+    for attempt in $(seq 1 200); do
+        ipc railEntries | jq -e "$ready" > /dev/null 2>&1 && break
+        sleep 0.1
+    done
+    ipc railEntries | jq -e "$ready" > /dev/null 2>&1 || { state_failure "plugin rail rows never arrived"; return 1; }
+    sleep 0.3
+    snap
+)

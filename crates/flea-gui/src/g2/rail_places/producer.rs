@@ -235,14 +235,6 @@ impl Producer {
         cx.notify();
     }
 
-    pub fn set_locale(&mut self, catalog: Arc<I18n>, cx: &mut Context<Self>) {
-        self.catalog = Arc::clone(&catalog);
-        self.places.update(cx, |places, _| places.catalog = catalog);
-        self.provider.relabel(&self.catalog);
-        self.model.borrow_mut().sections = Rc::new(self.provider.drawn.clone());
-        cx.notify();
-    }
-
     /// A language or settings change rebuilds the rows in place and drops any editor on a vanished row.
     pub fn adopt_state(&mut self, state: &Json, cx: &mut Context<Self>) {
         self.state = state.clone();

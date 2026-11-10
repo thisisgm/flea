@@ -2,6 +2,16 @@
 use super::*;
 
 impl Producer {
+    pub fn set_locale(&mut self, catalog: Arc<I18n>, cx: &mut Context<Self>) {
+        self.catalog = Arc::clone(&catalog);
+        self.places.update(cx, |places, _| places.catalog = catalog);
+        // A plugin title that now reads as a built-in heading moves under PLUGINS.
+        self.rebuild(cx);
+        self.provider.relabel(&self.catalog);
+        self.model.borrow_mut().sections = Rc::new(self.provider.drawn.clone());
+        cx.notify();
+    }
+
     pub(super) fn load(&mut self, cx: &mut Context<Self>) {
         if self.polling {
             self.load_places(cx);
@@ -49,33 +59,37 @@ impl Producer {
                 }
             }
         }
+        let sections = rail_sections(
+            &rows,
+            saved.shown,
+            favourites,
+            &in_use,
+            self.tail
+                .iter()
+                .filter_map(|section| {
+                    let mut section = section.clone();
+                    section.rows.retain(|row| {
+                        let key = match row.group {
+                            Group::Device => "showDevices",
+                            Group::Network => "showNetwork",
+                            _ => return true,
+                        };
+                        self.state
+                            .get("places")
+                            .and_then(|places| places.get(key))
+                            .and_then(Json::as_bool)
+                            != Some(false)
+                    });
+                    (!section.rows.is_empty()).then_some(section)
+                })
+                .collect(),
+            &[],
+        );
+        let catalog = Arc::clone(&self.catalog);
         self.replace_sections(
-            rail_sections(
-                &rows,
-                saved.shown,
-                favourites,
-                &in_use,
-                self.tail
-                    .iter()
-                    .filter_map(|section| {
-                        let mut section = section.clone();
-                        section.rows.retain(|row| {
-                            let key = match row.group {
-                                Group::Device => "showDevices",
-                                Group::Network => "showNetwork",
-                                _ => return true,
-                            };
-                            self.state
-                                .get("places")
-                                .and_then(|places| places.get(key))
-                                .and_then(Json::as_bool)
-                                != Some(false)
-                        });
-                        (!section.rows.is_empty()).then_some(section)
-                    })
-                    .collect(),
-                &[],
-            ),
+            flea::ui_logic_rail_places::plugin::plugin_headings(sections, |heading| {
+                crate::g2::rail_places::content::heading_text(&catalog, heading).to_string()
+            }),
             cx,
         );
     }

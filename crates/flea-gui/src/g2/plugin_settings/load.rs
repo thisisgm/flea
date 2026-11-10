@@ -34,7 +34,7 @@ impl PluginsPane {
     }
 }
 
-fn read_mark(path: &str) -> Option<Arc<[u8]>> {
+pub(crate) fn read_mark(path: &str) -> Option<Arc<[u8]>> {
     use std::io::Read;
     let mut data = Vec::new();
     std::fs::File::open(path)
