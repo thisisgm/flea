@@ -10,6 +10,7 @@ use flea::ui_logic_op1::{
 };
 
 impl Operations {
+    /// Opens the create card, pre-filled with the suggested name when the menu had one.
     pub fn new_file(&mut self, catalog: &I18n, id: u64, folder: &str, suggestion: Option<&str>) {
         self.clear_card();
         // A folder suggestion arrives with the slash that makes Enter create a folder, as the TUI's New Folder does.

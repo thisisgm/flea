@@ -51,8 +51,8 @@ fn ey166_down_after_new_folder_moves_selection_and_footer(cx: &mut TestAppContex
     );
     land(&shell, cx, "/files", home(None), 1);
     let mut sent = wire(&shell, cx);
-cx.simulate_keystrokes("ctrl-shift-n");
     // Ctrl+Shift+N opens the create card suggesting a folder; Create takes that suggestion.
+    cx.simulate_keystrokes("ctrl-shift-n");
     create_card(&shell, cx);
     let requests = sent();
     assert_eq!(
@@ -70,6 +70,59 @@ cx.simulate_keystrokes("ctrl-shift-n");
     );
     refocus(&shell, cx);
     land(&shell, cx, "/files", home(Some("New Folder")), 2);
+    assert!(editing(&shell, cx).is_none());
+    assert_eq!(state(&shell, cx), (8, vec![8]));
+    let before = footer(&shell, cx);
+    assert!(before.starts_with("1 of 11 selected"), "{before}");
+    cx.simulate_keystrokes("down");
+    settle(cx);
+    let actual = (state(&shell, cx), footer(&shell, cx));
+    assert_eq!(
+        actual.0,
+        (9, vec![9]),
+        "cursor, selection and footer: {actual:?}"
+    );
+    assert!(actual.1.starts_with("1 of 11 selected"), "{actual:?}");
+    assert!(actual.1.contains("99 B"), "{actual:?}");
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+// The same move after the folder is renamed: the card no longer renames by itself, so this covers
+// what used to happen for free when Ctrl+Shift+N landed with the name field open.
+#[gpui::test]
+fn ey166_down_after_the_created_folder_is_renamed_moves_selection_and_footer(
+    cx: &mut TestAppContext,
+) {
+    let (shell, cx) = open_root_with(
+        cx,
+        r#""keys":"default","view":"list""#,
+        Some("/files/notes.txt"),
+    );
+    land(&shell, cx, "/files", home(None), 1);
+    let mut sent = wire(&shell, cx);
+    cx.simulate_keystrokes("ctrl-shift-n");
+    create_card(&shell, cx);
+    let id = flea::json::field_usize(&sent()[0], "request").unwrap();
+    reply(
+        &shell,
+        cx,
+        &format!(
+            r#"{{"t":"menuaction","op":"creation","id":{id},"kind":"made","ok":true,"path":"/files/New Folder"}}"#
+        ),
+    );
+    refocus(&shell, cx);
+    land(&shell, cx, "/files", home(Some("New Folder")), 2);
+    // The card asked for the name, so the rename is a separate, deliberate move from here.
+    cx.simulate_keystrokes("f2");
+    assert_eq!(editing(&shell, cx).unwrap().1, "New Folder");
+    cx.simulate_input("SA6 today");
+    cx.simulate_keystrokes("enter");
+    reply(
+        &shell,
+        cx,
+        r#"{"t":"renamed","ok":true,"path":"/files/SA6 today"}"#,
+    );
+    land(&shell, cx, "/files", home(Some("SA6 today")), 3);
     assert!(editing(&shell, cx).is_none());
     assert_eq!(state(&shell, cx), (8, vec![8]));
     let before = footer(&shell, cx);

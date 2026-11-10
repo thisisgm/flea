@@ -127,7 +127,7 @@ impl Overlay {
         self.schedule(cx);
     }
 
-    // Seam: the folder's background New File row, with the menu snapshot id its request carries.
+    /// Seam: the folder's background New File row, with the menu snapshot id its request carries.
     pub fn new_file(&mut self, id: u64, folder: &str, suggestion: Option<&str>, cx: &mut Context<Self>) {
         self.model.new_file(&self.catalog, id, folder, suggestion);
         self.editor.restart();

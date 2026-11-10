@@ -62091,7 +62091,7 @@
       "call_sites": [
         {
           "excerpt": "catalog.tr(\"jobs.delete.failed\")",
-          "line": 210,
+          "line": 211,
           "path": "crates/flea-gui/src/g2/op1/cards.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -63645,7 +63645,7 @@
       "call_sites": [
         {
           "excerpt": "None => (catalog.tr(\"jobs.newfile.default\"), String::new()),",
-          "line": 18,
+          "line": 19,
           "path": "crates/flea-gui/src/g2/op1/cards.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -63689,7 +63689,7 @@
       "call_sites": [
         {
           "excerpt": "*error = catalog.tr(\"jobs.newfile.slash\");",
-          "line": 164,
+          "line": 165,
           "path": "crates/flea-gui/src/g2/op1/cards.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -249356,7 +249356,7 @@
     "crates/flea-gui/src/g2/mn2/model.rs": "2f1d19a899fc0ab3a75101a88c89d0a12e479819bd1230567e62c4a7d61572cd",
     "crates/flea-gui/src/g2/mod.rs": "6a0a43968804b9a182dcd63cdf6e991db12cd45a1526610d35c23eb61306fddd",
     "crates/flea-gui/src/g2/op1/card_rate.rs": "5f879eccd1e2924b5cde044efe3d108022b506c987294c3ce7747b1f603ea3e8",
-    "crates/flea-gui/src/g2/op1/cards.rs": "5620500d82c0c7b7a680775c473fac2db1bba73c50652ba2cc0f6b212d5cc06f",
+    "crates/flea-gui/src/g2/op1/cards.rs": "dd49697a7410d9da250860cb4777f8d5d38250bd0769e98ffd505c0378f24334",
     "crates/flea-gui/src/g2/op1/cards_copy.rs": "6c1c21c842ecc2ecaaf877bcdcb9a55cf2120ff4bbd8ec4084fbc6f2c69a492a",
     "crates/flea-gui/src/g2/op1/cards_open.rs": "218a37f57766cec384eec1c569f29d988c2c405c75847c97838c923849bc8f7e",
     "crates/flea-gui/src/g2/op1/chosen.rs": "14a0afd9340671083349ae05a71ce4968808e5e9efc744e38f4ee0d43eb16390",
@@ -249365,14 +249365,14 @@
     "crates/flea-gui/src/g2/op1/dialog.rs": "1e14ed1e95d2d7c66852b016c77f7cce5168b3254f85baf520298acdc31bdf93",
     "crates/flea-gui/src/g2/op1/dialog_editor.rs": "56eb6bb2f29352e0b6afe589d4acb823c45e0a7f2ea3d11800c7f308015af735",
     "crates/flea-gui/src/g2/op1/draw_fixture.rs": "0edd04aeb3641f685797b1465d615a1a6945ceb34d27d5c473d58a4c757848bb",
-    "crates/flea-gui/src/g2/op1/editor.rs": "5459e09eb91feed061b04bdb862845d64ae756b14ab682f6a6fa622b42a10b86",
+    "crates/flea-gui/src/g2/op1/editor.rs": "0e725c233991c172ba46c504856d73e26d585b137d9d1848e3c5d35b4cc62494",
     "crates/flea-gui/src/g2/op1/feedback.rs": "91d77e822d74c81130ea11b56d1ea9f6d5ddc33721cff69b441644289ae0740f",
     "crates/flea-gui/src/g2/op1/field.rs": "3450ea9ce2584393de2e9a77c7d59320889a818bf7f4aa069fc53f3aa529df90",
     "crates/flea-gui/src/g2/op1/field_view.rs": "c67b2bbfabea9bdba03badfa2909afae212bcca5365f15c03ca79b96e4b7aef2",
     "crates/flea-gui/src/g2/op1/focus.rs": "7d4e2a5a07a42e4caf7b7400783b4b8e1d88fb3ade6e2b7d659ad5c61eb42b10",
     "crates/flea-gui/src/g2/op1/geometry.rs": "9fecbc31134f1a9e0b4d44f24e61a023d9a6ac1d1a7811ff5e017faf40505c5e",
     "crates/flea-gui/src/g2/op1/glyph.rs": "c1dab0dc06b1f23bab0c0251a491e17cbacc367472f8dacc772b83ded0715e83",
-    "crates/flea-gui/src/g2/op1/host.rs": "e34e3f7614066d65e8f8a9c2cdb269278a462258138bd92a85ca8528b1a2e52c",
+    "crates/flea-gui/src/g2/op1/host.rs": "b2577c039bcf198f6c8d1f35a5ff8ce86ac6be57ecf8570bd776f1f0f8fe693c",
     "crates/flea-gui/src/g2/op1/host_input.rs": "610a2d2dc115399913dce162e25ea60484bef3eaae1a04dab1cbc37cd6984bb3",
     "crates/flea-gui/src/g2/op1/input.rs": "7b7f94c8af33632d2d4085d32dc2af3f7c932cacebcf7a4bb2bb70bdd8369c57",
     "crates/flea-gui/src/g2/op1/ipc.rs": "fad70ec6d7fb7f59b9a10a930f484f7ba29438c46676728eb49e0153f7069e94",
@@ -251867,8 +251867,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "be72f06bf1da0c49074726f3e7d64f72db06868a",
-  "source_sha": "be72f06bf1da0c49074726f3e7d64f72db06868a",
+  "source_ref_sha": "409d273ca10a596341c5ca8cb707b98db1b926c5",
+  "source_sha": "409d273ca10a596341c5ca8cb707b98db1b926c5",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1334,

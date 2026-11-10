@@ -40,6 +40,7 @@ impl Editor {
 }
 
 impl Overlay {
+    /// Puts the keyboard on the card that just mounted, once its layer is in front.
     pub(crate) fn acquire_mount_focus(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if self
             .editor

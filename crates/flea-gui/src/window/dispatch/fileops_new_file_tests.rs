@@ -22,7 +22,7 @@ fn asked(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> impl FnMut() -> V
     move || std::iter::from_fn(&mut read).collect()
 }
 
-// Right click on the folder's blank space, where the background menu opens.
+/// Right click on the folder's blank space, where the background menu opens.
 pub(super) fn background_menu(shell: &Entity<Shell>, cx: &mut VisualTestContext) {
     let centre = read(shell, cx, "rowCentre", &["2"]);
     let mut values = centre
