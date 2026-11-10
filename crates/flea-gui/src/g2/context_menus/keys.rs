@@ -92,6 +92,16 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        self.menu_outcome_with_detail(outcome, None, window, cx);
+    }
+
+    pub(crate) fn menu_outcome_with_detail(
+        &mut self,
+        outcome: Outcome,
+        detail: Option<&str>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         if self.rename_menu_outcome(&outcome, window, cx)
             || self.tab_menu_outcome(&outcome, window, cx)
             || self.rail_menu_outcome(&outcome, window, cx)
@@ -104,7 +114,16 @@ impl Shell {
                 if let Some(waiting) = self.menu.external.take() {
                     waiting.answer(self.action_refused(key));
                 }
-                self.menu_refuse(key, cx);
+                if let Some(detail) = detail.filter(|detail| !detail.is_empty()) {
+                    let side = self
+                        .menu
+                        .captured
+                        .as_ref()
+                        .map_or(self.focus_side, |capture| capture.side);
+                    self.menu_notice(side, detail.to_owned(), cx);
+                } else {
+                    self.menu_refuse(key, cx);
+                }
                 self.retire_menu(window, cx);
             }
             Outcome::Fire { action, leaf } => {

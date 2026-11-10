@@ -163,6 +163,7 @@ impl DialogShell for OpenWithShell<'_> {
             surface: Some(self.surface),
             mount: None,
             measure: Some(self.measure),
+            scroll: None,
         };
         present(card, palette, typeface, corner, room, Some(&live), None)
     }
@@ -209,6 +210,7 @@ impl StandIn {
             surface: None,
             mount: None,
             measure: None,
+            scroll: None,
         };
         present(card, palette, typeface, corner, room, Some(&live), probe)
     }
@@ -228,6 +230,7 @@ impl DialogShell for Interactive<'_> {
             surface: Some(self.surface),
             mount: self.mount,
             measure: None,
+            scroll: None,
         };
         present(card, palette, typeface, corner, room, Some(&live), None)
     }
@@ -241,13 +244,18 @@ impl Interactive<'_> {
         typeface: &Typeface,
         corner: f32,
         room: f32,
-        probe: &crate::ipc::card_geometry::CardGeometry,
+        controls: (
+            &crate::ipc::card_geometry::CardGeometry,
+            &gpui::ScrollHandle,
+        ),
     ) -> AnyElement {
+        let (probe, scroll) = controls;
         let live = Live {
             wire: self.wire,
             surface: Some(self.surface),
             mount: self.mount,
             measure: None,
+            scroll: Some(scroll),
         };
         present(
             card,
@@ -267,6 +275,7 @@ struct Live<'a> {
     surface: Option<Hsla>,
     mount: Option<&'a Mount>,
     measure: Option<&'a crate::g2::file_ops::measured::Frame>,
+    scroll: Option<&'a gpui::ScrollHandle>,
 }
 
 mod frame;

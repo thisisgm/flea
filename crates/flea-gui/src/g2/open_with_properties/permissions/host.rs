@@ -18,7 +18,12 @@ use gpui::{
     div, prelude::*, App, Context, EventEmitter, FocusHandle, KeyDownEvent, MouseButton, Task,
     Window,
 };
-use std::{cell::RefCell, sync::Arc, time::Duration};
+use std::{
+    cell::{Cell, RefCell},
+    rc::Rc,
+    sync::Arc,
+    time::Duration,
+};
 
 mod editor;
 mod ime;
@@ -40,6 +45,9 @@ pub struct View {
     progress: Progress<Option<Card>>,
     pending: Vec<Effect>,
     beat: Option<(u64, Task<()>)>,
+    scroll: gpui::ScrollHandle,
+    painted_offset: Rc<Cell<gpui::Point<gpui::Pixels>>>,
+    revealed: Option<(Stop, gpui::Size<gpui::Pixels>)>,
 }
 
 impl EventEmitter<Changed> for View {}
@@ -70,6 +78,9 @@ impl View {
             progress: Progress::default(),
             pending: Vec::new(),
             beat: None,
+            scroll: Default::default(),
+            painted_offset: Default::default(),
+            revealed: None,
         };
         view.observe(cx);
         view
@@ -164,6 +175,12 @@ impl View {
         }
         if let Some(key) = key_of(event).map(|key| key.read(window.layout_mirrored())) {
             let effects = self.model.key(key);
+            reveal(
+                &self.probe,
+                &self.scroll,
+                self.model.focus,
+                self.painted_offset.get(),
+            );
             if stroke.key == "escape" && effects.contains(&Effect::Close) {
                 self.progress.supersede();
             }
@@ -213,6 +230,11 @@ impl Render for View {
         self.sync_editor();
         let now = self.now(cx);
         let snapshot = self.progress.commit(now).clone();
+        let changed = self.revealed != Some((self.model.focus, window.viewport_size()))
+            || self.painted.as_ref() != snapshot.as_ref();
+        if changed && matches!(self.model.focus, Stop::Apply | Stop::Cancel) {
+            self.scroll.scroll_to_bottom();
+        }
         self.schedule(cx);
         let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
         let palette = Palette::inherited(&window.text_style(), theme);
@@ -243,10 +265,21 @@ impl Render for View {
                 &typeface,
                 self.corner,
                 f32::from(window.viewport_size().width),
-                &self.probe,
+                (&self.probe, &self.scroll),
             )
         });
+        if card.is_some() {
+            self.revealed = Some((self.model.focus, window.viewport_size()));
+        }
+        let (probe, scroll, stop) = (self.probe.clone(), self.scroll.clone(), self.model.focus);
+        let painted_offset = self.painted_offset.clone();
         div()
+            .on_children_prepainted(move |_, window, _| {
+                painted_offset.set(scroll.offset());
+                if changed && reveal(&probe, &scroll, stop, painted_offset.get()) {
+                    window.refresh();
+                }
+            })
             .id("permissions-scrim")
             .size_full()
             .occlude()
@@ -267,4 +300,32 @@ impl Render for View {
             .children(card)
             .into_any_element()
     }
+}
+
+fn reveal(
+    probe: &crate::ipc::card_geometry::CardGeometry,
+    scroll: &gpui::ScrollHandle,
+    stop: Stop,
+    mut offset: gpui::Point<gpui::Pixels>,
+) -> bool {
+    let id = match stop {
+        Stop::Box(at) => format!("check:{at}"),
+        Stop::Octal => "field".into(),
+        Stop::Cancel => "button:0".into(),
+        Stop::Apply => "button:1".into(),
+    };
+    let (Some(control), Some(clip)) = (probe.probe.bounds(&id), probe.probe.bounds("scroll"))
+    else {
+        return false;
+    };
+    offset.y += if control.top() < clip.top() {
+        clip.top() - control.top()
+    } else if control.bottom() > clip.bottom() {
+        clip.bottom() - control.bottom()
+    } else {
+        gpui::px(0.)
+    };
+    let changed = offset != scroll.offset();
+    scroll.set_offset(offset);
+    changed
 }

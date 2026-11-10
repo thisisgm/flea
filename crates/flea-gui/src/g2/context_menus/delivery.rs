@@ -192,7 +192,13 @@ impl Shell {
                 self.refresh_menu(window, cx);
                 self.activate_menu(window, cx);
             } else {
-                self.menu_outcome(Outcome::Refused("menu.refusal.moved"), window, cx);
+                let detail = string(&reply, "error");
+                self.menu_outcome_with_detail(
+                    Outcome::Refused("menu.refusal.moved"),
+                    (operation == "validate").then_some(detail),
+                    window,
+                    cx,
+                );
             }
             return true;
         }

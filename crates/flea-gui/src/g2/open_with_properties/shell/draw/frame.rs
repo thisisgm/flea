@@ -26,6 +26,8 @@ pub(super) fn present(
     }
     let t = draw.t;
     let facts = super::super::facts::is_card(card);
+    let scroll = live.and_then(|live| live.scroll);
+    let bounded = facts || scroll.is_some();
     let head = card_heading(
         &card.title,
         &card.esc,
@@ -37,7 +39,7 @@ pub(super) fn present(
             .text_color(t.muted),
         draw.px(ROW_GAP),
     )
-    .when(facts, |d| d.flex_none());
+    .when(bounded, |d| d.flex_none());
     // The buttons close the frame; a measured card also ends on its own tracking canvas.
     let tail = 1 + usize::from(draw.measure.is_some());
     let frame = div()
@@ -56,7 +58,7 @@ pub(super) fn present(
         })
         .id("op3-frame")
         .relative()
-        .when(facts, |d| d.max_h_full())
+        .when(bounded, |d| d.max_h_full())
         .debug_selector(|| "op3-card".into())
         .w(px(scaled(card.width, f32::from(typeface.body), room)))
         .flex()
@@ -81,9 +83,13 @@ pub(super) fn present(
     if let Some(probe) = probe {
         probe.clear();
     }
-    let frame = draw.card_body(card, frame);
+    let frame = if scroll.is_some() {
+        frame
+    } else {
+        draw.card_body(card, frame)
+    };
     let mut buttons = div()
-        .when(facts, |d| d.flex_none())
+        .when(bounded, |d| d.flex_none())
         .mt(draw.px(ABOVE_BUTTONS))
         .flex()
         .justify_end()
@@ -99,15 +105,56 @@ pub(super) fn present(
             ),
         );
     }
+    let frame = if let Some(scroll) = scroll {
+        let body = draw
+            .card_body(
+                card,
+                div()
+                    .id("permissions-content")
+                    .flex()
+                    .flex_col()
+                    .gap(draw.px(GAP)),
+            )
+            .flex_none()
+            .child(buttons);
+        let viewport = div()
+            .id("permissions-scroll")
+            .relative()
+            .min_h_0()
+            .overflow_y_scroll()
+            .track_scroll(scroll)
+            .child(body);
+        let viewport = match probe {
+            Some(probe) => {
+                let probe = probe.clone();
+                viewport.child(
+                    gpui::canvas(
+                        move |_, window, _| {
+                            probe.probe.record("scroll", window.content_mask().bounds)
+                        },
+                        |_, _, _, _| {},
+                    )
+                    .absolute()
+                    .left_0()
+                    .top_0()
+                    .size_full(),
+                )
+            }
+            None => viewport,
+        };
+        frame.child(viewport)
+    } else {
+        frame.child(buttons)
+    };
     div()
         .size_full()
-        .when(facts, |d| d.p(draw.px(GAP)))
+        .when(bounded, |d| d.p(draw.px(GAP)))
         .flex()
         .items_center()
         .justify_center()
         .when_some(probe, |root, probe| {
             root.on_children_prepainted(probe.probe.first_child("card"))
         })
-        .child(draw.track(frame.child(buttons), "card"))
+        .child(draw.track(frame, "card"))
         .into_any_element()
 }

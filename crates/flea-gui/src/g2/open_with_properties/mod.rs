@@ -10,6 +10,8 @@ mod fixcards2_tests;
 mod fixcards_tests;
 #[cfg(test)]
 mod fxprops_tests;
+#[cfg(test)]
+mod fxuish_def2_tests;
 pub(crate) mod initial;
 pub mod keys;
 pub mod lane;

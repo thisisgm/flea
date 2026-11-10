@@ -33,7 +33,7 @@ crates/flea-gui/src/window/dispatch/quick_look_state_tests.rs 427
 crates/flea-gui/src/window/events_ipc.rs 425
 crates/flea-gui/src/window/network.rs 411
 crates/flea-gui/src/window/status.rs 408
-crates/flea-gui/src/g2/context_menus/delivery.rs 417
+crates/flea-gui/src/g2/context_menus/delivery.rs 423
 src/backend/mod.rs 407
 crates/flea-gui/src/window/columns_render.rs 407
 crates/flea-gui/src/window/composition.rs 401

@@ -243,8 +243,7 @@ fn open_with_opens_the_cursor_app_and_closes_only_on_the_backends_yes() {
             &parse(r#"{"t":"menuaction","id":4,"op":"openWith","ok":false,"error":"x"}"#).unwrap()
         )
         .is_empty());
-    assert!(notes(&card.card(&i18n))
-        .contains(&("The application could not be opened.".into(), Ink::Error)));
+    assert!(notes(&card.card(&i18n)).contains(&("x".into(), Ink::Error)));
     card.key(Key::Enter);
     assert_eq!(
         card.reply(

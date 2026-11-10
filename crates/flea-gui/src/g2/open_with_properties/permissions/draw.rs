@@ -107,15 +107,6 @@ impl Permissions {
                     ink: Ink::Error,
                     lift: 0.,
                 });
-                return Card {
-                    language: i18n.language().to_owned(),
-                    title,
-                    esc: tr("dialogs.file.esc"),
-                    width: WIDTH,
-                    bleed: false,
-                    body,
-                    buttons: vec![cancel(true)],
-                };
             }
             // A failed batch keeps its refusal visible while its modes are read again.
             Phase::Reading if self.error.is_empty() && self.refused.is_empty() => {
@@ -139,7 +130,12 @@ impl Permissions {
             body.push(Self::note(tr("dialogs.file.permissions.mixed")));
             let note = self.store.note_text(i18n, &self.paths);
             if !note.is_empty() {
-                body.push(Self::note(note));
+                body.push(Block::Note {
+                    text: note,
+                    inset: 0.,
+                    ink: Ink::Error,
+                    lift: 0.,
+                });
             }
         } else if self.phase != Phase::Reading {
             let kind = if !self.kind.is_empty() {
@@ -251,7 +247,12 @@ impl Permissions {
                 });
             }
             if !self.held.reason.is_empty() {
-                body.push(Self::note(logic::closed(&self.held.reason)));
+                body.push(Block::Note {
+                    text: logic::closed(&self.held.reason),
+                    inset: 0.,
+                    ink: Ink::Error,
+                    lift: 0.,
+                });
             }
         }
         if self.phase == Phase::Applying {
