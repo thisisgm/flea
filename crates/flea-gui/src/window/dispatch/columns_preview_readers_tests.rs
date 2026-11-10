@@ -41,6 +41,28 @@ fn columns_text_reader_preserves_the_native_too_large_sentinel(cx: &mut TestAppC
 }
 
 #[gpui::test]
+fn a_drawn_preview_subject_path_with_a_quote_reads_back_escaped(cx: &mut TestAppContext) {
+    use flea::jsondoc::{parse, Json};
+    let (shell, cx) = host::open(cx, "/files");
+    super::test_shell::land(
+        &shell,
+        cx,
+        "/files",
+        vec![host::file("a\"b.txt", "text-plain", "Text", 0o100644)],
+        1,
+    );
+    let lines = host::local(&shell, cx, "/files");
+    host::meta(&shell, cx, &lines, r#","lines":1"#);
+    host::pump(cx);
+    let state = parse(&read(&shell, cx, "previewSelectionState", &[])).unwrap();
+    assert_eq!(state.get("inlineVisible"), Some(&Json::Bool(true)));
+    assert_eq!(
+        state.get("path").and_then(Json::as_str),
+        Some("/files/a\"b.txt")
+    );
+}
+
+#[gpui::test]
 fn fx_uish_empty_search_hides_the_retained_preview_subject(cx: &mut TestAppContext) {
     use flea::jsondoc::{parse, Json};
     let (shell, cx) = host::open(cx, "/files");
