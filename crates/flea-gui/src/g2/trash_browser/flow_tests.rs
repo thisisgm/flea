@@ -3,6 +3,7 @@ use super::monitor::{Heard, Monitor};
 use super::seams::At;
 use super::tests::{answer, listed, opened, row, sent, Call};
 use crate::list::bench::real_cx;
+use std::io::Write;
 use std::time::{Duration, Instant};
 
 fn menus(calls: &[Call]) -> Vec<(Vec<&'static str>, At)> {
@@ -188,28 +189,27 @@ fn sh(script: &str) -> Vec<String> {
 #[test]
 fn the_monitor_reads_a_settled_count_per_burst_and_reports_failures() {
     let long = Duration::from_secs(10);
-    let (monitor, receiver) = Monitor::start_with(
-        sh("sleep 0.5; echo a; echo b; sleep 0.5; echo c; sleep 5"),
-        sh("echo '  trash::item-count: 3'"),
-    )
-    .unwrap();
+    let (monitor, receiver, mut input) =
+        super::monitor::controlled(sh("echo '  trash::item-count: 3'"));
+    assert_eq!(heard(&receiver, 1, long), [Heard::Count(3)]);
+    writeln!(input, "a\nb").unwrap();
     assert_eq!(
-        heard(&receiver, 5, long),
-        [
-            Heard::Count(3),
-            Heard::Changed,
-            Heard::Count(3),
-            Heard::Changed,
-            Heard::Count(3)
-        ],
-        "the start reads once, and each settled burst says it changed and reads once"
+        heard(&receiver, 2, long),
+        [Heard::Changed, Heard::Count(3)],
+        "the first real burst invalidates and reads once"
+    );
+    writeln!(input, "c").unwrap();
+    assert_eq!(
+        heard(&receiver, 2, long),
+        [Heard::Changed, Heard::Count(3)],
+        "the next burst invalidates and reads once"
     );
     assert!(
         heard(&receiver, 1, Duration::from_millis(700)).is_empty(),
         "a quiet watch reads nothing more"
     );
     drop(monitor);
-    let (_monitor, receiver) = Monitor::start_with(sh("sleep 5"), sh("exit 1")).unwrap();
+    let (_monitor, receiver, _input) = super::monitor::controlled(sh("exit 1"));
     assert_eq!(
         heard(&receiver, 1, long),
         [Heard::Failed("trash.monitor.count_failed")],

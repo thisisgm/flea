@@ -6,6 +6,17 @@ use std::process::{Child, Command, Stdio};
 use std::sync::mpsc::{self, RecvTimeoutError};
 use std::time::{Duration, Instant};
 
+#[cfg(test)]
+#[path = "monitor_tests.rs"]
+mod tests;
+#[cfg(test)]
+pub(super) use tests::{controlled, pane_watch, watch_input};
+
+enum Refresh {
+    Initial,
+    Changed,
+}
+
 /// What the rail's Trash row hears.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Heard {
@@ -83,31 +94,35 @@ impl Monitor {
 
     /// Any watch whose stdout lines are changes and any query that prints `trash::item-count: N`.
     pub fn start_with(watch: Vec<String>, query: Vec<String>) -> Started {
-        let mut child = spawn(&watch, Stdio::piped())?;
+        Ok(Self::from_child(spawn(&watch, Stdio::piped())?, query))
+    }
+
+    fn from_child(mut child: Child, query: Vec<String>) -> (Self, Receiver<Heard>) {
         let lines = child.stdout.take().expect("piped stdout");
         let (heard, receiver) = async_channel::unbounded();
         let (changes, changed) = mpsc::channel();
-        let _ = changes.send(());
+        let _ = changes.send(Refresh::Initial);
         std::thread::spawn(move || {
             for _ in BufReader::new(lines).lines().map_while(Result::ok) {
-                if changes.send(()).is_err() {
+                if changes.send(Refresh::Changed).is_err() {
                     return;
                 }
             }
         });
         std::thread::spawn(move || run(changed, query, heard));
-        Ok((Self { child }, receiver))
+        (Self { child }, receiver)
     }
 }
 
 // A burst settles SETTLE_MS, says it changed, then reads once; changes during a read run it once more and say so after.
-fn run(changed: mpsc::Receiver<()>, query: Vec<String>, heard: Sender<Heard>) {
+fn run(changed: mpsc::Receiver<Refresh>, query: Vec<String>, heard: Sender<Heard>) {
     let mut count = Count::default();
-    let mut started = false;
-    while changed.recv().is_ok() {
+    while let Ok(refresh) = changed.recv() {
+        // The startup seed only reads the count; a source line in any burst also invalidates the pane.
+        let mut dirty = matches!(refresh, Refresh::Changed);
         loop {
             match changed.recv_timeout(Duration::from_millis(SETTLE_MS)) {
-                Ok(()) => continue,
+                Ok(refresh) => dirty |= matches!(refresh, Refresh::Changed),
                 Err(RecvTimeoutError::Timeout) => break,
                 Err(RecvTimeoutError::Disconnected) => {
                     let _ = heard.send_blocking(Heard::Failed("trash.monitor.watch_failed"));
@@ -115,7 +130,7 @@ fn run(changed: mpsc::Receiver<()>, query: Vec<String>, heard: Sender<Heard>) {
                 }
             }
         }
-        if std::mem::replace(&mut started, true) && heard.send_blocking(Heard::Changed).is_err() {
+        if dirty && heard.send_blocking(Heard::Changed).is_err() {
             return;
         }
         let (mut again, mut more) = (count.refresh(), false);

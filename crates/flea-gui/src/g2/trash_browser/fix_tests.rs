@@ -1,6 +1,6 @@
 //! The delete card's lifetime against TrashView.qml: re-review on change, the 2500 ms check, keys during a review, Escape and the button's press.
 use super::board::HOVER;
-use super::monitor::{Heard, Monitor, Started};
+use super::monitor::{self, Heard};
 use super::pane::{Button, TrashPane};
 use super::tests::{answer, ink, listed, open, opened, row, sent, Call};
 use crate::list::bench::real_cx;
@@ -8,6 +8,7 @@ use flea::ui_logic_trash_browser::view::CHECK_MS;
 use gpui::{Modifiers, MouseButton, Point, TestAppContext, VisualTestContext, WindowHandle};
 use std::{
     cell::RefCell,
+    io::Write,
     rc::Rc,
     time::{Duration, Instant},
 };
@@ -161,21 +162,15 @@ fn an_open_card_checks_every_2500_ms_until_it_closes() {
     assert_eq!(checks(&calls), 2, "no check runs while no card is open");
 }
 
-fn burst() -> Started {
-    let sh = |script: &str| vec!["sh".to_string(), "-c".to_string(), script.to_string()];
-    Monitor::start_with(
-        sh("sleep 0.3; echo change; sleep 5"),
-        sh("echo 'trash::item-count: 1'"),
-    )
-}
-
 #[test]
 fn an_open_trash_starts_its_watch_and_re_reads_after_each_settled_burst() {
     let mut cx = real_cx();
+    // The monitor wakes the executor from real process-reader threads.
+    cx.executor().allow_parking();
     let (window, calls) = open(&mut cx);
     window
         .update(&mut cx, |pane, _, cx| {
-            pane.monitor_start = Some(burst);
+            pane.monitor_start = Some(monitor::pane_watch);
             pane.open("", cx);
         })
         .unwrap();
@@ -200,18 +195,46 @@ fn an_open_trash_starts_its_watch_and_re_reads_after_each_settled_burst() {
             .count()
     };
     let deadline = Instant::now() + Duration::from_secs(5);
-    while lists(&calls) < 2 && Instant::now() < deadline {
+    while !calls.borrow().contains(&Call::Count(3)) && Instant::now() < deadline {
         std::thread::sleep(Duration::from_millis(20));
         cx.run_until_parked();
     }
+    assert!(
+        calls.borrow().contains(&Call::Count(3)),
+        "the watch's initial count reaches the rail: {:?}",
+        calls.borrow()
+    );
+    assert_eq!(lists(&calls), 1, "startup alone does not re-read");
+    let counts = |calls: &Calls| {
+        calls
+            .borrow()
+            .iter()
+            .filter(|call| **call == Call::Count(3))
+            .count()
+    };
+    let mut input = monitor::watch_input();
+    writeln!(input, "change").unwrap();
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while (lists(&calls) < 2 || counts(&calls) < 2) && Instant::now() < deadline {
+        std::thread::sleep(Duration::from_millis(20));
+        cx.run_until_parked();
+    }
+    let state = window
+        .update(&mut cx, |pane, _, _| {
+            let view = pane.view();
+            (view.opened, view.pending_op.clone(), view.refresh_pending)
+        })
+        .unwrap();
     assert_eq!(
         lists(&calls),
         2,
-        "the settled burst re-reads the open listing"
+        "the settled burst re-reads the open listing: {state:?}, {:?}",
+        calls.borrow()
     );
-    assert!(
-        calls.borrow().contains(&Call::Count(1)),
-        "the watch's count reaches the rail"
+    assert_eq!(
+        counts(&calls),
+        2,
+        "the settled burst's count reaches the rail"
     );
 }
 
