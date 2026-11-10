@@ -107,6 +107,8 @@ pub struct CodeView {
     laid: Option<(paint::FrameKey, Rc<paint::Frame>)>,
     scroll: crate::g2::quick_look_overlay::scroller::Scroll,
     scroll_timer: Option<gpui::Task<()>>,
+    // End remains anchored while its final window is still being read.
+    end_pending: bool,
     matched: Option<search_match::Match>,
 }
 
@@ -150,6 +152,7 @@ impl CodeView {
             laid: None,
             scroll: Default::default(),
             scroll_timer: None,
+            end_pending: false,
             matched: None,
         }
     }
@@ -192,6 +195,7 @@ impl CodeView {
         self.offset = 0.;
         self.scroll = Default::default();
         self.scroll_timer = None;
+        self.end_pending = false;
         self.drop_shapes();
         let gated = size > self.max_bytes;
         self.lines.active = self.active && !gated;
@@ -202,6 +206,7 @@ impl CodeView {
 
     pub fn set_active(&mut self, active: bool, cx: &mut Context<Self>) {
         if !active {
+            self.end_pending = false;
             self.selection.clear();
             self.selection_read = None;
         }
@@ -256,6 +261,7 @@ impl CodeView {
     /// One `code` reply from the host; any other token is dropped.
     pub fn reply(&mut self, reply: Reply, cx: &mut Context<Self>) {
         if self.lines.answered(reply) {
+            self.settle_end();
             if self.refusal().is_some() {
                 self.selection.clear();
             }

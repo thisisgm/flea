@@ -96,7 +96,7 @@ impl Producer {
 
     /// Inspect only painted favorites, once per visible record set; failed reads retry on the next viewport change.
     pub(crate) fn inspect_visible(&mut self, cx: &mut Context<Self>) {
-        if !self.polling || self.places.read(cx).favourites.inspecting {
+        if !self.polling {
             return;
         }
         let entries = self.entries();
@@ -116,6 +116,11 @@ impl Producer {
             })
             .collect();
         if visible != self.inspected_visible {
+            // A viewport change during an inspect must still permit its next read after timeout.
+            if self.places.read(cx).favourites.inspecting {
+                self.inspected_visible.clear();
+                return;
+            }
             let indices: Vec<_> = visible.iter().map(|(index, _)| *index).collect();
             self.inspected_visible = visible;
             self.places

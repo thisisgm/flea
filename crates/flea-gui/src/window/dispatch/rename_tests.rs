@@ -3,6 +3,8 @@
 mod hidden;
 #[path = "rename_mouse_tests.rs"]
 mod mouse;
+#[path = "uish_def3_tests.rs"]
+mod uish_def3_tests;
 use super::test_shell::{keystroke, land, lists, open, row, set_cursor};
 use crate::{
     backend::{Backend, Event as BackendEvent},
