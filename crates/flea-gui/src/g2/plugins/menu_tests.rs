@@ -108,15 +108,27 @@ fn plugin(example: &str, root: &Path) -> (Plugin, Runtime) {
         std::fs::Permissions::from_mode(0o755),
     )
     .unwrap();
+    let protocol = jsondoc::parse(flea::plugin_runtime::protocol::CONTRACT).unwrap();
     let runtime = Runtime::new(Config {
         folder,
         manifest: manifest.clone(),
         hello: jsondoc::parse(r#"{"op":"hello","protocolVersion":1,"settings":{}}"#).unwrap(),
-        ready_timeout: Duration::from_secs(2),
+        ready_timeout: Duration::from_secs_f64(
+            protocol
+                .get("readyTimeoutSeconds")
+                .and_then(Json::as_f64)
+                .expect("docs/plugin-protocol.json readyTimeoutSeconds is a number"),
+        ),
         request_timeout: Duration::from_secs(2),
         idle_timeout: Duration::from_secs(60),
     });
-    runtime.ensure_ready().unwrap();
+    let started = std::time::Instant::now();
+    let ready = runtime.ensure_ready();
+    eprintln!(
+        "plugin readiness {example}: {:.6}s {ready:?}",
+        started.elapsed().as_secs_f64()
+    );
+    ready.unwrap();
     (
         Plugin {
             manifest,
