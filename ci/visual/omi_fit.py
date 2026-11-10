@@ -81,6 +81,7 @@ def caption_case(window, call, grab, output):
                 continue
             slot = [float(value) for value in state['omi']['slot'].split()]
             box = ink_box(path, slot, state['markColor'], 'Omi')
+            # Sample input: captionRect "580 394 130 14" is x y width height in window pixels.
             rect = [float(value) for value in state['captionRect'].split()]
             if len(rect) != 4 or after.get('captionRect') != state['captionRect']:
                 raise ValueError('caption layout changed during capture')

@@ -20,17 +20,10 @@ fn network_unchanged_gio_poll_reloads_saved_places(cx: &mut TestAppContext) {
     cx.executor().advance_clock(Duration::from_millis(5_000));
     cx.run_until_parked();
     shell.read_with(cx, |shell, _| {
-        assert!(
-            shell
-                .rail
-                .as_ref()
-                .unwrap()
-                .network
-                .as_ref()
-                .unwrap()
-                .listing
-                .running
-        );
+        let network = shell.rail.as_ref().unwrap().network.as_ref().unwrap();
+        assert!(network.listing.running);
+        // Starting the poll leaves the rows alone; only its completion rereads the saved places.
+        assert!(!network.rows.iter().any(|row| row.label == "After"));
     });
     recorder.answer(*recorder.find("-li").last().unwrap(), 0, text);
     cx.run_until_parked();

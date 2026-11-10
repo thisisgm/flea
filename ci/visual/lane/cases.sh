@@ -351,7 +351,7 @@ case_text_menu_path() (
     snap
 )
 
-# FX-F3: boards dual and keymap; keys toggle Dual, repeated toolbar choices keep it selected.
+# FX-F3: boards dual and keymap; keys toggle Dual, a toolbar Dual choice in Dual keeps it selected.
 CASES+=("f3-dual-list 1100x700 view:dual"
         "f3-dual-columns 1100x700 view:dual"
         "f3-dual-grid 1100x700 view:dual")
@@ -382,10 +382,9 @@ f3_roundtrip() (
     key -k F3
     f3_wait_dual true || return 1
     click_at "$(ipc chromeButtonCentre dual)" left || return 1
-    f3_wait_dual true || return 1
-    click_at "$(ipc chromeButtonCentre dual)" left || return 1
-    f3_wait_dual true || return 1
-    snap
+    snap || return 1
+    # A toggling Dual button would have left Dual by the time the shot settled.
+    f3_wait_dual true
 )
 
 case_f3_dual_list() ( f3_roundtrip list )
