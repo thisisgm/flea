@@ -25,8 +25,8 @@ impl Targets {
         self.0[side].retain(|origin| origin.kind != kind || origin.request != request);
     }
 
-    /// A receipt this pane asked for; one it did not belongs to the card that did. The kind counts too:
-    // a New File card's mkdir carries the card's own id, which is the number its pending newFile origin holds.
+    /// A receipt this pane asked for; one it did not belongs to the card that did. The kind counts
+    /// too: a New File card's mkdir carries the card's own id, which its pending newFile origin holds.
     pub(super) fn owns(&self, side: usize, kind: &str, request: u64) -> bool {
         self.0[side]
             .iter()

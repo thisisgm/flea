@@ -1,14 +1,12 @@
 //! New Folder opens Rename on the new folder once its re-read lands, as PaneWire.qml openRenameOnArrival does.
 use super::{
-    fileops_menu_tests::choose,
     fileops_tests::{create_card, creation_request, refocus, reply, wire},
     test_shell::{asked_on, land, land_on, lists, open, row, set_cursor},
 };
 use crate::{
     backend::Backend,
-    window::{input::ActionEvent, startup::View, u07_tests::read},
+    window::{input::ActionEvent, startup::View},
 };
-use gpui::{point, px, Modifiers, MouseButton};
 use gpui::TestAppContext;
 use std::{cell::RefCell, rc::Rc};
 

@@ -172,20 +172,26 @@ fn new_folder_off_screen(cx: &mut TestAppContext, view: View) {
 cx.simulate_keystrokes("ctrl-shift-n");
     // Ctrl+Shift+N opens the create card suggesting a folder; Create takes that suggestion.
     create_card(&shell, cx);
+    let sent_out = sent(&mut lines);
     assert_eq!(
-        sent(&mut lines),
-        [super::fileops_tests::creation_request(
-            &shell,
-            cx,
-            r#"{"c":"mkdir","path":"/files","defaultBase":"New Folder"}"#
-        )]
+        sent_out.len(),
+        1,
+        "the card put its mkdir on the wire: {sent_out:?}"
     );
+    // The card owns the receipt, so the reply names its request and the card closes on it.
+    let id = flea::json::field_usize(&sent_out[0], "request").unwrap();
     super::fileops_tests::reply(
         &shell,
         cx,
-        r#"{"t":"made","ok":true,"path":"/files/New Folder"}"#,
+        &format!(
+            r#"{{"t":"menuaction","op":"creation","id":{id},"kind":"made","ok":true,"path":"/files/New Folder"}}"#
+        ),
     );
+    super::fileops_tests::refocus(&shell, cx);
     super::test_shell::land(&shell, cx, "/files", rows, 2);
+    draw(cx);
+    // The card asked for the name, so the field the user sees is one they asked for: r opens Rename on the arrival.
+    cx.simulate_keystrokes("r");
     draw(cx);
     assert_eq!(
         editing(&shell, cx),
