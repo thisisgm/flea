@@ -366,6 +366,7 @@ fn disconnect(overlay: &mut Overlay, cx: &mut Context<Overlay>) {
     overlay.model.trash_held = None;
     overlay.model.menu_held = None;
     overlay.model.wire.transfer.running = false;
+    overlay.model.wire.queued.clear();
     overlay.model.pending_transfer_job = None;
     overlay.model.transfer_cancelling = false;
     overlay.model.wire.held.clear();

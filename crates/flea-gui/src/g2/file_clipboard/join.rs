@@ -216,20 +216,6 @@ impl Shell {
             cx.write_to_clipboard(ClipboardItem::new_string(text));
         }
         for (ask, captured) in asks.0 {
-            // A running transfer leaves navigation and other operation producers live, but a paste refuses until it ends.
-            if self
-                .operation_view(side)
-                .is_some_and(|view| view.read(cx).model.wire.transfer.running)
-            {
-                let sentence = self.locale.catalog.tr("jobs.error.busy");
-                if let Some(host) = self.panes[side].as_mut() {
-                    host.status = sentence.clone().into();
-                }
-                self.status_messages(cx, |messages, now| {
-                    messages.say(&sentence, true, "", Hint::None, now)
-                });
-                continue;
-            }
             let Some((request, cut)) = request(&ask) else {
                 self.clipboard_image(side, &ask, cx);
                 continue;
