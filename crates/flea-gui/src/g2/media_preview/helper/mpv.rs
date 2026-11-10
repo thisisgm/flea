@@ -2,7 +2,6 @@
 use super::mpv_api::{Event as MpvEvent, *};
 use super::{opaque, Options, Output, INPUT};
 use flea::ui_logic_media_preview::frame::{Command, Event, Failure};
-use flea::ui_logic_media_preview::picture::decode_size;
 use flea::ui_logic_media_preview::tonemap::stall_due;
 use std::ffi::{c_int, c_void};
 use std::ptr;
@@ -12,6 +11,13 @@ use std::time::{Duration, Instant};
 #[path = "mpv_state.rs"]
 mod state;
 use state::State;
+
+#[path = "mpv_rotation.rs"]
+mod rotation;
+
+#[path = "mpv_render.rs"]
+mod render;
+use render::{frame_due, render};
 
 #[path = "mpv_property.rs"]
 mod properties;
@@ -85,6 +91,8 @@ pub fn run(
         ("sub-auto", "no"),
         ("ytdl", "no"),
         ("hwdec", "no"),
+        // The software VO crashes on metadata rotation in mpv 0.41; Flea rotates its output.
+        ("video-rotate", "no"),
         ("vo", "libmpv"),
         ("ao", audio),
         ("keep-open", "yes"),
@@ -170,6 +178,7 @@ fn play(
 ) -> Result<(), String> {
     let mut state = State::new(options.autoplay);
     let mut buffer: Vec<u8> = Vec::new();
+    let mut rotated = Vec::new();
     // A frame released unseen while its size was unknown; it is drawn again once the size is known.
     let mut owed = false;
     state.box_size = (options.box_w, options.box_h);
@@ -206,12 +215,7 @@ fn play(
                 }
                 Command::Resize(w, h) => {
                     state.box_size = (w, h);
-                    state.size = decode_size(
-                        state.clip.0.clamp(0, MAX_SIDE) as u32,
-                        state.clip.1.clamp(0, MAX_SIDE) as u32,
-                        w,
-                        h,
-                    );
+                    state.update_size();
                     redraw = true;
                 }
                 Command::Quit => return Ok(()),
@@ -272,7 +276,9 @@ fn play(
                     if event.userdata == PAUSE {
                         progress = Instant::now();
                     }
-                    property(api, handle, event, &mut state, out)?
+                    let before = (state.size, state.rotation);
+                    property(api, handle, event, &mut state, out)?;
+                    redraw |= before != (state.size, state.rotation);
                 }
                 _ => {}
             }
@@ -309,12 +315,13 @@ fn play(
         if draw == super::Draw::Frame && (owed || redraw || frame_due(api, context)?) {
             owed = false;
             redraw = false;
-            let (width, height) = state.size;
+            let (width, height) = state.rotation.dimensions(state.size);
             let stride = width as usize * 4;
             buffer.resize(stride * height as usize, 0);
             render(api, context, width, height, stride, &mut buffer)?;
             opaque(&mut buffer);
-            io(out.frame(width, height, &buffer))?;
+            let pixels = state.rotation.apply(width, height, &buffer, &mut rotated);
+            io(out.frame(state.size.0, state.size.1, pixels))?;
             continue;
         }
         let _ = notified.recv_timeout(Duration::from_millis(10));
@@ -334,60 +341,4 @@ fn seek(api: &Api, handle: Handle, state: &mut State, target: i64) {
         }
         Err(error) => eprintln!("flea-media: seek dropped: {error}"),
     }
-}
-
-fn frame_due(api: &Api, context: Handle) -> Result<bool, String> {
-    let mut info = FrameInfo {
-        flags: 0,
-        target_time: 0,
-    };
-    let parameter = Param {
-        kind: RENDER_NEXT_FRAME_INFO,
-        data: (&mut info as *mut FrameInfo).cast(),
-    };
-    // SAFETY: NEXT_FRAME_INFO fills an mpv_render_frame_info.
-    check(
-        unsafe { (api.render_info)(context, parameter) },
-        "frame info",
-    )?;
-    Ok(info.flags & FRAME_INFO_PRESENT != 0)
-}
-
-fn render(
-    api: &Api,
-    context: Handle,
-    width: u32,
-    height: u32,
-    stride: usize,
-    buffer: &mut [u8],
-) -> Result<(), String> {
-    let mut size = [width as c_int, height as c_int];
-    let mut stride = stride;
-    let mut parameters = [
-        Param {
-            kind: RENDER_SW_SIZE,
-            data: size.as_mut_ptr().cast(),
-        },
-        Param {
-            kind: RENDER_SW_FORMAT,
-            data: c"bgr0".as_ptr().cast_mut().cast(),
-        },
-        Param {
-            kind: RENDER_SW_STRIDE,
-            data: (&mut stride as *mut usize).cast(),
-        },
-        Param {
-            kind: RENDER_SW_POINTER,
-            data: buffer.as_mut_ptr().cast(),
-        },
-        Param {
-            kind: 0,
-            data: ptr::null_mut(),
-        },
-    ];
-    // SAFETY: the buffer holds stride * height bytes and outlives the call.
-    check(
-        unsafe { (api.render)(context, parameters.as_mut_ptr()) },
-        "render",
-    )
 }

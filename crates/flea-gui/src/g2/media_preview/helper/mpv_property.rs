@@ -68,17 +68,14 @@ pub(super) fn property(
         }
         SOURCE_WIDTH => state.tonemap.source.width = int().clamp(0, MAX_SIDE) as u32,
         SOURCE_HEIGHT => state.tonemap.source.height = int().clamp(0, MAX_SIDE) as u32,
-        ROTATE => state.tonemap.source.rotated = int() % 360 != 0,
+        ROTATE => {
+            state.tonemap.source.rotated = int() % 360 != 0;
+            state.rotate(int());
+        }
         _ => {}
     }
     if matches!(event.userdata, WIDTH | HEIGHT) {
-        let (w, h) = state.clip;
-        state.size = decode_size(
-            w.clamp(0, MAX_SIDE) as u32,
-            h.clamp(0, MAX_SIDE) as u32,
-            state.box_size.0,
-            state.box_size.1,
-        );
+        state.update_size();
     }
     Ok(())
 }

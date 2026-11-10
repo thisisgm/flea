@@ -117721,7 +117721,7 @@
     },
     {
       "excerpt": "return Err(\"mpv_create failed\".into());",
-      "line": 74,
+      "line": 80,
       "literal": "mpv_create failed",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/media_preview/helper/mpv.rs",
@@ -117730,7 +117730,7 @@
     },
     {
       "excerpt": "let pause = if options.autoplay { \"no\" } else { \"yes\" };",
-      "line": 76,
+      "line": 82,
       "literal": "yes",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/media_preview/helper/mpv.rs",
@@ -117739,7 +117739,7 @@
     },
     {
       "excerpt": "(\"keep-open\", \"yes\"),",
-      "line": 90,
+      "line": 98,
       "literal": "yes",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/media_preview/helper/mpv.rs",
@@ -117748,7 +117748,7 @@
     },
     {
       "excerpt": "let result = check(created, \"render create\").and_then(|()| {",
-      "line": 118,
+      "line": 126,
       "literal": "render create",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/media_preview/helper/mpv.rs",
@@ -117757,7 +117757,7 @@
     },
     {
       "excerpt": "set(api, handle, \"pause\", \"yes\")?;",
-      "line": 192,
+      "line": 201,
       "literal": "yes",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/media_preview/helper/mpv.rs",
@@ -117766,7 +117766,7 @@
     },
     {
       "excerpt": "set(api, handle, \"pause\", \"yes\")?;",
-      "line": 195,
+      "line": 204,
       "literal": "yes",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/media_preview/helper/mpv.rs",
@@ -117775,7 +117775,7 @@
     },
     {
       "excerpt": "Command::Mute(muted) => set(api, handle, \"mute\", if muted { \"yes\" } else { \"no\" })?,",
-      "line": 202,
+      "line": 211,
       "literal": "yes",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/media_preview/helper/mpv.rs",
@@ -117784,7 +117784,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea-media: seek dropped: {error}\");",
-      "line": 230,
+      "line": 234,
       "literal": "flea-media: seek dropped: {error}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/media_preview/helper/mpv.rs",
@@ -117793,7 +117793,7 @@
     },
     {
       "excerpt": "check(event.error, \"command reply\")?;",
-      "line": 237,
+      "line": 241,
       "literal": "command reply",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/media_preview/helper/mpv.rs",
@@ -117802,7 +117802,7 @@
     },
     {
       "excerpt": "drop_filter(api, handle, &mut state, \"no frame came\");",
-      "line": 287,
+      "line": 293,
       "literal": "no frame came",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/media_preview/helper/mpv.rs",
@@ -117811,17 +117811,8 @@
     },
     {
       "excerpt": "Err(error) => eprintln!(\"flea-media: seek dropped: {error}\"),",
-      "line": 335,
+      "line": 342,
       "literal": "flea-media: seek dropped: {error}",
-      "owner": "I50-07",
-      "path": "crates/flea-gui/src/g2/media_preview/helper/mpv.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "gui"
-    },
-    {
-      "excerpt": "\"frame info\",",
-      "line": 351,
-      "literal": "frame info",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/media_preview/helper/mpv.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -117851,6 +117842,15 @@
       "literal": "flea-media: tone map dropped: {why}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/media_preview/helper/mpv_filter.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "\"frame info\",",
+      "line": 16,
+      "literal": "frame info",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/media_preview/helper/mpv_render.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "gui"
     },
@@ -254406,11 +254406,13 @@
     "crates/flea-gui/src/g2/media_preview/glyphs.rs": "2ec013de1b46b6205f467687250f092ba33517b40c99f290a5a330344c473223",
     "crates/flea-gui/src/g2/media_preview/helper/dl.rs": "ef99b9dc258671076c2bdbda6edf9dad4576084c6e5545e85af6c562d7b841bc",
     "crates/flea-gui/src/g2/media_preview/helper/mod.rs": "894973cdbe3f206c1cd2a00b5f00beb86b51a5f9b381b313895640eb0305489a",
-    "crates/flea-gui/src/g2/media_preview/helper/mpv.rs": "fbdb188d5f6d4ac2fdd9c92641c912d890ff0eb4756cd7a7a90f1b88d72dd67d",
+    "crates/flea-gui/src/g2/media_preview/helper/mpv.rs": "00e25c10277eac201bed9652be1f38bb4bdf3fbaf39564b3866c7d9f992776b8",
     "crates/flea-gui/src/g2/media_preview/helper/mpv_api.rs": "65506325a7bc7884ee866c782c2de4aadf9de07321ca70f9269f262e17bd34f6",
     "crates/flea-gui/src/g2/media_preview/helper/mpv_filter.rs": "829ee11ad9f91cdf09b5aa7020dbe056d7fa5baff02fbd8b0aa1d777eb9ab93c",
-    "crates/flea-gui/src/g2/media_preview/helper/mpv_property.rs": "e307c259a78798d060c5ffa83eb49a85faeae5e6121ec6ea599a51ce2b79927f",
-    "crates/flea-gui/src/g2/media_preview/helper/mpv_state.rs": "440f96557ed1a67d0d74e968edffca9d4a214f4a461d83a835d01a8cb80df756",
+    "crates/flea-gui/src/g2/media_preview/helper/mpv_property.rs": "9b909887670c770857ef723be9b294ffbf572566ed551e5db117b5a9d3a7f0f3",
+    "crates/flea-gui/src/g2/media_preview/helper/mpv_render.rs": "35176d35837240ba4b54653d21330153c3615fec1360de97f6cbdc473b70cd5f",
+    "crates/flea-gui/src/g2/media_preview/helper/mpv_rotation.rs": "f5ab6f301a626f457269f0338d1edd15f35fc24c1375b6920fdc10c6b9ff544a",
+    "crates/flea-gui/src/g2/media_preview/helper/mpv_state.rs": "954849066ca366d66936e15853855c61491fd03f2c5df67230f7ce3516af43be",
     "crates/flea-gui/src/g2/media_preview/ink.rs": "fc5d70deb8541c3add416b40c4d9cb12354d475983d762671019144c28e974a5",
     "crates/flea-gui/src/g2/media_preview/kit.rs": "6cc843d7ee4e32bc243e72f7588e6708e0e5502e449d02e9ad37689c60b31110",
     "crates/flea-gui/src/g2/media_preview/kit/headless.rs": "ebf7e3d8de7605be9b4c177cfdde5d681f81e421881402cfcf51b48ccef46f24",
@@ -256827,8 +256829,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "054592815155d1fcc4501d38cc500c2c7c410244",
-  "source_sha": "054592815155d1fcc4501d38cc500c2c7c410244",
+  "source_ref_sha": "7371f72bd4f6fae0e9ac525c25b378b5bc2c7631",
+  "source_sha": "7371f72bd4f6fae0e9ac525c25b378b5bc2c7631",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1377,
@@ -256843,7 +256845,7 @@
     "gui": {
       "keys_with_occurrences": 566,
       "missing_literal_candidates": 2304,
-      "source_files": 1203
+      "source_files": 1205
     },
     "qml-reference": {
       "keys_with_occurrences": 0,
