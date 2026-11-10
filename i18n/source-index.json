@@ -173321,7 +173321,7 @@
     },
     {
       "excerpt": ".ok_or_else(|| Reply::error(USAGE, \"flea: --window needs a window's process id\"))?,",
-      "line": 48,
+      "line": 50,
       "literal": "flea: --window needs a window's process id",
       "owner": "controller",
       "path": "src/ipc/action.rs",
@@ -173330,7 +173330,7 @@
     },
     {
       "excerpt": "format!(\"flea: no running Flea window has process id {pid}\"),",
-      "line": 137,
+      "line": 139,
       "literal": "flea: no running Flea window has process id {pid}",
       "owner": "controller",
       "path": "src/ipc/action.rs",
@@ -173339,7 +173339,7 @@
     },
     {
       "excerpt": "\"flea: no Flea window is running, so there is nothing to run the action in\",",
-      "line": 149,
+      "line": 151,
       "literal": "flea: no Flea window is running, so there is nothing to run the action in",
       "owner": "controller",
       "path": "src/ipc/action.rs",
@@ -173348,7 +173348,7 @@
     },
     {
       "excerpt": "if answer == \"Function not found.\" {",
-      "line": 175,
+      "line": 177,
       "literal": "Function not found.",
       "owner": "controller",
       "path": "src/ipc/action.rs",
@@ -173357,7 +173357,7 @@
     },
     {
       "excerpt": "\"flea: that window is an older Flea that cannot run actions\",",
-      "line": 178,
+      "line": 180,
       "literal": "flea: that window is an older Flea that cannot run actions",
       "owner": "controller",
       "path": "src/ipc/action.rs",
@@ -173366,7 +173366,7 @@
     },
     {
       "excerpt": "\"it answered nothing\"",
-      "line": 187,
+      "line": 189,
       "literal": "it answered nothing",
       "owner": "controller",
       "path": "src/ipc/action.rs",
@@ -173375,7 +173375,7 @@
     },
     {
       "excerpt": "\"list its actions\"",
-      "line": 192,
+      "line": 194,
       "literal": "list its actions",
       "owner": "controller",
       "path": "src/ipc/action.rs",
@@ -173384,7 +173384,7 @@
     },
     {
       "excerpt": "\"run the action\"",
-      "line": 194,
+      "line": 196,
       "literal": "run the action",
       "owner": "controller",
       "path": "src/ipc/action.rs",
@@ -173393,7 +173393,7 @@
     },
     {
       "excerpt": "format!(\"flea: the window could not {what}: {said}\"),",
-      "line": 198,
+      "line": 200,
       "literal": "flea: the window could not {what}: {said}",
       "owner": "controller",
       "path": "src/ipc/action.rs",
@@ -173401,17 +173401,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "format!(\"flea: the window sockets could not be read: {error}\"),",
-      "line": 208,
-      "literal": "flea: the window sockets could not be read: {error}",
-      "owner": "controller",
-      "path": "src/ipc/action.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
       "excerpt": "\"flea: no Flea window is running, so there is nothing to run the action in\",",
-      "line": 233,
+      "line": 220,
       "literal": "flea: no Flea window is running, so there is nothing to run the action in",
       "owner": "controller",
       "path": "src/ipc/action.rs",
@@ -173420,7 +173411,7 @@
     },
     {
       "excerpt": "format!(\"flea: the window did not answer: {error}\"),",
-      "line": 238,
+      "line": 225,
       "literal": "flea: the window did not answer: {error}",
       "owner": "controller",
       "path": "src/ipc/action.rs",
@@ -173429,7 +173420,16 @@
     },
     {
       "excerpt": "format!(\"flea: the window sockets could not be read: {error}\"),",
-      "line": 252,
+      "line": 236,
+      "literal": "flea: the window sockets could not be read: {error}",
+      "owner": "controller",
+      "path": "src/ipc/action.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "format!(\"flea: the window sockets could not be read: {error}\"),",
+      "line": 266,
       "literal": "flea: the window sockets could not be read: {error}",
       "owner": "controller",
       "path": "src/ipc/action.rs",
@@ -255220,7 +255220,7 @@
     "src/icdidle.rs": "d8edd4fc1af38af9b8232091be6e273a3abcdb1b67d6ff7390722fa94e7231d5",
     "src/icdmanifests.rs": "c2bcea2c13b9040b29227c87c0a3390f66418634254a74e73593acdca2d75f9c",
     "src/imageopen.rs": "6d47af1c9adde00c736a2ab66df1b89624dcf81e462023ba458dcc19b11626b4",
-    "src/ipc/action.rs": "3f8c4c85b6af83f08161e84f6f19b193506c086d3dde96989b3429d61a09c953",
+    "src/ipc/action.rs": "94b1072371410caa33f81f9fc26d91d96cf703a41a76fb6b5fa0d9b7338d3b5c",
     "src/ipc/client.rs": "682696422484cbae3607af65dcd62c979477fa270dc6aaedaa95ef08908e5758",
     "src/ipc/connect.rs": "c925872e7cd791de2f0f7f0879f97deda86c82b64b65b651bdc89d077ccbe677",
     "src/ipc/endpoint.rs": "7bb9cec043f4c037dd9ac3b4ae6a80e2716d9fdbfe87a8a56716b2206f83612d",
@@ -256312,8 +256312,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "229d1c17bbf1b3ef7dc3a038d2ab4d5d32dee6ea",
-  "source_sha": "229d1c17bbf1b3ef7dc3a038d2ab4d5d32dee6ea",
+  "source_ref_sha": "97396abfb78e90339b38f106fa54829b3feded56",
+  "source_sha": "97396abfb78e90339b38f106fa54829b3feded56",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1377,
