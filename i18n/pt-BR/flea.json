@@ -2237,6 +2237,7 @@
   "settings.row.use_this_folder": "Usar esta pasta",
   "settings.row.view": "Última visualização usada",
   "settings.row.wrap": "Dar a volta nos extremos da lista",
+  "settings.row.grid_wrap_rows": "Wrap across grid rows",
   "settings.section.about": "Sobre",
   "settings.section.display": "Tela",
   "settings.section.keys": "Teclas",

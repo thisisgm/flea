@@ -1,5 +1,5 @@
 //! Grid input uses the drawn tile mask and the shared key table, with no per-tile handlers.
-use super::{arrow, host::GridHost, Arrow, Shown};
+use super::{arrow_with_wrap, host::GridHost, Arrow, Shown};
 use crate::{
     list::pane::page_items,
     state::Shell,
@@ -47,9 +47,18 @@ impl Shell {
         let Some(grid) = host.grid.as_ref() else {
             return false;
         };
-        let total = host.pane.held.total;
+        let listing_total = host.pane.held.total;
+        let shown = host
+            .input
+            .shown
+            .as_deref()
+            .map_or(Shown::All(listing_total), Shown::Only);
+        let total = shown.total();
         let cursor = host.pane.cursor;
-        let layout = grid.view.layout(Shown::All(total));
+        let cursor_view = shown.view_of(cursor);
+        let wrap_rows =
+            flea::ui_logic_st1::pages::is_true(&self.launch.settings.data, &["gridWrapRows"]);
+        let layout = grid.view.layout(shown);
         let step = match action {
             "cursorUp" => Some(Arrow::Up),
             "cursorDown" => Some(Arrow::Down),
@@ -60,14 +69,15 @@ impl Shell {
             _ => None,
         };
         let next = if let Some(step) = step {
-            arrow(layout.columns, Some(cursor), total, step)
+            arrow_with_wrap(layout.columns, cursor_view, total, step, wrap_rows)
         } else {
             let page = page_items(host.pane.visible_rows());
+            let at = cursor_view.unwrap_or(0);
             match action {
                 "cursorFirst" => Some(0),
                 "cursorLast" => total.checked_sub(1),
-                "pageUp" => Some(cursor.saturating_sub(page)),
-                "pageDown" => Some(cursor.saturating_add(page).min(total.saturating_sub(1))),
+                "pageUp" => Some(at.saturating_sub(page)),
+                "pageDown" => Some(at.saturating_add(page).min(total.saturating_sub(1))),
                 _ => return false,
             }
         };
@@ -86,7 +96,7 @@ impl Shell {
                 cx.notify();
             }
         }
-        if let Some(next) = next.filter(|next| *next < total) {
+        if let Some(next) = next.and_then(|view| shown.at(view)) {
             if let Some(grid) = host.grid.as_mut() {
                 grid.refollow();
             }

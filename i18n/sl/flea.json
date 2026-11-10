@@ -2363,6 +2363,7 @@
   "settings.row.use_this_folder": "Uporabi to mapo",
   "settings.row.view": "Nazadnje uporabljen pogled",
   "settings.row.wrap": "Na koncih seznama preskoči na drug konec",
+  "settings.row.grid_wrap_rows": "Wrap across grid rows",
   "settings.section.about": "Vizitka",
   "settings.section.display": "Zaslon",
   "settings.section.keys": "Tipke",

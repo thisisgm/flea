@@ -10,8 +10,13 @@ mod fix3_tests;
 pub mod geometry;
 mod glide;
 pub use glide::Glide;
+mod arrows;
+pub use arrows::{arrow, arrow_with_wrap, Arrow};
 mod zoom;
 pub use zoom::{zoom_travel, ZoomInput};
+#[cfg(test)]
+#[path = "arrow_tests.rs"]
+mod arrow_tests;
 pub(crate) mod host;
 mod input;
 #[cfg(test)]
@@ -84,30 +89,6 @@ impl Shown<'_> {
 
 mod focus;
 pub use focus::{FocusFacts, FocusSnapshot};
-
-/// The four grid arrows of keys.toml; Page, Home and End are the shared cursor moves.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Arrow {
-    Up,
-    Down,
-    Left,
-    Right,
-    ExtendUp,
-    ExtendDown,
-}
-
-/// Grid.js arrow: the view position an arrow lands on, None when it is held at a row edge or a listing end, where the key is still taken.
-pub fn arrow(columns: usize, view: Option<usize>, total: usize, step: Arrow) -> Option<usize> {
-    let (view, columns) = (view?, columns.max(1));
-    let next = match step {
-        Arrow::Down | Arrow::ExtendDown => view.checked_add(columns)?,
-        Arrow::Up | Arrow::ExtendUp => view.checked_sub(columns)?,
-        Arrow::Left if view % columns == 0 => return None,
-        Arrow::Left => view - 1,
-        Arrow::Right => view + 1,
-    };
-    (next < total && !(step == Arrow::Right && next % columns == 0)).then_some(next)
-}
 
 /// Why the view moved or asked, counted so tests and the IPC seam can read the policy back.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

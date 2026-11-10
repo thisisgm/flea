@@ -2237,6 +2237,7 @@
   "settings.row.use_this_folder": "Usar esta carpeta",
   "settings.row.view": "Última vista usada",
   "settings.row.wrap": "Continuar al otro extremo de la lista",
+  "settings.row.grid_wrap_rows": "Wrap across grid rows",
   "settings.section.about": "Acerca de",
   "settings.section.display": "Pantalla",
   "settings.section.keys": "Teclas",

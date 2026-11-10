@@ -2237,6 +2237,7 @@
   "settings.row.use_this_folder": "Izmantot šo mapi",
   "settings.row.view": "Pēdējais lietotais skats",
   "settings.row.wrap": "Saraksta galos pāriet uz otru galu",
+  "settings.row.grid_wrap_rows": "Wrap across grid rows",
   "settings.section.about": "Par",
   "settings.section.display": "Displejs",
   "settings.section.keys": "Taustiņi",

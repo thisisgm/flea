@@ -2152,6 +2152,7 @@
   "settings.row.use_this_folder": "Gamitin ang folder na ito",
   "settings.row.view": "Huling ginamit na tingin",
   "settings.row.wrap": "Umikot sa mga dulo ng listahan",
+  "settings.row.grid_wrap_rows": "Wrap across grid rows",
   "settings.section.about": "Tungkol",
   "settings.section.display": "Display",
   "settings.section.keys": "Mga key",

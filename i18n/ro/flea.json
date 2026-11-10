@@ -2237,6 +2237,7 @@
   "settings.row.use_this_folder": "Folosește acest dosar",
   "settings.row.view": "Ultima vizualizare folosită",
   "settings.row.wrap": "Reia de la capăt la sfârșitul listei",
+  "settings.row.grid_wrap_rows": "Wrap across grid rows",
   "settings.section.about": "Despre",
   "settings.section.display": "Afișaj",
   "settings.section.keys": "Taste",

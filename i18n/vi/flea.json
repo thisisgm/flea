@@ -2105,6 +2105,7 @@
   "settings.row.use_this_folder": "Dùng thư mục này",
   "settings.row.view": "Chế độ xem gần nhất",
   "settings.row.wrap": "Quay vòng ở hai đầu danh sách",
+  "settings.row.grid_wrap_rows": "Wrap across grid rows",
   "settings.section.about": "Giới thiệu",
   "settings.section.display": "Hiển thị",
   "settings.section.keys": "Phím",

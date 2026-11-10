@@ -2237,6 +2237,7 @@
   "settings.row.use_this_folder": "Utiliser ce dossier",
   "settings.row.view": "Dernière vue utilisée",
   "settings.row.wrap": "Reprendre à l’autre extrémité de la liste",
+  "settings.row.grid_wrap_rows": "Wrap across grid rows",
   "settings.section.about": "À propos",
   "settings.section.display": "Affichage",
   "settings.section.keys": "Touches",

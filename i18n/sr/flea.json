@@ -2277,6 +2277,7 @@
   "settings.row.use_this_folder": "Користи ову фасциклу",
   "settings.row.view": "Последњи коришћени приказ",
   "settings.row.wrap": "Кружи на крајевима списка",
+  "settings.row.grid_wrap_rows": "Wrap across grid rows",
   "settings.section.about": "О програму",
   "settings.section.display": "Екран",
   "settings.section.keys": "Тастери",

@@ -834,6 +834,7 @@
   "settings.row.lang_marks": "코드 아이콘 표시",
   "settings.row.remember_sort": "폴더별 정렬 기억",
   "settings.row.wrap": "목록 끝에서 반대쪽으로 이동",
+  "settings.row.grid_wrap_rows": "Wrap across grid rows",
   "settings.row.escape_up": "Escape로 상위 폴더 이동",
   "settings.row.start_in": "Flea 시작 위치",
   "settings.row.start_folder": "선택한 폴더",

@@ -2191,6 +2191,7 @@
   "settings.row.use_this_folder": "Използвай тази папка",
   "settings.row.view": "Последно използван изглед",
   "settings.row.wrap": "Преминавай между краищата на списъка",
+  "settings.row.grid_wrap_rows": "Wrap across grid rows",
   "settings.section.about": "За",
   "settings.section.display": "Дисплей",
   "settings.section.keys": "Клавиши",

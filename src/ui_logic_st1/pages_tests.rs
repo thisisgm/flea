@@ -159,6 +159,8 @@ fn view_rows_read_every_stored_value() {
     assert_eq!(SECTIONS[section_index("preview")].glyph, "preview");
     assert_eq!(say(&find(&rows, "groupByKind").caption), "folders, photos, files");
     assert_eq!(say(&find(&rows, "wrapAtEnds").caption), "up at the top");
+    assert!(!find(&view("{}"), "gridWrapRows").on);
+    assert!(find(&view(r#"{"gridWrapRows":true}"#), "gridWrapRows").on);
     let escape = find(&rows, "escapeUp");
     assert_eq!(format!("{}|{}|{}", say(&escape.label), escape.on, say(&escape.caption)), "Escape goes up a folder|false|with nothing to close");
     assert!(find(&view(r#"{"escapeUp":true}"#), "escapeUp").on);

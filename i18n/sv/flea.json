@@ -2191,6 +2191,7 @@
   "settings.row.use_this_folder": "Använd den här mappen",
   "settings.row.view": "Senast använda vy",
   "settings.row.wrap": "Fortsätt från andra änden av listan",
+  "settings.row.grid_wrap_rows": "Wrap across grid rows",
   "settings.section.about": "Om",
   "settings.section.display": "Visning",
   "settings.section.keys": "Tangenter",

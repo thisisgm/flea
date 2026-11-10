@@ -2036,6 +2036,7 @@
   "settings.row.use_this_folder": "このフォルダーを使用",
   "settings.row.view": "最後に使用した表示",
   "settings.row.wrap": "一覧の端で折り返す",
+  "settings.row.grid_wrap_rows": "Wrap across grid rows",
   "settings.section.about": "このアプリについて",
   "settings.section.display": "画面",
   "settings.section.keys": "キーバインド",

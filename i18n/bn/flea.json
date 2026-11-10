@@ -2191,6 +2191,7 @@
   "settings.row.use_this_folder": "এই ফোল্ডার ব্যবহার করুন",
   "settings.row.view": "শেষ ব্যবহৃত দৃশ্য",
   "settings.row.wrap": "তালিকার শেষে অন্য প্রান্তে যান",
+  "settings.row.grid_wrap_rows": "Wrap across grid rows",
   "settings.section.about": "সম্পর্কে",
   "settings.section.display": "ডিসপ্লে",
   "settings.section.keys": "কী",
