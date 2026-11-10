@@ -214451,7 +214451,7 @@
     },
     {
       "excerpt": "echo \"DUPLICATE ceiling: $duplicated\"",
-      "line": 355,
+      "line": 350,
       "literal": "DUPLICATE ceiling: $duplicated",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -214460,8 +214460,17 @@
     },
     {
       "excerpt": "echo \"UNREADABLE $file: cannot read it, so it has no line count\"",
-      "line": 378,
+      "line": 373,
       "literal": "UNREADABLE $file: cannot read it, so it has no line count",
+      "owner": "controller",
+      "path": "tools/flea-file-budget",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "generated/tooling"
+    },
+    {
+      "excerpt": "echo \"GREW      $file: $lines lines, recorded $recorded, cap $hard\"",
+      "line": 385,
+      "literal": "GREW      $file: $lines lines, recorded $recorded, cap $hard",
       "owner": "controller",
       "path": "tools/flea-file-budget",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -214477,17 +214486,8 @@
       "surface": "generated/tooling"
     },
     {
-      "excerpt": "echo \"GREW      $file: $lines lines, recorded $recorded, cap $hard\"",
-      "line": 395,
-      "literal": "GREW      $file: $lines lines, recorded $recorded, cap $hard",
-      "owner": "controller",
-      "path": "tools/flea-file-budget",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "generated/tooling"
-    },
-    {
       "excerpt": "echo \"known     $file: $lines lines, recorded $recorded, cap $hard\"",
-      "line": 398,
+      "line": 393,
       "literal": "known     $file: $lines lines, recorded $recorded, cap $hard",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -214496,7 +214496,7 @@
     },
     {
       "excerpt": "echo \"OVER CAP  $file: $lines lines, cap $hard\"",
-      "line": 402,
+      "line": 397,
       "literal": "OVER CAP  $file: $lines lines, cap $hard",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -214505,7 +214505,7 @@
     },
     {
       "excerpt": "echo \"over soft $file: $lines lines, budget $soft, split it\"",
-      "line": 405,
+      "line": 400,
       "literal": "over soft $file: $lines lines, budget $soft, split it",
       "owner": "controller",
       "path": "tools/flea-file-budget",
@@ -255775,7 +255775,7 @@
     "tools/flea-field-nav": "36bc42104edb84c4194b4b6d28c3e67d915a2a144692aaa49953981a4a5bdbf8",
     "tools/flea-field-search": "70ec859809b73cb1bf58fccb4129b05622023a0686991fe7370aafd8fe7805a6",
     "tools/flea-figure-bench": "60d312818e6af2fa0989d50275907d2a0f9e6019787caae93e8d8a4e440dc8e7",
-    "tools/flea-file-budget": "573a37b30787b955d788caab2a8e2e21e04908f4e9b8dd857f1798fbb69fc737",
+    "tools/flea-file-budget": "b8c43dd45dd3993e2b03c1a9631b041e159923b0417002ba901ee58ee8daeea0",
     "tools/flea-filemanager1": "ebccc20a6b2be787dcf7e817d353a21dcca5ff57de184161f12e28ee5b0322e1",
     "tools/flea-first-paint": "6b9555b0a20b6d4bec057bd9c405823a1b742c14d27304b83a5a95d801ac5526",
     "tools/flea-framecap-build": "7c9433d4c4774f8810fd4e4c8ee92d0b5810dcbc7645231205a8155d557f5f2e",
@@ -256312,8 +256312,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "7b7f2fbb3bb2da181b100abc0671d06252d5314c",
-  "source_sha": "7b7f2fbb3bb2da181b100abc0671d06252d5314c",
+  "source_ref_sha": "229d1c17bbf1b3ef7dc3a038d2ab4d5d32dee6ea",
+  "source_sha": "229d1c17bbf1b3ef7dc3a038d2ab4d5d32dee6ea",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1377,

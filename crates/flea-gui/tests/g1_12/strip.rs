@@ -1,4 +1,4 @@
-//! The strip's one gesture: a parent opens on its first tap, and only inert space answers a double click.
+//! A parent opens on its first tap; the leaf, marker and ground edit on their first tap.
 use super::HOME;
 use flea_gui::path::strip::{Hit, Strip, Tap};
 
@@ -47,21 +47,23 @@ fn a_second_tap_on_a_strip_that_moved_on_is_a_first_tap_on_what_it_meets() {
         Tap::Open("/home/gm/Work".into())
     );
     assert!(strip.fit("/home/gm/Work", HOME, None, 80));
-    // The crumb under the pointer is now the leaf: a double click there edits instead of pairing with the parent.
-    assert_eq!(strip.press(Hit::Crumb(1), 2, 0), Tap::Nothing);
+    // The new leaf receives a first tap even when the platform still counts the old parent's click.
     assert_eq!(strip.press(Hit::Crumb(1), 2, 0), Tap::Edit);
+    assert_eq!(strip.press(Hit::Crumb(1), 2, 0), Tap::Nothing);
     // A first tap on another crumb never pairs with the tap before it.
     assert_eq!(strip.press(Hit::Crumb(0), 2, 0), Tap::Open(HOME.into()));
 }
 
 #[test]
-fn the_leaf_the_marker_and_the_ground_are_inert_and_a_double_tap_there_edits() {
+fn the_leaf_the_marker_and_the_ground_edit_on_the_first_tap_without_navigating() {
     let mut strip = fitted("/home/gm/one/two/three/four/five", 16);
     assert_eq!(strip.crumbs().len(), 4);
     assert!(strip.crumbs()[1].elided && strip.crumbs()[3].last);
     for hit in [Hit::Crumb(1), Hit::Crumb(3), Hit::Ground] {
-        assert_eq!(strip.press(hit, 1, 0), Tap::Nothing, "{hit:?}");
-        assert_eq!(strip.press(hit, 2, 0), Tap::Edit, "{hit:?}");
+        assert_eq!(strip.press(hit, 1, 0), Tap::Edit, "{hit:?}");
+        assert_eq!(strip.press(hit, 2, 0), Tap::Nothing, "{hit:?}");
+        assert_eq!(strip.press(hit, 3, 0), Tap::Nothing, "{hit:?}");
+        assert_eq!(strip.press(hit, 1, flea::keys::CONTROL), Tap::Nothing);
     }
     assert_eq!(
         strip.press(Hit::Crumb(2), 1, 0),

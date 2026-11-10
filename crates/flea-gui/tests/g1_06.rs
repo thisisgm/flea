@@ -20,3 +20,6 @@ mod ipc;
 mod marks;
 #[path = "g1_06/names.rs"]
 mod names;
+
+#[path = "g1_06/row_states.rs"]
+mod row_states;
