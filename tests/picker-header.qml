@@ -14,29 +14,26 @@ ShellRoot {
     property double stageSince: 0
     property var winShell: null
     property var win: null
+    property var keys: null
     property bool reported: false
     // A cursor row other than 0, which a reset to the top would also produce.
     readonly property int cursorProbe: 3
     readonly property string probeSort: "size"
     readonly property int waitMs: 5000
     readonly property int probeTimeoutMs: 30000
-    // Pixel slack for a mapped coordinate, which Qt reports as a real.
     readonly property real geometryTolerance: 0.5
-    // The strip is laid out on whole pixels and the board's own centring rounds, so a probe allows one.
     readonly property real inlineTolerance: 1
-    // Picker040's strip height at base size 14.
     readonly property int boardStripHeight: 27
-    // Float noise only: the centring check compares against the whole pixel the board's anchors give.
     readonly property real centreEpsilon: 0.01
     // Far wider than any window: 40 directories of 14 characters.
     readonly property string longParents: "/" + new Array(41).join("directory-name/")
     readonly property string longLeaf: new Array(60).join("a-very-long-file-name-")
+    readonly property string specialPath: "/tmp/space name/#[draft]%/雪"
 
     function fail(text) { root.failures.push(text) }
     function late() { return Date.now() - root.stageSince > root.waitMs }
     function go(stage) { root.stage = stage; root.stageSince = Date.now() }
 
-    // The first item under item whose QML type name starts with name, found without an id.
     function findType(item, name) {
         if (String(item).indexOf(name + "_QMLTYPE") === 0) return item
         for (var i = 0; i < item.children.length; i++) {
@@ -49,7 +46,6 @@ ShellRoot {
         for (var at = item; at; at = at.parent) if (at === ancestor) return true
         return false
     }
-    // The first item under item with this object name, found without reading user text.
     function findName(item, name) {
         if (item.objectName === name) return item
         for (var i = 0; i < item.children.length; i++) {
@@ -59,53 +55,47 @@ ShellRoot {
         return null
     }
     function header() { return root.findType(root.win.contentItem, "PickerHeader") }
-    // A 10 ms probe can read new text before Row's next polish; measure only after its pending layout.
     function pathStrip(chrome) {
         var strip = root.findName(chrome, "pickerStrip")
         if (strip) strip.forceLayout()
         return strip
     }
 
-    // The strip's recipe from Picker040 at base size 14: board height, the path one gap after Back and Up, the leaf inline after its parents, centred above the rule.
+    // The strip's recipe from Picker040 at base size 14: board height and the path one gap after Back and Up.
     function checkGeometry(tag, chrome, strip) {
         var where = root.findName(chrome, "pickerWhere")
         var back = root.findName(chrome, "pickerBack")
-        var parents = strip.children[0], leaf = strip.children[1]
         if (!where || !back) return false
         if (where.height !== root.boardStripHeight) root.fail(tag + ": the strip is " + where.height + " px tall, want the board's " + root.boardStripHeight)
         if (where.height !== Flea.Theme.chromeHeight) root.fail(tag + ": the strip is " + where.height + " px tall, want the chrome height " + Flea.Theme.chromeHeight)
         var start = strip.mapToItem(where, 0, 0).x
         var want = Flea.Theme.spacing.rowPaddingX + 2 * back.width + 2 * Flea.Theme.spacing.gap
         if (Math.abs(start - want) > root.inlineTolerance) root.fail(tag + ": the path starts at x " + start + ", want " + want + " after Back and Up")
-        // Where the parents' drawn text ends, not where their box does: a box wider than its text is the leaf drawn apart. An elided run fills its box.
-        var seam = parents.visible ? parents.x + (parents.truncated ? parents.width : parents.contentWidth) : 0
-        if (Math.abs(leaf.x - seam) > root.inlineTolerance)
-            root.fail(tag + ": the leaf is at x " + leaf.x + ", want " + seam + " right after its parents' text")
-        // Qt centres on the parent's rounded half less the strip's rounded half, then adds the offset unrounded.
         var top = strip.mapToItem(where, 0, 0).y
         var wantTop = Math.round(where.height / 2) - Math.round(strip.height / 2) - Flea.Theme.spacing.hairline / 2
         if (Math.abs(top - wantTop) > root.centreEpsilon) root.fail(tag + ": the path top is at y " + top + ", want " + wantTop + " in the band above the rule")
         return true
     }
-    // The path strip lights only its leaf over /winprobe; false while the strip is unbuilt.
+    function crumbs(strip) { return strip && strip.crumbItems ? strip.crumbItems : null }
+    function drawn(strip) {
+        var items = crumbs(strip), text = ""
+        if (!items) return text
+        for (var i = 0; i < items.count; i++) text += items.itemAt(i).text
+        return text
+    }
+    // The path strip keeps the root and leaf as distinct crumbs over /winprobe.
     function checkStrip(tag) {
         var chrome = root.findType(root.win.contentItem, "PickerChrome")
         if (!chrome) return false
         var strip = root.pathStrip(chrome)
         if (!strip || strip.width <= 0 || !strip.visible) return false
-        if (strip.children.length < 2) return false
-        var parents = strip.children[0], leaf = strip.children[1]
-        if (leaf.width <= 0 || leaf.text.length === 0) return false
-        if (strip.display !== parents.text + leaf.text)
-            root.fail(tag + ": the strip draws " + parents.text + leaf.text + ", want " + strip.display)
-        if (parents.text !== "/") root.fail(tag + ": parents " + parents.text + ", want /")
-        if (leaf.text !== "winprobe") root.fail(tag + ": leaf " + leaf.text + ", want winprobe")
-        // A short path is one run at the strip's left: its text ends well short of the right edge.
-        if (leaf.x + leaf.width > strip.width / 2) root.fail(tag + ": the short path ends at x " + (leaf.x + leaf.width) + " of a " + strip.width + " strip, want it at the left")
-        if (!Qt.colorEqual(parents.color, Flea.Theme.color.muted))
-            root.fail(tag + ": parents ink " + parents.color + ", want muted")
-        if (!Qt.colorEqual(leaf.color, Flea.Theme.color.foreground))
-            root.fail(tag + ": leaf ink " + leaf.color + ", want foreground")
+        var items = crumbs(strip)
+        if (!items || items.count !== 2) return false
+        if (drawn(strip) !== "/winprobe") root.fail(tag + ": drawn segments " + drawn(strip) + ", want /winprobe")
+        if (items.itemAt(0).modelData.path !== "/") root.fail(tag + ": root target is " + items.itemAt(0).modelData.path)
+        if (items.itemAt(1).modelData.path !== "/winprobe") root.fail(tag + ": leaf target is " + items.itemAt(1).modelData.path)
+        if (!Qt.colorEqual(items.itemAt(0).color, Flea.Theme.color.muted)) root.fail(tag + ": root crumb is not muted")
+        if (!Qt.colorEqual(items.itemAt(1).color, Flea.Theme.color.foreground)) root.fail(tag + ": leaf crumb is not foreground")
         if (!root.checkGeometry(tag, chrome, strip)) return false
         var up = root.findName(chrome, "pickerUp")
         var back = root.findName(chrome, "pickerBack")
@@ -130,55 +120,43 @@ ShellRoot {
             root.fail(tag + ": lit grid ink " + grid.markItem.color + ", want foreground")
         return true
     }
-    // A deeper path keeps the same split: parents hold the directories, the leaf the last name.
+    // A deeper path exposes each intermediate directory as its own target.
     function checkDeep(tag) {
         var chrome = root.findType(root.win.contentItem, "PickerChrome")
         if (!chrome) return false
         var strip = root.pathStrip(chrome)
         if (!strip || strip.width <= 0 || !strip.visible) return false
-        if (strip.children.length < 2) return false
         if (strip.display !== "/a/b/winprobe") return false
-        var parents = strip.children[0], leaf = strip.children[1]
-        if (parents.text !== "/a/b/") root.fail(tag + ": parents " + parents.text + ", want /a/b/")
-        if (leaf.text !== "winprobe") root.fail(tag + ": leaf " + leaf.text + ", want winprobe")
-        if (!Qt.colorEqual(parents.color, Flea.Theme.color.muted))
-            root.fail(tag + ": parents ink " + parents.color + ", want muted")
-        if (!Qt.colorEqual(leaf.color, Flea.Theme.color.foreground))
-            root.fail(tag + ": leaf ink " + leaf.color + ", want foreground")
+        var items = crumbs(strip)
+        if (!items || items.count !== 4) return false
+        if (items.itemAt(1).modelData.path !== "/a" || items.itemAt(2).modelData.path !== "/a/b")
+            root.fail(tag + ": intermediate targets are not /a and /a/b")
         return root.checkGeometry(tag, chrome, strip)
     }
-    // Parents too long for the strip elide from the left and the leaf stays whole: the pair fills the strip, ends at its right edge.
+    // A long path keeps the final destination even when whole middle segments collapse.
     function checkLongParents(tag) {
         var chrome = root.findType(root.win.contentItem, "PickerChrome")
         if (!chrome) return false
         var strip = root.pathStrip(chrome)
-        if (!strip || strip.width <= 0 || !strip.visible || strip.children.length < 2) return false
+        if (!strip || strip.width <= 0 || !strip.visible) return false
         if (strip.display !== root.longParents + "winprobe") return false
-        var parents = strip.children[0], leaf = strip.children[1]
-        if (leaf.text !== "winprobe") root.fail(tag + ": leaf " + leaf.text + ", want winprobe")
-        if (leaf.truncated || Math.abs(leaf.width - leaf.implicitWidth) > root.inlineTolerance)
-            root.fail(tag + ": the leaf is cut to " + leaf.width + " of " + leaf.implicitWidth + ", want it whole")
-        if (!parents.truncated) root.fail(tag + ": the parents are not elided in a strip narrower than they are")
-        if (parents.elide !== Text.ElideLeft) root.fail(tag + ": the parents elide " + parents.elide + ", want from the left")
-        if (Math.abs(parents.width + leaf.width - strip.width) > root.inlineTolerance)
-            root.fail(tag + ": parents " + parents.width + " plus leaf " + leaf.width + " fill " + (parents.width + leaf.width) + " of " + strip.width)
-        if (Math.abs(leaf.x + leaf.width - strip.width) > root.inlineTolerance)
-            root.fail(tag + ": the leaf ends at " + (leaf.x + leaf.width) + ", want the strip's right edge " + strip.width)
-        return root.checkGeometry(tag, chrome, strip)
+        var items = crumbs(strip)
+        if (!items || items.count < 2) return false
+        if (items.itemAt(items.count - 1).modelData.path !== root.longParents + "winprobe")
+            root.fail(tag + ": final segment lost its exact path target")
+        return true
     }
-    // A leaf wider than the strip takes all of it and gives the parents none.
+    // Even a long leaf keeps its exact destination when its drawn label is shortened.
     function checkLongLeaf(tag) {
         var chrome = root.findType(root.win.contentItem, "PickerChrome")
         if (!chrome) return false
         var strip = root.pathStrip(chrome)
-        if (!strip || strip.width <= 0 || !strip.visible || strip.children.length < 2) return false
+        if (!strip || strip.width <= 0 || !strip.visible) return false
         if (strip.display !== "/a/" + root.longLeaf) return false
-        var parents = strip.children[0], leaf = strip.children[1]
-        if (leaf.text !== root.longLeaf) root.fail(tag + ": the leaf text was changed")
-        if (!leaf.truncated || Math.abs(leaf.width - strip.width) > root.inlineTolerance)
-            root.fail(tag + ": the leaf is " + leaf.width + " wide of a " + strip.width + " strip, want it to take all of it, cut")
-        if (leaf.elide !== Text.ElideMiddle) root.fail(tag + ": the leaf elides " + leaf.elide + ", want from the middle")
-        if (parents.width > root.inlineTolerance) root.fail(tag + ": the parents keep " + parents.width + " px, want none")
+        var items = crumbs(strip)
+        if (!items || items.count < 2) return false
+        if (items.itemAt(items.count - 1).modelData.path !== "/a/" + root.longLeaf)
+            root.fail(tag + ": long leaf lost its exact destination")
         return true
     }
     // With a history, Back is live and rests in the foreground like the main chrome.
@@ -198,14 +176,10 @@ ShellRoot {
         if (!chrome) return false
         var strip = root.pathStrip(chrome)
         if (!strip || strip.width <= 0 || !strip.visible) return false
-        if (strip.children.length < 2) return false
         if (strip.display !== Picker.RECENT_LABEL) return false
-        var parents = strip.children[0], leaf = strip.children[1]
-        if (parents.text !== "") root.fail(tag + ": parents " + parents.text + ", want empty")
-        if (parents.visible) root.fail(tag + ": parents are shown in Recent, want hidden")
-        if (leaf.text !== Picker.RECENT_LABEL) root.fail(tag + ": leaf " + leaf.text + ", want " + Picker.RECENT_LABEL)
-        if (!Qt.colorEqual(leaf.color, Flea.Theme.color.foreground))
-            root.fail(tag + ": leaf ink " + leaf.color + ", want foreground")
+        var items = crumbs(strip)
+        if (!items || items.count !== 1 || items.itemAt(0).text !== Picker.RECENT_LABEL)
+            root.fail(tag + ": Recent is not drawn as one label")
         return true
     }
 
@@ -286,6 +260,7 @@ ShellRoot {
             root.winShell = comp.createObject(root)
             if (!root.winShell) { root.fail("PickerWindow did not instantiate: " + comp.errorString()); return }
             root.win = root.winShell.pickerWin
+            root.keys = Qt.createQmlObject("import QtTest; TestEvent {}", root.win.contentItem)
             root.go(1)
             return
         }
@@ -353,6 +328,26 @@ ShellRoot {
         }
         case 8: {
             if (!root.checkDeep("deep")) { if (root.late()) root.fail("deep: the strip never showed /a/b/winprobe"); return }
+            var middle = root.crumbs(root.pathStrip(root.findType(root.win.contentItem, "PickerChrome"))).itemAt(1)
+            root.keys.mouseClick(middle, middle.width / 2, middle.height / 2, Qt.LeftButton, Qt.NoModifier, -1)
+            root.go(13)
+            return
+        }
+        case 13: {
+            if (root.win.path !== "/a") { if (root.late()) root.fail("clicking the /a segment did not navigate to /a"); return }
+            if (!root.checkBackLit("crumb history")) { if (root.late()) root.fail("crumb navigation did not preserve picker history"); return }
+            root.win.openWithoutHistory(root.specialPath)
+            root.go(14)
+            return
+        }
+        case 14: {
+            var special = root.pathStrip(root.findType(root.win.contentItem, "PickerChrome"))
+            var items = root.crumbs(special)
+            if (!items || items.count !== 5 || items.itemAt(3).modelData.path !== "/tmp/space name/#[draft]%"
+                || items.itemAt(4).modelData.path !== root.specialPath) {
+                if (root.late()) root.fail("special-character path segments lost their exact navigation targets")
+                return
+            }
             root.win.openWithoutHistory(root.longParents + "winprobe")
             root.go(10)
             return

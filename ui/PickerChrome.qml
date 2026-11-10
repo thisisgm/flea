@@ -2,8 +2,8 @@ import QtQuick
 import QtQuick.Layouts
 import qs.Commons
 import "." as Flea
-import "js/Format.js" as Format
 import "js/Picker.js" as Picker
+import "js/Crumbs.js" as Crumbs
 
 // The picker's two chrome strips: what was asked for on top, where the list is standing underneath; the answers are ui/PickerAnswers.qml.
 Item {
@@ -188,7 +188,7 @@ Item {
             }
         }
 
-        // Parents muted, the leaf lit inline after them; a long path elides its parents from the left and keeps the leaf whole.
+        // The same path crumbs as the main chrome; each ancestor uses the picker's normal open path.
         Row {
             id: strip
             objectName: "pickerStrip"
@@ -200,30 +200,32 @@ Item {
             // The marks centre in the band above the rule, so the path does too.
             anchors.verticalCenterOffset: -Theme.spacing.hairline / 2
             visible: !entry.editing
-            // Recent is a location and not a path, so the strip says its name, never a tilde form of the token.
-            readonly property string display: root.picker.recent ? Picker.RECENT_LABEL : Format.tilde(root.picker.path, root.picker.home)
-            readonly property string leaf: root.picker.recent ? strip.display : Format.leafPart(strip.display)
-            readonly property string parents: root.picker.recent ? "" : strip.display.substring(0, strip.display.length - strip.leaf.length)
-            Text {
-                id: stripParents
-                width: Math.min(implicitWidth, Math.max(0, strip.width - stripLeaf.width))
-                visible: strip.parents.length > 0
-                text: strip.parents
-                color: Theme.color.muted
+            // Recent is a location, not a path, so it remains one inert label.
+            readonly property var pathCrumbs: root.picker.recent
+                ? [{ text: Picker.RECENT_LABEL, path: Picker.RECENT, last: true }]
+                : Crumbs.crumbs(root.picker.path, root.picker.home)
+            readonly property string display: pathCrumbs.map(function (crumb) { return crumb.text }).join("")
+            readonly property alias crumbItems: crumbRepeater
+
+            TextMetrics {
+                id: crumbMetrics
                 font.family: Theme.font.family
                 font.pixelSize: Theme.font.caption
-                elide: Text.ElideLeft
-                textFormat: Text.PlainText
+                text: "0"
             }
-            Text {
-                id: stripLeaf
-                width: Math.min(implicitWidth, strip.width)
-                text: strip.leaf
-                color: Theme.color.foreground
-                font.family: Theme.font.family
-                font.pixelSize: Theme.font.caption
-                elide: Text.ElideMiddle
-                textFormat: Text.PlainText
+
+            Repeater {
+                id: crumbRepeater
+                model: Crumbs.fitCrumbs(strip.pathCrumbs, Math.floor(strip.width / crumbMetrics.advanceWidth))
+
+                delegate: Flea.Crumb {
+                    height: where.height
+                    restColor: Theme.color.muted
+                    inputLive: !root.picker.backendUnavailable && !root.picker.submitting
+                    dropPane: null
+                    onChosen: function (path) { root.picker.open(path) }
+                    onEditRequested: if (!root.picker.recent) root.startEdit()
+                }
             }
         }
 
