@@ -18,6 +18,7 @@ impl ChromeView {
         {
             let mut frame = frame.borrow_mut();
             frame.controls[index].visible = true;
+            frame.controls[index].reachable = true;
             frame.controls[index].enabled = enabled;
         }
         let focused = self.frame.borrow().controls[index].focused && enabled;

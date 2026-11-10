@@ -29,6 +29,10 @@
   each pane's loading mark over it in an overlay, inside the content mask the mark's slot recorded, so a narrow pane
   cuts the mark at its own edge. A surface that covers a pane (Quick Look, menus, sheets, dialogs) paints in a later
   layer than that overlay, a GPUI `deferred`, so it is never drawn under a mark.
+- `crates/flea-gui/src/path/chrome.rs` renders the GPUI top chrome and owns its path bar, opened by
+  `:`, `Ctrl+L` or one tap where a tap opens no folder. Under the pointer a copy mark one gap after
+  the path copies the folder as Y does (`crates/flea-gui/src/path/chrome/address.rs`); in the toolbar's
+  keyboard order it sits between Up and Search (`ORDER` in `crates/flea-gui/src/path/chrome.rs`).
 - `thp.rs` the `prctl(PR_SET_THP_DISABLE)` declaration behind `disable()` and `enable()`.
 - `icdexclude.rs` filters known Vulkan drivers for absent hardware before `flea-gui` starts; see rule 5.
 - `icdmanifests.rs` supplies that filter's bounded manifest inventory and driver library classification.

@@ -44,6 +44,7 @@ impl Element for CrumbElement {
         // Dual draws each path on its own pane, so the chrome keeps its slot and builds no crumbs.
         if self.place == Place::Chrome && self.view.read(cx).inputs.dual {
             paint.area = Some(bounds);
+            paint.chrome_end = None;
             paint.runs[slot].clear();
             return (
                 window.insert_hitbox(bounds, HitboxBehavior::Normal),
@@ -63,9 +64,18 @@ impl Element for CrumbElement {
                     .width,
             ) + GIT_GAP
         };
-        let budget = ((f32::from(bounds.size.width) - 2. * pad - git_width) / f32::from(advance))
-            .floor()
-            .max(0.) as usize;
+        // The copy mark's slot stays out of the fit, so the mark that shows under the pointer never covers a crumb.
+        let copy = self.place == Place::Chrome && self.view.read(cx).inputs.copy_mark;
+        let copy_room = if copy {
+            let sizes = super::super::chrome::Sizes::at(&paint.typeface);
+            sizes.gap + sizes.slot
+        } else {
+            0.
+        };
+        let budget = ((f32::from(bounds.size.width) - 2. * pad - git_width - copy_room)
+            / f32::from(advance))
+        .floor()
+        .max(0.) as usize;
         let focused = self.view.update(cx, |view, _| view.fit(slot, budget));
         paint.strips[slot] = Some(bounds);
         if self.place == Place::Chrome {
@@ -75,6 +85,9 @@ impl Element for CrumbElement {
             paint.lay_strip(slot, &mut view.strips[slot], |typeface, text| {
                 line(typeface, text, Size::Caption, false, window)
             });
+            if self.place == Place::Chrome {
+                paint.chrome_end = copy.then(|| view.strips[slot].width() + git_width);
+            }
         });
         (
             window.insert_hitbox(bounds, HitboxBehavior::Normal),

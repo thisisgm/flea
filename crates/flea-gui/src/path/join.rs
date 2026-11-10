@@ -116,6 +116,7 @@ impl Shell {
                 .and_then(flea::jsondoc::Json::as_str)
                 == Some("path"),
             elide_start: false,
+            copy_mark: self.view != View::Dual,
             first: host.pane.first_count(),
         };
         let face = self.active_typeface();
@@ -177,6 +178,8 @@ impl Shell {
                 path.update(cx, |view, cx| view.open(window, cx));
             }
             return;
+        } else if action == "copyAddress" {
+            self.copy_address(cx);
         } else if let Some(step) = match action {
             "back" => Some(Step::Back),
             "up" => Some(Step::Up),

@@ -249,6 +249,10 @@ impl PathView {
     }
 
     fn field_press(&mut self, event: &MouseDownEvent, _: &mut Window, cx: &mut Context<Self>) {
+        // A double click's second tap lands in the field its first tap opened, and the whole path stays selected.
+        if std::mem::take(&mut self.tapped) && event.click_count == 2 {
+            return;
+        }
         let at = self.field_index(event.position.x);
         match event.click_count {
             1 if event.modifiers.shift => self.entry.select_to(at),

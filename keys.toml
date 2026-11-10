@@ -1522,9 +1522,9 @@ label = "open the peeked directory in a new tab"
 # board draws it in the foreground role while every segment above it is muted. The row column reads
 # "parent" for that reason: a row saying "crumb" would promise a press the leaf never answers. A
 # parent answers on the first tap (decided 2026-09-22), because waiting to rule out a double click held
-# every crumb click for the whole double-click interval, so the double click that opens the bar
-# lives only where a tap opens nothing: the leaf, the collapsed marker and the strip around them,
-# which the second row calls "inert".
+# every crumb click for the whole double-click interval, so the tap that opens the bar lives only
+# where a tap opens no folder: the leaf, the collapsed marker and the strip around them, which the
+# second row calls "inert". One tap there opens the bar, as : and Ctrl+L do (issue 327).
 [[pointer]]
 where = "chrome"
 press = "left"
@@ -1534,7 +1534,7 @@ label = "open the directory that segment of the path names, on the first tap"
 
 [[pointer]]
 where = "chrome"
-press = "left x2"
+press = "left"
 row = "inert"
 does = "pathBar"
 label = "type the path: the current folder's own segment, the collapsed marker or the strip beside the path"

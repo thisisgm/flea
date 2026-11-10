@@ -84,7 +84,9 @@ fn keynav_vfix_chrome_raw_navigation_skips_hidden_and_disabled_controls(cx: &mut
     key(cx, handle, "tab");
     key(cx, handle, "tab");
     chrome(cx, handle, "arrow-up");
-    for glyph in ["search", "list", "columns", "grid", "dual", "sliders"] {
+    for glyph in [
+        "copy", "search", "list", "columns", "grid", "dual", "sliders",
+    ] {
         key(cx, handle, "right");
         chrome(cx, handle, glyph);
     }
@@ -118,7 +120,7 @@ fn keynav_vfix_chrome_raw_navigation_skips_hidden_and_disabled_controls(cx: &mut
     key(cx, handle, "tab");
     chrome(cx, handle, "arrow-left");
     for glyph in [
-        "arrow-up", "filter", "sort", "list", "columns", "grid", "dual", "sliders",
+        "arrow-up", "copy", "filter", "sort", "list", "columns", "grid", "dual", "sliders",
     ] {
         key(cx, handle, "right");
         chrome(cx, handle, glyph);
@@ -294,7 +296,7 @@ fn keynav_vfix_composition_owns_raw_control_navigation_and_activation(cx: &mut T
         shell.keyboard.set_composing(false)
     });
     key(cx, handle, "right");
-    chrome(cx, handle, "search");
+    chrome(cx, handle, "copy");
 }
 
 #[gpui::test]

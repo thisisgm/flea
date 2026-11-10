@@ -50,17 +50,16 @@ impl Shell {
         };
         let chrome = chrome.read(cx);
         let frame = chrome.frame.borrow();
-        let mut live = frame
-            .controls
-            .iter()
-            .enumerate()
-            .filter(|(_, control)| control.visible && control.enabled);
+        let mut live = super::chrome::ORDER.into_iter().filter(|&index| {
+            let control = frame.controls[index];
+            control.reachable && control.enabled
+        });
         let target = if forward {
             live.next()
         } else {
             live.next_back()
         };
-        let handle = target.map(|(index, _)| chrome.focus[index].clone());
+        let handle = target.map(|index| chrome.focus[index].clone());
         drop(frame);
         if let Some(handle) = handle {
             window.focus(&handle, cx);
@@ -128,12 +127,12 @@ impl Shell {
         };
         let chrome = chrome.read(cx);
         let frame = chrome.frame.borrow();
-        let live: Vec<_> = frame
-            .controls
-            .iter()
-            .enumerate()
-            .filter(|(_, control)| chrome.inputs.live && control.visible && control.enabled)
-            .map(|(index, _)| index)
+        let live: Vec<_> = super::chrome::ORDER
+            .into_iter()
+            .filter(|&index| {
+                let control = frame.controls[index];
+                chrome.inputs.live && control.reachable && control.enabled
+            })
             .collect();
         let focused = chrome
             .focus

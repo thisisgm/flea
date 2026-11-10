@@ -6,7 +6,7 @@ use super::{
 use gpui::{Context, Window};
 
 impl PathView {
-    /// A press on a strip: a parent opens on the first tap, and only inert ground answers a double click.
+    /// A press on a strip: a parent opens on the first tap, and a tap on inert ground opens the field.
     pub fn press_strip(
         &mut self,
         slot: usize,
@@ -30,7 +30,10 @@ impl PathView {
                 side: if slot == 0 { self.inputs.side } else { side },
                 path,
             }),
-            Tap::Edit => self.open(window, cx),
+            Tap::Edit => {
+                self.open(window, cx);
+                self.tapped = self.entry.editing;
+            }
             Tap::Nothing => {}
         }
     }

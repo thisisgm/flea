@@ -18,7 +18,7 @@ ORACLE = {name: {"path": path, "sha256": digest} for name, path, digest in (
     ('terminal', 'tests/ui.sh', 'ff01f9c6a2e91f0e2a7fb66e8a48b53fb3456f078e3a0f311513323e7e2d2b46'),
     ('open', 'tests/ui.sh', '57d752f608b008e4f5e19be002a7a5f6cd3d5437dc8d299fd5c4127573733c8b'),
     ('rows', 'tests/ui.sh', 'e7afd2c39cc1091fd36b9faa6e54f161637925a1bb7af70f7133cde938e23a17'),
-    ('click', 'tests/ui.sh', 'b21588f1a9f256afee764d44e864d05fb6536fb45269be9875dd29f77e25432c'),
+    ('click', 'tests/ui.sh', '3f3288b67374632934b37321d18ab8a45f7f6f3079e9aedf1df1af849a95e7dd'),
     ('clickedge', 'tests/ui.sh', '192ead9e062ab8b952e05e7acaf117467b29af9f5246ed5db4acfa2aa1bc6470'),
     ('ctrlclick', 'tests/ui.sh', '39fff2fe446fd484c3e4cb3017c03297afb23d15155ced60fee5988f93d4b264'),
     ('shiftscroll', 'tests/ui.sh', 'd0877506788c8ba9ef1405bc760ec0ab89d2e9c1ea611c21e4c149f7cb6cd453'),
