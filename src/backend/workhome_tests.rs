@@ -375,7 +375,7 @@ fn a_combine_and_a_batch_convert_onto_a_copy_fallback_mount_never_stage_on_it() 
         r#"{{"c":"convertbatch","paths":["{}"],"format":"png"}}"#,
         first.display()
     );
-    let line = off_the_mount(drive.path(), local.path(), || {
+    let (line, _steps) = off_the_mount(drive.path(), local.path(), || {
         crate::backend::convertbatch::run(
             crate::backend::convertbatch::Ask::parse(&ask),
             Ok(None),

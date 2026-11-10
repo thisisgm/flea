@@ -48,13 +48,15 @@ pub fn collided(m: &mut Model, value: &Json, w: &mut Wire) -> io::Result<()> {
     }
     paste.total = count(value, "total");
     if paste.total == 0 { return transfer(paste, "refuse", w); }
-    paste.name = value.get("names").and_then(Json::as_array).and_then(|names| names.first()).map(|first| text(first, "n").to_owned()).unwrap_or_default();
+    // The exact name, so a name that is not UTF-8 matches its row and locates that file, never its lossy twin.
+    paste.name = value.get("names").and_then(Json::as_array).and_then(|names| names.first())
+        .map(|first| if first.get("x").is_some() { text(first, "x") } else { text(first, "n") }.to_owned()).unwrap_or_default();
     // The cursor waits on the name the paste meets, as the tui-collision board points at it behind the question; a name past the held rows is located.
     if paste.dest == m.path && m.filter.is_empty() {
         match m.rows.iter().find(|(_, row)| row.name == paste.name).map(|(index, _)| *index) {
             Some(index) => m.move_by(index as isize - m.cursor as isize, false, w)?,
             None => {
-                let path = paste.dest.join(&paste.name);
+                let path = paste.dest.join(flea::bytename::text_path(&paste.name));
                 w.send(vec![
                     ("c", word("locate")),
                     ("path", word(&path.exact_text())),
@@ -104,7 +106,7 @@ pub fn answer(m: &mut Model, key: &Key, w: &mut Wire) -> io::Result<()> {
 pub(super) fn ask(m: &Model, question: &Paste, theme: &Theme, columns: usize) -> String {
     let i18n = &m.prompts.i18n;
     let folder = question.dest.file_name().map_or_else(|| question.dest.to_string_lossy(), |name| name.to_string_lossy()).into_owned();
-    let head = if question.total == 1 { i18n.tr_args("collide.one", &[&question.name, &folder]) }
+    let head = if question.total == 1 { i18n.tr_args("collide.one", &[&flea::bytename::display(&question.name), &folder]) }
         else { i18n.trn_args("collide.many", question.total as i64, &[&folder]) };
     let head_width = text_width(&head).min(columns);
     let keys_width = columns.saturating_sub(head_width + 2).min(text_width(&i18n.tr("collide.keys")));

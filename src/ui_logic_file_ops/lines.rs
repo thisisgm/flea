@@ -168,7 +168,7 @@ const JOURNAL: [&str; 11] = [
 // The op an undone line carries is the backend's own word; a word it uses for itself is never shown.
 pub fn undone(catalog: &I18n, op: &str) -> String {
     match op {
-        "trash" | "settags" | "mkdir" => catalog.tr(&format!("jobs.undone.{op}")),
+        "trash" | "settags" | "mkdir" | "convert" => catalog.tr(&format!("jobs.undone.{op}")),
         _ if JOURNAL.contains(&op) => catalog.tr(&format!("jobs.undone.{op}")),
         _ => catalog.tr("jobs.undone.other"),
     }

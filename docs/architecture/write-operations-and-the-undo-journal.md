@@ -5,9 +5,18 @@ Fifteen of the main backend's requests write. Twelve are file operations of thei
 (file tags, journalled one `Tags` step per changed file, `tagsreq.rs`) and `bulkrename` (one journal entry for the
 batch, `bulkrename.rs`); a New File from the menu writes
 through `menuaction` and journals `MadeFile` (`opsdispatch.rs` `do_newfile`), and `archive` and
-`convert` write below. Two helpers write on command loops of their own and journal nothing: the trash
-browser's `restore` and `delete` (`trashbrowse.rs`, `trashdelete.rs`) and the permissions dialog's
-`apply` (`permissions.rs`).
+`convert` write below. One helper writes on a command loop of its own and journals nothing: the trash
+browser's `restore` and `delete` (`trashbrowse.rs`, `trashdelete.rs`). The permissions dialog's single-item
+`apply` (`permissions.rs`) journals the same `Mode` step `permissionsBatch` does, under the same `permissions` op,
+so Ctrl+Z restores that mode rather than undoing whatever older write sits under it.
+A `convertbatch` journals one `convert` entry with a `Copied` step per output it published, from the file it read,
+a failed or cancelled batch included (`convertbatch.rs` `step`, landed by `OpMsg::Converted`), so undo removes an
+output only while it is still the untouched result. That step's `from` names the source, and a copy of the source is
+not the conversion, so `Replay::capture` refuses a `convert` entry and redo answers that it cannot be redone, as it
+does for a pasted image. A Convert whose output name is taken lands under Duplicate's next free copy name
+(`photo (converted) copy.jpg`, then `copy 2`) while one can be made and written, picked at the no-replace
+rename, and otherwise refuses with the reason; the GUI card's output probe names the same one (`check.rs`
+`converted`). Combine names its own output, so a taken Combine name refuses at once.
 Trash recovery uses `RecordLeft` before its record is removed and `RecordUnconfirmed` after unlink
 when the recovery folder cannot be reopened or synced: the latter says the record was removed but
 Flea could not confirm that removal on disk, with the cause and the completed delete, restore or recovery state.

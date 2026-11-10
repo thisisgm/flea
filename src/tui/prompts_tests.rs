@@ -207,6 +207,18 @@ fn trash_keeps_the_scroll_and_its_undo_lands_on_the_restored_file() {
     // An undo of a step this client did not take names it and anchors nothing.
     event(&mut m, &mut w, r#"{"t":"undone","op":"rename","ok":true}"#);
     assert_eq!(m.message, "Undid Rename");
+    // S1B-7: a single Permissions change and a Convert are named too.
+    for (op, said) in [
+        ("permissions", "Undid Permissions"),
+        ("convert", "Undid Convert"),
+    ] {
+        event(
+            &mut m,
+            &mut w,
+            &format!(r#"{{"t":"undone","op":"{op}","ok":true}}"#),
+        );
+        assert_eq!(m.message, said);
+    }
     finish(w, reader);
 }
 // A selection trashes as "them"; a trash that failed says so in one sentence and claims no receipt.

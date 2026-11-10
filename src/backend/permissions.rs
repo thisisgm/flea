@@ -1,4 +1,5 @@
 // One reviewed object stays open until its dialog closes; mode writes never walk a directory.
+use crate::backend::undo::Step;
 use crate::json::{escape, field_str, field_usize};
 use crate::oflags::O_NOFOLLOW;
 use flea::bytename::ExactText as _;
@@ -270,13 +271,16 @@ fn fchmod_fd(file: &File, target: u32) -> Result<(), String> {
 }
 
 impl Permissions {
-    // Sample input: {"c":"permissions","op":"inspect","id":1,"path":"/tmp/item"}.
-    pub fn handle(&mut self, line: &str) -> String {
+    // Sample input: {"c":"permissions","op":"inspect","id":1,"path":"/tmp/item"}. An applied mode journals the Mode step a batch does.
+    pub fn handle(&mut self, line: &str, journal: &mut crate::backend::undo::Journal) -> String {
         let id = field_usize(line, "id").unwrap_or(0);
         let op = field_str(line, "op").unwrap_or_default();
         let result = match op.as_str() {
             "inspect" => self.inspect(id, &flea::bytename::view(&field_str(line, "path").unwrap_or_default())),
-            "apply" => self.apply(id, &field_str(line, "mode").unwrap_or_default()),
+            "apply" => self.apply(id, &field_str(line, "mode").unwrap_or_default()).map(|(reply, step)| {
+                journal.push(crate::backend::undo::Entry { op: "permissions".to_string(), steps: vec![step] });
+                reply
+            }),
             "close" => {
                 if self.held.as_ref().map(|h| h.id) == Some(id) {
                     self.held = None;
@@ -341,7 +345,7 @@ impl Permissions {
         Ok(response)
     }
 
-    fn apply(&mut self, id: usize, text: &str) -> Result<String, String> {
+    fn apply(&mut self, id: usize, text: &str) -> Result<(String, Step), String> {
         let requested = mode(text)?;
         let held = self
             .held
@@ -376,10 +380,9 @@ impl Permissions {
         if let Err(refusal) = verify_applied_fd(&held.file, &held.path, requested) {
             return Err(format!("Could not change mode: {refusal} No change was applied."));
         }
-        Ok(format!(
-            r#"{{"t":"permissions","id":{},"op":"apply","ok":true,"mode":"{:04o}"}}"#,
-            id, requested
-        ))
+        let step = crate::backend::undo::Step::Mode { path: held.path.clone(), before: meta.mode() & 0o777, after: requested, dev: held.dev, ino: held.ino,
+            born: born_of(&meta), generation: super::filegen::of_fd(&held.file) };
+        Ok((format!(r#"{{"t":"permissions","id":{},"op":"apply","ok":true,"mode":"{:04o}"}}"#, id, requested), step))
     }
 }
 
@@ -422,7 +425,7 @@ mod tests {
         let missing = permissions.handle(&format!(
             r#"{{"c":"permissions","op":"inspect","id":1,"path":"{}"}}"#,
             escape(&d.join("missing").to_string_lossy())
-        ));
+        ), &mut crate::backend::undo::Journal::new());
         assert_eq!(field_str(&missing, "error").unwrap(), "Could not inspect permissions: item not found.");
         let parent = d.dir("locked");
         let path = d.file("locked/file", "retained contents");

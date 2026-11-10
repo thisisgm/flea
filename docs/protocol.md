@@ -2675,7 +2675,9 @@ Example: `{"t":"collisions","id":7,"total":2,"names":[{"n":"screenshot.png","d":
 `total` counts every colliding source. `names` is the first three of them in request order, which is
 all a client's card lists before its "and N more" line, so the answer stays small however wide the
 selection. `n` is the incoming item's name, `d` whether it is a directory and `i` the same icon name a
-`rows` row carries, for the card's kind mark. `mergeable` is true when a folder lands on a folder,
+`rows` row carries, for the card's kind mark. `n` is the name as a person reads it; a name that is not UTF-8
+also carries `x`, its exact text (docs/architecture/exact-names.md), which a client matches against a `rows`
+name and joins into a `locate` path, so the question never lands on that name's lossy twin. `mergeable` is true when a folder lands on a folder,
 which is the only shape the card offers `merge` for. A `total` of 0 means nothing collides; the shipped client
 then sends its transfer with `collide` `refuse`, so a name that appears in the meantime is still refused.
 
