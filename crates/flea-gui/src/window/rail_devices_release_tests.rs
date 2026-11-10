@@ -351,6 +351,7 @@ fn release_quiesce_failure_is_said_and_the_eject_still_runs(cx: &mut TestAppCont
         "the release still runs after a failed quiesce: {:?}",
         jobs(&service)
     );
+    // The eject notice is said first, so the quiesce failure after it stands.
     assert_eq!(status(&shell, cx), "The backend stopped accepting requests");
 }
 

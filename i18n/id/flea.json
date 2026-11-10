@@ -378,7 +378,7 @@
   "device.not_mountable": "%1 tidak dapat dikaitkan di komputer ini.",
   "device.transfer_using": "Kaitan %1 tidak dapat dilepas. Transfer mungkin masih menggunakannya.",
   "device.system_drive": "%1 adalah drive sistem, yang kaitannya tidak pernah dilepas oleh Flea",
-  "device.system_volume": "Folder ini berada di volume sistem, yang kaitannya tidak pernah dilepas oleh Flea",
+  "device.system_volume": "Folder ini tidak berada di drive yang dapat dikeluarkan oleh Flea.",
   "device.no_volume": "Folder ini tidak berada di drive yang dapat dikeluarkan oleh Flea.",
   "device.safe_image": "%1 dikeluarkan.",
   "device.unconfirmed": "Tidak dapat memastikan %1 sudah dikeluarkan; jangan cabut dahulu.",

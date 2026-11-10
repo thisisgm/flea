@@ -234,7 +234,7 @@
   "device.still_unmounting": "%1 se stále odpojuje. Počkejte na výsledek",
   "device.still_unmounting_try_again": "%1 se stále odpojuje. Zkuste to po dokončení",
   "device.system_drive": "%1 je systémový disk, který Flea nikdy neodpojuje",
-  "device.system_volume": "Tato složka je na systémovém svazku, který Flea nikdy neodpojuje",
+  "device.system_volume": "Tato složka není na disku, který může Flea vysunout.",
   "device.transfer_using": "%1 nelze odpojit. Je možné, že ho stále používá přenos.",
   "device.unconfirmed": "Vysunutí %1 nelze potvrdit. Zatím zařízení fyzicky neodpojujte.",
   "device.unlock.button": "Odemknout",

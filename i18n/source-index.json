@@ -1,6 +1,6 @@
 {
-  "catalog_file_sha256": "bbd4424e8ae76d318ab9f772198648b9be60cc81d7135ae1c19cd51556f0c5e6",
-  "catalog_sha256": "6088e663a756a95c831cd23e457d94ad733bcce4a0fc898cb4ff8808041d1122",
+  "catalog_file_sha256": "9ab494a97787c8cbea7272eb93a9cf5fa76b9882089cc34bbfabb47a82cbbaa1",
+  "catalog_sha256": "5788acb93a2786ec579365c5ce9214b8a93e3ada809bf2b00f3b5264ac19273e",
   "counts": {
     "direct_references": 0,
     "keys": 2274,
@@ -371,7 +371,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "action.label_key()",
-      "line": 539,
+      "line": 543,
       "path": "crates/flea-gui/src/g2/file_ops/view.rs",
       "pattern": null,
       "possible_keys": [],
@@ -381,7 +381,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "choice.label_key()",
-      "line": 637,
+      "line": 641,
       "path": "crates/flea-gui/src/g2/file_ops/view.rs",
       "pattern": null,
       "possible_keys": [],
@@ -1420,7 +1420,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "failure.key()",
-      "line": 346,
+      "line": 350,
       "path": "crates/flea-gui/src/window/network_effects.rs",
       "pattern": null,
       "possible_keys": [],
@@ -1530,7 +1530,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "if in_trash {\n                    \"trash.title\"\n                } else {\n                    \"archive.flash.title\"\n                }",
-      "line": 197,
+      "line": 196,
       "path": "crates/flea-gui/src/window/status.rs",
       "pattern": null,
       "possible_keys": [],
@@ -18263,7 +18263,7 @@
         },
         {
           "excerpt": "\"archive.flash.title\"",
-          "line": 200,
+          "line": 199,
           "path": "crates/flea-gui/src/window/status.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -22591,7 +22591,7 @@
       "call_sites": [
         {
           "excerpt": ".unwrap_or_else(|| Note::new(\"device.eject_failed\", &[&self.eject_label]));",
-          "line": 273,
+          "line": 274,
           "path": "crates/flea-gui/src/g2/device_rail/eject.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -22660,7 +22660,7 @@
       "call_sites": [
         {
           "excerpt": "let note = Note::new(\"device.eject_unfinished\", &[&label]);",
-          "line": 206,
+          "line": 207,
           "path": "crates/flea-gui/src/g2/device_rail/eject.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -22691,7 +22691,7 @@
       "call_sites": [
         {
           "excerpt": "Effect::Message(Note::new(\"device.ejecting\", &[&e.label]), false),",
-          "line": 127,
+          "line": 120,
           "path": "crates/flea-gui/src/g2/device_rail/eject.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -23388,7 +23388,7 @@
       "call_sites": [
         {
           "excerpt": "Note::new(\"device.still_unmounting_try_again\", &[&e.label]),",
-          "line": 134,
+          "line": 135,
           "path": "crates/flea-gui/src/g2/device_rail/eject.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -23418,7 +23418,7 @@
     "device.system_drive": {
       "call_sites": [
         {
-          "excerpt": "(\"device.system_drive\", \"%1 is the system drive, which Flea never unmounts\"),",
+          "excerpt": "(\"device.system_drive\", \"%1 is the system drive, which Flea never ejects.\"),",
           "line": 137,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
@@ -23434,22 +23434,22 @@
       ],
       "context": "device.system_drive: src/ui_logic_pl1.rs:137",
       "coverage": "occurrence-needs-owner-verification",
-      "english": "%1 is the system drive, which Flea never unmounts",
+      "english": "%1 is the system drive, which Flea never ejects.",
       "kind": "text",
       "omarchy_reference": null,
       "placeholders": [
         "%1"
       ],
       "plural_categories": [],
-      "resolved_english": "%1 is the system drive, which Flea never unmounts",
-      "resolved_sha256": "36d0f701072e710f91ed85036c906f1223ad014d90a774e2fbf4cbd75766360d",
-      "resolved_source_hash": "ebbffe169409",
-      "source_hash": "ebbffe169409"
+      "resolved_english": "%1 is the system drive, which Flea never ejects.",
+      "resolved_sha256": "e966c40106060753bdd22f9231fe87b3ceb1c65b911f449c64b01c69c761a896",
+      "resolved_source_hash": "174734a3c9c7",
+      "source_hash": "174734a3c9c7"
     },
     "device.system_volume": {
       "call_sites": [
         {
-          "excerpt": "(\"device.system_volume\", \"This folder is on a system volume, which Flea never unmounts\"),",
+          "excerpt": "(\"device.system_volume\", \"This folder is not on a drive Flea can eject.\"),",
           "line": 138,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
@@ -23465,15 +23465,15 @@
       ],
       "context": "device.system_volume: src/ui_logic_pl1.rs:138",
       "coverage": "occurrence-needs-owner-verification",
-      "english": "This folder is on a system volume, which Flea never unmounts",
+      "english": "This folder is not on a drive Flea can eject.",
       "kind": "text",
       "omarchy_reference": null,
       "placeholders": [],
       "plural_categories": [],
-      "resolved_english": "This folder is on a system volume, which Flea never unmounts",
-      "resolved_sha256": "74d10b5c8538905805aa34d4041998dcda36ceed8d019665860c40ecb307892c",
-      "resolved_source_hash": "458704e4be8c",
-      "source_hash": "458704e4be8c"
+      "resolved_english": "This folder is not on a drive Flea can eject.",
+      "resolved_sha256": "813ba420c7f7cf619f35054864ee357c1c22bfc4ba4d4f50f0227b5ef682c3c1",
+      "resolved_source_hash": "81e47378513d",
+      "source_hash": "81e47378513d"
     },
     "device.transfer_using": {
       "call_sites": [
@@ -58511,7 +58511,7 @@
       "call_sites": [
         {
           "excerpt": "124 => \"feedback.connect.no_answer\",",
-          "line": 281,
+          "line": 289,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -58547,7 +58547,7 @@
       "call_sites": [
         {
           "excerpt": "77 => \"feedback.connect.no_password\",",
-          "line": 283,
+          "line": 291,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -58569,7 +58569,7 @@
       "call_sites": [
         {
           "excerpt": "126 | 127 => \"feedback.connect.no_prompt\",",
-          "line": 282,
+          "line": 290,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -58605,7 +58605,7 @@
       "call_sites": [
         {
           "excerpt": "_ => \"feedback.connect.unopened\",",
-          "line": 284,
+          "line": 292,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -58725,7 +58725,7 @@
       "call_sites": [
         {
           "excerpt": "\"feedback.error.archive_stopped\",",
-          "line": 213,
+          "line": 221,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -58747,7 +58747,7 @@
       "call_sites": [
         {
           "excerpt": "\"feedback.error.archive_stopped_named\",",
-          "line": 212,
+          "line": 220,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -58802,7 +58802,7 @@
       "call_sites": [
         {
           "excerpt": "\"scan\" if denied(place, message) => pick(\"feedback.error.denied_named\", \"pane.locked\"),",
-          "line": 193,
+          "line": 201,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -58826,7 +58826,7 @@
       "call_sites": [
         {
           "excerpt": "\"duplicate\" => Sentence::key(\"feedback.error.duplicate\"),",
-          "line": 207,
+          "line": 215,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -58877,7 +58877,7 @@
       "call_sites": [
         {
           "excerpt": "\"mkdir\" => keep_or(\"feedback.error.mkdir\"),",
-          "line": 203,
+          "line": 211,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -58899,14 +58899,14 @@
       "call_sites": [
         {
           "excerpt": "catalog.tr(\"feedback.error.rename\")",
-          "line": 184,
+          "line": 195,
           "path": "crates/flea-gui/src/window/rename_replies.rs",
           "surface": "gui",
           "usage": "translated-call"
         },
         {
           "excerpt": "\"rename\" => keep_or(\"feedback.error.rename\"),",
-          "line": 201,
+          "line": 209,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -58928,7 +58928,7 @@
       "call_sites": [
         {
           "excerpt": "\"rename-kept\" => Sentence::key(\"feedback.error.rename_kept\"),",
-          "line": 202,
+          "line": 210,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -58950,7 +58950,7 @@
       "call_sites": [
         {
           "excerpt": "\"scan\" if share_gone(message) => Sentence::key(\"feedback.error.share_gone\"),",
-          "line": 195,
+          "line": 203,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -58972,7 +58972,7 @@
       "call_sites": [
         {
           "excerpt": "\"scan\" if share_silent(message) => Sentence::key(\"feedback.error.share_silent\"),",
-          "line": 196,
+          "line": 204,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -58994,7 +58994,7 @@
       "call_sites": [
         {
           "excerpt": "\"scan\" if share_stale(message) => Sentence::key(\"feedback.error.share_stale\"),",
-          "line": 194,
+          "line": 202,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59016,7 +59016,7 @@
       "call_sites": [
         {
           "excerpt": "\"sort\" => Sentence::key(\"feedback.error.sort\"),",
-          "line": 198,
+          "line": 206,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59038,7 +59038,7 @@
       "call_sites": [
         {
           "excerpt": "\"stale\" => Sentence::key(\"feedback.error.stale\"),",
-          "line": 210,
+          "line": 218,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59060,7 +59060,7 @@
       "call_sites": [
         {
           "excerpt": "\"state\" => Sentence::key(\"feedback.error.state\"),",
-          "line": 204,
+          "line": 212,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59082,7 +59082,7 @@
       "call_sites": [
         {
           "excerpt": "\"statefile\" => Sentence::key(\"feedback.error.statefile\"),",
-          "line": 205,
+          "line": 213,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59111,7 +59111,7 @@
         },
         {
           "excerpt": "\"read\" => Sentence::key(\"feedback.error.stopped\"),",
-          "line": 199,
+          "line": 207,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59133,7 +59133,7 @@
       "call_sites": [
         {
           "excerpt": "Sentence::key(\"feedback.error.taken\")",
-          "line": 187,
+          "line": 195,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59155,7 +59155,7 @@
       "call_sites": [
         {
           "excerpt": "\"trash\" => Sentence::key(\"feedback.error.trash\"),",
-          "line": 209,
+          "line": 217,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -59177,7 +59177,7 @@
       "call_sites": [
         {
           "excerpt": "\"scan\" => pick(\"feedback.error.unread_named\", \"pane.unread\"),",
-          "line": 197,
+          "line": 205,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -62887,7 +62887,7 @@
         },
         {
           "excerpt": "\"busy\" => catalog.tr(\"jobs.error.busy\"),",
-          "line": 321,
+          "line": 343,
           "path": "src/ui_logic_file_ops/jobs.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -62909,7 +62909,7 @@
       "call_sites": [
         {
           "excerpt": "\"changed\" => catalog.tr(\"jobs.error.changed\"),",
-          "line": 320,
+          "line": 342,
           "path": "src/ui_logic_file_ops/jobs.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -62931,7 +62931,7 @@
       "call_sites": [
         {
           "excerpt": "\"dismiss\" => catalog.tr(\"jobs.error.dismiss\"),",
-          "line": 316,
+          "line": 338,
           "path": "src/ui_logic_file_ops/jobs.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -62953,7 +62953,7 @@
       "call_sites": [
         {
           "excerpt": "\"retry\" => catalog.tr(\"jobs.error.retry\"),",
-          "line": 315,
+          "line": 337,
           "path": "src/ui_logic_file_ops/jobs.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -62975,7 +62975,7 @@
       "call_sites": [
         {
           "excerpt": "\"unchanged\" => catalog.tr(\"jobs.error.unchanged\"),",
-          "line": 319,
+          "line": 341,
           "path": "src/ui_logic_file_ops/jobs.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -62997,7 +62997,7 @@
       "call_sites": [
         {
           "excerpt": "\"undo\" => catalog.tr(\"jobs.error.undo\"),",
-          "line": 317,
+          "line": 339,
           "path": "src/ui_logic_file_ops/jobs.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -63019,7 +63019,7 @@
       "call_sites": [
         {
           "excerpt": "\"unknown\" => catalog.tr(\"jobs.error.unknown\"),",
-          "line": 318,
+          "line": 340,
           "path": "src/ui_logic_file_ops/jobs.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -64230,7 +64230,7 @@
       "call_sites": [
         {
           "excerpt": ".tr_args(\"jobs.rename.exists\", &[leaf(&destination)])",
-          "line": 106,
+          "line": 117,
           "path": "crates/flea-gui/src/window/rename_replies.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -64276,7 +64276,7 @@
       "call_sites": [
         {
           "excerpt": "let said = self.locale.catalog.tr(\"jobs.rename.journal\");",
-          "line": 96,
+          "line": 107,
           "path": "crates/flea-gui/src/window/rename_replies.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -64305,7 +64305,7 @@
         },
         {
           "excerpt": "let said = self.locale.catalog.tr(\"jobs.rename.stopped\");",
-          "line": 115,
+          "line": 126,
           "path": "crates/flea-gui/src/window/rename_replies.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -72846,6 +72846,13 @@
     "menu.class.network": {
       "call_sites": [
         {
+          "excerpt": "\"network\" => i18n.tr(\"menu.class.network\"),",
+          "line": 192,
+          "path": "crates/flea-gui/src/strips/status_host.rs",
+          "surface": "gui",
+          "usage": "translated-call"
+        },
+        {
           "excerpt": "\"network\" => Some(\"menu.class.network\"),",
           "line": 433,
           "path": "src/ui_logic_context_menus/rows.rs",
@@ -72854,7 +72861,7 @@
         }
       ],
       "context": "menu.class.network: src/ui_logic_mn1/rows.rs:465",
-      "coverage": "occurrence-needs-owner-verification",
+      "coverage": "existing-translated-call",
       "english": "Network",
       "kind": "text",
       "omarchy_reference": null,
@@ -72868,6 +72875,13 @@
     "menu.class.phone": {
       "call_sites": [
         {
+          "excerpt": "\"phone\" => i18n.tr(\"menu.class.phone\"),",
+          "line": 193,
+          "path": "crates/flea-gui/src/strips/status_host.rs",
+          "surface": "gui",
+          "usage": "translated-call"
+        },
+        {
           "excerpt": "\"phone\" => Some(\"menu.class.phone\"),",
           "line": 434,
           "path": "src/ui_logic_context_menus/rows.rs",
@@ -72876,7 +72890,7 @@
         }
       ],
       "context": "menu.class.phone: src/ui_logic_mn1/rows.rs:466",
-      "coverage": "occurrence-needs-owner-verification",
+      "coverage": "existing-translated-call",
       "english": "Phone",
       "kind": "text",
       "omarchy_reference": null,
@@ -72890,6 +72904,13 @@
     "menu.class.usb": {
       "call_sites": [
         {
+          "excerpt": "\"usb\" => i18n.tr(\"menu.class.usb\"),",
+          "line": 194,
+          "path": "crates/flea-gui/src/strips/status_host.rs",
+          "surface": "gui",
+          "usage": "translated-call"
+        },
+        {
           "excerpt": "\"usb\" => Some(\"menu.class.usb\"),",
           "line": 435,
           "path": "src/ui_logic_context_menus/rows.rs",
@@ -72898,7 +72919,7 @@
         }
       ],
       "context": "menu.class.usb: src/ui_logic_mn1/rows.rs:467",
-      "coverage": "occurrence-needs-owner-verification",
+      "coverage": "existing-translated-call",
       "english": "USB",
       "kind": "text",
       "omarchy_reference": null,
@@ -73901,7 +73922,7 @@
         },
         {
           "excerpt": "Sentence::key(\"menu.refusal.empty_clipboard\")",
-          "line": 222,
+          "line": 230,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -79184,6 +79205,13 @@
           "path": "crates/flea-gui/src/g2/network_shares/service_release.rs",
           "surface": "gui",
           "usage": "key-declaration"
+        },
+        {
+          "excerpt": "if role == SayRole::Error && note.key != \"network.unmount_failed\" {",
+          "line": 157,
+          "path": "crates/flea-gui/src/window/network_effects.rs",
+          "surface": "gui",
+          "usage": "key-declaration"
         }
       ],
       "context": "network.unmount_failed: crates/flea-gui/src/g2/pl2/service.rs:123",
@@ -79575,7 +79603,7 @@
         },
         {
           "excerpt": "\"scan\" if denied(place, message) => pick(\"feedback.error.denied_named\", \"pane.locked\"),",
-          "line": 193,
+          "line": 201,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -79604,7 +79632,7 @@
         },
         {
           "excerpt": "catalog.tr_args(\"pane.permissions_other_owner\", &[&drawn])",
-          "line": 272,
+          "line": 280,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "translated-call"
@@ -79835,7 +79863,7 @@
         },
         {
           "excerpt": "\"scan\" => pick(\"feedback.error.unread_named\", \"pane.unread\"),",
-          "line": 197,
+          "line": 205,
           "path": "src/ui_logic_status_feedback/errors.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -79910,6 +79938,13 @@
           "excerpt": "Self::Filtered(path) => catalog.tr_args(\"path.filtered\", &[path.as_str()]),",
           "line": 306,
           "path": "crates/flea-gui/src/path/mod.rs",
+          "surface": "gui",
+          "usage": "translated-call"
+        },
+        {
+          "excerpt": ".tr_args(\"path.filtered\", &[leaf(&destination)]);",
+          "line": 81,
+          "path": "crates/flea-gui/src/window/rename_replies.rs",
           "surface": "gui",
           "usage": "translated-call"
         }
@@ -94317,7 +94352,7 @@
       "call_sites": [
         {
           "excerpt": ".child(scene.catalog.tr(\"send.rclone.cancelling\")),",
-          "line": 555,
+          "line": 559,
           "path": "crates/flea-gui/src/g2/file_ops/view.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -101428,7 +101463,7 @@
     "status.host.free": {
       "call_sites": [
         {
-          "excerpt": "return i18n.tr_args(\"status.host.free\", &[name, free]);",
+          "excerpt": "Some(free) => i18n.tr_args(\"status.host.free\", &[name, free]),",
           "line": 177,
           "path": "crates/flea-gui/src/strips/status_host.rs",
           "surface": "gui",
@@ -101560,7 +101595,7 @@
       "call_sites": [
         {
           "excerpt": "i18n.tr(\"status.host.unknown\")",
-          "line": 183,
+          "line": 184,
           "path": "crates/flea-gui/src/strips/status_host.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -103465,7 +103500,7 @@
         },
         {
           "excerpt": "\"trash.title\"",
-          "line": 198,
+          "line": 197,
           "path": "crates/flea-gui/src/window/status.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -107577,21 +107612,21 @@
         },
         {
           "excerpt": "key: \"window.backend_stopped\",",
-          "line": 292,
+          "line": 293,
           "path": "crates/flea-gui/src/g2/file_ops/join.rs",
           "surface": "gui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "text: overlay.catalog.tr(\"window.backend_stopped\"),",
-          "line": 376,
+          "line": 377,
           "path": "crates/flea-gui/src/g2/file_ops/join.rs",
           "surface": "gui",
           "usage": "translated-call"
         },
         {
           "excerpt": "job.reason = overlay.catalog.tr(\"window.backend_stopped\");",
-          "line": 385,
+          "line": 387,
           "path": "crates/flea-gui/src/g2/file_ops/join.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -108547,8 +108582,17 @@
       "surface": "gui"
     },
     {
+      "excerpt": "event => panic!(\"a share with unknown room lost its disk facts: {event:?}\"),",
+      "line": 49,
+      "literal": "a share with unknown room lost its disk facts: {event:?}",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/backend/native31_fixture.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
       "excerpt": "\"malformed disk facts became a class-only reply\"",
-      "line": 46,
+      "line": 53,
       "literal": "malformed disk facts became a class-only reply",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/backend/native31_fixture.rs",
@@ -108575,7 +108619,7 @@
     },
     {
       "excerpt": ".ok_or_else(|| format!(\"{key} must be a string\"))",
-      "line": 23,
+      "line": 24,
       "literal": "{key} must be a string",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/backend/status.rs",
@@ -108584,7 +108628,7 @@
     },
     {
       "excerpt": "Err(_) => return Err(\"free must be an unsigned integer\".into()),",
-      "line": 37,
+      "line": 38,
       "literal": "free must be an unsigned integer",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/backend/status.rs",
@@ -108593,7 +108637,7 @@
     },
     {
       "excerpt": "_ => return Err(\"free must be an unsigned integer\".into()),",
-      "line": 40,
+      "line": 41,
       "literal": "free must be an unsigned integer",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/backend/status.rs",
@@ -108602,7 +108646,7 @@
     },
     {
       "excerpt": "let info = parse(nothing).expect(\"an answer with nothing still answers\");",
-      "line": 74,
+      "line": 79,
       "literal": "an answer with nothing still answers",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/backend/status.rs",
@@ -125413,6 +125457,24 @@
       "surface": "gui"
     },
     {
+      "excerpt": "\"network\" => i18n.tr(\"menu.class.network\"),",
+      "line": 192,
+      "literal": "network",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/strips/status_host.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "\"phone\" => i18n.tr(\"menu.class.phone\"),",
+      "line": 193,
+      "literal": "phone",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/strips/status_host.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
       "excerpt": "const X_MARK: &[u8] = br#\"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"square\" stroke-linejoin=\"miter\"><path d=\"M6 6l12 12 M18 6 6 18\"/></svg>\"#;",
       "line": 37,
       "literal": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"square\" stroke-linejoin=\"miter\"><path d=\"M6 6l12 12 M18 6 6 18\"/></svg>",
@@ -135637,9 +135699,9 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "return Some(format!(\"{name} needs {}, and the drive has {} free\", format_size(size), format_size(free)));",
+      "excerpt": "return Some(format!(\"{name} needs {}, and the drive has {} free.\", format_size(size), format_size(free)));",
       "line": 342,
-      "literal": "{name} needs {}, and the drive has {} free",
+      "literal": "{name} needs {}, and the drive has {} free.",
       "owner": "controller",
       "path": "src/backend/copyfile.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -136430,7 +136492,7 @@
     },
     {
       "excerpt": "assert!(!size.partial, \"the walk reached the bottom\");",
-      "line": 207,
+      "line": 216,
       "literal": "the walk reached the bottom",
       "owner": "controller",
       "path": "src/backend/dirsize.rs",
@@ -136439,7 +136501,7 @@
     },
     {
       "excerpt": "assert!(most.get() <= 2, \"{} descriptors were open into the tree at once\", most.get());",
-      "line": 208,
+      "line": 217,
       "literal": "{} descriptors were open into the tree at once",
       "owner": "controller",
       "path": "src/backend/dirsize.rs",
@@ -136448,7 +136510,7 @@
     },
     {
       "excerpt": "d.file(\"payload\", \"not counted\");",
-      "line": 214,
+      "line": 223,
       "literal": "not counted",
       "owner": "controller",
       "path": "src/backend/dirsize.rs",
@@ -136457,7 +136519,7 @@
     },
     {
       "excerpt": "d.file(\"payload\", \"not counted\");",
-      "line": 227,
+      "line": 236,
       "literal": "not counted",
       "owner": "controller",
       "path": "src/backend/dirsize.rs",
@@ -136466,7 +136528,7 @@
     },
     {
       "excerpt": "symlink(&target, d.join(\"link\")).unwrap();",
-      "line": 263,
+      "line": 272,
       "literal": "link",
       "owner": "controller",
       "path": "src/backend/dirsize.rs",
@@ -136475,7 +136537,7 @@
     },
     {
       "excerpt": "+ fs::symlink_metadata(d.join(\"link\")).unwrap().size();",
-      "line": 266,
+      "line": 275,
       "literal": "link",
       "owner": "controller",
       "path": "src/backend/dirsize.rs",
@@ -136484,7 +136546,7 @@
     },
     {
       "excerpt": "assert!(result.bytes < 100_000, \"the symlink's own small size counts, not the target it points at\");",
-      "line": 268,
+      "line": 277,
       "literal": "the symlink's own small size counts, not the target it points at",
       "owner": "controller",
       "path": "src/backend/dirsize.rs",
@@ -136493,7 +136555,7 @@
     },
     {
       "excerpt": "assert!(!whole.partial, \"a stop that never fires walks the tree whole\");",
-      "line": 292,
+      "line": 301,
       "literal": "a stop that never fires walks the tree whole",
       "owner": "controller",
       "path": "src/backend/dirsize.rs",
@@ -136502,7 +136564,7 @@
     },
     {
       "excerpt": "assert!(cut.partial, \"a stop that fires leaves a floor, which publishes no total at all\");",
-      "line": 296,
+      "line": 305,
       "literal": "a stop that fires leaves a floor, which publishes no total at all",
       "owner": "controller",
       "path": "src/backend/dirsize.rs",
@@ -136511,7 +136573,7 @@
     },
     {
       "excerpt": "assert!(cut.bytes > root_only, \"and it keeps what it saw before the stop: {} against {}\", cut.bytes, root_only);",
-      "line": 299,
+      "line": 308,
       "literal": "and it keeps what it saw before the stop: {} against {}",
       "owner": "controller",
       "path": "src/backend/dirsize.rs",
@@ -136520,7 +136582,7 @@
     },
     {
       "excerpt": "assert!(cut.bytes < whole.bytes, \"which is less than the whole tree: {} against {}\", cut.bytes, whole.bytes);",
-      "line": 300,
+      "line": 309,
       "literal": "which is less than the whole tree: {} against {}",
       "owner": "controller",
       "path": "src/backend/dirsize.rs",
@@ -136529,7 +136591,7 @@
     },
     {
       "excerpt": "assert!(walk_until(&d, past).partial, \"the listing's own deadline still bounds it\");",
-      "line": 303,
+      "line": 312,
       "literal": "the listing's own deadline still bounds it",
       "owner": "controller",
       "path": "src/backend/dirsize.rs",
@@ -136538,7 +136600,7 @@
     },
     {
       "excerpt": "assert!(result.partial, \"a subtree it could not read must mark partial\");",
-      "line": 315,
+      "line": 324,
       "literal": "a subtree it could not read must mark partial",
       "owner": "controller",
       "path": "src/backend/dirsize.rs",
@@ -136547,7 +136609,7 @@
     },
     {
       "excerpt": "assert!(result.bytes >= expected_min, \"what the walk could see must still be counted\");",
-      "line": 318,
+      "line": 327,
       "literal": "what the walk could see must still be counted",
       "owner": "controller",
       "path": "src/backend/dirsize.rs",
@@ -136556,7 +136618,7 @@
     },
     {
       "excerpt": "assert!(same_device(Some(2049), 2049), \"the starting device itself descends\");",
-      "line": 323,
+      "line": 332,
       "literal": "the starting device itself descends",
       "owner": "controller",
       "path": "src/backend/dirsize.rs",
@@ -136565,7 +136627,7 @@
     },
     {
       "excerpt": "assert!(!same_device(Some(2049), 62), \"a nested tmpfs mount never descends\");",
-      "line": 324,
+      "line": 333,
       "literal": "a nested tmpfs mount never descends",
       "owner": "controller",
       "path": "src/backend/dirsize.rs",
@@ -136574,7 +136636,7 @@
     },
     {
       "excerpt": "assert!(same_device(None, 62), \"an unknown start walks as before\");",
-      "line": 325,
+      "line": 334,
       "literal": "an unknown start walks as before",
       "owner": "controller",
       "path": "src/backend/dirsize.rs",
@@ -136583,7 +136645,7 @@
     },
     {
       "excerpt": "assert!(!result.partial, \"the gate skips rather than failing\");",
-      "line": 346,
+      "line": 355,
       "literal": "the gate skips rather than failing",
       "owner": "controller",
       "path": "src/backend/dirsize.rs",
@@ -136592,7 +136654,7 @@
     },
     {
       "excerpt": "assert_eq!(result.bytes, want, \"the other-device subtree never descends, dropping the gate goes red\");",
-      "line": 352,
+      "line": 361,
       "literal": "the other-device subtree never descends, dropping the gate goes red",
       "owner": "controller",
       "path": "src/backend/dirsize.rs",
@@ -136601,7 +136663,7 @@
     },
     {
       "excerpt": "assert!(out > 0, \"the skipped payload is real bytes, so the equality above is not vacuous\");",
-      "line": 353,
+      "line": 362,
       "literal": "the skipped payload is real bytes, so the equality above is not vacuous",
       "owner": "controller",
       "path": "src/backend/dirsize.rs",
@@ -138356,7 +138418,7 @@
     },
     {
       "excerpt": "assert_eq!(name_for(0x1234), \"0x1234\", \"a wrong name would be worse than the number\");",
-      "line": 154,
+      "line": 158,
       "literal": "a wrong name would be worse than the number",
       "owner": "controller",
       "path": "src/backend/fsinfo.rs",
@@ -138365,7 +138427,7 @@
     },
     {
       "excerpt": "let info = read(d.path()).expect(\"a temp directory is on a mounted filesystem\");",
-      "line": 177,
+      "line": 181,
       "literal": "a temp directory is on a mounted filesystem",
       "owner": "controller",
       "path": "src/backend/fsinfo.rs",
@@ -138374,7 +138436,7 @@
     },
     {
       "excerpt": "assert!(info.free > 0, \"a filesystem with no room left could not have held this sandbox\");",
-      "line": 179,
+      "line": 183,
       "literal": "a filesystem with no room left could not have held this sandbox",
       "owner": "controller",
       "path": "src/backend/fsinfo.rs",
@@ -138382,8 +138444,17 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "let line = fsinfo_line(&Some(Info { name: \"fuse\".to_string(), free: 0, blocks: 0 }), \"/run/user/1000/gvfs/dav:host=h\", \"network\", false, false);",
+      "line": 201,
+      "literal": "network",
+      "owner": "controller",
+      "path": "src/backend/fsinfo.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "let line = fsinfo_line(&Some(Info { name: \"cifs\".to_string(), free: 7, blocks: 100 }), \"/media/nas\", \"network\", false, false);",
-      "line": 197,
+      "line": 207,
       "literal": "network",
       "owner": "controller",
       "path": "src/backend/fsinfo.rs",
@@ -138392,7 +138463,7 @@
     },
     {
       "excerpt": "assert!(!fsinfo_line(&info, \"/mnt/data\", \"\", false, false).contains(\"system\"), \"the flag rides only when true\");",
-      "line": 208,
+      "line": 218,
       "literal": "the flag rides only when true",
       "owner": "controller",
       "path": "src/backend/fsinfo.rs",
@@ -138401,7 +138472,7 @@
     },
     {
       "excerpt": "assert!(info.is_some_and(|i| i.free > 0), \"a temp directory is on a mounted filesystem\");",
-      "line": 224,
+      "line": 234,
       "literal": "a temp directory is on a mounted filesystem",
       "owner": "controller",
       "path": "src/backend/fsinfo.rs",
@@ -138410,7 +138481,7 @@
     },
     {
       "excerpt": "assert!(magic.is_some(), \"the same call carries f_type\");",
-      "line": 225,
+      "line": 235,
       "literal": "the same call carries f_type",
       "owner": "controller",
       "path": "src/backend/fsinfo.rs",
@@ -138419,7 +138490,7 @@
     },
     {
       "excerpt": "assert_eq!(statfs_calls(), 1, \"figures and magic share one statfs, not two\");",
-      "line": 226,
+      "line": 236,
       "literal": "figures and magic share one statfs, not two",
       "owner": "controller",
       "path": "src/backend/fsinfo.rs",
@@ -138428,7 +138499,7 @@
     },
     {
       "excerpt": "assert_eq!(statfs_calls(), 1, \"even a failure is one call\");",
-      "line": 229,
+      "line": 239,
       "literal": "even a failure is one call",
       "owner": "controller",
       "path": "src/backend/fsinfo.rs",
@@ -139805,7 +139876,7 @@
     },
     {
       "excerpt": "pub(crate) const RESTORE_TAKEN: &str = \"an item with that name is already there, so undo left it in the Trash\";",
-      "line": 9,
+      "line": 12,
       "literal": "an item with that name is already there, so undo left it in the Trash",
       "owner": "controller",
       "path": "src/backend/homerestore.rs",
@@ -139814,7 +139885,7 @@
     },
     {
       "excerpt": "let trash = d.dir(\"Trash\");",
-      "line": 61,
+      "line": 105,
       "literal": "Trash",
       "owner": "controller",
       "path": "src/backend/homerestore.rs",
@@ -139823,7 +139894,7 @@
     },
     {
       "excerpt": "let body = format!(\"[Trash Info]\\nPath={}\\nDeletionDate=2026-10-09T00:00:00\\n\", percent_encode(original.as_os_str().as_bytes()));",
-      "line": 65,
+      "line": 109,
       "literal": "[Trash Info]\nPath={}\nDeletionDate=2026-10-09T00:00:00\n",
       "owner": "controller",
       "path": "src/backend/homerestore.rs",
@@ -139832,7 +139903,7 @@
     },
     {
       "excerpt": "assert!(matches!(restore_from_home(&entry(\"trash:///g.txt\", &home)), Some(Ok(()))), \"a top-level entry restores in-process\");",
-      "line": 74,
+      "line": 118,
       "literal": "a top-level entry restores in-process",
       "owner": "controller",
       "path": "src/backend/homerestore.rs",
@@ -139841,7 +139912,7 @@
     },
     {
       "excerpt": "assert!(!top.exists() && !d.join(\"Trash/files/g.txt\").exists(), \"the item and its record left the Trash\");",
-      "line": 76,
+      "line": 120,
       "literal": "the item and its record left the Trash",
       "owner": "controller",
       "path": "src/backend/homerestore.rs",
@@ -139850,7 +139921,7 @@
     },
     {
       "excerpt": "assert!(restore_from_home(&entry(uri, &original)).is_none(), \"{uri} is gio's to restore\");",
-      "line": 82,
+      "line": 126,
       "literal": "{uri} is gio's to restore",
       "owner": "controller",
       "path": "src/backend/homerestore.rs",
@@ -139859,7 +139930,7 @@
     },
     {
       "excerpt": "assert!(kept.is_file() && records.iter().all(|r| r.is_file()), \"nothing moved and no record went\");",
-      "line": 84,
+      "line": 128,
       "literal": "nothing moved and no record went",
       "owner": "controller",
       "path": "src/backend/homerestore.rs",
@@ -139868,7 +139939,7 @@
     },
     {
       "excerpt": "assert!(d.join(\"Trash/files\").is_dir() && d.join(\"Trash/info\").is_dir(), \"the Trash folders stay\");",
-      "line": 85,
+      "line": 129,
       "literal": "the Trash folders stay",
       "owner": "controller",
       "path": "src/backend/homerestore.rs",
@@ -139877,7 +139948,7 @@
     },
     {
       "excerpt": "assert!(!d.join(\"refused\").exists(), \"nothing was created for a refused uri\");",
-      "line": 86,
+      "line": 130,
       "literal": "nothing was created for a refused uri",
       "owner": "controller",
       "path": "src/backend/homerestore.rs",
@@ -143675,7 +143746,7 @@
     },
     {
       "excerpt": "panic!(\"test: Properties worker panicked during directory walk\");",
-      "line": 221,
+      "line": 222,
       "literal": "test: Properties worker panicked during directory walk",
       "owner": "controller",
       "path": "src/backend/menuproperties_remote.rs",
@@ -148292,7 +148363,7 @@
     },
     {
       "excerpt": "for fstype in [\"nfs\", \"nfs4\", \"NFS\", \"cifs\", \"smb2\", \"smb3\", \"smbfs\", \"9p\", \"afs\", \"ceph\", \"davfs\", \"fuse.sshfs\", \"fuse.rclone\", \"fuse.s3fs\", \"fuse.gcsfuse\", \"fuse.curlftpfs\", \"fuse.juicefs\", \"fuse.glusterfs\", \"fuse.ceph-fuse\", \"fuse.smbnetfs\", \"fuse.davfs2\", \"fuse.gvfsd-fuse\", \"fuse.protondrive\"] {",
-      "line": 26,
+      "line": 35,
       "literal": "NFS",
       "owner": "controller",
       "path": "src/backend/netfs.rs",
@@ -148301,7 +148372,7 @@
     },
     {
       "excerpt": "assert!(is_network_fstype(fstype), \"{} is network\", fstype);",
-      "line": 27,
+      "line": 36,
       "literal": "{} is network",
       "owner": "controller",
       "path": "src/backend/netfs.rs",
@@ -148310,7 +148381,7 @@
     },
     {
       "excerpt": "assert!(!is_network_fstype(fstype), \"{} stays local\", fstype);",
-      "line": 30,
+      "line": 39,
       "literal": "{} stays local",
       "owner": "controller",
       "path": "src/backend/netfs.rs",
@@ -148319,7 +148390,7 @@
     },
     {
       "excerpt": "assert!(can_wedge(kind), \"{} can wedge\", kind);",
-      "line": 54,
+      "line": 63,
       "literal": "{} can wedge",
       "owner": "controller",
       "path": "src/backend/netfs.rs",
@@ -148328,7 +148399,7 @@
     },
     {
       "excerpt": "assert!(!can_wedge(kind), \"{} stays inline\", kind);",
-      "line": 57,
+      "line": 66,
       "literal": "{} stays inline",
       "owner": "controller",
       "path": "src/backend/netfs.rs",
@@ -148336,8 +148407,44 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "assert!(inotify_blind(kind), \"{} is blind\", kind);",
+      "line": 74,
+      "literal": "{} is blind",
+      "owner": "controller",
+      "path": "src/backend/netfs.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "assert!(!can_wedge(kind) && !is_network_fstype(kind), \"{} keeps its local walks\", kind);",
+      "line": 75,
+      "literal": "{} keeps its local walks",
+      "owner": "controller",
+      "path": "src/backend/netfs.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "assert!(inotify_blind(kind), \"{} is blind because it can wedge\", kind);",
+      "line": 78,
+      "literal": "{} is blind because it can wedge",
+      "owner": "controller",
+      "path": "src/backend/netfs.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "assert!(!inotify_blind(kind), \"{} trusts inotify\", kind);",
+      "line": 81,
+      "literal": "{} trusts inotify",
+      "owner": "controller",
+      "path": "src/backend/netfs.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "assert_eq!(js, rust, \"ui/js/NetFs.js case labels drifted from netfs.rs\");",
-      "line": 66,
+      "line": 90,
       "literal": "ui/js/NetFs.js case labels drifted from netfs.rs",
       "owner": "controller",
       "path": "src/backend/netfs.rs",
@@ -160846,27 +160953,18 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": ".ok_or_else(|| unreadable(\"The Trash helper returned an unreadable listing.\"))?;",
-      "line": 171,
-      "literal": "The Trash helper returned an unreadable listing.",
+      "excerpt": "\"Trash left out what gio could not describe: {}\",",
+      "line": 205,
+      "literal": "Trash left out what gio could not describe: {}",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "core/backend"
     },
     {
-      "excerpt": "return Err(unreadable(\"The Trash helper returned an invalid item identity.\"));",
-      "line": 176,
-      "literal": "The Trash helper returned an invalid item identity.",
-      "owner": "controller",
-      "path": "src/backend/trashbrowse.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "return Err(unreadable(\"The Trash helper returned duplicate item identities.\"));",
-      "line": 185,
-      "literal": "The Trash helper returned duplicate item identities.",
+      "excerpt": "left_out.join(\", \")",
+      "line": 206,
+      "literal": ", ",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -160874,7 +160972,7 @@
     },
     {
       "excerpt": ".ok_or_else(|| unreadable(\"The Trash helper did not report the item's size.\"))?;",
-      "line": 247,
+      "line": 295,
       "literal": "The Trash helper did not report the item's size.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -160883,7 +160981,7 @@
     },
     {
       "excerpt": "directory: attribute(text, \"standard::type\") == Some(\"2\"),",
-      "line": 272,
+      "line": 320,
       "literal": "2",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -160892,7 +160990,7 @@
     },
     {
       "excerpt": ".split(\", \")",
-      "line": 275,
+      "line": 323,
       "literal": ", ",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -160901,7 +160999,7 @@
     },
     {
       "excerpt": "return Err(selection_changed(format!(\"Trash selection changed for {}.\", item.item.uri)));",
-      "line": 320,
+      "line": 368,
       "literal": "Trash selection changed for {}.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -160910,7 +161008,7 @@
     },
     {
       "excerpt": "String::from_utf8(bytes).map_err(|_| damaged(\"Invalid text in Trash review.\"))",
-      "line": 326,
+      "line": 374,
       "literal": "Invalid text in Trash review.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -160919,7 +161017,7 @@
     },
     {
       "excerpt": "Ok(Item { uri: field_str(text, \"uri\").ok_or_else(|| damaged(\"Missing reviewed Trash URI.\"))?,",
-      "line": 329,
+      "line": 377,
       "literal": "Missing reviewed Trash URI.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -160928,7 +161026,7 @@
     },
     {
       "excerpt": "original: field_str(text, \"original\").ok_or_else(|| damaged(\"Missing reviewed original path.\"))? })",
-      "line": 330,
+      "line": 378,
       "literal": "Missing reviewed original path.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -160937,7 +161035,7 @@
     },
     {
       "excerpt": "escape(&item.identity), escape(&item.backing.as_ref().ok_or_else(|| damaged(\"Missing Trash backing review.\"))?.saved()?)));",
-      "line": 336,
+      "line": 384,
       "literal": "Missing Trash backing review.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -160946,7 +161044,7 @@
     },
     {
       "excerpt": "size: field_usize(text, \"size\").ok_or_else(|| damaged(\"Missing reviewed Trash size.\"))? as u64,",
-      "line": 342,
+      "line": 390,
       "literal": "Missing reviewed Trash size.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -160955,7 +161053,7 @@
     },
     {
       "excerpt": "identity: field_str(text, \"providerIdentity\").ok_or_else(|| damaged(\"Missing reviewed provider identity.\"))?,",
-      "line": 344,
+      "line": 392,
       "literal": "Missing reviewed provider identity.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -160964,7 +161062,7 @@
     },
     {
       "excerpt": "backing: Some(Reviewed::from_saved(&field_str(text, \"backing\").ok_or_else(|| damaged(\"Missing Trash backing review.\"))?, trees)?),",
-      "line": 347,
+      "line": 395,
       "literal": "Missing Trash backing review.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -160973,7 +161071,7 @@
     },
     {
       "excerpt": "failure(&item, \"\", \"One Trash record could not be read, so that item was left in place.\")",
-      "line": 374,
+      "line": 422,
       "literal": "One Trash record could not be read, so that item was left in place.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -160982,7 +161080,7 @@
     },
     {
       "excerpt": "failure(&Item { uri: String::new(), original: String::new() }, \"\", &format!(\"{count} Trash records could not be read, so those items were left in place.\"))",
-      "line": 378,
+      "line": 426,
       "literal": "{count} Trash records could not be read, so those items were left in place.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -160991,7 +161089,7 @@
     },
     {
       "excerpt": "_ => Err(\"Unknown Trash request.\".into()),",
-      "line": 473,
+      "line": 521,
       "literal": "Unknown Trash request.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -161000,7 +161098,7 @@
     },
     {
       "excerpt": "if self.confirmation.is_some() { return Err(\"Finish or cancel the Trash confirmation before selecting items.\".into()); }",
-      "line": 521,
+      "line": 569,
       "literal": "Finish or cancel the Trash confirmation before selecting items.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -161009,7 +161107,7 @@
     },
     {
       "excerpt": "if !same_items(&list()?, &self.items) { return Err(\"Trash changed while selecting its contents; select again.\".into()); }",
-      "line": 533,
+      "line": 581,
       "literal": "Trash changed while selecting its contents; select again.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -161018,7 +161116,7 @@
     },
     {
       "excerpt": "return Err(selection_changed(\"The reviewed identity for the Trash selection is missing.\").into());",
-      "line": 575,
+      "line": 623,
       "literal": "The reviewed identity for the Trash selection is missing.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -161027,7 +161125,7 @@
     },
     {
       "excerpt": ".ok_or_else(|| selection_changed(\"The saved Trash selection is no longer current.\"))?;",
-      "line": 588,
+      "line": 636,
       "literal": "The saved Trash selection is no longer current.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -161036,7 +161134,7 @@
     },
     {
       "excerpt": ".ok_or_else(|| selection_changed(\"The saved Trash selection is no longer current.\"))?;",
-      "line": 603,
+      "line": 651,
       "literal": "The saved Trash selection is no longer current.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -161045,7 +161143,7 @@
     },
     {
       "excerpt": "if expected.is_empty() { return Err(selection_changed(\"The reviewed identity for the Trash selection is missing.\").into()); }",
-      "line": 604,
+      "line": 652,
       "literal": "The reviewed identity for the Trash selection is missing.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -161054,7 +161152,7 @@
     },
     {
       "excerpt": "if targets.len() == 0 { return Err(if all { \"Trash is empty.\" } else { \"Select at least one Trash item.\" }.into()); }",
-      "line": 609,
+      "line": 657,
       "literal": "Trash is empty.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -161063,7 +161161,7 @@
     },
     {
       "excerpt": "if targets.len() == 0 { return Err(if all { \"Trash is empty.\" } else { \"Select at least one Trash item.\" }.into()); }",
-      "line": 609,
+      "line": 657,
       "literal": "Select at least one Trash item.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -161072,7 +161170,7 @@
     },
     {
       "excerpt": "if targets.len() == 0 { return Err(\"The selected Trash items are no longer present.\".into()); }",
-      "line": 638,
+      "line": 686,
       "literal": "The selected Trash items are no longer present.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -161081,7 +161179,7 @@
     },
     {
       "excerpt": ".ok_or(\"Trash confirmation expired; start the action again.\")?;",
-      "line": 648,
+      "line": 696,
       "literal": "Trash confirmation expired; start the action again.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -161090,7 +161188,7 @@
     },
     {
       "excerpt": "nodes = nodes.checked_add(current.backing.as_ref().unwrap().reviewed_nodes()).ok_or(\"Trash file total exceeds the supported range.\")?;",
-      "line": 672,
+      "line": 720,
       "literal": "Trash file total exceeds the supported range.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -161099,7 +161197,7 @@
     },
     {
       "excerpt": "bytes = bytes.checked_add(size).ok_or(\"Trash byte total exceeds the supported range.\")?;",
-      "line": 673,
+      "line": 721,
       "literal": "Trash byte total exceeds the supported range.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -161108,7 +161206,7 @@
     },
     {
       "excerpt": "return Err(\"Trash changed while reviewing its contents; try the action again.\".into());",
-      "line": 682,
+      "line": 730,
       "literal": "Trash changed while reviewing its contents; try the action again.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -161117,7 +161215,7 @@
     },
     {
       "excerpt": "return Err(\"an operation is already running\".into());",
-      "line": 720,
+      "line": 768,
       "literal": "an operation is already running",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -161125,8 +161223,35 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "unescape(\"/tmp/good one.txt\").as_deref(),",
+      "line": 821,
+      "literal": "/tmp/good one.txt",
+      "owner": "controller",
+      "path": "src/backend/trashbrowse.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "Some(\"/tmp/good one.txt\")",
+      "line": 822,
+      "literal": "/tmp/good one.txt",
+      "owner": "controller",
+      "path": "src/backend/trashbrowse.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "_ => panic!(\"unexpected gio call {args:?}\"),",
+      "line": 875,
+      "literal": "unexpected gio call {args:?}",
+      "owner": "controller",
+      "path": "src/backend/trashbrowse.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "let items = list_with(read_gio(Err(\"gio failed\"))).unwrap();",
-      "line": 830,
+      "line": 889,
       "literal": "gio failed",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -161135,7 +161260,7 @@
     },
     {
       "excerpt": "assert!(list_with(|_: &[&str]| Err(unreadable(\"gio failed\"))).is_err());",
-      "line": 835,
+      "line": 894,
       "literal": "gio failed",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -161144,7 +161269,7 @@
     },
     {
       "excerpt": "let by_uri = list_with(read_gio(Err(\"timed out\"))).unwrap();",
-      "line": 840,
+      "line": 899,
       "literal": "timed out",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -161153,7 +161278,7 @@
     },
     {
       "excerpt": "let message = failure(&item, \"held-identity\", \"Permission denied\");",
-      "line": 919,
+      "line": 978,
       "literal": "Permission denied",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -161162,7 +161287,7 @@
     },
     {
       "excerpt": "assert_eq!(field_str(&message, \"error\").unwrap(), \"Permission denied\");",
-      "line": 922,
+      "line": 981,
       "literal": "Permission denied",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -161171,7 +161296,7 @@
     },
     {
       "excerpt": "assert!(stale.contains(r#\"\"ok\":false,\"stale\":true,\"error\":\"The Trash changed, so nothing was done; confirm again.\"\"#), \"{}\", stale);",
-      "line": 933,
+      "line": 992,
       "literal": "\"ok\":false,\"stale\":true,\"error\":\"The Trash changed, so nothing was done; confirm again.\"",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -161180,7 +161305,7 @@
     },
     {
       "excerpt": "assert!(crate::backend::trashmanifest::logged().split_off(seen).iter().any(|line| line.contains(\"Trash changed; confirm again.\")));",
-      "line": 934,
+      "line": 993,
       "literal": "Trash changed; confirm again.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -161189,7 +161314,7 @@
     },
     {
       "excerpt": "assert!(unknown.contains(r#\"\"stale\":false,\"error\":\"Unknown Trash request.\"\"#), \"{}\", unknown);",
-      "line": 936,
+      "line": 995,
       "literal": "\"stale\":false,\"error\":\"Unknown Trash request.\"",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -161198,7 +161323,7 @@
     },
     {
       "excerpt": "assert_eq!(refused.shown(), \"The Trash changed, so nothing was done. Try again.\");",
-      "line": 942,
+      "line": 1001,
       "literal": "The Trash changed, so nothing was done. Try again.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -161207,7 +161332,7 @@
     },
     {
       "excerpt": "assert!(crate::backend::trashmanifest::logged().split_off(seen).iter().any(|line| line.contains(\"Missing reviewed Trash URI.\")));",
-      "line": 943,
+      "line": 1002,
       "literal": "Missing reviewed Trash URI.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -161216,7 +161341,7 @@
     },
     {
       "excerpt": "assert_eq!(String::from(record_text(vec![0xff]).unwrap_err()), \"The Trash changed, so nothing was done. Try again.\");",
-      "line": 944,
+      "line": 1003,
       "literal": "The Trash changed, so nothing was done. Try again.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -161225,7 +161350,7 @@
     },
     {
       "excerpt": "d.file(\"info/same.txt.trashinfo\", \"[Trash Info]\\nPath=/original/same.txt\\n\");",
-      "line": 980,
+      "line": 1039,
       "literal": "[Trash Info]\nPath=/original/same.txt\n",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -161234,7 +161359,7 @@
     },
     {
       "excerpt": "assert!(busy.contains(r#\"\"ok\":false\"#) && busy.contains(\"already running\"), \"a restore onto a pending mount waits: {}\", busy);",
-      "line": 1019,
+      "line": 1078,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -161243,7 +161368,7 @@
     },
     {
       "excerpt": "assert!(busy.contains(r#\"\"ok\":false\"#) && busy.contains(\"already running\"), \"a restore onto a pending mount waits: {}\", busy);",
-      "line": 1019,
+      "line": 1078,
       "literal": "a restore onto a pending mount waits: {}",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -161252,7 +161377,7 @@
     },
     {
       "excerpt": "assert!(!past.contains(\"already running\"), \"a restore elsewhere runs past the gate: {}\", past);",
-      "line": 1027,
+      "line": 1086,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -161261,7 +161386,7 @@
     },
     {
       "excerpt": "assert!(!past.contains(\"already running\"), \"a restore elsewhere runs past the gate: {}\", past);",
-      "line": 1027,
+      "line": 1086,
       "literal": "a restore elsewhere runs past the gate: {}",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -161270,7 +161395,7 @@
     },
     {
       "excerpt": "assert!(busy.contains(r#\"\"ok\":false\"#) && busy.contains(\"already running\"), \"a delete onto a pending mount waits: {}\", busy);",
-      "line": 1038,
+      "line": 1097,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -161279,7 +161404,7 @@
     },
     {
       "excerpt": "assert!(busy.contains(r#\"\"ok\":false\"#) && busy.contains(\"already running\"), \"a delete onto a pending mount waits: {}\", busy);",
-      "line": 1038,
+      "line": 1097,
       "literal": "a delete onto a pending mount waits: {}",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -161288,7 +161413,7 @@
     },
     {
       "excerpt": "assert!(held.confirmation.is_some(), \"the refused delete keeps its confirmation for the retry\");",
-      "line": 1039,
+      "line": 1098,
       "literal": "the refused delete keeps its confirmation for the retry",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -161297,7 +161422,7 @@
     },
     {
       "excerpt": "assert!(!past.contains(\"already running\"), \"a delete elsewhere runs past the gate: {}\", past);",
-      "line": 1048,
+      "line": 1107,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -161306,7 +161431,7 @@
     },
     {
       "excerpt": "assert!(!past.contains(\"already running\"), \"a delete elsewhere runs past the gate: {}\", past);",
-      "line": 1048,
+      "line": 1107,
       "literal": "a delete elsewhere runs past the gate: {}",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -162169,7 +162294,7 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "let destination_parent = destination.parent().changed(\"Original parent is missing.\")?.canonicalize()",
+      "excerpt": "let parent = destination.parent().changed(\"Original parent is missing.\")?;",
       "line": 508,
       "literal": "Original parent is missing.",
       "owner": "controller",
@@ -162179,7 +162304,7 @@
     },
     {
       "excerpt": ".map_err(|e| Refusal::os(Outcome::Blocked, &format!(\"Could not open original location {}\", destination.display()), &e))?;",
-      "line": 509,
+      "line": 511,
       "literal": "Could not open original location {}",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162188,7 +162313,7 @@
     },
     {
       "excerpt": "destination.file_name().changed(\"Original filename is missing.\")?)",
-      "line": 512,
+      "line": 514,
       "literal": "Original filename is missing.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162197,7 +162322,7 @@
     },
     {
       "excerpt": ".map_err(|reason| Refusal::new(Outcome::Blocked, format!(\"Could not restore {} without overwriting: {}\", destination.display(), reason)).because(reason))",
-      "line": 513,
+      "line": 515,
       "literal": "Could not restore {} without overwriting: {}",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162206,7 +162331,7 @@
     },
     {
       "excerpt": "let files = open_dir(self.path.parent().changed(\"Missing Trash parent.\")?)?;",
-      "line": 520,
+      "line": 522,
       "literal": "Missing Trash parent.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162215,7 +162340,7 @@
     },
     {
       "excerpt": "let infos = open_dir(self.info.parent().changed(\"Missing Trash metadata parent.\")?)?;",
-      "line": 521,
+      "line": 523,
       "literal": "Missing Trash metadata parent.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162224,7 +162349,7 @@
     },
     {
       "excerpt": ".changed(\"Invalid Trash filename.\")?;",
-      "line": 525,
+      "line": 527,
       "literal": "Invalid Trash filename.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162233,7 +162358,7 @@
     },
     {
       "excerpt": ".changed(\"Invalid Trash metadata name.\")?;",
-      "line": 529,
+      "line": 531,
       "literal": "Invalid Trash metadata name.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162242,7 +162367,7 @@
     },
     {
       "excerpt": "if identity(&fd_path(&files, name)).changed(\"Trash item unreadable\")? != self.payload",
-      "line": 530,
+      "line": 532,
       "literal": "Trash item unreadable",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162251,7 +162376,7 @@
     },
     {
       "excerpt": "|| identity(&fd_path(&infos, info_name)).changed(\"Trash metadata unreadable\")? != self.metadata",
-      "line": 531,
+      "line": 533,
       "literal": "Trash metadata unreadable",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162260,7 +162385,7 @@
     },
     {
       "excerpt": "return Err(Refusal::new(Outcome::ConfirmAgain, \"Trash item changed; confirm again.\"));",
-      "line": 533,
+      "line": 535,
       "literal": "Trash item changed; confirm again.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162269,7 +162394,7 @@
     },
     {
       "excerpt": ".map_err(|e| Refusal::os(Outcome::Prepare(op), \"Could not create Trash quarantine\", &e))?;",
-      "line": 544,
+      "line": 546,
       "literal": "Could not create Trash quarantine",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162278,7 +162403,7 @@
     },
     {
       "excerpt": "return Err(Refusal::new(Outcome::Prepare(op), format!(\"Could not claim Trash item: {}\", error)).because(error));",
-      "line": 559,
+      "line": 561,
       "literal": "Could not claim Trash item: {}",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162287,7 +162412,7 @@
     },
     {
       "excerpt": "Err((ErrorKind::NotFound, _)) | Ok(()) => Refusal::new(Outcome::ConfirmAgain, \"Trash changed; no operation attempted. Confirm again.\"),",
-      "line": 567,
+      "line": 569,
       "literal": "Trash changed; no operation attempted. Confirm again.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162296,7 +162421,7 @@
     },
     {
       "excerpt": "Err((_, reason)) => Refusal::new(Outcome::Prepare(op), format!(\"Could not claim Trash metadata: {reason}\")).because(reason.clone()),",
-      "line": 568,
+      "line": 570,
       "literal": "Could not claim Trash metadata: {reason}",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162305,7 +162430,7 @@
     },
     {
       "excerpt": ".map_err(|e| Refusal::os(Outcome::InfoLeft(op, recovery.clone()), \"Trash metadata cleanup after completion\", &e))?;",
-      "line": 610,
+      "line": 612,
       "literal": "Trash metadata cleanup after completion",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162314,7 +162439,7 @@
     },
     {
       "excerpt": "return Err(Refusal::changed(\"Permanent deletion requires an absolute item path; filesystem roots are refused.\").logged());",
-      "line": 627,
+      "line": 629,
       "literal": "Permanent deletion requires an absolute item path; filesystem roots are refused.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162323,7 +162448,7 @@
     },
     {
       "excerpt": "let payload = identity(&path).changed(\"Item unreadable\").map_err(Refusal::logged)?;",
-      "line": 629,
+      "line": 631,
       "literal": "Item unreadable",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162332,7 +162457,7 @@
     },
     {
       "excerpt": "let parent = open_dir(self.path.parent().changed(\"Missing deletion parent.\")?)?;",
-      "line": 636,
+      "line": 638,
       "literal": "Missing deletion parent.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162341,7 +162466,7 @@
     },
     {
       "excerpt": "matches(&self.tree, &parent, self.path.file_name().changed(\"Missing deletion filename.\")?, cancel)",
-      "line": 637,
+      "line": 639,
       "literal": "Missing deletion filename.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162350,7 +162475,7 @@
     },
     {
       "excerpt": "let parent_path = self.path.parent().changed(\"Missing deletion parent.\")?;",
-      "line": 648,
+      "line": 650,
       "literal": "Missing deletion parent.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162359,7 +162484,7 @@
     },
     {
       "excerpt": "let name = self.path.file_name().changed(\"Missing deletion filename.\")?;",
-      "line": 650,
+      "line": 652,
       "literal": "Missing deletion filename.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162368,7 +162493,7 @@
     },
     {
       "excerpt": "if identity(&fd_path(&parent, name)).changed(\"Item unreadable\")? != self.payload {",
-      "line": 651,
+      "line": 653,
       "literal": "Item unreadable",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162377,7 +162502,7 @@
     },
     {
       "excerpt": "return Err(Refusal::new(Outcome::ItemChanged, \"Item changed; confirm again.\"));",
-      "line": 652,
+      "line": 654,
       "literal": "Item changed; confirm again.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162386,7 +162511,7 @@
     },
     {
       "excerpt": ".map_err(|e| Refusal::os(Outcome::Prepare(op), \"Could not create deletion quarantine\", &e))?;",
-      "line": 657,
+      "line": 659,
       "literal": "Could not create deletion quarantine",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162395,7 +162520,7 @@
     },
     {
       "excerpt": "return Err(Refusal::new(Outcome::Prepare(op), format!(\"Could not claim item for deletion: {}\", error)).because(error));",
-      "line": 671,
+      "line": 673,
       "literal": "Could not claim item for deletion: {}",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162404,7 +162529,7 @@
     },
     {
       "excerpt": "let removal = remove_tree(&self.tree, &quarantine, Refusal::new(Outcome::ItemChanged, \"Item changed after confirmation; no deletion attempted.\"));",
-      "line": 673,
+      "line": 675,
       "literal": "Item changed after confirmation; no deletion attempted.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162413,7 +162538,7 @@
     },
     {
       "excerpt": "d.file(\"info/item.trashinfo\", \"[Trash Info]\\nPath=/original\\n\");",
-      "line": 706,
+      "line": 708,
       "literal": "[Trash Info]\nPath=/original\n",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162422,7 +162547,7 @@
     },
     {
       "excerpt": "std::fs::write(d.join(\"info/item.trashinfo\"), format!(\"[Trash Info]\\nPath={}\\n\", original.display())).unwrap();",
-      "line": 723,
+      "line": 725,
       "literal": "[Trash Info]\nPath={}\n",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162430,8 +162555,35 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "std::fs::write(d.join(\"missing\"), \"a file where the folder was\").unwrap();",
+      "line": 773,
+      "literal": "missing",
+      "owner": "controller",
+      "path": "src/backend/trashdelete.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "std::fs::write(d.join(\"missing\"), \"a file where the folder was\").unwrap();",
+      "line": 773,
+      "literal": "a file where the folder was",
+      "owner": "controller",
+      "path": "src/backend/trashdelete.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "std::fs::remove_file(d.join(\"missing\")).unwrap();",
+      "line": 776,
+      "literal": "missing",
+      "owner": "controller",
+      "path": "src/backend/trashdelete.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "let encoded = d.file(\"metadata\", \"[Trash Info]\\nPath=folder/photo%20one+two.jpg\\n\");",
-      "line": 779,
+      "line": 784,
       "literal": "[Trash Info]\nPath=folder/photo%20one+two.jpg\n",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162440,7 +162592,7 @@
     },
     {
       "excerpt": "assert_eq!(original_path(&File::open(&encoded).unwrap(), &root).unwrap(), d.join(\"folder/photo one+two.jpg\"));",
-      "line": 781,
+      "line": 786,
       "literal": "folder/photo one+two.jpg",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162449,7 +162601,7 @@
     },
     {
       "excerpt": "assert_eq!(original_path(&File::open(&encoded).unwrap(), &root).unwrap(), d.join(\"folder/photo one+two.jpg\"));",
-      "line": 783,
+      "line": 788,
       "literal": "folder/photo one+two.jpg",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162458,7 +162610,7 @@
     },
     {
       "excerpt": "std::fs::write(&encoded, \"[Trash Info]\\nPath=../escape\\n\").unwrap();",
-      "line": 784,
+      "line": 789,
       "literal": "[Trash Info]\nPath=../escape\n",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162467,7 +162619,7 @@
     },
     {
       "excerpt": "std::fs::write(&encoded, \"[Trash Info]\\nPath=/one\\nPath=/two\\n\").unwrap();",
-      "line": 786,
+      "line": 791,
       "literal": "[Trash Info]\nPath=/one\nPath=/two\n",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162476,7 +162628,7 @@
     },
     {
       "excerpt": "d.file(\"info/locked.trashinfo\", \"[Trash Info]\\nPath=/original/locked\\n\");",
-      "line": 809,
+      "line": 814,
       "literal": "[Trash Info]\nPath=/original/locked\n",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162485,7 +162637,7 @@
     },
     {
       "excerpt": "Err(\"Could not prepare the deletion, so nothing was deleted: permission denied.\".to_string()));",
-      "line": 820,
+      "line": 825,
       "literal": "Could not prepare the deletion, so nothing was deleted: permission denied.",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162494,7 +162646,7 @@
     },
     {
       "excerpt": "std::fs::write(&info, \"[Trash Info]\\nPath=/new-original\\n\").unwrap();",
-      "line": 849,
+      "line": 854,
       "literal": "[Trash Info]\nPath=/new-original\n",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162503,7 +162655,7 @@
     },
     {
       "excerpt": "std::fs::write(&path, \"new arrival\").unwrap();",
-      "line": 867,
+      "line": 872,
       "literal": "new arrival",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162512,7 +162664,7 @@
     },
     {
       "excerpt": "assert_eq!(std::fs::read_to_string(&path).unwrap(), \"new arrival\");",
-      "line": 870,
+      "line": 875,
       "literal": "new arrival",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162521,7 +162673,7 @@
     },
     {
       "excerpt": "std::os::unix::fs::symlink(&target, path.join(\"link\")).unwrap();",
-      "line": 884,
+      "line": 889,
       "literal": "link",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162530,7 +162682,7 @@
     },
     {
       "excerpt": "d.file(\"info/item.trashinfo\", \"[Trash Info]\\nPath=/original\\n\");",
-      "line": 900,
+      "line": 905,
       "literal": "[Trash Info]\nPath=/original\n",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162539,7 +162691,7 @@
     },
     {
       "excerpt": "std::fs::write(&child, \"changed size\").unwrap();",
-      "line": 906,
+      "line": 911,
       "literal": "changed size",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162548,7 +162700,7 @@
     },
     {
       "excerpt": "assert_eq!(std::fs::read_to_string(child).unwrap(), \"changed size\");",
-      "line": 910,
+      "line": 915,
       "literal": "changed size",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162557,7 +162709,7 @@
     },
     {
       "excerpt": "d.file(\"info/item.trashinfo\", \"[Trash Info]\\nPath=/original\\n\");",
-      "line": 917,
+      "line": 922,
       "literal": "[Trash Info]\nPath=/original\n",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162566,7 +162718,7 @@
     },
     {
       "excerpt": "assert_eq!(match_walks() - walks, 1, \"one delete runs exactly one matches() walk\");",
-      "line": 928,
+      "line": 933,
       "literal": "one delete runs exactly one matches() walk",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -162575,7 +162727,7 @@
     },
     {
       "excerpt": "std::os::unix::fs::symlink(&outside, deepest.join(\"link\")).unwrap();",
-      "line": 998,
+      "line": 1003,
       "literal": "link",
       "owner": "controller",
       "path": "src/backend/trashdelete.rs",
@@ -164492,7 +164644,7 @@
     },
     {
       "excerpt": "return Err(err(\"That job can no longer be undone.\"));",
-      "line": 496,
+      "line": 500,
       "literal": "That job can no longer be undone.",
       "owner": "controller",
       "path": "src/backend/undo.rs",
@@ -164501,7 +164653,7 @@
     },
     {
       "excerpt": "None => return Err(err(\"there is nothing to undo\")),",
-      "line": 500,
+      "line": 504,
       "literal": "there is nothing to undo",
       "owner": "controller",
       "path": "src/backend/undo.rs",
@@ -164510,7 +164662,7 @@
     },
     {
       "excerpt": "1 => format!(\"{}; 1 item was restored for redo\", super::redo::left_in_place(&skipped)),",
-      "line": 527,
+      "line": 533,
       "literal": "{}; 1 item was restored for redo",
       "owner": "controller",
       "path": "src/backend/undo.rs",
@@ -164519,7 +164671,7 @@
     },
     {
       "excerpt": "n => format!(\"{}; {n} items were restored for redo\", super::redo::left_in_place(&skipped)),",
-      "line": 528,
+      "line": 534,
       "literal": "{}; {n} items were restored for redo",
       "owner": "controller",
       "path": "src/backend/undo.rs",
@@ -164528,7 +164680,7 @@
     },
     {
       "excerpt": "return Err(err(\"the undo history is busy; try again\"));",
-      "line": 539,
+      "line": 545,
       "literal": "the undo history is busy; try again",
       "owner": "controller",
       "path": "src/backend/undo.rs",
@@ -164537,7 +164689,7 @@
     },
     {
       "excerpt": "None => Err(FleaError { where_: \"redo\".into(), path: String::new(), msg: \"there is nothing to redo\".into() }),",
-      "line": 549,
+      "line": 555,
       "literal": "there is nothing to redo",
       "owner": "controller",
       "path": "src/backend/undo.rs",
@@ -164546,7 +164698,7 @@
     },
     {
       "excerpt": "return Err(err(\"the undo history is busy; try again\"));",
-      "line": 557,
+      "line": 563,
       "literal": "the undo history is busy; try again",
       "owner": "controller",
       "path": "src/backend/undo.rs",
@@ -164555,7 +164707,7 @@
     },
     {
       "excerpt": "let replay = self.redo.pop().ok_or_else(|| FleaError { where_: \"redo\".into(), path: String::new(), msg: \"there is nothing to redo\".into() })??;",
-      "line": 568,
+      "line": 574,
       "literal": "there is nothing to redo",
       "owner": "controller",
       "path": "src/backend/undo.rs",
@@ -164564,7 +164716,7 @@
     },
     {
       "excerpt": "return Err(FleaError { where_: \"undo\".into(), path: to.to_string_lossy().into(), msg: \"the moved item was replaced, so undo left it in place\".into() });",
-      "line": 618,
+      "line": 624,
       "literal": "the moved item was replaced, so undo left it in place",
       "owner": "controller",
       "path": "src/backend/undo.rs",
@@ -164573,7 +164725,7 @@
     },
     {
       "excerpt": "return Err(FleaError { where_: \"undo\".into(), path: path.to_string_lossy().into(), msg: \"the new folder was replaced, so undo left it in place\".into() });",
-      "line": 648,
+      "line": 654,
       "literal": "the new folder was replaced, so undo left it in place",
       "owner": "controller",
       "path": "src/backend/undo.rs",
@@ -164582,7 +164734,7 @@
     },
     {
       "excerpt": "Step::Barrier => return Err(FleaError { where_: \"undo\".into(), path: String::new(), msg: \"That operation was too large to undo.\".into() }),",
-      "line": 656,
+      "line": 662,
       "literal": "That operation was too large to undo.",
       "owner": "controller",
       "path": "src/backend/undo.rs",
@@ -164591,7 +164743,7 @@
     },
     {
       "excerpt": "msg: \"the copied item changed since this operation, so undo left it in place\".into() });",
-      "line": 666,
+      "line": 672,
       "literal": "the copied item changed since this operation, so undo left it in place",
       "owner": "controller",
       "path": "src/backend/undo.rs",
@@ -164600,7 +164752,7 @@
     },
     {
       "excerpt": "msg: \"something inside the copied folder changed since this operation, so undo left it in place\".into() });",
-      "line": 670,
+      "line": 676,
       "literal": "something inside the copied folder changed since this operation, so undo left it in place",
       "owner": "controller",
       "path": "src/backend/undo.rs",
@@ -164609,7 +164761,7 @@
     },
     {
       "excerpt": "msg: \"the new file changed since creation, so undo left it in place\".into() });",
-      "line": 680,
+      "line": 686,
       "literal": "the new file changed since creation, so undo left it in place",
       "owner": "controller",
       "path": "src/backend/undo.rs",
@@ -164618,7 +164770,7 @@
     },
     {
       "excerpt": "msg: \"the link changed since this operation, so undo left it in place\".into() });",
-      "line": 732,
+      "line": 738,
       "literal": "the link changed since this operation, so undo left it in place",
       "owner": "controller",
       "path": "src/backend/undo.rs",
@@ -164627,7 +164779,7 @@
     },
     {
       "excerpt": "msg: \"the link source was replaced, so undo left the last name in place\".into() });",
-      "line": 741,
+      "line": 747,
       "literal": "the link source was replaced, so undo left the last name in place",
       "owner": "controller",
       "path": "src/backend/undo.rs",
@@ -164636,7 +164788,7 @@
     },
     {
       "excerpt": "msg: \"the link source is gone, so undo left the last name in place\".into() });",
-      "line": 746,
+      "line": 752,
       "literal": "the link source is gone, so undo left the last name in place",
       "owner": "controller",
       "path": "src/backend/undo.rs",
@@ -164645,7 +164797,7 @@
     },
     {
       "excerpt": "msg: \"the new folder has been filled since, so undo left it in place\".to_string(),",
-      "line": 762,
+      "line": 768,
       "literal": "the new folder has been filled since, so undo left it in place",
       "owner": "controller",
       "path": "src/backend/undo.rs",
@@ -178621,18 +178773,18 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "(\"device.system_drive\", \"%1 is the system drive, which Flea never unmounts\"),",
+      "excerpt": "(\"device.system_drive\", \"%1 is the system drive, which Flea never ejects.\"),",
       "line": 137,
-      "literal": "%1 is the system drive, which Flea never unmounts",
+      "literal": "%1 is the system drive, which Flea never ejects.",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "core/backend"
     },
     {
-      "excerpt": "(\"device.system_volume\", \"This folder is on a system volume, which Flea never unmounts\"),",
+      "excerpt": "(\"device.system_volume\", \"This folder is not on a drive Flea can eject.\"),",
       "line": 138,
-      "literal": "This folder is on a system volume, which Flea never unmounts",
+      "literal": "This folder is not on a drive Flea can eject.",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -180655,8 +180807,53 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "\"unknown\" => catalog.tr(\"jobs.error.unknown\"),",
+      "excerpt": "\"cannot move or copy a folder into itself\",",
       "line": 318,
+      "literal": "cannot move or copy a folder into itself",
+      "owner": "controller",
+      "path": "src/ui_logic_file_ops/jobs.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"already in that folder\",",
+      "line": 319,
+      "literal": "already in that folder",
+      "owner": "controller",
+      "path": "src/ui_logic_file_ops/jobs.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"a file of 4 GiB or more does not fit on a FAT32 drive\",",
+      "line": 320,
+      "literal": "a file of 4 GiB or more does not fit on a FAT32 drive",
+      "owner": "controller",
+      "path": "src/ui_logic_file_ops/jobs.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"that name is too long\",",
+      "line": 321,
+      "literal": "that name is too long",
+      "owner": "controller",
+      "path": "src/ui_logic_file_ops/jobs.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"operation is not supported\",",
+      "line": 322,
+      "literal": "operation is not supported",
+      "owner": "controller",
+      "path": "src/ui_logic_file_ops/jobs.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"unknown\" => catalog.tr(\"jobs.error.unknown\"),",
+      "line": 340,
       "literal": "unknown",
       "owner": "controller",
       "path": "src/ui_logic_file_ops/jobs.rs",
@@ -186362,7 +186559,7 @@
     },
     {
       "excerpt": "text.contains(\"file exists\") || text.contains(\"already exists\")",
-      "line": 135,
+      "line": 143,
       "literal": "file exists",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -186371,7 +186568,7 @@
     },
     {
       "excerpt": "text.contains(\"file exists\") || text.contains(\"already exists\")",
-      "line": 135,
+      "line": 143,
       "literal": "already exists",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -186380,7 +186577,7 @@
     },
     {
       "excerpt": "\"is not allowed in a name\",",
-      "line": 145,
+      "line": 153,
       "literal": "is not allowed in a name",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -186389,7 +186586,7 @@
     },
     {
       "excerpt": "\"is reserved on this\",",
-      "line": 146,
+      "line": 154,
       "literal": "is reserved on this",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -186398,7 +186595,7 @@
     },
     {
       "excerpt": "\"cannot end in a dot\",",
-      "line": 147,
+      "line": 155,
       "literal": "cannot end in a dot",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -186407,7 +186604,7 @@
     },
     {
       "excerpt": "\"cannot end in a space\",",
-      "line": 148,
+      "line": 156,
       "literal": "cannot end in a space",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -186416,7 +186613,7 @@
     },
     {
       "excerpt": "\"cannot hold control character\",",
-      "line": 149,
+      "line": 157,
       "literal": "cannot hold control character",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -186425,7 +186622,7 @@
     },
     {
       "excerpt": "place == \"scan\" && lower(message).contains(\"permission denied\")",
-      "line": 157,
+      "line": 165,
       "literal": "permission denied",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -186434,7 +186631,7 @@
     },
     {
       "excerpt": "text.contains(\"stale\") || text.contains(\"no longer available\")",
-      "line": 162,
+      "line": 170,
       "literal": "no longer available",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -186443,7 +186640,7 @@
     },
     {
       "excerpt": "lower(message).contains(\"not connected\")",
-      "line": 166,
+      "line": 174,
       "literal": "not connected",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -186452,7 +186649,7 @@
     },
     {
       "excerpt": "text.contains(\"timed out\") || text.contains(\"timeout\")",
-      "line": 171,
+      "line": 179,
       "literal": "timed out",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -186461,7 +186658,7 @@
     },
     {
       "excerpt": "\"archive\" if message == \"the backend is not running\" => pick(",
-      "line": 211,
+      "line": 219,
       "literal": "the backend is not running",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -186470,7 +186667,7 @@
     },
     {
       "excerpt": ".eq_ignore_ascii_case(\"the clipboard holds no image\") =>",
-      "line": 220,
+      "line": 228,
       "literal": "the clipboard holds no image",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -186479,7 +186676,7 @@
     },
     {
       "excerpt": "\"transfer\" | \"archive\" | \"convert\" | \"link\" | \"linktarget\" | \"rename-stranded\"",
-      "line": 224,
+      "line": 232,
       "literal": "link",
       "owner": "controller",
       "path": "src/ui_logic_status_feedback/errors.rs",
@@ -249141,10 +249338,10 @@
     "crates/flea-gui/examples/memory-probe.rs": "4615b8fb5e3a143bf3e04a7f83ed3f88a58101d57c41f30e9a75cfb1e1a0943c",
     "crates/flea-gui/examples/presented-probe.rs": "a5f09cf617d84e3305057651584adfb95371098272d47d4cf9953ab34813f28e",
     "crates/flea-gui/src/backend.rs": "83e02130833d9f7b35835a9ab4d695b8fcbcdd9c514b1494e681e41e5dabe746",
-    "crates/flea-gui/src/backend/native31_fixture.rs": "145b7ab5c4284e97e798038ad206eb6e7c4c61fd7a53b1e935ad59228135e860",
+    "crates/flea-gui/src/backend/native31_fixture.rs": "564a130858ad8f22989d77d4e9f33a4a26f0db1f270b1b3f6f493e4d2f516c2d",
     "crates/flea-gui/src/backend/plugin_route.rs": "3def5b1ffed6055818d2b1c4303cbfcf5df2d76cfce60613e35c5baaacc44364",
-    "crates/flea-gui/src/backend/status.rs": "c5245c1deb92cb1a48015615092cae40474891c12578d1c207f49e09c1133228",
-    "crates/flea-gui/src/backend/transport.rs": "63696cb40395d1606ea347c71ecb9b124bc8718289c57a6c643acff50daa692e",
+    "crates/flea-gui/src/backend/status.rs": "9e1e2c9fff1d4638fbc6afcce177a3e1e1c8f120497082cf88e642a3bc641eda",
+    "crates/flea-gui/src/backend/transport.rs": "521c966ffea2fc5bbf5f10ab4e63cff91922bc525d8289a2a6ce4097c07cfbcb",
     "crates/flea-gui/src/backend/worker.rs": "a4839067fe64a824777a56d31c53ea1b99b65a87a886e338d45904723d2ae248",
     "crates/flea-gui/src/backend_log.rs": "bb6d5a8396c6ec2a0794c728f59b5fc42dc9604de210d322f5bc31b887a60faf",
     "crates/flea-gui/src/bench_thumbs.rs": "efaa91fa440a35d4bde7ec2e368298f8638c597f64c2b265bc4631be50664ed9",
@@ -249276,7 +249473,7 @@
     "crates/flea-gui/src/g2/custom_actions/model.rs": "10aa6624e54cbd44f69b2bd18aae63437cc406c8abc0451bf58dc63128c06609",
     "crates/flea-gui/src/g2/device_rail/card.rs": "a1dc65bff99fe99679da6ca240ed652e8226f4adbcc59f326c89a7ebd12c3ec0",
     "crates/flea-gui/src/g2/device_rail/devices.rs": "aca1214347b5d6ed1a9dc91058b138fd6444ec84feb43d09c47cc2300b0954b3",
-    "crates/flea-gui/src/g2/device_rail/eject.rs": "e1c22538f8f59e4f180040bf1bbda3b47307e2e1740de22dcaf568afbeb51718",
+    "crates/flea-gui/src/g2/device_rail/eject.rs": "a4fc2e152d3a947f12904ce1e5af0168836e178b39f341325506d444c76674fc",
     "crates/flea-gui/src/g2/device_rail/field.rs": "08e40140c43f8a6f4927514b8a1262caac7619b545279069ae2e1e2c2ac2314c",
     "crates/flea-gui/src/g2/device_rail/host.rs": "c8ce29a6470a713b76c8d7bed9b8ccb905dd1301a63bb90a76207ee5501debd3",
     "crates/flea-gui/src/g2/device_rail/ime.rs": "60a0eef3c36f617c0a01498c44466c047b01701670600c59b5b25428469f5e23",
@@ -249403,14 +249600,14 @@
     "crates/flea-gui/src/g2/file_ops/cards.rs": "d6f8107835a8a53f9bdcf476cc4f6d2711985aac8faac3252f25918a6f2e3313",
     "crates/flea-gui/src/g2/file_ops/cards_copy.rs": "d3fcf427e9d7e852b545cea26525281a5e6ed2b0ca6557e15abe107ef6d967c0",
     "crates/flea-gui/src/g2/file_ops/cards_open.rs": "218a37f57766cec384eec1c569f29d988c2c405c75847c97838c923849bc8f7e",
-    "crates/flea-gui/src/g2/file_ops/chosen.rs": "2f40d5b0c1bdb464334a92da3cf2e07dfaf71c49751ee99bf8001f187de4f011",
+    "crates/flea-gui/src/g2/file_ops/chosen.rs": "d7ad8b6e2421fd0b5332a04a07bcd771cd97ddf61044ccd0d1c450dba5f65820",
     "crates/flea-gui/src/g2/file_ops/collision.rs": "c7cc27851e14b674d69ca21edb7ef6ab6f4da4e9157d524f719fee8157b3be61",
     "crates/flea-gui/src/g2/file_ops/copy_to.rs": "294484d6f3e94d2db9a055dc5f73782f21344945570a7868d3340e4378c33d59",
     "crates/flea-gui/src/g2/file_ops/dialog.rs": "10fae35868914ebf06a7dff4c46dc9a1985b797bbaeeda44d72748eac295213a",
     "crates/flea-gui/src/g2/file_ops/dialog_editor.rs": "56eb6bb2f29352e0b6afe589d4acb823c45e0a7f2ea3d11800c7f308015af735",
     "crates/flea-gui/src/g2/file_ops/draw_fixture.rs": "0edd04aeb3641f685797b1465d615a1a6945ceb34d27d5c473d58a4c757848bb",
     "crates/flea-gui/src/g2/file_ops/editor.rs": "37eadac6060c49d5ef97c59d786c6150b63e13c8b00dd64275239ffc628e0d25",
-    "crates/flea-gui/src/g2/file_ops/feedback.rs": "eea78183d4cd6ba86ce6c7567c287f796366fa8908417e951398d6dbfa94bd96",
+    "crates/flea-gui/src/g2/file_ops/feedback.rs": "59e1e1727808da3609b610a4c6b43cbef2639d8b716b96cbb0439a4487cc4cf7",
     "crates/flea-gui/src/g2/file_ops/field.rs": "c1e6b0bec1b7e3f05823179ee9aeb3121103dfd9b4c6230c5b9d38b5e4af928a",
     "crates/flea-gui/src/g2/file_ops/field_view.rs": "c67b2bbfabea9bdba03badfa2909afae212bcca5365f15c03ca79b96e4b7aef2",
     "crates/flea-gui/src/g2/file_ops/focus.rs": "7d4e2a5a07a42e4caf7b7400783b4b8e1d88fb3ade6e2b7d659ad5c61eb42b10",
@@ -249420,19 +249617,19 @@
     "crates/flea-gui/src/g2/file_ops/host_input.rs": "610a2d2dc115399913dce162e25ea60484bef3eaae1a04dab1cbc37cd6984bb3",
     "crates/flea-gui/src/g2/file_ops/input.rs": "7b7f94c8af33632d2d4085d32dc2af3f7c932cacebcf7a4bb2bb70bdd8369c57",
     "crates/flea-gui/src/g2/file_ops/ipc.rs": "9d87aa541f531ef6a8f87c38db72cf7ae4137d07789114486a6e4d03029a0f7f",
-    "crates/flea-gui/src/g2/file_ops/join.rs": "48dad8e9b8329e895677dfa95f3b26a6c9528f1aab745634550aac80c2bc6686",
+    "crates/flea-gui/src/g2/file_ops/join.rs": "7da72e5309df09e979abc518d573f99d40f0a296fd76270d2d9d02d3d48d9f5c",
     "crates/flea-gui/src/g2/file_ops/line.rs": "14957ee904b1e7e1dd0133ef31b85ba6308337b7b2f8a63c01e0ab96e8f9a7b7",
     "crates/flea-gui/src/g2/file_ops/measured.rs": "93efdcc88e9bf82d834e47a9dca97d04accb55900a452227d0babaa276d729fe",
     "crates/flea-gui/src/g2/file_ops/mod.rs": "492083bc4ff564efae4f57d75c37dfbe6918696bea4f9e5e878e214465651c32",
-    "crates/flea-gui/src/g2/file_ops/model.rs": "d79d9ff7a6e8938dbf519ff7d259ae17287db87585e2575d3807b1027d6e1687",
-    "crates/flea-gui/src/g2/file_ops/model_jobs.rs": "e8c2e76bded88c8fd3a5b6ec470a38f7be60eb02e26084ade748107e0d22378a",
+    "crates/flea-gui/src/g2/file_ops/model.rs": "d9e34f36dcf1374d03641b6ddcc725b59b8752dcd00826bcef7be62c9f2e4ddb",
+    "crates/flea-gui/src/g2/file_ops/model_jobs.rs": "0c5cb890d27b0e806b1fd366b85e0266b0781425bcf02e59b0600669db2dffed",
     "crates/flea-gui/src/g2/file_ops/new_file.rs": "e840c5c5863debf4ca6f54ed61e96ff05d293896ad8fac097287fdeee4b8ea9d",
     "crates/flea-gui/src/g2/file_ops/palette.rs": "0c292b7adec9fcc9d9832cc6799f7dcc8bd1167a4bdec5298c297a157cda24e3",
     "crates/flea-gui/src/g2/file_ops/press.rs": "fa569ede347aef9b6425238295dd525bef36f2d03ad5c8f0dd59256c7a53d591",
     "crates/flea-gui/src/g2/file_ops/progress.rs": "d982061a9f3cc97034af557ab91086aadfc38adc6b792ad8de1f8983ee6ec512",
     "crates/flea-gui/src/g2/file_ops/rclone.rs": "49c7aee5e9f4c0eda25aba5a501548ef15e209bf9f6c140c9f63f308ae86476a",
     "crates/flea-gui/src/g2/file_ops/transfer_status.rs": "af304393db9db08dbfcc6786ffaa471d043dd859e3cde2d17bdd54ac24ce8823",
-    "crates/flea-gui/src/g2/file_ops/view.rs": "017727d2e1b3c90b4485743bf69c11dabd8ef0cea8600600c8e9222cda3a4261",
+    "crates/flea-gui/src/g2/file_ops/view.rs": "78eb4ffbdc735b01b9f0dba3abecaca32e3d2104dce2f611df9e01e6a46de968",
     "crates/flea-gui/src/g2/file_search/contents.rs": "3d698a6f0d3c740db786589677ce51ec9b950252f8e7b7d2b91fc753b2e83795",
     "crates/flea-gui/src/g2/file_search/contents_text.rs": "619573236cbb77417a63690acd8051db547937ce179e2652b37572058184ccaf",
     "crates/flea-gui/src/g2/file_search/input.rs": "68fc18b754ee4b6aa94b3fbea58c21c2d3570457adbc5a2ffd484d9758e9b2fb",
@@ -249960,10 +250157,10 @@
     "crates/flea-gui/src/pane/states.rs": "3e0d7b812a41832cbea10f55a088ffd46c3ff9dbd1b7f4585596e498ab959f70",
     "crates/flea-gui/src/pane/swap.rs": "3a33c7129842c2a3a31bb595e0d80c557c6e96075e681088e7bb50c58831535e",
     "crates/flea-gui/src/pane/swap/progress.rs": "83bf2d93b54493362a16da29ab8fe861d7503e0ebbd44dcb2c2b668185a5c11f",
-    "crates/flea-gui/src/path/aliases.rs": "6ea624ebcda157a2e0351f31c53bc47c2bc19e8890dbe4eb2e82175ac618ec44",
+    "crates/flea-gui/src/path/aliases.rs": "0eebdf92c1b012542154be38438a987d6ab027e7ffe9bf184cc48620a261d11b",
     "crates/flea-gui/src/path/chrome.rs": "95023402775c49b817c86e3015ae53ef3694e3cafcde03ed0f82edddcb1c119f",
     "crates/flea-gui/src/path/chrome/button.rs": "6107cf9a2f1a57dbcce39c0a8a3ded4624dab20886bd79b60ae8c57b2dd425fc",
-    "crates/flea-gui/src/path/crumbs.rs": "de3b7634d329a0e156461d693080eaa8fefa8df3ab9b786e97c1a36f654b9f24",
+    "crates/flea-gui/src/path/crumbs.rs": "a80cc2b1f0defe94a26fa4f007f6dd263edf844639bd563e5671b972f5f69335",
     "crates/flea-gui/src/path/entry.rs": "4e48939197e8ccb63f38ca631df66f575cffb7f00d79509492a1d59f55fbc40c",
     "crates/flea-gui/src/path/entry/ime.rs": "7aec7ac95b906d3532fd7a113b5fb9a377cf43c25ccb5a123fc6f531ac564faa",
     "crates/flea-gui/src/path/field.rs": "6cad9deb9860508a815b917cb085da3833d995b69c67b184e03f46d25ac34e3b",
@@ -250038,7 +250235,7 @@
     "crates/flea-gui/src/strips/filter_query.rs": "694a5aee17a14c0c90f907d303bde205fa570c536185126b12bdabe13c1bd8a1",
     "crates/flea-gui/src/strips/mod.rs": "92c8da72243f7408e5a83632fc1d4ccbce69759f93b88a07ffd936c1a11f671c",
     "crates/flea-gui/src/strips/query_input.rs": "aefc885a3b36f235928661a5204b2225245c59d9b1396a50fae38e8b42832923",
-    "crates/flea-gui/src/strips/status_host.rs": "edec858826127655a6c724333142223e1fff9b39673bb48813a3d35dcb9af072",
+    "crates/flea-gui/src/strips/status_host.rs": "6fbc9180e4d7763ce68a93969e4b4460aa05350d0e2026b9c8b7833ab303e701",
     "crates/flea-gui/src/tabs/accessibility.rs": "00edd751bfd20fcc96ddfff984771c1a13142ff304e3f159008d7705e0084c71",
     "crates/flea-gui/src/tabs/atomic.rs": "abeeca48ddeb9c86adb7d5d2a094e381a06fc8356902e9d356c9f3ed499c4675",
     "crates/flea-gui/src/tabs/bar.rs": "c5f78a941dc970f7b69219a5395b785c2314de6301316fa297ba8fec42dafc21",
@@ -250127,7 +250324,7 @@
     "crates/flea-gui/src/window/dispatch/tags.rs": "18f44f8d4bc3dbe5b03b1e5c4213979a4dd8c997a22c7ac2abb2778ee39c2a8d",
     "crates/flea-gui/src/window/dispatch/window.rs": "cdd74bc23f866d3de48a8b76c64abda4960a472be44bd6d326a0cd704b2c2a22",
     "crates/flea-gui/src/window/dual_edge.rs": "a8f17ce42133fbcf0a3342193c35d5eb0c6663d634d3f425ea3b84a2bf5010d9",
-    "crates/flea-gui/src/window/events.rs": "9ee6470d1e1772236f0e665389d7f0c3f2dde4c73751c1526e6721e59a574603",
+    "crates/flea-gui/src/window/events.rs": "09e6af799c638c1b141c5d4de6bd299efda8f25b4659e3355f5e968c43973d69",
     "crates/flea-gui/src/window/events_backend.rs": "6a9179379cb67fd953abb1ffd38f9498404c1ca6b93f5f45af554f9da217759b",
     "crates/flea-gui/src/window/events_filesystem.rs": "b79ef20853e39ffb7da9ec60b603988c21d6146c1130ec36331277502be1eed7",
     "crates/flea-gui/src/window/events_ipc.rs": "32eac66a2732941d3b0a1aa7f2e7b331616d091b5a63a2b360f3c6d0a277036b",
@@ -250149,7 +250346,7 @@
     "crates/flea-gui/src/window/frame_feedback_join_fixture.rs": "8f70af3838cbb3d3d40cfe4f8781a3f0a8ffe643e68373dcb3d3e02a00405fe9",
     "crates/flea-gui/src/window/frame_style.rs": "f63c40c84eaeb74e3bcd545e78ba157ad2027cebda64a0b683aea707af1a87f9",
     "crates/flea-gui/src/window/gcomp_live_fixture.rs": "e32c689d3ef0b7edb168ff6e77f01f1800e8008eb26a2f420e299b90f6f9a2d4",
-    "crates/flea-gui/src/window/gcomp_menu_u13_fixture.rs": "ce50e9e1ca9660b7d7c66c68b5a134c2ccea112299fd4c63fee67fb4b9d8f56c",
+    "crates/flea-gui/src/window/gcomp_menu_u13_fixture.rs": "45305f4228e4fb078b330e0a5836c3731ee7077872819ba33775b7dce2565a9e",
     "crates/flea-gui/src/window/git_status.rs": "e96e65a3c030470721c1a67aa5be32d32da43a473a68270ca2b28b27714e30a0",
     "crates/flea-gui/src/window/glass.rs": "455dfd3bf0bfef10905aa0eb052369882d2bc7ccea073c518b38cd9a0a10ef72",
     "crates/flea-gui/src/window/glass/cached_owner_controls.rs": "d0468c41154e4e50d1a252816e4ee10be70bf7c0471fdbc90bc554c9c081c112",
@@ -250176,12 +250373,12 @@
     "crates/flea-gui/src/window/navigate.rs": "db162efbb7ee686b825292a51809ec08bb54228e0d13f159e43178744211b614",
     "crates/flea-gui/src/window/network.rs": "153a78bf43a3eb774e95411ee568f1ad18961279e2abd24fd78d9ef5db8abb30",
     "crates/flea-gui/src/window/network_cloud.rs": "3a3febd4a7fe3d9fc7bd67c97c77245c21a3f4a8c12314558d39d5ce542d6fee",
-    "crates/flea-gui/src/window/network_effects.rs": "a9a123dfb5024fb55f652df1fed88715dc8a25f1ddef8996df68afe400279445",
+    "crates/flea-gui/src/window/network_effects.rs": "72f3bf286f7095690bc4df6b248f24b4780e49968eaa3716dde1c593c520084d",
     "crates/flea-gui/src/window/network_focus.rs": "a2bd7430bcd4602d685f36f87ee7fac372aba15caa8f63a4563770c868fb9caa",
     "crates/flea-gui/src/window/network_menu.rs": "5c98bc212c702a8896a58cd4a6d06a2503267db69b974c453839ad7da83660d3",
     "crates/flea-gui/src/window/network_nearby.rs": "b699b656b392702fadeb814f5f541466ee8d92df511e4b39dffbe59d097ed2ca",
     "crates/flea-gui/src/window/network_path.rs": "30f8c89de5e07fe80c8b2717388a0dd222180a043a3fc5270632740ab6e851cf",
-    "crates/flea-gui/src/window/network_rows.rs": "00cd292a49c7f482d67c1181771551e4da7d10aef6aee6e68ad9f50cafcffb92",
+    "crates/flea-gui/src/window/network_rows.rs": "c71798b838f738c7ced4e04f79758f61f13e5725cf06c3858622bca91c0b29ea",
     "crates/flea-gui/src/window/network_section.rs": "9970889abbc75375495be03896404ed974c4853cd20c31fab92ddf45e5826583",
     "crates/flea-gui/src/window/open_with.rs": "d3f5def92cc39356eea05ea2d1fc1bb5bb36d44d48891799463999318e7a347c",
     "crates/flea-gui/src/window/open_with_initial.rs": "8cadad526a115c6915092dbad161f4066971f4af462848c7ceb9c326e3a8d192",
@@ -250228,7 +250425,7 @@
     "crates/flea-gui/src/window/rename_ipc.rs": "8db0119c1c6cade8b9cd38d41537cefd06e788f2bde0c424a43b81dddb303574",
     "crates/flea-gui/src/window/rename_menu.rs": "3e4cede01ff5b7c7b13a45295d0e96dcd0d05cb5157e33000c2b1796fc341c5f",
     "crates/flea-gui/src/window/rename_place.rs": "d4885371c2c5de5d2e4b3e64d6215a6d6ab374f23b34b60c5b5f040062336dfd",
-    "crates/flea-gui/src/window/rename_replies.rs": "5fbbf527c9ed36a917cf1d8e28e809044aad3beae467e74bf9f235fe77b68101",
+    "crates/flea-gui/src/window/rename_replies.rs": "942cc95c3984eeebf24b4e36594358941d4883710a2526b5ed96e1ef47de644e",
     "crates/flea-gui/src/window/rename_slow.rs": "b14e6dba20ce84e6f6895ccdb2b838a7eaeea21ec204eb8c6d855e2cb5edf5b4",
     "crates/flea-gui/src/window/rename_slow_policy.rs": "a353741f00f4e36fe7e0000ddc875252f7d9e1daa99dd62ed4be671a2967993d",
     "crates/flea-gui/src/window/rename_target.rs": "53b8083a39851ec42c209a313b44525ad99bb3a599f6a7a714ad2dda1daca98b",
@@ -250284,7 +250481,7 @@
     "crates/flea-gui/src/window/settings/update.rs": "5bc2c66a4044ac2baf80ac3666b749f9fe17a877efc0e0b60b3a6267de8d8713",
     "crates/flea-gui/src/window/sidebar_edge.rs": "e0139d3c27a8a35164a803b86f5d19a117930160992a29a7e1a459e129e67d09",
     "crates/flea-gui/src/window/startup.rs": "b95900b82e492ba00b0f35618e667e1e7b7cd41910cce94b67e2435f0e82b86d",
-    "crates/flea-gui/src/window/status.rs": "3abb6dfc18282b644713b6582875d3b12cbe08891a07e578001c76ed9ba537a1",
+    "crates/flea-gui/src/window/status.rs": "14839cdf5d87874ae94f889881b5b6221fd5645ad300ab8550c63ab2864e948f",
     "crates/flea-gui/src/window/status_counts.rs": "cce3917bffeea1e6afcfe620dd64e263a4b5837ca359e19d44a40e10e8a1b632",
     "crates/flea-gui/src/window/status_detail.rs": "a51d0a9d4bd25430472a2064927f0847b967f88df164c3fdef6507281ec3a732",
     "crates/flea-gui/src/window/status_filesystem.rs": "b255718e845ab95727bd07dd98976ba171bfd7ea1aab02875f30bdffb0559767",
@@ -250335,7 +250532,7 @@
     "src/backend/contentsworker.rs": "6885f929e5ba493c8970f089c55ab531a53f45f8dedfe8321d8bc399d1ab5490",
     "src/backend/convert.rs": "27d3f89a9dc475631c26fddcd19c620bfda88146d137e90fec1b89cfe211cd0f",
     "src/backend/convertbatch.rs": "e950fde424b374595336d7a6d70e45e8645f6a7df9298786c60e7e8f83dbcd5d",
-    "src/backend/copyfile.rs": "8268ded64c9cbebc63053530912f730a99b511a2d18de318caf882e30279a1ba",
+    "src/backend/copyfile.rs": "94d449fab671fd0aae0498f217b6cc8ec6606d71bb9360069a8c486de1677c57",
     "src/backend/copymanifest.rs": "96a53c6936c0d5ab078a4d40992c5c0192a6933169bd85db08cd933ae3ff1d89",
     "src/backend/copynode.rs": "812e62829738a84e55d03dea80b5fbf9ae54ff775e01b319c3eddfa211b4411d",
     "src/backend/copyread.rs": "345fad4c47b8a1f897f847ddfa54bcd81b4f8c31857b0d3d43670328086cab8e",
@@ -250344,10 +250541,10 @@
     "src/backend/created_request.rs": "c1e3983bef2bff19fab1d0a646b8e29c7d5dd1dd74e2bca898630aae9705ef41",
     "src/backend/csvrange.rs": "1b00338fd1b22d9407e2b11cc5cc497bf7b411d072a7c556297d879eb4fb566c",
     "src/backend/devsreq.rs": "335d64b3dce4ea4550f0677f97178c24113aa272ed48f7e43efd518199496993",
-    "src/backend/dirsize.rs": "d2253ecb5dea5bbc415f8d6920d513826b30acb2f3045acfb45f9633c13b83cf",
+    "src/backend/dirsize.rs": "4f939e735b5e9f10853acdfc6a5685d00cb08cf545a9f5db23660f1c942315df",
     "src/backend/dirsizereq.rs": "d53611281d493ae6ecee9c3bed08a7e19b1c5e1a99fe43d97ab9d18cd8072930",
-    "src/backend/dirsizewalk.rs": "657ee20ff611471bc3d78ea8a2a2333f982d6eb7ef5138f8b53bca5e48f68706",
-    "src/backend/dirsizewatch.rs": "5ef8a0ea8b7cf6df8a97ef474d4ebd3bb2dece65461e349d176a8fd90a1e1337",
+    "src/backend/dirsizewalk.rs": "fdd1ca11c526f1f0ac3e2d67968a2d3ee82e6760a598de32d12ef37752b2bf45",
+    "src/backend/dirsizewatch.rs": "346a5a5e69b5cb1ef70e77fa09735b953d5d9edccff549837c4d6699e64cf4b5",
     "src/backend/dirsizeworker.rs": "d902e425a83cda0d74f5b2e9406e092064e9a29647abcd5e938b22a100bb2d55",
     "src/backend/durable.rs": "53a5f85d1b85ad7e9eea8b2ca25ddfc457f15e6b820834c03bd6281aba581cf7",
     "src/backend/events.rs": "ce2709287f4e6e5c78a1fe65555f9bcfe77929a9748ca3f95786a1256357cdfa",
@@ -250384,7 +250581,7 @@
     "src/backend/fontinfo.rs": "b01b1a3efd5afa39d5684d370356ab29b4baa486b5d23ba813cf1ac9f38c5e74",
     "src/backend/fontinfo/cache.rs": "115480f18031a2cc92d043670b9acdd822244740535246c3b2c3006ce225ddb0",
     "src/backend/fontinfo/render.rs": "d4c25bc2b1482a83e66b898074b914706943b62cd4950d8021b0234c92f3649a",
-    "src/backend/fsinfo.rs": "56d9b5517d96b275d15b00bbf36ef899ae0555370cfb7689a617ad296c98bd4d",
+    "src/backend/fsinfo.rs": "dfeb08d98ce2c63c257adc3163b219a29ebd696b7fb4c978aa604641301a870d",
     "src/backend/fsinforeq.rs": "4ecbaa15f4aa0e37c866a529ce7d367f47d7acc49d7f7b51b2e755f963871cca",
     "src/backend/fsname.rs": "4e91fd39b1a03553043cbc0457b59ba9ae2b0ed489f0d8c5466da62397ec496d",
     "src/backend/fuzzy.rs": "4dc9805fd1768b9ecc52948754505b72025702bed155e0295a4778342f7755ff",
@@ -250395,7 +250592,7 @@
     "src/backend/gitstatus.rs": "787e9de1b0a20741cd796a46b17ae602b5b22247be574136990649e32534c0ad",
     "src/backend/gvfslist.rs": "8e50dcdb72df4a48f2501235eef46585c9a6b7106dd18eb26fca017d9a8f331a",
     "src/backend/gvfsroot.rs": "b7784896b8376c925c94051685e4a75fc29d61df5cfa6a2df8448cc327a551b8",
-    "src/backend/homerestore.rs": "6031f58eedb659cb10ad620b6f5ceadfb92737132e8e4bcdc55e82f6e19247f5",
+    "src/backend/homerestore.rs": "663f6f31e51f53738d70bce0729fb0ab39dc7f6e2495e18dcdb850fb3fc0f53c",
     "src/backend/hometrash.rs": "48c02749d77fef6c63f9704f2c94c71a3189d59a6ff5a64ff802a165b8d9c43c",
     "src/backend/htmlcache.rs": "cf0dcc43f7cf26fcb4c109825e595c0aa2d5be4d574a2877de00d7d7e3f4df33",
     "src/backend/htmldeps.rs": "15dec66125c973827778c7e27c559bf7a24f56489f4039a7744eb504496060df",
@@ -250444,12 +250641,12 @@
     "src/backend/menu_selection.rs": "172662fac4080a29289db1e6167c79603e932bf60b086f4ef53cc7a964fa82a7",
     "src/backend/menu_slot.rs": "1572bef46483b96054be5ca4d71dc6b0353e8ee1789c98b04d0de5bee0cdd99d",
     "src/backend/menu_worker.rs": "9b7411a6d7ebe1779ebb626d6706620cb594b66f4243db48e3cdb5bf75785de3",
-    "src/backend/menucontents.rs": "96b312a581eb97621edd7dffb408671b76dbe1b7361a33b5f0bafbfbd753c00c",
+    "src/backend/menucontents.rs": "352195db0af74ccc06f8ff1c2d6b939776deb55fbbc6f228fc97173cf94ee60b",
     "src/backend/menucontents_seams.rs": "d10563d967f80bf519f043b528bf9a5e4172ce64bf2232216c8e9af0e1ee6d5a",
     "src/backend/menudelete.rs": "8872fc80039ffb69c10d081ce4a0f50dff41f31195a9476e4be0ce8a90859f83",
     "src/backend/menufacts.rs": "42bd76eb18284d63121114ad2cc26a042c5d7c6e2b44727f76fcc1520a0210af",
     "src/backend/menuproperties.rs": "4921fddec1f4480b8ce7a53873512d856aecb5887513f896fede0a49410de266",
-    "src/backend/menuproperties_remote.rs": "4b4fda24e02e9e727b98710658422ad119908033f592667fcac807dad14c8dc2",
+    "src/backend/menuproperties_remote.rs": "21f2f24877a7a07e539142ad1fccbc67e03362eae1b8192ccde8e798e5525493",
     "src/backend/menutags_io.rs": "4a6bb511455576cda830d56b996420ab4083049dbbe5c645e40ab8d830d04bd7",
     "src/backend/menutags_states.rs": "0d7336c0413ef3fe537837c52676e36b98ecf7bb30489895a481785abe4af68a",
     "src/backend/merge.rs": "4cae27be50e5fbc9581b2fa85506bf83580e547f3ed735e19b5414064756c47b",
@@ -250492,7 +250689,7 @@
     "src/backend/nearbyrows.rs": "d25c0dca1fe4ef939ec93868c48b7ca0e635690371f7d9d2e4b1bd0fa13d003b",
     "src/backend/nearbystatus.rs": "c238fad6f17a9b3ebb41355a2d6d4ef435da124e7513a67e837cc6af58de9be8",
     "src/backend/nearbytool.rs": "69dc21f73f31e8e40e36e8c86f26b4fc0b1c73fdd098b8d3770e92a33a30b8ea",
-    "src/backend/netfs.rs": "0e6ed600f659cae7706d2f22fc7e65810dbb3f9b37a6f3a97ca2d24e69babe9e",
+    "src/backend/netfs.rs": "657d51f92ef82cf879b337e4e0de706a4b570be00837cad817363edbd503729a",
     "src/backend/networkaddress.rs": "6f50dfe45792b398496498a91f7f0c40f67da63a72bde491d08026aa1d341665",
     "src/backend/newfolder.rs": "9bd9b47f4eb1f513828ed4cca7111cc45627852a2d15fbe9c7fe92ddcd524cac",
     "src/backend/officehead.rs": "094a6687ed51905cde010ab55cab467c5dec691b029d922fd8ac423c72b7e702",
@@ -250599,7 +250796,7 @@
     "src/backend/searchread.rs": "77cffbc5b402e68587f192d4cf59581cf9c3cb95b656fa5637ec02a49147a6a4",
     "src/backend/searchreq.rs": "65a7b098b15f3a3c6eb1ff689fca79683f6a702df3df4413b0fdb237f2c586ef",
     "src/backend/searchrest.rs": "3fc4b6e4119cee9d5ad853bd2045b9b54d65c8fc49856e9aca855aa1ee999e7a",
-    "src/backend/searchrowcache.rs": "04db7daab0928ab2e1295fa56cb538240b3482cce14ae5b4a5dc1d4164971a6b",
+    "src/backend/searchrowcache.rs": "e73f212d97af479f376cee7de251283a1dcc9a8ea9f7cbc559f9dd98225d6472",
     "src/backend/searchrowinodes.rs": "5a70e944343d4e35507251c4ed3cddc3f54021a6a8b0d6124d992f281e670d72",
     "src/backend/searchrowpar.rs": "bb850c5319a8a728a9e7080f3e7fbadec177f7d828ae0ba5dadfd189aef59f51",
     "src/backend/searchrowstamp.rs": "06a3adf87a9ac9f9616d5515dcd34293801ec80660e3e56951785ce2291708a1",
@@ -250643,11 +250840,11 @@
     "src/backend/transferitem.rs": "c7e13c100c83409b646457b2691caa7f2561473c1190fd6e0a96a53c1e6c7f0d",
     "src/backend/transferstart.rs": "1d1f3101186689ed629e8cecf924193fab6d0a90c3a6c03118d23fe0d0551e5f",
     "src/backend/trash.rs": "03d18fd162596bc3e7701dbb16432f07643e76969cfaf34c59e15ca0911396fd",
-    "src/backend/trashbrowse.rs": "2d1df6853a5582ffe92b6304e68a0ad922d613e1afa6dcafa29a1b4519d1b969",
-    "src/backend/trashbrowse/details.rs": "ae04d7075200ebf8eb7c5cb00de7a834b212e46c6f78d7a7e37e53ef85717e28",
+    "src/backend/trashbrowse.rs": "189fbf7f9f690326dbb41dab913509e60082f022d3d7cc0a1d9805d7442aafa2",
+    "src/backend/trashbrowse/details.rs": "3a96ced3090d8002c0d466e4cc6e1c0ba4629637ee093c6b942586a7f6802c65",
     "src/backend/trashbrowse/job.rs": "75b7d4bd339bcf23fe2efd1ee2d8ae106d2fda65af586d45637898e3fa5c48d2",
     "src/backend/trashdate.rs": "a6312b012015592eedd2497a52af2d53bec49e58e5deb40327ae80ce75bbd8c1",
-    "src/backend/trashdelete.rs": "3573992670eb2b68b37584395cae4af48c8539b7e22d86b9e5178cdc1108cce6",
+    "src/backend/trashdelete.rs": "d579cfc772e65e29cfaa43fb9353b0d0a1d140cef6e3d9f375bec12e6d17abdb",
     "src/backend/trashdelete/cancel.rs": "40ca4b37e9d0873594832957bb6e0b8db0f4f586128d6ff69cf8aceb3340cc25",
     "src/backend/trashdelete/deletetest.rs": "54dcc4855047a92d9c48829c321d246dff9a3971d4795617a214500b2ad8ecba",
     "src/backend/trashdelete/recovery.rs": "cf9b5ce02bab3718b5b16072aeeba921b808f1984ae84c4ee5c26d18799ceeee",
@@ -250657,7 +250854,7 @@
     "src/backend/trashthumb.rs": "50f3308d1fb51af82b46787f28958d931c5c19e8884eb2949557e4446cec4233",
     "src/backend/trashthumbcache.rs": "c17c02aacbfcfb4f59154242df071e721fde70e32a4c7e2cd0e17cc5d412630a",
     "src/backend/tuifolders.rs": "c56c96dd31cd391c28e791b3772cdd4f7d1a3b4234d0ea03e2cb86de0e04bdf5",
-    "src/backend/undo.rs": "9bc704badd44961da2d52985cc5a95715458f49091752fb4c166496822a3702a",
+    "src/backend/undo.rs": "9ee629ec62dd30f1bdb8e626b2de6fe2c9e743d1263355dfd7275c7d192d3dcc",
     "src/backend/undocodec.rs": "eddd6211d8128a0ca6889c87ee23a46cfdfd479bdd8d5acf79d5f2b4a5c38575",
     "src/backend/undodecode.rs": "b727132f2d177a3aa99bf00c725d91f4854d53ed1c34a1d651401d4f4a048fd3",
     "src/backend/undojobs.rs": "e668ccefb04e333d72716e9983ecb662ea2daff81b7782bcb66684065262901f",
@@ -250911,7 +251108,7 @@
     "src/ui_logic_custom_actions/rows.rs": "d02e7f3b57a845867cc05498ab4d0894287276edd127fcc2f047edc088c6b3d8",
     "src/ui_logic_custom_actions/scripts.rs": "a68e9d879831a81abe155f5b4da59374a6e1027083651fc4c43ef2ec0181cc8a",
     "src/ui_logic_custom_actions/wire.rs": "009e0a5f7434abfe5a0044fbb2cac04be483d0936700ff14603175283019e87f",
-    "src/ui_logic_device_rail.rs": "9893fc071982952af37f9b7edeacc6ec6acb7fcab4128b3b32cdd30a06bad047",
+    "src/ui_logic_device_rail.rs": "511b74d10dad96ec0214ead4c18531bd7ca069f5bd1cbbf0c3aacfe5c35e7d9b",
     "src/ui_logic_device_rail/devices.rs": "e26b2eae31714e944843dc2d86be5146b2a54653cf3dbf14663f063c3d3c4665",
     "src/ui_logic_device_rail/eject.rs": "97b14f8861f2718f0692c45a7f3ddb7be3f5debec5b2b9c8d0cb8409a0ab1911",
     "src/ui_logic_device_rail/lsblk.rs": "af0eafca7db0afe3d98e7af8705557ac8aa414f3c2a919fa78f271fdec7a98f4",
@@ -251029,7 +251226,7 @@
     "src/ui_logic_file_ops/confirm.rs": "352e6b977c60f542980946135ae79253dd98356019dcaab00759037eddf71103",
     "src/ui_logic_file_ops/fat.rs": "f32aa78bc3ea84591d15bdfab517dcf4136f8da4a19f79d3e5b172d8a691e9d3",
     "src/ui_logic_file_ops/host.rs": "251d4378d1452e5351a1f010b4efaaf5dbe5ceb2a2b1126a9f27993f38a4fbed",
-    "src/ui_logic_file_ops/jobs.rs": "1bf4be01b4f67d32a07e19bf1db73277fd1893dbf9facb58d839681e15e45dcf",
+    "src/ui_logic_file_ops/jobs.rs": "fe6116f491b397561dff8af715c14977705d72cd146552611fa8f2b64695939f",
     "src/ui_logic_file_ops/lines.rs": "76a6f41b288658ed170f3f43b204ab9031f4794d56ac440be339cb634a20248d",
     "src/ui_logic_file_ops/lines/link.rs": "fb51d9b97decb93b643513f3d477d9a5cdf498638c3d3a26c6d7a629c0bfd042",
     "src/ui_logic_file_ops/lines/receipt.rs": "fd14860ca7d0ffc4047a88ba91fe898dd5ab428ae70e8edfbdcd8dc38fbdbfa0",
@@ -251205,12 +251402,13 @@
     "src/ui_logic_settings_pages/words.rs": "6823f05a037166d8b64d4c379acd757e5db95988e24a7b8be98a835463afa28a",
     "src/ui_logic_status_feedback.rs": "239fb7a987ea5667a69e370377f394265ec1a6e630d7f33b55f81fa5bea8b7fd",
     "src/ui_logic_status_feedback/empty.rs": "ebfce38c44eeab28cc4e1899230f16e32d146605e086923b2284e11daa87462e",
-    "src/ui_logic_status_feedback/errors.rs": "1ee4147825e43a4c35c9452b7e82e16c952f97b0bb51de8c3fb64e522116125d",
+    "src/ui_logic_status_feedback/errors.rs": "fce2ae88ccb70f6bf5570c0b62041589057e21a41bd05a96a24336d5d81377e3",
     "src/ui_logic_status_feedback/lane.rs": "cbfe288450e2d3a02f733511258547aaecfec5f274440e148d60b90270980fc1",
-    "src/ui_logic_status_feedback/messages.rs": "09a5751d4242c307e5a859f3131ef02fd33cf8a19535a2f26b2b7044331345f1",
+    "src/ui_logic_status_feedback/messages.rs": "130114882564fd84aba36a6e12fda9427ab19667b40ea63abf20336666fd5b89",
     "src/ui_logic_status_feedback/messages/arm.rs": "df040c99357a86061f60a6b41746b702c9c70ee34d00afd68b2fd03ac43857c3",
+    "src/ui_logic_status_feedback/messages/clock.rs": "8ec29d8a838a9c2fad7b6b1ed07ae2e7be87f775a6307c8c7845cbdd3ddc11db",
     "src/ui_logic_status_feedback/messages/line.rs": "97f7600464cc6081b230eda373e0f42d01667ed67b5b134719b610fa3ede65b4",
-    "src/ui_logic_status_feedback/status.rs": "5b827f351fffbba16991497ca94bc3b33903355bc9c1b630148f71ccaa72cbc2",
+    "src/ui_logic_status_feedback/status.rs": "dd12aa31f1d81509bd0acfe03c54b9b213c62caf905f71b53118bb20033eb732",
     "src/ui_logic_trash_browser.rs": "ba57a1939bae3b8e6139fddfaa2baf81eae79aa6cc5a5ddd82680d0b7440ced0",
     "src/ui_logic_trash_browser/dates.rs": "2947c888a56c2ce9e78a478eaac46e63e187d05527acde4fd0f34c93e6c0cf1e",
     "src/ui_logic_trash_browser/dropping.rs": "8f296a04dea4814263d67a742a3b0bb468215c8ed11878802f4870dcf52b7cad",
@@ -251270,7 +251468,7 @@
     "tools/flea-field-nav": "36bc42104edb84c4194b4b6d28c3e67d915a2a144692aaa49953981a4a5bdbf8",
     "tools/flea-field-search": "70ec859809b73cb1bf58fccb4129b05622023a0686991fe7370aafd8fe7805a6",
     "tools/flea-figure-bench": "60d312818e6af2fa0989d50275907d2a0f9e6019787caae93e8d8a4e440dc8e7",
-    "tools/flea-file-budget": "782a6f8757321ebd5ae6e953336f7fc66a6f66dd4e198f429079e944a630c57a",
+    "tools/flea-file-budget": "6c8865a0959c73b9c0fb7003f3cebdf036b36408388bec35b049308b30490779",
     "tools/flea-filemanager1": "ebccc20a6b2be787dcf7e817d353a21dcca5ff57de184161f12e28ee5b0322e1",
     "tools/flea-first-paint": "6b9555b0a20b6d4bec057bd9c405823a1b742c14d27304b83a5a95d801ac5526",
     "tools/flea-framecap-build": "7c9433d4c4774f8810fd4e4c8ee92d0b5810dcbc7645231205a8155d557f5f2e",
@@ -251806,13 +252004,13 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "d61159a59551adc0b553021c7296d265783330ce",
-  "source_sha": "d61159a59551adc0b553021c7296d265783330ce",
+  "source_ref_sha": "2ad7d8da82dddd1e0dddf920ec6ac9aa0451f405",
+  "source_sha": "2ad7d8da82dddd1e0dddf920ec6ac9aa0451f405",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1334,
-      "missing_literal_candidates": 5688,
-      "source_files": 849
+      "missing_literal_candidates": 5703,
+      "source_files": 850
     },
     "generated/tooling": {
       "keys_with_occurrences": 155,
@@ -251820,8 +252018,8 @@
       "source_files": 160
     },
     "gui": {
-      "keys_with_occurrences": 550,
-      "missing_literal_candidates": 2188,
+      "keys_with_occurrences": 553,
+      "missing_literal_candidates": 2191,
       "source_files": 1163
     },
     "qml-reference": {

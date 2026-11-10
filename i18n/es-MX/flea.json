@@ -234,7 +234,7 @@
   "device.still_unmounting": "Aún se está desmontando %1; espera el resultado",
   "device.still_unmounting_try_again": "%1 aún se está desmontando. Inténtalo cuando termine",
   "device.system_drive": "%1 es la unidad del sistema, que Flea nunca desmonta",
-  "device.system_volume": "Esta carpeta está en un volumen del sistema, que Flea nunca desmonta",
+  "device.system_volume": "Esta carpeta no está en una unidad que Flea pueda expulsar.",
   "device.transfer_using": "No se pudo desmontar %1. Una transferencia podría seguir usándolo.",
   "device.unconfirmed": "No se pudo confirmar que se expulsó %1; no lo desconectes todavía.",
   "device.unlock.button": "Desbloquear",

@@ -97,7 +97,17 @@ impl Shell {
                 if let Some(said) = update.said.last() {
                     let catalog = shell.locale.catalog.clone();
                     shell.status_messages(cx, |messages, now| {
-                        messages.say_receipt(&catalog, &said.text, said.error, &said.detail, now);
+                        if said.behind {
+                            messages.say_receipt_behind(&catalog, &said.text, now);
+                        } else {
+                            messages.say_receipt(
+                                &catalog,
+                                &said.text,
+                                said.error,
+                                &said.detail,
+                                now,
+                            );
+                        }
                     });
                 }
             },

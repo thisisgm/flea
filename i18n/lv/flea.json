@@ -234,7 +234,7 @@
   "device.still_unmounting": "Vēl atmontē %1; gaidiet rezultātu",
   "device.still_unmounting_try_again": "%1 vēl tiek atmontēts. Mēģiniet vēlreiz, kad tas būs pabeigts",
   "device.system_drive": "%1 ir sistēmas disks, ko Flea nekad neatmontē",
-  "device.system_volume": "Šī mape atrodas sistēmas sējumā, ko Flea nekad neatmontē",
+  "device.system_volume": "Šī mape neatrodas diskā, ko Flea var izstumt.",
   "device.transfer_using": "%1 nevarēja atmontēt. To, iespējams, vēl izmanto pārsūtīšana.",
   "device.unconfirmed": "Nevarēja apstiprināt %1 izstumšanu; vēl neatvienojiet to.",
   "device.unlock.button": "Atbloķēt",

@@ -224,7 +224,7 @@
   "device.still_unmounting": "Bado inaondoa upachikaji wa %1; subiri matokeo yake",
   "device.still_unmounting_try_again": "Upachikaji wa %1 bado unaondolewa. Jaribu tena ikimaliza",
   "device.system_drive": "%1 ni kiendeshi cha mfumo, ambacho Flea haiondoi upachikaji wake kamwe",
-  "device.system_volume": "Folda hii iko kwenye juzuu ya mfumo, ambayo Flea haiondoi upachikaji wake kamwe",
+  "device.system_volume": "Folda hii haiko kwenye kiendeshi ambacho Flea inaweza kutoa kwa usalama.",
   "device.transfer_using": "Upachikaji wa %1 haukuweza kuondolewa. Huenda uhamisho bado unaitumia.",
   "device.unconfirmed": "Haikuweza kuthibitisha kuwa %1 imetolewa kwa usalama; usiichomoe bado.",
   "device.unlock.button": "Fungua kufuli",

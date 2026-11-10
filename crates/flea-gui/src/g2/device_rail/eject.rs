@@ -115,7 +115,9 @@ impl Devices {
             return self.power_off(&e, &disk, now);
         }
         self.arm_eject(&e);
+        // The notice goes ahead of the quiesce, so a quiesce failure said after it is not replaced at once.
         vec![
+            Effect::Message(Note::new("device.ejecting", &[&e.label]), false),
             Effect::Quiesce(e.path.clone()),
             self.start(
                 Proc::Eject,
@@ -124,7 +126,6 @@ impl Devices {
                     ..Job::default()
                 },
             ),
-            Effect::Message(Note::new("device.ejecting", &[&e.label]), false),
         ]
     }
 
@@ -140,8 +141,8 @@ impl Devices {
         self.power_queue = power_off_queue(&self.listing, disk, &self.entries);
         self.power_sectors.clear();
         let mut out = vec![
-            Effect::Quiesce(e.path.clone()),
             Effect::Message(Note::new("device.ejecting", &[&e.label]), false),
+            Effect::Quiesce(e.path.clone()),
         ];
         out.extend(self.power_off_next(now));
         out

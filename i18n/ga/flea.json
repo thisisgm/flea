@@ -327,7 +327,7 @@
   "device.not_mountable": "Ní féidir %1 a fheistiú ar an ríomhaire seo.",
   "device.transfer_using": "Níorbh fhéidir %1 a dhífheistiú. Seans go bhfuil aistriú á úsáid fós.",
   "device.system_drive": "Is é %1 tiomántán an chórais, agus ní dhífheistíonn Flea é riamh",
-  "device.system_volume": "Tá an fillteán seo ar imleabhar córais, agus ní dhífheistíonn Flea é riamh",
+  "device.system_volume": "Níl an fillteán seo ar thiomántán ar féidir le Flea é a dhíchur.",
   "device.no_volume": "Níl an fillteán seo ar thiomántán ar féidir le Flea é a dhíchur.",
   "device.safe": "Díchuireadh %1. Tá sé sábháilte é a dhíphlugáil.",
   "device.safe_image": "Díchuireadh %1.",

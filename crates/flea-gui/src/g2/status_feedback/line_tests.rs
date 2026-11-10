@@ -99,8 +99,9 @@ fn a_long_error_keeps_its_whole_hint_and_an_undo_notice_splits_its_target(cx: &m
             "z undoes".into()
         )
     );
-    assert_eq!(run(cx, handle, MESSAGE_MS + 500), 0);
-    assert_eq!(drawn(cx, handle).0, "Copied 1 item");
+    // An undo receipt leaves on its clock like any notice.
+    run(cx, handle, MESSAGE_MS + 500);
+    assert_eq!(drawn(cx, handle).0, "");
 }
 
 #[gpui::test]

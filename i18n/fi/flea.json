@@ -224,7 +224,7 @@
   "device.still_unmounting": "Kohteen %1 liitoksen irrottaminen on kesken. Odota tulosta",
   "device.still_unmounting_try_again": "Kohteen %1 liitosta irrotetaan vielä. Yritä uudelleen sen valmistuttua",
   "device.system_drive": "%1 on järjestelmäasema, jonka liitosta Flea ei koskaan irrota",
-  "device.system_volume": "Kansio on järjestelmätaltiolla, jonka liitosta Flea ei koskaan irrota",
+  "device.system_volume": "Kansio ei ole asemalla, jonka Flea voi poistaa turvallisesti.",
   "device.transfer_using": "Kohteen %1 liitosta ei voitu irrottaa. Tiedostosiirto saattaa yhä käyttää sitä.",
   "device.unconfirmed": "Kohteen %1 turvallista poistamista ei voitu varmistaa. Älä irrota sitä vielä.",
   "device.unlock.button": "Avaa lukitus",

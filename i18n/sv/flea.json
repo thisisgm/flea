@@ -224,7 +224,7 @@
   "device.still_unmounting": "Avmonterar fortfarande %1. Vänta på resultatet",
   "device.still_unmounting_try_again": "%1 håller fortfarande på att avmonteras. Försök igen när det är klart",
   "device.system_drive": "%1 är systemenheten, som Flea aldrig avmonterar",
-  "device.system_volume": "Mappen finns på en systemvolym, som Flea aldrig avmonterar",
+  "device.system_volume": "Mappen finns inte på en enhet som Flea kan mata ut.",
   "device.transfer_using": "%1 kunde inte avmonteras. En överföring kanske fortfarande använder enheten.",
   "device.unconfirmed": "Kunde inte bekräfta att %1 matades ut. Koppla inte från enheten än.",
   "device.unlock.button": "Lås upp",

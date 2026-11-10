@@ -72,3 +72,27 @@ fn the_jobs_card_draws_its_blocks_at_board_sizes(cx: &mut TestAppContext) {
     // Negative: a failed job draws no bar.
     assert!(vcx.debug_bounds("op1-job-14-bar").is_none());
 }
+
+// S8-17: a failed copy's long reason wraps over its own lines and stays inside the card's right and bottom edges.
+#[gpui::test]
+fn a_failed_reason_wraps_and_stays_inside_the_card(cx: &mut TestAppContext) {
+    use flea::ui_logic_file_ops::card;
+    let (_, vcx) = open_card(cx, 1100., 700., |o| {
+        let cat = o.catalog.clone();
+        o.model.line(&cat, r#"{"t":"job","job":{"id":15,"kind":"copy","head":"Copy failed","file":"","done":0,"total":1,"bytes":0,"totalBytes":0,"itemBytes":0,"rate":0,"left":null,"state":"failed","reason":"holiday-photos-archive-2026.tar needs 4.2 GB, and the drive has 1.1 GB free.","output":[],"undo":false,"cancelled":false},"unfinished":1}"#, 0);
+    });
+    let card_bounds = measured(vcx, "op1-jobs");
+    let reason = measured(vcx, "op1-job-15-file");
+    assert!(
+        reason.right() <= card_bounds.right(),
+        "the reason stays inside the card: {reason:?} in {card_bounds:?}"
+    );
+    assert!(
+        reason.bottom() <= card_bounds.bottom(),
+        "the card grows with the reason's last line: {reason:?} in {card_bounds:?}"
+    );
+    assert!(
+        f32::from(reason.size.height) >= 2. * card::JOBS_SMALL_LINE,
+        "the long reason wraps over more than one line: {reason:?}"
+    );
+}

@@ -303,7 +303,7 @@
   "device.not_mountable": "%1 kann auf diesem Computer nicht eingebunden werden.",
   "device.transfer_using": "%1 konnte nicht ausgehängt werden. Möglicherweise wird das Laufwerk noch für eine Übertragung verwendet.",
   "device.system_drive": "%1 ist das Systemlaufwerk. Flea hängt es niemals aus",
-  "device.system_volume": "Dieser Ordner liegt auf einem Systemvolume. Flea hängt es niemals aus",
+  "device.system_volume": "Dieser Ordner liegt auf keinem Laufwerk, das Flea auswerfen kann.",
   "device.no_volume": "Dieser Ordner liegt auf keinem Laufwerk, das Flea auswerfen kann.",
   "device.safe": "%1 ausgeworfen. Das Laufwerk kann sicher entfernt werden.",
   "device.safe_image": "%1 ausgeworfen.",

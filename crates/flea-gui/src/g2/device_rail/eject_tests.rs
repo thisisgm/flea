@@ -341,3 +341,39 @@ fn an_eject_holds_an_open_crypt_on_its_drive_and_a_crypt_eject_holds_the_drive()
         }
     }
 }
+
+#[test]
+fn a_release_says_its_notice_before_the_quiesce_on_both_paths() {
+    let listing = concat!(
+        r#"{"blockdevices":["#,
+        r#"{"name":"sda1","path":"/dev/sda1","type":"part","label":"128GB","mountpoints":["/media/128GB"],"fstype":"exfat","rm":true,"size":128000000000},"#,
+        r#"{"name":"sdb","path":"/dev/sdb","type":"disk","rm":false,"size":2000000000,"children":["#,
+        r#"{"name":"sdb1","path":"/dev/sdb1","type":"part","label":"Vault","mountpoints":["/media/vault"],"fstype":"ext4","rm":false,"size":2000000000}]}"#,
+        r#"]}"#,
+    );
+    for (device, path) in [("/dev/sda1", "eject"), ("/dev/sdb1", "power off")] {
+        let mut d = Devices::new("host");
+        d.poll(0);
+        d.list_exited(&listed(listing));
+        let at = d
+            .entries
+            .iter()
+            .position(|e| e.device == device)
+            .expect("the volume is a row");
+        let effects = d.eject(at, 10);
+        assert_eq!(
+            d.power_disk.is_empty(),
+            path == "eject",
+            "{path} takes its own branch"
+        );
+        let notice = effects.iter().position(
+            |e| matches!(e, Effect::Message(note, false) if note.key == "device.ejecting"),
+        );
+        let quiesce = effects.iter().position(|e| matches!(e, Effect::Quiesce(_)));
+        // A quiesce failure is said after the notice, so the notice must not come after it.
+        assert!(
+            notice.is_some() && quiesce.is_some() && notice < quiesce,
+            "{path}: {notice:?} before {quiesce:?}"
+        );
+    }
+}

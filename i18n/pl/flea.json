@@ -244,7 +244,7 @@
   "device.still_unmounting": "Trwa odmontowywanie %1. Poczekaj na wynik",
   "device.still_unmounting_try_again": "Trwa odmontowywanie %1. Spróbuj ponownie po zakończeniu",
   "device.system_drive": "%1 jest dyskiem systemowym, którego Flea nigdy nie odmontowuje",
-  "device.system_volume": "Ten folder znajduje się na woluminie systemowym, którego Flea nigdy nie odmontowuje",
+  "device.system_volume": "Ten folder nie znajduje się na nośniku, który Flea może wysunąć.",
   "device.transfer_using": "Nie udało się odmontować %1. Transfer może nadal z niego korzystać.",
   "device.unconfirmed": "Nie udało się potwierdzić wysunięcia %1. Jeszcze go nie odłączaj.",
   "device.unlock.button": "Odblokuj",

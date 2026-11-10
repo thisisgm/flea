@@ -111,13 +111,21 @@ pub fn passthrough(message: &str) -> Sentence {
     Sentence::with("feedback.error.backend", &capitalised(message))
 }
 
-/// The backend's own words read as a sentence: first letter raised, one full stop at the end.
+/// The backend's own words read as a sentence: one full stop at the end, the first letter raised only on a plain first word, so a leading name with a dot, slash, colon or digit keeps its case; a name that reads as a plain word is still raised, since the text marks no name.
 pub fn capitalised(message: &str) -> String {
     let mut chars = message.chars();
     let Some(first) = chars.next() else {
         return String::new();
     };
-    let mut out: String = first.to_uppercase().collect();
+    let word = message.split_whitespace().next().unwrap_or_default();
+    let plain = word
+        .chars()
+        .all(|c| c.is_alphabetic() || matches!(c, '\'' | '\u{2019}' | '-'));
+    let mut out: String = if plain {
+        first.to_uppercase().collect()
+    } else {
+        first.into()
+    };
     out.push_str(chars.as_str());
     if !out.ends_with('.') {
         out.push('.');

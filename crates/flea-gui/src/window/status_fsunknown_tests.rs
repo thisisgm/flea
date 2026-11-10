@@ -125,7 +125,7 @@ fn ey65_pending_answer_is_empty_then_known_facts_survive_an_error(cx: &mut TestA
                     tagable: None,
                     path: "/files".into(),
                     name: "btrfs".into(),
-                    free: 442_000_000_000,
+                    free: Some(442_000_000_000),
                 }),
                 window,
                 cx,
@@ -198,7 +198,7 @@ fn ey420_recent_spans_disks_so_the_bar_says_unknown(cx: &mut TestAppContext) {
                 tagable: None,
                 path: "/files".into(),
                 name: "tmpfs".into(),
-                free: 3_100_000_000,
+                free: Some(3_100_000_000),
             };
             shell.receive(0, BackendEvent::Filesystem(facts), window, cx);
         })

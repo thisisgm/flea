@@ -208,7 +208,7 @@
   "device.still_unmounting": "%1 をアンマウント中です。結果をお待ちください",
   "device.still_unmounting_try_again": "%1 をアンマウント中です。完了後に再試行してください",
   "device.system_drive": "%1 はシステムドライブのため、Flea はアンマウントしません",
-  "device.system_volume": "このフォルダーはシステムボリューム上にあるため、Flea はアンマウントしません",
+  "device.system_volume": "このフォルダーは Flea が取り出せるドライブ上にありません。",
   "device.transfer_using": "%1 をアンマウントできませんでした。転送処理がまだ使用している可能性があります。",
   "device.unconfirmed": "%1 の取り出しを確認できませんでした。まだ取り外さないでください。",
   "device.unlock.button": "ロック解除",

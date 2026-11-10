@@ -316,7 +316,7 @@
   "device.still_unmounting": "%1 wordt nog afgekoppeld; wacht op het resultaat",
   "device.still_unmounting_try_again": "%1 wordt nog afgekoppeld. Probeer het opnieuw zodra dat klaar is",
   "device.system_drive": "%1 is de systeemschijf, die Flea nooit afkoppelt",
-  "device.system_volume": "Deze map staat op een systeemvolume, dat Flea nooit afkoppelt",
+  "device.system_volume": "Deze map staat niet op een schijf die Flea kan uitwerpen.",
   "device.transfer_using": "%1 kon niet worden afgekoppeld. Een overdracht gebruikt het apparaat mogelijk nog.",
   "device.unconfirmed": "Kon niet bevestigen dat %1 is uitgeworpen; koppel het apparaat nog niet los.",
   "device.unlock.failed": "%1 kon niet worden ontgrendeld.",

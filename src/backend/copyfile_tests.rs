@@ -151,7 +151,7 @@ fn a_precheck_with_unknown_room_lets_copy_any_through() {
     let mut q = Progress { cancel: &flag, on_bytes: &mut sink, partial: None, tree: None, manifest: None, durability: None, for_move: false };
     let error = copy_any(&src, &d.join("dst2.txt"), &mut q).expect_err("no room still refuses");
     test_set_precheck(None, None, None);
-    assert_eq!(error.msg, "dst2.txt needs 3 B, and the drive has 2 B free", "the room refusal names the file and both sizes");
+    assert_eq!(error.msg, "dst2.txt needs 3 B, and the drive has 2 B free.", "the room refusal names the file and both sizes");
 }
 
 // A 4 GiB file never starts onto vfat, and a file bigger than the free room never starts anywhere, so both refuse up front.
@@ -162,7 +162,7 @@ fn a_copy_refuses_a_file_the_destination_cannot_hold() {
     assert!(refuse_for_size("big.iso", Some(VFAT_MAGIC), u64::MAX, 100, FOUR_GIB - 1).is_none());
     assert!(refuse_for_size("big.iso", Some(0xEF53), u64::MAX, 100, FOUR_GIB).is_none(), "ext4 has no 4 GiB file limit");
     assert_eq!(refuse_for_size("photo.heic", None, 1_100_000_000, 100, 4_200_000_000).unwrap(),
-        "photo.heic needs 4.2 GB, and the drive has 1.1 GB free", "the room refusal leads with the name and reads sizes");
+        "photo.heic needs 4.2 GB, and the drive has 1.1 GB free.", "the room refusal leads with the name and reads sizes");
     assert!(refuse_for_size("a.txt", None, 101, 100, 101).is_none(), "a file that exactly fits is let through");
 }
 

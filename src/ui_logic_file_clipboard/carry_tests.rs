@@ -203,7 +203,16 @@ fn m9_g2rows_25_core_standing_hint_returns_after_error_and_keeps_newer_notice() 
     assert!(!line.error);
     messages.say("failure", true, "detail", Hint::None, 10001);
     assert_eq!(messages.line(&catalog, "").primary, "failure");
-    assert!(!messages.tick(20000).notice_cleared);
+    let error_ms = crate::ui_logic_status_feedback::messages::ERROR_MS;
+    assert!(!messages.tick(10000 + error_ms).notice_cleared);
+    assert_eq!(messages.line(&catalog, "").primary, "failure");
+    assert!(!messages.tick(10001 + error_ms).notice_cleared);
+    assert_eq!(
+        messages.line(&catalog, "").primary,
+        "Carrying 1 item",
+        "the carry returns when the error's clock ends"
+    );
+    messages.say("failure", true, "detail", Hint::None, 18002);
     messages.dismiss(20001);
     assert_eq!(messages.line(&catalog, "").primary, "Carrying 1 item");
     messages.say("newer notice", false, "", Hint::None, 20002);

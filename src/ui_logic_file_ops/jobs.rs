@@ -267,7 +267,11 @@ pub fn block(catalog: &I18n, row: &JobRow) -> Block {
     match st {
         State::Failed => Block {
             file: row.reason.clone(),
-            buttons: vec![Action::Retry, Action::Dismiss],
+            buttons: if retryable(&row.reason) {
+                vec![Action::Retry, Action::Dismiss]
+            } else {
+                vec![Action::Dismiss]
+            },
             ..base
         },
         State::Done => Block {
@@ -307,6 +311,24 @@ pub fn block(catalog: &I18n, row: &JobRow) -> Block {
             }
         }
     }
+}
+
+/// The backend's fixed refusals that the same request meets again every time, so Retry could never succeed.
+pub(super) const SETTLED: [&str; 5] = [
+    "cannot move or copy a folder into itself",
+    "already in that folder",
+    "a file of 4 GiB or more does not fit on a FAT32 drive",
+    "that name is too long",
+    "operation is not supported",
+];
+
+/// Retry is offered unless the failure is one of those refusals or a name the destination cannot hold.
+pub fn retryable(reason: &str) -> bool {
+    let text = reason.to_lowercase();
+    !SETTLED
+        .iter()
+        .any(|words| text.contains(&words.to_lowercase()))
+        && !crate::ui_logic_status_feedback::errors::name_refusal(reason)
 }
 
 // A refusal the card shows in its own words where the backend sent a code, else the backend's sentence.

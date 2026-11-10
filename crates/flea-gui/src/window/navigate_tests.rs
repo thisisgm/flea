@@ -159,7 +159,7 @@ fn a_returning_window_rereads_a_fuse_folder_and_leaves_a_local_one_to_inotify(
                 tagable: None,
                 path: "/files".into(),
                 name: name.into(),
-                free: 0,
+                free: Some(0),
             };
             shell.surfaces[0].filesystem.facts = Some(facts("btrfs"));
             shell.window_returned(window, cx);

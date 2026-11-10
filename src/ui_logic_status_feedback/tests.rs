@@ -3,6 +3,7 @@ mod empty;
 mod errors;
 mod lane;
 mod locale;
+mod message_life;
 mod messages;
 mod motion;
 mod status;

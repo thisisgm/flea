@@ -11,7 +11,7 @@ fn answer(cx: &mut TestAppContext, handle: WindowHandle<Shell>, path: &str, name
                     tagable: None,
                     path: path.into(),
                     name: name.into(),
-                    free: 442_000_000_000,
+                    free: Some(442_000_000_000),
                 }),
                 window,
                 cx,
@@ -156,4 +156,52 @@ fn g70_fsinfo_shutdown_keeps_facts_until_the_existing_terminal_event(cx: &mut Te
         "the existing terminal event reports failure once"
     );
     assert_eq!(zone(cx, handle).1, "btrfs · 442.0 GB free");
+}
+
+/// S8-15: a share whose statfs reports no size reads by its kind with no free figure, never fuse · 0 B free.
+#[gpui::test]
+fn s8_15_a_share_with_unknown_room_names_its_kind_and_no_free_figure(cx: &mut TestAppContext) {
+    let handle = open(cx);
+    cx.simulate_window_resize(handle.into(), gpui::size(gpui::px(1100.), gpui::px(700.)));
+    frame(cx, handle);
+    let land = |cx: &mut TestAppContext, line: &str| {
+        handle
+            .update(cx, |shell, window, cx| {
+                shell.receive(0, Backend::test_reply_line(line), window, cx);
+            })
+            .unwrap();
+        frame(cx, handle);
+    };
+    land(
+        cx,
+        r#"{"t":"fsinfo","path":"/files","fs":"fuse","free":-1,"class":"network","tagable":false}"#,
+    );
+    assert_eq!(zone(cx, handle).1, "Network");
+    land(
+        cx,
+        r#"{"t":"fsinfo","path":"/files","fs":"fuse","free":-1,"class":"","tagable":false}"#,
+    );
+    assert_eq!(
+        zone(cx, handle).1,
+        "fuse",
+        "a local FUSE keeps its own name"
+    );
+    land(
+        cx,
+        r#"{"t":"fsinfo","path":"/files","fs":"","free":-1,"class":"network","tagable":false}"#,
+    );
+    assert_eq!(
+        zone(cx, handle).1,
+        "unknown",
+        "a share with no filesystem name is not named by its kind"
+    );
+    land(
+        cx,
+        r#"{"t":"fsinfo","path":"/files","fs":"cifs","free":0,"class":"network","tagable":false}"#,
+    );
+    assert_eq!(
+        zone(cx, handle).1,
+        "cifs · 0 B free",
+        "a sized share that is full says so"
+    );
 }
