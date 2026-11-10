@@ -258,6 +258,7 @@ impl Adapter for SettingsAdapter<'_> {
         }
         let value = match function {
             "settingsOpen" => self.host.opened.to_string(),
+            "settingsRailWidth" => cohesion::rail_width(view, self.host.opened),
             "settingsSection" => panel.map_or("", |p| p.section).into(),
             "settingsSide" => panel
                 .map_or("", |p| match p.side {

@@ -40,6 +40,10 @@ impl PreviewState<'_> {
         let host = self.shell.panes[self.shell.focus_side].as_ref()?;
         let column = host.preview.as_ref().map(|view| view.read(self.cx));
         let visible = host.drawn_view == Some(View::Columns)
+            && self
+                .shell
+                .no_match_headline(self.shell.focus_side)
+                .is_none()
             && column.is_some_and(|view| view.visible)
             && host.columns.as_ref().is_some_and(|columns| {
                 columns.preview_hosted
@@ -53,7 +57,7 @@ impl PreviewState<'_> {
         let index = frame
             .filter(|_| visible)
             .map_or(-1, |frame| frame.subject.index as i64);
-        let path = frame.map_or_else(String::new, |frame| {
+        let path = frame.filter(|_| visible).map_or_else(String::new, |frame| {
             crate::navigation::history::join(&frame.subject.directory, &frame.subject.row.name)
         });
         let pending = frame

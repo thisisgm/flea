@@ -3,6 +3,11 @@ preview_selection_expect() {
     local expression="$1" observed deadline=$((SECONDS + 10))
     while (( SECONDS < deadline )); do
         observed=$(ipc previewSelectionState)
+        if [[ "$test_frontend" == gpui ]]; then
+            # GPUI reports the followed subject before a manual request; the painted hold and multi states tell whether it is requested.
+            observed=$(jq --argjson hold "$(ipc columnManualHold)" --arg kind "$(ipc previewColumnState)" \
+                'if (.inlineVisible | not) or $hold or $kind == "multi" then .index = -1 | .path = "" else . end' <<< "$observed")
+        fi
         jq -e "$expression" <<< "$observed" >/dev/null && return
         sleep 0.1
     done

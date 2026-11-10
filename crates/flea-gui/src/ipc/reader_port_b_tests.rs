@@ -275,9 +275,14 @@ fn preview_selection_metadata_token_clears_only_on_its_reply(cx: &mut TestAppCon
         token
     });
     let state = flea::jsondoc::parse(&value(cx, handle, "previewSelectionState")).unwrap();
+    // No Columns preview is drawn here, so the reader hides the subject's path and keeps its pending token.
+    assert_eq!(
+        state.get("inlineVisible"),
+        Some(&flea::jsondoc::Json::Bool(false))
+    );
     assert_eq!(
         state.get("path").and_then(flea::jsondoc::Json::as_str),
-        Some("/files/a\"b.bin")
+        Some("")
     );
     assert_eq!(
         state.get("pending").and_then(flea::jsondoc::Json::as_f64),

@@ -79,7 +79,7 @@ impl Properties {
             ("rect", text(probe.probe.rect("card"))),
             (
                 "controls",
-                Json::Arr(vec![probe.control("button:0", "Cancel", true, true)]),
+                Json::Arr(vec![probe.control("button:0", "Close", true, true)]),
             ),
             ("confirmation", Json::Null),
         ]))

@@ -151,9 +151,8 @@ case_columns() {
     magick -size 640x480 xc:navy "$dir/shot.png"
     printf 'one\ntwo\nthree\n' > "$dir/notes.txt"
     ln -s inner "$dir/link"
-    # The canvas's own Unsupported example: a name nothing identifies, which is not text however far
-    # the backend's icon ladder falls.
-    printf 'nothing readable\n' > "$dir/core.dump"
+    # Unsupported needs binary content; an unfamiliar suffix on readable text still previews as text.
+    printf '\000\001\002\003\377\376\375\374' > "$dir/core.dump"
     # An archive too, because the archive tile is the one preview state with no live coverage at all.
     mkdir -p "$dir/inner/pack"
     printf 'packed\n' > "$dir/inner/pack/a.txt"
@@ -323,6 +322,7 @@ case_columns() {
 }
 
 case_views() {
+    local menus_checks=0
     # Four fixtures directly inside the sandbox root, which is what its guard allows; the fourth is the
     # grid again after the columns view, so a column kept alive under the grid is proven to plan nothing.
     local root="$fixture_root" pass mode dir r lit fx fy fw fh sx sy sw sh cx cy wx wy p1 p2 p3 p4 changed before i
@@ -372,17 +372,19 @@ case_views() {
             settle
             read -r fx fy <<< "$(ipc columnChildRowCentre 1)"
             [[ -n "$fy" ]] || fail "columns: the child column shows no row 1 for sub"
+            local context_path context_cursor
+            context_path=$(ipc path)
+            context_cursor=$(ipc cursor)
             read -r wx wy _ww _wh < <(window_box) || fail "native window coordinates unavailable"
             omarchy-drive click "$((wx + fx))" "$((wy + fy))" right >/dev/null
             sleep 1
-            # The hidden list has model 0 in columns, so rowAt reads loading there; visibleRowName reads the shown view.
-            [[ "$(ipc path)" == "$dir/sub" && "$(ipc visibleRowName "$(ipc cursor)")" == s2.txt && "$(ipc contextMenuVisible)" == "true" ]] \
-                || fail "columns: a right click on a peeked row: path $(ipc path), cursor row $(ipc visibleRowName "$(ipc cursor)"), menu $(ipc contextMenuVisible)"
+            shot views-columns-child-context
+            [[ "$(ipc path)" == "$context_path" && "$(ipc cursor)" == "$context_cursor" && "$(ipc contextMenuVisible)" == true ]] \
+                || fail "columns: a neighbour menu moved the cursor or columns: path $(ipc path), cursor $(ipc cursor)"
+            menus_expect menuState ".snapshotReady and .snapshotPath == \"$dir/sub\" and .snapshotRowName == \"s2.txt\"" 'the neighbour menu acts on its clicked file'
             key -k Escape >/dev/null
             settle
-            key -k Backspace >/dev/null
-            sleep 1
-            [[ "$(ipc path)" == "$dir" ]] || fail "columns: Backspace did not return to the fixture, path $(ipc path)"
+            [[ "$(ipc path)" == "$dir" ]] || fail "columns: dismissing the neighbour menu moved the columns"
             seek_row_named "c-pic.png"
             # Ready, not shown: thumbShown is true while the picture still loads. Polled the way the thumbnail rows are.
             for _attempt in $(seq 1 30); do
@@ -484,6 +486,7 @@ case_views() {
     # Four columns pin the free-area side of the count <= 3 threshold, the way the loop's 3 columns pin the whole-pane side.
     seed_ui_state "$fixture_root/views-hero4-state" '{"view":"columns","columnsLimit":4}'
     launch "$root/views-columns/empty"
+    cap_resize 2560 1400
     wait_listing 0
     local count4
     count4=$(ipc columnCount)
@@ -496,6 +499,7 @@ case_views() {
     # Five columns put the active column's left edge past where the hero would centre on the pane, so the hero takes the free area.
     seed_ui_state "$fixture_root/views-hero5-state" '{"view":"columns","columnsLimit":5}'
     launch "$root/views-columns/empty"
+    cap_resize 2560 1400
     wait_listing 0
     local count5
     count5=$(ipc columnCount)

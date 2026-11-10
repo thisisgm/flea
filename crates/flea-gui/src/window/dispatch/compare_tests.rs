@@ -94,6 +94,11 @@ fn compare_shows_the_patch_keeps_the_cursor_still_copies_and_closes(cx: &mut gpu
     assert_eq!(state.get("opened").and_then(Json::as_bool), Some(true));
     assert_eq!(text(&state, "answer"), "diff");
     assert_eq!(
+        text(&state, "mark"),
+        "file-text",
+        "the IPC reports the drawn glyph name"
+    );
+    assert_eq!(
         text(&state, "title"),
         "notes-a.txt and notes-b.txt \u{b7} 2 lines differ"
     );

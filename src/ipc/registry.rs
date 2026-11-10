@@ -28,6 +28,9 @@ pub const LIFECYCLE: &[Function] = &[
 ];
 
 pub const VISUAL: &[Function] = &[
+    function!("flea", "columnTrackRect", "string", &[("slot", "string")]),
+    function!("flea", "settingsRailWidth", "string", &[]),
+    function!("flea", "noMatchHeadline", "string", &[]),
     function!("flea", "outlineState", "string", &[]),
     function!("flea", "rowDepth", "int", &[("i", "int")]),
     function!("flea", "rowExpanded", "bool", &[("i", "int")]),
@@ -69,6 +72,11 @@ pub const VISUAL: &[Function] = &[
     function!("flea", "clipboardText", "string", &[]),
     function!("flea", "dirSizeCancels", "int", &[]),
     function!("flea", "tabTearoffState", "string", &[]),
+    // The search strip's mode, query and laid-out box, and one Dual pane's list area, read by the ui.sh cases.
+    function!("flea", "searchMode", "string", &[]),
+    function!("flea", "searchQuery", "string", &[]),
+    function!("flea", "searchRect", "string", &[]),
+    function!("flea", "paneListAreaRect", "string", &[("side", "int")]),
 ];
 
 /// The action entry point behind `flea --action` and `flea --actions`; see PLUGINS.md "Run an action from outside".

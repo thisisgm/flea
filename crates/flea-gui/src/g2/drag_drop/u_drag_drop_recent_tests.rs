@@ -143,16 +143,8 @@ fn ey267_recent_main_columns_show_leaf_location_and_used_time() {
             let host = shell.panes[0].as_ref().unwrap();
             let list = host.list.borrow();
             assert_eq!(list.drawn.layout.names(), "name,location,size,date");
-            assert!(
-                list.header.painted_titles.contains("Location"),
-                "{}",
-                list.header.painted_titles
-            );
-            assert!(
-                list.header.painted_titles.contains("Used"),
-                "{}",
-                list.header.painted_titles
-            );
+            // Kind lays out at 0 px under Recent, so the header reads only the four drawn titles.
+            assert_eq!(list.header.painted_titles, "Name|Location|Size|Used");
             let first = list
                 .visible()
                 .iter()

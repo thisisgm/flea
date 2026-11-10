@@ -261,6 +261,7 @@ case_nosweep() {
 }
 
 case_hiddenlast() {
+    local flea_window_class="$flea_window_class"
     local dir="$fixture_root/hiddenlast" state="$fixture_root/hiddenlast-state" patch
     local l0="$dir" l1="$dir/Alpha" l2="$dir/Alpha/Alpha" l3="$dir/Alpha/Alpha/Alpha"
     local title="Hidden last chooser $$" reply="$fixture_root/hiddenlast-reply.json" picker_pid="" shot_png menus_checks=0
@@ -318,12 +319,25 @@ case_hiddenlast() {
 
     # The chooser: its list, then its header sort, which used to forget the setting.
     kill_flea
+    if [[ "$test_frontend" == gpui ]]; then
+        flea_test_launch "$l2" "$fixture_root/hiddenlast-picker.log" --binary "$flea_bin" --picker \
+            || fail "hiddenlast: owned native chooser launch failed"
+        picker_pid=$FLEA_TEST_PID
+        ipc_pid=$picker_pid
+        flea_window_class=com.thisisgm.flea.picker
+        local deadline=$(( $(date +%s%3N) + async_wait_ms ))
+        while ! title=$(window_addr_of_pid "$picker_pid" 2>/dev/null); do
+            (( $(date +%s%3N) < deadline )) || fail "hiddenlast: native chooser has no unique window"
+            sleep 0.05
+        done
+    else
     FLEA_UI="$flea_ui" FLEA_BIN="$flea_bin" FLEA_PICKER="$(jq -cn --arg f "$l2" --arg t "$title" '{mode:"open",folder:$f,title:$t}')" FLEA_PICKER_REPLY="$reply" \
         flea_test_exec qs -p "$flea_ui/boot/picker.qml" >"$fixture_root/hiddenlast-picker.log" 2>&1 </dev/null &
     for _attempt in $(seq 1 300); do
         omarchy-drive windows --json | jq -e --arg title "$title" '[.windows[] | select(.title == $title)] | length == 1' >/dev/null && break
         sleep 0.05
     done
+    fi
     omarchy-drive focus "$title" >/dev/null || fail "hiddenlast: the chooser never opened"
     for _attempt in $(seq 1 100); do
         picker_pid=$(flea_pids | head -1)
@@ -347,4 +361,80 @@ case_hiddenlast() {
     printf 'SHOT %s\n' "$shot_png"
     kill_flea
     printf 'HIDDENLAST list=ok columns=ok grid=ok tab=ok off=ok dual=ok chooser=ok\n'
+}
+
+case_hanginspect() {
+    local dir="$fixture_root/hanginspect"
+    local control="$fixture_root/hanginspect-control" hung_s=25
+    sandbox_scratch "$dir"
+    sandbox_scratch "$control"
+    : > "$dir/one.txt"
+    local favs="" answers="" n
+    for ((n = 0; n < 40; n++)); do
+        favs="$favs$(printf '{"label":"F%02d","path":"%s/f%02d"},' "$n" "$dir" "$n")"
+        answers="$answers$(printf '{"index":%d,"record":{"label":"F%02d","path":"%s/f%02d"},"error":""},' "$n" "$n" "$dir" "$n")"
+    done
+    cat > "$control/bin-flea" <<EOS
+#!/bin/sh
+# The first inspect hangs past the guard; every later one answers every seeded favourite at once.
+if [ "\$1" = --favourites ] && [ "\${2#*inspect}" != "\$2" ]; then
+    printf 'inspect\n' >> "$control/calls"
+    if [ ! -e "$control/hung" ]; then : > "$control/hung"; exec sleep $hung_s; fi
+    printf '{"statuses":[${answers%,}]}'
+    exit 0
+fi
+exec "$flea_bin" "\$@"
+EOS
+    chmod +x "$control/bin-flea"
+    local real_bin="$flea_bin" real_state="${XDG_STATE_HOME-}"
+    # The state sits beside the listing so the guard sees a marked parent.
+    seed_ui_state "$fixture_root/hanginspect-state" "{\"places\":{\"favourites\":[${favs%,}]}}"
+    flea_bin="$control/bin-flea"
+    launch "$dir"
+    wait_listing 1
+    wait_rail 40
+    # One second past the inspector's 10 s guard, Startup.INSPECT_WAIT_MS.
+    local past_guard_s=11 idx=0 count centre="" cx cy wx wy ww wh
+    count=$(ipc railCount)
+    while (( idx < count )); do
+        centre=$(ipc railRowCentre "$idx" 2>/dev/null || true)
+        [[ -n "$centre" ]] && break
+        idx=$((idx + 1))
+    done
+    [[ -n "$centre" ]] || fail "hanginspect: no rail row has a centre"
+    read -r cx cy <<< "$centre"
+    read -r wx wy ww wh < <(window_box) || fail "hanginspect: native window coordinates unavailable"
+    # Warp onto a rail row, then one uinput pixel so the pointer is seen resting there, as case_scroll does.
+    hypr_cursor_move "$((wx + cx))" "$((wy + cy))" || fail "hanginspect: pointer motion failed"
+    YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool mousemove -x 1 -y 0 >/dev/null 2>&1
+    settle
+    omarchy-drive scroll down 2 >/dev/null
+    wait_marker "$control/hung" "hanginspect: the first inspect never started"
+    local hung_at
+    hung_at=$(date -r "$control/hung" +%s%3N) || fail "hanginspect: the hung marker has no time"
+    local in_guard_s=3
+    # Only one inspect runs at a time, so a scroll while the first still hangs must start no second one.
+    omarchy-drive scroll down 2 >/dev/null
+    settle
+    sleep "$in_guard_s"
+    [[ "$(grep -c inspect "$control/calls")" == 1 ]] || fail "hanginspect: a second inspect started while the first still hung"
+    sleep "$(( past_guard_s - in_guard_s ))"
+    # A blocked inspect is dropped rather than queued, so the guard expiring starts none and only the scroll up below may.
+    [[ "$(grep -c inspect "$control/calls")" == 1 ]] || fail "hanginspect: an inspect started when the guard expired, before any new scroll"
+    omarchy-drive scroll up 2 >/dev/null
+    settle
+    # The stub stamps hung as its hang starts, so the poll ends a second before that hang would end by itself and only the guard lets a second inspect through.
+    local calls=0 deadline=$(( hung_at + (hung_s - 1) * 1000 ))
+    while (( $(date +%s%3N) < deadline )); do
+        calls=$(grep -c inspect "$control/calls" 2>/dev/null || true)
+        [[ "$calls" -ge 2 ]] && break
+        sleep 0.5
+    done
+    [[ "$calls" -ge 2 ]] \
+        || fail "hanginspect: no second inspect after the deadline, calls is $calls"
+    flea_bin="$real_bin"
+    if [[ -n "$real_state" ]]; then export XDG_STATE_HOME="$real_state"; else unset XDG_STATE_HOME; fi
+
+    printf 'HANGINSPECT guard-clears=ok later-inspect-runs=ok\n'
+    kill_flea
 }

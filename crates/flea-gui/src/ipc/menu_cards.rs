@@ -1,7 +1,7 @@
-//! The menu action cards drawn on the operation overlay, as v0.3.12's menuDialogState described them: Delete permanently's review and the Copy To, Move To and New File field card.
+//! The menu action cards drawn on the operation overlay, as v0.3.12's menuDialogState described them: Delete permanently's review and the New File field card.
 use crate::g2::file_ops::{
     host::Overlay,
-    model::{CopyFocus, Dialog, Operations},
+    model::{CopyFocus, Dialog},
     press::Press,
 };
 use crate::visual::{number, object};
@@ -61,25 +61,9 @@ fn control(
     ])
 }
 
-/// Copy To, Move To and New File draw v0.3.12's menu action card: the action, the field's text and focus, Cancel and the submit button.
+/// New File draws v0.3.12's menu action card: the action, the field's text and focus, Cancel and the submit button; Copy To and Move To answer from `copy_to_card`.
 pub(super) fn menu_field_state(overlay: &Overlay) -> Option<String> {
     let (action, text, focus, busy, error, presses, ready) = match overlay.drawn_dialog()? {
-        Dialog::CopyTo {
-            moving,
-            path,
-            focus,
-            busy,
-            error,
-            ..
-        } => (
-            if *moving { "moveTo" } else { "copyTo" },
-            path,
-            *focus,
-            *busy,
-            error,
-            (Press::CopyCancel, Press::CopyConfirm),
-            Operations::copy_enabled(path),
-        ),
         Dialog::NewFile {
             name,
             focus,

@@ -5,6 +5,10 @@ use gpui::{Bounds, Context, Pixels, Point, ScrollWheelEvent};
 use std::time::Duration;
 
 impl CodeView {
+    pub(crate) fn observed_scroll_y(&self) -> f64 {
+        self.scroll.y
+    }
+
     pub(crate) fn vertical_lane(
         &self,
     ) -> Option<crate::g2::quick_look_overlay::scroller::capture::Lane> {

@@ -289,8 +289,13 @@ SH
         [[ "$(ipc total)" == 0 ]] \
             || fail "searchnoblank: $view zzq matched total $(ipc total), not the honest zero"
         # The hero's caption string is pinned in tests/empty-state.sh; here only its state is read.
-        [[ "$(ipc emptyHeroState 2>/dev/null | jq -r '.visible and .captionOpacity == 1')" == true ]] \
-            || fail "searchnoblank: $view zzq drew no honest empty hero: $(ipc emptyHeroState 2>/dev/null)"
+        if [[ "$test_frontend" == gpui ]]; then
+            [[ "$(ipc searchQuery)" == zzq && "$(ipc noMatchHeadline)" == *zzq* ]] \
+                || fail "searchnoblank: $view zzq drew no search-empty headline: $(ipc noMatchHeadline)"
+        else
+            [[ "$(ipc emptyHeroState 2>/dev/null | jq -r '.visible and .captionOpacity == 1')" == true ]] \
+                || fail "searchnoblank: $view zzq drew no honest empty hero: $(ipc emptyHeroState 2>/dev/null)"
+        fi
         searchnoblank_key "$view" search-7 $((base + 7)) -k BackSpace
         searchnoblank_key "$view" search-8 $((base + 8)) -k BackSpace
         searchnoblank_key "$view" search-9 $((base + 9)) -k BackSpace

@@ -66,14 +66,14 @@ case_cap_archives() {
     key -k Right >/dev/null
     settle
     # The submenu is the probed table with With password last under its separator.
-    menus_expect menuState '.submenu and ([.submenuEntries[] | select(.label == "With password…")] | length) == 1' "the Compress flyout ends in With password"
+    menus_expect menuState '.submenu and ([.submenuEntries[] | select(.label == "With Password…")] | length) == 1' "the Compress flyout ends in With password"
     submenu=$(ipc menuState | jq -r '[.submenuEntries[] | .label // "-"] | join("|")')
-    [[ "$submenu" == *"|-|With password…" ]] \
+    [[ "$submenu" == *"|-|With Password…" ]] \
         || fail "cap_archives: With password is not last under its separator: $submenu"
     glyphs=$(ipc contextMenuSubmenuGlyphs)
     [[ "$glyphs" == *"|key" ]] || fail "cap_archives: With password wears no key mark: $glyphs"
     shot archives-compress-submenu
-    menu_seek_submenu "With password…"
+    menu_seek_submenu "With Password…"
     key -k Return >/dev/null
     # The dialog opens over the three resolved paths with 7z selected.
     menus_expect archiveCardsState '.compressOpened and .compressCount == 3 and .compressFormat == "7z"' "the password dialog opens for 3 items in 7z"
@@ -264,12 +264,12 @@ cap_archives_format_open() {
     menu_seek Compress
     key -k Right >/dev/null
     settle
-    menus_expect menuState '.submenu and ([.submenuEntries[] | select(.label == "With password…")] | length) == 1' "the Compress flyout ends in With password"
+    menus_expect menuState '.submenu and ([.submenuEntries[] | select(.label == "With Password…")] | length) == 1' "the Compress flyout ends in With password"
     submenu=$(ipc menuState | jq -r '[.submenuEntries[] | .label // "-"] | join("|")')
-    [[ "$submenu" == *"|-|With password…" ]] || fail "cap_archives_format: With password is not last under its separator: $submenu"
+    [[ "$submenu" == *"|-|With Password…" ]] || fail "cap_archives_format: With password is not last under its separator: $submenu"
     glyphs=$(ipc contextMenuSubmenuGlyphs)
     [[ "$glyphs" == *"|key" ]] || fail "cap_archives_format: With password wears no key mark: $glyphs"
-    menu_seek_submenu "With password…"
+    menu_seek_submenu "With Password…"
     key -k Return >/dev/null
     menus_expect archiveCardsState '.compressOpened and .compressCount == 3 and .compressFormat == "7z"' "the password dialog opens for 3 items in 7z"
     [[ "$(ipc contextMenuVisible)" == "false" ]] || fail "cap_archives_format: the menu stayed open behind the dialog"
@@ -311,13 +311,19 @@ case_cap_archives_format_kanagawa() {
     local real_foreground="" flea_bin="$flea_bin"
     sandbox_make "$sweep_root"
     fixture_home_make "$sweep_home"
+    local real_state_dir="$sweep_home/.local/state/omarchy/current"
     cp "$src" "$sweep_home/.local/state/omarchy/current/theme/colors.toml"
     printf 'kanagawa\n' > "$sweep_home/.local/state/omarchy/current/theme.name"
     # Sample input, one line of colors.toml: foreground = "#dcd7ba"
     real_foreground=$(python3 -c 'import pathlib,sys,tomllib; print(tomllib.loads(pathlib.Path(sys.argv[1]).read_text())["foreground"].lower())' "$sweep_home/.local/state/omarchy/current/theme/colors.toml")
-    flea_bin="$sweep_root/launcher"
-    { printf '#!/usr/bin/env bash\n'; printf 'exec env HOME=%q %q "$@"\n' "$sweep_home" "$sweep_real_bin"; } > "$flea_bin"
-    chmod +x "$flea_bin"
+    local -a flea_launch_wrap=()
+    if [[ "$test_frontend" == gpui ]]; then
+        flea_launch_wrap=(env "HOME=$sweep_home" "XDG_CONFIG_HOME=$sweep_home/.config")
+    else
+        flea_bin="$sweep_root/launcher"
+        { printf '#!/usr/bin/env bash\n'; printf 'exec env HOME=%q %q "$@"\n' "$sweep_home" "$sweep_real_bin"; } > "$flea_bin"
+        chmod +x "$flea_bin"
+    fi
     cap_archives_format_hue "$sweep_home/.local/state/omarchy/current/theme/colors.toml" refuse-hue
     cap_archives_format_open "$dir"
     cap_archives_format_walk

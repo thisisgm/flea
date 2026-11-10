@@ -41,6 +41,54 @@ fn columns_text_reader_preserves_the_native_too_large_sentinel(cx: &mut TestAppC
 }
 
 #[gpui::test]
+fn fx_uish_empty_search_hides_the_retained_preview_subject(cx: &mut TestAppContext) {
+    use flea::jsondoc::{parse, Json};
+    let (shell, cx) = host::open(cx, "/files");
+    super::test_shell::land(
+        &shell,
+        cx,
+        "/files",
+        vec![host::file("notes.txt", "text-plain", "Text", 0o100644)],
+        1,
+    );
+    let lines = host::local(&shell, cx, "/files");
+    host::meta(&shell, cx, &lines, r#","lines":1"#);
+    host::pump(cx);
+    let before = parse(&read(&shell, cx, "previewSelectionState", &[])).unwrap();
+    assert_eq!(before.get("inlineVisible"), Some(&Json::Bool(true)));
+    assert_eq!(
+        before.get("path").and_then(Json::as_str),
+        Some("/files/notes.txt")
+    );
+    cx.update(|_, cx| {
+        shell.update(cx, |shell, cx| {
+            let host = shell.panes[0].as_mut().unwrap();
+            let session = &mut host.search.owner.session;
+            session.mode = flea::ui_logic_file_search::Mode::Typing;
+            session.query = "missing".into();
+            session.gen = 1;
+            session.running = false;
+            host.pane.state.search = true;
+            host.pane.state.query = "missing".into();
+            host.pane.held = std::rc::Rc::new(crate::list::pane::Held {
+                listing: host.pane.held.listing,
+                ..Default::default()
+            });
+            assert!(host.preview.as_ref().unwrap().read(cx).visible);
+            assert!(shell.no_match_headline(0).is_some());
+            cx.notify();
+        });
+    });
+    host::pump(cx);
+    let after = parse(&read(&shell, cx, "previewSelectionState", &[])).unwrap();
+    assert_eq!(after.get("inlineVisible"), Some(&Json::Bool(false)));
+    assert_eq!(after.get("index").and_then(Json::as_f64), Some(-1.));
+    assert_eq!(after.get("path").and_then(Json::as_str), Some(""));
+    assert_eq!(after.get("pending").and_then(Json::as_f64), Some(0.));
+    assert_eq!(after.get("focused"), Some(&Json::Bool(false)));
+}
+
+#[gpui::test]
 fn pb_columns2_markdown_reader_reads_the_mounted_document_and_source(cx: &mut TestAppContext) {
     let base = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .ancestors()

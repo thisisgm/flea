@@ -39,29 +39,14 @@ fn fx_eject3_menu_dialog_state_answers_the_drawn_copy_to_card(cx: &mut TestAppCo
         Some(&Json::Bool(true)),
         "the field opens focused"
     );
-    let keys = |index: usize| -> Vec<String> {
-        let pairs = control(&state, index).as_object().unwrap_or_default();
-        pairs.iter().map(|(key, _)| key.clone()).collect()
-    };
-    let field = keys(2);
-    assert_eq!(field, ["name", "focused"], "{state:?}");
-    let omitted: Vec<String> = keys(0)
-        .into_iter()
-        .filter(|key| !field.contains(key))
-        .collect();
+    let field = control(&state, 2);
+    assert_eq!(text(field, &["name"]), Some("Field"), "{field:?}");
+    assert_eq!(field.get("visible"), Some(&Json::Bool(true)), "{field:?}");
     assert_eq!(
-        omitted,
-        ["label", "visible", "enabled", "hovered", "pressed", "centre", "rect"],
+        text(&state, &["unavailable"]),
+        Some("facts, liveLines, applications"),
         "{state:?}"
     );
-    let unavailable = text(&state, &["unavailable"]).unwrap_or_default();
-    let declared: Vec<&str> = unavailable.split(", ").collect();
-    for key in &omitted {
-        assert!(
-            declared.contains(&format!("controls[2].{key}").as_str()),
-            "the field omits {key} without saying so: {unavailable}"
-        );
-    }
     cx.update(|window, cx| shell.update(cx, |shell, cx| shell.close_overlay(window, cx)));
     draw(cx);
     assert_eq!(

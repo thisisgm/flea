@@ -148,12 +148,10 @@ impl Adapter for OutputAdapter<'_> {
                     convert.strip.to_string()
                 }
             }
-            "convertState" => {
-                if model.is_some() {
-                    return Some(Reply::error(3, "FLEA_IPC_ERROR flea.convertState unavailable fields: retained conversion draft, outputLines, outputRect, bodyRect, rect, formats control feedback (the output card does not record the oracle's complete painted state)"));
-                }
-                "{\"opened\":false}".into()
-            }
+            "convertState" => self.shell.output.view.as_ref().map_or_else(
+                || "{\"opened\":false}".into(),
+                |view| view.read(self.cx).convert_state(),
+            ),
             _ => unreachable!(),
         };
         Some(Reply::value(value))

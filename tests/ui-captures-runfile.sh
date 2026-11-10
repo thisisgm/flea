@@ -1,7 +1,7 @@
-# RunFile board captures: the run card for a script, an ELF and an AppImage with and without a handler, each with the ring on its default and on every other button, plus a missing-bit script and Open with.
+# RunFile board captures: the run card for a script, an ELF and an AppImage with and without a handler, each with the ring on its default, on every other button and under Shift, plus a missing-bit script and Open with.
 . "$repo/tests/lib/pointer-glide.sh"
 
-# Run and Run in terminal are pressed only on a harmless fixture script that writes a marker inside this case's own test root.
+# Run (Shift+Enter on Run in Terminal) and Run in Terminal are pressed only on a harmless fixture script that writes a marker inside this case's own test root.
 
 # Poll runCardState until .opened matches the want ("true" or "false").
 runfile_wait_card() {
@@ -42,6 +42,37 @@ runfile_focus() {
         settle
     done
     fail "runfile: focus never reached $want, last state $seen"
+}
+
+# Hold or release Shift through ydotool, which relabels Run in Terminal to Run (HIG runfile, APL-DIALOG-13); 42 is KEY_LEFTSHIFT.
+runfile_shift() {
+    local state="$1" want="$2" poll label=""
+    YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool key "42:$state" >/dev/null 2>&1 || fail "runfile: Shift $state failed"
+    for poll in $(seq 1 100); do
+        label=$(ipc runCardState | jq -r '.controls[] | select(.name == "terminal") | .label')
+        [[ "$label" == "$want" ]] && return 0
+        sleep 0.05
+    done
+    [[ "$state" == 0 ]] || YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool key 42:0 >/dev/null 2>&1
+    fail "runfile: with Shift $state the terminal button reads $label, not $want"
+}
+
+# Shift+Enter on the focused Run in Terminal runs the program itself; Return goes only once the held Shift reads Run, and the card closing proves it landed.
+runfile_run() {
+    local key_enter=28 key_left_shift=42 pressed=0
+    runfile_focus terminal
+    : > "$dir/bin/terminal.argv"
+    runfile_shift 1 Run
+    # Cases run under set -e, so the Return status is caught here and Shift is released before any failure.
+    YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool key "$key_enter:1" "$key_enter:0" >/dev/null || pressed=$?
+    YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool key "$key_left_shift:0" >/dev/null || fail "runfile: ydotool could not release Shift"
+    (( pressed == 0 )) || fail "runfile: ydotool could not press Return with Shift held, exit $pressed"
+    runfile_wait_card false
+}
+
+# Once a Run's effect has landed, the terminal launcher stub must still be empty.
+runfile_not_terminal() {
+    [[ ! -s "$dir/bin/terminal.argv" ]] || fail "runfile: Shift+Enter reached the terminal launcher: $(tr '\n' ' ' < "$dir/bin/terminal.argv")"
 }
 
 # Put the cursor on the named row, press Enter and wait for the card.
@@ -197,13 +228,13 @@ PY
     if [[ -n "$saved_data" ]]; then export XDG_DATA_HOME="$saved_data"; else unset XDG_DATA_HOME; fi
     wait_listing 9
     cap_resize 1100 700
-    # A script with a shebang: Cancel, Open as text, Run and Run in terminal, ring on the default.
+    # A script with a shebang: Cancel, Open as Text and Run in Terminal, ring on the default; Shift relabels it Run.
     runfile_open tool.sh
-    runfile_expect '.opened == true and .kind == "script" and (.buttons | join(",") == "cancel,text,run,terminal") and .focus == "terminal" and .default == "terminal" and .title == "tool.sh is a program"' "script default"
+    runfile_expect '.opened == true and .kind == "script" and (.buttons | join(",") == "cancel,text,terminal") and .focus == "terminal" and .default == "terminal" and .title == "tool.sh is a program."' "script default"
     shot cap-runfile-script-default
-    runfile_focus run
-    runfile_expect '.focus == "run" and .default == "terminal"' "script focus run"
-    shot cap-runfile-script-focus-run
+    runfile_shift 1 Run
+    shot cap-runfile-script-shift-run
+    runfile_shift 0 "Run in Terminal"
     runfile_focus text
     runfile_expect '.focus == "text" and .default == "terminal"' "script focus text"
     shot cap-runfile-script-focus-text
@@ -243,20 +274,21 @@ PY
     [[ ! -e "$dir/tool.ran" ]] || fail "runfile: the terminal stub ran tool.sh"
     # An ELF: no Open as text, since a binary is not text.
     runfile_open elfprog
-    runfile_expect '.opened == true and .kind == "elf" and (.buttons | join(",") == "cancel,run,terminal") and .focus == "terminal" and .default == "terminal" and .title == "elfprog is a program"' "elf default"
+    runfile_expect '.opened == true and .kind == "elf" and (.buttons | join(",") == "cancel,terminal") and .focus == "terminal" and .default == "terminal" and .title == "elfprog is a program."' "elf default"
     shot cap-runfile-elf-default
-    runfile_focus run
-    shot cap-runfile-elf-focus-run
+    runfile_shift 1 Run
+    shot cap-runfile-elf-shift-run
+    runfile_shift 0 "Run in Terminal"
     runfile_focus cancel
     shot cap-runfile-elf-focus-cancel
     runfile_close
     # An AppImage with no handler: Open as text stays off, Run in terminal stays the default.
     runfile_open app.AppImage
-    runfile_expect '.opened == true and .kind == "appimage" and (.buttons | join(",") == "cancel,run,terminal") and .focus == "terminal" and .default == "terminal" and .title == "app.AppImage is a program"' "appimage default"
+    runfile_expect '.opened == true and .kind == "appimage" and (.buttons | join(",") == "cancel,terminal") and .focus == "terminal" and .default == "terminal" and .title == "app.AppImage is a program."' "appimage default"
     shot cap-runfile-appimage-default
-    runfile_focus run
-    runfile_expect '.focus == "run" and .default == "terminal"' "appimage focus run"
-    shot cap-runfile-appimage-focus-run
+    runfile_shift 1 Run
+    shot cap-runfile-appimage-shift-run
+    runfile_shift 0 "Run in Terminal"
     runfile_focus cancel
     runfile_expect '.focus == "cancel" and .default == "terminal"' "appimage focus cancel"
     shot cap-runfile-appimage-focus-cancel
@@ -317,45 +349,45 @@ PY
     settle
     # The one allowed Run: the harmless script writes its marker and the card closes silent.
     runfile_open tool.sh
-    runfile_focus run
-    key -k Return >/dev/null
+    runfile_run
     runfile_wait_card false
     for poll in $(seq 1 200); do [[ -s "$dir/tool.ran" ]] && break; sleep 0.05; done
     [[ -s "$dir/tool.ran" ]] || fail "runfile: Run never wrote the marker, bar says $(ipc lastMessage)"
     printf 'RUNFILE ran marker=%s\n' "$(cat "$dir/tool.ran")"
+    runfile_not_terminal
     # A file changed since the card asked is refused instead of run.
     runfile_open changed.sh
     printf '# touched\n' >> "$dir/changed.sh"
-    runfile_focus run
-    key -k Return >/dev/null
+    runfile_run
     wait_message "That file changed after Flea checked it, so it was not run."
     [[ ! -e "$dir/changed.ran" ]] || fail "runfile: the changed file still ran"
+    runfile_not_terminal
     shot cap-runfile-refused-changed
     runfile_dismiss_error
     # A program the system cannot spawn fails at Run; it is built before the ask so the card names it as Run meets it.
     runfile_open badinterp.sh
-    runfile_focus run
-    key -k Return >/dev/null
+    runfile_run
     wait_message "Nothing on this system could run that file."
     [[ ! -e "$dir/badinterp.ran" ]] || fail "runfile: the bad-interpreter file still ran"
+    runfile_not_terminal
     shot cap-runfile-refused-spawn
     runfile_dismiss_error
     # A second Run while the slow one still runs starts a second copy: each spawn appends one line as it starts.
     runfile_open slow.sh
     # The card opened, nothing started yet: the marker may only land after the Run below.
     [[ ! -e "$dir/slow.ran" ]] || fail "runfile: slow.sh spawned on open, before any Run"
-    runfile_focus run
-    key -k Return >/dev/null
+    runfile_run
     runfile_wait_card false
     for poll in $(seq 1 200); do [[ -s "$dir/slow.ran" ]] && break; sleep 0.05; done
     [[ "$(wc -l < "$dir/slow.ran" 2>/dev/null)" == 1 ]] || fail "runfile: the first run never landed, bar says $(ipc lastMessage)"
+    runfile_not_terminal
     # The lane is per-press by detached-launch design: flea --run spawns and exits, so a second Run starts a second copy instead of refusing one already running.
     runfile_open slow.sh
-    runfile_focus run
-    key -k Return >/dev/null
+    runfile_run
     runfile_wait_card false
     for poll in $(seq 1 200); do [[ "$(wc -l < "$dir/slow.ran")" == 2 ]] && break; sleep 0.05; done
     [[ "$(wc -l < "$dir/slow.ran")" == 2 ]] || fail "runfile: the second run never landed, bar says $(ipc lastMessage)"
+    runfile_not_terminal
     # Each copy holds until slow.go exists, so no end line yet proves the first still ran when the second started.
     [[ ! -e "$dir/slow.end" ]] || fail "runfile: the first copy ended before the second Run"
     touch "$dir/slow.go"
@@ -368,7 +400,7 @@ PY
     LC_ALL=C XDG_DATA_HOME="$dir/bin/share" /usr/bin/gio mime application/vnd.appimage 2>/dev/null | grep -q "^Default application.*zzflea-appimage.desktop" \
         || fail "runfile: the AppImage default is not the sandbox entry: $(LC_ALL=C XDG_DATA_HOME="$dir/bin/share" /usr/bin/gio mime application/vnd.appimage 2>&1 | head -1)"
     runfile_open app.AppImage
-    runfile_expect '.opened == true and .kind == "appimage" and (.buttons | join(",") == "cancel,handler,run,terminal") and .focus == "handler" and .default == "handler" and ([.controls[] | select(.name == "handler")][0] | .label == "AppImage Manager" and .primary)' "appimage handler default"
+    runfile_expect '.opened == true and .kind == "appimage" and (.buttons | join(",") == "cancel,handler,terminal") and .focus == "handler" and .default == "handler" and ([.controls[] | select(.name == "handler")][0] | .label == "AppImage Manager" and .primary)' "appimage handler default"
     shot cap-runfile-appimage-handler-default
     runfile_pointer_states cap-runfile-appimage-handler
     runfile_focus handler
@@ -382,6 +414,6 @@ PY
     printf 'CAP SKIP runfile-refused-other: That program could not be run. needs a launcher failure no fixture makes\n'
     # needs a noexec volume, driven by the controller
     printf 'CAP SKIP runfile-refused-noexec: a noexec volume cannot be made safely here\n'
-    printf 'CAP_RUNFILE script=14 elf=3 appimage=3 handler=10 plain=1 menu=3 openwith=1 text=1 terminal=1 run=2 refused=2\n'
+    printf 'CAP_RUNFILE script=12 elf=3 appimage=3 handler=8 plain=1 menu=3 openwith=1 text=1 terminal=1 run=2 refused=2\n'
     kill_flea
 }

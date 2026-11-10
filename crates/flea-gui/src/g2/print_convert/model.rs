@@ -77,6 +77,10 @@ pub struct Model {
 }
 
 impl Model {
+    pub(super) fn request_id(&self) -> u64 {
+        self.serial
+    }
+
     pub fn ticket(&mut self) -> Ticket {
         self.serial = self
             .serial

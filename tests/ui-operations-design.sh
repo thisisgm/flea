@@ -29,8 +29,7 @@ operations_secondary() {
     menus_equal "$2" "$1" "$(ipc statusSecondary)"
 }
 
-# F4, directive 48: two zones. The transient no longer sits in a lane of its own between the count
-# and the disk box; it ends where the disk's own text begins, which is what the last clause measures.
+# HIG locked-menu keeps a notice whole by using the count zone's unpainted space before the disk text.
 operations_footer_geometry() {
     local body caption inset row muted
     read -r body caption inset row <<< "$(ipc metrics)"
@@ -38,13 +37,14 @@ operations_footer_geometry() {
     muted=$(ipc palette | cut -d' ' -f4)
     [[ -n "$muted" ]] || fail "operations: muted role unavailable"
     menus_expect statusFooterState ".borderWidth == 0 and (.frame | split(\" \") | map(tonumber) | .[2] == 880 and .[3] == 27)
-        and .left.x == $inset and .left.fontSize == $caption and .centre.fontSize == $caption
+        and .left.x == $inset and .left.fontSize == $caption
         and .disk.fontSize == $caption
-        and .secondary.fontSize == $caption and .secondary.color == \"$muted\"
+        and (if .centre.visible then .centre.fontSize == $caption else .centre.text == \"\" end)
+        and (if .secondary.visible then .secondary.fontSize == $caption and .secondary.color == \"$muted\" else .secondary.text == \"\" end)
         and (.secondary.text == \"\" or (.secondary.text | startswith(\" · \")))
         and (.secondary.text | contains(\"|\") | not)
-        and .centre.x >= .left.x + .left.width
-        and .centre.x + .centre.width <= .disk.x + .disk.width - .disk.implicitWidth" "$1 matches the two zones and their semantic roles"
+        and (if .centre.visible then .centre.x >= .left.x + ([.left.width, .left.implicitWidth] | min) + $inset
+            and .centre.x + .centre.width <= .disk.x + .disk.width - ([.disk.width, .disk.implicitWidth] | min) - $inset else true end)" "$1 matches the drawn count, notice and disk roles"
     printf 'OPERATIONS_FOOTER label=%q state=%s\n' "$1" "$(ipc statusFooterState)"
 }
 
@@ -66,14 +66,14 @@ operations_idle_footer() {
     [[ "$total" == 1 ]] && items="1 item"
     # The left zone answers the selection when there is one, and may carry a byte total after it.
     [[ "$selected" == 0 ]] || items="$grouped_selected of $grouped_total selected"
-    # Three zones: the disk owns its own and an idle centre is empty rather than borrowing it.
+    # The idle strip retains its count and disk while drawing no notice.
     menus_expect statusFooterState ".total == $total and .selected == $selected and .filesystem != \"unknown\" and (.left.text | startswith(\"$items\")) and .disk.text == .filesystem and .disk.width > 0 and .disk.color == .left.color and .disk.fontSize == .left.fontSize and .centre.text == \"\" and .disk.x >= .left.x + .left.width" "$label"
     menus_equal "$label foreground" "$(ipc themeForeground)" "$(ipc statusColor)"
     operations_footer_geometry "$label"
 }
 
 operations_counts_footer() {
-    menus_expect statusFooterState '.left.text == .counts and .left.text != .path and .centre.text != .filesystem and .disk.text == .filesystem and .centre.x >= .left.x + .left.width' "$1 retains counts and the disk beside activity"
+    menus_expect statusFooterState '.left.text == .counts and .left.text != .path and .centre.text != .filesystem and .disk.text == .filesystem' "$1 retains counts and the disk beside activity"
     operations_footer_geometry "$1"
 }
 
@@ -635,7 +635,7 @@ PY
     permissions_viewport 880 620
     key f >/dev/null
     menus_expect keyDeliveryState '.searchMode == "typing"' "live Search opens through native input"
-    key "$query" -k Return >/dev/null
+    key "$query" -M ctrl -k Return -m ctrl >/dev/null
     deadline=$((SECONDS + 15))
     while (( SECONDS < deadline )); do
         state=$(ipc keyDeliveryState) || fail "operations: live Search observer failed"
@@ -837,7 +837,7 @@ PY
     permissions_viewport 880 620
     key f >/dev/null || fail 'footer: Search entry failed'
     menus_expect keyDeliveryState '.searchMode == "typing"' 'populated Search editor receives native focus'
-    key "$query" -k Return >/dev/null || fail 'footer: Search submission failed'
+    key "$query" -M ctrl -k Return -m ctrl >/dev/null || fail 'footer: Search submission failed'
     menus_expect keyDeliveryState '.searchMode == "results" and .searchRunning and .searchScanned == 100010 and (.searchCancelled | not)' 'real Search scans its populated root while descendant work remains'
     wait_listing 10
     [[ "$(ipc rowAt 0)" == "$query-"* ]] || fail 'footer: populated Search has not delivered an actual fixture match'

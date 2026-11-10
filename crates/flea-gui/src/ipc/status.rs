@@ -156,6 +156,17 @@ impl StatusAdapter<'_> {
             ("markColor", Json::Str(colour(hero.omi.ink()))),
             ("foreground", Json::Str(colour(ink.foreground))),
             ("muted", Json::Str(colour(ink.muted))),
+            // Omi draws in the theme accent (GM 2026-11-07, HIG CHANGES empty folder).
+            (
+                "accent",
+                Json::Str(colour(
+                    self.cx
+                        .try_global::<crate::palette::Theme>()
+                        .copied()
+                        .unwrap_or_default()
+                        .accent,
+                )),
+            ),
             ("reducedMotion", Json::Bool(hero.reduced())),
             (
                 "rotateMs",

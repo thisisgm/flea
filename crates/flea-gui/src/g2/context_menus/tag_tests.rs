@@ -121,6 +121,54 @@ fn alpha(quad: &Quad) -> f32 {
     quad.background.as_solid().unwrap().a
 }
 
+#[gpui::test]
+fn fx_uish_tag_flyout_model_reports_its_live_tag_states(cx: &mut TestAppContext) {
+    use flea::{
+        jsondoc::{self, Json},
+        ui_logic_rail_places::tags::State,
+    };
+    let (handle, menu) = host(cx);
+    open_tags(cx, handle, &menu);
+    let catalog = I18n::load(Paths {
+        omarchy: "/nonexistent".into(),
+        language_file: "/nonexistent".into(),
+        catalogs: vec![crate::test_catalogs::english_only()],
+    });
+    let mut menu = menu.borrow_mut();
+    let card = &mut menu.flyout.as_mut().unwrap().card;
+    assert!(
+        card.built.lines.len() >= 3,
+        "the flyout builds a line per seeded tag"
+    );
+    for (line, state) in
+        card.built
+            .lines
+            .iter_mut()
+            .zip([State::Applied, State::Mixed, State::Absent])
+    {
+        line.tag_state = Some(state);
+    }
+    card.entries[0].tag_state = Some(State::Absent);
+    let state = jsondoc::parse(&crate::g2::context_menus::ipc::joined::model(
+        Some(card),
+        &catalog,
+    ))
+    .unwrap();
+    let rows = state.as_array().unwrap();
+    assert!(
+        rows.len() >= 3,
+        "the model reports a row per tag line: {state:?}"
+    );
+    for (row, expected) in rows.iter().zip(["applied", "mixed", "absent"]) {
+        assert_eq!(
+            row.get("tagRow")
+                .and_then(|tag| tag.get("state"))
+                .and_then(Json::as_str),
+            Some(expected)
+        );
+    }
+}
+
 // The menu card's own surface: the largest quad the draw holds.
 fn card_alpha(cx: &mut TestAppContext, handle: WindowHandle<Host>) -> Option<f32> {
     let (quads, _) = draw(cx, handle);

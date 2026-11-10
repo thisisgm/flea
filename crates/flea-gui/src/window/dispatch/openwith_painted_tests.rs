@@ -105,6 +105,20 @@ fn the_tail_row_opens_the_card_and_its_state_reports_the_boards_painted_layout(
         (4, 4, 4),
         "{state:?}"
     );
+    // Each control reads the box its painter tracked under the same part id, so a wrong id reads invisible.
+    let controls = state
+        .get("controls")
+        .and_then(Json::as_array)
+        .unwrap_or(&[]);
+    assert_eq!(controls.len(), 5, "{state:?}");
+    for control in controls {
+        assert_eq!(
+            control.get("visible").and_then(Json::as_bool),
+            Some(true),
+            "{control:?}"
+        );
+        assert_eq!(numbers(control, "rect").len(), 4, "{control:?}");
+    }
     near(
         search[1] - (title[1] + title[3]),
         gap,

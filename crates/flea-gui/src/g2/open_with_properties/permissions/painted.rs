@@ -6,21 +6,27 @@ use crate::{
 };
 use flea::{i18n::I18n, jsondoc::Json};
 
-fn notes(blocks: &[Block], errors: &mut Vec<String>, summary: &mut Vec<String>) {
+/// The shown notes by ink: error notes, the summary and foreground notes, and muted notes such as Applying.
+fn notes(blocks: &[Block], shown: &mut [Vec<String>; 3]) {
     for block in blocks {
         match block {
-            Block::Section { lines, .. } => summary.extend(lines.iter().cloned()),
+            Block::Section { lines, .. } => shown[1].extend(lines.iter().cloned()),
             Block::Note {
                 text,
                 ink: Ink::Error,
                 ..
-            } => errors.push(text.clone()),
+            } => shown[0].push(text.clone()),
             Block::Note {
                 text,
                 ink: Ink::Foreground,
                 ..
-            } => summary.push(text.clone()),
-            Block::Stack(parts) => notes(parts, errors, summary),
+            } => shown[1].push(text.clone()),
+            Block::Note {
+                text,
+                ink: Ink::Muted,
+                ..
+            } => shown[2].push(text.clone()),
+            Block::Stack(parts) => notes(parts, shown),
             _ => {}
         }
     }
@@ -49,8 +55,9 @@ impl Permissions {
     ) -> Json {
         let mut state = self.state();
         let card = painted.cloned().unwrap_or_else(|| self.card(i18n));
-        let (mut errors, mut summary) = (Vec::new(), Vec::new());
-        notes(&card.body, &mut errors, &mut summary);
+        let mut shown = [Vec::new(), Vec::new(), Vec::new()];
+        notes(&card.body, &mut shown);
+        let [errors, summary, muted] = shown;
         let Json::Obj(fields) = &mut state else {
             return state;
         };
@@ -84,6 +91,7 @@ impl Permissions {
             ("title".into(), text(card.title)),
             ("displayedError".into(), text(errors.join("\n"))),
             ("displayedSummary".into(), text(summary.join("\n"))),
+            ("displayedNote".into(), text(muted.join("\n"))),
             ("rect".into(), text(probe.probe.rect("card"))),
             ("bodyRect".into(), text(probe.probe.rect("body"))),
             ("octalFrame".into(), text(probe.role("field"))),

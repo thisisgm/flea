@@ -1,5 +1,7 @@
 //! Compose the committed track Elements and the shared empty and refusal producers inside each track's clip.
 use super::Columns;
+#[path = "columns_render/census.rs"]
+mod census;
 use render_tile::{loading_tile, tile};
 #[path = "columns_render/render_tile.rs"]
 mod render_tile;
@@ -318,6 +320,11 @@ impl Shell {
                 );
             }
         }
+        area = area.children(census::surface(
+            host.pane.path(),
+            &columns.painters,
+            &tracks,
+        ));
         area = area.children(super::edge::surface(self, side, cx));
         Some(
             super::gestures::draggable(area, side, cx)

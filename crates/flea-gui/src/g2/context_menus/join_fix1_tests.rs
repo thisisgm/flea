@@ -116,6 +116,7 @@ fn rows_with_every_trailing_mix(cx: &mut TestAppContext) -> (Rc<RefCell<Menu>>, 
         joined: &joined,
         identity: String::new(),
         catalog: &catalog,
+        field: None,
     }
     .call("menuState", &[])
     .unwrap()
@@ -242,6 +243,7 @@ fn fix1_menu_state_answers_the_shebang_seam_null_until_filled(cx: &mut TestAppCo
         joined: &joined,
         identity: String::new(),
         catalog: &catalog,
+        field: None,
     }
     .call("menuState", &[])
     .unwrap()

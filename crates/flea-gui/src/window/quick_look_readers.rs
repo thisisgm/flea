@@ -109,10 +109,14 @@ impl Reader<'_> {
         }
     }
 
-    /// IpcPreviewState previewText: the open card's text as shown, or None so the column answers.
+    /// Preview.qml textShown: Markdown's retained rawText in either view, or Code's shown lines.
     fn text(&self) -> Option<String> {
         match self.view()? {
             View::Code(code) => Some(code.read(self.cx).lines.plain_lines().join("\n")),
+            View::Markdown(markdown) => {
+                let view = markdown.read(self.cx);
+                Some(view.doc.text.as_deref().unwrap_or_default().to_owned())
+            }
             _ => None,
         }
     }
@@ -163,12 +167,29 @@ impl Reader<'_> {
             f32::from(card.size.height)
         );
         let control = |name: &str, label: &str, hit: Hit, shown: bool| {
+            let observed = view.observations.borrow();
+            let bounds = if hit == Hit::Close {
+                observed.close
+            } else {
+                observed.copy
+            };
+            let centre = bounds.map_or_else(
+                String::new,
+                crate::window::selection_preview::readers::centre,
+            );
+            let rect = crate::window::selection_preview::readers::rect(bounds);
             format!(
-                r#"{{"name":"{name}","label":"{}","visible":{shown},"enabled":{shown},"focused":{},"hovered":{},"pressed":{}}}"#,
+                r#"{{"name":"{name}","label":"{}","visible":{shown},"enabled":{shown},"focused":{},"hovered":{},"pressed":{},"ring":{},"centre":"{centre}","rect":"{rect}"}}"#,
                 escape(label),
                 view.focused() == Some(hit),
-                view.hovered() == Some(hit),
+                view.hovered() == Some(hit)
+                    || if hit == Hit::Close {
+                        observed.close_hovered
+                    } else {
+                        observed.copy_hovered
+                    },
                 view.pressed() == Some(hit),
+                view.focused() == Some(hit),
             )
         };
         let close = view.i18n.tr("preview.close");
@@ -176,8 +197,14 @@ impl Reader<'_> {
             control("copy", copy.unwrap_or(""), Hit::CopyPatch, copy.is_some()),
             control("close", &close, Hit::Close, true),
         ];
+        let title_centre = view.observations.borrow().title.map_or_else(
+            String::new,
+            crate::window::selection_preview::readers::centre,
+        );
+        let mark = view.header_mark().expect("an open subject").svg().0;
+        let mark = mark.rsplit(':').next().unwrap_or(&mark);
         format!(
-            r#"{{"opened":true,"visible":true,"landed":{},"ready":{},"answer":"{}","title":"{}","sentence":"{}","patch":"{}","rows":[{}],"mark":"{:?}","rect":"{rect}","controls":[{}]}}"#,
+            r#"{{"opened":true,"visible":true,"landed":{},"ready":{},"answer":"{}","title":"{}","sentence":"{}","patch":"{}","rows":[{}],"mark":"{}","rect":"{rect}","titleCentre":"{title_centre}","controls":[{}]}}"#,
             view.is_revealed(),
             !answer.is_empty(),
             escape(answer),
@@ -185,7 +212,7 @@ impl Reader<'_> {
             escape(sentence),
             escape(patch),
             rows.join(","),
-            view.header_mark().expect("an open subject"),
+            escape(mark),
             controls.join(","),
         )
     }
@@ -258,10 +285,13 @@ impl Reader<'_> {
     fn strip(&self) -> Option<String> {
         match self.view() {
             Some(View::Media(media)) => Some(format!(
-                r#"{{"visible":{},"muted":{},"mute":"{}"}}"#,
+                r#"{{"visible":{},"muted":{},"mute":"{}","mediaRect":"{}"}}"#,
                 media.caches.strip.borrow().mute.is_some(),
                 MediaSound::get(self.cx).muted,
                 self.strip_centre(|cache| cache.mute),
+                crate::window::selection_preview::readers::rect(
+                    media.caches.view.borrow().video_bounds
+                ),
             )),
             _ => None,
         }

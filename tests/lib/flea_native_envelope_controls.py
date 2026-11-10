@@ -181,6 +181,10 @@ def check_envelope(parent):
         plugins = home / ".config/omarchy/plugins/custom"
         plugins.mkdir(parents=True)
         verify("unverified-user-plugin", True, "unverified Omarchy shell user plugins")
+        (plugins / "manifest.json").write_text('{"id":"custom","kinds":["bar-widget","background"]}\n')
+        verify("background-kind-plugin", True, "unverified Omarchy shell user plugins")
+        (plugins / "manifest.json").write_text('{"id":"custom","kinds":["bar-widget","menu"]}\n')
+        verify("bar-widget-plugin")
         plugins.rename(home / ".config/omarchy/retained-plugin")
         daemon = proc / "303"
         daemon.mkdir()

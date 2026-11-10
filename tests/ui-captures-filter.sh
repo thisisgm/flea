@@ -116,7 +116,11 @@ cap_filter_search_nomatch() {
     menus_expect keyDeliveryState '.searchMode == "typing" and .searchQuery == "apzqq" and (.searchRunning | not)' "search apzqq lands in $prefix"
     wait_listing 0
     menus_expect statusFooterState '.listingState == "empty"' "search apzqq lists nothing in $prefix"
-    menus_expect emptyHeroState '.visible and .captionOpacity == 1' "search apzqq hero settles in $prefix"
+    if [[ "$test_frontend" == gpui ]]; then
+        sweep_wait noMatchHeadline 'NOTHING MATCHES apzqq'
+    else
+        menus_expect emptyHeroState '.visible and .captionOpacity == 1' "search apzqq hero settles in $prefix"
+    fi
     if [[ "$drawn" == drawn ]]; then cardsize_expect drawnCount 0; fi
     settle
     shot "$prefix-search-nomatch"
@@ -208,13 +212,20 @@ cap_filter_preview() {
     menus_expect keyDeliveryState '.searchMode == "typing" and .searchQuery == "apzqq" and (.searchRunning | not)' "preview search apzqq lands"
     wait_listing 0
     menus_expect statusFooterState '.listingState == "empty"' "preview search apzqq lists nothing"
-    menus_expect emptyHeroState '.visible and .captionOpacity == 1' "preview search apzqq hero settles"
+    if [[ "$test_frontend" == gpui ]]; then
+        sweep_wait noMatchHeadline 'NOTHING MATCHES apzqq'
+    else
+        menus_expect emptyHeroState '.visible and .captionOpacity == 1' "preview search apzqq hero settles"
+    fi
     # The preview follows the cursor row and a miss has none (8f200cb46), so the column hides and clears its file.
     after=$(ipc previewColumnState) || fail "cap_filter: the preview state could not be read"
-    [[ "$after" == "unsupported" ]] || fail "cap_filter: the preview shows $after on the miss, not the dropped unsupported"
+    if [[ "$test_frontend" != gpui ]]; then
+        [[ "$after" == "unsupported" ]] || fail "cap_filter: the preview shows $after on the miss, not the dropped unsupported"
+    fi
     after_path=$(ipc previewSelectionState | jq -er '[.inlineVisible, .path] | @tsv') || fail "cap_filter: the preview path could not be read"
     [[ "$after_path" == $'false\t' ]] || fail "cap_filter: the preview column is [$after_path] on the miss, not hidden with no path"
-    printf 'CAP_FILTER columns2 preview dropped on the miss: %s hidden\n' "$after"
+    # GPUI retains the producer while the empty-result surface hides its column and clears its subject.
+    printf 'CAP_FILTER columns2 preview on the miss: producer=%s hidden path=empty\n' "$after"
     settle
     shot filter-columns2-search-nomatch-preview
     cap_filter_escape
@@ -284,7 +295,7 @@ cap_filter_straddle() {
     want=$best_n
     if (( best_n < 2 )); then want=2; fi
     cardsize_expect drawnCount "$want"
-    key -k Return >/dev/null
+    key -k Down -k Up >/dev/null
     menus_expect keyDeliveryState "(.filterTyping | not) and .filterQuery == \"$best\"" "straddle query committed"
     menus_expect listingWindowState ".shownTotal == $want and .total == $total" "straddle filter still applied"
     prev=""

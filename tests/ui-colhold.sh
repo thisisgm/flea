@@ -1,5 +1,40 @@
 # The real native parent-row click, with the same per-frame delegate census as columnsback's move probe.
+colhold_gpui() {
+    local dir="$fixture_root/colhold" wx wy cx cy deadline
+    local -x FLEA_COLUMNS_CENSUS=1
+    sandbox_scratch "$dir"
+    mkdir -p "$dir/a/child" "$dir/b/child"
+    printf 'a\n' > "$dir/a/child/a.txt"
+    printf 'b\n' > "$dir/b/child/b.txt"
+    seed_ui_state "$fixture_root/colhold-state" '{"keys":"default","view":"columns"}'
+    launch "$dir/a"
+    cap_resize 1400 700
+    wait_listing 1
+    deadline=$(( $(date +%s%3N) + async_wait_ms ))
+    until [[ "$(ipc columnNames child)" == a.txt ]]; do
+        (( $(date +%s%3N) < deadline )) || fail 'colhold: the first child never drew its row'
+        sleep 0.05
+    done
+    shot colhold-before
+    read -r cx cy <<< "$(ipc columnParentRowCentre 1)"
+    [[ -n "$cx" && -n "$cy" ]] || fail 'colhold: sibling has no parent-row pointer target'
+    read -r wx wy _ww _wh < <(window_box)
+    omarchy-drive click "$((wx + cx))" "$((wy + cy))" left >/dev/null
+    shot colhold-issued
+    noblank_landed "$dir/b" 1
+    deadline=$(( $(date +%s%3N) + async_wait_ms ))
+    until [[ "$(ipc columnNames child)" == b.txt ]]; do
+        (( $(date +%s%3N) < deadline )) || fail 'colhold: the new child never drew its row'
+        sleep 0.05
+    done
+    shot colhold-landed
+    kill_flea
+    python3 "$repo/tests/lib/flea_colhold_frames.py" "$flea_log" "$evidence_dir/colhold-frames.jsonl" "$dir/a" "$dir/b" \
+        || fail 'colhold: a non-empty column drew no row'
+}
+
 case_colhold() {
+    if [[ "${test_frontend:-gpui}" == gpui ]]; then colhold_gpui; return; fi
     local dir="$fixture_root/colhold" copy="$fixture_root/colhold-ui" saved_ui="$flea_ui" wx wy cx cy frames
     sandbox_scratch "$dir"
     sandbox_scratch "$copy"

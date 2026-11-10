@@ -14,9 +14,11 @@ import sys
 
 # Omarchy v4.5.0-rc1, 03ff1eff3812933f7088484533784d2f63eaf19a, complete shell tree.
 # Omarchy v4.5.0-rc3, 8d19ad75ace59af8b6ded52f8b2bec1b15adda7c, complete shell tree.
+# Omarchy 4.5.0-3 (stable), complete shell tree; against rc1 its background changes touch only video wallpapers.
 SYSTEM_BIN = Path("/usr/bin")
 OMARCHY_SHELL = Path("/usr/share/omarchy/shell")
-OMARCHY_TREES = {"87955e9cef088cb1c966e85c582e166e57ed19a5", "ba6c88d1b2db05cd4044d5b7398eb638785b9182"}
+OMARCHY_TREES = {"87955e9cef088cb1c966e85c582e166e57ed19a5", "ba6c88d1b2db05cd4044d5b7398eb638785b9182",
+                 "2d21146caa73cc035bbd26769e14f95eaf1df63e"}
 
 
 def read_json(raw):
@@ -87,6 +89,29 @@ def omarchy_shell(words):
     return paths == [str(OMARCHY_SHELL)]
 
 
+# A bar widget or a menu draws in the bar or a popup, never on the background layer; any other kind is unverified.
+PLUGIN_KINDS = {"bar-widget", "menu"}
+MANIFEST_MAX_BYTES = 65536
+
+
+def user_plugins(root):
+    """Sample manifest.json: {"id": "io.github.thisisgm.slack", "kinds": ["bar-widget"], ...}."""
+    admitted = {}
+    if not root.exists(): return admitted
+    for entry in sorted(root.iterdir()):
+        manifest = entry / "manifest.json"
+        try: raw = manifest.read_bytes()
+        except OSError: raise RuntimeError("unverified Omarchy shell user plugins")
+        if len(raw) > MANIFEST_MAX_BYTES: raise RuntimeError("unverified Omarchy shell user plugins")
+        data = read_json(raw)
+        kinds = data.get("kinds") if isinstance(data, dict) else None
+        if (not isinstance(kinds, list) or not kinds or not all(isinstance(kind, str) for kind in kinds)
+                or not set(kinds) <= PLUGIN_KINDS or not isinstance(data.get("id"), str)):
+            raise RuntimeError("unverified Omarchy shell user plugins")
+        admitted[data["id"]] = dict(kinds=sorted(kinds), sha256=hashlib.sha256(raw).hexdigest())
+    return admitted
+
+
 def shell_identity(proc, home):
     identity = process_identity(proc, "quickshell")
     environment = identity.pop("environment")
@@ -99,8 +124,7 @@ def shell_identity(proc, home):
     started_ns = int(boot[0]) * 1_000_000_000 + int(identity["start"]) * 1_000_000_000 // os.sysconf("SC_CLK_TCK")
     tree = shell_tree(OMARCHY_SHELL, started_ns)
     if tree not in OMARCHY_TREES: raise RuntimeError("unverified Omarchy shell implementation: " + tree)
-    plugins = home / ".config/omarchy/plugins"
-    if plugins.exists() and any(plugins.iterdir()): raise RuntimeError("unverified Omarchy shell user plugins")
+    plugins = user_plugins(home / ".config/omarchy/plugins")
     configs = {}
     for path in (OMARCHY_SHELL.parent / "config/omarchy/shell.json", home / ".config/omarchy/shell.json"):
         if path.exists() or path.is_symlink():
@@ -121,7 +145,7 @@ def shell_identity(proc, home):
             configs[str(path)] = dict(identity=before, sha256=hashlib.sha256(raw).hexdigest())
             if before != file_identity(path): raise RuntimeError("Omarchy shell configuration changed")
     if not configs: raise RuntimeError("missing Omarchy shell configuration")
-    identity.update(tree=tree, configs=configs)
+    identity.update(tree=tree, configs=configs, plugins=plugins)
     return identity
 
 

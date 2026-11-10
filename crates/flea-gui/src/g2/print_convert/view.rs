@@ -17,12 +17,14 @@ fn rule(view: &OutputView, bleed: bool) -> Div {
 }
 
 fn output(view: &OutputView, text: String) -> Div {
-    div()
+    view.observed
+        .probe
+        .attach(div(), "output")
         .flex()
         .flex_row()
         .mt(px(3.))
         .text_size(px(12.))
-        .line_height(px(18.))
+        .line_height(px(OUTPUT_LINE_HEIGHT))
         .child(
             div()
                 .flex_none()
@@ -126,7 +128,9 @@ pub fn card(view: &OutputView, room: (f32, f32), cx: &mut Context<OutputView>) -
             .child(rule(view, bleed).debug_selector(|| "op4-rule".into()))
             .child(
                 view.body_scroll.body(
-                    div()
+                    view.observed
+                        .probe
+                        .attach(div(), "body")
                         .id("op4-body")
                         .debug_selector(|| "op4-body".into())
                         .flex()
@@ -276,18 +280,23 @@ fn convert(
         ),
         _ => (),
     }
-    let path = if s.kind == Kind::Pdf && s.outputs.len() > 1 {
+    parts.push(output(view, convert_path(view, s)).into_any_element());
+    parts
+}
+
+pub(super) fn convert_path(view: &OutputView, s: &super::convert::Convert) -> String {
+    if s.kind == Kind::Pdf && s.outputs.len() > 1 {
         let first = s.outputs.first().unwrap();
         let last = s.outputs.last().unwrap().rsplit('/').next().unwrap_or("");
         view.catalog
             .tr_args("dialogs.output.output_range", &[first, last])
     } else {
         s.outputs.first().cloned().unwrap_or_default()
-    };
-    parts.push(output(view, path).into_any_element());
-    parts
+    }
 }
 
 const IMAGE: (&str, &[u8]) = ("op4-image", br#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"><path d="M3 3h18v18H3z"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>"#);
 const FILE: (&str, &[u8]) = ("op4-file", br#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"><path d="M14 2H4v20h16V8zM14 2v6h6M8 13h8M8 17h8M8 9h2"/></svg>"#);
+// The output line's own line height, which the Convert reader divides the painted box by.
+pub(super) const OUTPUT_LINE_HEIGHT: f32 = 18.;
 pub(super) const CHEVRON: (&str, &[u8]) = ("op4-chevron", br#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"><path d="m6 9 6 6 6-6"/></svg>"#);

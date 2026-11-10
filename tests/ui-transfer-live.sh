@@ -502,6 +502,12 @@ transferlive_settled() {
         "$transferlive_seen_first" "$transferlive_seen_last" "$transferlive_seen_countdown" "$said"
 }
 
+# The HIG collision title is a full sentence and ends with a full stop (APL-DIALOG-16); the QML card drew none.
+transferlive_title_stop() {
+    [[ "$test_frontend" == gpui ]] && printf '.'
+    return 0
+}
+
 # From the leg's source listing into its to folder, which is where every paste in this case lands.
 transferlive_enter_to() {
     local dir="$1" count="$2"
@@ -578,10 +584,12 @@ transferlive_batch() {
     menus_expect keyDeliveryState '(.clipboard.paths | length) == 3 and (.clipboard.cut | not)' "batch: the three files are on the clipboard"
     transferlive_enter_to "$dir" 1
     key p >/dev/null
-    menus_expect collideState '.opened and .title == "b.bin already exists in to" and .names == ["b.bin"] and .more == ""
+    menus_expect collideState '.opened and .title == "b.bin already exists in to'"$(transferlive_title_stop)"'" and .names == ["b.bin"] and .more == ""
         and .focus == "keep" and ([.buttons[] | select(.name != "merge") | .visible] | all) and ([.buttons[] | select(.name == "merge") | .visible] == [false])' "batch: the paste asks once about b.bin, on Keep both, with every file button up and Merge hidden"
     key h >/dev/null
-    menus_expect collideState '.opened and .focus == "skip"' "batch: h moves the focus to Skip"
+    menus_expect collideState '.opened and .focus == "replace"' "batch: h moves the focus to Replace"
+    key h >/dev/null
+    menus_expect collideState '.opened and .focus == "skip"' "batch: h again moves the focus to Skip"
     key -k Return >/dev/null
     transferlive_watch batch "$want" 3 'a\.bin|c\.bin'
     transferlive_settled batch "Copied 2 of 3 · 1 skipped · z undoes"
@@ -618,10 +626,10 @@ transferlive_replace() {
         "replace: big.bin is on the clipboard"
     transferlive_enter_to "$dir" 1
     key p >/dev/null
-    menus_expect collideState '.opened and .title == "big.bin already exists in to" and .names == ["big.bin"] and .more == ""
+    menus_expect collideState '.opened and .title == "big.bin already exists in to'"$(transferlive_title_stop)"'" and .names == ["big.bin"] and .more == ""
         and .focus == "keep" and ([.buttons[] | select(.name != "merge") | .visible] | all) and ([.buttons[] | select(.name == "merge") | .visible] == [false])' "replace: the paste asks about big.bin, on Keep both, with every file button up and Merge hidden"
-    key l >/dev/null
-    menus_expect collideState '.opened and .focus == "replace"' "replace: l moves the focus to Replace"
+    key h >/dev/null
+    menus_expect collideState '.opened and .focus == "replace"' "replace: h moves the focus to Replace"
     trash_trap_own "$replace_trash" "$dir" "transferlive: replace" big.bin
     key -k Return >/dev/null
     transferlive_watch replace "$want" 1 'big\.bin'

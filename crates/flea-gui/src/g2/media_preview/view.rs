@@ -28,6 +28,7 @@ pub enum Picture {
 #[derive(Default)]
 pub struct ViewCache {
     lines: Vec<(String, f32, Rc<GlyphRun>)>,
+    pub video_bounds: Option<Bounds<Pixels>>,
 }
 
 impl ViewCache {
@@ -212,6 +213,7 @@ impl Element for MediaElement {
         cx: &mut App,
     ) {
         let ink = self.ink;
+        self.cache.borrow_mut().video_bounds = None;
         let centre = bounds.center();
         if let Some(retired) = self.painted.borrow_mut().retired.take() {
             let _ = window.drop_image(retired);
@@ -227,6 +229,7 @@ impl Element for MediaElement {
                     ),
                 );
                 let centre = bounds.center();
+                self.cache.borrow_mut().video_bounds = Some(bounds);
                 // The letterbox is the canvas's own darker ground, not the surface the overlay sits on.
                 window.paint_quad(fill(bounds, ink.background));
                 if let Some(frame) = frame {

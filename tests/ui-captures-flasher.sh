@@ -60,10 +60,10 @@ case_cap_flasher() {
     click_row "$(row_index_of debian-13.img)" right
     settle
     [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "cap_flasher: the file menu never opened"
-    [[ "|$(ipc contextMenuEntries)|" == *"|Flash to drive|"* ]] \
-        || fail "cap_flasher: the image menu offers no Flash to drive, got $(ipc contextMenuEntries)"
+    [[ "|$(ipc contextMenuEntries)|" == *"|Flash to Drive|"* ]] \
+        || fail "cap_flasher: the image menu offers no Flash to Drive, got $(ipc contextMenuEntries)"
     shot flasher-menu-flash-to-drive
-    menu_seek "Flash to drive"
+    menu_seek "Flash to Drive"
     key -k Return >/dev/null
     cap_flasher_expect '.opened == true' "the Flash pane never opened"
     cap_flasher_expect '.image != ""' "the image never landed in the Flash pane"
@@ -120,8 +120,8 @@ case_cap_flasher() {
     click_row "$(row_index_of notes.txt)" right
     settle
     [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "cap_flasher: the menu on notes.txt never opened"
-    [[ "|$(ipc contextMenuEntries)|" != *"|Flash to drive|"* ]] \
-        || fail "cap_flasher: a non-image is offered Flash to drive"
+    [[ "|$(ipc contextMenuEntries)|" != *"|Flash to Drive|"* ]] \
+        || fail "cap_flasher: a non-image is offered Flash to Drive"
     shot flasher-menu-no-flash
     key -k Escape >/dev/null
     settle

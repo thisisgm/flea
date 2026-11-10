@@ -202,7 +202,7 @@ case_openwithmulti() (
     box=$(window_box)
     assert_focus
     # Provider settling bounds the menu; the Node callback test is the no-query oracle.
-    menus_expect menuState '.opened and .hasRow and .snapshotReady and (.snapshotId > 0) and any(.entries[]; .action == "openWith" and (.disabled == true))' 'multi-selection keeps Open with visible disabled'
+    menus_expect menuState '.opened and .hasRow and .snapshotReady and (.snapshotId > 0) and any(.entries[]; .action == "openWith" and (.disabled == false))' 'multi-selection keeps Open With live (HIG actions-menu, CHANGES APL-MENU-02)'
     settled=$(ipc menuState)
     printf 'OPENWITHMULTI selected=%s snapshot=%s window=%s box=%q initial=%q settled=%q\n' "$selected" "$snapshot_id" "$owned_pid" "$box" "$initial" "$settled"
     key -k Escape >/dev/null

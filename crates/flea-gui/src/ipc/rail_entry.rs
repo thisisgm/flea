@@ -17,6 +17,7 @@ pub(super) fn entry_json(
         format!("\"group\":\"{}\"", group_name(entry.group)),
         format!("\"kind\":\"{}\"", kind_name(entry.kind)),
         format!("\"glyph\":\"{}\"", escape(entry.glyph)),
+        format!("\"releasable\":{}", entry.releasable),
     ];
     if entry.kind == Kind::Trash {
         fields.push(format!("\"count\":{trash_count}"));

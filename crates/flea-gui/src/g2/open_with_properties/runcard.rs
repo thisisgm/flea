@@ -140,14 +140,22 @@ impl RunCard {
 
 impl RunCard {
     /// RunCard.qml's runCardState: what the card asks, its buttons, and where the latest frame laid them out.
-    pub fn ipc_state(
+    pub(crate) fn ipc_state(
         &self,
         i18n: &I18n,
-        probe: &crate::g2::settings_pages::probe::Probe,
+        geometry: &crate::ipc::card_geometry::CardGeometry,
     ) -> String {
         use flea::jsondoc::Json;
+        let probe = &geometry.probe;
         let card = self.card(i18n);
         let text = |value: &str| Json::Str(value.into());
+        let pointer = |id: &str, field: &str| {
+            geometry
+                .control(id, "", false, true)
+                .get(field)
+                .cloned()
+                .unwrap_or(Json::Bool(false))
+        };
         let controls =
             card.buttons
                 .iter()
@@ -160,6 +168,8 @@ impl RunCard {
                         ("label", text(&drawn.label)),
                         ("primary", Json::Bool(drawn.primary)),
                         ("focused", Json::Bool(drawn.focused)),
+                        ("hovered", pointer(&id, "hovered")),
+                        ("pressed", pointer(&id, "pressed")),
                         ("centre", Json::Str(probe.centre(&id, &id))),
                         ("rect", Json::Str(probe.rect(&id))),
                     ])
@@ -190,7 +200,7 @@ mod ipc_tests {
     fn observer_keeps_stable_ids_beside_the_drawn_catalog_labels() {
         let i18n = crate::g2::open_with_properties::tests::english();
         let card = RunCard::open(&i18n, "flea", "/tmp/tool.sh", r#"{"ask":"run","kind":"script","size":21,"handlerId":"","handlerName":"","dev":"8","ino":"9","mtimeS":1,"mtimeNs":2,"target":"/tmp/tool.sh"}"#).unwrap();
-        let state = card.ipc_state(&i18n, &crate::g2::settings_pages::probe::Probe::default());
+        let state = card.ipc_state(&i18n, &Default::default());
         let state = flea::jsondoc::parse(&state).unwrap();
         assert_eq!(
             state.get("kind").and_then(flea::jsondoc::Json::as_str),

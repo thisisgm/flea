@@ -17,15 +17,22 @@ impl Adapter for PreviewScroll<'_> {
         if function != "previewScrollY" && function != "previewTable" {
             return None;
         }
-        let shown = self
+        let doc = self
             .look
             .filter(|look| look.is_open())
             .and_then(QuickLook::subject)
-            .and_then(|subject| subject.body.doc())
-            .and_then(|doc| match &doc.view {
-                View::Markdown(view) => Some(view.read(self.cx)),
-                _ => None,
-            });
+            .and_then(|subject| subject.body.doc());
+        if function == "previewScrollY" {
+            if let Some(View::Code(code)) = doc.map(|doc| &doc.view) {
+                return Some(Reply::value(
+                    code.read(self.cx).observed_scroll_y().round().to_string(),
+                ));
+            }
+        }
+        let shown = doc.and_then(|doc| match &doc.view {
+            View::Markdown(view) => Some(view.read(self.cx)),
+            _ => None,
+        });
         if function == "previewTable" {
             return Some(Reply::value(
                 shown.map_or_else(|| "{}".into(), |view| view.table_state()),

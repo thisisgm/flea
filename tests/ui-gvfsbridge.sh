@@ -9,11 +9,16 @@ gvfsbridge_runtime_fits() {
     done
 }
 
-# Only Flea takes the fixture's HOME, runtime dir and bridge stub, so kill_flea, hyprctl and omarchy-drive keep the operator's.
+# Only Flea takes the fixture's HOME and bridge stub (and under qml the runtime dir; GPUI's owned transport gives its own), so kill_flea, hyprctl and omarchy-drive keep the operator's.
 gvfsbridge_launch() {
     local dir="$1" fixture_home="$2" runtime="$3" fuse="$4"
-    local -a flea_launch_wrap=(env "HOME=$fixture_home" "XDG_RUNTIME_DIR=$runtime" "PATH=$dir/bin:$PATH" "FLEA_GVFS_FUSE=$fuse")
+    local -a flea_launch_wrap=(env "HOME=$fixture_home" "PATH=$dir/bin:$PATH" "FLEA_GVFS_FUSE=$fuse")
+    [[ "$test_frontend" != qml ]] || flea_launch_wrap+=("XDG_RUNTIME_DIR=$runtime")
     launch "$dir"
+    gvfsbridge_runtime=$runtime
+    if [[ "$test_frontend" == gpui ]]; then
+        gvfsbridge_runtime=$(jq -er .runtime "$FLEA_TEST_WINDOW/window.json") || fail "gvfsbridge: owned runtime is unavailable"
+    fi
 }
 
 # Removes the case's runtime root, whose entries link into the operator's, and the quickshell dir the case made there.
@@ -44,9 +49,9 @@ case_gvfsbridge() {
     local leaf_slow="smb-share:server=bridge-slow.test,share=data"
     local leaf_fail="smb-share:server=bridge-fail.test,share=data"
 
-    # Every runtime entry but gvfs is linked through, so the sockets resolve and the bridge dir starts unserved.
+    # Under qml every runtime entry but gvfs and flea-ipc is linked through, so the sockets resolve and the bridge dir starts unserved.
     local real_runtime="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
-    if [[ -d "$real_runtime" ]]; then
+    if [[ "$test_frontend" == qml && -d "$real_runtime" ]]; then
         # Quickshell registers the instance under the runtime dir, so the restored client only sees it through this link; a directory made here goes again at exit.
         [[ -d "$real_runtime/quickshell" ]] || trap "gvfsbridge_drop ${runtime@Q} ${real_runtime@Q}/quickshell" EXIT
         mkdir -p "$real_runtime/quickshell"
@@ -54,11 +59,12 @@ case_gvfsbridge() {
         shopt -s nullglob dotglob
         for entry in "$real_runtime"/*; do
             base="${entry##*/}"
-            [[ "$base" == . || "$base" == .. || "$base" == gvfs ]] && continue
+            [[ "$base" == . || "$base" == .. || "$base" == gvfs || "$base" == flea-ipc ]] && continue
             ln -s "$entry" "$runtime/$base"
         done
         shopt -u nullglob dotglob
     fi
+    mkdir -m 700 "$runtime/flea-ipc"
 
     # Empty listing, instant mount claim and info under the sandboxed bridge dir; trash keeps the real gio.
     cat > "$dir/bin/gio" <<EOS
@@ -69,8 +75,8 @@ esac
 case "\$1 \${2:-}" in
 "mount -li") exit 0 ;;
 "mount --anonymous") printf '%s\n' "\$*" >> "$dir/mount-calls" ;;
-"info smb://bridge-slow.test/data") printf 'local path: %s\n' "$runtime/gvfs/$leaf_slow" ;;
-"info smb://bridge-fail.test/data") printf 'local path: %s\n' "$runtime/gvfs/$leaf_fail" ;;
+"info smb://bridge-slow.test/data") printf 'local path: %s\n' "\$XDG_RUNTIME_DIR/gvfs/$leaf_slow" ;;
+"info smb://bridge-fail.test/data") printf 'local path: %s\n' "\$XDG_RUNTIME_DIR/gvfs/$leaf_fail" ;;
 *) exit 0 ;;
 esac
 EOS
@@ -111,7 +117,7 @@ EOS
     # Live this shows the mark walks with the line; tests/js/status.js tells the call from the sentence.
     [[ "$(ipc statusBusy)" == "true" ]] || fail "gvfsbridge: the busy mark did not walk while the Starting line stood"
     shot gvfsbridge-starting
-    wait_path "$runtime/gvfs/$leaf_slow"
+    wait_path "$gvfsbridge_runtime/gvfs/$leaf_slow"
     printf 'GVFSBRIDGE slow=started-opened\n'
 
     # The fail flight swaps only the fuse stub.

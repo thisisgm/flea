@@ -276,6 +276,9 @@ impl Adapter for Reader<'_> {
                 .map_or(0, |columns| columns.area.tracks_built())
                 .to_string(),
             "columnActiveRect" => self.rect(Slot::Active),
+            "columnTrackRect" => crate::ipc::columns::slot_named(text)
+                .map(|slot| self.rect(slot))
+                .unwrap_or_default(),
             "columnNames" => self.names(text),
             "columnPeekNames" => self
                 .host

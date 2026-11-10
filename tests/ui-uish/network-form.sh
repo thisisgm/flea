@@ -337,8 +337,10 @@ EOS
     sandbox_require "$fake_root/friendly-live"
     rm -f -- "$SANDBOX_PATH"
 
-    local invalid_port invalid_port_failures=0 snapshot
-    for invalid_port in "22/path" "0" "65536"; do
+    local invalid_port invalid_port_failures=0 snapshot network_shot_port=0
+    # The GPUI port field takes digits only, so 22/path can never reach a submit; 0 and 65536 are the refused ports.
+    assert_network_port_filters "22/path" 22 || fail "network: the port field kept a non-digit from 22/path"
+    for invalid_port in "0" "65536"; do
         snapshot="$fixture_root/network-state-${invalid_port//\//-}"
         if ! assert_invalid_network_port "$invalid_port" "$stored" "$snapshot"; then
             invalid_port_failures=$((invalid_port_failures + 1))
@@ -740,9 +742,10 @@ EOS
     key a >/dev/null
     key "shares-two.test" >/dev/null
     key -k Return >/dev/null
-    wait_network_result failed 5
+    wait_network_result missing-credential 5
+    shot network-guest-empty-signin
     [[ "$(ipc shareBrowserOpen)" == "false" \
-        && "$(ipc networkStatus)" == "Could not connect: that location has no folder to show." ]] \
+        && "$(ipc networkStatus)" == "This server shows a guest nothing. Sign in to see its shares." ]] \
         || fail "network: bare root reused stale share output"
 
     network_wait_favourites '.places.favourites | all(.[]; .path != "smb://shares-two.test/")'
