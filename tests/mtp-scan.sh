@@ -11,6 +11,7 @@ D="$FIXTURE_ROOT/flea-mtp-scan-$$"
 fail=0
 
 cleanup() {
+  [ ! -d "$D" ] || { : > "$D/copy-release-1"; : > "$D/copy-release-2"; : > "$D/gio-release"; }
   exec 3>&-
   [ -n "${BACKEND_PID:-}" ] && kill "$BACKEND_PID" 2>/dev/null
   sandbox_remove "$D"
@@ -35,16 +36,14 @@ seen() { grep -c -- "$1" "$D/out" | tr -d ' '; }
 mark() { wc -c < "$D/out" | tr -d ' '; }
 # True when the pattern appears at or after byte offset $2.
 after() { tail -c "+$(( $2 + 1 ))" "$D/out" | grep -q -- "$1"; }
-# Sample input: {"t":"transferprogress","id":1,"index":0,"name":"source","bytes":795082752,"total":0,"scanned":4294967416}
-# True when a progress line at or after byte offset $1 shows the folder copy part way, bytes below the batch's nonzero scanned total, since a folder reports no total of its own; each field is read by name, so field order does not matter.
+# A folder reports no total until its independent sweep settles, so use the fixture's exact byte count.
+# Sample: {"t":"transferprogress","id":1,"index":0,"name":"source","bytes":262144,"total":0,"scanned":0}
 flying() {
-  local line bytes_re='"bytes":([0-9]+)' scanned_re='"scanned":([0-9]+)' bytes total
+  local line bytes_re='"bytes":([0-9]+)' bytes
   while IFS= read -r line; do
     [[ $line == *'"t":"transferprogress"'* && $line =~ $bytes_re ]] || continue
     bytes=${BASH_REMATCH[1]}
-    [[ $line =~ $scanned_re ]] || continue
-    total=${BASH_REMATCH[1]}
-    (( total > 0 && bytes < total )) && return 0
+    (( bytes > 0 && bytes < COPY_BYTES )) && return 0
   done < <(tail -c "+$(( $1 + 1 ))" "$D/out")
   return 1
 }
@@ -78,20 +77,75 @@ while [ ! -e "$GIO_RELEASE" ] && [ "\$i" -lt 400 ]; do sleep 0.05; i=\$((i + 1))
 printf 'mtp://phone/store/photo.jpg\t10\t(regular)\ttime::modified=1790537811\n'
 EOF
 chmod +x "$D/gio"
-# Four 1 GiB sparse files, not one 4 GiB file, because a lane may cap file size at 2 GiB (ulimit -f).
+# Hold the first two real reads, so progress and cancel cannot race a fast copy.
 mkdir "$D/source" || { echo "mtp-scan.sh: the source folder could not be made" >&2; exit 1; }
-for part in 1 2 3 4; do
-  truncate -s 1G "$D/source/part$part.bin" || { echo "mtp-scan.sh: the sparse source part$part.bin could not be made" >&2; exit 1; }
-done
+dd if=/dev/zero of="$D/source/data.bin" bs=1M count=1 status=none || { echo "mtp-scan.sh: the dense source data.bin could not be made" >&2; exit 1; }
+COPY_BYTES=$(stat -c %s "$D/source/data.bin")
+cat > "$D/copy-block.c" <<'COPY_BLOCK'
+#define _GNU_SOURCE
+#include <errno.h>
+#include <limits.h>
+#include <stdatomic.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/syscall.h>
+#include <time.h>
+#include <unistd.h>
+#include <fcntl.h>
+
+static atomic_int cancel_read;
+static _Thread_local unsigned reads;
+
+static void mark(const char *root, const char *name) {
+    char path[PATH_MAX];
+    snprintf(path, sizeof path, "%s/%s", root, name);
+    int fd = open(path, O_WRONLY | O_CREAT, 0600);
+    if (fd >= 0) close(fd);
+}
+
+ssize_t read(int fd, void *buffer, size_t count) {
+    const char *root = getenv("FLEA_MTP_COPY_ROOT");
+    if (root && fd == STDIN_FILENO && atomic_load(&cancel_read)) mark(root, "cancel-processed");
+    struct stat source, current;
+    char path[PATH_MAX];
+    if (root && fd != STDIN_FILENO && reads < 2) {
+        snprintf(path, sizeof path, "%s/source/data.bin", root);
+        if (!stat(path, &source) && !fstat(fd, &current) && source.st_dev == current.st_dev && source.st_ino == current.st_ino) {
+            char name[32];
+            snprintf(name, sizeof name, "copy-ready-%u", ++reads);
+            mark(root, name);
+            snprintf(path, sizeof path, "%s/copy-release-%u", root, reads);
+            struct timespec start, now, pause = { .tv_nsec = 1000000 };
+            clock_gettime(CLOCK_MONOTONIC, &start);
+            while (access(path, F_OK)) {
+                clock_gettime(CLOCK_MONOTONIC, &now);
+                if (now.tv_sec - start.tv_sec >= 30) { errno = ETIMEDOUT; return -1; }
+                nanosleep(&pause, NULL);
+            }
+        }
+    }
+    ssize_t size = syscall(SYS_read, fd, buffer, count);
+    const char cancel[] = "\"c\":\"transfercancel\"";
+    if (root && fd == STDIN_FILENO && size > 0 && memmem(buffer, size, cancel, sizeof cancel - 1)) {
+        atomic_store(&cancel_read, 1);
+        mark(root, "cancel-read");
+    }
+    return size;
+}
+COPY_BLOCK
+cc -shared -fPIC -Wall -Werror -o "$D/copy-block.so" "$D/copy-block.c" || { echo "mtp-scan.sh: the copy-block preload could not be built from $D/copy-block.c" >&2; exit 1; }
 
 rm -f "$D/out"; : > "$D/out"
 mkfifo "$D/in"
-FLEA_GIO_BIN="$D/gio" FLEA_PREFETCH= $BIN --backend < "$D/in" > "$D/out" 2>/dev/null &
+LD_PRELOAD="$D/copy-block.so" FLEA_MTP_COPY_ROOT="$D" FLEA_GIO_BIN="$D/gio" FLEA_PREFETCH= $BIN --backend < "$D/in" > "$D/out" 2>/dev/null &
 BACKEND_PID=$!
 exec 3> "$D/in"
 
 echo "--- a slow scan no longer holds progress or cancel ---"
 send "{\"c\":\"transfer\",\"op\":\"copy\",\"paths\":[\"$D/source\"],\"dest\":\"$D/dest\"}"
+wait_file "$D/copy-ready-1" || { echo "FAIL copy never reached its first read barrier"; exit 1; }
 send "{\"c\":\"list\",\"path\":\"$PHONE\",\"first\":10}"
 # The scan is out and blocked: the fake gio said so, and will not answer until this script releases it.
 if wait_file "$GIO_STARTED" 200; then
@@ -101,6 +155,8 @@ else
 fi
 # Everything already written was written before the scan was provably blocked.
 OFFSET=$(mark)
+: > "$D/copy-release-1"
+wait_file "$D/copy-ready-2" || { echo "FAIL copy never reached its second read barrier"; exit 1; }
 # The scan is blocked, so a part-way progress line after this offset can only come from a loop outside the scan, and it shows the copy in flight.
 progress_after=0
 for ((i = 0; i < 200; i++)); do
@@ -115,15 +171,19 @@ else
   check "the copy is still running when the cancel is sent" "0" "$(seen '"t":"transferdone"')"
   CANCEL_AT=$(mark)
   send "{\"c\":\"transfercancel\",\"id\":$id}"
-  if await "\"t\":\"transferdone\",\"id\":$id" 200 "$CANCEL_AT"; then
+  wait_file "$D/cancel-read" || { echo "FAIL cancel was never read"; exit 1; }
+  # A second stdin read holds the same inbox lock, so the preceding cancel has passed events::feed.
+  send '{"c":"paths","rows":[0]}'
+  wait_file "$D/cancel-processed" || { echo "FAIL cancel was never processed"; exit 1; }
+  : > "$D/copy-release-2"
+  # The done line says "cancelled":true only when the cancel ended the copy; one that finished on its own says false.
+  if await "\"t\":\"transferdone\",\"id\":$id,.*\"cancelled\":true" 200 "$CANCEL_AT"; then
     echo "ok   cancel ends the copy while the scan is still blocked"
   else
     echo "FAIL cancel was never answered"; fail=1
   fi
 fi
-# A request sent while the scan is out waits for it, so it is answered against the phone listing and after it.
-send '{"c":"paths","rows":[0]}'
-# Releasing the scan is the only thing that lets its listing answer, so the order below is the proof.
+# Releasing the scan is the only thing that lets its listing answer, and with it any request queued behind it, so the order below is the proof.
 : > "$GIO_RELEASE"
 await '"t":"listed"' 200 || { echo "FAIL the listing was never answered"; fail=1; }
 await '"t":"paths"' 200 || { echo "FAIL the request queued behind the scan was never answered"; fail=1; }

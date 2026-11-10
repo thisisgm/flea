@@ -12,7 +12,7 @@ import sys
 import tempfile
 import time
 
-from flea_transport_lifecycle import drain, identity, subreaper
+from flea_transport_lifecycle import drain, exited, identity, subreaper
 from flea_native_inputs import seed, seed_fonts
 
 REPO = Path(__file__).resolve().parents[2]
@@ -447,7 +447,7 @@ def serve(root):
         while True:
             if (root / "stop").exists():
                 break
-            if identity(child.pid)["state"] == "Z":
+            if exited(child.pid):
                 raise TransportError("window exited before IPC")
             candidates = list(runtime_dir.rglob("*"))
             for candidate in candidates:
@@ -476,18 +476,13 @@ def serve(root):
                 time.sleep(0.02)
                 continue
             break
-        while identity(child.pid)["state"] != "Z":
+        while not exited(child.pid):
             if (root / "stop").exists():
                 terminate = True
                 break
             if (root / "quit").exists():
                 break
-            try:
-                owner = identity(options["owner"])
-                if owner["start"] != options["owner_start"] or owner["state"] == "Z":
-                    terminate = True
-                    break
-            except FileNotFoundError:
+            if exited(options["owner"], options["owner_start"]):
                 terminate = True
                 break
             time.sleep(0.02)

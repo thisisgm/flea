@@ -248,6 +248,9 @@ with Backend(blocked) as backend:
     assert not backend.action("properties")["done"]
     backend.barrier()
     backend.send(c="menuaction", op="snapshot", id=8, rows=[1])
+    # Actions are answered on the input loop, after snapshot has advanced cancellation, while its walk is still held.
+    backend.send(c="actions", op="list", id=9001, paths=[])
+    backend.until(lambda r: r["t"] == "actions" and r["id"] == 9001)
     backend.release.touch()
     cancelled = backend.until(lambda r: r.get("op") == "properties" and r.get("cancelled"))
     assert not cancelled["done"] and cancelled["partial"], cancelled
@@ -258,5 +261,18 @@ with Backend(blocked) as backend:
     assert single["ok"] and single["path"] == str(plain), single
     print("ok properties multi: a newer snapshot cancels and keeps its own selection", flush=True)
 
-print("properties-multi: 9 protocol scenarios passed", flush=True)
+with Backend(blocked) as backend:
+    backend.snapshot([blocked, plain])
+    assert not backend.action("properties")["done"]
+    backend.barrier()
+    backend.release.touch()
+    finished = backend.until(lambda r: r.get("op") == "properties" and r.get("done"))
+    complete(finished)
+    backend.send(c="menuaction", op="snapshot", id=8, rows=[1])
+    snapshot = backend.until(lambda r: r.get("op") == "snapshot" and r["id"] == 8)
+    assert snapshot["ok"] and snapshot["count"] == 1, snapshot
+    assert not any(r.get("op") == "properties" and r.get("cancelled") for r in backend.transcript)
+    print("ok properties multi: completion before a newer snapshot remains exact", flush=True)
+
+print("properties-multi: 9 protocol scenarios passed (both snapshot orderings)", flush=True)
 print(f"properties-multi: request completion range {min(timings):.3f}..{max(timings):.3f} ms ({len(timings)} requests)", flush=True)

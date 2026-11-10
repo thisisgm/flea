@@ -148,17 +148,27 @@ stop_backend
 echo "--- extraction jobs wait by drive, run together across drives, and cancel independently ---"
 python3 -B tests/archive-jobs.py "$BIN" "$D" || { echo "FAIL archive drive scheduling"; fail=1; }
 
-echo "--- a destination already there is refused, both directions ---"
+echo "--- a destination already there uses the next free copy name, both directions ---"
 start_backend
 printf 'already here' > "$D/taken.zip"
+printf 'first copy' > "$D/taken copy.zip"
 send "{\"c\":\"archive\",\"op\":\"compress\",\"paths\":[\"$D/src/a.txt\"],\"dest\":\"$D/taken.zip\",\"format\":\"zip\"}"
 await '"t":"archivedone"' || fail=1
-check "a compress onto a taken name fails" "1" "$(seen '"ok":false')"
+check "a compress onto a taken name succeeds" "1" "$(seen '"t":"archivedone","id":1,"ok":true')"
+check "and the next free archive holds the selected bytes" "alpha" "$(bsdtar -xOf "$D/taken copy 2.zip" a.txt 2>/dev/null)"
 check "and the file that was there is untouched" "already here" "$(cat "$D/taken.zip")"
+check "and its first copy is untouched" "first copy" "$(cat "$D/taken copy.zip")"
+mkdir "$D/src copy"
+printf 'kept' > "$D/src copy/original.txt"
 send "{\"c\":\"archive\",\"op\":\"extract\",\"path\":\"$D/out.zip\",\"dest\":\"$D/src\"}"
 await '"t":"archivedone","id":2' || fail=1
-check "an extract into a directory in use fails rather than merging" "2" "$(seen '"ok":false')"
-check "and that directory still holds only what it had" "alpha" "$(cat "$D/src/a.txt")"
+check "an extract into a taken directory succeeds" "1" "$(seen '"t":"archivedone","id":2,"ok":true')"
+check "and its completion names the archive and requested destination" "1" "$(seen "\"path\":\"$D/out.zip\",\"dest\":\"$D/src\"")"
+check "the next free folder holds both extracted files" "alpha|beta" "$(cat "$D/src copy 2/a.txt" 2>/dev/null)|$(cat "$D/src copy 2/sub/b.txt" 2>/dev/null)"
+check "and the source directory kept both original files" "alpha|beta" "$(cat "$D/src/a.txt")|$(cat "$D/src/sub/b.txt")"
+check "and that directory still holds only what it had" "3" "$(find "$D/src" -mindepth 1 | wc -l | tr -d ' ')"
+check "and the first copy folder is untouched" "kept" "$(cat "$D/src copy/original.txt")"
+check "and no extraction merged into the first copy folder" "1" "$(find "$D/src copy" -mindepth 1 | wc -l | tr -d ' ')"
 stop_backend
 
 # Staged like compress and convert: a tool that fails mid-way must leave no destination at all.
