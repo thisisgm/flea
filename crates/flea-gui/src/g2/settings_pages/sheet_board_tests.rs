@@ -127,7 +127,7 @@ fn the_pa_query_lists_the_dead_key_board_in_its_order() {
     assert_eq!(
         queried("pa"),
         [
-            "ctrl-4|Dual pane",
+            "ctrl-4 / f3|Dual pane",
             "F|Page preview forward",
             "B|Page preview back",
             "ctrl-shift-c|Copy path",

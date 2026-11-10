@@ -264,6 +264,12 @@ function sheetFor(name, frontend) {
         result[g].alone = keys
         for (var k = 1; k < spellings.length; k++) {
             var both = keys + " / " + spellings[k].keys
+            // Keep a short function key visible when the preset chord leaves no room for both.
+            if (both.length > SHEET_CAP_BUDGET && spellings[k].mods === "none" && /^F[0-9]+$/.test(spellings[k].key) && spellings[k].keys.length < keys.length) {
+                keys = spellings[k].keys
+                result[g].alone = keys
+                break
+            }
             if (spellings[k].keys === keys || both.length > SHEET_CAP_BUDGET) continue
             keys = both
             break

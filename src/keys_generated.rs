@@ -83,6 +83,7 @@ pub static PRESET_KEYS: &[Binding] = &[
     Binding::new("windows", "alt", "Up", "alt-up", "parent", "listing", "all", 4, 1, "keys.action.parent", true),
     Binding::new("all", "none", "Escape", "escape", "escape", "rail,menu,panel,preview,pdf,media", "all", 0, 126, "keys.label.037c968467aa", true),
     Binding::new("all", "none", "Menu", "menu", "menu", "listing,rail", "all", 0, 3, "keys.action.menu", true),
+    Binding::new("all", "none", "F3", "f3", "viewDual", "listing", "gui", 0, 1, "keys.action.viewDual", true),
     Binding::new("all", "none", "F4", "f4", "autofitColumns", "listing", "gui", 0, 1, "keys.action.autofitColumns", true),
     Binding::new("all", "shift", "F10", "shift-f10", "menu", "listing,rail", "all", 2, 3, "keys.action.menu", true),
     Binding::new("all", "none", "Down", "down", "cursorDown", "rail,menu,panel,preview,pdf,media", "all", 0, 126, "keys.label.104788780cb6", true),

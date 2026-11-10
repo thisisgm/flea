@@ -180,4 +180,4 @@ js/UiState.js
 js/Update.js
 js/UserDirs.js
 # Re-derived for 0.4.2 with the same 180 units: js/Keymap.js grew by its print rows and Ctrl print hint, js/SettingsAbout.js by the release kind.
-bytes 1783520
+bytes 1784140

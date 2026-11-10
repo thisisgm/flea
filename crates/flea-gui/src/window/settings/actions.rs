@@ -56,7 +56,7 @@ impl Shell {
                     match action {
                         "viewColumns" => View::Columns,
                         "viewGrid" => View::Grid,
-                        "viewDual" => View::Dual,
+                        "viewDual" => self.dual_key_view(),
                         _ => View::List,
                     },
                     window,

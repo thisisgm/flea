@@ -49,7 +49,7 @@ const LOOK: &[&str] = &[
     "ctrl-1|List view",
     "ctrl-2|Columns view",
     "ctrl-3|Grid view",
-    "ctrl-4|Dual pane",
+    "ctrl-4 / f3|Dual pane",
     "alt-p|Preview column",
     "i|Facts",
     "ctrl-space|Preview",
