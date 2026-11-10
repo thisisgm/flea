@@ -1349,6 +1349,9 @@
     "other": "已删除 %2 个，共 %1 个项目"
   },
   "trash.done.failed": "%1 · %2 项失败",
+  "trash.done.leftover": {
+    "other": "%2 · 有 %1 个残留条目无法移除"
+  },
   "trash.done.failure": "%1 失败：%2",
   "trash.arm.one": "再按一次 %1 将其移到回收站，或单独按下 %2。",
   "trash.arm.many": "再按一次 %1 将它们移到回收站，或单独按下 %2。",

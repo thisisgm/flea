@@ -2306,6 +2306,10 @@
     "other": "Slettede %2 af %1 elementer"
   },
   "trash.done.failed": "%1 · %2 mislykkedes",
+  "trash.done.leftover": {
+    "one": "%2 · %1 resterende post kunne ikke fjernes",
+    "other": "%2 · %1 resterende poster kunne ikke fjernes"
+  },
   "trash.done.failure": "%1 mislykkedes: %2",
   "trash.done.restored": {
     "one": "Gendannede %2 af %1 element",

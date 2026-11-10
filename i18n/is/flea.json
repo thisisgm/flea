@@ -2306,6 +2306,10 @@
     "other": "Eyddi %2 af %1 atriðum"
   },
   "trash.done.failed": "%1 · %2 mistókst",
+  "trash.done.leftover": {
+    "one": "%2 · ekki tókst að fjarlægja %1 eftirstandandi færslu",
+    "other": "%2 · ekki tókst að fjarlægja %1 eftirstandandi færslur"
+  },
   "trash.done.failure": "%1 mistókst: %2",
   "trash.done.restored": {
     "one": "Endurheimti %2 af %1 atriði",

@@ -1365,6 +1365,9 @@
     "other": "%2 daripada %1 item dipadam"
   },
   "trash.done.failed": "%1 · %2 gagal",
+  "trash.done.leftover": {
+    "other": "%2 · %1 entri berbaki tidak dapat dialih keluar"
+  },
   "trash.done.failure": "%1 gagal: %2",
   "trash.arm.one": "Tekan %1 sekali lagi untuk mengalihkannya ke tong sampah, atau tekan %2 sahaja.",
   "trash.arm.many": "Tekan %1 sekali lagi untuk mengalihkan item ini ke tong sampah, atau tekan %2 sahaja.",

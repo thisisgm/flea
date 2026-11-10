@@ -1590,6 +1590,9 @@
     "other": "Memulihkan %1 operasi berkas yang terinterupsi"
   },
   "trash.done.failed": "%1 · %2 gagal",
+  "trash.done.leftover": {
+    "other": "%2 · %1 entri sisa tidak dapat dihapus"
+  },
   "trash.done.failure": "%1 gagal: %2",
   "trash.arm.review": "Tekan %1 lagi untuk meninjau penghapusan permanen, atau %2 saja.",
   "trash.confirm.empty_body": {

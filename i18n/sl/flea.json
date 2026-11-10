@@ -2544,6 +2544,12 @@
     "two": "Izbrisano %2 od %1 elementov"
   },
   "trash.done.failed": "%1 · %2 neuspešno",
+  "trash.done.leftover": {
+    "one": "%2 · preostalih vnosov ni bilo mogoče odstraniti: %1",
+    "two": "%2 · preostalih vnosov ni bilo mogoče odstraniti: %1",
+    "few": "%2 · preostalih vnosov ni bilo mogoče odstraniti: %1",
+    "other": "%2 · preostalih vnosov ni bilo mogoče odstraniti: %1"
+  },
   "trash.done.failure": "%1 neuspešno: %2",
   "trash.done.restored": {
     "few": "Obnovljeno %2 od %1 elementov",

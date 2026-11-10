@@ -2404,6 +2404,11 @@
     "other": "Exclusão de %2 de %1 itens concluída"
   },
   "trash.done.failed": "%1 · itens com falha: %2",
+  "trash.done.leftover": {
+    "one": "%2 · não foi possível remover %1 entrada restante",
+    "many": "%2 · não foi possível remover %1 entradas restantes",
+    "other": "%2 · não foi possível remover %1 entradas restantes"
+  },
   "trash.done.failure": "%1 falhou: %2",
   "trash.done.restored": {
     "one": "Restauração de %2 de %1 item concluída",

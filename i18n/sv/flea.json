@@ -2346,6 +2346,10 @@
     "other": "Raderade %2 av %1 objekt"
   },
   "trash.done.failed": "%1 · %2 misslyckades",
+  "trash.done.leftover": {
+    "one": "%2 · %1 kvarvarande post kunde inte tas bort",
+    "other": "%2 · %1 kvarvarande poster kunde inte tas bort"
+  },
   "trash.done.failure": "%1 misslyckades: %2",
   "trash.done.restored": {
     "one": "Återställde %2 av %1 objekt",

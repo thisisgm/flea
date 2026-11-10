@@ -102,6 +102,7 @@ fn a_cancel_after_the_last_item_does_not_relabel_completion() {
     let reply = format!("{{{fields}}}");
     assert_eq!(field_usize(&reply, "done"), Some(2));
     assert!(!field_bool(&reply, "cancelled"));
+    assert_eq!(field_usize(&reply, "leftover"), Some(0));
     assert_eq!(std::fs::read_dir(d.join("files")).unwrap().count(), 0);
     assert_eq!(std::fs::read_dir(d.join("info")).unwrap().count(), 0);
 }
@@ -260,6 +261,49 @@ fn cancellation_does_not_hide_a_recovery_error() {
         assert_eq!(std::fs::read_to_string(d.join(&format!("files/{name}"))).unwrap(), "payload");
         assert!(d.join(&format!("info/{name}.trashinfo")).is_file());
     }
+}
+
+// TR2-c: the delete reply counts what Empty Trash's sweep of unlisted entries left on disk, so the footer can say it.
+#[test]
+fn the_reply_counts_left_out_entries_the_sweep_could_not_remove() {
+    let d = TestDir::new("trash-leftover");
+    let mut confirmation = two_items(&d);
+    d.file("info/c.trashinfo", "[Trash Info]\nPath=/original/c\n");
+    let listed = ["a", "b"].map(|name| Item {
+        uri: format!("trash:///{name}"),
+        original: format!("/original/{name}"),
+    });
+    let files = d.join("files");
+    let read = |_: &[&str]| -> Result<String, Refusal> {
+        Ok(["a", "b"]
+            .map(|name| {
+                let uri = crate::backend::thumbcache::uri_for(&files.join(name));
+                format!("trash:///{name}\t1\t(regular)\tstandard::target-uri={uri}\n")
+            })
+            .concat())
+    };
+    let scratch = d.dir("scratch");
+    confirmation.sweep = super::super::sweep::Sweep::review(
+        &listed,
+        &mut confirmation.trees,
+        &scratch,
+        &Cancellation::default(),
+        read,
+    )
+    .unwrap();
+    // A claim's quarantine that appears after the review keeps its Trash's records.
+    d.dir("files/.flea-delete-9-9");
+    let fields = delete_with(
+        &confirmation,
+        &Ok(d.path().to_path_buf()),
+        &Cancellation::default(),
+        |_, _, _| {},
+    );
+    let reply = format!("{{{fields}}}");
+    assert_eq!(field_usize(&reply, "done"), Some(2));
+    assert_eq!(field_usize(&reply, "failed"), Some(0));
+    assert_eq!(field_usize(&reply, "leftover"), Some(1));
+    assert!(d.join("info/c.trashinfo").is_file());
 }
 
 // EY-501: the Emptying Trash card's item line keeps the item in flight; a sample between two items never blanks it.

@@ -2346,6 +2346,10 @@
     "other": "Imefuta %2 kati ya vipengee %1"
   },
   "trash.done.failed": "%1 · %2 imeshindwa",
+  "trash.done.leftover": {
+    "one": "%2 · kipengee %1 kilichobaki hakikuweza kuondolewa",
+    "other": "%2 · vipengee %1 vilivyobaki havikuweza kuondolewa"
+  },
   "trash.done.failure": "%1 imeshindwa: %2",
   "trash.done.restored": {
     "one": "Imerejesha %2 kati ya kipengee %1",

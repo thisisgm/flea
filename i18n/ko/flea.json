@@ -1572,6 +1572,9 @@
     "other": "중단된 파일 작업 %1개 복구됨"
   },
   "trash.done.failed": "%1 · %2개 실패",
+  "trash.done.leftover": {
+    "other": "%2 · 남은 항목 %1개를 제거하지 못함"
+  },
   "trash.done.failure": "%1 실패: %2",
   "trash.arm.review": "영구 삭제를 검토하려면 %1 키를 다시 누르거나 %2 키만 누르세요.",
   "trash.confirm.empty_body": {

@@ -2404,6 +2404,11 @@
     "other": "Ištrinta %2 iš %1 elementų"
   },
   "trash.done.failed": "%1 · nepavyko %2",
+  "trash.done.leftover": {
+    "one": "%2 · nepašalinta likusių įrašų: %1",
+    "few": "%2 · nepašalinta likusių įrašų: %1",
+    "other": "%2 · nepašalinta likusių įrašų: %1"
+  },
   "trash.done.failure": "Nepavyko %1: %2",
   "trash.done.restored": {
     "few": "Atkurta %2 iš %1 elementų",

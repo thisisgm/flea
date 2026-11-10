@@ -1411,6 +1411,10 @@
     "other": "%2 von %1 Elementen gelöscht"
   },
   "trash.done.failed": "%1 · %2 fehlgeschlagen",
+  "trash.done.leftover": {
+    "one": "%2 · %1 verbliebener Eintrag konnte nicht entfernt werden",
+    "other": "%2 · %1 verbliebene Einträge konnten nicht entfernt werden"
+  },
   "trash.done.failure": "%1 fehlgeschlagen: %2",
   "trash.arm.one": "Drücke erneut %1, um das Element in den Papierkorb zu verschieben, oder drücke %2 allein.",
   "trash.arm.many": "Drücke erneut %1, um die Elemente in den Papierkorb zu verschieben, oder drücke %2 allein.",

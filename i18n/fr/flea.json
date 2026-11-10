@@ -2404,6 +2404,11 @@
     "other": "%2 sur %1 éléments supprimés"
   },
   "trash.done.failed": "%1 · échecs : %2",
+  "trash.done.leftover": {
+    "one": "%2 · %1 entrée restante n'a pas pu être supprimée",
+    "many": "%2 · %1 entrées restantes n'ont pas pu être supprimées",
+    "other": "%2 · %1 entrées restantes n'ont pas pu être supprimées"
+  },
   "trash.done.failure": "%1 en échec : %2",
   "trash.done.restored": {
     "one": "%2 sur %1 élément restauré",

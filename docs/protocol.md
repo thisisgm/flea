@@ -1482,9 +1482,12 @@ Exactly one `transferdone` releases this job's slot, followed by its original `t
 reply. `ok`, `failed`, and `skipped` on `transferdone` count deleted, refused, and unstarted items;
 `cancelled` reports interruption. A validation failure carries its sentence in `note`, and the browser
 reply retains the existing `ok:false`, `stale`, and `error` fields. A completed or interrupted deletion
-retains `done`, `failed`, and `failures`, and adds `skipped` and `cancelled`. Deletion is irreversible
-and creates no undo entry. Cancellation during validation preserves the confirmation for another
-attempt. Once deletion starts it consumes the token, so remaining items require a new review.
+retains `done`, `failed`, and `failures`, and adds `skipped`, `cancelled` and `leftover`, the
+count of entries the listing left out that the sweep kept on disk: a record kept beside a claim's
+quarantine counts, and an entry a cancel stopped the sweep before trying does not
+(docs/architecture/write-operations-and-the-undo-journal.md). Deletion is irreversible and creates
+no undo entry. Cancellation during validation preserves the confirmation for another attempt. Once
+deletion starts it consumes the token, so remaining items require a new review.
 
 Cancel, quit, and stdin closing poll the same flag between items and between tree nodes. Completed
 deletions stay deleted. An interrupted folder's surviving payload and `.trashinfo` are put back

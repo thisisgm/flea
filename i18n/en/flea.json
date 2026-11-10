@@ -1436,6 +1436,10 @@
     "other": "Deleted %2 of %1 items"
   },
   "trash.done.failed": "%1 · %2 failed",
+  "trash.done.leftover": {
+    "one": "%2 · %1 leftover entry could not be removed",
+    "other": "%2 · %1 leftover entries could not be removed"
+  },
   "trash.done.failure": "%1 failed: %2",
   "trash.arm.one": "Press %1 again to move it to Trash, or press %2 on its own.",
   "trash.arm.many": "Press %1 again to move them to Trash, or press %2 on its own.",

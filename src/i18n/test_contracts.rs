@@ -33,6 +33,10 @@ fn no_test_loads_the_shipped_catalog_dir() {
             "S7C-5 builds running job heads from the shipped German catalog",
         ),
         (
+            "src/ui_logic_trash_browser/words_tests.rs",
+            "TR2-c formats the leftover footer with all 50 shipped catalogs",
+        ),
+        (
             "src/backend/kind_polish_tests.rs",
             "LANG polish verifies PNG fallback completeness and provider precedence in all 50 shipped catalogs",
         ),

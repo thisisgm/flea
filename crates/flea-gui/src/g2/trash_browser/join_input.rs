@@ -10,6 +10,40 @@ use flea::keys::{self, Context as KeyContext, Match};
 use gpui::{Context, KeyDownEvent, Window};
 
 impl Shell {
+    /// The ring's list stop is the page covering the folder when one does: Trash takes a forward step on Empty Trash… and a backward one on its list.
+    pub(crate) fn enter_list_stop(
+        &mut self,
+        forward: bool,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        window.focus(&self.overlay_return_focus(cx), cx);
+        let Some(pane) = self
+            .trash
+            .as_ref()
+            .filter(|host| host.side == self.focus_side && host.pane.read(cx).view().opened)
+            .map(|host| host.pane.clone())
+        else {
+            return;
+        };
+        pane.update(cx, |pane, cx| pane.focus_strip(forward, cx));
+        self.flush_trash(window, cx);
+    }
+
+    /// Tab past Trash's list, or Shift+Tab past its Empty Trash…, steps the window's ring on from the list stop.
+    pub(super) fn trash_leave(
+        &mut self,
+        forward: bool,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if self.view == crate::window::startup::View::Dual {
+            self.dual_walk(self.focus_side, forward, window, cx);
+        } else {
+            self.ring_step("list", forward, window, cx);
+        }
+    }
+
     /// Resolved Escape, including IPC, uses the same Trash owner as a native key.
     pub(crate) fn trash_escape(
         &mut self,
@@ -80,6 +114,13 @@ impl Shell {
             Some("parent")
         } else if input.modifiers == 0 && input.key.eq_ignore_ascii_case("f5") {
             Some("reload")
+        } else if !menu_open
+            && input.modifiers == 0
+            && matches!(input.key, "Return" | "space")
+            && pane.read(cx).on_empty()
+        {
+            // A focused button takes Return and Space in every preset, as a click.
+            Some("activate")
         } else {
             match self.keyboard.lookup(
                 preset,

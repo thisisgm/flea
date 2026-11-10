@@ -40,9 +40,10 @@ pub trait Outside {
     }
     /// G1.13 status slot: Escape is offered here first; true when it dismissed a showing message, so Trash stays open.
     fn escape_taken(&mut self) -> bool;
-    /// G1.11 rail host: the Trash row's count and the Tab hop into the rail.
+    /// G1.11 rail host: the Trash row's count.
     fn count(&mut self, total: usize);
-    fn focus_rail(&mut self);
+    /// Tab past the list, or Shift+Tab past Empty Trash…, hands the keyboard on along the window's ring.
+    fn leave(&mut self, forward: bool);
     /// G1.10 window: back to the listing Trash covers, and window actions Trash forwards.
     fn back(&mut self);
     fn action(&mut self, name: String);

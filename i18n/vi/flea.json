@@ -2247,6 +2247,9 @@
     "other": "Đã xóa %2 trên %1 mục"
   },
   "trash.done.failed": "%1 · %2 thất bại",
+  "trash.done.leftover": {
+    "other": "%2 · không thể xóa %1 mục còn sót"
+  },
   "trash.done.failure": "%1 thất bại: %2",
   "trash.done.restored": {
     "other": "Đã khôi phục %2 trên %1 mục"

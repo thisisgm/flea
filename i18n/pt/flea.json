@@ -1457,6 +1457,11 @@
     "many": "Eliminação concluída para %2 de %1 itens"
   },
   "trash.done.failed": "%1 · %2 com falha",
+  "trash.done.leftover": {
+    "one": "%2 · não foi possível remover %1 entrada restante",
+    "many": "%2 · não foi possível remover %1 entradas restantes",
+    "other": "%2 · não foi possível remover %1 entradas restantes"
+  },
   "trash.done.failure": "%1 com falha: %2",
   "trash.arm.one": "Prime %1 novamente para mover para o Lixo ou prime apenas %2.",
   "trash.arm.many": "Prime %1 novamente para os mover para o Lixo ou prime apenas %2.",

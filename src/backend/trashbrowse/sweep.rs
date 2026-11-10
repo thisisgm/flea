@@ -39,10 +39,22 @@ struct Orphan {
     root: PathBuf,
     stamp: Stamp,
 }
+// A left-out entry the review had to leave in place; a record counts only while its item stays gone.
+struct Held {
+    path: PathBuf,
+    item: Option<PathBuf>,
+}
+impl Held {
+    fn left(&self) -> bool {
+        let arrived = self.item.as_deref().is_some_and(|item| !gone(item));
+        !gone(&self.path) && !arrived
+    }
+}
 #[derive(Default)]
 pub(super) struct Sweep {
     payloads: Vec<Payload>,
     orphans: Vec<Orphan>,
+    held: Vec<Held>,
 }
 
 // Sample input, gio list -u -h -a standard::target-uri trash:///: "trash:///a%20b\t1\t(regular)\tstandard::target-uri=file:///h/.local/share/Trash/files/a%20b\n".
@@ -90,6 +102,11 @@ fn skipped(what: &Path, why: impl std::fmt::Display) {
         what.display()
     ));
 }
+// A left-out entry the sweep tried and could not remove: 1 while it is still on disk, so the footer can count it.
+fn kept(what: &Path, why: impl std::fmt::Display) -> usize {
+    skipped(what, why);
+    usize::from(!gone(what))
+}
 
 impl Sweep {
     // A leftover that cannot be reviewed is logged and left, so it never holds back the items the person reviewed.
@@ -135,18 +152,22 @@ impl Sweep {
                     record: stamp(&record).map(|s| (record, s)),
                     path,
                 }),
-                Err(refusal) => skipped(&path, refusal.shown()),
+                Err(refusal) => {
+                    skipped(&path, refusal.shown());
+                    sweep.held.push(Held { path, item: None });
+                }
             }
         }
         for root in roots {
             cancel.check()?;
-            if let Some(why) = claimed(&root) {
+            let claim = claimed(&root);
+            if let Some(why) = claim {
                 skipped(&root.join("info"), why);
-                continue;
             }
             let Ok(entries) = std::fs::read_dir(root.join("info")) else {
                 continue;
             };
+            let mut orphans = Vec::new();
             for entry in entries.flatten() {
                 let name = entry.file_name();
                 let Some(stem) = name
@@ -161,13 +182,21 @@ impl Sweep {
                     root.join("files").join(OsStr::from_bytes(stem)),
                 );
                 if let (true, Some(stamp)) = (gone(&item), stamp(&path)) {
-                    sweep.orphans.push(Orphan {
+                    orphans.push(Orphan {
                         path,
                         item,
                         root: root.clone(),
                         stamp,
                     });
                 }
+            }
+            if claim.is_some() {
+                sweep.held.extend(orphans.into_iter().map(|orphan| Held {
+                    path: orphan.path,
+                    item: Some(orphan.item),
+                }));
+            } else {
+                sweep.orphans.extend(orphans);
             }
         }
         Ok(sweep)
@@ -189,48 +218,55 @@ impl Sweep {
             gone(&orphan.item) && stamp(&orphan.path).as_ref() == Some(&orphan.stamp)
         }))
     }
-    // Runs after the reviewed items; what fails is logged, since the person never saw these entries.
+    // Runs after the reviewed items; counts what the review left that is still left now, plus each entry tried and kept before a cancel.
     pub(super) fn remove(
         &self,
         recovery_root: &Path,
         cancel: &Cancellation,
         thumbnails: &mut ThumbnailPurge,
-    ) {
+    ) -> usize {
+        let mut left = self.held.iter().filter(|held| held.left()).count();
         for payload in &self.payloads {
             if cancel.check().is_err() {
-                return;
+                return left;
             }
             if let Err(refusal) = payload.review.delete(recovery_root) {
-                skipped(&payload.path, refusal.shown());
+                left += kept(&payload.path, refusal.shown());
                 continue;
             }
             thumbnails
                 .0
                 .push(crate::backend::thumbcache::uri_for(&payload.path));
             if let Some((record, was)) = &payload.record {
-                if stamp(record).as_ref() == Some(was) {
-                    if let Err(e) = std::fs::remove_file(record) {
-                        skipped(record, e);
-                    }
+                if stamp(record).as_ref() != Some(was) {
+                    left += kept(record, "it changed");
+                } else if let Err(e) = std::fs::remove_file(record) {
+                    left += kept(record, e);
                 }
             }
         }
         for orphan in &self.orphans {
             if cancel.check().is_err() {
-                return;
+                return left;
             }
-            if !gone(&orphan.item) || stamp(&orphan.path).as_ref() != Some(&orphan.stamp) {
+            if !gone(&orphan.item) {
+                // Its item arrived, so the record describes a listed item again.
                 skipped(&orphan.path, "it changed");
                 continue;
             }
+            if stamp(&orphan.path).as_ref() != Some(&orphan.stamp) {
+                left += kept(&orphan.path, "it changed");
+                continue;
+            }
             if let Some(why) = claimed(&orphan.root) {
-                skipped(&orphan.path, why);
+                left += kept(&orphan.path, why);
                 continue;
             }
             if let Err(e) = std::fs::remove_file(&orphan.path) {
-                skipped(&orphan.path, e);
+                left += kept(&orphan.path, e);
             }
         }
+        left
     }
 }
 
