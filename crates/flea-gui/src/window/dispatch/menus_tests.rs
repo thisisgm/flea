@@ -1,4 +1,6 @@
 //! Menu rows reach their handler through Shell::dispatch on the production Shell, by keys and a right click.
+#[path = "menus_uish2b_tests.rs"]
+mod uish2b;
 use super::test_shell::{land, open_root as open, status};
 use crate::{
     backend::Event as BackendEvent, g2::context_menus::join::Chosen, state::Shell,
@@ -153,13 +155,21 @@ pub(super) fn choose(shell: &Entity<Shell>, cx: &mut VisualTestContext, action: 
     panic!("the keyboard must reach {action}");
 }
 
-/// The backend's validate answer for the walked row, naming the paths its snapshot holds.
+/// Answer validation, or check the single-item Rename editor that retains its snapshot for commit.
 pub(super) fn validated(
     shell: &Entity<Shell>,
     cx: &mut VisualTestContext,
     action: &str,
     paths: &[&str],
 ) {
+    if action == "rename" && paths.len() == 1 {
+        assert!(
+            shell.read_with(cx, |shell, _| shell.rename.edit.as_ref().is_some_and(
+                |edit| { edit.source == paths[0] && edit.menu != 0 && edit.pending.is_none() }
+            ))
+        );
+        return;
+    }
     let id = captured(shell, cx);
     let paths = paths
         .iter()

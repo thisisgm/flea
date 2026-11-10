@@ -850,7 +850,7 @@ cap_permissions_skips() {
     [[ "$(ipc statusPrimary)" == "$foreign_applied" ]] || fail "cap_permissions: the status line after Apply reads $(ipc statusPrimary) beside a foreign file"
     shot cap-permissions-applied-foreign
 }
-# Permissions040: Apply held in flight by a paused owned backend leaves Cancel and the close mark disabled, then the backend resumes.
+# Permissions040: Apply held in flight by a paused owned backend leaves Cancel disabled and draws no close mark, then the backend resumes.
 cap_permissions_inflight() {
     click_row 1 left
     settle
@@ -864,7 +864,7 @@ cap_permissions_inflight() {
     convert_pause_backend "$pid"
     cap_permissions_focus Apply forward
     key -k Return >/dev/null
-    cap_permissions_await '.opened and .busy and ([.controls[] | select(.name == "Cancel" or .name == "Close")] | length == 2 and all(.enabled | not))' "Cancel and the close mark stay live while Apply is in flight"
+    cap_permissions_await '.opened and .busy and ([.controls[] | select(.name == "Cancel")] | length == 1 and all(.enabled | not)) and ([.controls[] | select(.name == "Close")] | length == 0)' "Cancel stays disabled and no Close draws while Apply is in flight"
     settle
     shot cap-permissions-apply-inflight
     permissions_resume_stopped "$pid" || fail "cap_permissions: the owned backend did not resume"

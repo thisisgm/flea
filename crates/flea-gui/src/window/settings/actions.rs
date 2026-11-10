@@ -49,7 +49,27 @@ impl Shell {
                 if let Some(host) = &mut self.panes[self.focus_side] {
                     host.status = sentence.clone().into();
                 }
-                self.status_note(&sentence, cx);
+                let catalog = self.locale.catalog.clone();
+                let settings_errors = [
+                    "settings.error.unreadable",
+                    "settings.error.favourites_unread",
+                    "settings.error.not_saved",
+                ]
+                .map(|key| catalog.tr(key));
+                let failed = self.settings.messages.as_ref().is_some_and(|line| {
+                    line.read(cx)
+                        .messages()
+                        .errors()
+                        .iter()
+                        .any(|error| settings_errors.contains(&error.text))
+                });
+                if failed {
+                    self.status_messages(cx, |messages, now| {
+                        messages.say_receipt_behind(&catalog, &sentence, now)
+                    });
+                } else {
+                    self.status_note(&sentence, cx);
+                }
             }
             "viewList" | "viewColumns" | "viewGrid" | "viewDual" => {
                 self.choose_settings_view(
@@ -141,8 +161,7 @@ impl Shell {
                 .and_then(Json::as_str)
                 .map(str::to_owned);
             if let Some(path) = path {
-                self.settings.opened = false;
-                window.focus(&self.focus, cx);
+                // SettingsPanel.qml opens a Favorite without dismissing the panel or moving its keyboard focus.
                 let _ = self.step(
                     self.focus_side,
                     crate::window::navigate::Step::OpenPlace(path),

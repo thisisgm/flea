@@ -51,8 +51,8 @@ first_read() {
     (( reads == 0 ))
 }
 closed_state='{"opened":false,"busy":false,"displayedError":"","controls":[]}'
-flight_state='{"opened":true,"busy":true,"displayedError":"","controls":[{"name":"Cancel","enabled":false},{"name":"Close","enabled":false}]}'
-idle_state='{"opened":true,"busy":false,"displayedError":"","controls":[{"name":"Cancel","enabled":true},{"name":"Close","enabled":true}]}'
+flight_state='{"opened":true,"busy":true,"displayedError":"","controls":[{"name":"Cancel","enabled":false}]}'
+idle_state='{"opened":true,"busy":false,"displayedError":"","controls":[{"name":"Cancel","enabled":true}]}'
 # The all-skipped card: nine disabled boxes, four on (rw-r--r--), Apply disabled, the note kept; the live variant is the defect, an Apply that can only fail.
 boxes_state() {
     local apply_enabled="$1" bit rows=""
@@ -135,7 +135,7 @@ run pre-apply flightnow pre_apply_read
 expect "a read before the first Apply answers idle, never in flight" "$(cat "$sdir/out")" "$idle_state"
 run flight-fail never cap_permissions_inflight
 expect "inflight on a failed wait still resumes the backend and kills the window" "$rc $(tr '\n' ' ' < "$log")" "1 pause 4242 resume 4242 kill "
-expect "an Apply wait that never settles ends at its own deadline" "$(grep -c 'Cancel and the close mark stay live while Apply is in flight, last state' "$sdir/out")" "1"
+expect "an Apply wait that never settles ends at its own deadline" "$(grep -c 'Cancel stays disabled and no Close draws while Apply is in flight, last state' "$sdir/out")" "1"
 run skips-settle skips cap_permissions_skips
 expect "skips pass on the card the all-skipped selection settles on, then the foreign file" "$rc $(grep -c . "$sdir/out")" "0 0"
 run skips-stuck stuck cap_permissions_skips

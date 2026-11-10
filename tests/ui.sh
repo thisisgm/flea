@@ -13333,7 +13333,7 @@ settings_display() {
     settings_open_key
     settle
     settings_section display
-    settings_title_on_display=$(ipc settingsTitleCentre)
+    settings_title_on_display=$(ipc settingsCardRect)
     [[ -n "$settings_title_on_display" ]] || fail "settings: the panel has no title to measure"
     local omarchy_base
     omarchy_base=$(token_of baseSize)
@@ -13491,12 +13491,13 @@ assert_monitor_scale_row() {
 # The Menus section, whose consumer is ui/js/Menu.js: every assertion here is made against the real
 # context menu, never against the stored set alone.
 settings_menus() {
+    # settings-menus uses the catalog heading Basic File Actions; pinned original case stays unchanged.
     settings_open_key
     settle
     settings_section menus
-    [[ "$(ipc settingsTitleCentre)" == "$settings_title_on_display" ]] \
-        || fail "settings: the card moved when Menus came up, title at $(ipc settingsTitleCentre) against $settings_title_on_display"
-    [[ "$(ipc settingsRows)" == *"group|Basic file actions|6 of 6"* ]] \
+    [[ "$(ipc settingsCardRect)" == "$settings_title_on_display" ]] \
+        || fail "settings: the card moved when Menus came up, card at $(ipc settingsCardRect) against $settings_title_on_display"
+    [[ "$(ipc settingsRows)" == *"group|Basic File Actions|6 of 6"* ]] \
         || fail "settings: the master row does not start at six of six, got $(ipc settingsRows)"
     shot settings-menus
 
@@ -13505,7 +13506,7 @@ settings_menus() {
     settle
     key -k Space >/dev/null
     settle
-    [[ "$(ipc settingsRows)" == *"group|Basic file actions|5 of 6"* ]] \
+    [[ "$(ipc settingsRows)" == *"group|Basic File Actions|5 of 6"* ]] \
         || fail "settings: switching one action off did not read as five of six"
     key -k Escape >/dev/null
     settle
@@ -13520,11 +13521,11 @@ settings_menus() {
     settle
     key -k Space >/dev/null
     settle
-    [[ "$(ipc settingsRows)" == *"group|Basic file actions|6 of 6"* ]] \
+    [[ "$(ipc settingsRows)" == *"group|Basic File Actions|6 of 6"* ]] \
         || fail "settings: activating the partial master did not switch all six on"
     key -k Space >/dev/null
     settle
-    [[ "$(ipc settingsRows)" == *"group|Basic file actions|0 of 6"* ]] \
+    [[ "$(ipc settingsRows)" == *"group|Basic File Actions|0 of 6"* ]] \
         || fail "settings: activating the checked master did not switch all six off"
     key -k Escape >/dev/null
     settle
@@ -13537,8 +13538,12 @@ settings_menus() {
     click_row 0 right
     settle
     [[ "|$(ipc contextMenuEntries)|" == *"|Open|"* ]] || fail "settings: the locked Open row went with them"
-    [[ "|$(ipc contextMenuEntries)|" == *"|Show hidden files|"* ]] \
-        || fail "settings: the locked hidden toggle went with them"
+    key -k Escape >/dev/null
+    settle
+    click_background
+    settle
+    [[ "|$(ipc contextMenuEntries)|" == *"|Show Hidden Files|"* ]] \
+        || fail "settings: the locked background hidden toggle went with them"
     key -k Escape >/dev/null
     settle
 
@@ -13550,7 +13555,7 @@ settings_menus() {
     key j >/dev/null; key j >/dev/null; key j >/dev/null
     key -k Space >/dev/null
     settle
-    [[ "$(ipc settingsRows)" == *"group|Basic file actions|5 of 6"* ]] \
+    [[ "$(ipc settingsRows)" == *"group|Basic File Actions|5 of 6"* ]] \
         || fail "settings: the panel did not end the Menus block with Paste alone switched off"
     key -k Escape >/dev/null
     settle
@@ -13593,8 +13598,8 @@ settings_keys() {
     settings_open_key
     settle
     settings_section keys
-    [[ "$(ipc settingsTitleCentre)" == "$settings_title_on_display" ]] \
-        || fail "settings: the card moved when Keys came up, title at $(ipc settingsTitleCentre) against $settings_title_on_display"
+    [[ "$(ipc settingsCardRect)" == "$settings_title_on_display" ]] \
+        || fail "settings: the card moved when Keys came up, card at $(ipc settingsCardRect) against $settings_title_on_display"
     # The shipped preset is "default", which ui/js/Settings.js labels Default and PRESET_KEYS gives
     # ctrl-1 to ctrl-3; a window that starts anywhere else is not the one this checks the toggle on.
     [[ "$(ipc settingsRows)" == *"choice|Keybinding preset|Default"* ]] \
@@ -13609,7 +13614,7 @@ settings_keys() {
     settle
     [[ "$(ipc settingsRows)" == *"choice|Keybinding preset|Windows"* ]] \
         || fail "settings: three steps of l did not reach Windows"
-    ipc settingsModel | jq -e 'map(select(.id == "keyPreview"))[0].items | length == 6 and any(.[]; .keys == "ctrl-c" and .label == "copy")' >/dev/null \
+    ipc settingsModel | jq -e 'map(select(.id == "keyPreview"))[0].items | length == 6 and any(.[]; .keys == "ctrl-c" and .label == "Copy")' >/dev/null \
         || fail "settings: Windows binding examples must include its live copy chord"
     key -k Escape >/dev/null
     settle

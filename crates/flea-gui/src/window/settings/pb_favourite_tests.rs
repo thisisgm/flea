@@ -3,6 +3,54 @@ use crate::window::dispatch::pb_places_tests::menu_fixture;
 use gpui::TestAppContext;
 
 #[gpui::test]
+fn fxuish2b_settings_favourite_keeps_the_panel_and_keyboard(cx: &mut TestAppContext) {
+    let (shell, cx) = menu_fixture(cx, true);
+    let (backend, mut lines) = crate::backend::Backend::test_lines();
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            shell.panes[0].as_mut().unwrap().backend = Some(backend);
+            shell.retire_menu(window, cx);
+            shell.open_settings(window, cx);
+            shell
+                .settings
+                .panel
+                .as_ref()
+                .unwrap()
+                .update(cx, |view, cx| {
+                    view.panel.show_section("places");
+                    view.panel.cursor = 1;
+                    cx.notify();
+                });
+        })
+    });
+    cx.run_until_parked();
+    let _ = std::iter::from_fn(&mut lines).collect::<Vec<_>>();
+    cx.simulate_keystrokes("enter");
+    cx.run_until_parked();
+    assert!(shell.read_with(cx, |shell, _| shell.settings.opened));
+    assert!(cx.update(|window, cx| shell.read_with(cx, |shell, cx| {
+        shell
+            .settings
+            .panel
+            .as_ref()
+            .unwrap()
+            .read(cx)
+            .focus
+            .is_focused(window)
+    })));
+    assert!(std::iter::from_fn(&mut lines).any(|line| {
+        flea::json::field_str(&line, "c").as_deref() == Some("list")
+            && flea::json::field_str(&line, "path").as_deref() == Some("/target")
+    }));
+    cx.simulate_keystrokes("k");
+    assert_eq!(
+        crate::window::u07_tests::read(&shell, cx, "settingsCursor", &[]),
+        "0"
+    );
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+#[gpui::test]
 fn uish_misc_rename_reader_reports_the_backend_loss_state(cx: &mut TestAppContext) {
     let (shell, cx) = menu_fixture(cx, true);
     cx.update(|window, cx| {

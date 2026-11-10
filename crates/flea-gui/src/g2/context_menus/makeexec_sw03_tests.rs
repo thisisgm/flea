@@ -4,7 +4,7 @@ use crate::g2::context_menus::join_tests::read;
 use flea::jsondoc::{self, Json};
 use gpui::TestAppContext;
 
-// SW-03: each row validates, then reaches an owner, never "no longer available" (Permissions and Properties await their cards).
+// SW-03: each row reaches an owner; single-item Rename keeps its snapshot for commit, as Pane.qml onChosen does.
 #[gpui::test]
 fn sw03_file_menu_rows_reach_an_owner(cx: &mut TestAppContext) {
     let mut refused = Vec::new();
@@ -67,6 +67,24 @@ fn sw03_file_menu_rows_reach_an_owner(cx: &mut TestAppContext) {
             )
         });
         let requests = fixture.drain();
+        if action == "rename" {
+            assert!(requests
+                .iter()
+                .all(|r| r.get("op").and_then(Json::as_str) != Some("validate")));
+            assert_eq!(
+                read(cx, fixture.handle, "renameEditorLive").stdout.trim(),
+                "true"
+            );
+            assert!(update(cx, fixture.handle, |shell, _, _| {
+                shell.menu.captured.is_none()
+                    && shell
+                        .rename
+                        .edit
+                        .as_ref()
+                        .is_some_and(|edit| edit.menu != 0)
+            }));
+            continue;
+        }
         let Some(validate) = requests
             .iter()
             .find(|r| r.get("op").and_then(Json::as_str) == Some("validate"))

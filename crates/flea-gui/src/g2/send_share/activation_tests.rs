@@ -15,6 +15,9 @@ const TAILSCALE: &str = "plugin-send:flea.tailscale";
 #[path = "activation_peer_tests.rs"]
 mod peer_tests;
 
+#[path = "activation_destination_tests.rs"]
+mod destination_tests;
+
 struct NoWire;
 impl Wire for NoWire {
     fn send(&self, _: String) -> bool {
