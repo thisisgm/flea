@@ -38,6 +38,10 @@ impl super::host::Host {
         let mut listing = self
             .launch_listing(host, side, focus)
             .unwrap_or_else(|| host.nav.listing(&host.pane, &host.path.clone(), false));
+        // Settings configure density after pane construction; retain the count this listing sends.
+        if let Some(pending) = &mut host.pane.swap.pending {
+            pending.first = listing.first;
+        }
         listing.select = host.select.clone();
         if let Some(select) = self.launch_select(side, focus, &host.path) {
             listing.select = Some(select);
