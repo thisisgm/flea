@@ -76,3 +76,4 @@ e6dd0916a1141f73b5cf1ffced6d779902567785	body holds 1 line(s), want 2 to 4
 13802db40c01202d53318c36209c3a69a745b11d	subject holds 65 char(s), want at most 60
 # CIFIX-ACCT, 2026-11-09: full v0.4.1..1737ad649 check also confirms the accepted FX-I18N2 merge has one body line.
 72232ba55882d33ce9e0d8742ced07ebd12adbd5	body holds 1 line(s), want 2 to 4
+38090db0ef635d6a461a43e74e87cbfc0cd5d938	body holds 1 line(s), want 2 to 4
