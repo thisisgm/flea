@@ -65,7 +65,7 @@ def require_frame(window, name, what, expected, actual):
         raise ValueError(f'{name}: {what} {expected}->{actual}: {call(window, "sceneState")}')
 
 
-def grab(window, out):
+def grab(window, out, captured=None):
     clients = json.loads(run('hyprctl', 'clients', '-j'))
     item = capture.client(clients, window.pid)
     monitors = json.loads(run('hyprctl', 'monitors', '-j'))
@@ -75,6 +75,8 @@ def grab(window, out):
     w, h = item['size']
     geometry = f'{x},{y} {w}x{h}'
     run('grim', '-g', geometry, str(out))
+    if captured is not None:
+        captured()
     capture.frame(out, item)
     image = blackgate.read_image(out)
     scenes.require(blackgate.black_share(image, (0, 0, w, h)) <= blackgate.BLACK_THRESHOLD, 'blackgate rejected native scene')
@@ -94,6 +96,11 @@ try:
     control_manifest = root / 'manifest.json'
     shutil.copyfile(REPO / 'ci/visual/scenes/g1-01.json', control_manifest)
     scenes.controls(control_manifest)
+    # Seed the switch target before Columns starts watching its parent.
+    switch_fixture = root / 'fixture-other'
+    switch_fixture.mkdir()
+    (switch_fixture / 'gamma.txt').write_text('three\n')
+    os.utime(switch_fixture / 'gamma.txt', (1750000000, 1750000000))
     os.environ['FLEA_TEST_WINDOWS_ROOT'] = str(root)
     codeicons_native.run(root, logs, Window, call, wait, grab, run, windows)
     for scene in registered:
@@ -146,12 +153,8 @@ try:
         (logs / f'{name}-receipt.json').write_text(json.dumps(receipt, indent=2))
         print(f'GPUI_SCENE PASS scene={name} frame={frame} rect=1100x700 scale=1 stable={attempt} blackgate=pass roles={len(sidecar["roles"])} sha256={digest}', flush=True)
         if name == registered[0]['id']:
-            other = root / 'fixture-other'
-            other.mkdir()
-            (other / 'gamma.txt').write_text('three\n')
-            os.utime(other / 'gamma.txt', (1750000000, 1750000000))
-            moved = json.loads(call(window, 'scene', window.pid, name, json.dumps(dict(settings, path=str(other)))))
-            scenes.require(moved['frame'] > frame and moved['path'] == str(other), 'path scene did not present')
+            moved = json.loads(call(window, 'scene', window.pid, name, json.dumps(dict(settings, path=str(switch_fixture)))))
+            scenes.require(moved['frame'] > frame and moved['path'] == str(switch_fixture), 'path scene did not present')
             scenes.require(call(window, 'total') == '1' and call(window, 'visibleRowName', 0) == 'gamma.txt', 'stale rows after fixture change')
             scenes.require(call(window, 'pendingRequests') == '0', 'path scene requests incomplete')
             print('GPUI_SCENE_PATH PASS fresh_rows=true', flush=True)

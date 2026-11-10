@@ -182,7 +182,7 @@ fn rail2_saved_shares_and_live_phones_arrive_from_the_shared_poll(cx: &mut TestA
     let bookmarks = f.root.0.join("bookmarks");
     std::fs::write(&bookmarks, "smb://nas/docs Saved NAS\n").unwrap();
     f.update(|picker, cx| {
-        picker.rail.network.as_mut().unwrap().bookmarks = bookmarks;
+        picker.rail.network.as_mut().unwrap().bookmarks = bookmarks.clone();
         let state =
             jsondoc::parse(r#"{"places":{"showDevices":false,"showNetwork":false}}"#).unwrap();
         picker.rail_favourites(&state, cx);
@@ -222,6 +222,21 @@ fn rail2_saved_shares_and_live_phones_arrive_from_the_shared_poll(cx: &mut TestA
         1,
         "a live share and its bookmark merge"
     );
+    std::fs::write(&bookmarks, "smb://nas/docs Renamed NAS\n").unwrap();
+    f.cx.executor()
+        .advance_clock(std::time::Duration::from_millis(5_000));
+    f.cx.run_until_parked();
+    runner.answer(&["gio", "mount", "-li"], 0,
+        "Mount(0): NAS -> smb://nas/docs\nVolume(0): Pixel\n  Type: GProxyVolume (GProxyVolumeMonitorMTP)\n  activation_root=mtp://pixel/\n  can_mount=1\nMount(1): Pixel -> mtp://pixel/\n");
+    f.settle(|f| {
+        f.read(|picker| {
+            picker
+                .rail
+                .labels
+                .iter()
+                .any(|label| label.as_ref() == "Renamed NAS")
+        })
+    });
 }
 
 #[gpui::test]
