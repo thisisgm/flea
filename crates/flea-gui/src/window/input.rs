@@ -346,8 +346,8 @@ impl Shell {
         } else if action == "eject" {
             self.release_device(false, cx);
         } else if action == "print" {
-            // keys.toml's ctrl-p row, which the menu's Print… row also shows as its hint.
-            return self.output_print_key(window, cx);
+            // keys.toml's ctrl-p row (the menu's Print… hint); Print claims a refusal as well as an opened card.
+            self.output_print_key(window, cx);
         } else if action == flea::ui_logic_custom_actions::agent::ID {
             self.agent_key(cx);
         } else if let Some(view) = match action {

@@ -34,9 +34,20 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
             shell.open_settings(window, cx);
             shell.settings.panel.clone().unwrap()
         });
-        view.update(vcx, |view, cx| {
-            view.panel.show_section(section.id);
-            cx.notify();
+        shell.update(vcx, |shell, cx| {
+            // Set the section and its fixed About state together, before observers can start desktop probes.
+            shell.settings.about_open = section.id == "about";
+            view.update(cx, |view, cx| {
+                if section.id == "about" {
+                    view.panel.make_default = crate::g2::settings_pages::claim::Claim {
+                        probed: true,
+                        ..Default::default()
+                    }
+                    .rows();
+                }
+                view.panel.show_section(section.id);
+                cx.notify();
+            });
         });
         frames(
             &format!("settings-{}", section.id),
@@ -109,7 +120,8 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
         panel
     });
     let view = panel.read_with(vcx, |panel, _| panel.plugins.clone().unwrap());
-    vcx.simulate_resize(size(px(462.), px(656.)));
+    // 0401-settings-wide-b: keep the 630px floor and both 8px margins visible.
+    vcx.simulate_resize(size(px(646.), px(656.)));
     view.update(vcx, |view, cx| view.receive(&listing, cx));
     frames("plugins-checkboxes", &shell, vcx, corner, &[18.]);
     view.update(vcx, |view, cx| {
