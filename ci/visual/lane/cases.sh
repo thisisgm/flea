@@ -19,7 +19,7 @@ print_card() {
     chmod +x "$bin/lpstat" "$bin/lpoptions" || return 1
     export PATH="$bin:$PATH"
     launch list "$W/Docs" || return 1
-    cursor_to notes.txt || return 1
+    cursor_to report.pdf || return 1
     key -M ctrl p -m ctrl || return 1
     for attempt in $(seq 1 60); do
         [ -f "$VISUAL_PRINT_QUERY_DONE" ] && break
@@ -238,7 +238,7 @@ case_cols_density_pictures_end() (
     local root=$C/pictures last=119 decode_limit=100 poll_seconds=0.1 i attempt
     mkdir -p "$root" || return 1
     : > "$root/.flea-test-sandbox" || return 1
-    for i in $(seq -f %03g 0 "$last"); do cp "$W/Media/photo.png" "$root/picture-$i.png" || return 1; done
+    for i in $(seq -f %03g 0 "$last"); do ln "$W/Media/photo.png" "$root/picture-$i.png" || return 1; done
     LAUNCH_STATE=',"density":"comfortable","display":{"textSize":{"mode":14}}' launch columns "$root" || return 1
     wait_ipc bodyPx 14 || return 1
     key G
