@@ -305,3 +305,6 @@ fn a_backend_plugin_route_records_the_line_it_takes() {
     route.answered(line);
     assert!(!backend.transfers_on("/media/s"));
 }
+
+#[path = "transfers_kind_tests.rs"]
+mod kind;

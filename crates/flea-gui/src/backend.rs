@@ -17,7 +17,7 @@ mod transport;
 pub use transport::list_line;
 
 pub mod status;
-mod transfers;
+pub(crate) mod transfers;
 mod worker;
 
 #[derive(Clone, Debug)]

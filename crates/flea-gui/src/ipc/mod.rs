@@ -15,6 +15,7 @@ pub mod grid;
 pub(crate) mod grid_rows;
 pub(crate) mod keyboard_state;
 pub(crate) mod main_cohesion;
+mod menu_cards;
 pub mod native_window;
 pub mod navigation;
 pub(crate) mod network;

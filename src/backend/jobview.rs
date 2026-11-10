@@ -2,19 +2,38 @@
 use super::jobs::{Job, State};
 use crate::json::escape;
 
-// A job or a shelf drop names every path it reads or writes once, so an eject can wait for it.
-pub(crate) fn roots_line(id: usize, job: bool, paths: &[String]) -> String {
+// A job or a shelf drop names every path it reads or writes once, and its kind, so an eject can wait for it and say what it waits for.
+pub(crate) fn roots_line(
+    id: usize,
+    job: bool,
+    kind: &str,
+    request: Option<usize>,
+    paths: &[String],
+) -> String {
     let paths: Vec<_> = paths
         .iter()
         .map(|path| format!("\"{}\"", escape(path)))
         .collect();
+    let request = request
+        .map(|request| format!(r#","requestId":{request}"#))
+        .unwrap_or_default();
     format!(
-        r#"{{"t":"roots","id":{id},"job":{job},"paths":[{}]}}"#,
+        r#"{{"t":"roots","id":{id},"job":{job},"kind":"{}"{request},"paths":[{}]}}"#,
+        escape(kind),
         paths.join(",")
     )
 }
 
 impl super::jobwork::Work {
+    // The id of the send request that started this work, which its client holds the paths under until the roots line lands.
+    pub(crate) fn request(&self) -> Option<usize> {
+        match self {
+            Self::Send { request, .. } => Some(*request),
+            Self::Rclone(send) => Some(send.request),
+            _ => None,
+        }
+    }
+
     // Every path the work reads or writes, which a client checks before it releases a volume.
     pub(crate) fn roots(&self) -> Vec<String> {
         let (paths, selection, written) = match self {

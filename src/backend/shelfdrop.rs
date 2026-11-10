@@ -56,10 +56,11 @@ fn start_from(
     // The client sent only the token, so the shelf's own entries are named for its eject check.
     let mut roots = redeemed.paths.clone();
     roots.push(dest.to_string_lossy().into_owned());
+    let kind = if redeemed.moving { "move" } else { "copy" };
     writeln!(
         out,
         "{}",
-        crate::backend::jobview::roots_line(id, false, &roots)
+        crate::backend::jobview::roots_line(id, false, kind, None, &roots)
     )
     .ok();
     out.flush().ok();
@@ -194,44 +195,50 @@ mod tests {
 
     #[test]
     fn a_drop_names_the_shelf_entries_it_reads_and_the_folder_it_writes() {
-        let root = TestDir::new("shelf-drop-roots");
-        root.dir("stick");
-        let photo = root
-            .file("stick/photo.jpg", "jpeg")
-            .to_string_lossy()
-            .into_owned();
-        let dest = root.dir("home");
-        let shelf = Shelf::at(&root.join("state"));
-        let token = shelf
-            .drag_begin(false, std::slice::from_ref(&photo), crate::shelf::now_ms())
-            .unwrap();
-        let (tx, rx) = std::sync::mpsc::channel();
-        let mut ops = Ops::new(tx);
-        let mut out = Vec::new();
-        start_from(
-            &mut out,
-            &mut ops,
-            move || Ok(shelf),
-            &token,
-            dest.to_str().unwrap(),
-            Ask::parse(r#"{"c":"transfer"}"#),
-        );
-        let text = String::from_utf8(out).unwrap();
-        let roots = text
-            .lines()
-            .find(|line| line.starts_with(r#"{"t":"roots""#))
-            .unwrap_or_default();
-        assert!(roots.contains(r#""job":false"#), "a drop is no job: {text}");
-        assert_eq!(
-            crate::json::field_str_array(roots, "paths"),
-            [photo, dest.to_string_lossy().into_owned()],
-            "{text}"
-        );
-        while !matches!(
-            rx.recv_timeout(std::time::Duration::from_secs(10))
-                .expect("the drop ends"),
-            OpMsg::TransferDone { .. }
-        ) {}
+        for (moving, kind) in [(false, "copy"), (true, "move")] {
+            let root = TestDir::new(&format!("shelf-drop-roots-{kind}"));
+            root.dir("stick");
+            let photo = root
+                .file("stick/photo.jpg", "jpeg")
+                .to_string_lossy()
+                .into_owned();
+            let dest = root.dir("home");
+            let shelf = Shelf::at(&root.join("state"));
+            let token = shelf
+                .drag_begin(moving, std::slice::from_ref(&photo), crate::shelf::now_ms())
+                .unwrap();
+            let (tx, rx) = std::sync::mpsc::channel();
+            let mut ops = Ops::new(tx);
+            let mut out = Vec::new();
+            start_from(
+                &mut out,
+                &mut ops,
+                move || Ok(shelf),
+                &token,
+                dest.to_str().unwrap(),
+                Ask::parse(r#"{"c":"transfer"}"#),
+            );
+            let text = String::from_utf8(out).unwrap();
+            let roots = text
+                .lines()
+                .find(|line| line.starts_with(r#"{"t":"roots""#))
+                .unwrap_or_default();
+            assert!(roots.contains(r#""job":false"#), "a drop is no job: {text}");
+            assert!(
+                roots.contains(&format!(r#""kind":"{kind}""#)),
+                "a drop names its kind: {text}"
+            );
+            assert_eq!(
+                crate::json::field_str_array(roots, "paths"),
+                [photo, dest.to_string_lossy().into_owned()],
+                "{text}"
+            );
+            while !matches!(
+                rx.recv_timeout(std::time::Duration::from_secs(10))
+                    .expect("the drop ends"),
+                OpMsg::TransferDone { .. }
+            ) {}
+        }
     }
 
     #[test]

@@ -134,11 +134,13 @@ mod tests {
         );
     }
 
-    fn roots(out: &[u8]) -> Vec<Vec<String>> {
+    fn roots(out: &[u8], kind: &str) -> Vec<Vec<String>> {
+        let named = format!(r#""kind":"{kind}","paths""#);
         String::from_utf8_lossy(out)
             .lines()
             .filter(|line| line.starts_with(r#"{"t":"roots""#))
             .inspect(|line| assert!(line.contains(r#""job":true"#), "a job names itself: {line}"))
+            .inspect(|line| assert!(line.contains(&named), "a job names its kind: {line}"))
             .map(|line| crate::json::field_str_array(line, "paths"))
             .collect()
     }
@@ -149,49 +151,52 @@ mod tests {
             println!("SKIP a_job_and_its_retry_each_name_the_paths_they_read_and_write: root bypasses mode 0o500");
             return;
         }
-        let root = TestDir::new("job-roots-retry");
-        let source = root.file("source", "payload");
-        let dest = root.dir("readonly");
-        std::fs::set_permissions(&dest, std::fs::Permissions::from_mode(0o500)).unwrap();
-        let (tx, rx) = channel();
-        let mut ops = Ops::new(tx);
-        let mut out = Vec::new();
-        let named = vec![source.to_string_lossy().into_owned()];
-        let ask = crate::backend::collide::Ask::parse("{}");
-        start_transfer_checked(
-            &mut out,
-            &mut ops,
-            "copy",
-            named,
-            dest.to_str().unwrap(),
-            None,
-            None,
-            ask,
-        );
-        let both = vec![
-            dest.to_string_lossy().into_owned(),
-            source.to_string_lossy().into_owned(),
-        ];
-        assert_eq!(
-            roots(&out),
-            std::slice::from_ref(&both),
-            "{}",
-            String::from_utf8_lossy(&out)
-        );
-        settle(&mut ops, &mut out, &rx);
-        std::fs::set_permissions(&dest, std::fs::Permissions::from_mode(0o700)).unwrap();
-        out.clear();
-        let request = format!(
-            r#"{{"c":"jobs","op":"retry","id":{}}}"#,
-            ops.jobs.rows[0].id
-        );
-        let _ = crate::backend::jobevents::request(&mut out, &mut ops, &request);
-        assert_eq!(
-            roots(&out),
-            [both],
-            "a retry runs again, so it names its paths again"
-        );
-        settle(&mut ops, &mut out, &rx);
+        // A retry names its job's own kind, so a move's retry says move.
+        for kind in ["copy", "move"] {
+            let root = TestDir::new(&format!("job-roots-retry-{kind}"));
+            let source = root.file("source", "payload");
+            let dest = root.dir("readonly");
+            std::fs::set_permissions(&dest, std::fs::Permissions::from_mode(0o500)).unwrap();
+            let (tx, rx) = channel();
+            let mut ops = Ops::new(tx);
+            let mut out = Vec::new();
+            let named = vec![source.to_string_lossy().into_owned()];
+            let ask = crate::backend::collide::Ask::parse("{}");
+            start_transfer_checked(
+                &mut out,
+                &mut ops,
+                kind,
+                named,
+                dest.to_str().unwrap(),
+                None,
+                None,
+                ask,
+            );
+            let both = vec![
+                dest.to_string_lossy().into_owned(),
+                source.to_string_lossy().into_owned(),
+            ];
+            assert_eq!(
+                roots(&out, kind),
+                std::slice::from_ref(&both),
+                "{}",
+                String::from_utf8_lossy(&out)
+            );
+            settle(&mut ops, &mut out, &rx);
+            std::fs::set_permissions(&dest, std::fs::Permissions::from_mode(0o700)).unwrap();
+            out.clear();
+            let request = format!(
+                r#"{{"c":"jobs","op":"retry","id":{}}}"#,
+                ops.jobs.rows[0].id
+            );
+            let _ = crate::backend::jobevents::request(&mut out, &mut ops, &request);
+            assert_eq!(
+                roots(&out, kind),
+                [both],
+                "a retry runs again, so it names its paths again"
+            );
+            settle(&mut ops, &mut out, &rx);
+        }
     }
 
     #[test]
@@ -232,12 +237,60 @@ mod tests {
             .collect();
         expected.sort();
         assert_eq!(
-            roots(&out),
+            roots(&out, "copy"),
             [expected],
             "rows from two folders, as search results are: {}",
             String::from_utf8_lossy(&out)
         );
         settle(&mut ops, &mut out, &rx);
+    }
+
+    #[test]
+    fn a_send_job_names_its_kind_and_the_request_that_started_it() {
+        use crate::backend::jobwork::{Spec, Work};
+        let (tx, _rx) = channel();
+        let mut ops = Ops::new(tx);
+        let mut out = Vec::new();
+        let paths = vec!["/nonexistent/flea-send-roots/a.png".to_string()];
+        // An empty captured selection fails the send before it runs anything.
+        let local = Work::Send {
+            peer: "Desk".into(),
+            name: String::new(),
+            paths: paths.clone(),
+            request: 7,
+            selection: Some(Vec::new()),
+            airdrop: false,
+        };
+        let spec = Spec {
+            kind: "send",
+            label: "Sending",
+            target: None,
+        };
+        ops.jobs
+            .submit(&mut out, 3, spec, local, &ops.detached, &ops.tx);
+        let text = String::from_utf8_lossy(&out);
+        let roots = text
+            .lines()
+            .find(|line| line.starts_with(r#"{"t":"roots""#));
+        assert_eq!(
+            roots,
+            Some(
+                r#"{"t":"roots","id":3,"job":true,"kind":"send","requestId":7,"paths":["/nonexistent/flea-send-roots/a.png"]}"#
+            ),
+            "{text}"
+        );
+        let rclone = Work::Rclone(crate::backend::rclonerun::Send {
+            remote: "gdrive".into(),
+            folder: String::new(),
+            paths,
+            request: 9,
+            selection: None,
+        });
+        assert_eq!(
+            rclone.request(),
+            Some(9),
+            "an rclone send names its request too"
+        );
     }
 
     #[test]

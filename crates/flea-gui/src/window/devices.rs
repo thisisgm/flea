@@ -1,4 +1,5 @@
 //! The window side of a device release: Ctrl+E, the eject mark and the quiesce that comes before the release child.
+use crate::backend::transfers::Kind;
 use crate::g2::device_rail::devices::Moved;
 use crate::state::Shell;
 use flea::ui_logic_device_rail::{mounts::inside, Note};
@@ -87,13 +88,17 @@ impl Shell {
         origin: u64,
         cx: &mut Context<Self>,
     ) {
-        if !row.path.is_empty() && self.transfer_where(&|path| inside(path, &row.path)) {
+        let held = !row.path.is_empty();
+        if let Some(kind) = held
+            .then(|| self.transfer_where(&|path| inside(path, &row.path)))
+            .flatten()
+        {
             let label = if row.label.is_empty() {
                 &row.path
             } else {
                 &row.label
             };
-            self.say_device_note(Note::new("device.transfer_running", &[label]), cx);
+            self.say_device_note(Note::new(kind.refusal(), &[label]), cx);
             return;
         }
         let Some(network) = self.network() else {
@@ -113,8 +118,8 @@ impl Shell {
         label: &str,
         cx: &mut Context<Self>,
     ) {
-        if self.transfer_where(&|path| on_phone(path, uri)) {
-            self.say_device_note(Note::new("device.transfer_running", &[label]), cx);
+        if let Some(kind) = self.transfer_where(&|path| on_phone(path, uri)) {
+            self.say_device_note(Note::new(kind.refusal(), &[label]), cx);
             return;
         }
         if let Some(join) = &self.rail {
@@ -146,8 +151,8 @@ impl Shell {
     ) {
         let side = side.min(1);
         let source = self.rail.as_ref().map(|join| join.devices.clone());
-        if let Some(label) = self.transfer_on(volume, cx) {
-            let note = Note::new("device.transfer_running", &[&label]);
+        if let Some((label, kind)) = self.transfer_on(volume, cx) {
+            let note = Note::new(kind.refusal(), &[&label]);
             if let Some(source) = source {
                 source.update(cx, |source, cx| source.refused(note, cx));
             }
@@ -212,28 +217,31 @@ impl Shell {
         }
     }
 
-    /// The shown name of a volume the release takes down that a transfer of this window reads or writes, if any.
-    fn transfer_on(&self, volume: &str, cx: &mut Context<Self>) -> Option<String> {
+    /// The shown name of a volume the release takes down that a transfer of this window reads or writes, and that transfer's kind, if any.
+    fn transfer_on(&self, volume: &str, cx: &mut Context<Self>) -> Option<(String, Kind)> {
         let devices = &self.rail.as_ref()?.devices.read(cx).devices;
         let volumes = devices.release_volumes(volume);
-        let busy = volumes.iter().find(|volume| {
-            !volume.is_empty() && self.transfer_where(&|path| inside(path, volume))
-        })?;
+        let (busy, kind) = volumes
+            .iter()
+            .filter(|volume| !volume.is_empty())
+            .find_map(|volume| {
+                Some((volume, self.transfer_where(&|path| inside(path, volume))?))
+            })?;
         let label = devices
             .entries
             .iter()
             .find(|entry| entry.path == *busy)
             .map(|entry| entry.label.clone());
-        Some(label.unwrap_or_else(|| busy.clone()))
+        Some((label.unwrap_or_else(|| busy.clone()), kind))
     }
 
-    /// Whether a transfer of this window, sent and not yet refused or ended, names a path `on` accepts.
-    fn transfer_where(&self, on: &dyn Fn(&str) -> bool) -> bool {
+    /// The kind of a transfer of this window, sent and not yet refused or ended, that names a path `on` accepts.
+    fn transfer_where(&self, on: &dyn Fn(&str) -> bool) -> Option<Kind> {
         self.panes
             .iter()
             .flatten()
             .filter_map(|host| host.backend.as_ref())
-            .any(|backend| backend.transfers_where(on))
+            .find_map(|backend| backend.transfers_where(on))
     }
 
     /// A refused release puts each pane it moved back in the folder it left, unless the pane has been sent elsewhere since.

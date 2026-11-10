@@ -1,9 +1,9 @@
 {
-  "catalog_file_sha256": "2a107ad4df93b221274b47ff9b2c7a856b7c8f72a55faeafda89c53f52bb0f33",
-  "catalog_sha256": "151d197a56bce36c4892789455549772a29c818293b2ba137e651afd7c101e5c",
+  "catalog_file_sha256": "9bb2404cfb6e2aa11514a4994bc9d65d1fd4a739ce1c46559025a2f0cc941c63",
+  "catalog_sha256": "44aad563e3eec1d2d2db1a6851922fbda4f50a8600cc96b6e8dbb38cdb840d62",
   "counts": {
     "direct_references": 0,
-    "keys": 2296,
+    "keys": 2300,
     "plurals": 111
   },
   "direct_references": {},
@@ -1255,7 +1255,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "error.key",
-      "line": 169,
+      "line": 174,
       "path": "crates/flea-gui/src/window/devices.rs",
       "pattern": null,
       "possible_keys": [],
@@ -1265,7 +1265,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "refusal.key()",
-      "line": 194,
+      "line": 199,
       "path": "crates/flea-gui/src/window/devices.rs",
       "pattern": null,
       "possible_keys": [],
@@ -23268,6 +23268,37 @@
       "resolved_source_hash": "6f40f3b9f48d",
       "source_hash": "6f40f3b9f48d"
     },
+    "device.action_running": {
+      "call_sites": [
+        {
+          "excerpt": "Self::Action => \"device.action_running\",",
+          "line": 37,
+          "path": "crates/flea-gui/src/backend/transfers.rs",
+          "surface": "gui",
+          "usage": "key-declaration"
+        },
+        {
+          "excerpt": "\"device.action_running\",",
+          "line": 154,
+          "path": "src/ui_logic_device_rail.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "device.action_running: crates/flea-gui/src/backend/transfers.rs:37",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "An action on %1 is still running. Try again when it finishes.",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1"
+      ],
+      "plural_categories": [],
+      "resolved_english": "An action on %1 is still running. Try again when it finishes.",
+      "resolved_sha256": "8a2dc80e2dae9a648fb7931302adb105cba487851af5cd06a9112b5f0fcb0798",
+      "resolved_source_hash": "3004a978bc48",
+      "source_hash": "3004a978bc48"
+    },
     "device.another_mounting": {
       "call_sites": [
         {
@@ -23311,11 +23342,42 @@
       "resolved_source_hash": "001406a26d21",
       "source_hash": "001406a26d21"
     },
+    "device.archive_running": {
+      "call_sites": [
+        {
+          "excerpt": "Self::Archive => \"device.archive_running\",",
+          "line": 35,
+          "path": "crates/flea-gui/src/backend/transfers.rs",
+          "surface": "gui",
+          "usage": "key-declaration"
+        },
+        {
+          "excerpt": "\"device.archive_running\",",
+          "line": 146,
+          "path": "src/ui_logic_device_rail.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "device.archive_running: crates/flea-gui/src/backend/transfers.rs:35",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "An archive on %1 is still running. Try again when it finishes.",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1"
+      ],
+      "plural_categories": [],
+      "resolved_english": "An archive on %1 is still running. Try again when it finishes.",
+      "resolved_sha256": "fa7ca7c326d674d20a0c05abd46028f8061678475bdacd0b9d1d745d00612c8e",
+      "resolved_source_hash": "7470579f1186",
+      "source_hash": "7470579f1186"
+    },
     "device.blocked": {
       "call_sites": [
         {
           "excerpt": "\"device.blocked\",",
-          "line": 168,
+          "line": 187,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -23382,6 +23444,37 @@
       "resolved_sha256": "435317e66bcb5c61306d6433c1c31e3cde4536b034be0ead0066669f06949d2b",
       "resolved_source_hash": "2faf6417a65d",
       "source_hash": "2faf6417a65d"
+    },
+    "device.copy_running": {
+      "call_sites": [
+        {
+          "excerpt": "Self::Copy => \"device.copy_running\",",
+          "line": 33,
+          "path": "crates/flea-gui/src/backend/transfers.rs",
+          "surface": "gui",
+          "usage": "key-declaration"
+        },
+        {
+          "excerpt": "\"device.copy_running\",",
+          "line": 138,
+          "path": "src/ui_logic_device_rail.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "device.copy_running: crates/flea-gui/src/backend/transfers.rs:33",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "A copy on %1 is still running. Try again when it finishes.",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1"
+      ],
+      "plural_categories": [],
+      "resolved_english": "A copy on %1 is still running. Try again when it finishes.",
+      "resolved_sha256": "a03a8f0da8955c194d91520634d2c198d58edde6fdb7ea76ada030e1566228f3",
+      "resolved_source_hash": "18a84fb1a5fc",
+      "source_hash": "18a84fb1a5fc"
     },
     "device.damaged": {
       "call_sites": [
@@ -23556,7 +23649,7 @@
       "call_sites": [
         {
           "excerpt": "(\"device.loop_attached\", \"Unmounted %1, but its loop device is still attached.\"),",
-          "line": 145,
+          "line": 164,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -23587,7 +23680,7 @@
       "call_sites": [
         {
           "excerpt": "(\"device.menu.eject\", \"Eject\"),",
-          "line": 162,
+          "line": 181,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -23616,7 +23709,7 @@
       "call_sites": [
         {
           "excerpt": "(\"device.menu.flash_image\", \"Flash Image\"),",
-          "line": 163,
+          "line": 182,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -23645,7 +23738,7 @@
       "call_sites": [
         {
           "excerpt": "(\"device.menu.mount\", \"Mount\"),",
-          "line": 160,
+          "line": 179,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -23681,7 +23774,7 @@
         },
         {
           "excerpt": "(\"device.menu.open\", \"Open\"),",
-          "line": 158,
+          "line": 177,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -23710,7 +23803,7 @@
       "call_sites": [
         {
           "excerpt": "(\"device.menu.unlock\", \"Unlock\"),",
-          "line": 159,
+          "line": 178,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -23746,7 +23839,7 @@
         },
         {
           "excerpt": "(\"device.menu.unmount\", \"Unmount\"),",
-          "line": 161,
+          "line": 180,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -23840,6 +23933,37 @@
       "resolved_source_hash": "89c2343b5462",
       "source_hash": "89c2343b5462"
     },
+    "device.move_running": {
+      "call_sites": [
+        {
+          "excerpt": "Self::Move => \"device.move_running\",",
+          "line": 34,
+          "path": "crates/flea-gui/src/backend/transfers.rs",
+          "surface": "gui",
+          "usage": "key-declaration"
+        },
+        {
+          "excerpt": "\"device.move_running\",",
+          "line": 142,
+          "path": "src/ui_logic_device_rail.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "device.move_running: crates/flea-gui/src/backend/transfers.rs:34",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "A move on %1 is still running. Try again when it finishes.",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1"
+      ],
+      "plural_categories": [],
+      "resolved_english": "A move on %1 is still running. Try again when it finishes.",
+      "resolved_sha256": "7af56cd16d15c5302cda448c91cc9b05456b81be26530f89c1456e15fa48adf2",
+      "resolved_source_hash": "a36810bc10c0",
+      "source_hash": "a36810bc10c0"
+    },
     "device.no_disc": {
       "call_sites": [
         {
@@ -23913,7 +24037,7 @@
         },
         {
           "excerpt": "(\"device.no_volume\", \"This folder is not on a drive Flea can eject.\"),",
-          "line": 140,
+          "line": 159,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -23980,7 +24104,7 @@
         },
         {
           "excerpt": "self.say_device_note(Note::new(\"device.nothing_to_release\", &[&label]), cx);",
-          "line": 72,
+          "line": 73,
           "path": "crates/flea-gui/src/window/devices.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -24018,7 +24142,7 @@
       "call_sites": [
         {
           "excerpt": "(\"device.safe\", \"Ejected %1. It is safe to unplug.\"),",
-          "line": 141,
+          "line": 160,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -24049,7 +24173,7 @@
       "call_sites": [
         {
           "excerpt": "(\"device.safe_image\", \"Ejected %1.\"),",
-          "line": 142,
+          "line": 161,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -24075,6 +24199,37 @@
       "resolved_sha256": "1767ae6cb776e8bf8dec092c926020190b6f61504eee5004f7a52d453f08fc6b",
       "resolved_source_hash": "2ee8810376ee",
       "source_hash": "2ee8810376ee"
+    },
+    "device.send_running": {
+      "call_sites": [
+        {
+          "excerpt": "Self::Send => \"device.send_running\",",
+          "line": 36,
+          "path": "crates/flea-gui/src/backend/transfers.rs",
+          "surface": "gui",
+          "usage": "key-declaration"
+        },
+        {
+          "excerpt": "\"device.send_running\",",
+          "line": 150,
+          "path": "src/ui_logic_device_rail.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "device.send_running: crates/flea-gui/src/backend/transfers.rs:36",
+      "coverage": "occurrence-needs-owner-verification",
+      "english": "A send on %1 is still running. Try again when it finishes.",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [
+        "%1"
+      ],
+      "plural_categories": [],
+      "resolved_english": "A send on %1 is still running. Try again when it finishes.",
+      "resolved_sha256": "d0cbf6eb49a848a02ff60d3cf9cde8aeb9f578ad5a20d464762aa7068f662bd6",
+      "resolved_source_hash": "3397778f89cf",
+      "source_hash": "3397778f89cf"
     },
     "device.still_ejecting": {
       "call_sites": [
@@ -24132,7 +24287,7 @@
       "call_sites": [
         {
           "excerpt": "(\"device.still_mounted\", \"%1 is still mounted; close what is using it.\"),",
-          "line": 143,
+          "line": 162,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -24239,7 +24394,7 @@
       "call_sites": [
         {
           "excerpt": "(\"device.system_drive\", \"%1 is the system drive, which Flea never unmounts\"),",
-          "line": 138,
+          "line": 157,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -24270,7 +24425,7 @@
       "call_sites": [
         {
           "excerpt": "(\"device.system_volume\", \"This folder is on a system volume, which Flea never unmounts\"),",
-          "line": 139,
+          "line": 158,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -24294,51 +24449,6 @@
       "resolved_sha256": "74d10b5c8538905805aa34d4041998dcda36ceed8d019665860c40ecb307892c",
       "resolved_source_hash": "458704e4be8c",
       "source_hash": "458704e4be8c"
-    },
-    "device.transfer_running": {
-      "call_sites": [
-        {
-          "excerpt": "self.say_device_note(Note::new(\"device.transfer_running\", &[label]), cx);",
-          "line": 96,
-          "path": "crates/flea-gui/src/window/devices.rs",
-          "surface": "gui",
-          "usage": "key-declaration"
-        },
-        {
-          "excerpt": "self.say_device_note(Note::new(\"device.transfer_running\", &[label]), cx);",
-          "line": 117,
-          "path": "crates/flea-gui/src/window/devices.rs",
-          "surface": "gui",
-          "usage": "key-declaration"
-        },
-        {
-          "excerpt": "let note = Note::new(\"device.transfer_running\", &[&label]);",
-          "line": 150,
-          "path": "crates/flea-gui/src/window/devices.rs",
-          "surface": "gui",
-          "usage": "key-declaration"
-        },
-        {
-          "excerpt": "(\"device.transfer_running\", \"A copy on %1 is still running. Try again when it finishes.\"),",
-          "line": 137,
-          "path": "src/ui_logic_device_rail.rs",
-          "surface": "core/backend",
-          "usage": "key-declaration"
-        }
-      ],
-      "context": "device.transfer_running: crates/flea-gui/src/window/devices.rs:104",
-      "coverage": "occurrence-needs-owner-verification",
-      "english": "A copy on %1 is still running. Try again when it finishes.",
-      "kind": "text",
-      "omarchy_reference": null,
-      "placeholders": [
-        "%1"
-      ],
-      "plural_categories": [],
-      "resolved_english": "A copy on %1 is still running. Try again when it finishes.",
-      "resolved_sha256": "a03a8f0da8955c194d91520634d2c198d58edde6fdb7ea76ada030e1566228f3",
-      "resolved_source_hash": "18a84fb1a5fc",
-      "source_hash": "18a84fb1a5fc"
     },
     "device.transfer_using": {
       "call_sites": [
@@ -24375,7 +24485,7 @@
       "call_sites": [
         {
           "excerpt": "(\"device.unconfirmed\", \"Could not confirm %1 was ejected; do not unplug it yet.\"),",
-          "line": 144,
+          "line": 163,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -24413,7 +24523,7 @@
         },
         {
           "excerpt": "(\"device.unlock.button\", \"Unlock\"),",
-          "line": 156,
+          "line": 175,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -24442,7 +24552,7 @@
         },
         {
           "excerpt": "(\"device.unlock.cancel\", \"Cancel\"),",
-          "line": 157,
+          "line": 176,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -24464,7 +24574,7 @@
       "call_sites": [
         {
           "excerpt": "(\"device.unlock.failed\", \"%1 could not be unlocked.\"),",
-          "line": 152,
+          "line": 171,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -24495,7 +24605,7 @@
       "call_sites": [
         {
           "excerpt": "(\"device.unlock.lock_failed\", \"%1 was unmounted but could not be locked; close what is using it.\"),",
-          "line": 150,
+          "line": 169,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -24526,7 +24636,7 @@
       "call_sites": [
         {
           "excerpt": "(\"device.unlock.mount_failed\", \"%1 was unlocked but could not be mounted.\"),",
-          "line": 151,
+          "line": 170,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -24564,7 +24674,7 @@
         },
         {
           "excerpt": "(\"device.unlock.passphrase\", \"Passphrase\"),",
-          "line": 155,
+          "line": 174,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -24586,7 +24696,7 @@
       "call_sites": [
         {
           "excerpt": "(\"device.unlock.subtitle_three\", \"%1 · %2 · %3\"),",
-          "line": 153,
+          "line": 172,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -24619,7 +24729,7 @@
       "call_sites": [
         {
           "excerpt": "(\"device.unlock.subtitle_two\", \"%1 · %2\"),",
-          "line": 154,
+          "line": 173,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -24658,7 +24768,7 @@
       "call_sites": [
         {
           "excerpt": "(\"device.unlock.title\", \"Unlock %1\"),",
-          "line": 146,
+          "line": 165,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -24689,7 +24799,7 @@
       "call_sites": [
         {
           "excerpt": "(\"device.unlock.unlocked\", \"Unlocked and mounted %1.\"),",
-          "line": 149,
+          "line": 168,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -24720,7 +24830,7 @@
       "call_sites": [
         {
           "excerpt": "(\"device.unlock.unlocking\", \"Unlocking %1…\"),",
-          "line": 147,
+          "line": 166,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -24751,7 +24861,7 @@
       "call_sites": [
         {
           "excerpt": "(\"device.unlock.wrong\", \"That passphrase did not work. Check Caps Lock.\"),",
-          "line": 148,
+          "line": 167,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -124713,7 +124823,7 @@
     },
     {
       "excerpt": "format!(\"FLEA_IPC_ERROR flea.{function} unavailable fields: {fields} (GPUI does not record the card's painted bounds)\"),",
-      "line": 26,
+      "line": 25,
       "literal": "FLEA_IPC_ERROR flea.{function} unavailable fields: {fields} (GPUI does not record the card's painted bounds)",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/ipc/dialog_cards.rs",
@@ -124722,7 +124832,7 @@
     },
     {
       "excerpt": "(\"unavailable\", Json::Str(\"rect, controls\".into())),",
-      "line": 115,
+      "line": 117,
       "literal": "unavailable",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/ipc/dialog_cards.rs",
@@ -124731,7 +124841,7 @@
     },
     {
       "excerpt": "(\"Field\", Stop::Search, true),",
-      "line": 153,
+      "line": 155,
       "literal": "Field",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/ipc/dialog_cards.rs",
@@ -124740,7 +124850,7 @@
     },
     {
       "excerpt": "(\"Applications\", Stop::List, true),",
-      "line": 154,
+      "line": 156,
       "literal": "Applications",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/ipc/dialog_cards.rs",
@@ -124749,7 +124859,7 @@
     },
     {
       "excerpt": "(\"Always\", Stop::Always, true),",
-      "line": 155,
+      "line": 157,
       "literal": "Always",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/ipc/dialog_cards.rs",
@@ -124758,7 +124868,7 @@
     },
     {
       "excerpt": "(\"Cancel\", Stop::Cancel, true),",
-      "line": 156,
+      "line": 158,
       "literal": "Cancel",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/ipc/dialog_cards.rs",
@@ -124767,26 +124877,8 @@
     },
     {
       "excerpt": "(\"Open\", Stop::Open, card.can_open()),",
-      "line": 157,
+      "line": 159,
       "literal": "Open",
-      "owner": "I50-07",
-      "path": "crates/flea-gui/src/ipc/dialog_cards.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "gui"
-    },
-    {
-      "excerpt": "(\"cancel\", control(\"Cancel\", Button::Cancel)),",
-      "line": 305,
-      "literal": "Cancel",
-      "owner": "I50-07",
-      "path": "crates/flea-gui/src/ipc/dialog_cards.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "gui"
-    },
-    {
-      "excerpt": "(\"danger\", control(\"Delete\", Button::Delete)),",
-      "line": 306,
-      "literal": "Delete",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/ipc/dialog_cards.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -124915,6 +125007,60 @@
       "literal": "Row",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/ipc/main_cohesion.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "\"Cancel\",",
+      "line": 116,
+      "literal": "Cancel",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/ipc/menu_cards.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "\"Submit\",",
+      "line": 123,
+      "literal": "Submit",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/ipc/menu_cards.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "(\"name\", Json::Str(\"Field\".into())),",
+      "line": 129,
+      "literal": "Field",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/ipc/menu_cards.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "\"unavailable\",",
+      "line": 135,
+      "literal": "unavailable",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/ipc/menu_cards.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "(\"cancel\", control(\"Cancel\", Button::Cancel)),",
+      "line": 229,
+      "literal": "Cancel",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/ipc/menu_cards.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "(\"danger\", control(\"Delete\", Button::Delete)),",
+      "line": 230,
+      "literal": "Delete",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/ipc/menu_cards.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "gui"
     },
@@ -142695,7 +142841,7 @@
     },
     {
       "excerpt": "job.reason = \"checking target\".into();",
-      "line": 314,
+      "line": 315,
       "literal": "checking target",
       "owner": "controller",
       "path": "src/backend/jobevents.rs",
@@ -142704,7 +142850,7 @@
     },
     {
       "excerpt": "\"That job can no longer be undone.\".to_string()",
-      "line": 337,
+      "line": 338,
       "literal": "That job can no longer be undone.",
       "owner": "controller",
       "path": "src/backend/jobevents.rs",
@@ -142713,7 +142859,7 @@
     },
     {
       "excerpt": "_ => \"Unknown jobs request.\".into(),",
-      "line": 339,
+      "line": 340,
       "literal": "Unknown jobs request.",
       "owner": "controller",
       "path": "src/backend/jobevents.rs",
@@ -142722,7 +142868,7 @@
     },
     {
       "excerpt": "let work = job.work.as_mut().ok_or(\"This job cannot be retried.\")?;",
-      "line": 347,
+      "line": 348,
       "literal": "This job cannot be retried.",
       "owner": "controller",
       "path": "src/backend/jobevents.rs",
@@ -142749,7 +142895,7 @@
     },
     {
       "excerpt": "\"copy\" => \"Copy failed\".into(),",
-      "line": 75,
+      "line": 94,
       "literal": "Copy failed",
       "owner": "controller",
       "path": "src/backend/jobview.rs",
@@ -142758,7 +142904,7 @@
     },
     {
       "excerpt": "\"move\" => \"Move failed\".into(),",
-      "line": 76,
+      "line": 95,
       "literal": "Move failed",
       "owner": "controller",
       "path": "src/backend/jobview.rs",
@@ -142767,7 +142913,7 @@
     },
     {
       "excerpt": "\"send\" => \"Send failed\".into(),",
-      "line": 77,
+      "line": 96,
       "literal": "Send failed",
       "owner": "controller",
       "path": "src/backend/jobview.rs",
@@ -142776,7 +142922,7 @@
     },
     {
       "excerpt": "\"compress\" => \"Compression failed\".into(),",
-      "line": 78,
+      "line": 97,
       "literal": "Compression failed",
       "owner": "controller",
       "path": "src/backend/jobview.rs",
@@ -142785,7 +142931,7 @@
     },
     {
       "excerpt": "\"extract\" => \"Extraction failed\".into(),",
-      "line": 79,
+      "line": 98,
       "literal": "Extraction failed",
       "owner": "controller",
       "path": "src/backend/jobview.rs",
@@ -142794,7 +142940,7 @@
     },
     {
       "excerpt": "\"emptyTrash\" => \"Emptying Trash failed\".into(),",
-      "line": 80,
+      "line": 99,
       "literal": "Emptying Trash failed",
       "owner": "controller",
       "path": "src/backend/jobview.rs",
@@ -142803,7 +142949,7 @@
     },
     {
       "excerpt": "return format!(\"Checking {} items on {}\", self.total, self.target);",
-      "line": 85,
+      "line": 104,
       "literal": "Checking {} items on {}",
       "owner": "controller",
       "path": "src/backend/jobview.rs",
@@ -142812,7 +142958,7 @@
     },
     {
       "excerpt": "\"Extracting\".into()",
-      "line": 92,
+      "line": 111,
       "literal": "Extracting",
       "owner": "controller",
       "path": "src/backend/jobview.rs",
@@ -142821,7 +142967,7 @@
     },
     {
       "excerpt": "return \"Emptying Trash\".into();",
-      "line": 98,
+      "line": 117,
       "literal": "Emptying Trash",
       "owner": "controller",
       "path": "src/backend/jobview.rs",
@@ -142830,7 +142976,7 @@
     },
     {
       "excerpt": "\"copy\" => format!(\"Copy {} items to {}\", self.total, self.target),",
-      "line": 102,
+      "line": 121,
       "literal": "Copy {} items to {}",
       "owner": "controller",
       "path": "src/backend/jobview.rs",
@@ -142839,7 +142985,7 @@
     },
     {
       "excerpt": "\"move\" => format!(\"Move {} items to {}\", self.total, self.target),",
-      "line": 103,
+      "line": 122,
       "literal": "Move {} items to {}",
       "owner": "controller",
       "path": "src/backend/jobview.rs",
@@ -142848,7 +142994,7 @@
     },
     {
       "excerpt": "\"compress\" => format!(\"Compress {} items to {}\", self.total, self.target),",
-      "line": 104,
+      "line": 123,
       "literal": "Compress {} items to {}",
       "owner": "controller",
       "path": "src/backend/jobview.rs",
@@ -142857,7 +143003,7 @@
     },
     {
       "excerpt": "\"not checked\"",
-      "line": 177,
+      "line": 196,
       "literal": "not checked",
       "owner": "controller",
       "path": "src/backend/jobview.rs",
@@ -161082,7 +161228,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: the shelf kept its references ({})\", e);",
-      "line": 108,
+      "line": 109,
       "literal": "flea: the shelf kept its references ({})",
       "owner": "controller",
       "path": "src/backend/shelfdrop.rs",
@@ -161091,7 +161237,7 @@
     },
     {
       "excerpt": "eprintln!(\"flea: the shelf's own bookkeeping stopped before it finished\");",
-      "line": 131,
+      "line": 132,
       "literal": "flea: the shelf's own bookkeeping stopped before it finished",
       "owner": "controller",
       "path": "src/backend/shelfdrop.rs",
@@ -161100,7 +161246,7 @@
     },
     {
       "excerpt": "assert!(line.contains(r#\"\"msg\":\"an operation is already running\"\"#), \"{}\", line);",
-      "line": 192,
+      "line": 193,
       "literal": "\"msg\":\"an operation is already running\"",
       "owner": "controller",
       "path": "src/backend/shelfdrop.rs",
@@ -161109,7 +161255,7 @@
     },
     {
       "excerpt": "assert!(roots.contains(r#\"\"job\":false\"#), \"a drop is no job: {text}\");",
-      "line": 224,
+      "line": 226,
       "literal": "a drop is no job: {text}",
       "owner": "controller",
       "path": "src/backend/shelfdrop.rs",
@@ -161117,8 +161263,17 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "\"a drop names its kind: {text}\"",
+      "line": 229,
+      "literal": "a drop names its kind: {text}",
+      "owner": "controller",
+      "path": "src/backend/shelfdrop.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": ".expect(\"the drop ends\"),",
-      "line": 232,
+      "line": 238,
       "literal": "the drop ends",
       "owner": "controller",
       "path": "src/backend/shelfdrop.rs",
@@ -161127,7 +161282,7 @@
     },
     {
       "excerpt": "\"the one that failed stays on the shelf\");",
-      "line": 242,
+      "line": 249,
       "literal": "the one that failed stays on the shelf",
       "owner": "controller",
       "path": "src/backend/shelfdrop.rs",
@@ -161136,7 +161291,7 @@
     },
     {
       "excerpt": "\"a copy leaves every reference where it was\");",
-      "line": 244,
+      "line": 251,
       "literal": "a copy leaves every reference where it was",
       "owner": "controller",
       "path": "src/backend/shelfdrop.rs",
@@ -161145,7 +161300,7 @@
     },
     {
       "excerpt": "\"an engine that reported nothing settles nothing\");",
-      "line": 246,
+      "line": 253,
       "literal": "an engine that reported nothing settles nothing",
       "owner": "controller",
       "path": "src/backend/shelfdrop.rs",
@@ -161154,7 +161309,7 @@
     },
     {
       "excerpt": "\"and an index past the end names no entry\");",
-      "line": 248,
+      "line": 255,
       "literal": "and an index past the end names no entry",
       "owner": "controller",
       "path": "src/backend/shelfdrop.rs",
@@ -163008,7 +163163,7 @@
     },
     {
       "excerpt": ".inspect(|line| assert!(line.contains(r#\"\"job\":true\"#), \"a job names itself: {line}\"))",
-      "line": 141,
+      "line": 142,
       "literal": "a job names itself: {line}",
       "owner": "controller",
       "path": "src/backend/transferstart.rs",
@@ -163016,8 +163171,17 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": ".inspect(|line| assert!(line.contains(&named), \"a job names its kind: {line}\"))",
+      "line": 143,
+      "literal": "a job names its kind: {line}",
+      "owner": "controller",
+      "path": "src/backend/transferstart.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "println!(\"SKIP a_job_and_its_retry_each_name_the_paths_they_read_and_write: root bypasses mode 0o500\");",
-      "line": 149,
+      "line": 151,
       "literal": "SKIP a_job_and_its_retry_each_name_the_paths_they_read_and_write: root bypasses mode 0o500",
       "owner": "controller",
       "path": "src/backend/transferstart.rs",
@@ -163026,7 +163190,7 @@
     },
     {
       "excerpt": "\"a retry runs again, so it names its paths again\"",
-      "line": 192,
+      "line": 196,
       "literal": "a retry runs again, so it names its paths again",
       "owner": "controller",
       "path": "src/backend/transferstart.rs",
@@ -163035,7 +163199,7 @@
     },
     {
       "excerpt": "panic!(\"snapshot reply\")",
-      "line": 214,
+      "line": 219,
       "literal": "snapshot reply",
       "owner": "controller",
       "path": "src/backend/transferstart.rs",
@@ -163044,7 +163208,7 @@
     },
     {
       "excerpt": "\"rows from two folders, as search results are: {}\",",
-      "line": 237,
+      "line": 242,
       "literal": "rows from two folders, as search results are: {}",
       "owner": "controller",
       "path": "src/backend/transferstart.rs",
@@ -163052,8 +163216,35 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "peer: \"Desk\".into(),",
+      "line": 257,
+      "literal": "Desk",
+      "owner": "controller",
+      "path": "src/backend/transferstart.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "label: \"Sending\",",
+      "line": 266,
+      "literal": "Sending",
+      "owner": "controller",
+      "path": "src/backend/transferstart.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"an rclone send names its request too\"",
+      "line": 292,
+      "literal": "an rclone send names its request too",
+      "owner": "controller",
+      "path": "src/backend/transferstart.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "root.join(\"missing\").to_string_lossy().into(),",
-      "line": 253,
+      "line": 306,
       "literal": "missing",
       "owner": "controller",
       "path": "src/backend/transferstart.rs",
@@ -180773,8 +180964,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "(\"device.transfer_running\", \"A copy on %1 is still running. Try again when it finishes.\"),",
-      "line": 137,
+      "excerpt": "\"A copy on %1 is still running. Try again when it finishes.\",",
+      "line": 139,
       "literal": "A copy on %1 is still running. Try again when it finishes.",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -180782,8 +180973,44 @@
       "surface": "core/backend"
     },
     {
+      "excerpt": "\"A move on %1 is still running. Try again when it finishes.\",",
+      "line": 143,
+      "literal": "A move on %1 is still running. Try again when it finishes.",
+      "owner": "controller",
+      "path": "src/ui_logic_device_rail.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"An archive on %1 is still running. Try again when it finishes.\",",
+      "line": 147,
+      "literal": "An archive on %1 is still running. Try again when it finishes.",
+      "owner": "controller",
+      "path": "src/ui_logic_device_rail.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"A send on %1 is still running. Try again when it finishes.\",",
+      "line": 151,
+      "literal": "A send on %1 is still running. Try again when it finishes.",
+      "owner": "controller",
+      "path": "src/ui_logic_device_rail.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "\"An action on %1 is still running. Try again when it finishes.\",",
+      "line": 155,
+      "literal": "An action on %1 is still running. Try again when it finishes.",
+      "owner": "controller",
+      "path": "src/ui_logic_device_rail.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
       "excerpt": "(\"device.system_drive\", \"%1 is the system drive, which Flea never unmounts\"),",
-      "line": 138,
+      "line": 157,
       "literal": "%1 is the system drive, which Flea never unmounts",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -180792,7 +181019,7 @@
     },
     {
       "excerpt": "(\"device.system_volume\", \"This folder is on a system volume, which Flea never unmounts\"),",
-      "line": 139,
+      "line": 158,
       "literal": "This folder is on a system volume, which Flea never unmounts",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -180801,7 +181028,7 @@
     },
     {
       "excerpt": "(\"device.no_volume\", \"This folder is not on a drive Flea can eject.\"),",
-      "line": 140,
+      "line": 159,
       "literal": "This folder is not on a drive Flea can eject.",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -180810,7 +181037,7 @@
     },
     {
       "excerpt": "(\"device.safe\", \"Ejected %1. It is safe to unplug.\"),",
-      "line": 141,
+      "line": 160,
       "literal": "Ejected %1. It is safe to unplug.",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -180819,7 +181046,7 @@
     },
     {
       "excerpt": "(\"device.safe_image\", \"Ejected %1.\"),",
-      "line": 142,
+      "line": 161,
       "literal": "Ejected %1.",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -180828,7 +181055,7 @@
     },
     {
       "excerpt": "(\"device.still_mounted\", \"%1 is still mounted; close what is using it.\"),",
-      "line": 143,
+      "line": 162,
       "literal": "%1 is still mounted; close what is using it.",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -180837,7 +181064,7 @@
     },
     {
       "excerpt": "(\"device.unconfirmed\", \"Could not confirm %1 was ejected; do not unplug it yet.\"),",
-      "line": 144,
+      "line": 163,
       "literal": "Could not confirm %1 was ejected; do not unplug it yet.",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -180846,7 +181073,7 @@
     },
     {
       "excerpt": "(\"device.loop_attached\", \"Unmounted %1, but its loop device is still attached.\"),",
-      "line": 145,
+      "line": 164,
       "literal": "Unmounted %1, but its loop device is still attached.",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -180855,7 +181082,7 @@
     },
     {
       "excerpt": "(\"device.unlock.title\", \"Unlock %1\"),",
-      "line": 146,
+      "line": 165,
       "literal": "Unlock %1",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -180864,7 +181091,7 @@
     },
     {
       "excerpt": "(\"device.unlock.unlocking\", \"Unlocking %1…\"),",
-      "line": 147,
+      "line": 166,
       "literal": "Unlocking %1…",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -180873,7 +181100,7 @@
     },
     {
       "excerpt": "(\"device.unlock.wrong\", \"That passphrase did not work. Check Caps Lock.\"),",
-      "line": 148,
+      "line": 167,
       "literal": "That passphrase did not work. Check Caps Lock.",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -180882,7 +181109,7 @@
     },
     {
       "excerpt": "(\"device.unlock.unlocked\", \"Unlocked and mounted %1.\"),",
-      "line": 149,
+      "line": 168,
       "literal": "Unlocked and mounted %1.",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -180891,7 +181118,7 @@
     },
     {
       "excerpt": "(\"device.unlock.lock_failed\", \"%1 was unmounted but could not be locked; close what is using it.\"),",
-      "line": 150,
+      "line": 169,
       "literal": "%1 was unmounted but could not be locked; close what is using it.",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -180900,7 +181127,7 @@
     },
     {
       "excerpt": "(\"device.unlock.mount_failed\", \"%1 was unlocked but could not be mounted.\"),",
-      "line": 151,
+      "line": 170,
       "literal": "%1 was unlocked but could not be mounted.",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -180909,7 +181136,7 @@
     },
     {
       "excerpt": "(\"device.unlock.failed\", \"%1 could not be unlocked.\"),",
-      "line": 152,
+      "line": 171,
       "literal": "%1 could not be unlocked.",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -180918,7 +181145,7 @@
     },
     {
       "excerpt": "(\"device.unlock.subtitle_three\", \"%1 · %2 · %3\"),",
-      "line": 153,
+      "line": 172,
       "literal": "%1 · %2 · %3",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -180927,7 +181154,7 @@
     },
     {
       "excerpt": "(\"device.unlock.subtitle_two\", \"%1 · %2\"),",
-      "line": 154,
+      "line": 173,
       "literal": "%1 · %2",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -180936,7 +181163,7 @@
     },
     {
       "excerpt": "(\"device.unlock.passphrase\", \"Passphrase\"),",
-      "line": 155,
+      "line": 174,
       "literal": "Passphrase",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -180945,7 +181172,7 @@
     },
     {
       "excerpt": "(\"device.unlock.button\", \"Unlock\"),",
-      "line": 156,
+      "line": 175,
       "literal": "Unlock",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -180954,7 +181181,7 @@
     },
     {
       "excerpt": "(\"device.unlock.cancel\", \"Cancel\"),",
-      "line": 157,
+      "line": 176,
       "literal": "Cancel",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -180963,7 +181190,7 @@
     },
     {
       "excerpt": "(\"device.menu.open\", \"Open\"),",
-      "line": 158,
+      "line": 177,
       "literal": "Open",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -180972,7 +181199,7 @@
     },
     {
       "excerpt": "(\"device.menu.unlock\", \"Unlock\"),",
-      "line": 159,
+      "line": 178,
       "literal": "Unlock",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -180981,7 +181208,7 @@
     },
     {
       "excerpt": "(\"device.menu.mount\", \"Mount\"),",
-      "line": 160,
+      "line": 179,
       "literal": "Mount",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -180990,7 +181217,7 @@
     },
     {
       "excerpt": "(\"device.menu.unmount\", \"Unmount\"),",
-      "line": 161,
+      "line": 180,
       "literal": "Unmount",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -180999,7 +181226,7 @@
     },
     {
       "excerpt": "(\"device.menu.eject\", \"Eject\"),",
-      "line": 162,
+      "line": 181,
       "literal": "Eject",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -181008,7 +181235,7 @@
     },
     {
       "excerpt": "(\"device.menu.flash_image\", \"Flash Image\"),",
-      "line": 163,
+      "line": 182,
       "literal": "Flash Image",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -181017,7 +181244,7 @@
     },
     {
       "excerpt": "\"%2 could not be ejected because %3 on the same drive is still mounted. Eject that instead.\",",
-      "line": 169,
+      "line": 188,
       "literal": "%2 could not be ejected because %3 on the same drive is still mounted. Eject that instead.",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -181026,7 +181253,7 @@
     },
     {
       "excerpt": "\"%2 could not be ejected because %3 on the same drive are still mounted. Eject those instead.\",",
-      "line": 170,
+      "line": 189,
       "literal": "%2 could not be ejected because %3 on the same drive are still mounted. Eject those instead.",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -251436,11 +251663,11 @@
     "crates/flea-gui/examples/memory-empty-shell.rs": "e7945c4ad18c759dc8f1a10f0eac99fc0a7365ef0080010d12da36a4b86496c1",
     "crates/flea-gui/examples/memory-probe.rs": "4615b8fb5e3a143bf3e04a7f83ed3f88a58101d57c41f30e9a75cfb1e1a0943c",
     "crates/flea-gui/examples/presented-probe.rs": "a5f09cf617d84e3305057651584adfb95371098272d47d4cf9953ab34813f28e",
-    "crates/flea-gui/src/backend.rs": "5ceb399e016ad4f7c7302cf8f985e63d946a63fac7fc6028c4deafc7e2e37a42",
+    "crates/flea-gui/src/backend.rs": "bd01093523ac9bb7212cdda2ef945529499b9e0c20ba9e5b84f8fd9960833fa4",
     "crates/flea-gui/src/backend/native31_fixture.rs": "145b7ab5c4284e97e798038ad206eb6e7c4c61fd7a53b1e935ad59228135e860",
     "crates/flea-gui/src/backend/plugin_route.rs": "e3cb778220dceb57d35cbab25461d5ffc7105f8e7cf699c7528871e112a90a52",
     "crates/flea-gui/src/backend/status.rs": "c5245c1deb92cb1a48015615092cae40474891c12578d1c207f49e09c1133228",
-    "crates/flea-gui/src/backend/transfers.rs": "a15cb877e97c857dacf26da069915e0e64bc4e84b5110d5d91d91a95359ad605",
+    "crates/flea-gui/src/backend/transfers.rs": "2c35be66519c5a2db529e7e32855a81de2f2042ae56a02e23dc871d07d7848bd",
     "crates/flea-gui/src/backend/transport.rs": "63696cb40395d1606ea347c71ecb9b124bc8718289c57a6c643acff50daa692e",
     "crates/flea-gui/src/backend/worker.rs": "fcadb81a84796f5a9c87095cc16fb0c2f392d700c3186a8f0b9402beb205bdbd",
     "crates/flea-gui/src/backend_log.rs": "bb6d5a8396c6ec2a0794c728f59b5fc42dc9604de210d322f5bc31b887a60faf",
@@ -252152,7 +252379,7 @@
     "crates/flea-gui/src/ipc/columns.rs": "c1eeaa85146420a86538e4a0136c92a1731bf9086e046622d3de52ddf397fda7",
     "crates/flea-gui/src/ipc/columns_preview.rs": "c7d996e6cf5df6ac17ead58c3b2dd8e81795edf64443ec11634ccaee9c690560",
     "crates/flea-gui/src/ipc/devices.rs": "9a49d17eb3869fe281711e241ec9d64aa147ff42d74ba00061cb9c1caaccbf05",
-    "crates/flea-gui/src/ipc/dialog_cards.rs": "50e75b51a89d6fe4c4cde767ff6f8f420e83919a22ec12e48263011fc93c074d",
+    "crates/flea-gui/src/ipc/dialog_cards.rs": "9345da99a10be439e97a59258ffb024198b0a501dd98b0d12d2aa073bb488349",
     "crates/flea-gui/src/ipc/drag_state.rs": "dccbef76cfc273e612d513792ccd588491eded438df37e87a31df61b1502fcff",
     "crates/flea-gui/src/ipc/dual.rs": "79f7ebe07aba9b6d25d19f111f298f7b729287c36acdfb44d10f0743d2fad68f",
     "crates/flea-gui/src/ipc/favourites.rs": "db6802e2dab56e601ef8effb31c6119a0aea0b40739ae8c4d3861b94f850f1ca",
@@ -252162,7 +252389,8 @@
     "crates/flea-gui/src/ipc/grid_rows.rs": "af89fbc764f183356cadd1592260082bffec6d74a5a07e8358765b1bda336f1c",
     "crates/flea-gui/src/ipc/keyboard_state.rs": "627d860f2787bbaa29bfcb761a4d86201fa1e83a6b78cbce2ecaae85eecdd452",
     "crates/flea-gui/src/ipc/main_cohesion.rs": "845a97168719cc156b0a1ddc8c2720d20f4aedde64eb0369ccefb9ff4ed21bf0",
-    "crates/flea-gui/src/ipc/mod.rs": "53050edb25de2b3cd5face78d9df96f23d834bd56f03744a801abd8815f78035",
+    "crates/flea-gui/src/ipc/menu_cards.rs": "f5d685f6a8a9b71b8d30d6111668554c142939c3889142d17934b42f30fa32d7",
+    "crates/flea-gui/src/ipc/mod.rs": "ed4a3bfcc778bd40cf8af6f9ee22affb3dccad36dffd20cd2af3aea16c77948b",
     "crates/flea-gui/src/ipc/native_window.rs": "b57b5071cc09ba650919ec900f69ee0d7e1e280742a1c69d46771ba681499a45",
     "crates/flea-gui/src/ipc/navigation.rs": "dc6ecdbccd6bca19ab32af13b6636f7f1cafcc839f60b00ac0744f0c07faade4",
     "crates/flea-gui/src/ipc/network.rs": "a76106315043789a65eefa08a8177dd8056d4ffb02b8c83bbeaf31c1d7fa86a8",
@@ -252401,7 +252629,7 @@
     "crates/flea-gui/src/window/columns_scroll_input.rs": "66166123ca8b948e56db59be2d5a7639b933fe4c0fa247ce39f1bc123b3e8cce",
     "crates/flea-gui/src/window/columns_shown.rs": "fbf58bcb3ee1cb09d60cc0765796515a1b1f0f07adfceca685bfc220445c5559",
     "crates/flea-gui/src/window/composition.rs": "d5c782008170d58a13bce77595e876a7fbd3daf74ce1753c1c85b8db0a981595",
-    "crates/flea-gui/src/window/devices.rs": "11ffcde4344c24f992ab940e548805a06252816253c647e557ebcae9d3c33968",
+    "crates/flea-gui/src/window/devices.rs": "747e88721731824de3f1686279e29e4e390e2dac940e26fa029840cc39846a02",
     "crates/flea-gui/src/window/dispatch/clipboard.rs": "4930f7aebee899c48f4b4fd00fe4a9a6864b494f04830c40e369eadfc75f035e",
     "crates/flea-gui/src/window/dispatch/deletion.rs": "072e1f3bd78f3bb304a2c16aaf454e54af305f772513ab7b4fa94fd92edecd4b",
     "crates/flea-gui/src/window/dispatch/document_keys_fixture.rs": "966a3c113dc59245051590f44e0efc7e21c92546e082ea8cc7fdfe8e8bddbda3",
@@ -252734,10 +252962,10 @@
     "src/backend/jail.rs": "9be341e5b267c6d39402e9b1ff98043c55a41ef8fb70ec78cf0b388d891a9a34",
     "src/backend/jailreap.rs": "aa8df53bb2032f215fd61274fa73880d41b958951dcea65e6d35a0b3dfa2e12d",
     "src/backend/jobdrive.rs": "bdc2280af9f2d7f17dd6dbb1571182a8bf5416e91e00915549306a8d86e68cf5",
-    "src/backend/jobevents.rs": "87616419961e49e96187cf4d1bb844bb2a872186029d113629f60dd3e7395ffb",
+    "src/backend/jobevents.rs": "8604c78781c4f1668abcbc5f28d4fbd0e04ca0ed22ad8e5f7c3c6b1d4e894086",
     "src/backend/jobs.rs": "d084cfbf3d490456efe54b4adbb023b4210d37403e0ef4ef3f39da5f02dd0c2a",
-    "src/backend/jobstart.rs": "6dfbd86af2d89c3ec2fba4c54c020eea56f533d87c5f1309d470d08a81e4bb69",
-    "src/backend/jobview.rs": "8fa71aec50c15e23a3eac18210cab79ea2098c4a96df208d6612b6ecfb0234c7",
+    "src/backend/jobstart.rs": "171f854400dd8e7c4fbf60a74811ba3bb5068e9e9dcc1c14cd75460fe3d450cd",
+    "src/backend/jobview.rs": "bb4c8ba3924f722adfd2dccbe43da1a840c367bb1ca2d8fb982df90bc66f5080",
     "src/backend/jobwork.rs": "3885498b08aef09228c1eb357a187fc4f7c661a020eaa6e223ce5652c26cee62",
     "src/backend/journalgate.rs": "120f78481580dabc64dd13079b84c1f2d3f1efcf73028981e4b21edf93aa4e11",
     "src/backend/jump.rs": "4cd6727a1d7a6a39888933bf3612010dc189a56006c591fa12da82ab1e572c38",
@@ -252825,7 +253053,7 @@
     "src/backend/officepublish.rs": "df147c15f7e990474965b2ba5a7208a3d20b637b36aea8f1b2ea42887068bde6",
     "src/backend/officesheets.rs": "8d66d59e3fde19335ffcf829e45a4d3c4b172901e0cd77d3d7fb82185e105618",
     "src/backend/opmsg.rs": "7d1cb8ac0f606cbe2d27c2ab1d0686e7b2d191b0ffe84933eee16d6cee263c99",
-    "src/backend/ops.rs": "3774a82aa692962da696dbe3978c9e9fecfbbc3c793bf32b5bc6f6967f57e9e1",
+    "src/backend/ops.rs": "2990f3176e359f0badb1de7ff130a6703c63f405e381ec3df320ad3b24a8741b",
     "src/backend/opscancel.rs": "9418041dfe86184e9c30bfe87a7c8bd46208e1c1d8130f52ded4ad9e8f819fd0",
     "src/backend/opsdispatch.rs": "70072495f5f66d70512e852a2bba9c36e54a91f9ae54f4aab238a0dfd39a8cf4",
     "src/backend/opsname.rs": "d6a9f806c2f6c343e6fb8e1a645556e728c229f10369214c1e50f2c0ca7ab46d",
@@ -252942,7 +253170,7 @@
     "src/backend/searchwatchpump.rs": "1985350aba2bd2937270e16a358b4263065bcf7ec1add6656114fcd1707cee62",
     "src/backend/sgr.rs": "e5c8557cc94cc56e7786ccd7fc68382c9488c62da12c417b545badfd389f6f71",
     "src/backend/shebang.rs": "653189eaa0785482ea56acdca440f0eac4d8bd6e00557f3c479656c07a466950",
-    "src/backend/shelfdrop.rs": "a14fd60665beae9aa6b486c18ca15433cd87bb1f4b97c33013f06b54d30ee833",
+    "src/backend/shelfdrop.rs": "02e783dc63f1965355938ac54892e15113467d65d7dd6582881a5df9826efe8c",
     "src/backend/sort.rs": "1735f2d656b6f30dd2bcd8aacd2a3f68181f1d3e56f5b9799b01c3ab995259da",
     "src/backend/state.rs": "fac8136b0e036c7a2428f26b5662c518685c6d4eb75f174b49cb08a1603bc52b",
     "src/backend/tagreadprobe.rs": "a5b5d41231ee53f66ad017ddca32e66e72e243abcf6c5c45fe3c89158ce97c49",
@@ -252965,7 +253193,7 @@
     "src/backend/thumbwrite.rs": "615c6859b0e771a60c8a9f51656b183f422d598440a45c7388b2cb8d5d36ffac",
     "src/backend/timing.rs": "5a94332dff4d75f478acb922436ac2420ee8690e79b3610696f0e7183b7f74e3",
     "src/backend/transferitem.rs": "c7e13c100c83409b646457b2691caa7f2561473c1190fd6e0a96a53c1e6c7f0d",
-    "src/backend/transferstart.rs": "f85f95cb0a6e248ce1f4c751a114e605d9bfffae50f9b3fac2e28de1cbf0016b",
+    "src/backend/transferstart.rs": "f4ed10d9b49f8cd9c83c6eff2963a10b00bc82e6a2390ef6e59f842717acdbb4",
     "src/backend/trash.rs": "773955f0c978f8fd20c37244c11ff082d3416c572a2cb156eebc88662cc106b1",
     "src/backend/trashbrowse.rs": "9c4be9590f7ea5e8c32861bb41ab5a2e31dcd8ed68241f5b37701c378647b67b",
     "src/backend/trashbrowse/details.rs": "3a96ced3090d8002c0d466e4cc6e1c0ba4629637ee093c6b942586a7f6802c65",
@@ -253244,7 +253472,7 @@
     "src/ui_logic_custom_actions/rows.rs": "d02e7f3b57a845867cc05498ab4d0894287276edd127fcc2f047edc088c6b3d8",
     "src/ui_logic_custom_actions/scripts.rs": "a68e9d879831a81abe155f5b4da59374a6e1027083651fc4c43ef2ec0181cc8a",
     "src/ui_logic_custom_actions/wire.rs": "009e0a5f7434abfe5a0044fbb2cac04be483d0936700ff14603175283019e87f",
-    "src/ui_logic_device_rail.rs": "8288c73316516c4ae953cc4613bb1f66652923b18a7d27387bdad226580e4db6",
+    "src/ui_logic_device_rail.rs": "955a047b858031cf35d44f97fd6188758b0d9d71b5033c6bcc0f47a6409ac943",
     "src/ui_logic_device_rail/devices.rs": "e26b2eae31714e944843dc2d86be5146b2a54653cf3dbf14663f063c3d3c4665",
     "src/ui_logic_device_rail/eject.rs": "97b14f8861f2718f0692c45a7f3ddb7be3f5debec5b2b9c8d0cb8409a0ab1911",
     "src/ui_logic_device_rail/lsblk.rs": "af0eafca7db0afe3d98e7af8705557ac8aa414f3c2a919fa78f271fdec7a98f4",
@@ -254139,12 +254367,12 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "de3d96c56a2e48ebeaa67ce077ce64b71615c2eb",
-  "source_sha": "de3d96c56a2e48ebeaa67ce077ce64b71615c2eb",
+  "source_ref_sha": "e6dd0916a1141f73b5cf1ffced6d779902567785",
+  "source_sha": "e6dd0916a1141f73b5cf1ffced6d779902567785",
   "surface_coverage": {
     "core/backend": {
-      "keys_with_occurrences": 1353,
-      "missing_literal_candidates": 5740,
+      "keys_with_occurrences": 1357,
+      "missing_literal_candidates": 5749,
       "source_files": 865
     },
     "generated/tooling": {
@@ -254153,9 +254381,9 @@
       "source_files": 160
     },
     "gui": {
-      "keys_with_occurrences": 555,
-      "missing_literal_candidates": 2225,
-      "source_files": 1179
+      "keys_with_occurrences": 559,
+      "missing_literal_candidates": 2229,
+      "source_files": 1180
     },
     "qml-reference": {
       "keys_with_occurrences": 0,
