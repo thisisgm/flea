@@ -315,7 +315,7 @@
   "device.archive_running": "Archiválás még folyamatban van ezen: %1. Utána próbáld újra.",
   "device.send_running": "Küldés még folyamatban van ezen: %1. Utána próbáld újra.",
   "device.action_running": "Művelet még folyamatban van ezen: %1. Utána próbáld újra.",
-  "device.system_drive": "%1 a rendszermeghajtó, amelyet a Flea soha nem választ le",
+  "device.system_drive": "%1 a rendszermeghajtó, amelyet a Flea soha nem ad ki.",
   "device.system_volume": "A mappa nem a Flea által kiadható meghajtón található.",
   "device.no_volume": "A mappa nem a Flea által kiadható meghajtón található.",
   "device.safe": "%1 kiadva. Biztonságosan kihúzható.",

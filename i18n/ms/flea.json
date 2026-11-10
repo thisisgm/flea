@@ -307,7 +307,7 @@
   "device.archive_running": "Pengarkiban pada %1 masih berjalan. Cuba lagi apabila selesai.",
   "device.send_running": "Penghantaran pada %1 masih berjalan. Cuba lagi apabila selesai.",
   "device.action_running": "Tindakan pada %1 masih berjalan. Cuba lagi apabila selesai.",
-  "device.system_drive": "%1 ialah pemacu sistem, yang tidak pernah dinyahlekap oleh Flea",
+  "device.system_drive": "%1 ialah pemacu sistem, yang tidak pernah dikeluarkan oleh Flea.",
   "device.system_volume": "Folder ini bukan pada pemacu yang boleh dikeluarkan oleh Flea.",
   "device.no_volume": "Folder ini bukan pada pemacu yang boleh dikeluarkan oleh Flea.",
   "device.safe": "%1 dikeluarkan. Selamat untuk mencabutnya.",

@@ -226,7 +226,7 @@
   "device.still_mounted": "%1 bado imepachikwa; funga kinachoitumia.",
   "device.still_unmounting": "Bado inaondoa upachikaji wa %1; subiri matokeo yake",
   "device.still_unmounting_try_again": "Upachikaji wa %1 bado unaondolewa. Jaribu tena ikimaliza",
-  "device.system_drive": "%1 ni kiendeshi cha mfumo, ambacho Flea haiondoi upachikaji wake kamwe",
+  "device.system_drive": "%1 ni kiendeshi cha mfumo, ambacho Flea haitoi kamwe kwa usalama.",
   "device.system_volume": "Folda hii haiko kwenye kiendeshi ambacho Flea inaweza kutoa kwa usalama.",
   "device.transfer_using": "Upachikaji wa %1 haukuweza kuondolewa. Huenda uhamisho bado unaitumia.",
   "device.copy_running": "Unakili kwenye %1 bado unaendelea. Jaribu tena ukimaliza.",

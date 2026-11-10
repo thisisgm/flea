@@ -236,7 +236,7 @@
   "device.still_mounted": "%1 sigue montado; cierra lo que lo esté usando.",
   "device.still_unmounting": "Aún se está desmontando %1; espera el resultado",
   "device.still_unmounting_try_again": "%1 aún se está desmontando. Inténtalo cuando termine",
-  "device.system_drive": "%1 es la unidad del sistema, que Flea nunca desmonta",
+  "device.system_drive": "%1 es la unidad del sistema, que Flea nunca expulsa.",
   "device.system_volume": "Esta carpeta no está en una unidad que Flea pueda expulsar.",
   "device.transfer_using": "No se pudo desmontar %1. Una transferencia podría seguir usándolo.",
   "device.copy_running": "Aún hay una copia en curso en %1. Inténtalo cuando termine.",

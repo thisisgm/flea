@@ -388,7 +388,7 @@
   "device.archive_running": "%1에서 압축 작업이 아직 진행 중입니다. 완료 후 다시 시도하세요.",
   "device.send_running": "%1에서 보내기가 아직 진행 중입니다. 완료 후 다시 시도하세요.",
   "device.action_running": "%1에서 동작이 아직 진행 중입니다. 완료 후 다시 시도하세요.",
-  "device.system_drive": "%1은(는) 시스템 드라이브이며 Flea는 시스템 드라이브의 마운트를 해제하지 않습니다",
+  "device.system_drive": "%1은(는) 시스템 드라이브이며 Flea는 이 드라이브를 절대 꺼내지 않습니다.",
   "device.system_volume": "이 폴더는 Flea가 꺼낼 수 있는 드라이브에 있지 않습니다.",
   "device.no_volume": "이 폴더는 Flea가 꺼낼 수 있는 드라이브에 있지 않습니다.",
   "device.safe_image": "%1을(를) 꺼냈습니다.",

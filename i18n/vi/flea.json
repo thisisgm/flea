@@ -216,7 +216,7 @@
   "device.still_mounted": "%1 vẫn đang được gắn kết; hãy đóng ứng dụng đang sử dụng thiết bị.",
   "device.still_unmounting": "Vẫn đang bỏ gắn kết %1; hãy chờ kết quả",
   "device.still_unmounting_try_again": "%1 vẫn đang được bỏ gắn kết. Hãy thử lại khi hoàn tất",
-  "device.system_drive": "%1 là ổ đĩa hệ thống, Flea không bao giờ bỏ gắn kết ổ này",
+  "device.system_drive": "%1 là ổ đĩa hệ thống, Flea không bao giờ đẩy ổ này ra.",
   "device.system_volume": "Thư mục này không nằm trên ổ đĩa mà Flea có thể đẩy ra.",
   "device.transfer_using": "Không thể bỏ gắn kết %1. Một lượt truyền có thể vẫn đang sử dụng thiết bị.",
   "device.copy_running": "Một bản sao trên %1 vẫn đang chạy. Hãy thử lại khi hoàn tất.",

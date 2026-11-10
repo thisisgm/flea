@@ -236,7 +236,7 @@
   "device.still_mounted": "%1 je još montirano; zatvorite sve što ga koristi.",
   "device.still_unmounting": "Odmontiranje %1 još traje; pričekajte rezultat",
   "device.still_unmounting_try_again": "Odmontiranje %1 još traje. Pokušajte ponovno kada završi",
-  "device.system_drive": "%1 je sistemski disk koji Flea nikada ne odmontira",
+  "device.system_drive": "%1 je sistemski disk koji Flea nikada ne izbacuje.",
   "device.system_volume": "Ova mapa nije na disku koji Flea može izbaciti.",
   "device.transfer_using": "Nije moguće odmontirati %1. Možda se još koristi za prijenos.",
   "device.copy_running": "Kopiranje na %1 još traje. Pokušajte ponovno kada završi.",
