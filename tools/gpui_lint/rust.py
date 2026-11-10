@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from .lex import pairs, path_at, scope_aliases
 from .bindings import environments
+from .fields import receiver_type
 
 
 @dataclass
@@ -181,7 +182,7 @@ def receiver_path(ts, last, matched, aliases):
     return path
 
 
-def calls(function, known=None):
+def calls(function, known=None, fields=None, methods=()):
     """Only closures passed to a proven background executor/thread are excluded."""
     ts = function.body
     matched = pairs(ts)
@@ -264,6 +265,10 @@ def calls(function, known=None):
             if direct:
                 skipped.update(range(opening, close))
         awaited = close + 2 < len(ts) and ts[close + 1].value == "." and ts[close + 2].value == "await"
+        # A method on a field chain names its declared type when that type declares it; an alias, a wrapper or an `impl super::T` keeps the name as written.
+        kind = receiver_type(ts, i, function, fields) if method and fields else None
+        if kind and resolve(f"{kind}::{path[-1]}", function, methods) in methods:
+            path = (kind, path[-1])
         # Async channel receives are not blocking mpsc receives; std::fs calls remain forbidden.
         result.append(("::".join(path), token.line, ts[end + 1:close], method and not (path[-1] == "recv" and awaited)))
     return result

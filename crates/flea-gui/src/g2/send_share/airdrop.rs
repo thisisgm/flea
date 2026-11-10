@@ -66,8 +66,6 @@ pub struct AirDrop {
     pub(super) menus: u64,
     // The folder of a Receiving On still waiting for its look, whose withdrawal an Off meanwhile asks again.
     pub(super) on_wait: Option<String>,
-    // Closes once the window's last look or ask of the machine's state has run, so the next one waits for it.
-    pub(super) io: Option<async_channel::Receiver<()>>,
     watching: bool,
     // The radio run sent SIGTERM and not yet exited: the machine's lock stays held until it has.
     stopping: Option<u64>,

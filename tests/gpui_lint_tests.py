@@ -134,7 +134,7 @@ impl Reader { fn read(&self) { std::fs::read("x"); } }
         self.assertEqual([], self.check_body('theme.background; let p = path.join("child");'))
         self.assertEqual([], self.check_body('std::process::exit(2); replies.recv().await;'))
         self.assertEqual([], self.check_body('let first = theme.background; if let Some(value) = next { let later = value; }'))
-        self.assertEqual([], self.check_body('let state = pane.read(cx);'))
+        self.assertEqual([], self.check_body('let state = pane.read(cx); let held = view.read(self.cx);'))
         for code in ('std::fs::read("x");', 'std::net::TcpStream::connect("x");',
                      'std::thread::sleep(duration);', 'worker.join();', 'child.wait();',
                      'command.output();', 'stream.read_to_end(&mut bytes);', 'executor.block_on(future);',
@@ -188,6 +188,59 @@ impl Reader { fn read(&self) { std::fs::read("x"); } }
         self.policy["blocking_exceptions"][0]["reason"] = ""
         with self.assertRaises(ValueError):
             POLICY_CHECKS(self.policy)
+
+    def test_a_method_on_a_field_reaches_its_declared_type_when_many_types_share_its_name(self):
+        self.write("crates/flea-gui/src/air.rs", '''
+pub struct Shared;
+impl Shared { pub fn claim(&mut self) { std::fs::remove_file("x"); } }
+pub struct Pids;
+impl Pids { pub fn claim(&mut self) {} pub fn turn_on(&mut self) {} }
+pub struct AirDrop { pub(crate) shared: Shared, pids: Option<Pids> }
+pub struct Menu { pub providers: Providers }
+pub struct Providers { pub airdrop: AirDrop }
+pub struct Page { pub airdrop: bool }
+impl AirDrop {
+    pub fn turn_on(&mut self) { self.shared.claim(); }
+    pub fn quiet(&mut self) { self.pids.claim(); }
+}
+fn update(shell: &mut Shell) { let air = &mut shell.menu.providers.airdrop; air.turn_on(); }
+''')
+        self.policy["ui_callbacks"] = ["flea_gui::air::AirDrop::turn_on"]
+        self.assertTrue(any("Shared::claim" in e for e in self.errors()))
+        self.policy["ui_callbacks"] = ["flea_gui::air::update"]
+        self.assertTrue(any("Shared::claim" in e for e in self.errors()), "a local bound to a field chain keeps its type")
+        self.policy["ui_callbacks"] = ["flea_gui::air::AirDrop::quiet"]
+        self.assertEqual([], self.errors(), "a wrapped field type is not guessed")
+
+    def test_a_method_exception_names_the_method_as_written_on_a_typed_field(self):
+        self.write("crates/flea-gui/src/pane.rs", '''
+pub struct Outside;
+impl Outside { fn status(&self) {} }
+pub struct Pane { outside: Outside }
+impl Pane { fn pump(&mut self) { self.outside.status(); } }
+''')
+        self.policy["ui_callbacks"] = ["flea_gui::pane::Pane::pump"]
+        self.assertTrue(any("blocking" in e for e in self.errors()))
+        self.policy["blocking_exceptions"] = [{"caller": "flea_gui::pane::Pane::pump", "symbol": "status",
+                                               "reason": "Fixture's queued status message."}]
+        self.assertEqual([], self.errors())
+
+    def test_a_field_type_that_declares_no_such_method_keeps_the_name_as_written(self):
+        self.write("crates/flea-gui/src/nav.rs", '''
+pub struct Store;
+impl Store { pub fn load(&self) { std::fs::read("x"); } }
+pub struct Navigator;
+mod sort { impl super::Navigator { pub fn resort(&mut self) { std::fs::read("y"); } } }
+pub struct Host { store: std::sync::Arc<Store>, nav: Navigator }
+impl Host {
+    fn open(&self) { self.store.load(); }
+    fn settle(&mut self) { self.nav.resort(); }
+}
+''')
+        self.policy["ui_callbacks"] = ["flea_gui::nav::Host::open"]
+        self.assertTrue(any("Store::load" in e for e in self.errors()), "a wrapper's method is reached by its name")
+        self.policy["ui_callbacks"] = ["flea_gui::nav::Host::settle"]
+        self.assertTrue(any("resort" in e for e in self.errors()), "a method declared under a path is reached by its name")
 
     def test_background_boundaries_and_async_ui_mutant(self):
         for code in ('std::thread::spawn(move || { std::fs::read("x"); });',

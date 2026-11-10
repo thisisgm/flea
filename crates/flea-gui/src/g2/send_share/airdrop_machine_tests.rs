@@ -12,9 +12,12 @@ fn english() -> I18n {
 
 // A marked root of the test's own for the machine's AirDrop state.
 fn machine_dir(tag: &str) -> PathBuf {
-    let root =
-        std::env::temp_dir().join(format!("flea-airdrop-machine-{tag}-{}", std::process::id()));
-    let _ = std::fs::create_dir_all(&root);
+    let output = std::process::Command::new("mktemp")
+        .args(["-d", &format!("/tmp/flea-airdrop-machine-{tag}.XXXXXXXX")])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let root = PathBuf::from(String::from_utf8(output.stdout).unwrap().trim());
     std::fs::write(root.join(".flea-test-sandbox"), "").unwrap();
     root
 }
@@ -40,11 +43,26 @@ fn seen(air: &AirDrop) -> Seen {
     air.shared.probe().seen()
 }
 
-// Receiving On as the Shell asks it: an Off asked of the owner is withdrawn, then the look, then the step.
-fn on(air: &mut AirDrop, i18n: &I18n) -> Vec<Act> {
+// The look off the window's thread, which takes the machine's lock when `claim` and no radio is up.
+fn claimed(air: &mut AirDrop, claim: bool) -> Seen {
     let probe = air.shared.probe();
-    probe.keep();
-    air.turn_on("/d", i18n, &probe.seen())
+    let seen = probe.seen();
+    air.shared.offer(
+        (claim && seen.radio == Radio::Off)
+            .then(|| probe.claim())
+            .flatten(),
+    );
+    seen
+}
+
+// Receiving On as the Shell asks it: an Off asked of the owner is withdrawn, then the look, the step and its writes.
+fn on(air: &mut AirDrop, i18n: &I18n) -> Vec<Act> {
+    air.shared.probe().keep();
+    let claim = air.claims();
+    let seen = claimed(air, claim);
+    let acts = air.turn_on("/d", i18n, &seen);
+    air.shared.flush();
+    acts
 }
 
 // Receiving Off, then the stop it asks of another window's radio, as airdrop_acts carries it out.
@@ -62,8 +80,11 @@ fn opened(air: &mut AirDrop, now_ms: u64) -> Vec<Act> {
 }
 
 fn tick(air: &mut AirDrop, i18n: &I18n) -> (Vec<Act>, bool) {
-    let seen = seen(air);
-    air.tick(0, i18n, &seen)
+    let claim = air.waits() && air.claims();
+    let seen = claimed(air, claim);
+    let ticked = air.tick(0, i18n, &seen);
+    air.shared.flush();
+    ticked
 }
 
 fn looked(air: &mut AirDrop) -> Vec<Act> {
@@ -357,44 +378,11 @@ fn without_a_runtime_dir_each_window_keeps_its_own_radio_and_watches_nothing() {
     assert!(!air.watch());
 }
 
-// Radio up and a menu open: the browse it started, at time zero.
-fn browsing() -> (AirDrop, u64) {
-    let i18n = english();
-    let mut air = window(None);
-    opened(&mut air, 0);
-    let radio = start(&on(&mut air, &i18n), Proc::Radio).unwrap();
-    let acts = air.line(Proc::Radio, radio, UP, 0, &i18n);
-    (air, start(&acts, Proc::Browse).unwrap())
-}
+#[path = "airdrop_browse_tests.rs"]
+mod browse;
 
-#[test]
-fn a_browse_that_exits_0_before_its_seconds_waits_for_the_next_menu_open_a_gap_on() {
-    let i18n = english();
-    let (mut air, browse) = browsing();
-    assert!(
-        air.ended(Proc::Browse, browse, 0, 5, &i18n).is_empty(),
-        "no restart"
-    );
-    air.menu_closed();
-    assert!(
-        start(&opened(&mut air, 5 + BROWSE_GAP_MS - 1), Proc::Browse).is_none(),
-        "a menu opened at once does not start another"
-    );
-    air.menu_closed();
-    assert!(start(&opened(&mut air, 5 + BROWSE_GAP_MS), Proc::Browse).is_some());
-}
-
-#[test]
-fn a_browse_that_ran_its_whole_seconds_listens_again_at_once() {
-    let i18n = english();
-    let (mut air, browse) = browsing();
-    let whole = owly::BROWSE_SECS * 1_000;
-    assert!(start(
-        &air.ended(Proc::Browse, browse, 0, whole, &i18n),
-        Proc::Browse
-    )
-    .is_some());
-}
+#[path = "airdrop_queue_tests.rs"]
+mod queue;
 
 #[path = "airdrop_received_tests.rs"]
 mod received;

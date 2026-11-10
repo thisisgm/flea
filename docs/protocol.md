@@ -3360,15 +3360,19 @@ backend's `providers` facts name `owly`'s path. The machine has one radio: the w
 exclusive lock on `$XDG_RUNTIME_DIR/flea/airdrop.lock` (with `FLEA_AIRDROP_DIR` set, the three files sit directly in that
 directory) and writes `airdrop.state` beside it, three lines: its token, `starting` or `on`, and the card. Every other
 window reads that state, browses and sends over it, and asks the owner to stop by writing the owner's token to
-`airdrop.stop`, which the owner checks once a second. A window reads the state, asks a stop and withdraws one off its
-own thread on the background executor, each after the one it asked before. A read that a later Receiving choice
+`airdrop.stop`, which the owner checks once a second. A window reads the state, asks a stop, withdraws one, takes the
+lock and writes or removes its own state off its own thread on the background executor, each after the one it asked
+before; the look before a Receiving On takes the lock when no radio is up, and gives it back if that On does not start
+the radio. A read that a later Receiving choice
 overtook never lands: a Receiving On waiting for it is dropped, the once-a-second look waits for its next second, and
 a menu or Settings look is taken again. A Receiving Off while an On waits asks the stop again, a shut menu drops a menu
-open still waiting for its read, and a stop asked just before the window closes or Flea quits is still written, Flea
-waiting up to 1 s for it as it exits. The owner removes the state at once, but the lock stays held
-until the stopped radio has exited, and a Receiving On asked meanwhile starts once it has. When the receiver or the
+open still waiting for its read, and a stop asked just before the window closes, Flea quits or Flea is ended by
+SIGTERM, SIGINT or SIGHUP is still written, Flea waiting up to 1 s for it as it exits. The owner's withdrawal removes
+the state before releasing the lock; the lock stays held until the stopped radio has exited, and a Receiving On asked
+meanwhile starts once it has, under the same lock. When the receiver or the
 radio exits, the window takes both down and says owly's reason unless the ten minutes ran out. A window that closes, a
-quit, and a Flea ended by SIGTERM, SIGINT or SIGHUP (each one still at its default action when the first owly run started) send
+quit, and a Flea ended by SIGTERM, SIGINT or SIGHUP (each one still at its default action when the first owly run
+started, the first stop was asked or Receiving was first set to On, whichever came first) send
 SIGTERM to every owly run and wait up to 5 s for them to exit, which gives Wi-Fi back. The receiver asks
 `accept? [y/N]` for each incoming request; the window answers it from a notification with Accept and Decline buttons,
 and anything but Accept within 12 s declines; the window then closes that notification by its id. The footer names

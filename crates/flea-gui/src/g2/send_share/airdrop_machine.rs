@@ -45,7 +45,8 @@ impl AirDrop {
             ]);
             return acts;
         }
-        if !self.shared.claim(&self.adapter.card) {
+        // The lock comes from the look before this On, or from this window's own radio that just went down.
+        if !self.shared.adopt(&self.adapter.card) {
             acts.extend(self.retry_later(folder, seen));
             return acts;
         }
@@ -58,6 +59,17 @@ impl AirDrop {
             Act::Refresh,
         ]);
         acts
+    }
+
+    // A look before Receiving On also takes the machine's lock, off the window's thread, when this window would start the radio.
+    pub(in super::super) fn claims(&self) -> bool {
+        let start = self.radio == Radio::Off && self.stopping.is_none();
+        start && !self.owly.is_empty() && self.adapter.ready() && self.shared.machine_wide()
+    }
+
+    // A Receiving On waits for the machine's radio to come free, and the watch tries it again each second.
+    pub(in super::super) fn waits(&self) -> bool {
+        self.again.is_some()
     }
 
     // Reads another window's radio; one that went down takes this window's browse and devices with it.
@@ -142,14 +154,20 @@ impl AirDrop {
         self.stopping = Some(self.gens[super::slot(Proc::Radio)]);
     }
 
-    // The radio's run has exited, so the machine's radio is free, and a Receiving On asked meanwhile takes it.
+    // The radio's run has exited, so the machine's radio is free, and a Receiving On asked meanwhile takes its lock.
     pub(super) fn let_go(&mut self, i18n: &I18n) -> Vec<Act> {
         self.stopping = None;
-        self.shared.release();
         // This window held the lock until now, so no other window's radio was up to see.
         match self.again.take() {
-            Some(folder) => self.turn_on(&folder, i18n, &Seen::default()),
-            None => Vec::new(),
+            // Unless that On takes the lock, the window's next writes give it back after the state.
+            Some(folder) => {
+                self.shared.hand_over();
+                self.turn_on(&folder, i18n, &Seen::default())
+            }
+            None => {
+                self.shared.release();
+                Vec::new()
+            }
         }
     }
 

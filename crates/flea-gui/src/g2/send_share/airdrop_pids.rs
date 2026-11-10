@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 
 // How long a closing window, a quit or a SIGTERM waits for owly to give Wi-Fi back before Flea goes on.
 pub const TEARDOWN: Duration = Duration::from_secs(5);
-const SIGTERM: i32 = 15;
+pub(super) const SIGTERM: i32 = 15;
 const SIGHUP: i32 = 1;
 const SIGINT: i32 = 2;
 const SIG_DFL: usize = 0;
@@ -102,7 +102,7 @@ pub(super) fn started(run: &Held, pid: u32) {
         slot.compare_exchange(-1, fd, Ordering::SeqCst, Ordering::SeqCst)
             .is_ok()
     });
-    HANDLER.call_once(install);
+    arm();
     if run.stopped {
         terminate(fd);
     }
@@ -203,14 +203,20 @@ pub fn teardown(within: Duration) {
     wait_all(&fds, within);
 }
 
-// Flea stopped by a signal tears its owly runs down first, then dies by that same signal.
+// Flea stopped by a signal writes the stops still pending and tears its owly runs down first, then dies by that same signal.
 extern "C" fn on_signal(signum: i32) {
+    super::airdrop_shared::settle_stops();
     teardown(TEARDOWN);
     // SAFETY: signal and raise are async-signal-safe; the default action ends the process as the signal meant to.
     unsafe {
         signal(signum, SIG_DFL);
         raise(signum);
     }
+}
+
+// The handler goes in once an owly run starts, a stop is asked or Receiving is set to On, whichever comes first.
+pub(super) fn arm() {
+    HANDLER.call_once(install);
 }
 
 // Only a signal still at its default is taken, so a handler or an ignore set elsewhere stays in place.
