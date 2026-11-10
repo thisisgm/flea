@@ -334,3 +334,49 @@ fn vf3_wide_window_cleanup_forgets_its_pending_paths_ask() {
         })
         .unwrap();
 }
+
+#[test]
+fn pb_drag4_pane_strip_ground_opens_on_release_and_a_drag_discards_it() {
+    let source = Root::new("strip-source");
+    let target = Root::new("strip-target");
+    let mut cx = bench::real_cx();
+    let (handle, _, _) = dual(&mut cx, &source, &target);
+    let ground = handle
+        .read_with(&cx, |shell, cx| {
+            let view = shell.chrome.view.as_ref().unwrap().read(cx).path.read(cx);
+            let bounds = view.paint.borrow().strips[2].unwrap();
+            gpui::point(
+                bounds.right() - gpui::px(3.),
+                bounds.top() + bounds.size.height / 2.,
+            )
+        })
+        .unwrap();
+    let editing = |cx: &mut VisualTestContext| {
+        handle
+            .read_with(cx, |shell, cx| {
+                let chrome = shell.chrome.view.as_ref().unwrap().read(cx);
+                chrome.path.read(cx).editing()
+            })
+            .unwrap()
+    };
+    let (left, none) = (gpui::MouseButton::Left, gpui::Modifiers::default());
+    let mut vcx = VisualTestContext::from_window(handle.into(), &cx);
+    vcx.simulate_mouse_down(ground, left, none);
+    assert!(!editing(&mut vcx), "a press alone must not open the field");
+    let slop = crate::columns::preview_host::START_DRAG_DISTANCE;
+    let aside = ground - gpui::point(gpui::px(slop + 1.), gpui::px(0.));
+    vcx.simulate_mouse_move(aside, Some(left), none);
+    vcx.simulate_mouse_up(ground, left, none);
+    assert!(
+        !editing(&mut vcx),
+        "a press that crossed the tap slop drops its tap"
+    );
+    vcx.simulate_mouse_down(ground, left, none);
+    let near = ground - gpui::point(gpui::px(5.), gpui::px(0.));
+    vcx.simulate_mouse_move(near, Some(left), none);
+    vcx.simulate_mouse_up(near, left, none);
+    assert!(
+        editing(&mut vcx),
+        "a tap on pane strip ground opens the field on release"
+    );
+}

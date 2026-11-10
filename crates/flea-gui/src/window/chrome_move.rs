@@ -1,13 +1,11 @@
 //! The chrome is the window's title bar: a left press that travels past four pixels moves the window.
 use super::composition::Rect;
+use crate::path::tap::within_chrome_threshold as within_threshold;
 use crate::state::Shell;
 use gpui::{
     canvas, prelude::*, App, Context, DispatchPhase, Entity, IntoElement, MouseButton,
     MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels, Point, Window,
 };
-
-/// The title bar's drag threshold, read on each axis from the press (ui/WindowDrag.qml).
-const THRESHOLD: f32 = 4.;
 
 /// One press on the chrome: where it began, and whether the window move already took it.
 #[derive(Default)]
@@ -97,11 +95,6 @@ impl Shell {
 fn inside(rect: Rect, at: Point<Pixels>) -> bool {
     let (x, y) = (f32::from(at.x), f32::from(at.y));
     x >= rect.x && x < rect.x + rect.width && y >= rect.y && y < rect.y + rect.height
-}
-
-fn within_threshold(origin: Point<Pixels>, position: Point<Pixels>) -> bool {
-    f32::from(position.x - origin.x).abs() <= THRESHOLD
-        && f32::from(position.y - origin.y).abs() <= THRESHOLD
 }
 
 #[cfg(not(test))]

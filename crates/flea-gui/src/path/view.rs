@@ -67,6 +67,7 @@ pub struct PathView {
     pub(super) pressed_row: Option<(usize, String)>,
     /// A tap on the strip opened the field, so that gesture's second tap keeps the whole path selected.
     pub(super) tapped: bool,
+    pub(super) strip_press: Option<super::strip_input::Press>,
     ranker: Box<dyn Ranker>,
     favourites: Vec<String>,
     recent: Vec<String>,
@@ -100,6 +101,7 @@ impl PathView {
             pointer: Pointer::default(),
             pressed_row: None,
             tapped: false,
+            strip_press: None,
             ranker,
             favourites: Vec::new(),
             recent: Vec::new(),
@@ -122,6 +124,7 @@ impl PathView {
         if self.inputs == inputs {
             return false;
         }
+        self.strip_press = None;
         if !inputs.dual {
             self.strips[1].clear();
             self.strips[2].clear();
@@ -181,6 +184,7 @@ impl PathView {
 
     /// keys.toml's pathBar action, and the pointer's tap on inert ground.
     pub fn open(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.strip_press = None;
         let path = self.path().to_owned();
         self.tapped = false;
         if !self.entry.start(&path) {
