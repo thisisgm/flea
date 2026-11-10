@@ -8,6 +8,7 @@ mod board_tests;
 #[cfg(test)]
 mod card_height_tests;
 pub mod claim;
+pub mod cover;
 mod draw;
 pub mod geometry;
 #[cfg(test)]
@@ -26,6 +27,8 @@ mod keymap_sheet_menu_tests;
 mod keymap_sheet_order_tests;
 #[cfg(test)]
 mod label_fit_tests;
+#[cfg(test)]
+mod label_wrap_tests;
 mod marks;
 #[cfg(test)]
 mod overlay_tests;

@@ -246,8 +246,14 @@ function run(check) {
         + "|" + Run.runFailedText("Moved"),
         "|The items could not be copied.|The items could not be moved.")
   check("the other three actions say what they did",
-        Run.zippedText(4) + "|" + Run.copiedPathsText(4) + "|" + Run.sentText(1, "macbookair"),
-        "Zipped 4 items into one archive|Copied 4 paths|Sent 1 item to macbookair")
+        Run.zippedText(4) + "|" + Run.clippedText(4) + "|" + Run.sentText(1, "macbookair"),
+        "Zipped 4 items into one archive|Copied 4 items to the clipboard|Sent 1 item to macbookair")
+  check("copy to clipboard counts the files it put there, one and none included",
+        Run.clippedText(1) + "|" + Run.clippedText(0) + "|" + Run.WORDS.clipFailed,
+        "Copied 1 item to the clipboard||The items could not be copied to the clipboard.")
+  check("y is Copy to Clipboard, in the menus' own clipboard mark, and no Paths action is left",
+        Shelf.ACTION_GLYPHS.clipboard + "|" + ("paths" in Shelf.ACTION_GLYPHS),
+        "M9 2h6v4H9z M6 4H3v18h18V4h-3 M8 12h8 M8 16h5|false")
   check("the flyout says what is about to happen to how many",
         Run.flyoutTitle("move", 4) + "|" + Run.flyoutTitle("send", 1), "Move 4 items to|Send 1 item to")
   check("a destination is named by its leaf, because the flyout said the whole path",
@@ -272,8 +278,8 @@ function run(check) {
           Run.movedText("Moved", 1000, 204, 1204, "drafts", "disk full"), "Moved 1,000 of 1,204 · disk full")
     check("the flyout groups what is about to move", Run.flyoutTitle("move", 1204), "Move 1,204 items to")
     check("and the other actions group as well",
-          Run.zippedText(1204) + "|" + Run.copiedPathsText(1204) + "|" + Run.sentText(1204, "macbookair"),
-          "Zipped 1,204 items into one archive|Copied 1,204 paths|Sent 1,204 items to macbookair")
+          Run.zippedText(1204) + "|" + Run.clippedText(1204) + "|" + Run.sentText(1204, "macbookair"),
+          "Zipped 1,204 items into one archive|Copied 1,204 items to the clipboard|Sent 1,204 items to macbookair")
     // Issue 255: the rail strip the card's mask cuts out, one source for the panel and the probe.
     check("the panel mask cut has one pure source", typeof Shelf.railStrip, "function")
     if (typeof Shelf.railStrip === "function") {

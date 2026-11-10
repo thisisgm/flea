@@ -38,7 +38,7 @@ subset gesture, and the six actions.
 ## Requirements
 
 - Omarchy with `omarchy-shell` (the plugin runs inside the shell, not as its own process).
-- [Flea](https://github.com/thisisgm/flea) 0.3.0 or newer, which writes the pile.
+- [Flea](https://github.com/thisisgm/flea) 0.4.2 or newer, which writes the pile and owns the file clipboard.
 
 ## Settings
 
@@ -105,7 +105,7 @@ The plugin never writes any of them: `flea shelf` does, and the plugin watches.
 | `a` | zip them into one archive, which lands on the shelf |
 | `t` | send them with Taildrop, on a box that has it |
 | `p` | pins the chosen rows, or the cursor row, and unpins a pinned one |
-| `y` | yank the paths to the clipboard |
+| `y` | copy them to the clipboard: a chat app or a file manager pastes the files, a terminal or a text field their paths |
 | `1` to `9` | in a flyout, take that destination or that peer |
 | `shift + x` | clears the shelf, and it becomes the last pile |
 | `z` | undo: puts the last move back where it came from, or brings the last cleared pile back, whichever happened later |

@@ -36,6 +36,9 @@ impl Render for Shell {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         #[cfg(test)]
         super::frame_feedback::perf_tests::shell_built();
+        if !self.settings.opened || self.settings.sheet.is_some() {
+            self.settings.cover.set(None);
+        }
         #[cfg(test)]
         if let Some(renders) = cx.try_global::<EmptyOmiShellRenders>() {
             renders.0.set(renders.0.get() + 1);

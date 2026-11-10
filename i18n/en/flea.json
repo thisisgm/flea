@@ -2394,6 +2394,22 @@
   "tui.preview.media_waiting": "Media preview is still loading",
   "mime.markdown": "Markdown document",
   "mime.png": "PNG image",
+  "mime.plain": "Plain text document",
+  "feedback.unheld.links": "This drive cannot hold links.",
+  "feedback.unheld.nodes": "This drive cannot hold special files.",
+  "feedback.unheld.name": "This drive does not allow that name.",
+  "feedback.unheld.long": "That name is too long for this drive.",
+  "feedback.unheld.taken": "This drive treats that name as the same as another in the folder.",
+  "feedback.unheld.copy_one": "%1 could not be copied: %2",
+  "feedback.unheld.move_one": "%1 could not be moved: %2",
+  "feedback.unheld.copy_many": {
+    "one": "%1 item inside could not be copied; the first is %2: %3",
+    "other": "%1 items inside could not be copied; the first is %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "one": "%1 item inside could not be moved; the first is %2: %3",
+    "other": "%1 items inside could not be moved; the first is %2: %3"
+  },
   "keys.label.bd0b7be215ce": "Close editor",
   "keys.label.e9619e148ed8": "Control+X is inert",
   "keys.label.1426edd106ac": "Copy file URI",
@@ -2648,21 +2664,5 @@
   "keys.tui17.sortRandom": "Shuffle files",
   "keys.tui17.suspend": "Suspend",
   "keys.tui17.wordBackward": "Previous word (field)",
-  "keys.tui17.wordForward": "Next word (field)",
-  "mime.plain": "Plain text document",
-  "feedback.unheld.links": "This drive cannot hold links.",
-  "feedback.unheld.nodes": "This drive cannot hold special files.",
-  "feedback.unheld.name": "This drive does not allow that name.",
-  "feedback.unheld.long": "That name is too long for this drive.",
-  "feedback.unheld.taken": "This drive treats that name as the same as another in the folder.",
-  "feedback.unheld.copy_one": "%1 could not be copied: %2",
-  "feedback.unheld.move_one": "%1 could not be moved: %2",
-  "feedback.unheld.copy_many": {
-    "one": "%1 item inside could not be copied; the first is %2: %3",
-    "other": "%1 items inside could not be copied; the first is %2: %3"
-  },
-  "feedback.unheld.move_many": {
-    "one": "%1 item inside could not be moved; the first is %2: %3",
-    "other": "%1 items inside could not be moved; the first is %2: %3"
-  }
+  "keys.tui17.wordForward": "Next word (field)"
 }

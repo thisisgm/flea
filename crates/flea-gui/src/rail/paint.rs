@@ -44,6 +44,22 @@ pub(super) fn paint_ground(
     }
 }
 
+/// The Dropbox mark's viewBox is 1.18 wide to 1 tall.
+const DROPBOX_ASPECT: f32 = 1.18;
+
+/// The box a row's mark draws inside: the icon slot at the row's padding, wider for Dropbox's own mark.
+pub(super) fn mark_slot(row: &LaidRow, metrics: &RailMetrics) -> Bounds<Pixels> {
+    let wide = row.glyph == "dropbox";
+    let width = metrics.icon * if wide { DROPBOX_ASPECT } else { 1. };
+    Bounds::new(
+        point(
+            px(row.rect.x + metrics.pad),
+            px(row.rect.y + (metrics.row - metrics.icon) / 2.),
+        ),
+        size(px(width), px(metrics.icon)),
+    )
+}
+
 pub(super) fn paint_mark(
     row: &LaidRow,
     palette: &Palette,
@@ -52,8 +68,8 @@ pub(super) fn paint_mark(
     window: &mut Window,
     cx: &mut App,
 ) {
-    let x = row.rect.x + metrics.pad;
-    let y = row.rect.y + (metrics.row - metrics.icon) / 2.;
+    let slot = mark_slot(row, metrics);
+    let (x, y) = (f32::from(slot.origin.x), f32::from(slot.origin.y));
     match &row.mark {
         RowMark::Tag(tag) => {
             let box_ = Bounds::new(
@@ -102,13 +118,7 @@ pub(super) fn paint_mark(
                 );
             } else if let Some((key, data)) = glyph::svg(row.glyph) {
                 let _ = window.paint_svg(
-                    Bounds::new(
-                        point(px(x), px(y)),
-                        size(
-                            px(metrics.icon * if row.glyph == "dropbox" { 1.18 } else { 1. }),
-                            px(metrics.icon),
-                        ),
-                    ),
+                    slot,
                     key,
                     Some(data),
                     TransformationMatrix::unit(),

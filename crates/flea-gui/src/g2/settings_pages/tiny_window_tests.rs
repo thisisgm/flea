@@ -52,7 +52,7 @@ fn s1a6_labels_elide_and_never_vanish_in_a_tiny_window(cx: &mut TestAppContext) 
         }
         assert!(drawn > 0, "no View label was drawn at {width}x{height}");
     }
-    // At 320x200 wrapAtEnds has room for its longest word, so only the LABEL_LINES cap keeps it on one line.
+    // A hypothetical pane below the card's width floor still keeps the label renderer's one-line cap.
     cx.simulate_resize(size(px(320.), px(200.)));
     cx.update(|window, cx| {
         let view = view.read(cx);
@@ -63,7 +63,7 @@ fn s1a6_labels_elide_and_never_vanish_in_a_tiny_window(cx: &mut TestAppContext) 
             .find(|row| row.id == "wrapAtEnds")
             .expect("View lists wrapAtEnds");
         let s = g::Scale::at(&view.typeface);
-        let width = g::pane_size(g::card_size(320., 200., 0., s).0, 0., s).0;
+        let width = g::pane_size(320. - 2. * g::CLAMP, 0., s).0;
         let label = row.label.resolve(&view.panel.catalog);
         let word = view.longest_word(&label, window);
         let room = view.room(row, false, width, window).label;

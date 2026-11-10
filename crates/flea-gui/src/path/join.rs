@@ -86,6 +86,7 @@ impl Shell {
                 |shell, _, out, window, cx| shell.path_out(out, window, cx),
             ));
             let view = cx.new(|cx| ChromeView::new(path, inputs, cx));
+            view.read(cx).frame.borrow_mut().cover = self.settings.cover.clone();
             self.chrome.subscriptions.push(cx.subscribe_in(
                 &view,
                 window,

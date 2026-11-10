@@ -116,6 +116,7 @@ impl Shell {
             self.focus_side,
             cx,
         );
+        join.places.read(cx).model.borrow_mut().cover = self.settings.cover.clone();
         self.slots.rail = Some(AnyView::from(join.host.clone()));
         self.rail = Some(join);
         self.receive_rail_drops(cx);
