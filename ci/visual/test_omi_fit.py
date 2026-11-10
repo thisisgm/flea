@@ -1,9 +1,11 @@
 """Exercise the Omi caption gate on synthetic frames, without a compositor."""
 from pathlib import Path
+import json
 import shutil
 import struct
 import tempfile
 import unittest
+from unittest import mock
 import zlib
 
 import omi_fit
@@ -64,10 +66,58 @@ class CaptionGate(unittest.TestCase):
             omi_fit.caption_line(path, SLOT, '#80c6b395')
 
     def test_a_moved_caption_line_is_rejected(self):
-        record = dict(slot=SLOT, pixels=[624, 329, 45, 45], line=[396, 9])
+        record = dict(slot=SLOT, pixels=[624, 329, 45, 45], line=[394, 14], ink=[396, 9])
         omi_fit.check_records([record, record, record])
         with self.assertRaisesRegex(ValueError, r'^caption line moved between captions: '):
-            omi_fit.check_records([dict(record, line=[398, 9]), record, record])
+            omi_fit.check_records([record, dict(record, line=[398, 14]), record])
+
+    def test_a_changed_line_height_is_rejected(self):
+        record = dict(slot=SLOT, pixels=[624, 329, 45, 45], line=[394, 14], ink=[396, 9])
+        with self.assertRaisesRegex(ValueError, r'^caption line moved between captions: '):
+            omi_fit.check_records([record, dict(record, line=[394, 16]), record])
+
+    def test_ink_outside_the_painted_line_is_rejected(self):
+        record = dict(slot=SLOT, pixels=[624, 329, 45, 45], line=[394, 14], ink=[396, 9])
+        for ink in ([393, 9], [396, 13]):
+            with self.subTest(ink=ink), self.assertRaisesRegex(ValueError, r'^caption ink escapes'):
+                omi_fit.check_records([dict(record, ink=ink), record, record])
+
+    def test_caption_descenders_do_not_change_the_painted_line(self):
+        states, images = [], []
+        for index, (caption, height) in enumerate((('CAPS', 9), ('QUIET', 11), ('J', 11))):
+            image = self.frame(f'phrase-{index}.png', [[624, 329, 45, 45], [580, 396, 130, height]])
+            images.append(image)
+            state = dict(caption=caption, settled=True, captionOpacity=1,
+                         captionRect='580 394 130 14', markColor='#c6b395', captionColor='#c6b395',
+                         omi=dict(slot='613 318 66 66'))
+            states.extend([state, state])
+        answers, frames = iter(states), iter(images)
+        def grab(_, path, captured=None):
+            shutil.copyfile(next(frames), path)
+            if captured is not None:
+                captured()
+        with mock.patch.object(omi_fit.time, 'sleep'):
+            omi_fit.caption_case(object(), lambda *_: json.dumps(next(answers)),
+                                 grab, self.root)
+
+    def test_caption_check_precedes_pixel_validation(self):
+        frames = [self.frame(f'capture-{index}.png', [[624, 329, 45, 45], [580, 396, 130, 9]])
+                  for index in range(3)]
+        current = 0
+        def call(*_):
+            return json.dumps(dict(caption=f'PHRASE {current}', settled=True, captionOpacity=1,
+                                   captionRect='580 394 130 14', markColor='#c6b395',
+                                   captionColor='#c6b395', omi=dict(slot='613 318 66 66')))
+        def grab(_, path, captured=None):
+            nonlocal current
+            shutil.copyfile(frames[current % 3], path)
+            if captured is not None:
+                captured()
+            # Pixel validation finishes after the animation has reached its next phrase.
+            current += 1
+        with mock.patch.object(omi_fit.time, 'sleep'), mock.patch.object(
+                omi_fit.time, 'monotonic', side_effect=range(100)):
+            omi_fit.caption_case(object(), call, grab, self.root)
 
 
 if __name__ == '__main__':

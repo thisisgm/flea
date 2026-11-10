@@ -74,7 +74,9 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        if id == "language" {
+        if id == "viewDual" {
+            self.choose_settings_view(View::Dual, window, cx);
+        } else if id == "language" {
             self.launch_settings_program(
                 "omarchy-menu",
                 vec!["summon".into(), "setup.language".into()],

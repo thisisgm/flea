@@ -146,6 +146,10 @@ impl StatusAdapter<'_> {
             ),
             ("captionOpacity", number(frame.caption)),
             (
+                "captionRect",
+                Json::Str(caption.as_ref().map(rect).unwrap_or_default()),
+            ),
+            (
                 "captionColor",
                 Json::Str(colour(caption.map_or(ink.foreground, |t| t.color))),
             ),

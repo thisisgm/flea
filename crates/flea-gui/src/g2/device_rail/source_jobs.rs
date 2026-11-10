@@ -81,9 +81,7 @@ impl Source {
     }
 
     pub(super) fn listing_effects(&mut self, effects: Vec<ListingEffect>, cx: &mut Context<Self>) {
-        if !effects.is_empty() {
-            cx.notify();
-        }
+        let changed = !effects.is_empty();
         for effect in effects {
             match effect {
                 ListingEffect::Start(job) => self.start(Child::Gio, job, cx),
@@ -96,9 +94,11 @@ impl Source {
                 }
                 ListingEffect::Listed => {
                     self.phones.rebuild(&self.listing.text);
-                    cx.notify();
                 }
             }
+        }
+        if changed {
+            cx.emit(MountsChanged);
         }
     }
 
@@ -132,10 +132,18 @@ impl Source {
         let now = self.now(cx);
         match child {
             Child::Gio => {
+                let changed = !self.listing.answered
+                    || (!self.listing.timed_out() && self.listing.text != outcome.stdout);
                 self.listing_generation += 1;
                 let effects = self.listing.exited(&outcome, now);
+                let empty = effects.is_empty();
                 self.listing_effects(effects, cx);
-                cx.notify();
+                if empty {
+                    cx.emit(MountsChanged);
+                }
+                if changed {
+                    cx.notify();
+                }
             }
             Child::Phone => {
                 let effects = self.phones.exited(&outcome);
