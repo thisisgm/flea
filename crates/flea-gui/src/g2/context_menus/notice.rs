@@ -53,6 +53,24 @@ impl Shell {
     }
 
     pub(crate) fn menu_refuse(&mut self, key: &str, cx: &mut Context<Self>) {
+        let key = if key == "menu.refusal.moved"
+            && self.menu.captured.as_ref().is_some_and(|capture| {
+                self.panes[capture.side].as_ref().is_some_and(|host| {
+                    capture.path == host.path
+                        && (capture.listing != host.pane.held.listing || host.pane.busy())
+                        && (capture.background
+                            || host
+                                .pane
+                                .held
+                                .rows
+                                .iter()
+                                .any(|row| row.name == self.menu.context.row_name))
+                })
+            }) {
+            "dialogs.file.properties.err_item_changed"
+        } else {
+            key
+        };
         let side = self
             .menu
             .captured

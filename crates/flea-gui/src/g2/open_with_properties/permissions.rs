@@ -263,6 +263,9 @@ impl Permissions {
 
     /// The backend went away: before Apply the card cannot read, during Apply the change may not have finished.
     pub fn stopped(&mut self) {
+        if matches!(self.phase, Phase::Stopped(_)) {
+            return;
+        }
         self.phase = Phase::Stopped(self.phase == Phase::Applying);
         self.focus = Stop::Cancel;
     }

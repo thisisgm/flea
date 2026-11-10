@@ -393,6 +393,8 @@ case_f3_dual_grid() ( f3_roundtrip grid )
 
 # FX-POLISH uses the existing Permissions, Jobs, keymap and Trash recipes.
 CASES+=("permissions-readonly 1100x700 surface:PermissionsDialog"
+        "permissions-invalid-octal 1100x700 surface:PermissionsDialog"
+        "permissions-small-focus 560x400 surface:PermissionsDialog"
         "archive-failed-reason 1100x700 surface:TransferCard"
         "keymap-keep-results 1100x700 surface:KeymapSheet key:keepResults"
         "trash-cursor-rest 1100x700 surface:TrashView"
@@ -410,7 +412,41 @@ case_permissions_readonly() (
     menu_dialog_open "$C/FxPolish" special.txt 'Permissions…' || return 1
     wait_ipc_has permissionsState 'No changes to apply' || return 1
     wait_ipc_has permissionsState 'Current mode 4644' || return 1
+    ipc permissionsState | jq -e '.displayedError | contains("setuid")' >/dev/null || return 1
     snap
+)
+
+case_permissions_invalid_octal() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    fxpolish_files || return 1
+    chmod 0644 "$C/FxPolish/special.txt" || return 1
+    menu_dialog_open "$C/FxPolish" special.txt 'Permissions…' || return 1
+    key -M shift -k Tab -k Tab -m shift
+    key -M ctrl -k a -m ctrl
+    key -- ' 644'
+    wait_ipc_has permissionsState 'Enter three octal digits' || return 1
+    ipc permissionsState | jq -e '.mode == " 644"' >/dev/null || return 1
+    snap
+)
+
+case_permissions_small_focus() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    local attempt paint_limit=50 poll_seconds=0.1
+    fxpolish_files || return 1
+    chmod 0644 "$C/FxPolish/special.txt" || return 1
+    menu_dialog_open "$C/FxPolish" special.txt 'Permissions…' || return 1
+    key -M shift -k Tab -m shift
+    # permissionsState reports painted focus, so the Shift+Tab and its reveal land a frame or two after key returns.
+    for attempt in $(seq 1 "$paint_limit"); do
+        # Sample input: {"controls":[{"name":"Cancel","focused":true,"visible":true}]}
+        if ipc permissionsState | jq -e 'any(.controls[]; .name == "Cancel" and .focused and .visible)' >/dev/null; then
+            snap || return 1
+            return 0
+        fi
+        sleep "$poll_seconds"
+    done
+    state_failure "Permissions did not paint Cancel focused and visible"
+    return 1
 )
 
 case_archive_failed_reason() (

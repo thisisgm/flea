@@ -4,6 +4,24 @@ use super::sheet::{Sheet, Sources};
 use super::sheet_view::SheetView;
 use super::tests::{english, panel};
 use super::view::SettingsView;
+
+#[gpui::test]
+fn fxuish_def2_settings_sections_keep_the_same_title_origin(cx: &mut TestAppContext) {
+    let (view, cx) = cx.add_window_view(|_, cx| SettingsView::new(panel("{}"), cx));
+    let mut first = None;
+    for section in [
+        "view", "display", "preview", "places", "menus", "keys", "about",
+    ] {
+        view.update(cx, |view, cx| {
+            view.panel.show_section(section);
+            cx.notify();
+        });
+        cx.update(|window, cx| window.draw(cx).clear(cx));
+        cx.run_until_parked();
+        let origin = view.read_with(cx, |view, _| view.probe.bounds("title").unwrap().origin);
+        assert_eq!(*first.get_or_insert(origin), origin, "section {section}");
+    }
+}
 use gpui::{Focusable, TestAppContext};
 use std::cell::RefCell;
 use std::rc::Rc;

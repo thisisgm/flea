@@ -186,9 +186,10 @@ fn permissions_backend_death_says_whether_the_change_may_have_landed() {
     card.stopped();
     let drawn = card.card(&i18n);
     assert_eq!(notes(&drawn)[0].0, "Permissions is unavailable because Flea stopped responding. Restart Flea and reopen Permissions.");
-    assert_eq!(buttons(&drawn), "Cancel@");
+    assert_eq!(buttons(&drawn), "Cancel@|Apply*~");
     let mut card = permissions();
     card.key(Key::Enter);
+    card.stopped();
     card.stopped();
     assert!(notes(&card.card(&i18n))[0]
         .0

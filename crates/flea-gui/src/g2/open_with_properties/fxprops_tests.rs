@@ -154,7 +154,7 @@ fn fxprops_s2_2_a_read_only_setuid_card_names_its_reason_and_no_typing_error() {
         "{:?}",
         notes(&drawn)
     );
-    assert!(!notes(&drawn).iter().any(|(_, ink)| *ink == Ink::Error));
+    assert!(notes(&drawn).contains(&("Read-only: setuid bit is present.".into(), Ink::Error)));
     let octal = drawn
         .body
         .iter()

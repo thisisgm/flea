@@ -76,7 +76,10 @@ fn fixmenus_ey385_show_hidden_chosen_during_a_reread_is_refused_and_lists_nothin
     );
     assert_eq!(
         read(&shell, cx, "lastMessage", &[]),
-        shell.read_with(cx, |shell, _| shell.locale.catalog.tr("menu.refusal.moved"))
+        shell.read_with(cx, |shell, _| shell
+            .locale
+            .catalog
+            .tr("dialogs.file.properties.err_item_changed"))
     );
     land(&shell, cx, "/files", rows(), 2);
     let lists: Vec<_> = sent()

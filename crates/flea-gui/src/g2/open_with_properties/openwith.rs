@@ -258,7 +258,16 @@ impl OpenWith {
             Some("openWith") => {
                 self.opening = false;
                 if reply.get("cancelled").and_then(Json::as_bool) != Some(true) {
-                    self.error = Some(i18n.tr("dialogs.file.openwith.open_failed"));
+                    self.error = Some(
+                        reply
+                            .get("error")
+                            .and_then(Json::as_str)
+                            .filter(|detail| !detail.is_empty())
+                            .map_or_else(
+                                || i18n.tr("dialogs.file.openwith.open_failed"),
+                                str::to_owned,
+                            ),
+                    );
                 }
             }
             _ => {}

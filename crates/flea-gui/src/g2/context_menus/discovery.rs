@@ -1,5 +1,5 @@
 //! Menu discovery reuses the backend's bounded Actions and application registry producers.
-use super::delivery::string;
+use super::{delivery::string, menu::Outcome};
 use crate::state::Shell;
 use flea::{json::escape, jsondoc::Json, ui_logic_context_menus::build::Peer};
 use gpui::{Context, Window};
@@ -109,8 +109,13 @@ impl Shell {
         }
         if validation {
             if reply.get("ok").and_then(Json::as_bool) != Some(true) {
-                self.menu_refuse("menu.refusal.moved", cx);
-                self.retire_menu(window, cx);
+                let detail = string(reply, "error");
+                self.menu_outcome_with_detail(
+                    Outcome::Refused("menu.refusal.moved"),
+                    Some(detail),
+                    window,
+                    cx,
+                );
                 return true;
             }
             let paths = reply
