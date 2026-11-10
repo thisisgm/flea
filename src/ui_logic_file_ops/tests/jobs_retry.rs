@@ -26,6 +26,9 @@ fn s1b_12_a_settled_refusal_offers_no_retry() {
         "That name is too long",
         "operation is not supported",
         "':' is not allowed in a name on this vfat drive",
+        "an entry in this archive would land outside its folder, so nothing was extracted",
+        "'a.txt' and 'A.txt' would take one name on this drive, so nothing was extracted",
+        "'set/clip: final.txt' cannot be extracted onto this drive: ':' is not allowed in a name on this vfat drive",
     ] {
         assert_eq!(failed(settled), vec![Action::Dismiss], "{settled}");
     }
@@ -51,6 +54,7 @@ fn s1b_12_every_settled_phrase_is_one_the_backend_still_writes() {
         include_str!("../../backend/opsreq.rs"),
         include_str!("../../backend/copyfile.rs"),
         include_str!("../../error.rs"),
+        include_str!("../../backend/archiveops.rs"),
     ];
     for phrase in jobs::SETTLED {
         let written = format!("\"{phrase}\"");
