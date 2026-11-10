@@ -254,7 +254,11 @@ impl Render for Bare {
 fn pv3_the_pointer_reaches_each_strip_part_where_the_board_draws_it() {
     use crate::g2::media_preview::strip::StripInput::{self, *};
     use gpui::{point, Modifiers, MouseButton};
-    let mut cx: TestAppContext = real_cx();
+    // The board's 77 px clock is bench_typeface's JetBrains Mono, loaded here so a box without it measures the same.
+    let regular = include_bytes!("../../../../tests/fonts/JetBrainsMono-Regular.ttf");
+    let text = gpui_platform::current_platform(true).text_system();
+    text.add_fonts(vec![regular.as_slice().into()]).unwrap();
+    let mut cx = TestAppContext::build_with_text_system(gpui::TestDispatcher::new(0), None, text);
     let heard: Rc<RefCell<Vec<StripInput>>> = Rc::default();
     let view = StripView {
         playing: false,

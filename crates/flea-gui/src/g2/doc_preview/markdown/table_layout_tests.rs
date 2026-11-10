@@ -15,12 +15,22 @@ struct Fonts {
 
 impl Fonts {
     fn new() -> Self {
+        // The fixture faces load into the text system, so a box without the family installed shapes the same text.
+        let platform = gpui_platform::current_platform(true).text_system();
+        platform
+            .add_fonts(vec![
+                include_bytes!("../../../../tests/fonts/JetBrainsMono-Regular.ttf")
+                    .as_slice()
+                    .into(),
+                include_bytes!("../../../../tests/fonts/JetBrainsMono-Bold.ttf")
+                    .as_slice()
+                    .into(),
+            ])
+            .unwrap();
         Self {
-            text: Arc::new(TextSystem::new(
-                gpui_platform::current_platform(true).text_system(),
-            )),
+            text: Arc::new(TextSystem::new(platform)),
             faces: Faces {
-                family: "DejaVu Sans Mono".into(),
+                family: "JetBrains Mono".into(),
                 symbol: "DejaVu Sans".into(),
             },
         }
