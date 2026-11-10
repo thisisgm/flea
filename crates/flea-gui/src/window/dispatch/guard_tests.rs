@@ -19,6 +19,51 @@ const NAVIGATION: &[&str] = &["parent", "historyBack", "historyForward", "reload
 // Never handed to nobody on a folder row; on a file row the opener runs open and turns pageForward into preview.
 const FOLDER_ROW: &[&str] = &["open", "pageForward"];
 
+#[gpui::test]
+fn print_key_opens_printable_rows_and_keeps_its_refusal(cx: &mut TestAppContext) {
+    for preset in keys::PRESETS {
+        for (name, directory, printable) in [
+            ("folder", true, false),
+            ("other.bin", false, false),
+            ("report.pdf", false, true),
+        ] {
+            let (shell, cx) = open(cx, preset);
+            land(&shell, cx, "/files", vec![row(name, directory)], 1);
+            super::test_shell::sent();
+            let emitted = Rc::new(RefCell::new(Vec::new()));
+            let sink = emitted.clone();
+            let _subscription = cx.update(|_, cx| {
+                cx.subscribe(&shell, move |_, event: &ActionEvent, _| {
+                    sink.borrow_mut().push(event.action)
+                })
+            });
+            cx.simulate_keystrokes("ctrl-p");
+            cx.run_until_parked();
+            assert!(
+                emitted.borrow().is_empty(),
+                "{preset} {name}: Print owns both an opened card and a refused selection"
+            );
+            shell.update(cx, |shell, cx| {
+                assert_eq!(shell.output_showing(cx), printable, "{preset} {name}");
+                if !printable {
+                    let expected = shell.locale.catalog.tr("dialogs.output.error.print_kind");
+                    let shown =
+                        shell.status_messages(cx, |messages, _| messages.shown().text.to_string());
+                    assert_eq!(shown, expected, "Print keeps its specific refusal");
+                }
+            });
+            let queries = super::test_shell::sent()
+                .iter()
+                .filter(|line| line.contains(r#""c":"printoptions""#))
+                .count();
+            assert_eq!(queries, usize::from(printable), "{preset} {name}");
+            shell.update(cx, |shell, _| shell.stop_for_app_quit());
+            cx.update(|window, _| window.remove_window());
+            cx.run_until_parked();
+        }
+    }
+}
+
 // One fresh production Shell per press, so no earlier key's state decides a later one.
 fn handed_to_nobody(
     cx: &mut TestAppContext,

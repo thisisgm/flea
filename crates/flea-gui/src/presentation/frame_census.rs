@@ -55,10 +55,11 @@ pub(crate) const CENSUS: &[(&str, States)] = &[
     ("settings-keys", row(4, 0, 0, 0, 0)),
     ("settings-menus", row(68, 0, 0, 0, 0)),
     ("settings-places", row(28, 0, 0, 0, 0)),
-    ("settings-preview", row(20, 0, 0, 0, 0)),
+    // 0401-settings-wide-b: the wider pane fits Thumbnail size's chips, adding its chosen foreground frame (4 quads).
+    ("settings-preview", row(24, 0, 0, 0, 0)),
     ("settings-search-field", row(0, 4, 0, 0, 0)),
-    // 0401-settings-view-c: checked Omi and Rotate rows add 4 each; New tabs open in's chip falls below the fixture (-4).
-    ("settings-view", row(40, 0, 0, 0, 4)),
+    // 0401-settings-view-c + 0401-settings-hover: Omi and Rotate add 4 each; Start in and New tabs open in fall below the fixture (-8).
+    ("settings-view", row(36, 0, 0, 0, 4)),
     ("trash-strip-button", row(0, 0, 0, 0, 4)),
     ("unlock-card-password-buttons", row(4, 0, 0, 0, 0)),
     ("unlock-pointer-wash", row(4, 0, 0, 0, 0)),
