@@ -2311,6 +2311,10 @@
     "other": "Poistettu %2/%1 kohdetta"
   },
   "trash.done.failed": "%1 · %2 epäonnistui",
+  "trash.done.leftover": {
+    "one": "%2 · %1 jäljelle jäänyt merkintä jäi poistamatta",
+    "other": "%2 · %1 jäljelle jäänyttä merkintää jäi poistamatta"
+  },
   "trash.done.failure": "%1 epäonnistui: %2",
   "trash.done.restored": {
     "one": "Palautettu %2/%1 kohde",

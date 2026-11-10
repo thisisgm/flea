@@ -2351,6 +2351,10 @@
     "other": "%1 ta obyektdan %2 tasi oʻchirildi"
   },
   "trash.done.failed": "%1 · %2 ta bajarilmadi",
+  "trash.done.leftover": {
+    "one": "%2 · %1 ta qolgan yozuvni oʻchirib boʻlmadi",
+    "other": "%2 · %1 ta qolgan yozuvni oʻchirib boʻlmadi"
+  },
   "trash.done.failure": "%1 bajarilmadi: %2",
   "trash.done.restored": {
     "one": "%1 ta obyektdan %2 tasi tiklandi",

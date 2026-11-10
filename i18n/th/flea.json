@@ -2252,6 +2252,9 @@
     "other": "ลบแล้ว %2 จาก %1 รายการ"
   },
   "trash.done.failed": "%1 · ล้มเหลว %2",
+  "trash.done.leftover": {
+    "other": "%2 · ลบรายการที่เหลือไม่ได้ %1 รายการ"
+  },
   "trash.done.failure": "ล้มเหลว %1: %2",
   "trash.done.restored": {
     "other": "กู้คืนแล้ว %2 จาก %1 รายการ"

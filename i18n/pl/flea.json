@@ -2507,6 +2507,12 @@
     "other": "Usunięto %2 z %1 elementu"
   },
   "trash.done.failed": "%1 · nieudane: %2",
+  "trash.done.leftover": {
+    "one": "%2 · nieusunięte pozostałe wpisy: %1",
+    "few": "%2 · nieusunięte pozostałe wpisy: %1",
+    "many": "%2 · nieusunięte pozostałe wpisy: %1",
+    "other": "%2 · nieusunięte pozostałe wpisy: %1"
+  },
   "trash.done.failure": "Nieudane: %1: %2",
   "trash.done.restored": {
     "few": "Przywrócono %2 z %1 elementów",

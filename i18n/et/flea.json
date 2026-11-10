@@ -1416,6 +1416,10 @@
     "other": "Kustutatud %2 / %1 üksust"
   },
   "trash.done.failed": "%1 · %2 ebaõnnestus",
+  "trash.done.leftover": {
+    "one": "%2 · %1 järelejäänud kirje jäi eemaldamata",
+    "other": "%2 · %1 järelejäänud kirjet jäi eemaldamata"
+  },
   "trash.done.failure": "%1 ebaõnnestus: %2",
   "trash.arm.one": "Prügikasti teisaldamiseks vajuta uuesti %1 või vajuta ainult %2.",
   "trash.arm.many": "Nende prügikasti teisaldamiseks vajuta uuesti %1 või vajuta ainult %2.",

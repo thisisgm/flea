@@ -76,9 +76,6 @@ pub(crate) fn mount_with_source(
             crate::g2::trash_browser::join::TrashEvent::Count(count) => {
                 shell.rail_trash_count(*count as u64, cx);
             }
-            crate::g2::trash_browser::join::TrashEvent::FocusRail => {
-                shell.rail_focus(true, cx);
-            }
         },
     );
     Join {

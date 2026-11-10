@@ -2409,6 +2409,11 @@
     "other": "Supressió: %2 de %1 elements"
   },
   "trash.done.failed": "%1 · %2 amb error",
+  "trash.done.leftover": {
+    "one": "%2 · no s'ha pogut eliminar %1 entrada restant",
+    "many": "%2 · no s'han pogut eliminar %1 entrades restants",
+    "other": "%2 · no s'han pogut eliminar %1 entrades restants"
+  },
   "trash.done.failure": "Error a %1: %2",
   "trash.done.restored": {
     "many": "Restauració: %2 de %1 elements",

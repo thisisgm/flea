@@ -117,8 +117,11 @@ fn s11j7_the_ring_back_to_the_list_lands_on_trash_and_skips_the_hidden_toolbar()
     );
     assert!(
         trash_holds_keys(&mut cx, window),
-        "the ring comes back to the Trash list: {stops:?}"
+        "the ring comes back to Trash: {stops:?}"
     );
+    // TR2-b: Empty Trash… is the stop before the list, so the ring reaches the list one Tab later.
+    cx.simulate_keystrokes(window.into(), "tab");
+    draw(&mut cx, window);
     assert!(
         edge(&mut cx, window),
         "the cursor lights again with the keyboard"

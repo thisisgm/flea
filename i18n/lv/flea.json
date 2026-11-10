@@ -2409,6 +2409,11 @@
     "zero": "Izdzēsts %2 no %1 vienumiem"
   },
   "trash.done.failed": "%1 · %2 neizdevās",
+  "trash.done.leftover": {
+    "zero": "%2 · neizdevās noņemt %1 atlikušos ierakstus",
+    "one": "%2 · neizdevās noņemt %1 atlikušo ierakstu",
+    "other": "%2 · neizdevās noņemt %1 atlikušos ierakstus"
+  },
   "trash.done.failure": "%1 neizdevās: %2",
   "trash.done.restored": {
     "one": "Atjaunots %2 no %1 vienuma",

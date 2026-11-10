@@ -2409,6 +2409,11 @@
     "other": "Șters %2 din %1 de elemente"
   },
   "trash.done.failed": "%1 · eșuate: %2",
+  "trash.done.leftover": {
+    "one": "%2 · intrări rămase neeliminate: %1",
+    "few": "%2 · intrări rămase neeliminate: %1",
+    "other": "%2 · intrări rămase neeliminate: %1"
+  },
   "trash.done.failure": "%1 a eșuat: %2",
   "trash.done.restored": {
     "few": "Restaurat %2 din %1 elemente",

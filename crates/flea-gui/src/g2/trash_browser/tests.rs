@@ -21,7 +21,7 @@ pub(super) enum Call {
     Count(usize),
     Back,
     Escape,
-    Rail,
+    Leave(bool),
     Action(String),
 }
 
@@ -66,8 +66,8 @@ impl Outside for Recorder {
     fn count(&mut self, total: usize) {
         self.0.borrow_mut().push(Call::Count(total));
     }
-    fn focus_rail(&mut self) {
-        self.0.borrow_mut().push(Call::Rail);
+    fn leave(&mut self, forward: bool) {
+        self.0.borrow_mut().push(Call::Leave(forward));
     }
     fn back(&mut self) {
         self.0.borrow_mut().push(Call::Back);
@@ -485,7 +485,10 @@ fn trash_pane_keys_route_and_back_closes() {
             && !calls.contains(&Call::Action("search".into())),
         "window keys forward, listing keys stay"
     );
-    assert!(calls.contains(&Call::Rail), "Tab hops to the rail");
+    assert!(
+        calls.contains(&Call::Leave(true)),
+        "Tab past the list hands the keys to the window ring"
+    );
     assert!(
         calls.contains(&Call::Status(
             "Press d again to review permanent deletion, or Delete on its own.".into(),

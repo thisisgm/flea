@@ -2335,6 +2335,10 @@
   },
   "trash.deleted": "Verwijderd · %1",
   "trash.done.failed": "%1 · %2 mislukt",
+  "trash.done.leftover": {
+    "one": "%2 · %1 achtergebleven item kon niet worden verwijderd",
+    "other": "%2 · %1 achtergebleven items konden niet worden verwijderd"
+  },
   "trash.done.failure": "%1 mislukt: %2",
   "trash.drop.line": {
     "one": "%1 item naar de prullenbak verplaatsen",

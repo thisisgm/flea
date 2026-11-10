@@ -4,7 +4,7 @@ use super::dates_tests::english;
 use super::host::{self, Host, Item, Swept};
 use super::monitor::{self, Count};
 use super::rows::Reply;
-use super::view::View;
+use super::view::{Signal, View};
 use super::view_tests::{row, Backend, ROW};
 use crate::jsondoc;
 
@@ -120,6 +120,69 @@ fn rail_empty_trash_stops_the_sweep_and_reviews_with_the_view_closed() {
     assert!(!host.view.busy(), "the closed view takes its own cancel answer");
     host.sweep(now, true, day_number(now - DAY_MS));
     assert!(host.sweeping(), "the next sweep is not blocked once the review is answered");
+}
+
+// TR2-c: what Empty Trash's sweep of unlisted entries leaves on disk joins the finished line, as an error.
+#[test]
+fn empty_trash_says_how_many_leftover_entries_it_could_not_remove() {
+    let i18n = english();
+    for (done, failed, leftover, headline) in [
+        (2, 0, 0, "Deleted 2 of 2 items"),
+        (
+            2,
+            0,
+            1,
+            "Deleted 2 of 2 items · 1 leftover entry could not be removed",
+        ),
+        (
+            1,
+            1,
+            3,
+            "Deleted 1 of 2 items · 1 failed · 3 leftover entries could not be removed",
+        ),
+    ] {
+        let mut backend = Backend::with(vec![
+            row("a.txt", "2026-10-05T09:00:00"),
+            row("b.txt", "2026-10-04T09:00:00"),
+        ]);
+        backend.hold_ops = vec!["delete"];
+        let mut host = Host::new(View::new(ROW));
+        host.view.set_viewport(0., 300.);
+        host.action("emptyTrash");
+        backend.pump(&mut host);
+        host.view.confirmed(Some(7));
+        backend.pump(&mut host);
+        let id = backend.held[0]
+            .get("id")
+            .and_then(jsondoc::Json::as_f64)
+            .unwrap() as u64;
+        host.view.signals();
+        let failures = if failed > 0 {
+            r#"{"uri":"trash:///b.txt","name":"b.txt","error":"busy"}"#
+        } else {
+            ""
+        };
+        let finished = reply(&format!(
+            r#"{{"t":"trashbrowse","id":{id},"op":"delete","ok":true,"done":{done},"failed":{failed},"failures":[{failures}],"skipped":0,"cancelled":false,"leftover":{leftover}}}"#
+        ));
+        host.receive(&finished, &i18n, 0);
+        let results: Vec<(String, bool)> = host
+            .view
+            .signals()
+            .into_iter()
+            .filter_map(|s| match s {
+                Signal::Result {
+                    headline, error, ..
+                } => Some((headline, error)),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(
+            results,
+            [(headline.to_string(), failed + leftover > 0)],
+            "{leftover} left over"
+        );
+    }
 }
 
 #[test]

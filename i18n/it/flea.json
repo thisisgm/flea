@@ -2409,6 +2409,11 @@
     "other": "Eliminati %2 di %1 elementi"
   },
   "trash.done.failed": "%1 · %2 non riusciti",
+  "trash.done.leftover": {
+    "one": "%2 · impossibile rimuovere %1 voce rimasta",
+    "many": "%2 · impossibile rimuovere %1 voci rimaste",
+    "other": "%2 · impossibile rimuovere %1 voci rimaste"
+  },
   "trash.done.failure": "%1 non riusciti: %2",
   "trash.done.restored": {
     "one": "Ripristinati %2 di %1 elemento",

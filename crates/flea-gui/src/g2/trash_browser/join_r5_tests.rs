@@ -31,7 +31,7 @@ fn read(shell: &mut Shell, window: &mut Window, cx: &mut Context<Shell>, name: &
     reply.stdout.trim_end().to_string()
 }
 
-fn right_pane(shell: &mut Shell) {
+pub(super) fn right_pane(shell: &mut Shell) {
     use crate::window::pane::PaneHost;
     use flea::protocol::{Reply, RowFacts};
     let mut host = PaneHost::new("/right".into(), None, 500., &shell.locale);

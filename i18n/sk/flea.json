@@ -2450,6 +2450,11 @@
     "other": "Odstránené %2 z %1 položiek"
   },
   "trash.done.failed": "%1 · zlyhalo %2",
+  "trash.done.leftover": {
+    "one": "%2 · %1 zostávajúcu položku nebolo možné odstrániť",
+    "few": "%2 · %1 zostávajúce položky nebolo možné odstrániť",
+    "other": "%2 · %1 zostávajúcich položiek nebolo možné odstrániť"
+  },
   "trash.done.failure": "%1 zlyhalo: %2",
   "trash.done.restored": {
     "one": "Obnovené %2 z %1 položky",

@@ -336,7 +336,7 @@ impl TrashPane {
                 } => self.outside.result(headline, detail, error),
                 Signal::Count(total) => self.outside.count(total),
                 Signal::Back => self.outside.back(),
-                Signal::FocusRail => self.outside.focus_rail(),
+                Signal::FocusRail => self.outside.leave(true),
                 // TrashHost.onActionRequested drops forwarded actions for the whole review.
                 Signal::Action(name) if !self.host.view.confirming => self.outside.action(name),
                 Signal::Action(_) => {}

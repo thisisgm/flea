@@ -2351,6 +2351,10 @@
     "other": "%1 ögeden %2 silindi"
   },
   "trash.done.failed": "%1 · %2 başarısız",
+  "trash.done.leftover": {
+    "one": "%2 · kalan %1 girdi kaldırılamadı",
+    "other": "%2 · kalan %1 girdi kaldırılamadı"
+  },
   "trash.done.failure": "%1 başarısız: %2",
   "trash.done.restored": {
     "one": "%1 ögeden %2 geri yüklendi",

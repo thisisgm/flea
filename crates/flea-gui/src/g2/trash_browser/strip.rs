@@ -20,11 +20,21 @@ pub struct ButtonLook {
 }
 
 impl TrashPane {
+    /// Empty Trash… holds Trash's keys only while it is live; strip_focus alone can outlast the button's availability.
+    pub fn on_empty(&self) -> bool {
+        self.host.view.strip_focus && self.empty_available()
+    }
+
+    /// Empty Trash… draws its focus ring only while it is live and the window's keyboard is on it.
+    pub fn empty_focused(&self) -> bool {
+        self.on_empty() && !self.keys_away
+    }
+
     /// trash, trash-strip-hover, trash-strip-focus and trash-emptying: the label stays foreground in every state.
     pub fn button_look(&self) -> ButtonLook {
         let ink = self.paint.borrow().ink;
         let available = self.empty_available();
-        let focused = self.host.view.strip_focus && available;
+        let focused = self.empty_focused();
         let wash = match (available, self.button) {
             (true, b) if b.pressed && b.hover => Some(ink.foreground.opacity(PRESS)),
             (true, b) if b.hover && !b.pressed => Some(ink.foreground.opacity(HOVER)),

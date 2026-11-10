@@ -2252,6 +2252,9 @@
     "other": "已刪除 %2 / %1 個項目"
   },
   "trash.done.failed": "%1 · %2 個失敗",
+  "trash.done.leftover": {
+    "other": "%2 · 有 %1 個殘留項目無法移除"
+  },
   "trash.done.failure": "%1 失敗：%2",
   "trash.done.restored": {
     "other": "已還原 %2 / %1 個項目"

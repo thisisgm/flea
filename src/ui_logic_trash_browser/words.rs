@@ -155,6 +155,14 @@ pub fn done_line(i18n: &I18n, restored: bool, done: usize, failed: usize) -> Str
     i18n.tr_args("trash.done.failed", &[&line, &i18n.locale().format_count(failed as i64)])
 }
 
+/// The finished line, adding how many entries the listing left out that Empty Trash could not remove.
+pub fn leftover_line(i18n: &I18n, line: String, leftover: usize) -> String {
+    if leftover == 0 {
+        return line;
+    }
+    i18n.trn_args("trash.done.leftover", leftover as i64, &[&line])
+}
+
 /// One failed item's line; the backend's reason is its own diagnostic, carried as an argument.
 pub fn failure_line(i18n: &I18n, name: &str, error: &str) -> String {
     i18n.tr_args("trash.done.failure", &[name, error])

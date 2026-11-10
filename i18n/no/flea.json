@@ -2311,6 +2311,10 @@
     "other": "Slettet %2 av %1 elementer"
   },
   "trash.done.failed": "%1 · %2 mislyktes",
+  "trash.done.leftover": {
+    "one": "%2 · %1 gjenværende oppføring kunne ikke fjernes",
+    "other": "%2 · %1 gjenværende oppføringer kunne ikke fjernes"
+  },
   "trash.done.failure": "%1 mislyktes: %2",
   "trash.done.restored": {
     "one": "Gjenopprettet %2 av %1 element",

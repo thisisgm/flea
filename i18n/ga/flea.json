@@ -1554,6 +1554,13 @@
     "other": "Scriosadh %2 as %1 mír"
   },
   "trash.done.failed": "%1 · %2 teipthe",
+  "trash.done.leftover": {
+    "one": "%2 · níorbh fhéidir %1 iontráil fágtha a bhaint",
+    "two": "%2 · níorbh fhéidir %1 iontráil fágtha a bhaint",
+    "few": "%2 · níorbh fhéidir %1 iontráil fágtha a bhaint",
+    "many": "%2 · níorbh fhéidir %1 iontráil fágtha a bhaint",
+    "other": "%2 · níorbh fhéidir %1 iontráil fágtha a bhaint"
+  },
   "trash.done.failure": "Theip ar %1: %2",
   "trash.arm.one": "Brúigh %1 arís chun é a chur sa Bhruscar, nó brúigh %2 leis féin.",
   "trash.arm.many": "Brúigh %1 arís chun iad a chur sa Bhruscar, nó brúigh %2 leis féin.",

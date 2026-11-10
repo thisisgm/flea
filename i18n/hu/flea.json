@@ -1416,6 +1416,10 @@
     "other": "%2 / %1 elem törölve"
   },
   "trash.done.failed": "%1 · %2 sikertelen",
+  "trash.done.leftover": {
+    "one": "%2 · %1 megmaradt bejegyzést nem sikerült eltávolítani",
+    "other": "%2 · %1 megmaradt bejegyzést nem sikerült eltávolítani"
+  },
   "trash.done.failure": "%1 sikertelen: %2",
   "trash.arm.one": "Nyomd meg újra a(z) %1 billentyűt a Kukába helyezéshez, vagy a(z) %2 billentyűt önmagában.",
   "trash.arm.many": "Nyomd meg újra a(z) %1 billentyűt a Kukába helyezésükhöz, vagy a(z) %2 billentyűt önmagában.",

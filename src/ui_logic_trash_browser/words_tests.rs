@@ -92,3 +92,66 @@ fn trash_backend_order_and_membership_pins_hold() {
     assert!(rust.contains("if !same_items(&list()?, &self.items) {") && rust.contains("if !same_items(&list()?, &confirmation.listing) {")
         && !rust.contains("list()? != "), "staleness ignores the order of the two reads");
 }
+
+#[test]
+fn trash_leftover_footer_is_filled_and_formats_in_all_shipped_locales() {
+    use crate::i18n::{I18n, Paths};
+
+    let root = crate::backend::testdir::TestDir::new("trash-leftover-locales");
+    let roster = root.dir("omarchy/default/i18n");
+    std::fs::write(
+        roster.join("locales.json"),
+        include_str!("../i18n/fixtures/locales.json"),
+    )
+    .unwrap();
+    let catalogs = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("i18n");
+    let mut checked = 0;
+    for entry in std::fs::read_dir(&catalogs).unwrap().flatten() {
+        let catalog = entry.path().join("flea.json");
+        if !catalog.is_file() {
+            continue;
+        }
+        let code = entry.file_name().to_str().unwrap().to_string();
+        let document = crate::jsondoc::parse(&std::fs::read_to_string(catalog).unwrap()).unwrap();
+        let forms = document.get("trash.done.leftover").unwrap();
+        let language_file = root.file("language", &code);
+        let i18n = I18n::load(Paths {
+            omarchy: root.join("omarchy"),
+            language_file,
+            catalogs: vec![catalogs.clone()],
+        });
+        assert_eq!(i18n.locale().code, code, "the catalog's locale is selected");
+        let headline = words::done_line(&i18n, false, 2, 0);
+        assert_eq!(words::leftover_line(&i18n, headline.clone(), 0), headline);
+        for count in [1, 2, 3, 5, 11, 21, 100, 1_000_000] {
+            let category = crate::i18n::plural::category(&code, count);
+            let form = forms
+                .get(category)
+                .and_then(crate::jsondoc::Json::as_str)
+                .unwrap();
+            assert!(
+                form.contains("%1") && form.contains("%2"),
+                "{code}/{category}"
+            );
+            let footer = words::leftover_line(&i18n, headline.clone(), count as usize);
+            assert!(footer.contains(&headline), "{code}/{count}: {footer}");
+            assert!(
+                footer.contains(&i18n.locale().format_count(count)),
+                "{code}/{count}: {footer}"
+            );
+            assert!(!footer.contains('%'), "{code}/{count}: {footer}");
+            if code != "en" {
+                assert!(
+                    !footer.contains("leftover entr"),
+                    "{code}/{count}: {footer}"
+                );
+            }
+            assert!(
+                !footer.contains("trash.done.leftover"),
+                "{code}/{count}: {footer}"
+            );
+        }
+        checked += 1;
+    }
+    assert_eq!(checked, 50, "every shipped catalog exercises the footer");
+}

@@ -2409,6 +2409,11 @@
     "other": "Smazáno %2 z %1 položek"
   },
   "trash.done.failed": "%1 · selhalo %2",
+  "trash.done.leftover": {
+    "one": "%2 · %1 zbývající položku nelze odstranit",
+    "few": "%2 · %1 zbývající položky nelze odstranit",
+    "other": "%2 · %1 zbývajících položek nelze odstranit"
+  },
   "trash.done.failure": "Selhalo %1: %2",
   "trash.done.restored": {
     "one": "Obnoveno %2 z %1 položky",

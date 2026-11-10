@@ -293,6 +293,25 @@ case_rail_empty_trash() (
     snap
 )
 
+# FX-TRASH3 (0.4.2, soak TR2-b): board trash-strip-focus, Empty Trash… reached by Tab presses from the Trash list.
+CASES+=("trash-strip-tab-focus 1100x700")
+case_trash_strip_tab_focus() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    local presses ring_limit=6 poll_seconds=0.1
+    open_trash || return 1
+    wait_ipc_has trashState '"total":1' || return 1
+    # trashEmptyState answers "hovered|focused|pressed|available"; the ring holds at most ring_limit stops, Empty Trash… just before the list.
+    for presses in $(seq 1 "$ring_limit"); do
+        key -k Tab
+        sleep "$poll_seconds"
+        [[ "$(ipc trashEmptyState)" == *'|true|false|true' ]] && break
+    done
+    wait_ipc_has trashEmptyState '|true|false|true' || { state_failure "Tab never reached Empty Trash in $presses presses"; return 1; }
+    printf 'trash-strip-tab-focus: %s Tab presses\n' "$presses" >> "$case_notes"
+    sleep 0.3
+    snap
+)
+
 # FX-KEYS (0.4.2, soak S2-6): board 0402-columns-menu-target, the cols-cursorfull state with beta.md right clicked.
 CASES+=("cols-menu-target 1100x700 view:columns menu:row")
 

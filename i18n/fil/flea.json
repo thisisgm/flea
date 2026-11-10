@@ -2311,6 +2311,10 @@
     "other": "Natanggal ang %2 sa %1 item"
   },
   "trash.done.failed": "%1 · %2 ang nabigo",
+  "trash.done.leftover": {
+    "one": "%2 · %1 natitirang entry ang hindi maalis",
+    "other": "%2 · %1 natitirang entry ang hindi maalis"
+  },
   "trash.done.failure": "%1 ang nabigo: %2",
   "trash.done.restored": {
     "one": "Naibalik ang %2 sa %1 item",

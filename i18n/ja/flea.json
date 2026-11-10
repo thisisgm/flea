@@ -2182,6 +2182,9 @@
     "other": "%1 項目中 %2 を削除しました"
   },
   "trash.done.failed": "%1 · %2 項目が失敗",
+  "trash.done.leftover": {
+    "other": "%2 · 残りの %1 項目を削除できませんでした"
+  },
   "trash.done.failure": "%1 が失敗: %2",
   "trash.done.restored": {
     "other": "%1 項目中 %2 を復元しました"

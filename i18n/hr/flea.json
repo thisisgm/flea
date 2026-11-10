@@ -2409,6 +2409,11 @@
     "other": "Izbrisano %2 od %1 stavki"
   },
   "trash.done.failed": "%1 · %2 neuspjelo",
+  "trash.done.leftover": {
+    "one": "%2 · %1 preostali unos nije moguće ukloniti",
+    "few": "%2 · %1 preostala unosa nije moguće ukloniti",
+    "other": "%2 · %1 preostalih unosa nije moguće ukloniti"
+  },
   "trash.done.failure": "%1 neuspjelo: %2",
   "trash.done.restored": {
     "few": "Vraćeno %2 od %1 stavke",
