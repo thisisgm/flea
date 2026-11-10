@@ -109,8 +109,16 @@ fn busy_paste(cx: &mut TestAppContext, files: bool) {
     let status = edit(cx, handle, |shell, _, _| {
         shell.panes[0].as_ref().unwrap().status.to_string()
     });
-    assert_eq!(status, "An operation is already running.", "files={files}");
     let sent = lines();
+    if files {
+        assert_ne!(status, "An operation is already running.");
+        assert!(
+            sent.iter().any(|line| line.contains("collisions")),
+            "{sent:?}"
+        );
+        return;
+    }
+    assert_eq!(status, "An operation is already running.");
     assert!(
         !sent.iter().any(|line| line.contains("collisions")
             || line.contains("transfer")
@@ -120,7 +128,7 @@ fn busy_paste(cx: &mut TestAppContext, files: bool) {
 }
 
 #[gpui::test]
-fn sol_clipboard_running_job_refuses_file_paste(cx: &mut TestAppContext) {
+fn sol_clipboard_running_job_allows_file_paste(cx: &mut TestAppContext) {
     busy_paste(cx, true);
 }
 

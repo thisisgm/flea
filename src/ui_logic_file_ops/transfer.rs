@@ -341,8 +341,7 @@ impl Wire {
         now: u64,
     ) -> Fold {
         if id != self.transfer.id {
-            // A queued transfer on another drive can already run: its items count at once, and its
-            // first failure names itself as the card's would.
+            // A queued transfer on another drive can already run: its items count, its first failure names itself.
             let Some(t) = self.queued_mut(id) else {
                 return Fold::Nothing;
             };

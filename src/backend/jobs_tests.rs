@@ -1,4 +1,7 @@
 // Pure model checks complement the real-backend suite without touching the filesystem.
+#[path = "jobs_queued_paste_tests.rs"]
+mod queued_paste;
+
 use super::jobs::{Jobs, State};
 use super::opscancel::DetachedJobs;
 use super::opsdispatch::{report_op, Ops};

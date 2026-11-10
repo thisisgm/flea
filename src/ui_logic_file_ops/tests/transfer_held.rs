@@ -179,7 +179,7 @@ fn held_line_of_one_transfer_never_lands_on_the_next() {
     wire.started(10, false, 5, false);
     wire.done(9, 0);
     wire.item(9, 1, "stale", true, "", 0);
-    // oracle tests/transferhold.qml:142
+    // oracle tests/transferhold.qml:142, after 9 ends: a start during 9 now queues instead of replacing the card.
     assert!(wire.held.is_empty());
     // oracle tests/transferhold.qml:146
     assert!(wire.transfer.id == 10 && wire.transfer.done == 0 && !wire.tick(BEAT_MS));

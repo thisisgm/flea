@@ -112,6 +112,60 @@ fn s4_second_paste_queues_behind_the_running_copy(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
+fn s4_disconnect_clears_queued_transfers_and_revokes_their_undo(cx: &mut TestAppContext) {
+    let (shell, cx) = copying(cx);
+    line(
+        &shell,
+        cx,
+        r#"{"t":"transferstarted","id":8,"n":1,"moving":true}"#,
+    );
+    line(
+        &shell,
+        cx,
+        r#"{"t":"jobs","jobs":[{"id":7,"kind":"copy","state":"running","undo":true},{"id":8,"kind":"move","state":"waiting","undo":true}]}"#,
+    );
+    shell.read_with(cx, |shell, cx| {
+        assert_eq!(
+            shell
+                .operation_view(0)
+                .unwrap()
+                .read(cx)
+                .model
+                .wire
+                .queued
+                .len(),
+            1
+        );
+    });
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            shell.receive(
+                0,
+                crate::backend::Event::Failed(crate::backend::Failure {
+                    key: "window.backend_stopped",
+                    detail: String::new(),
+                }),
+                window,
+                cx,
+            );
+        });
+    });
+    shell.read_with(cx, |shell, cx| {
+        let model = &shell.operation_view(0).unwrap().read(cx).model;
+        assert!(!model.wire.transfer.running && model.wire.queued.is_empty());
+        assert!(model.sticky.is_empty() && model.outbox.is_empty());
+        assert_eq!(model.due(), None);
+        assert_eq!(model.jobs.rows.len(), 2);
+        assert!(model
+            .jobs
+            .rows
+            .iter()
+            .all(|job| job.state == "failed" && !job.undo));
+    });
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+#[gpui::test]
 fn s4_select_all_during_held_sort_survives_the_landing(cx: &mut TestAppContext) {
     let (shell, cx) = open_root(cx, "default");
     land(

@@ -148,8 +148,7 @@ impl Operations {
         true
     }
 
-    // The card's transfer ended: its held job row lands, its cancel ends with it, and the
-    // status line follows the next queued transfer or clears when none is left.
+    // The card's transfer ended: its held row lands, its cancel ends, the next queued transfer takes the status line.
     fn card_ended(&mut self, catalog: &I18n) {
         self.release_transfer_job();
         self.transfer_cancelling = false;
