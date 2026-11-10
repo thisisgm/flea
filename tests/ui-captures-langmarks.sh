@@ -2,6 +2,7 @@
 # Native language-mark specimens and their drawn-state receipts, sourced by ui.sh.
 
 cap_langmarks_ui() {
+    [[ "$test_frontend" != gpui ]] || { printf '%s\n' "$repo/ui"; return; }
     local target="$fixture_root/cap-langmarks-ui"
     sandbox_scratch "$target"
     cp -a "$repo/ui/." "$target/" || fail "langmarks: the UI fixture could not be copied"
@@ -42,7 +43,7 @@ cap_langmarks_shot() {
         ([.rows[] | select(.name == "src")][0] | .slug == "" and (.built | not)) and
         all(.rows[] | select(.built); .glyphVisible == false and .ink == .glyphInk and .markSize == $pixels and .page == "M4 7V2h10l6 6v14H17 M14 2v6h6") and
         (if .view == "grid" then true else ([.rows[].labelX] | unique | length) == 1 end)
-    ' <<< "$state" >/dev/null || fail "langmarks: $name violates the ink, slot, cut or fallback recipe: $state"
+    ' <<< "$state" >/dev/null || fail "langmarks: $name violates the ink, slot, cut or fallback recipe (mark=$pixels): $state"
     printf '%s\n' "$state" > "$evidence_dir/$name.json"
     shot "$name"
     printf 'CAP_LANGMARKS shot=%s rows=12 cursor=main.rs ink=glyph slot=shared mark=%s cut=0.55 fallback=notes.ini,src\n' "$name" "$pixels"
@@ -78,11 +79,29 @@ cap_langmarks_code_receipt() {
         "$(jq -r '.colors | length' <<< "$code")" "$(jq -r '.language.slug // ""' <<< "$code")"
 }
 
+# GPUI opens the background menu from a measured empty point below the rows.
+cap_langmarks_background() {
+    [[ "$test_frontend" == gpui ]] || { click_background; return; }
+    local x y width height cx cy wx wy ww wh landed frame
+    frame=$(ipc listAreaRect) || fail "langmarks: list bounds could not be read"
+    [[ "$frame" =~ ^-?[0-9]+\ -?[0-9]+\ [0-9]+\ [0-9]+$ ]] || fail "langmarks: invalid list bounds: $frame"
+    read -r x y width height <<< "$frame"
+    (( width > 0 && height > 0 )) || fail "langmarks: the list has no visible area"
+    cx=$((x + width / 2))
+    cy=$((y + height - 1))
+    landed=$(list_row_at_y "$cy")
+    [[ -z "$landed" ]] || fail "langmarks: the background point lands on row $landed"
+    read -r wx wy ww wh < <(window_box) || fail "langmarks: native window coordinates unavailable"
+    omarchy-drive click "$((cx + wx))" "$((cy + wy))" right >/dev/null || fail "langmarks: background right click failed"
+}
+
 # The launch set's quiet listing, menu row at rest and lit, and the same listing after activation.
 cap_langmarks_toggle_shots() {
-    local pixels="$1" before state menu
+    local pixels="$1" before state menu show_label="Show code icons"
+    # The native menu follows HIG APL-MENU-04 title case; QML retains its original label.
+    [[ "$test_frontend" != gpui ]] || show_label="Show Code Icons"
     before=$(ipc listRequests) || fail "langmarks: listing counter could not be read"
-    click_background
+    cap_langmarks_background
     settle
     menu_seek "Hide code icons"
     key -k Return >/dev/null
@@ -94,12 +113,12 @@ cap_langmarks_toggle_shots() {
     cap_gm_move 550 4
     settle
     shot langmarks-list-off
-    click_background
+    cap_langmarks_background
     settle
     menu=$(ipc menuState) || fail "langmarks: off-state menu could not be read"
-    jq -e '.entries as $rows | ($rows | map(.action) | index("toggleLangMarks")) as $code |
+    jq -e --arg label "$show_label" '.entries as $rows | ($rows | map(.action) | index("toggleLangMarks")) as $code |
         ($rows | map(.action) | index("toggleHidden")) as $hidden |
-        $code == $hidden + 1 and $rows[$code].label == "Show code icons" and $rows[$code].glyph == "code"' \
+        $code == $hidden + 1 and $rows[$code].label == $label and $rows[$code].glyph == "code"' \
         <<< "$menu" >/dev/null || fail "langmarks: Show code icons is missing or misplaced: $menu"
     printf '%s\n' "$menu" > "$evidence_dir/langmarks-menu-off.json"
     cap_gm_move 550 4

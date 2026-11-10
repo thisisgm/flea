@@ -138,6 +138,7 @@ pub struct Paint {
     pub area: Option<Bounds<Pixels>>,
     pub frame: Option<Bounds<Pixels>>,
     pub strips: [Option<Bounds<Pixels>>; 3],
+    pub pointer: crate::g2::settings_pages::probe::Probe,
     pub popup: Option<Popup>,
     /// The suggestion rows the last frame laid and painted, 0 while no popup draws.
     pub drawn: usize,
@@ -161,6 +162,7 @@ impl Paint {
             area: None,
             frame: None,
             strips: [None; 3],
+            pointer: Default::default(),
             popup: None,
             drawn: 0,
             field_origin: px(0.),

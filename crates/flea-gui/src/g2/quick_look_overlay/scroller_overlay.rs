@@ -9,12 +9,16 @@ use std::time::{Duration, Instant};
 
 #[derive(Default)]
 pub(crate) struct Overlay {
+    painted: std::cell::Cell<Option<super::capture::Painted>>,
     scroll: Scroll,
     moved: [Option<Instant>; 2],
     timers: [Option<gpui::Task<()>>; 2],
 }
 
 impl Overlay {
+    pub(crate) fn painted_lane(&self) -> Option<super::capture::Painted> {
+        self.painted.get()
+    }
     pub(crate) fn vertical_lane(&self) -> Option<super::capture::Lane> {
         self.scroll.vertical_lane(false)
     }
@@ -83,6 +87,7 @@ fn paint(
     reduced: bool,
     window: &mut gpui::Window,
 ) {
+    bar.painted.set(None);
     let Some(view) = bar.scroll.view else { return };
     for axis in AXES {
         if !view.scrolls(axis) {
@@ -142,6 +147,14 @@ fn paint(
             scroll::KNOB_ALPHA
         };
         let mut quad = fill(Bounds::new(at, extent), ink.opacity(alpha * opacity));
+        if axis == Axis::Vertical {
+            bar.painted.set(Some(super::capture::Painted {
+                lane: Bounds::new(origin, lane.size),
+                knob: Bounds::new(at, extent),
+                hovered: bar.scroll.lane == Some(axis),
+                pressed,
+            }));
+        }
         quad.corner_radii =
             gpui::Corners::all(px(corner.min(width.min(length as f32) / 2.).max(0.)));
         window.paint_quad(quad);

@@ -7,6 +7,9 @@ use crate::{
 use flea::jsondoc::{self, Json};
 use gpui::{App, Bounds, Pixels};
 
+#[path = "geometry_cohesion.rs"]
+mod cohesion;
+
 pub(super) struct Live<'a> {
     pub picker: &'a Picker,
     pub cx: &'a App,
@@ -199,45 +202,7 @@ impl PickerGeometry for Live<'_> {
     }
 
     fn cohesion_controls(&self) -> String {
-        let controls = self
-            .buttons()
-            .into_iter()
-            .enumerate()
-            .filter_map(|(index, button)| {
-                let bounds = button.get("bounds")?.as_array()?;
-                Some(crate::visual::object([
-                    ("kind", Json::Str("DialogButton".into())),
-                    ("name", button.get("name")?.clone()),
-                    ("x", bounds[0].clone()),
-                    ("y", bounds[1].clone()),
-                    ("w", bounds[2].clone()),
-                    ("h", bounds[3].clone()),
-                    ("focused", button.get("focused")?.clone()),
-                    ("hovered", button.get("hovered")?.clone()),
-                    ("pressed", button.get("pressed")?.clone()),
-                    ("hoverable", Json::Bool(true)),
-                    ("pressable", Json::Bool(true)),
-                    ("enabled", button.get("enabled")?.clone()),
-                    ("value", Json::Str(String::new())),
-                    (
-                        "primary",
-                        Json::Bool(index == 1 && self.picker.answer_is_default()),
-                    ),
-                    (
-                        "destructive",
-                        Json::Bool(index == 1 && self.picker.accept_state().collision_review()),
-                    ),
-                    ("member", Json::Bool(false)),
-                    ("via", Json::Str(String::new())),
-                ]))
-            })
-            .collect();
-        jsondoc::render(&crate::visual::object([
-            ("focus", Json::Null),
-            ("controls", Json::Arr(controls)),
-        ]))
-        .trim_end()
-        .into()
+        self.cohesion()
     }
 
     fn path_bar_open(&self) -> bool {

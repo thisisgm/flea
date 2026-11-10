@@ -96,16 +96,6 @@ fn followup_picker_row_centre_reads_drawn_rows_only(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
-fn followup_picker_cohesion_reads_drawn_controls(cx: &mut TestAppContext) {
-    let mut f = fixture(cx, "{}", None);
-    f.cx.run_until_parked();
-    let reply = endpoint(&mut f, "cohesionControls", &[]);
-    assert_eq!(reply.code, 0, "{reply:?}");
-    let state = flea::jsondoc::parse(&reply.stdout).unwrap();
-    assert_eq!(state.get("controls").unwrap().as_array().unwrap().len(), 2);
-}
-
-#[gpui::test]
 fn followup_picker_save_field_uses_its_painted_box(cx: &mut TestAppContext) {
     let mut f = fixture(
         cx,
@@ -165,38 +155,6 @@ fn followup_picker_queued_geometry_calls_all_answer_after_resize(cx: &mut TestAp
             .reply;
         assert_eq!(reply.code, 0, "{reply:?}");
     }
-}
-
-#[gpui::test]
-fn followup_picker_cohesion_reports_the_answer_pressed_state(cx: &mut TestAppContext) {
-    let mut f = fixture(cx, "{}", None);
-    let reply = endpoint(&mut f, "controls", &[]);
-    let controls = flea::jsondoc::parse(&reply.stdout).unwrap();
-    let bounds = controls.as_array().unwrap()[1]
-        .get("bounds")
-        .unwrap()
-        .as_array()
-        .unwrap();
-    let at = gpui::point(
-        gpui::px((bounds[0].as_f64().unwrap() + bounds[2].as_f64().unwrap() / 2.) as f32),
-        gpui::px((bounds[1].as_f64().unwrap() + bounds[3].as_f64().unwrap() / 2.) as f32),
-    );
-    f.cx.simulate_mouse_down(at, gpui::MouseButton::Left, gpui::Modifiers::default());
-    let reply = endpoint(&mut f, "cohesionControls", &[]);
-    let state = flea::jsondoc::parse(&reply.stdout).unwrap();
-    let buttons = state.get("controls").unwrap().as_array().unwrap();
-    assert_eq!(buttons[1].get("pressed").unwrap().as_bool(), Some(true));
-    assert_eq!(buttons[1].get("enabled").unwrap().as_bool(), Some(false));
-    f.cx.simulate_mouse_up(at, gpui::MouseButton::Left, gpui::Modifiers::default());
-    let reply = endpoint(&mut f, "cohesionControls", &[]);
-    let state = flea::jsondoc::parse(&reply.stdout).unwrap();
-    assert_eq!(
-        state.get("controls").unwrap().as_array().unwrap()[1]
-            .get("pressed")
-            .unwrap()
-            .as_bool(),
-        Some(false)
-    );
 }
 
 #[gpui::test]
@@ -394,3 +352,6 @@ fn vf_readers_picker_path_bar_open_follows_the_entry(cx: &mut TestAppContext) {
 
 #[path = "fixreaders_geometry_tests.rs"]
 mod fixreaders;
+
+#[path = "geometry_cohesion_tests.rs"]
+mod cohesion;

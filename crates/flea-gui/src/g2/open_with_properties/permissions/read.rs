@@ -12,6 +12,18 @@ impl Permissions {
                 ("name".to_string(), Json::Str(name)),
                 ("enabled".to_string(), Json::Bool(enabled)),
                 ("focused".to_string(), Json::Bool(self.focus == stop)),
+                ("primary".to_string(), Json::Bool(stop == Stop::Apply)),
+                (
+                    "kind".to_string(),
+                    Json::Str(
+                        match stop {
+                            Stop::Box(_) => "CheckBox",
+                            Stop::Octal => "DialogField",
+                            _ => "DialogButton",
+                        }
+                        .into(),
+                    ),
+                ),
             ]
         };
         let execute = if self.held.directory {

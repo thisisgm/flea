@@ -28,6 +28,8 @@ pub const LIFECYCLE: &[Function] = &[
 ];
 
 pub const VISUAL: &[Function] = &[
+    function!("flea", "langmarksState", "string", &[]),
+    function!("flea", "langmarksCode", "string", &[("column", "bool")]),
     function!("flea", "columnTrackRect", "string", &[("slot", "string")]),
     function!("flea", "settingsRailWidth", "string", &[]),
     function!("flea", "noMatchHeadline", "string", &[]),

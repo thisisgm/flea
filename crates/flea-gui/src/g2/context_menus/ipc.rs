@@ -5,6 +5,7 @@ use crate::ipc::Adapter;
 use flea::ipc::wire::Reply;
 use flea::json::escape;
 use flea::ui_logic_context_menus::Brand;
+mod cohesion;
 pub(super) mod joined;
 pub(crate) use joined::JoinedAdapter;
 
@@ -61,6 +62,7 @@ impl MenuAdapter<'_> {
     ) -> Option<Reply> {
         use flea::jsondoc::{self, Json};
         match function {
+            "cohesionControls" => self.cohesion(Some(pointer)).map(Reply::value),
             "contextMenuModel" => Some(Reply::value(self.model(catalog))),
             "contextMenuRowProbe" => Some(self.row_probe(arguments, Some(pointer), None)),
             "menuState" => {

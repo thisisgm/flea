@@ -341,13 +341,19 @@ operations_long_error() {
 }
 
 operations_copy_gate() {
-    python3 - "$1" "$flea_bin" "$3" "$XDG_STATE_HOME" "$menu_box" "$2" "$operations_bytes" 3<&0 <<'PY'
+    local window_pid="" frontend="${test_frontend:-qml}"
+    [[ "$frontend" != gpui ]] || window_pid=$(flea_pid)
+    python3 - "$1" "$flea_bin" "$3" "$XDG_STATE_HOME" "$menu_box" "$2" "$operations_bytes" "$frontend" "$window_pid" "$flea_test_helper" "${4:-published}" 3<&0 <<'PY'
 import ctypes, json, os, select, signal, stat, struct, sys, time
 from pathlib import Path
 
 pid = int(sys.argv[1])
 binary, source, state_home, root, destination = map(Path, sys.argv[2:7])
 total = int(sys.argv[7])
+frontend, window_pid, transport_helper = sys.argv[8:11]
+mode = sys.argv[11]
+if mode not in ("published", "staged"):
+    raise RuntimeError("operations: unknown copy gate mode")
 timeout_seconds = 15
 
 def guard(path):
@@ -367,10 +373,62 @@ if os.path.lexists(partial) or os.path.lexists(later):
 process = Path("/proc", str(pid))
 pidfd = os.pidfd_open(pid)
 watchfd = None
+stagefd = None
 stopped = False
 commands = os.fdopen(3)
 def interrupted(number, frame):
     raise RuntimeError(f"operations: copy gate interrupted by signal {number}")
+
+def candidate_gui(helper, pid):
+    sys.path.insert(0, str(Path(helper).parent))
+    from flea_transport_cli import select as owned_window
+    window, arguments = owned_window(["--pid", pid])
+    record = window.record()
+    if arguments or record["frontend"] != "gpui" or record["pid"] != int(pid) or not record["gui"]:
+        raise RuntimeError("operations: copy gate has no exact native window record")
+    return record["gui"]
+
+def reading_source():
+    expected = source / "a-large.bin"
+    original = expected.lstat()
+    if not stat.S_ISREG(original.st_mode):
+        return False
+    for descriptor in (process / "fd").iterdir():
+        try:
+            if os.readlink(descriptor) != os.fspath(expected):
+                continue
+            # Sample input: "flags:\t0100000", an octal read-only descriptor.
+            flags = next(int(line.split()[1], 8) for line in (process / "fdinfo" / descriptor.name).read_text().splitlines() if line.startswith("flags:"))
+            if flags & os.O_ACCMODE not in (os.O_RDONLY, os.O_RDWR) or flags & os.O_PATH:
+                continue
+            actual = descriptor.stat()
+            if (actual.st_dev, actual.st_ino) == (original.st_dev, original.st_ino):
+                return True
+        except (FileNotFoundError, ProcessLookupError):
+            continue
+    return False
+
+def staged_file():
+    # The production copier publishes an O_TMPFILE or hidden sibling only after all bytes land.
+    for descriptor in (process / "fd").iterdir():
+        try:
+            target = Path(os.readlink(descriptor).removesuffix(" (deleted)"))
+            if target.parent != destination or not (target.name.startswith(("#", ".flea-part-")) or target == partial):
+                continue
+            # Sample input: the fdinfo line "flags:\t0100002", octal open flags.
+            flags = next(int(line.split()[1], 8) for line in (process / "fdinfo" / descriptor.name).read_text().splitlines() if line.startswith("flags:"))
+            if flags & os.O_ACCMODE not in (os.O_WRONLY, os.O_RDWR):
+                continue
+            held = os.open(descriptor, os.O_RDONLY | os.O_NONBLOCK)
+            metadata = os.fstat(held)
+            if (stat.S_ISREG(metadata.st_mode) and metadata.st_uid == os.getuid()
+                    and Path(os.readlink(f"/proc/self/fd/{held}").removesuffix(" (deleted)")) == target
+                    and metadata.st_dev == destination.stat().st_dev and metadata.st_size < total):
+                return held
+            os.close(held)
+        except (FileNotFoundError, ProcessLookupError):
+            continue
+    return None
 
 try:
     signal.signal(signal.SIGTERM, interrupted)
@@ -379,7 +437,22 @@ try:
     argv = (process / "cmdline").read_bytes().rstrip(b"\0").split(b"\0")
     # Sample environment entry: FLEA_PATH=/tmp/owned/cancel-source NUL.
     environment = dict(item.split(b"=", 1) for item in (process / "environ").read_bytes().split(b"\0") if b"=" in item)
-    expected = {b"FLEA_BIN": os.fsencode(binary), b"FLEA_PATH": os.fsencode(source), b"XDG_STATE_HOME": os.fsencode(state_home)}
+    expected = {b"FLEA_BIN": os.fsencode(binary), b"XDG_STATE_HOME": os.fsencode(state_home)}
+    if frontend == "gpui":
+        # GPUI names the start folder in the direct candidate parent's argv.
+        gui_binary = candidate_gui(transport_helper, window_pid)
+        # Sample input: the status line "PPid:\t4242".
+        parent_pid = next(line.split()[1] for line in (process / "status").read_text().splitlines() if line.startswith("PPid:"))
+        parent = Path("/proc", parent_pid)
+        parent_argv = (parent / "cmdline").read_bytes().rstrip(b"\0").split(b"\0")
+        if (parent_pid != window_pid or parent.stat().st_uid != os.getuid()
+                or (parent / "exe").resolve() != Path(gui_binary).resolve()
+                or parent_argv != [os.fsencode(gui_binary), b"--", os.fsencode(source)]):
+            raise RuntimeError("operations: copy gate candidate window ownership differs")
+    elif frontend == "qml":
+        expected[b"FLEA_PATH"] = os.fsencode(source)
+    else:
+        raise RuntimeError("operations: copy gate frontend is unknown")
     if process.stat().st_uid != os.getuid() or (process / "exe").resolve() != binary.resolve() or argv != [os.fsencode(binary), b"--backend"] or any(environment.get(key) != value for key, value in expected.items()):
         raise RuntimeError(f"operations: copy gate backend {pid} ownership differs")
     if select.select([pidfd], [], [], 0)[0]:
@@ -389,8 +462,9 @@ try:
     if watchfd < 0:
         raise OSError(ctypes.get_errno(), "operations: inotify_init1 failed")
     create_mask, overflow_mask = 0x100, 0x4000
+    watched_mask = create_mask | (0x20 | 0x2 if mode == "staged" else 0)
     libc.inotify_add_watch.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_uint32]
-    watched = libc.inotify_add_watch(watchfd, os.fsencode(destination), create_mask)
+    watched = libc.inotify_add_watch(watchfd, os.fsencode(destination), watched_mask)
     if watched < 0:
         raise OSError(ctypes.get_errno(), f"operations: cannot watch {destination}")
     print(json.dumps({"state": "armed", "pid": pid, "destination": str(destination)}), flush=True)
@@ -415,7 +489,15 @@ try:
             offset += length
             if mask & overflow_mask:
                 raise RuntimeError("operations: copy gate lost inotify events")
-            if watch == watched and mask & create_mask and name == os.fsencode(partial.name):
+            if watch != watched or not mask & watched_mask:
+                continue
+            if mode == "staged":
+                stagefd = staged_file()
+                if stagefd is None:
+                    continue
+            elif name != os.fsencode(partial.name):
+                continue
+            if mode == "staged" or mask & create_mask:
                 stopped = True
                 signal.pidfd_send_signal(pidfd, signal.SIGSTOP)
                 break
@@ -428,8 +510,11 @@ try:
         if time.monotonic() >= deadline:
             raise RuntimeError("operations: copy backend did not stop all threads")
         time.sleep(0.01)
-    metadata = partial.lstat()
-    if not stat.S_ISREG(metadata.st_mode) or not 0 <= metadata.st_size < total or os.path.lexists(later):
+    metadata = os.fstat(stagefd) if stagefd is not None else partial.lstat()
+    if mode == "staged" and not reading_source():
+        raise RuntimeError("operations: stopped copy does not hold its expected source for reading")
+    if (not stat.S_ISREG(metadata.st_mode) or not 0 <= metadata.st_size < total or os.path.lexists(later)
+            or mode == "staged" and os.path.lexists(partial)):
         raise RuntimeError(f"operations: copy completed before interruption; partial bytes={metadata.st_size}, total={total}")
     print(json.dumps({"state": "stopped", "pid": pid, "bytes": metadata.st_size, "total": total, "threads": len(states)}), flush=True)
     # EOF releases the stop if native proof aborts; the input checks own their deadlines.
@@ -449,6 +534,8 @@ finally:
             pass
     if watchfd is not None and watchfd >= 0:
         os.close(watchfd)
+    if stagefd is not None:
+        os.close(stagefd)
     os.close(pidfd)
 PY
 }

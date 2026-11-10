@@ -2,16 +2,41 @@
 use gpui::{canvas, div, prelude::*, px, Bounds, Div, Pixels};
 use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 
+#[path = "probe_pointer.rs"]
+mod pointer;
+
 #[derive(Clone, Default)]
-pub struct Probe(Rc<RefCell<BTreeMap<String, Bounds<Pixels>>>>);
+pub struct Probe(
+    Rc<RefCell<BTreeMap<String, Bounds<Pixels>>>>,
+    pointer::Pointer,
+);
 
 impl Probe {
+    pub(crate) fn painted(&self, id: String, bounds: Bounds<Pixels>, window: &mut gpui::Window) {
+        self.record(&id, bounds);
+        pointer::listen(
+            self.1.clone(),
+            id,
+            bounds.intersect(&window.content_mask().bounds),
+            window,
+        );
+    }
+
     pub(crate) fn record(&self, id: &str, bounds: Bounds<Pixels>) {
         self.0.borrow_mut().insert(id.into(), bounds);
     }
 
     pub fn clear(&self) {
         self.0.borrow_mut().clear();
+    }
+
+    pub(crate) fn pointer(&self, id: &str) -> (bool, bool) {
+        self.live_pointer(id).unwrap_or_default()
+    }
+
+    pub(crate) fn live_pointer(&self, id: &str) -> Option<(bool, bool)> {
+        self.bounds(id)?;
+        self.1.borrow().get(id).copied()
     }
 
     pub fn attach<E: ParentElement>(&self, div: E, id: impl Into<String>) -> E {
@@ -22,11 +47,19 @@ impl Probe {
     pub fn mark(&self, id: impl Into<String>) -> impl IntoElement {
         let probe = self.clone();
         let id = id.into();
+        let paint = id.clone();
+        let pointer = self.1.clone();
         canvas(
-            move |bounds, _, _| {
-                probe.0.borrow_mut().insert(id, bounds);
+            move |bounds, window, _| {
+                let clip = window.content_mask().bounds;
+                let mut boxes = probe.0.borrow_mut();
+                boxes.insert(format!("{id}:mask"), clip);
+                boxes.insert(id, bounds);
+                bounds.intersect(&clip)
             },
-            |_, _, _, _| {},
+            move |_, clipped, window, _| {
+                pointer::listen(pointer.clone(), paint.clone(), clipped, window)
+            },
         )
         .absolute()
         .left_0()

@@ -36,6 +36,16 @@ pub(crate) fn centre(bounds: Bounds<Pixels>) -> String {
     )
 }
 impl Reader<'_> {
+    pub(crate) fn cohesion_lane(&self) -> Option<flea::jsondoc::Json> {
+        let view = self
+            .view
+            .filter(|view| self.active && view.visible && !view.loading())?;
+        match &view.drawn.as_ref()?.mounted {
+            Mounted::Pdf(pdf) => pdf.read(self.cx).cohesion_lane(),
+            _ => None,
+        }
+    }
+
     pub(crate) fn value(&self, function: &str, arguments: &[String]) -> Option<String> {
         let view = self.view.filter(|v| self.active && v.visible);
         let loading = view.is_some_and(SelectionPreview::loading);

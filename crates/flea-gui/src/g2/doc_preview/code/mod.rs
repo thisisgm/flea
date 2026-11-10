@@ -99,6 +99,7 @@ pub struct CodeView {
     pub painted: Cell<usize>,
     /// Rows painted and line wraps computed, for the count tests.
     pub painted_rows: Cell<usize>,
+    painted_syntax: RefCell<Vec<capture::Syntax>>,
     pub wraps: Cell<usize>,
     /// Frames built by layout, for the count tests: an unchanged frame builds none.
     pub built: Cell<usize>,
@@ -145,6 +146,7 @@ impl CodeView {
             prepared: RefCell::default(),
             catalog: None,
             painted: Cell::new(0),
+            painted_syntax: RefCell::default(),
             painted_rows: Cell::new(0),
             wraps: Cell::new(0),
             built: Cell::new(0),

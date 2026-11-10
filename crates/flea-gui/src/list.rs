@@ -297,6 +297,7 @@ pub struct ListState {
     pub drawn_rows: Rc<pane::Held>,
     /// The listing rows a standing filter left that frame, at their view positions; None with no filter up.
     pub drawn_filter: Option<Rc<[usize]>>,
+    pub(crate) language_paint: std::cell::RefCell<Vec<crate::row::language_capture::Painted>>,
     pub header: header::HeaderState,
     // The one empty line every hidden cell shares, so a column that is not drawn shapes nothing.
     blank: Arc<LineLayout>,
@@ -332,6 +333,7 @@ impl ListState {
             drawn: Drawn::default(),
             drawn_rows: Rc::default(),
             drawn_filter: None,
+            language_paint: Default::default(),
             header: header::HeaderState::default(),
             blank: Arc::new(LineLayout::default()),
             palette_reads: 0,

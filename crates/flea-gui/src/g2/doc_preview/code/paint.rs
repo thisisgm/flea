@@ -178,6 +178,7 @@ impl CodeView {
 
     fn paint(&self, bounds: Bounds<Pixels>, frame: &Frame, window: &mut Window, cx: &gpui::App) {
         self.painted.set(self.painted.get() + 1);
+        self.painted_syntax.borrow_mut().clear();
         let Some(advance) = self.advance else { return };
         let origin = bounds.origin + point(px(0.), px(self.metrics.top));
         if self.refusal().is_some() {
@@ -200,11 +201,25 @@ impl CodeView {
                 for piece in &shaped.pieces {
                     let ink: Hsla = self.palette.inks[piece.ink];
                     let y = baseline(&piece.run, top, row, window);
-                    let _ = window.paint_glyph_run(
-                        point(origin.x + text_left + piece.x, y),
-                        &piece.run,
-                        ink,
-                    );
+                    if window
+                        .paint_glyph_run(point(origin.x + text_left + piece.x, y), &piece.run, ink)
+                        .is_ok()
+                    {
+                        if let Some(prepared) = self
+                            .prepared
+                            .borrow()
+                            .1
+                            .peek(&shaped.line.saturating_sub(1))
+                        {
+                            self.painted_syntax
+                                .borrow_mut()
+                                .push(super::capture::Syntax {
+                                    text: Rc::clone(prepared),
+                                    span: piece.start..piece.start + piece.len,
+                                    ink,
+                                });
+                        }
+                    }
                     if let Some(part) = self.selection.part(shaped.line, piece.start, piece.len) {
                         let accent = cx
                             .try_global::<crate::palette::Theme>()

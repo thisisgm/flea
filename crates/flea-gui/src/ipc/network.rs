@@ -8,6 +8,9 @@ use flea::json::escape;
 use flea::ui_logic_network_shares::form::{Protocol, PROTOCOLS};
 use flea::ui_logic_rail_places::rail::Group;
 
+#[path = "network_cohesion.rs"]
+mod cohesion;
+
 pub struct NetworkAdapter<'a> {
     pub card: Option<&'a NetworkView>,
     pub inside: bool,
@@ -357,6 +360,9 @@ impl NetworkAdapter<'_> {
 
 impl Adapter for NetworkAdapter<'_> {
     fn call(&self, function: &str, arguments: &[String]) -> Option<Reply> {
+        if function == "cohesionControls" {
+            return self.cohesion().map(Reply::value);
+        }
         self.rail_value(function)
             .or_else(|| self.card_value(function, arguments))
             .map(Reply::value)

@@ -91,6 +91,7 @@ def main():
     start.add_argument("--picker", action="store_true")
     start.add_argument("--select")
     start.add_argument("--share-runtime")
+    start.add_argument("--fixture", choices=("html-lifecycle",))
     start.add_argument("--timeout", type=float, default=15)
     execute = commands.add_parser("exec")
     execute.add_argument("command", nargs=argparse.REMAINDER)
@@ -111,7 +112,7 @@ def main():
         parent = os.environ.get("FLEA_TEST_WINDOWS_ROOT", str(REPO / ".superpowers/g010t"))
         print(Window.start(args.path, parent=parent, binary=args.binary, backend=args.backend, picker=args.picker,
                            log=args.log, ui=args.ui, timeout=args.timeout, wrap=args.wrap,
-                           select=args.select, share=args.share_runtime).root)
+                           select=args.select, share=args.share_runtime, fixture=args.fixture).root)
     elif args.verb == "exec":
         command = args.command
         if command[:1] == ["--"]:

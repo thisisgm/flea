@@ -238,14 +238,35 @@ impl GridElement {
             } else {
                 ink.muted_frame
             };
-            let _ = window.paint_svg(
-                bounds_of(origin, layout.mark(drawn.slot)),
-                key,
-                Some(data),
-                TransformationMatrix::unit(),
-                mark_ink.opacity(dim),
-                cx,
-            );
+            let slot = bounds_of(origin, layout.mark(drawn.slot));
+            if window
+                .paint_svg(
+                    slot,
+                    key.clone(),
+                    Some(data),
+                    TransformationMatrix::unit(),
+                    mark_ink.opacity(dim),
+                    cx,
+                )
+                .is_ok()
+                && self.held.row(drawn.listing).is_some()
+            {
+                state
+                    .language_paint
+                    .borrow_mut()
+                    .push(crate::row::language_capture::Painted {
+                        index: drawn.listing,
+                        key,
+                        data,
+                        ink: mark_ink.opacity(dim),
+                        slot,
+                        label_x: f32::from(origin.x) + drawn.caption.x,
+                        cursor: drawn.cursor,
+                        hovered: drawn.hovered,
+                        cut,
+                        opacity: dim,
+                    });
+            }
         }
         let Some(tile) = drawn.tile.as_ref().filter(|_| !drawn.editing) else {
             return;
@@ -349,6 +370,7 @@ impl Element for GridElement {
     ) {
         let ink = *ink;
         let mut state = self.state.borrow_mut();
+        state.language_paint.borrow_mut().clear();
         state.frames += 1;
         let state = &*state;
         let origin = bounds.origin;

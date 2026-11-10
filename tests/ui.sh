@@ -697,6 +697,8 @@ launch_window() {
     for wrap_arg in ${flea_launch_wrap[@]+"${flea_launch_wrap[@]}"}; do wrap_args+=("--wrap=$wrap_arg"); done
     local -a select_args=()
     [[ -z "$select_target" ]] || select_args=(--select "$select_target")
+    local -a component_args=()
+    [[ -z "${flea_launch_fixture-}" ]] || component_args=(--fixture "$flea_launch_fixture")
     # A backend stub case's stub under the marked fixture root goes to the transport as FLEA_BIN; the launched flea stays this build.
     local launch_bin="$flea_bin"
     local -a backend_args=()
@@ -709,7 +711,7 @@ launch_window() {
     local launch_config="${XDG_CONFIG_HOME-}"
     [[ "$HOME" != "$fixture_root"/* ]] || export XDG_CONFIG_HOME="$HOME/.config"
     flea_test_launch "$start_path" "$flea_log" --ui "$flea_ui" --binary "$launch_bin" "${backend_args[@]}" \
-        ${select_args[@]+"${select_args[@]}"} "${wrap_args[@]}" \
+        ${select_args[@]+"${select_args[@]}"} "${wrap_args[@]}" "${component_args[@]}" \
         || fail "owned window launch failed"
     if [[ -n "$launch_config" ]]; then export XDG_CONFIG_HOME="$launch_config"; else unset XDG_CONFIG_HOME; fi
     ipc_pid=$FLEA_TEST_PID

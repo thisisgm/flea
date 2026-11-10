@@ -38,6 +38,9 @@ pub mod office;
 #[cfg(test)]
 mod scroll_tests;
 
+#[cfg(test)]
+mod html_capture_tests;
+
 #[test]
 fn vf4_code_pitch_follows_the_caption_token_at_each_text_size() {
     for (caption, expected) in [(10., 14.), (12., 17.), (14., 20.), (16., 22.)] {

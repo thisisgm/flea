@@ -115,7 +115,7 @@ fn plugin_input_state(shell: &Shell) -> Option<String> {
 }
 
 /// The ui/Ipc.qml openWithState fields this reader does not send: the controls' painted state.
-const OPEN_WITH_UNAVAILABLE: &str = "controls[].hovered, controls[].pressed";
+const OPEN_WITH_UNAVAILABLE: &str = "";
 
 /// ui/Ipc.qml's row shapes: an eyebrow with its rule, or an application with its default claim.
 fn open_with_rows(card: &OpenWith, i18n: &flea::i18n::I18n) -> String {
@@ -164,9 +164,12 @@ fn open_with_state(
         let visible = part.as_ref().is_some_and(|part| {
             part.bounds.size.width > gpui::px(0.) && part.bounds.size.height > gpui::px(0.)
         });
+        let (hovered, pressed) = frame.pointer(id);
         format!(
-            r#"{{"name":"{name}","focused":{},"enabled":{enabled},"visible":{visible},"centre":"{}","rect":"{}"}}"#,
+            r#"{{"name":"{name}","focused":{},"primary":{},"enabled":{enabled},"visible":{visible},"hovered":{hovered},"pressed":{pressed},"pressLive":{},"centre":"{}","rect":"{}"}}"#,
             card.focus == stop,
+            stop == Stop::Open,
+            !matches!(stop, Stop::Search | Stop::List),
             measured::centre(part.as_ref()),
             measured::rect(part.as_ref()),
         )

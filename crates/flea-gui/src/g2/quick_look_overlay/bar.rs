@@ -26,12 +26,28 @@ pub fn mark(glyph: Glyph, size: f32, ink: Hsla) -> impl IntoElement {
 }
 
 /// The bar's leading mark, tagged with the glyph it draws so a test reads the painted mark, not the model.
-pub fn bar_mark(glyph: Glyph, look: &Look) -> impl IntoElement {
+pub(super) fn bar_mark(
+    glyph: Glyph,
+    look: &Look,
+    observations: &super::observations::Shared,
+) -> impl IntoElement {
     let key = glyph.svg().0;
+    let captured = observations.clone();
+    let ink = look.foreground;
     div()
         .flex_none()
         .debug_selector(move || format!("pv1-bar-mark:{key}"))
-        .child(mark(glyph, look::CHROME_MARK, look.foreground))
+        .child(
+            canvas(
+                |_, _, _| (),
+                move |bounds, _, window, cx| {
+                    glyph.paint(bounds, ink, window, cx);
+                    captured.borrow_mut().bar_mark = Some((glyph.svg().0, ink, bounds));
+                },
+            )
+            .size(px(look::CHROME_MARK))
+            .flex_none(),
+        )
 }
 
 pub(super) fn name_parts(
@@ -92,7 +108,7 @@ pub fn bar(
         .border_color(look.hair())
         .text_size(px(look::CAPTION))
         .whitespace_nowrap()
-        .child(bar_mark(glyph, look))
+        .child(bar_mark(glyph, look, &state.observations))
         .children(name_parts(&name, look, &state.observations))
         .child(div().flex_1());
     if filled {
@@ -141,7 +157,7 @@ pub fn refusal_bar(
         .border_b_1()
         .border_color(look.hair())
         .text_size(px(look::CAPTION))
-        .child(bar_mark(glyph, look))
+        .child(bar_mark(glyph, look, &state.observations))
         .child(
             div()
                 .relative()

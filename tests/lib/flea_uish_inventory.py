@@ -109,7 +109,8 @@ ORACLE = {name: {"path": path, "sha256": digest} for name, path, digest in (
     ('openwithdesign', 'tests/ui-openwith-design.sh', '32044b8d56fccc56f1c645135ba04bc5e47d54e41fef606ac1cb0a7faf301708'),
     ('noblank', 'tests/ui-noblank.sh', '33f6600577fd90efe6da1bd247a450ac33d9eb12caadf2e17ecd2731a6b5c4f0'),
     ('previewswap', 'tests/ui-noblank.sh', 'd37b2b985578a8e4671c1878ac2b911f5f8f3b328abf3ac95c5d20cc65ce5ed0'),
-    ('searchnoblank', 'tests/ui-noblank.sh', 'e9a761b8141d917511e086e051a51e22063064bcba0c7f104b9f5a3972175652'),
+    # norz has close matches; norzqqqq is empty. The six search keys type norzzq.
+    ('searchnoblank', 'tests/ui-noblank.sh', '597182d96bfca42e123f0c04a8c097a86f8eaa66d2678647f9ed5dc45f401b50'),
     ('lookopen', 'tests/ui-noblank.sh', '5968e8013a36fc437b137927383aef690250db9798d82d958214bcf33b322df0'),
     ('transferlive', 'tests/ui-transfer-live.sh', 'f120fb42982fb7412c3e9782164ea69bb4eacd7a9d24d3b787ebd5ec817f4ae6'),
     ('recent', 'tests/ui.sh', 'fb2178d32ac897c6110c1102cc035a8523c91eb86ba348f016ddfc79955048e8'),

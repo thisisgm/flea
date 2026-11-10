@@ -80,6 +80,8 @@ mod u07_chrome_tests;
 mod u07_motion_tests;
 #[cfg(test)]
 mod u07_tests;
+#[cfg(test)]
+mod uish2a_capture_tests;
 
 use crate::{ipc::server::Event, state::Shell};
 use gpui::{px, size, App, AppContext, TitlebarOptions, WindowBounds, WindowHandle, WindowOptions};

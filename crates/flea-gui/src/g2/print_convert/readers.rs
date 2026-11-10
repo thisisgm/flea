@@ -34,6 +34,7 @@ impl OutputView {
         let visible = !centre.is_empty();
         object([
             ("name", text(name)),
+            ("primary", Json::Bool(control == Control::Submit)),
             ("visible", Json::Bool(visible)),
             ("enabled", Json::Bool(enabled)),
             ("focused", Json::Bool(focused)),

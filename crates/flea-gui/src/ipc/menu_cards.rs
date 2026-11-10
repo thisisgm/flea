@@ -42,6 +42,14 @@ fn control(
     object([
         ("name", Json::Str(name.into())),
         (
+            "primary",
+            Json::Bool(matches!(press, Press::NewFileConfirm | Press::CopyConfirm)),
+        ),
+        (
+            "destructive",
+            Json::Bool(matches!(press, Press::Delete(Button::Delete))),
+        ),
+        (
             "label",
             Json::Str(part.map_or_else(String::new, |part| part.text)),
         ),
@@ -112,13 +120,17 @@ pub(super) fn menu_field_state(overlay: &Overlay) -> Option<String> {
                 object([
                     ("name", Json::Str("Field".into())),
                     ("focused", Json::Bool(focus == CopyFocus::Field)),
+                    ("visible", Json::Bool(overlay.frame.part("newfile-field").is_some())),
+                    ("enabled", Json::Bool(!busy)),
+                    ("rect", Json::Str(rect(overlay.frame.part("newfile-field").map(|p| p.bounds)))),
+                    ("centre", Json::Str(centre(overlay.frame.part("newfile-field").map(|p| p.bounds)))),
                 ]),
             ]),
         ),
         (
             "unavailable",
             Json::Str(
-                "facts, liveLines, applications, cursor, confirmation, controls[2].label, controls[2].visible, controls[2].enabled, controls[2].hovered, controls[2].pressed, controls[2].centre, controls[2].rect"
+                "facts, liveLines, applications, cursor, confirmation, controls[2].label, controls[2].hovered, controls[2].pressed"
                     .into(),
             ),
         ),

@@ -138,3 +138,60 @@ fn network_row_menu_answers_the_menu_readers_under_the_row(cx: &mut TestAppConte
         "the keyboard menu opens at a 20 px face's mark column"
     );
 }
+
+#[gpui::test]
+fn network_row_menu_owns_cohesion_over_an_unfolded_transfer(cx: &mut TestAppContext) {
+    use gpui::VisualContext;
+    let recorder = Rc::new(Recorder::default());
+    let (shell, cx) = open(r#"{"places":{}}"#, recorder.clone(), cx);
+    recorder.answer(recorder.listings()[0], SHARE_OUTPUT);
+    // The transfer card paints under the window's Root, as in the native launch.
+    cx.replace_root_view(|_, _| crate::window::root::Root {
+        shell: shell.clone(),
+    });
+    frame(cx);
+    let controls = |cx: &mut VisualTestContext| {
+        jsondoc::parse(&crate::window::u07_tests::read(
+            &shell,
+            cx,
+            "cohesionControls",
+            &[],
+        ))
+        .unwrap()
+    };
+    let surfaces = |value: &jsondoc::Json| -> Vec<String> {
+        value
+            .get("controls")
+            .and_then(jsondoc::Json::as_array)
+            .unwrap()
+            .iter()
+            .filter_map(|row| {
+                row.get("surface")
+                    .and_then(jsondoc::Json::as_str)
+                    .map(str::to_owned)
+            })
+            .collect()
+    };
+    cx.update(|window, cx| shell.update(cx, |shell, cx| {
+        shell.open_overlay_copy_to(false, "/files", window, cx);
+        shell.overlay.as_ref().unwrap().update(cx, |overlay, cx| {
+            overlay.model.dialog = None;
+            assert!(overlay.line(r#"{"t":"job","job":{"id":12,"kind":"copy","head":"Copying 0 of 2","file":"notes.txt","done":0,"total":2,"state":"running","output":[]},"unfinished":1}"#, cx));
+        });
+    }));
+    cx.executor()
+        .advance_clock(Duration::from_millis(crate::pane::swap::HOLD_MS));
+    frame(cx);
+    assert!(surfaces(&controls(cx)).iter().any(|s| s == "TransferCard"));
+    shell.update_in(cx, |shell, window, cx| {
+        let side = shell.focus_side;
+        shell.network_menu(side, &share_row(), window, cx);
+    });
+    frame(cx);
+    let observed = surfaces(&controls(cx));
+    assert!(observed.iter().any(|s| s == "ContextMenu"), "{observed:?}");
+    assert!(
+        !observed.iter().any(|s| s == "TransferCard"),
+        "{observed:?}"
+    );
+}

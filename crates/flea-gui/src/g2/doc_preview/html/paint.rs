@@ -87,6 +87,8 @@ impl HtmlView {
         cx: &gpui::App,
     ) {
         self.painted.set(self.painted.get() + 1);
+        self.captured_image
+            .set((false, self.captured_image.get().1));
         if let Some(caption) = caption {
             let m = &self.parts.metrics;
             refusal_frame(
@@ -108,7 +110,12 @@ impl HtmlView {
         };
         let page = Bounds::new(bounds.origin + point(px(x), px(y)), size(px(w), px(h)));
         let corners = self.corners();
-        let _ = window.paint_image(bounds, page, corners, Arc::clone(image), 0, false);
+        if window
+            .paint_image(bounds, page, corners, Arc::clone(image), 0, false)
+            .is_ok()
+        {
+            self.captured_image.set((true, true));
+        }
         if let Some(veil) = self.palette.veil() {
             window.paint_quad(fill(bounds.intersect(&page), veil).corner_radii(corners));
         }

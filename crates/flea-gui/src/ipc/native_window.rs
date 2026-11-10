@@ -1,7 +1,7 @@
 //! Native launch observers read the window and its active list without starting producer work.
 use super::Adapter;
 use crate::g2::rail_places::rows::{RAIL_ROW_SCALE, TEXT_LINE_HEIGHT_FACTOR};
-use crate::list::{MARK_RATIO, STOCK_BASE};
+use crate::list::STOCK_BASE;
 use crate::{
     list::{columns::Column, ListState},
     palette::{ParsedTheme, Theme},
@@ -136,7 +136,7 @@ impl NativeWindowAdapter<'_> {
             ("hairline", metrics.hairline.to_string()),
             ("rowHeight", row.to_string()),
             ("iconSize", metrics.slot.to_string()),
-            ("markSize", (small * MARK_RATIO).to_string()),
+            ("markSize", metrics.mark.to_string()),
             (
                 "stateMarkSize",
                 (small * STATE_MARK_RATIO).round().to_string(),

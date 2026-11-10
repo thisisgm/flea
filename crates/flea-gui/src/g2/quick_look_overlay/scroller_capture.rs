@@ -2,6 +2,49 @@
 use super::{index, Axis, Scroll};
 use gpui::{Bounds, Pixels};
 
+#[derive(Clone, Copy)]
+pub(crate) struct Painted {
+    pub lane: Bounds<Pixels>,
+    pub knob: Bounds<Pixels>,
+    pub hovered: bool,
+    pub pressed: bool,
+}
+
+impl Painted {
+    pub(crate) fn control(self, surface: &str) -> flea::jsondoc::Json {
+        use flea::jsondoc::Json;
+        let b = self.lane;
+        let centre = self.knob.center();
+        let source = crate::visual::object([
+            ("name", Json::Str("Vertical scroll bar".into())),
+            ("value", Json::Str("vertical".into())),
+            (
+                "rect",
+                Json::Str(crate::ipc::rows::rect_of(
+                    b.origin.x.into(),
+                    b.origin.y.into(),
+                    b.size.width.into(),
+                    b.size.height.into(),
+                )),
+            ),
+            (
+                "centre",
+                Json::Str(format!(
+                    "{} {}",
+                    f32::from(centre.x).round(),
+                    f32::from(centre.y).round()
+                )),
+            ),
+            ("visible", Json::Bool(true)),
+            ("enabled", Json::Bool(true)),
+            ("hovered", Json::Bool(self.hovered)),
+            ("pressed", Json::Bool(self.pressed)),
+        ]);
+        crate::ipc::cohesion_controls::control(&source, surface, "ViewportScrollBar")
+            .expect("painted scrollbar geometry")
+    }
+}
+
 pub(crate) struct Lane {
     pub bounds: Bounds<Pixels>,
     pub shown: bool,
