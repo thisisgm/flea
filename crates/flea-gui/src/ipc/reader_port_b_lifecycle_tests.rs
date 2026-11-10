@@ -5,10 +5,10 @@ use super::*;
 fn loading_interval_restarts_after_a_hidden_replacement() {
     let mut observed = crate::g2::quick_look_overlay::observations::Observations::default();
     observed.opened(0, false);
-    observed.revealed(100, false, true);
+    observed.revealed(100, false, false, true);
     observed.opened(200, false);
-    observed.revealed(250, false, true);
-    observed.revealed(300, true, false);
+    observed.revealed(250, false, false, true);
+    observed.revealed(300, true, true, false);
     assert_eq!(observed.swap.shown_ms, 50);
 }
 
