@@ -10,6 +10,14 @@
   "requestTimeoutSeconds": 30,
   "idleTimeoutSeconds": 30,
   "restartBudget": {"failures": 3, "windowSeconds": 60},
+  "railDisplay": {
+    "titlePaths": ["railSection.title", "place.title"],
+    "title": "Optional nonempty string, at most 512 characters, without control characters",
+    "heading": "Titles use the rail's locale-aware capitals; equal drawn titles merge in plugin order",
+    "untitled": "One localized PLUGINS heading after every titled section, only while it holds a row",
+    "reserved": "A title matching a built-in heading or PLUGINS in the current language goes under PLUGINS",
+    "mark": "The plugin's top-level mark SVG is an alpha mask in row ink in the 15-pixel icon square; absent or unreadable marks use the row glyph"
+  },
   "actionInput": {
     "manifestPath": "menuActions[].input",
     "fields": ["key", "title", "label", "submit", "placeholder", "maxChars"],

@@ -136,6 +136,7 @@ pub struct LaidRow {
     pub detail_width: f32,
     pub font_size: f32,
     pub glyph: &'static str,
+    pub owned: Option<(gpui::SharedString, std::sync::Arc<[u8]>)>,
     pub mark: RowMark,
     pub error: bool,
     pub mounted: Option<bool>,

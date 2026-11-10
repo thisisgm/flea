@@ -179,6 +179,7 @@ pub(super) fn layout(
                 detail_width,
                 font_size: f32::from(typeface.caption),
                 glyph: row.glyph,
+                owned: row.owned.clone(),
                 mark: row.mark,
                 error: row.error.is_some(),
                 mounted: row.mounted,

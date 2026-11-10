@@ -29,6 +29,8 @@ mod places_tests;
 #[cfg(test)]
 mod placeview_tests;
 #[cfg(test)]
+mod plugin_heading_tests;
+#[cfg(test)]
 mod plugin_tests;
 #[cfg(test)]
 mod railkeys_tests;
