@@ -1,4 +1,6 @@
 use super::*;
+#[path = "gio_columns_tests.rs"]
+mod gio_columns_tests;
 // gio 2.90.1's gio list shape: the line feed line as minipc printed it, then a tab, a backslash and a two-byte UTF-8 name.
 #[test]
 fn an_escaped_original_reads_back_as_its_own_bytes() {
@@ -96,15 +98,16 @@ fn an_item_without_a_date_sorts_last() {
 // gio's two outputs for one Trash, one escaped name in both: the listing in uri order, the dates by uri.
 const TRASH_LIST: &str = "trash:///a%20b.txt\t0\t(regular)\ttrash::orig-path=/home/u/a b.txt\ntrash:///c.txt\t0\t(regular)\ttrash::orig-path=/home/u/c.txt\ntrash:///z.txt\t0\t(regular)\ttrash::orig-path=/home/u/z.txt\n";
 const TRASH_DATES: &str = "trash:///a%20b.txt\t0\t(regular)\ttrash::deletion-date=2026-10-05T09:00:00\ntrash:///c.txt\t0\t(regular)\ttrash::deletion-date=2026-10-01T09:00:00\ntrash:///z.txt\t0\t(regular)\ttrash::deletion-date=2026-10-03T09:00:00\n";
-fn read_gio(dates: Result<&'static str, &'static str>) -> impl Fn(&[&str]) -> Result<String, Refusal> {
+fn read_gio(
+    dates: Result<&'static str, &'static str>,
+) -> impl Fn(&[&str]) -> Result<String, Refusal> {
     // Both calls list dot names too, so a trashed .hidden is listed and dated.
     move |args: &[&str]| match args {
-        ["list", "-u", "-h", "-a", "trash::orig-path,standard::target-uri", "trash:///"] => {
-            Ok(TRASH_LIST.to_string())
-        }
-        ["list", "-u", "-h", "-a", "trash::deletion-date", "trash:///"] => {
+        ["list", "-u", "-h", "-a", "trash::orig-path", "trash:///"] => Ok(TRASH_LIST.to_string()),
+        ["list", "-u", "-h", "-a", "standard::target-uri,trash::deletion-date", "trash:///"] => {
             dates.map(String::from).map_err(unreadable)
         }
+        ["list", "-u", "-h", "-a", "standard::target-uri", "trash:///"] => Ok(String::new()),
         _ => panic!("unexpected gio call {args:?}"),
     }
 }

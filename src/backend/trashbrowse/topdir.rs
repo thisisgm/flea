@@ -2,12 +2,36 @@
 use super::*;
 use std::os::unix::fs::MetadataExt;
 
-// Sample gio line: "trash:///a.txt\t1\t(regular)\ttrash::orig-path=/mnt/a.txt\tstandard::target-uri=file:///mnt/.Trash-1000/files/a.txt".
+// Keep freeform original paths out of GIO's space-joined metadata column.
+pub(super) fn metadata(
+    read: &impl Fn(&[&str]) -> Result<String, Refusal>,
+) -> Result<String, Refusal> {
+    read(&[
+        "list",
+        "-u",
+        "-h",
+        "-a",
+        "standard::target-uri,trash::deletion-date",
+        "trash:///",
+    ])
+    .or_else(|_| {
+        read(&[
+            "list",
+            "-u",
+            "-h",
+            "-a",
+            "standard::target-uri",
+            "trash:///",
+        ])
+    })
+}
+
+// Sample gio line: "trash:///a.txt\t1\t(regular)\tstandard::target-uri=file:///mnt/.Trash-1000/files/a.txt trash::deletion-date=2026-10-18T09:00:00".
 pub(super) fn merge(items: &mut Vec<Item>, dates: &mut HashMap<String, String>, gio_text: &str) {
     let mut backings = HashSet::new();
     for line in gio_text.lines() {
         if let Some(path) = line
-            .split('\t')
+            .split_ascii_whitespace()
             .find_map(|field| field.strip_prefix("standard::target-uri=file://"))
         {
             backings.insert(PathBuf::from(
@@ -124,7 +148,7 @@ mod tests {
         assert_eq!(rows.pop().unwrap().item, mounted);
         let record = topdirtrash::resolve(&entry.uri).unwrap();
         let visible = format!(
-            "trash:///gio-mount\t1\t(regular)\tstandard::target-uri=file://{}\n",
+            "trash:///gio-mount\t1\t(regular)\tstandard::target-uri=file://{} trash::deletion-date=2026-11-10T00:00:00\n",
             crate::backend::hometrash::percent_encode(record.path.as_os_str().as_encoded_bytes())
         );
         items.push(Item {

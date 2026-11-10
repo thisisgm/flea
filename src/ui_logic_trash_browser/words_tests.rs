@@ -1,6 +1,9 @@
 //! tests/js/trash.js: the dd pair, routing, the delete card's words, the m target and the backend's order pins.
 use super::dates_tests::english;
-use super::words::{self, confirm_body, confirm_title, menu_target, route, Arm, MenuTarget, Route, Scope, Snapshot, ARM_MS};
+use super::words::{
+    self, confirm_body, confirm_title, menu_target, route, Arm, MenuTarget, Route, Scope, Snapshot,
+    ARM_MS,
+};
 
 #[test]
 fn trash_pair_arms_then_trashes_inside_the_window() {
@@ -86,18 +89,22 @@ fn trash_backend_order_and_membership_pins_hold() {
         .split_whitespace()
         .collect::<String>()
         .replace(",]", "]");
+    let metadata = include_str!("../backend/trashbrowse/topdir.rs")
+        .split_whitespace()
+        .collect::<String>()
+        .replace(",]", "]");
     assert!(
         rust.contains("dated.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.uri.cmp(&b.1.uri)))"),
         "newest first, then the uri"
     );
     assert!(
-        tokens.contains(r#"read(&["list","-u","-h","-a","trash::deletion-date","trash:///"])"#)
+        metadata.contains(r#"read(&["list","-u","-h","-a","standard::target-uri,trash::deletion-date","trash:///"])"#)
             && !rust.contains("fn deletion_date("),
         "one gio list dates every volume's items"
     );
     assert!(
-        rust.contains("newest_first(&mut items, |item| dates.get(&item.uri)")
-            && rust.contains("fn list() -> Result<Vec<Item>, Refusal> {\n    list_with(gio)\n}"),
+        tokens.contains("newest_first(&mutitems,|item|{dates.get(&item.uri)")
+            && tokens.contains("fnlist()->Result<Vec<Item>,Refusal>{list_with(gio)}"),
         "one reader orders every listing"
     );
     assert!(

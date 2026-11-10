@@ -165367,7 +165367,7 @@
     },
     {
       "excerpt": ".ok_or_else(|| unreadable(\"The Trash helper did not report the item's size.\"))?;",
-      "line": 324,
+      "line": 310,
       "literal": "The Trash helper did not report the item's size.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165376,7 +165376,7 @@
     },
     {
       "excerpt": "directory: attribute(text, \"standard::type\") == Some(\"2\"),",
-      "line": 349,
+      "line": 335,
       "literal": "2",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165385,7 +165385,7 @@
     },
     {
       "excerpt": ".split(\", \")",
-      "line": 352,
+      "line": 338,
       "literal": ", ",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165394,7 +165394,7 @@
     },
     {
       "excerpt": "return Err(selection_changed(format!(\"Trash selection changed for {}.\", item.item.uri)));",
-      "line": 397,
+      "line": 383,
       "literal": "Trash selection changed for {}.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165403,7 +165403,7 @@
     },
     {
       "excerpt": "String::from_utf8(bytes).map_err(|_| damaged(\"Invalid text in Trash review.\"))",
-      "line": 403,
+      "line": 389,
       "literal": "Invalid text in Trash review.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165412,7 +165412,7 @@
     },
     {
       "excerpt": "Ok(Item { uri: field_str(text, \"uri\").ok_or_else(|| damaged(\"Missing reviewed Trash URI.\"))?,",
-      "line": 406,
+      "line": 392,
       "literal": "Missing reviewed Trash URI.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165421,7 +165421,7 @@
     },
     {
       "excerpt": "original: field_str(text, \"original\").ok_or_else(|| damaged(\"Missing reviewed original path.\"))? })",
-      "line": 407,
+      "line": 393,
       "literal": "Missing reviewed original path.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165430,7 +165430,7 @@
     },
     {
       "excerpt": "escape(&item.identity), escape(&item.backing.as_ref().ok_or_else(|| damaged(\"Missing Trash backing review.\"))?.saved()?)));",
-      "line": 413,
+      "line": 399,
       "literal": "Missing Trash backing review.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165439,7 +165439,7 @@
     },
     {
       "excerpt": "size: field_usize(text, \"size\").ok_or_else(|| damaged(\"Missing reviewed Trash size.\"))? as u64,",
-      "line": 419,
+      "line": 405,
       "literal": "Missing reviewed Trash size.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165448,7 +165448,7 @@
     },
     {
       "excerpt": "identity: field_str(text, \"providerIdentity\").ok_or_else(|| damaged(\"Missing reviewed provider identity.\"))?,",
-      "line": 421,
+      "line": 407,
       "literal": "Missing reviewed provider identity.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165457,7 +165457,7 @@
     },
     {
       "excerpt": "backing: Some(Reviewed::from_saved(&field_str(text, \"backing\").ok_or_else(|| damaged(\"Missing Trash backing review.\"))?, trees)?),",
-      "line": 424,
+      "line": 410,
       "literal": "Missing Trash backing review.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165466,7 +165466,7 @@
     },
     {
       "excerpt": "failure(&item, \"\", \"One Trash record could not be read, so that item was left in place.\")",
-      "line": 451,
+      "line": 437,
       "literal": "One Trash record could not be read, so that item was left in place.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165475,7 +165475,7 @@
     },
     {
       "excerpt": "failure(&Item { uri: String::new(), original: String::new() }, \"\", &format!(\"{count} Trash records could not be read, so those items were left in place.\"))",
-      "line": 455,
+      "line": 441,
       "literal": "{count} Trash records could not be read, so those items were left in place.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165484,7 +165484,7 @@
     },
     {
       "excerpt": "_ => Err(\"Unknown Trash request.\".into()),",
-      "line": 550,
+      "line": 536,
       "literal": "Unknown Trash request.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165493,7 +165493,7 @@
     },
     {
       "excerpt": "if self.confirmation.is_some() { return Err(\"Finish or cancel the Trash confirmation before selecting items.\".into()); }",
-      "line": 598,
+      "line": 584,
       "literal": "Finish or cancel the Trash confirmation before selecting items.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165502,7 +165502,7 @@
     },
     {
       "excerpt": "if !same_items(&list()?, &self.items) { return Err(\"Trash changed while selecting its contents; select again.\".into()); }",
-      "line": 610,
+      "line": 596,
       "literal": "Trash changed while selecting its contents; select again.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165511,7 +165511,7 @@
     },
     {
       "excerpt": "return Err(selection_changed(\"The reviewed identity for the Trash selection is missing.\").into());",
-      "line": 652,
+      "line": 638,
       "literal": "The reviewed identity for the Trash selection is missing.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165520,7 +165520,7 @@
     },
     {
       "excerpt": ".ok_or_else(|| selection_changed(\"The saved Trash selection is no longer current.\"))?;",
-      "line": 665,
+      "line": 651,
       "literal": "The saved Trash selection is no longer current.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165529,7 +165529,7 @@
     },
     {
       "excerpt": ".ok_or_else(|| selection_changed(\"The saved Trash selection is no longer current.\"))?;",
-      "line": 680,
+      "line": 666,
       "literal": "The saved Trash selection is no longer current.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165538,7 +165538,7 @@
     },
     {
       "excerpt": "if expected.is_empty() { return Err(selection_changed(\"The reviewed identity for the Trash selection is missing.\").into()); }",
-      "line": 681,
+      "line": 667,
       "literal": "The reviewed identity for the Trash selection is missing.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165547,7 +165547,7 @@
     },
     {
       "excerpt": "if targets.len() == 0 { return Err(if all { \"Trash is empty.\" } else { \"Select at least one Trash item.\" }.into()); }",
-      "line": 686,
+      "line": 672,
       "literal": "Trash is empty.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165556,7 +165556,7 @@
     },
     {
       "excerpt": "if targets.len() == 0 { return Err(if all { \"Trash is empty.\" } else { \"Select at least one Trash item.\" }.into()); }",
-      "line": 686,
+      "line": 672,
       "literal": "Select at least one Trash item.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165565,7 +165565,7 @@
     },
     {
       "excerpt": "if targets.len() == 0 { return Err(\"The selected Trash items are no longer present.\".into()); }",
-      "line": 715,
+      "line": 701,
       "literal": "The selected Trash items are no longer present.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165574,7 +165574,7 @@
     },
     {
       "excerpt": ".ok_or(\"Trash confirmation expired; start the action again.\")?;",
-      "line": 725,
+      "line": 711,
       "literal": "Trash confirmation expired; start the action again.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165583,7 +165583,7 @@
     },
     {
       "excerpt": "nodes = nodes.checked_add(current.backing.as_ref().unwrap().reviewed_nodes()).ok_or(\"Trash file total exceeds the supported range.\")?;",
-      "line": 749,
+      "line": 735,
       "literal": "Trash file total exceeds the supported range.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165592,7 +165592,7 @@
     },
     {
       "excerpt": "bytes = bytes.checked_add(size).ok_or(\"Trash byte total exceeds the supported range.\")?;",
-      "line": 750,
+      "line": 736,
       "literal": "Trash byte total exceeds the supported range.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165601,7 +165601,7 @@
     },
     {
       "excerpt": "return Err(\"Trash changed while reviewing its contents; try the action again.\".into());",
-      "line": 763,
+      "line": 749,
       "literal": "Trash changed while reviewing its contents; try the action again.",
       "owner": "controller",
       "path": "src/backend/trashbrowse.rs",
@@ -165790,7 +165790,7 @@
     },
     {
       "excerpt": ".ok_or_else(|| damaged(\"The mount Trash entry is no longer available.\"))?;",
-      "line": 40,
+      "line": 64,
       "literal": "The mount Trash entry is no longer available.",
       "owner": "controller",
       "path": "src/backend/trashbrowse/topdir.rs",
@@ -165799,7 +165799,7 @@
     },
     {
       "excerpt": "\"The mount Trash entry's original location changed.\",",
-      "line": 43,
+      "line": 67,
       "literal": "The mount Trash entry's original location changed.",
       "owner": "controller",
       "path": "src/backend/trashbrowse/topdir.rs",
@@ -165808,7 +165808,7 @@
     },
     {
       "excerpt": "return Err(damaged(\"The mount Trash entry changed while reading it.\"));",
-      "line": 53,
+      "line": 77,
       "literal": "The mount Trash entry changed while reading it.",
       "owner": "controller",
       "path": "src/backend/trashbrowse/topdir.rs",
@@ -165817,7 +165817,7 @@
     },
     {
       "excerpt": "let original = d.file(\"mount/same.txt\", \"mount bytes\");",
-      "line": 97,
+      "line": 121,
       "literal": "mount bytes",
       "owner": "controller",
       "path": "src/backend/trashbrowse/topdir.rs",
@@ -165826,7 +165826,7 @@
     },
     {
       "excerpt": "\"a home filename cannot enter the mount URI namespace\"",
-      "line": 111,
+      "line": 135,
       "literal": "a home filename cannot enter the mount URI namespace",
       "owner": "controller",
       "path": "src/backend/trashbrowse/topdir.rs",
@@ -165835,7 +165835,7 @@
     },
     {
       "excerpt": "let original = d.file(\"mount/kept.txt\", \"mount bytes\");",
-      "line": 149,
+      "line": 173,
       "literal": "mount bytes",
       "owner": "controller",
       "path": "src/backend/trashbrowse/topdir.rs",
@@ -165844,7 +165844,7 @@
     },
     {
       "excerpt": "\"[Trash Info]\\nPath=gone.txt\\nDeletionDate=2026-11-10T00:00:00\\n\",",
-      "line": 166,
+      "line": 190,
       "literal": "[Trash Info]\nPath=gone.txt\nDeletionDate=2026-11-10T00:00:00\n",
       "owner": "controller",
       "path": "src/backend/trashbrowse/topdir.rs",
@@ -165853,7 +165853,7 @@
     },
     {
       "excerpt": "\"the mount Trash's orphan record is swept\"",
-      "line": 187,
+      "line": 211,
       "literal": "the mount Trash's orphan record is swept",
       "owner": "controller",
       "path": "src/backend/trashbrowse/topdir.rs",
@@ -255643,12 +255643,12 @@
     "src/backend/transferitem.rs": "c7e13c100c83409b646457b2691caa7f2561473c1190fd6e0a96a53c1e6c7f0d",
     "src/backend/transferstart.rs": "f4ed10d9b49f8cd9c83c6eff2963a10b00bc82e6a2390ef6e59f842717acdbb4",
     "src/backend/trash.rs": "8181882db991bcc78c0ec0408f3b9deb2789fa4de9e7615826899f8d75219291",
-    "src/backend/trashbrowse.rs": "c7e1f7bfe5046ce46e8c76420b916d742ae078a0a8ce83b0213ed2cf9a35a018",
+    "src/backend/trashbrowse.rs": "f48a60770050e7e59c5dd150e9d254ac36615b3d17b700e5e92d331498e751f5",
     "src/backend/trashbrowse/details.rs": "1215848d52b0ee3545cadc6341ab825a2d0535ec74d019873cf419bfc96a793b",
     "src/backend/trashbrowse/job.rs": "61687e953c36180e46dd21fa21bae4a830e76c84437422dcffa96dfadcdd8e2f",
     "src/backend/trashbrowse/restore.rs": "1c93b22f7ac2f93a5b9a70f5320ded8c4ec0d8ff7ea1ff8124cb1bdecb546bc0",
     "src/backend/trashbrowse/sweep.rs": "f4674f549a1cbdab741aa2bc324400e937de5666dd55ba7043b5cca124d4bd3e",
-    "src/backend/trashbrowse/topdir.rs": "06168ca3ddad697cbafd77cf5df0520574d39fa3c04819d4f863e886434965dd",
+    "src/backend/trashbrowse/topdir.rs": "0866b09927c68f71d88434e6b003d48ad1581b3d75b40adc04cc345382523739",
     "src/backend/trashdate.rs": "a6312b012015592eedd2497a52af2d53bec49e58e5deb40327ae80ce75bbd8c1",
     "src/backend/trashdelete.rs": "5596187035f4918deb6c9ffe3e026e5ed2b2d87d61856cbd7d766639b1c522f8",
     "src/backend/trashdelete/cancel.rs": "40ca4b37e9d0873594832957bb6e0b8db0f4f586128d6ff69cf8aceb3340cc25",
@@ -256827,8 +256827,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "bd9059745586063536afefb97431bf0479b4439e",
-  "source_sha": "bd9059745586063536afefb97431bf0479b4439e",
+  "source_ref_sha": "a0477c282af92562c03c189aab329dc0dca6dd11",
+  "source_sha": "a0477c282af92562c03c189aab329dc0dca6dd11",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1377,

@@ -1,6 +1,6 @@
 # Navigate by the rail's semantic entries; painted labels can be absent during a source refresh.
 open_trash() {
-    local entries target step
+    local entries target step expected=${1:-1}
     launch list "$W" || return 1
     key -k Tab || return 1
     wait_ipc focusView rail || return 1
@@ -24,6 +24,6 @@ open_trash() {
     }
     key -k Return || return 1
     wait_ipc_has trashState '"opened":true' || return 1
-    wait_ipc_has trashState '"total":1,' || return 1
+    wait_ipc_has trashState "\"total\":$expected," || return 1
     wait_ipc_has trashState '"busy":false'
 }

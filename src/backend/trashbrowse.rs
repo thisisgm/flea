@@ -247,29 +247,15 @@ fn list() -> Result<Vec<Item>, Refusal> {
 
 // The listing over any reader of gio's text, so a test can feed the two outputs through the real join.
 fn list_with(read: impl Fn(&[&str]) -> Result<String, Refusal>) -> Result<Vec<Item>, Refusal> {
-    let text = read(&[
-        "list",
-        "-u",
-        "-h",
-        "-a",
-        "trash::orig-path,standard::target-uri",
-        "trash:///",
-    ])?;
+    let text = read(&["list", "-u", "-h", "-a", "trash::orig-path", "trash:///"])?;
     let mut items = parse_list(&text);
-    // One gio call dates every volume's items, a dot name too; a failed call leaves the order by uri.
-    let mut dates = parse_dates(
-        &read(&[
-            "list",
-            "-u",
-            "-h",
-            "-a",
-            "trash::deletion-date",
-            "trash:///",
-        ])
-        .unwrap_or_default(),
-    );
-    topdir::merge(&mut items, &mut dates, &text);
-    newest_first(&mut items, |item| dates.get(&item.uri).cloned().unwrap_or_default());
+    // Dates and encoded target URIs can share GIO's space-joined column; original paths cannot.
+    let metadata = topdir::metadata(&read)?;
+    let mut dates = parse_dates(&metadata);
+    topdir::merge(&mut items, &mut dates, &metadata);
+    newest_first(&mut items, |item| {
+        dates.get(&item.uri).cloned().unwrap_or_default()
+    });
     Ok(items)
 }
 // Two reads of one Trash hold the same items whatever order each came in: a dates call that failed in one read orders it by uri.
@@ -285,11 +271,11 @@ fn listed_uris(items: &[Item]) -> HashSet<&str> {
     items.iter().map(|item| item.uri.as_str()).collect()
 }
 
-// Sample input, gio list -u -a trash::deletion-date trash:///: "trash:///a.txt\t0\t(regular)\ttrash::deletion-date=2026-09-08T10:00:00\n"; local clock time with no offset, so the repeated fall-back hour can order two items wrongly, accepted because gio gives no offset.
+// Sample input, gio list -u -h -a standard::target-uri,trash::deletion-date trash:///: "trash:///a.txt\t0\t(regular)\tstandard::target-uri=file:///home/u/.local/share/Trash/files/a.txt trash::deletion-date=2026-09-08T10:00:00\n"; local clock time with no offset, so the repeated fall-back hour can order two items wrongly, accepted because gio gives no offset.
 fn parse_dates(text: &str) -> HashMap<String, String> {
     text.lines()
         .filter_map(|line| {
-            let mut fields = line.split('\t');
+            let mut fields = line.split_ascii_whitespace();
             let uri = fields.next()?;
             let date = fields.find_map(|field| field.strip_prefix("trash::deletion-date="))?;
             Some((uri.to_string(), date.to_string()))
