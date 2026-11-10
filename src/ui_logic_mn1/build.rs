@@ -148,6 +148,8 @@ pub struct Context {
     pub busy: bool,
     // The listing is a history such as Recent, with no folder of its own to read a relative path from.
     pub recent: bool,
+    // A walk owns the rows, so its results get their own way to the file's folder.
+    pub searching: bool,
     pub rail: Option<RailEntry>,
 }
 
@@ -271,6 +273,10 @@ fn available(e: &mut Entry, spec: &Spec, p: &Context, kind: Kind) -> bool {
             && !p.clipboard_watch_failed;
     }
     if action == "showOriginal" && !p.row_is_symlink {
+        return false;
+    }
+    // Go to Location is the search results' own row; a plain listing already stands in the folder it names.
+    if action == "goToLocation" && !p.searching {
         return false;
     }
     // Paste As shows only while files are on the clipboard and the filesystem holds links.

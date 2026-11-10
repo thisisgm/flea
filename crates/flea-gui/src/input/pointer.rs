@@ -256,6 +256,17 @@ impl Shell {
                 &press.event,
             )
             .map(|binding| binding.effect);
+            // Single-click mode's one tap is the activation everywhere else, so a search result keeps its reveal there.
+            let effect = if kind == "result"
+                && single_click
+                && event.button == MouseButton::Left
+                && !press.event.modifiers.control
+                && !press.event.modifiers.shift
+            {
+                Some("reveal")
+            } else {
+                effect
+            };
             if matches!(effect, None | Some("nothing")) {
                 return;
             }

@@ -1360,25 +1360,27 @@ row = "any"
 does = "open"
 label = "open the row"
 
-# The operator's ruling on a search result: clicking one takes you to the file rather than launching
-# it, and one tap is what does it (2026-09-11), because a result you clicked is a result you are done
-# reading. ui/js/Search.js activateAction is what decides, and it answers "open" everywhere else,
-# which is why the row above still stands. Enter still opens and o still reveals, so only the pointer
-# reads the search this way. The reveal moves the pane, so the second tap of a double click lands on
-# another directory's row: it is declared below as doing nothing, the neighbour columns' own rule.
+# A search result row keeps the listing's own pointer rules with one carve-out: nothing launches from
+# a search. One tap selects and stays among the results (2026-11-09, revising the 2026-09-11 one-tap
+# reveal, which made working on several results impossible: a bare click left the list before
+# ctrl+click could mean anything), and the double click is the mouse's way to the file, the same
+# reveal o and Enter make and the menu's own Go to Location row names. Single-click mode's one tap is
+# the activation everywhere else, so a result keeps its reveal there instead. The reveal moves the
+# pane, so the second tap of a double click lands on another directory's row: it is declared below
+# as doing nothing, the neighbour columns' own rule.
 [[pointer]]
 where = "listing"
 press = "left"
 row = "result"
-does = "reveal"
-label = "go to the file in its own directory, selected"
+does = "selectOnly"
+label = "select the row and stay among the results"
 
 [[pointer]]
 where = "listing"
 press = "left x2"
 row = "result"
 does = "reveal"
-label = "still the one reveal the first tap made"
+label = "go to the file in its own directory, selected"
 
 [[pointer]]
 where = "listing"

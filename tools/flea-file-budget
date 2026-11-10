@@ -324,7 +324,7 @@ src/backend/trash_tests.rs 423
 tests/permissions-adv.qml 402
 tests/quicklook-code.qml 463
 src/ui_logic_mn1/build.rs 515
-src/ui_logic_mn1/build_tests.rs 828
+src/ui_logic_mn1/build_tests.rs 852
 src/ui_logic_mn1/fit_tests.rs 417
 src/ui_logic_mn1/rows.rs 515
 src/ui_logic_mn1/rows_tests.rs 1095
