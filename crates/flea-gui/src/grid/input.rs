@@ -208,7 +208,7 @@ impl Shell {
         if event.button == gpui::MouseButton::Left && state.bounds.contains(&event.position) {
             if let Some(carrying) = cx
                 .try_global::<crate::g2::file_clipboard::carry::Carrying>()
-                .filter(|carrying| carrying.carry.active())
+                .filter(|carrying| carrying.active())
             {
                 // Owned copy first: the cx borrow must end before stop_propagation.
                 let carried = carrying.source_rows(window, side, host).to_vec();

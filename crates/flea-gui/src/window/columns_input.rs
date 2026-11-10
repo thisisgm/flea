@@ -89,7 +89,7 @@ impl Shell {
             && !blocked
             && !cx
                 .try_global::<crate::g2::file_clipboard::carry::Carrying>()
-                .is_some_and(|carrying| carrying.carry.active())
+                .is_some_and(|carrying| carrying.active())
         {
             return;
         }
@@ -125,7 +125,7 @@ impl Shell {
         if event.button == MouseButton::Left {
             if let Some(carrying) = cx
                 .try_global::<crate::g2::file_clipboard::carry::Carrying>()
-                .filter(|carrying| carrying.carry.active())
+                .filter(|carrying| carrying.active())
             {
                 host.input.press = None;
                 if blocked {

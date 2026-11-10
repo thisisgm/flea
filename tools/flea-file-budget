@@ -30,7 +30,7 @@ crates/flea-gui/src/window/dispatch/fileops.rs 411
 crates/flea-gui/src/window/dispatch/mod.rs 408
 crates/flea-gui/src/window/dispatch/openwith_tests.rs 449
 crates/flea-gui/src/window/dispatch/quick_look_state_tests.rs 427
-crates/flea-gui/src/window/events_ipc.rs 433
+crates/flea-gui/src/window/events_ipc.rs 437
 crates/flea-gui/src/window/network.rs 411
 crates/flea-gui/src/window/status.rs 408
 crates/flea-gui/src/g2/context_menus/delivery.rs 423

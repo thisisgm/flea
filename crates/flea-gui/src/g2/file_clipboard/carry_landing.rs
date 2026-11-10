@@ -12,11 +12,14 @@ use gpui::Window;
 const CARRY_SERIALS: u64 = 1 << 61;
 
 // What the click resolved against at the press; facts return later and land only while all of it still holds.
+#[derive(Clone)]
 struct Destination {
     path: String,
     listing: usize,
     mode: View,
     track: Option<TrackView>,
+    remote: Option<super::carry_wire::Offer>,
+    granted: bool,
 }
 
 impl Shell {
@@ -36,7 +39,7 @@ impl Shell {
     /// A carry is pending or rides, so a left press over a listing is the carry's to take.
     pub(crate) fn carry_riding_or_pending(&self, cx: &gpui::App) -> bool {
         cx.try_global::<Carrying>()
-            .is_some_and(|carrying| carrying.carry.active())
+            .is_some_and(|carrying| carrying.active())
     }
 
     /// A List press while a carry is pending or rides, inside the rows and off the scroll lane: true when the carry took it.
@@ -59,7 +62,7 @@ impl Shell {
         };
         let Some(carrying) = cx
             .try_global::<Carrying>()
-            .filter(|carrying| carrying.carry.active())
+            .filter(|carrying| carrying.active())
         else {
             return false;
         };
@@ -93,9 +96,15 @@ impl Shell {
         let Some(carrying) = cx.try_global::<Carrying>() else {
             return false;
         };
-        let Some(lifted) = carrying.carry.riding() else {
-            return carrying.carry.active();
+        let Some(lifted) = carrying.riding() else {
+            return carrying.active();
         };
+        if carrying.ipc.pending.is_some() {
+            return true;
+        }
+        let remote = (!carrying.ipc.owned)
+            .then(|| carrying.ipc.current.clone())
+            .flatten();
         let at = window.mouse_position();
         let lift = Lift {
             side: lifted.source.side,
@@ -133,6 +142,8 @@ impl Shell {
             listing: host.pane.held.listing,
             mode: self.view,
             track,
+            remote,
+            granted: false,
         };
         let dest = dest.to_owned();
         let first = lifted.paths.first().cloned();
@@ -159,7 +170,7 @@ impl Shell {
         true
     }
 
-    // The carry must still ride, the window keep the view, input gate and Columns track the click resolved in, and the pane still list that folder, or the click lands nothing; a refusal says its sentence and the carry keeps riding.
+    // The carry must still ride, the window keep the view, input gate and Columns track the click resolved in, and the pane still list that folder, or the click lands nothing; a refusal says its sentence and the carry keeps riding. True only when op1 took the ask.
     #[allow(clippy::too_many_arguments)]
     fn carry_finish(
         &mut self,
@@ -171,12 +182,28 @@ impl Shell {
         facts: Facts,
         window: &mut Window,
         cx: &mut gpui::Context<Self>,
-    ) {
+    ) -> bool {
         let serial = lift.serial & !CARRY_SERIALS;
-        let still = cx
-            .try_global::<Carrying>()
-            .and_then(|carrying| carrying.carry.riding())
-            .is_some_and(|lifted| lifted.serial == serial);
+        let still = cx.try_global::<Carrying>().is_some_and(|carrying| {
+            if let Some(offer) = &destination.remote {
+                // The source's grant outlives the peer's lease on its copy.
+                if destination.granted {
+                    carrying.ipc.pending.as_deref() == Some(&offer.token)
+                } else {
+                    offer.live()
+                        && carrying
+                            .ipc
+                            .current
+                            .as_ref()
+                            .is_some_and(|current| current.token == offer.token)
+                }
+            } else {
+                carrying
+                    .carry
+                    .riding()
+                    .is_some_and(|lifted| lifted.serial == serial)
+            }
+        });
         if !still
             || self.lifecycle.phase() != crate::window::lifecycle::Phase::Open
             || self.view != destination.mode
@@ -193,16 +220,80 @@ impl Shell {
                     })
             })
         {
-            return;
+            return false;
         }
+        let mut landed = false;
         match drag_drop::decide(&Dropping::own(lift, keys.0, keys.1), dest, facts) {
             Landing::Ask(ask) => {
                 let Some((request, _)) = request(&ask) else {
-                    return;
+                    return false;
                 };
+                if let Some(offer) = destination.remote.as_ref().filter(|_| !destination.granted) {
+                    let offer = offer.clone();
+                    cx.global_mut::<Carrying>().ipc.pending = Some(offer.token.clone());
+                    let grant = cx.background_executor().spawn(async move {
+                        super::carry_bus::call(offer.pid, "carryClaim", vec![offer.token])
+                            .is_some_and(|reply| reply.stdout.trim() == "true")
+                    });
+                    let (mut destination, lift, dest) =
+                        (destination.clone(), lift.clone(), dest.to_owned());
+                    destination.granted = true;
+                    cx.spawn_in(window, async move |this, cx| {
+                        let granted = grant.await;
+                        let _ = this.update_in(cx, |shell, window, cx| {
+                            let landed = granted
+                                && shell.carry_finish(
+                                    side,
+                                    &destination,
+                                    &lift,
+                                    keys,
+                                    &dest,
+                                    facts,
+                                    window,
+                                    cx,
+                                );
+                            let token = &destination.remote.as_ref().unwrap().token;
+                            let carrying = cx.global_mut::<Carrying>();
+                            if carrying.ipc.pending.as_ref() == Some(token) {
+                                carrying.ipc.pending = None;
+                                if carrying
+                                    .ipc
+                                    .current
+                                    .as_ref()
+                                    .is_some_and(|current| current.token == *token)
+                                {
+                                    carrying.ipc.current = None;
+                                }
+                                carrying.ipc.retire(token.clone());
+                                // A grant ends the source's carry, so a landing that then moved nothing must say so.
+                                if !landed {
+                                    shell.say_stopped(cx);
+                                }
+                            }
+                            shell.carry_ended(window_id(window), cx);
+                            cx.notify();
+                        });
+                    })
+                    .detach();
+                    return false;
+                }
                 if self.ask_operation(side, &request, &[], false, window, cx) {
-                    cx.global_mut::<Carrying>().carry.landed(serial);
+                    // The granting source already ended its carry and told every peer; a newer offer keeps riding here.
+                    if let Some(offer) = &destination.remote {
+                        let carrying = cx.global_mut::<Carrying>();
+                        if carrying
+                            .ipc
+                            .current
+                            .as_ref()
+                            .is_some_and(|current| current.token == offer.token)
+                        {
+                            carrying.ipc.current = None;
+                        }
+                    } else {
+                        cx.global_mut::<Carrying>().carry.landed(serial);
+                    }
                     self.carry_ended(window_id(window), cx);
+                    landed = true;
                 }
             }
             Landing::Refused(refused) => {
@@ -214,5 +305,6 @@ impl Shell {
             Landing::Silent => {}
         }
         cx.notify();
+        landed
     }
 }
