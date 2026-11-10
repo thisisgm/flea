@@ -145,7 +145,7 @@ fn quick_look_column_interim_paints_without_cap_and_lands_the_original(cx: &mut 
                 "drawable content reveals without the cap"
             );
             let observed = look.observations.borrow();
-            assert!(!observed.landed, "interim is not final");
+            assert!(!observed.landed(), "interim is not final");
             assert_eq!(observed.reveal_caps, 0);
         });
     });
@@ -164,7 +164,7 @@ fn quick_look_column_interim_paints_without_cap_and_lands_the_original(cx: &mut 
             look.svg_raster().is_some() && look.is_revealed(),
             "Quick Look's own meta reply keeps the first paint up"
         );
-        assert!(!look.observations.borrow().revealed_early);
+        assert!(!look.observations.borrow().revealed_early());
     });
     let started = std::time::Instant::now();
     loop {

@@ -2,6 +2,9 @@
 use gpui::{Bounds, Pixels};
 use std::{cell::RefCell, rc::Rc};
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Default)]
 pub(crate) struct Swap {
     pub holding: bool,
@@ -63,6 +66,16 @@ impl Swap {
 /// One painted box per PDF strip control, the only strip pdfState reads.
 pub(crate) const STRIP_SLOTS: usize = flea::ui_logic_doc_preview::viewer::CONTROLS.len();
 
+// An early reveal stays observable after the final content lands.
+#[derive(Clone, Copy, Default)]
+enum Reveal {
+    #[default]
+    Pending,
+    Early,
+    Landed,
+    EarlyAndLanded,
+}
+
 #[derive(Default)]
 pub(crate) struct Observations {
     pub title: Option<Bounds<Pixels>>,
@@ -75,8 +88,7 @@ pub(crate) struct Observations {
     pub strip: [Option<Bounds<Pixels>>; STRIP_SLOTS],
     pub strip_hovered: [bool; STRIP_SLOTS],
     pub swap: Swap,
-    pub revealed_early: bool,
-    pub landed: bool,
+    reveal: Reveal,
     pub empty_frames: u64,
     pub reveal_caps: u64,
     pub cap_start: Option<u64>,
@@ -100,8 +112,11 @@ impl Observations {
         self.picture = None;
         self.strip = [None; STRIP_SLOTS];
         self.strip_hovered = [false; STRIP_SLOTS];
-        self.revealed_early = false;
-        self.landed = ready;
+        self.reveal = if ready {
+            Reveal::Landed
+        } else {
+            Reveal::Pending
+        };
         self.sequence += 1;
         self.shown_seq = self.sequence;
         self.cap_start = None;
@@ -114,12 +129,26 @@ impl Observations {
         }
     }
 
-    pub fn revealed(&mut self, now: u64, ready: bool, cap: bool) {
-        self.revealed_early |= !ready;
-        self.landed |= ready;
+    pub fn revealed(&mut self, now: u64, ready: bool, landed: bool, cap: bool) {
+        let early = self.revealed_early() || !ready;
+        let landed = self.landed() || landed;
+        self.reveal = match (early, landed) {
+            (false, false) => Reveal::Pending,
+            (true, false) => Reveal::Early,
+            (false, true) => Reveal::Landed,
+            (true, true) => Reveal::EarlyAndLanded,
+        };
         self.reveal_caps += u64::from(cap);
         self.swap
             .release(now, if ready { "landed" } else { "expired" }, !ready);
+    }
+
+    pub fn revealed_early(&self) -> bool {
+        matches!(self.reveal, Reveal::Early | Reveal::EarlyAndLanded)
+    }
+
+    pub fn landed(&self) -> bool {
+        matches!(self.reveal, Reveal::Landed | Reveal::EarlyAndLanded)
     }
 
     pub fn frame(&mut self, visible: bool, ready: bool, holding: bool, loading: bool) {
@@ -134,8 +163,7 @@ impl Observations {
         self.close = None;
         self.close_hovered = false;
         self.swap.release(now, "cancelled", false);
-        self.revealed_early = false;
-        self.landed = false;
+        self.reveal = Reveal::Pending;
         self.cap_start = None;
     }
 
@@ -144,7 +172,7 @@ impl Observations {
             .cap_start
             .map_or_else(|| "null".into(), |seq| format!("{{\"seq\":{seq}}}"));
         format!("{{\"revealed\":{revealed},\"revealedEarly\":{},\"landed\":{},\"lookEmptyFrames\":{},\"revealCaps\":{},\"revealCapStart\":{cap},\"shownSeq\":{}}}",
-            self.revealed_early, self.landed, self.empty_frames, self.reveal_caps, self.shown_seq)
+            self.revealed_early(), self.landed(), self.empty_frames, self.reveal_caps, self.shown_seq)
     }
 }
 
@@ -235,9 +263,7 @@ impl super::QuickLook {
         let drawable = self.content_ready(cx);
         let final_ready = self.content_landed(cx);
         let mut observed = self.observations.borrow_mut();
-        let landed = observed.landed;
-        observed.revealed(now, drawable, cap);
-        observed.landed = landed || final_ready;
+        observed.revealed(now, drawable, final_ready, cap);
     }
 
     pub(crate) fn reveal_cap(&mut self, cx: &mut gpui::Context<Self>) {

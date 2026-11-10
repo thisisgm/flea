@@ -42,7 +42,7 @@ fn frame_counters_credit_only_the_presented_stamp() {
         },
         &observed,
     );
-    observed.borrow_mut().landed = true;
+    observed.borrow_mut().revealed(0, true, true, false);
     frames.receive(
         Event::Terminal(FrameTerminal {
             frame_id: 11,

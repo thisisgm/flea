@@ -116,7 +116,7 @@ impl Render for QuickLook {
             self.closing = self.subject.take();
         }
         let ready = self.content_ready(cx);
-        let landed = self.observations.borrow().landed;
+        let landed = self.observations.borrow().landed();
         if self.revealed && self.content_landed(cx) && !landed {
             self.observe_reveal(false, cx);
         }
@@ -132,7 +132,7 @@ impl Render for QuickLook {
                 visible: self.revealed,
                 ready,
                 holding: observed.swap.holding,
-                loading: self.revealed && !ready && observed.revealed_early,
+                loading: self.revealed && !ready && observed.revealed_early(),
             }
         };
         overlay = overlay.child(
