@@ -38,7 +38,7 @@ pub(super) fn start_search(cx: &mut TestAppContext, handle: Handle, side: usize,
             host.search.owner.session.mode,
             flea::ui_logic_file_search::Mode::Typing
         );
-        assert_eq!(host.search.owner.session.scope, Scope::Home);
+        assert_eq!(host.search.owner.session.scope, Scope::Folder);
         assert!(host.search.owner.session.query.is_empty());
         assert_eq!(
             host.search.owner.session.gen,
@@ -59,7 +59,7 @@ pub(super) fn type_query(
     side: usize,
     scope: Scope,
 ) -> u64 {
-    if scope == Scope::Folder {
+    if scope == Scope::Home {
         key(cx, handle, "tab", None);
     }
     let before = edit(cx, handle, |shell, window, _| {

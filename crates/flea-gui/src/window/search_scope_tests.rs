@@ -15,6 +15,7 @@ fn ey475_tab_rescopes_after_home_results_without_losing_query_or_focus(cx: &mut 
         shell.panes[0].as_mut().unwrap().path = notes.clone()
     });
     key(cx, handle, "f", Some("f"));
+    key(cx, handle, "tab", None);
     for letter in ["k", "i", "w", "i"] {
         key(cx, handle, letter, Some(letter));
     }

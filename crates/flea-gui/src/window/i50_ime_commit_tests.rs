@@ -19,7 +19,7 @@ fn i50_ime_root_find_tab_commits(cx: &mut TestAppContext) {
         (session.scope, session.next_scope())
     });
     assert_ne!(scope, next_scope, "Tab has another scope to move to");
-    assert_eq!((scope, next_scope), (Scope::Home, Scope::Folder));
+    assert_eq!((scope, next_scope), (Scope::Folder, Scope::Home));
     cx.simulate_keystrokes(handle.into(), "tab");
     frame(cx, handle);
     assert_eq!(owner(cx, handle), None, "Find's Tab commits the candidate");
@@ -42,7 +42,7 @@ fn i50_ime_root_find_tab_commits(cx: &mut TestAppContext) {
     assert_eq!(opens.len(), 1, "Tab opens one new scope: {sent:?}");
     assert_eq!(
         json::field_str(opens[0], "path").as_deref(),
-        Some(folder.as_str()),
+        Some(home.as_str()),
         "the query walks the next scope's root: {sent:?}"
     );
     assert_eq!(

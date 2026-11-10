@@ -57,7 +57,7 @@ crates/flea-gui/src/window/rail_tests.rs 451
 crates/flea-gui/src/window/events.rs 421
 crates/flea-gui/src/window/navigate.rs 409
 crates/flea-gui/src/window/rail.rs 411
-crates/flea-gui/src/window/search.rs 368
+crates/flea-gui/src/window/search.rs 369
 crates/flea-gui/src/window/search_tests.rs 481
 crates/flea-gui/src/columns/element.rs 434
 crates/flea-gui/src/g2/context_menus/element.rs 451

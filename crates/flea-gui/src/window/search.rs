@@ -5,7 +5,7 @@ use crate::{
     pane::swap::Options,
     state::Shell,
 };
-use flea::ui_logic_file_search::Kind;
+use flea::ui_logic_file_search::{Kind, Scope};
 use gpui::{Context, KeyDownEvent, Window};
 
 #[path = "search_header.rs"]
@@ -36,6 +36,9 @@ mod keep_tests;
 #[cfg(test)]
 #[path = "search_presented_tests.rs"]
 mod presented_tests;
+#[cfg(test)]
+#[path = "search_root_tests.rs"]
+mod root_tests;
 #[cfg(test)]
 #[path = "search_scope_tests.rs"]
 mod scope_tests;
@@ -211,6 +214,8 @@ impl Shell {
             if host.pane.busy() {
                 return true;
             }
+            // Each fresh open starts here; Home and wider scopes belong to the current search.
+            host.search.owner.session.scope = Scope::Folder;
             // Every view keeps itself: Columns per HIG cols4-hero-search, Grid's tiles per v0.3.12 GridArea.
             host.search.origin = Some(self.view);
             host.search.scroll = host.pane.scroll_y;
