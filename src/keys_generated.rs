@@ -265,7 +265,7 @@ pub static POINTER: &[PointerBinding] = &[
     PointerBinding::new("neighbour", "right", "any", "nothing", "keys.label.c7ad88ff7f52", "right", 0, 1),
     PointerBinding::new("neighbour", "middle", "dir", "openTab", "keys.label.a942ae0af51b", "middle", 0, 1),
     PointerBinding::new("chrome", "left", "parent", "goToCrumb", "keys.label.700673165abf", "left", 0, 1),
-    PointerBinding::new("chrome", "left x2", "inert", "pathBar", "keys.label.c7af3cadc955", "left", 0, 2),
+    PointerBinding::new("chrome", "left", "inert", "pathBar", "keys.label.c7af3cadc955", "left", 0, 1),
     PointerBinding::new("window", "back", "any", "backOrParent", "keys.label.bcf58eaeff52", "back", 0, 1),
     PointerBinding::new("window", "forward", "any", "forward", "keys.label.37962655f9c9", "forward", 0, 1),
     PointerBinding::new("rail", "left", "any", "open", "keys.label.edbf36974308", "left", 0, 1),

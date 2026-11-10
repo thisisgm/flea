@@ -2499,8 +2499,7 @@ case_click() {
     [[ -n "$marker" ]] || fail "click: the path fits the bar here, so the elision marker is not under test at all"
     read -r ex ey <<< "$marker"
     read -r wx wy _ww _wh < <(window_box) || fail "native window coordinates unavailable"
-    # The status is read, because a click that never reached the compositor leaves the path
-    # unchanged too and would satisfy both assertions below without pressing anything.
+    # On GPUI the open path field proves the tap reached the window; an unchanged path alone would also pass a missed press.
     omarchy-drive click "$((ex + wx))" "$((ey + wy))" >/dev/null \
         || fail "click: omarchy-drive refused the press on the elision marker"
     # Two settles, so a press that navigated after all would have landed before the reading.
@@ -2509,9 +2508,12 @@ case_click() {
     printf 'CLICK elision path=%q barOpen=%s\n' "$(ipc path)" "$(ipc pathBarOpen)"
     shot click-elision
     [[ "$(ipc path)" == "$deep" ]] || fail "click: a tap on the elision marker navigated to $(ipc path)"
-    [[ "$(ipc pathBarOpen)" == "false" ]] || fail "click: a tap on the elision marker opened the path bar"
+    [[ "$(ipc pathBarOpen)" == "$(by_frontend false true)" ]] || fail "click: a tap on the elision marker left pathBarOpen=$(ipc pathBarOpen), expected $(by_frontend false true)"
+    key -k Escape >/dev/null
+    settle
+    [[ "$(ipc pathBarOpen)" == "false" ]] || fail "click: Escape did not close the path bar opened by one tap on the elision marker"
 
-    # The marker is one of keys.toml's inert segments, so the double click a tap on it never answers types the path.
+    # A double click on the inert marker also types the path, keeping the field the first tap opened.
     omarchy-drive click "$((ex + wx))" "$((ey + wy))" --double >/dev/null \
         || fail "click: omarchy-drive refused the double click on the elision marker"
     settle
@@ -2524,7 +2526,7 @@ case_click() {
     settle
     [[ "$(ipc pathBarOpen)" == "false" ]] || fail "click: Escape did not close the path bar the elision marker opened"
 
-    # keys.toml's chrome/left x2/inert row covers the current folder's own segment, and the chrome is the window's own top item, so its band is y 0 to chromeHeight - 1.
+    # keys.toml's chrome/left/inert row covers the current folder's own segment, and the chrome is the window's own top item, so its band is y 0 to chromeHeight - 1.
     local chrome_h band_crumb band_x band
     chrome_h=$(ipc chromeHeight)
     band_crumb=$(( $(ipc crumbCount) - 1 ))
@@ -12491,7 +12493,7 @@ case_dual() {
         '.focused == 0 and .panes[0].path == $left and .panes[1].path == $right' >/dev/null \
         || fail "dual: a tap on the left pane's parent crumb left $(ipc dualState | jq -c '[.focused, .panes[0].path, .panes[1].path]')"
     [[ "$(ipc pathBarOpen)" == "false" ]] || fail "dual: a single tap on a pane crumb opened the path bar"
-    # A double click types the path wherever a tap opens nothing: the padding before the first crumb, the space after the last, the current folder's own crumb.
+    # One tap types the path where it opens no folder: the padding, the space after the last crumb and the current folder's own crumb.
     local strip sx sy sw sh press_x press_y crumb_inset
     read -r sx sy sw sh <<< "$(ipc panePathRect 0)"
     [[ -n "$sh" ]] || fail "dual: the left pane path has no on-screen box"
@@ -12509,6 +12511,19 @@ case_dual() {
             tail) press_x=$((sx + sw - chrome_band_inset)) press_y=$((sy + sh / 2)) ;;
             crumb) press_x=$cx press_y=$cy ;;
         esac
+        if [[ "$test_frontend" == gpui ]]; then
+            omarchy-drive click "$((press_x + wx))" "$((press_y + wy))" >/dev/null \
+                || fail "dual: omarchy-drive refused the tap on the left pane path's $strip"
+            settle
+            settle
+            shot "dual-path-single-$strip"
+            [[ "$(ipc pathBarOpen)" == "true" ]] || fail "dual: a tap on the left pane path's $strip did not open the path bar"
+            ipc dualState | jq -e --arg left "$dir/left" '.panes[0].path == $left' >/dev/null \
+                || fail "dual: the tap on the left pane path's $strip navigated to $(ipc dualState | jq -r '.panes[0].path')"
+            key -k Escape >/dev/null
+            settle
+            [[ "$(ipc pathBarOpen)" == "false" ]] || fail "dual: Escape did not close the path bar opened by one tap on the pane path's $strip"
+        fi
         omarchy-drive click "$((press_x + wx))" "$((press_y + wy))" --double >/dev/null \
             || fail "dual: omarchy-drive refused the double click on the left pane path's $strip"
         settle

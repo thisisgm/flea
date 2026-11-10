@@ -153,8 +153,6 @@ fn u07_pointer_and_keyboard_edit_the_mounted_path_and_escape_cancels(cx: &mut Te
     assert_eq!(read(&shell, cx, "pathFrameRect", &[]), "");
     let leaf = read(&shell, cx, "crumbCentre", &["1"]);
     press(cx, &leaf, 1);
-    assert_eq!(read(&shell, cx, "pathBarOpen", &[]), "false");
-    press(cx, &leaf, 2);
     assert_eq!(read(&shell, cx, "pathBarOpen", &[]), "true");
     assert_eq!(read(&shell, cx, "pathBarText", &[]), "/files/");
     let frame = read(&shell, cx, "pathFrameRect", &[]);
@@ -279,8 +277,6 @@ fn u07_elision_is_inert_and_a_parent_press_sends_the_real_navigation(cx: &mut Te
         "a deep path must draw its collapsed marker"
     );
     press(cx, &marker, 1);
-    assert_eq!(read(&shell, cx, "pathBarOpen", &[]), "false");
-    press(cx, &marker, 2);
     assert_eq!(read(&shell, cx, "pathBarOpen", &[]), "true");
     cx.simulate_keystrokes("escape");
     while requests().is_some() {}

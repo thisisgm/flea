@@ -1,7 +1,9 @@
 //! The clipboard keys the verbs do not cover: Copy path, the folder path, and the Copy as and Paste as flyouts.
 use super::Order;
 use crate::state::Shell;
-use flea::{keys::Context as Keys, ui_logic_status_feedback::status::Hint};
+use flea::{
+    keys::Context as Keys, ui_logic_context_menus::copyas, ui_logic_status_feedback::status::Hint,
+};
 use gpui::{ClipboardItem, Context, Window};
 
 pub(super) fn run(
@@ -31,6 +33,15 @@ fn shell_quoted(path: &str) -> String {
     }
 }
 
+// Y's text for the folder: a name that is not UTF-8 goes out as Copy As's $'...' bytes, never as its NUL tail.
+fn folder_text(path: &str) -> String {
+    if flea::bytename::is_exact(path) {
+        copyas::one(path, copyas::Format::Quoted, "")
+    } else {
+        shell_quoted(path)
+    }
+}
+
 // Focus.js:212-240: the listing keys; copy, cut and paste run through the Clipboard's own key hook before dispatch.
 fn key(shell: &mut Shell, action: &str, window: &mut Window, cx: &mut Context<Shell>) -> bool {
     let side = shell.focus_side;
@@ -39,7 +50,7 @@ fn key(shell: &mut Shell, action: &str, window: &mut Window, cx: &mut Context<Sh
         // Pane.qml copyDirPath: the folder the pane shows, shell quoted, as text.
         "copydirpath" => {
             if let Some(host) = &shell.panes[side] {
-                cx.write_to_clipboard(ClipboardItem::new_string(shell_quoted(host.pane.path())));
+                cx.write_to_clipboard(ClipboardItem::new_string(folder_text(host.pane.path())));
             }
         }
         // Pane.qml openCopyAs: the cursor row's menu opens on its Copy as flyout.
@@ -84,6 +95,25 @@ fn say(shell: &mut Shell, side: usize, key: &str, cx: &mut Context<Shell>) {
 }
 
 impl Shell {
+    /// The copy mark after the path: Y's text for the focused folder, then the status line names the path.
+    pub(crate) fn copy_address(&mut self, cx: &mut Context<Self>) {
+        let side = self.focus_side;
+        let Some(host) = self.panes[side].as_mut() else {
+            return;
+        };
+        let path = host.pane.path().to_owned();
+        cx.write_to_clipboard(ClipboardItem::new_string(folder_text(&path)));
+        let sentence = self.locale.catalog.tr_args(
+            "jobs.done.clip_copied",
+            &[flea::bytename::display(&path).as_ref()],
+        );
+        host.status = sentence.clone().into();
+        self.status_messages(cx, |messages, now| {
+            messages.say(&sentence, false, "", Hint::None, now)
+        });
+        cx.notify();
+    }
+
     /// c and P from the listing: the cursor menu opens, then its flyout once the menu has its rows.
     pub(crate) fn open_flyout(
         &mut self,

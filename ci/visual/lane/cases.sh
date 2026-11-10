@@ -555,3 +555,46 @@ case_crumb_hover() { hover_surface list crumb true; }
 case_crumb_hover_off() { hover_surface list crumb false; }
 case_tab_hover() { hover_surface list tab true; }
 case_tab_hover_off() { hover_surface list tab false; }
+
+# FX-ADDRCOPY: board 0401-address-copy-a; hover and keyboard focus show the mark, list-populated covers rest.
+CASES+=("address-copy-hover 1100x700 surface:ChromeBar"
+        "address-copy-focus 1100x700 surface:ChromeBar")
+
+case_address_copy_hover() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    local count centre origin ax ay x y copy_state attempt hover_limit=100 hover_poll_seconds=0.1
+    launch list "$W" || return 1
+    size_window 1100 700 || return 1
+    count=$(ipc crumbCount) && [[ $count =~ ^[0-9]+$ ]] && [ "$count" -gt 0 ] || { state_failure "ipc crumbCount answered '$count'"; return 1; }
+    # Sample input: "118 13", the leaf crumb's window-relative centre, and "730 370", the window's origin.
+    centre=$(ipc crumbCentre $((count - 1)))
+    origin=$(win_json | jq -r '.at | "\(.[0]) \(.[1])"')
+    [[ $centre =~ ^-?[0-9]+([.][0-9]+)?\ -?[0-9]+([.][0-9]+)?$ && $origin =~ ^-?[0-9]+\ -?[0-9]+$ ]] \
+        || { state_failure "ipc crumbCentre answered '$centre'; window origin answered '$origin'"; return 1; }
+    read -r x y <<< "$centre"
+    read -r ax ay <<< "$origin"
+    omarchy-drive move $((ax + ${x%.*})) $((ay + ${y%.*})) > /dev/null || { state_failure "pointer move to the leaf failed"; return 1; }
+    # Hyprland's cursor move sends no pointer frame, so the window hears nothing; a seat nudge there and back makes it hover.
+    nudge_pointer 3 && nudge_pointer -3 || return 1
+    for attempt in $(seq 1 "$hover_limit"); do
+        copy_state=$(ipc chromeButtonState copy)
+        jq -e '.visible == true and (.rect | length > 0)' <<< "$copy_state" > /dev/null && break
+        sleep "$hover_poll_seconds"
+    done
+    jq -e '.visible == true and (.rect | length > 0)' <<< "$copy_state" > /dev/null \
+        || { state_failure "the copy mark is hidden under the pointer: ipc chromeButtonState copy answered '$copy_state'"; return 1; }
+    stable_shot "$shots/$case_name-1100x700.png" > /tmp/vtries || return 1
+    echo "SHOT $case_name-1100x700 tries=$(cat /tmp/vtries)" >> "$results"
+)
+
+case_address_copy_focus() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    launch list "$W" || return 1
+    # Tab walks list, rail, then the toolbar's first live glyph, Up while Back has no history; Right steps onto the mark.
+    key -k Tab
+    key -k Tab
+    wait_ipc focusStop chrome:arrow-up || return 1
+    key -k Right
+    wait_ipc focusStop chrome:copy || return 1
+    snap
+)

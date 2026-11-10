@@ -138,6 +138,8 @@ pub struct Paint {
     pub area: Option<Bounds<Pixels>>,
     pub frame: Option<Bounds<Pixels>>,
     pub strips: [Option<Bounds<Pixels>>; 3],
+    /// Where the chrome's line ends after its Git label, from the strip's left edge, while the copy mark follows it.
+    pub chrome_end: Option<f32>,
     pub popup: Option<Popup>,
     /// The suggestion rows the last frame laid and painted, 0 while no popup draws.
     pub drawn: usize,
@@ -161,6 +163,7 @@ impl Paint {
             area: None,
             frame: None,
             strips: [None; 3],
+            chrome_end: None,
             popup: None,
             drawn: 0,
             field_origin: px(0.),

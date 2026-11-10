@@ -3,6 +3,9 @@ use super::test_shell::{asked, land, lists, open_root, open_root_with, row, set_
 use crate::window::u07_tests::{press, read};
 use gpui::TestAppContext;
 
+#[path = "addrcopy_tests.rs"]
+mod addrcopy_tests;
+
 #[gpui::test]
 fn pb_path_enter_refuses_a_loaded_row_hidden_by_the_filter(cx: &mut TestAppContext) {
     let (shell, cx) = open_root(cx, "default");
@@ -34,7 +37,7 @@ fn alpha(shell: &gpui::Entity<crate::state::Shell>, cx: &mut gpui::VisualTestCon
 }
 
 #[gpui::test]
-fn pb_path_plain_address_is_inert_and_double_click_edits(cx: &mut TestAppContext) {
+fn pb_path_plain_address_does_not_navigate_and_one_tap_edits(cx: &mut TestAppContext) {
     let (shell, cx) = open_root_with(cx, r#""view":"list","addressBar":"path""#, None);
     alpha(&shell, cx);
     assert_eq!(read(&shell, cx, "crumbText", &[]), "/files/alpha");
@@ -43,8 +46,6 @@ fn pb_path_plain_address_is_inert_and_double_click_edits(cx: &mut TestAppContext
     assert!(!centre.is_empty());
     press(cx, &centre, 1);
     assert_eq!(asked(&shell, cx), "/files/alpha");
-    assert_eq!(read(&shell, cx, "pathBarOpen", &[]), "false");
-    press(cx, &centre, 2);
     assert_eq!(read(&shell, cx, "pathBarOpen", &[]), "true");
     cx.simulate_keystrokes("escape");
     let settings = read(&shell, cx, "chromeButtonCentre", &["sliders"]);
@@ -87,7 +88,7 @@ fn pb_path_covered_crumbs_do_not_navigate_or_open_the_editor(cx: &mut TestAppCon
     let parent = read(&shell, cx, "crumbCentre", &["1"]);
     let leaf = read(&shell, cx, "crumbCentre", &["2"]);
     assert!(!parent.is_empty() && !leaf.is_empty());
-    for (centre, taps) in [(&parent, 1), (&leaf, 2)] {
+    for (centre, taps) in [(&parent, 1), (&leaf, 1), (&leaf, 2)] {
         cx.update(|window, cx| {
             shell.update(cx, |shell, cx| {
                 shell.settings_action("settings", window, cx);

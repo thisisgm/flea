@@ -13,9 +13,13 @@ use gpui::{
 };
 use std::{cell::RefCell, rc::Rc, time::Instant};
 
+mod address;
 mod button;
 
-pub const GLYPHS: [&str; 10] = [
+/// The copy mark after the path is the last control, so every earlier index keeps its place.
+pub const COPY: usize = 10;
+
+pub const GLYPHS: [&str; 11] = [
     "arrow-left",
     "arrow-up",
     "search",
@@ -26,8 +30,9 @@ pub const GLYPHS: [&str; 10] = [
     "grid",
     "dual",
     "sliders",
+    "copy",
 ];
-pub const ACTIONS: [&str; 10] = [
+pub const ACTIONS: [&str; 11] = [
     "back",
     "up",
     "search",
@@ -38,7 +43,10 @@ pub const ACTIONS: [&str; 10] = [
     "viewGrid",
     "viewDual",
     "settings",
+    "copyAddress",
 ];
+/// The order the keyboard walks the controls, as they stand left to right: the copy mark follows the path.
+pub const ORDER: [usize; 11] = [0, 1, COPY, 2, 3, 4, 5, 6, 7, 8, 9];
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Control {
@@ -51,6 +59,8 @@ pub struct Control {
     #[cfg(test)]
     pub mark_drawn: Option<f32>,
     pub visible: bool,
+    /// Built this frame and so on the keyboard's walk; the copy mark stays reachable while it draws nothing.
+    pub reachable: bool,
     pub enabled: bool,
     pub focused: bool,
     pub hovered: bool,
@@ -134,9 +144,11 @@ fn visual_geometry_toolbar_marks_keep_the_board_origin_at_14_and_20() {
 #[derive(Default)]
 pub struct Frame {
     pub bounds: Option<Bounds<Pixels>>,
-    pub controls: [Control; 10],
+    pub controls: [Control; 11],
     /// The open Settings card, whose marks underneath are left undrawn.
     pub cover: crate::g2::settings_pages::cover::Cover,
+    /// The pointer is over the path's own slot, which is what shows the copy mark.
+    pub address_hovered: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -154,7 +166,7 @@ pub struct ChromeView {
     pub path: Entity<PathView>,
     pub inputs: Inputs,
     pub frame: Rc<RefCell<Frame>>,
-    pub focus: [FocusHandle; 10],
+    pub focus: [FocusHandle; 11],
 }
 
 impl EventEmitter<&'static str> for ChromeView {}
@@ -179,6 +191,7 @@ impl Render for ChromeView {
                 control.bounds = None;
             }
             control.visible = false;
+            control.reachable = false;
             control.enabled = false;
         }
         for (index, focus) in self.focus.iter().enumerate() {
@@ -277,13 +290,7 @@ impl Render for ChromeView {
                                 cx,
                             )),
                     )
-                    .child(
-                        div()
-                            .h(px(sizes.inner()))
-                            .flex_1()
-                            .min_w_0()
-                            .child(self.path.clone()),
-                    )
+                    .child(self.address(sizes, &palette, cx))
                     .child(right),
             );
         for control in &mut self.frame.borrow_mut().controls {

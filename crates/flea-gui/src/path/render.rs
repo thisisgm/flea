@@ -3,10 +3,11 @@ use super::{
     field::FieldElement,
     menu::MenuElement,
     paint::{CrumbElement, Place},
+    strip_input::strip,
     suggestions::Popup,
     view::PathView,
 };
-use crate::window::input::{clean_paste, modifiers, paste_key};
+use crate::window::input::{clean_paste, paste_key};
 use gpui::{
     deferred, div, prelude::*, px, AnyElement, ClipboardItem, Context, Entity, KeyDownEvent,
     MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, ScrollWheelEvent, Window,
@@ -107,45 +108,6 @@ pub fn pane_strip(view: &Entity<PathView>, side: usize, cx: &mut gpui::App) -> A
     view.update(cx, |_, cx| {
         strip(view.clone(), Place::Pane(side), cx).into_any_element()
     })
-}
-
-fn strip(view: Entity<PathView>, place: Place, cx: &mut Context<PathView>) -> impl IntoElement {
-    let slot = place.slot();
-    let origin = move |view: &PathView, x: gpui::Pixels| {
-        let bounds = view.paint.borrow().strips[slot];
-        let pad = super::paint::strip_pad(place != Place::Chrome, &view.paint.borrow().scale());
-        bounds.map(|bounds| f32::from(x - bounds.origin.x) - pad)
-    };
-    div()
-        .id(("path-strip", slot))
-        .size_full()
-        .on_mouse_down(
-            MouseButton::Left,
-            cx.listener(move |view, event: &MouseDownEvent, window, cx| {
-                let Some(x) = origin(view, event.position.x) else {
-                    return;
-                };
-                view.press_strip(
-                    slot,
-                    x,
-                    event.click_count,
-                    modifiers(event.modifiers),
-                    window,
-                    cx,
-                );
-                cx.stop_propagation();
-            }),
-        )
-        .on_mouse_move(cx.listener(move |view, event: &MouseMoveEvent, _, cx| {
-            let x = origin(view, event.position.x);
-            view.hover_strip(slot, x, cx);
-        }))
-        .on_hover(cx.listener(move |view, hovered: &bool, _, cx| {
-            if !hovered {
-                view.hover_strip(slot, None, cx);
-            }
-        }))
-        .child(CrumbElement::new(view, place))
 }
 
 impl PathView {
@@ -249,6 +211,10 @@ impl PathView {
     }
 
     fn field_press(&mut self, event: &MouseDownEvent, _: &mut Window, cx: &mut Context<Self>) {
+        // A double click's second tap lands in the field its first tap opened, and the whole path stays selected.
+        if std::mem::take(&mut self.tapped) && event.click_count == 2 {
+            return;
+        }
         let at = self.field_index(event.position.x);
         match event.click_count {
             1 if event.modifiers.shift => self.entry.select_to(at),
