@@ -1,5 +1,11 @@
 // The paste question: which names already exist before anything is written, the transfer that answers it, and its status row.
-use super::super::{cells::{ellipsis, text_width}, input::Key, model::Model, theme::Theme, wire::{count, number, text, word, Wire}};
+use super::super::{
+    cells::{ellipsis, text_width},
+    input::Key,
+    model::Model,
+    theme::Theme,
+    wire::{count, number, text, word, Wire},
+};
 use super::Paste;
 use crate::jsondoc::Json;
 use flea::bytename::ExactText as _;
@@ -7,12 +13,33 @@ use std::io;
 
 // Paste asks which names already exist before anything is written; a second paste waits for the first question's answer.
 pub fn paste(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
-    if m.clipboard.is_empty() { m.say_key("paste.nothing"); return Ok(()); }
-    if m.prompts.asked.is_some() || m.prompts.question.is_some() { m.fail_key("paste.waiting"); return Ok(()); }
+    if m.clipboard.is_empty() {
+        m.say_key("paste.nothing");
+        return Ok(());
+    }
+    if m.prompts.asked.is_some() || m.prompts.question.is_some() {
+        m.fail_key("paste.waiting");
+        return Ok(());
+    }
     m.prompts.id = m.prompts.id.wrapping_add(1).max(1);
-    let paste = Paste { id: m.prompts.id, op: match action { "pasteLink" => "relative", "pasteAbsoluteLink" => "absolute", "pasteHardLink" => "hard", _ if m.cut || action == "movePaste" => "move", _ => "copy" }, paths: m.clipboard.clone(),
-        dest: m.path.clone(), fat: None, total: 0, name: String::new(), held: m.parity17.copied.clone() };
-    if matches!(paste.op, "relative" | "absolute" | "hard") && paste.held.len() != paste.paths.len() {
+    let paste = Paste {
+        id: m.prompts.id,
+        op: match action {
+            "pasteLink" => "relative",
+            "pasteAbsoluteLink" => "absolute",
+            "pasteHardLink" => "hard",
+            _ if m.cut || action == "movePaste" => "move",
+            _ => "copy",
+        },
+        paths: m.clipboard.clone(),
+        dest: m.path.clone(),
+        fat: None,
+        total: 0,
+        name: String::new(),
+        held: m.parity17.copied.clone(),
+    };
+    if matches!(paste.op, "relative" | "absolute" | "hard") && paste.held.len() != paste.paths.len()
+    {
         m.fail_key("tui.editor.selected_item_changed_reopen_rename");
         return Ok(());
     }
@@ -37,8 +64,13 @@ fn ask_collisions(paste: &Paste, w: &mut Wire) -> io::Result<()> {
 }
 // Sample input: {"t":"collisions","id":7,"total":1,"names":[{"n":"notes.txt","d":false,"i":"text-plain"}],"mergeable":false}.
 pub fn collided(m: &mut Model, value: &Json, w: &mut Wire) -> io::Result<()> {
-    if m.prompts.asked.as_ref().map_or(true, |paste| paste.id != count(value, "id")) { return Ok(()); }
-    let mut paste = m.prompts.asked.take().unwrap();
+    let Some(mut paste) = m.prompts.asked.take() else {
+        return Ok(());
+    };
+    if paste.id != count(value, "id") {
+        m.prompts.asked = Some(paste);
+        return Ok(());
+    }
     if text(value, "t") == "fatnames" {
         // A FAT-family drive refuses some names; the terminal lands them under the drive-safe names, so nothing is lost, and asks again.
         paste.fat = Some("rename");
@@ -47,13 +79,31 @@ pub fn collided(m: &mut Model, value: &Json, w: &mut Wire) -> io::Result<()> {
         return Ok(());
     }
     paste.total = count(value, "total");
-    if paste.total == 0 { return transfer(paste, "refuse", w); }
+    if paste.total == 0 {
+        return transfer(paste, "refuse", w);
+    }
     // The exact name, so a name that is not UTF-8 matches its row and locates that file, never its lossy twin.
-    paste.name = value.get("names").and_then(Json::as_array).and_then(|names| names.first())
-        .map(|first| if first.get("x").is_some() { text(first, "x") } else { text(first, "n") }.to_owned()).unwrap_or_default();
+    paste.name = value
+        .get("names")
+        .and_then(Json::as_array)
+        .and_then(|names| names.first())
+        .map(|first| {
+            if first.get("x").is_some() {
+                text(first, "x")
+            } else {
+                text(first, "n")
+            }
+            .to_owned()
+        })
+        .unwrap_or_default();
     // The cursor waits on the name the paste meets, as the tui-collision board points at it behind the question; a name past the held rows is located.
     if paste.dest == m.path && m.filter.is_empty() {
-        match m.rows.iter().find(|(_, row)| row.name == paste.name).map(|(index, _)| *index) {
+        match m
+            .rows
+            .iter()
+            .find(|(_, row)| row.name == paste.name)
+            .map(|(index, _)| *index)
+        {
             Some(index) => m.move_by(index as isize - m.cursor as isize, false, w)?,
             None => {
                 let path = paste.dest.join(flea::bytename::text_path(&paste.name));
@@ -91,7 +141,10 @@ fn transfer(paste: Paste, collide: &str, w: &mut Wire) -> io::Result<()> {
 }
 // Enter or b keeps both, r replaces, s skips, Escape cancels; any other key leaves the question standing.
 pub fn answer(m: &mut Model, key: &Key, w: &mut Wire) -> io::Result<()> {
-    let cancel = key.name == "Escape" || (m.preset == "yazi" && key.mods == "ctrl" && matches!(key.name.as_str(), "C" | "BracketLeft"));
+    let cancel = key.name == "Escape"
+        || (m.preset == "yazi"
+            && key.mods == "ctrl"
+            && matches!(key.name.as_str(), "C" | "BracketLeft"));
     let choice = match (key.name.as_str(), key.text.as_str(), key.mods.as_str()) {
         _ if cancel => "",
         ("Return" | "Enter", _, "") | (_, "b", "") => "keep",
@@ -99,19 +152,45 @@ pub fn answer(m: &mut Model, key: &Key, w: &mut Wire) -> io::Result<()> {
         (_, "s", "") => "skip",
         _ => return Ok(()),
     };
-    let paste = m.prompts.question.take().unwrap();
-    if choice.is_empty() { return Ok(()); }
+    let Some(paste) = m.prompts.question.take() else {
+        return Ok(());
+    };
+    if choice.is_empty() {
+        return Ok(());
+    }
     transfer(paste, choice, w)
 }
 pub(super) fn ask(m: &Model, question: &Paste, theme: &Theme, columns: usize) -> String {
     let i18n = &m.prompts.i18n;
-    let folder = question.dest.file_name().map_or_else(|| question.dest.to_string_lossy(), |name| name.to_string_lossy()).into_owned();
-    let head = if question.total == 1 { i18n.tr_args("collide.one", &[&flea::bytename::display(&question.name), &folder]) }
-        else { i18n.trn_args("collide.many", question.total as i64, &[&folder]) };
+    let folder = question
+        .dest
+        .file_name()
+        .map_or_else(
+            || question.dest.to_string_lossy(),
+            |name| name.to_string_lossy(),
+        )
+        .into_owned();
+    let head = if question.total == 1 {
+        i18n.tr_args(
+            "collide.one",
+            &[&flea::bytename::display(&question.name), &folder],
+        )
+    } else {
+        i18n.trn_args("collide.many", question.total as i64, &[&folder])
+    };
     let head_width = text_width(&head).min(columns);
-    let keys_width = columns.saturating_sub(head_width + 2).min(text_width(&i18n.tr("collide.keys")));
+    let keys_width = columns
+        .saturating_sub(head_width + 2)
+        .min(text_width(&i18n.tr("collide.keys")));
     let base = theme.base();
     let gap = if keys_width > 0 { 2 } else { 0 };
-    format!("{}{}{base}{}{}{}{base}{}", theme.foreground, ellipsis(&head, head_width), " ".repeat(gap), theme.muted,
-        ellipsis(&i18n.tr("collide.keys"), keys_width), " ".repeat(columns - head_width - gap - keys_width))
+    format!(
+        "{}{}{base}{}{}{}{base}{}",
+        theme.foreground,
+        ellipsis(&head, head_width),
+        " ".repeat(gap),
+        theme.muted,
+        ellipsis(&i18n.tr("collide.keys"), keys_width),
+        " ".repeat(columns - head_width - gap - keys_width)
+    )
 }

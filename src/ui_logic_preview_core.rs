@@ -12,6 +12,7 @@ pub mod property;
 pub mod rect;
 pub mod scroll;
 pub mod settle;
+pub mod sniff;
 pub mod swap;
 pub mod thumbs;
 
@@ -45,5 +46,9 @@ pub const FACT_SEP: &str = " \u{b7} ";
 #[cfg(test)]
 pub(crate) fn english() -> crate::i18n::I18n {
     let none = std::path::PathBuf::from("/nonexistent/flea-pv1");
-    crate::i18n::I18n::load(crate::i18n::Paths { omarchy: none.clone(), language_file: none, catalogs: Vec::new() })
+    crate::i18n::I18n::load(crate::i18n::Paths {
+        omarchy: none.clone(),
+        language_file: none,
+        catalogs: Vec::new(),
+    })
 }

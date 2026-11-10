@@ -62,6 +62,7 @@ struct Walk {
     into: Chain,
     src: PathBuf,
     dst: PathBuf,
+    top: Level,
     levels: Vec<Level>,
 }
 
@@ -103,23 +104,25 @@ pub(super) fn copy_dir_at(
     }
     let entries = std::fs::read_dir(held_path(&from))
         .map_err(|e| from_io("copy", &src.named.to_string_lossy(), &e));
-    let mut walk = Walk {
-        from: Chain::new(from),
-        into: Chain::new(into),
-        src: src.named.to_path_buf(),
-        dst: dst.named.to_path_buf(),
-        levels: Vec::new(),
-    };
     // Only the top folder is ever staged: everything below it lands inside the hidden sibling, or in place where the drive writes in place.
-    let r = entries.and_then(|entries| {
-        walk.levels.push(Level {
-            entries: Entries::Open(entries),
-            keep: None,
-        });
-        walk.run(p)
-    });
-    let Walk { from, into, .. } = walk;
-    let (from, into) = (from.into_base(), into.into_base());
+    let (from, into, r) = match entries {
+        Ok(entries) => {
+            let mut walk = Walk {
+                from: Chain::new(from),
+                into: Chain::new(into),
+                src: src.named.to_path_buf(),
+                dst: dst.named.to_path_buf(),
+                top: Level {
+                    entries: Entries::Open(entries),
+                    keep: None,
+                },
+                levels: Vec::new(),
+            };
+            let r = walk.run(p);
+            (walk.from.into_base(), walk.into.into_base(), r)
+        }
+        Err(e) => (from, into, Err(e)),
+    };
     if let Err(e) = r {
         if folder.staged() {
             return Err(drop_folder(p, dst, &folder, e));
@@ -161,14 +164,9 @@ impl Walk {
             if cancelled(p) {
                 return Err(cancel_err(&self.dst));
             }
-            let next = self
-                .levels
-                .last_mut()
-                .expect("the walk holds its top folder")
-                .entries
-                .next();
+            let next = self.top.entries.next();
             let Some(next) = next else {
-                if self.levels.len() == 1 {
+                if self.levels.is_empty() {
                     return Ok(());
                 }
                 self.leave(p)?;
@@ -255,16 +253,30 @@ impl Walk {
         if let Some(level) = let_go {
             self.levels[level + 1].entries.list();
         }
-        self.levels.push(Level {
-            entries: Entries::Open(entries),
-            keep,
-        });
+        let parent = std::mem::replace(
+            &mut self.top,
+            Level {
+                entries: Entries::Open(entries),
+                keep,
+            },
+        );
+        self.levels.push(parent);
         Ok(())
     }
 
     // A finished folder takes its mode and mtime, and the walk climbs back to its parent through "..".
     fn leave(&mut self, p: &mut Progress) -> Result<(), FleaError> {
-        let level = self.levels.pop().expect("a level below the top");
+        let Some(parent) = self.levels.pop() else {
+            return Err(from_io(
+                "copy",
+                &self.src.to_string_lossy(),
+                &io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "the copy walk has no parent folder",
+                ),
+            ));
+        };
+        let level = std::mem::replace(&mut self.top, parent);
         // The climb goes first, so a copy that takes a mode without the owner's search bit still lets ".." through.
         let climbed = self
             .from
