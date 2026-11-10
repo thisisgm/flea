@@ -50,6 +50,185 @@ fn draw(cx: &mut gpui::VisualTestContext) {
     cx.run_until_parked();
 }
 
+fn favourite(i: usize, path: &str) -> Json {
+    Json::Obj(vec![
+        ("label".into(), Json::Str(format!("F{i}"))),
+        ("path".into(), Json::Str(path.into())),
+    ])
+}
+
+// Forty favourites whose inspector logs every call and always fails, drawn once.
+fn failing_rail(
+    cx: &mut gpui::TestAppContext,
+) -> (
+    Fixture,
+    PathBuf,
+    gpui::Entity<Producer>,
+    &mut gpui::VisualTestContext,
+) {
+    let fixture = Fixture::new();
+    let exe = fixture.0.join("inspect");
+    let calls = fixture.0.join("calls");
+    std::fs::write(
+        &exe,
+        format!(
+            "#!/bin/sh\nprintf 'inspect\\n' >> {}\nexit 1\n",
+            quoted(&calls)
+        ),
+    )
+    .unwrap();
+    std::fs::set_permissions(&exe, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let records = (0..40)
+        .map(|i| favourite(i, &format!("/missing/{i}")))
+        .collect();
+    let state = Json::Obj(vec![(
+        "places".into(),
+        Json::Obj(vec![
+            ("showHome".into(), Json::Bool(false)),
+            ("showTrash".into(), Json::Bool(false)),
+            ("favourites".into(), Json::Arr(records)),
+        ]),
+    )]);
+    let (parent, view) = cx.add_window_view(|_, cx| {
+        Rail(cx.new(|cx| {
+            let mut producer =
+                Producer::new(Arc::new(crate::test_catalogs::english()), &state, exe, cx);
+            producer.fixture_home("/fixture/home", "", cx);
+            producer.set_polling(true, cx);
+            producer
+        }))
+    });
+    let producer = parent.read_with(view, |rail, _| rail.0.clone());
+    draw(view);
+    (fixture, calls, producer, view)
+}
+
+fn time_out(producer: &gpui::Entity<Producer>, view: &mut gpui::VisualTestContext) {
+    producer.update(view, |producer, cx| {
+        producer.places.update(cx, |places, cx| {
+            places.favourites.inspected(None, "");
+            cx.notify();
+        });
+    });
+    draw(view);
+}
+
+#[gpui::test]
+fn fx_uish_def3_a_record_set_restored_during_inspection_retries_after_timeout(
+    cx: &mut gpui::TestAppContext,
+) {
+    let (_fixture, calls, producer, view) = failing_rail(cx);
+    let before = std::fs::read_to_string(&calls).unwrap().lines().count();
+    let hang = |producer: &gpui::Entity<Producer>, view: &mut gpui::VisualTestContext| {
+        producer.update(view, |producer, cx| {
+            producer
+                .places
+                .update(cx, |places, _| places.favourites.inspecting = true);
+        });
+    };
+    hang(&producer, view);
+    time_out(&producer, view);
+    assert_eq!(
+        std::fs::read_to_string(&calls).unwrap().lines().count(),
+        before,
+        "a timeout over an unchanged record set starts no read"
+    );
+    hang(&producer, view);
+    // The visible set changes and returns without a scroll while the first read hangs.
+    for path in ["/moved/0", "/missing/0"] {
+        producer.update(view, |producer, cx| {
+            producer.places.update(cx, |places, cx| {
+                places.favourites.records[0] = favourite(0, path);
+                cx.notify();
+            });
+        });
+        draw(view);
+    }
+    time_out(&producer, view);
+    assert_eq!(
+        std::fs::read_to_string(&calls).unwrap().lines().count(),
+        before + 1
+    );
+}
+
+#[gpui::test]
+fn fx_uish_def3_a_viewport_changed_during_inspection_retries_after_timeout(
+    cx: &mut gpui::TestAppContext,
+) {
+    let (_fixture, calls, producer, view) = failing_rail(cx);
+    let before = std::fs::read_to_string(&calls).unwrap();
+    let visible = producer.read_with(view, |producer, _| {
+        producer
+            .laid
+            .borrow()
+            .rows
+            .iter()
+            .map(|row| row.index)
+            .collect::<Vec<_>>()
+    });
+    producer.update(view, |producer, cx| {
+        producer
+            .places
+            .update(cx, |places, _| places.favourites.inspecting = true);
+    });
+    for delta in [-1., 1.] {
+        view.simulate_event(gpui::ScrollWheelEvent {
+            position: gpui::point(gpui::px(60.), gpui::px(80.)),
+            delta: gpui::ScrollDelta::Pixels(gpui::point(gpui::px(0.), gpui::px(delta))),
+            ..Default::default()
+        });
+        draw(view);
+        producer.read_with(view, |producer, _| {
+            assert_eq!(
+                producer.model.borrow().scroll,
+                if delta < 0. { 1. } else { 0. }
+            );
+            assert_eq!(
+                producer
+                    .laid
+                    .borrow()
+                    .rows
+                    .iter()
+                    .map(|row| row.index)
+                    .collect::<Vec<_>>(),
+                visible,
+                "the viewport moved without changing its visible records"
+            );
+        });
+    }
+    time_out(&producer, view);
+    assert_eq!(
+        std::fs::read_to_string(&calls).unwrap().lines().count(),
+        before.lines().count() + 1
+    );
+    let retried = std::fs::read_to_string(&calls).unwrap();
+    draw(view);
+    assert_eq!(
+        std::fs::read_to_string(&calls).unwrap(),
+        retried,
+        "redraws must not loop failed inspections"
+    );
+    producer.update(view, |producer, cx| {
+        producer.places.update(cx, |places, _| {
+            places.favourites.inspecting = false;
+            places.favourites.statuses = (0..40).map(|i| (i, String::new())).collect();
+        });
+    });
+    for delta in [-1., 1.] {
+        view.simulate_event(gpui::ScrollWheelEvent {
+            position: gpui::point(gpui::px(60.), gpui::px(80.)),
+            delta: gpui::ScrollDelta::Pixels(gpui::point(gpui::px(0.), gpui::px(delta))),
+            ..Default::default()
+        });
+        draw(view);
+    }
+    assert_eq!(
+        std::fs::read_to_string(&calls).unwrap(),
+        retried,
+        "a scroll over answered favourites starts no read"
+    );
+}
+
 #[gpui::test]
 fn rail_favourites_inspect_real_visible_paths_and_newly_scrolled_rows(
     cx: &mut gpui::TestAppContext,

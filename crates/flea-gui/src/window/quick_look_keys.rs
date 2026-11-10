@@ -92,6 +92,22 @@ impl Shell {
         if !self.quick_look_open(cx) {
             return false;
         }
+        let stroke = &event.keystroke;
+        let held = stroke.modifiers;
+        if stroke.key == "end" && !held.shift && !held.alt && !held.platform {
+            let code = self.quick_look.as_ref().and_then(|host| {
+                let doc = host.view.read(cx).subject()?.body.doc()?;
+                match &doc.view {
+                    crate::g2::quick_look_overlay::doc::View::Code(code) => Some(code.clone()),
+                    _ => None,
+                }
+            });
+            if code.is_some() {
+                self.quick_look_action(&ActionEvent::bare("cursorLast", Keys::Preview), window, cx);
+                self.keyboard.disarm();
+                return true;
+            }
+        }
         let Some(pane) = self.panes[self.focus_side].as_ref() else {
             return true;
         };

@@ -213,6 +213,22 @@ fn column_clip(
     (shell, cx, script, frame)
 }
 
+#[gpui::test]
+fn fx_uish_def3_quick_look_releases_the_columns_player(cx: &mut TestAppContext) {
+    let (shell, cx, _script, frame) = column_clip(cx);
+    cx.simulate_click(frame, Modifiers::none());
+    column::pump(cx);
+    assert_eq!(read(&shell, cx, "columnPlayerLoaded", &[]), "true");
+    cx.simulate_keystrokes("space");
+    column::pump(cx);
+    assert_eq!(read(&shell, cx, "previewOpen", &[]), "true");
+    assert_eq!(read(&shell, cx, "columnPlayerLoaded", &[]), "false");
+    cx.simulate_keystrokes("escape");
+    column::pump(cx);
+    assert_eq!(read(&shell, cx, "columnPlayerLoaded", &[]), "false");
+    close(&shell, cx);
+}
+
 // #424: a click on the column's video frame starts, pauses and plays it as p does, and the listing keeps the keyboard.
 #[gpui::test]
 fn a_click_on_the_column_video_frame_plays_and_pauses_as_p_does(cx: &mut TestAppContext) {

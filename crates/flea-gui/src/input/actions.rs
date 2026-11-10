@@ -195,6 +195,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> bool {
+        let following = self.quick_look_open(cx);
         let Some(host) = &mut self.panes[side] else {
             return false;
         };
@@ -222,7 +223,8 @@ impl Shell {
                 return true;
             }
             let at = host.input.view_index(from);
-            let columns = frame.columns.max(1);
+            // Quick Look follows adjacent files, regardless of the grid behind it.
+            let columns = if following { 1 } else { frame.columns.max(1) };
             let page = page_items((frame.viewport() / frame.row).ceil() as usize) * columns;
             let to = match step {
                 Move::Up => at.saturating_sub(columns),

@@ -41,6 +41,7 @@ impl Shell {
 
     pub(crate) fn sync_selection_previews(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let geometry = self.geometry(window);
+        let covered = self.quick_look_open(cx);
         let setting = settings(&self.launch.settings.data);
         let preview = self
             .launch
@@ -118,6 +119,9 @@ impl Shell {
                 view.catalog = self.locale.catalog.clone();
                 view.corner = self.corner;
                 view.automatic = setting.automatic;
+                if covered {
+                    view.stop_media(window, cx);
+                }
                 view.full_facts = self
                     .launch
                     .settings

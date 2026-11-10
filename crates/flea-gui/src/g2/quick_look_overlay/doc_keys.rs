@@ -114,6 +114,10 @@ impl Doc {
             }
         };
         match &self.view {
+            View::Code(code) if name == "cursorLast" => {
+                code.update(cx, |code, cx| code.scroll_to_end(cx));
+                Outcome::Taken
+            }
             View::Code(code) if name == "toggleWrap" => {
                 code.update(cx, |code, cx| {
                     let wrap = !code.wrap;

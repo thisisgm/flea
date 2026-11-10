@@ -71,7 +71,11 @@ impl Render for Producer {
                             .y,
                     );
                     let mut model = producer.model.borrow_mut();
+                    let before = model.scroll;
                     model.scroll = (model.scroll - delta).clamp(0., limit);
+                    if model.scroll != before {
+                        producer.inspected_visible.clear();
+                    }
                     drop(model);
                     drop(laid);
                     producer.cancel_rename(cx);

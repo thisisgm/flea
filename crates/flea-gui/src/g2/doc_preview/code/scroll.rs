@@ -104,6 +104,7 @@ impl CodeView {
 
     /// Scrolls by rows of the body line, walking line heights so a wrapped line scrolls through its rows.
     pub fn scroll_by(&mut self, pixels: f32, cx: &mut Context<Self>) {
+        self.end_pending = false;
         let before = (self.top, self.offset);
         let row = self.metrics.row.max(1.);
         let mut offset = self.offset + pixels;
@@ -138,6 +139,24 @@ impl CodeView {
         if self.top > last_top || (self.top == last_top && self.offset > last_offset) {
             self.top = last_top;
             self.offset = last_offset;
+        }
+    }
+
+    /// End asks directly for the last viewport, without walking or retaining the intervening lines.
+    pub fn scroll_to_end(&mut self, cx: &mut Context<Self>) {
+        self.end_pending = true;
+        self.settle_end();
+        self.reveal_scroll(cx);
+        self.flush(cx);
+    }
+
+    // The last reply can reveal wrapped line heights that were unknown at the jump.
+    pub(super) fn settle_end(&mut self) {
+        if self.end_pending {
+            self.top = self.lines.shown();
+            self.offset = 0.;
+            self.clamp_end();
+            self.end_pending = !self.lines.first_screen(self.view());
         }
     }
 

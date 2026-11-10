@@ -280,10 +280,13 @@ impl Swap {
         self.pending = None;
         self.unheld_total = None;
         self.sorts_out.clear();
+        // The trace measures the hold, which already ended when its cap expired.
+        if !self.fell_back {
+            self.counters.last_ms = now.saturating_sub(self.since);
+            self.counters.last_end = reason;
+        }
         self.holding = false;
         self.fell_back = false;
-        self.counters.last_ms = now.saturating_sub(self.since);
-        self.counters.last_end = reason;
         self.mark_shown(false, now);
     }
 }
