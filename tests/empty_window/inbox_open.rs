@@ -35,3 +35,22 @@ fn inbox_open_errors_name_the_descriptor_that_failed() {
         assert!(reply.contains("too many files are open"), "{reply}");
     }
 }
+
+#[test]
+fn startup_metadata_is_only_the_work_cache_stat() {
+    let d = TestDir::new("empty-window-workfile");
+    // A plain file answers the sweep's statx, so std makes no availability probe and no sweep thread starts.
+    d.dir("flea");
+    d.file("flea/work", "");
+    let (library, counts) = observer(&d);
+    let mut backend = Backend::observed(&d, Some((&library, &counts)));
+    backend.ask(r#"{"c":"window","start":999,"count":0}"#);
+    let mut expected = reader_only_counts();
+    expected[METADATA_CALLS] = 1;
+    assert_eq!(
+        counters(&counts),
+        expected,
+        "the work-cache stat is the only startup metadata call"
+    );
+    backend.quit();
+}

@@ -19,6 +19,8 @@ type Counters = [u64; COUNTER_SLOT_COUNT];
 
 fn reader_only_counts() -> Counters {
     let mut counts = [0; COUNTER_SLOT_COUNT];
+    // 14261ccb3's work-cache is_dir at startup: its ENOENT statx, then std's statx(0, NULL) availability probe.
+    counts[METADATA_CALLS] = 2;
     counts[THREAD_STARTS] = 1;
     counts
 }

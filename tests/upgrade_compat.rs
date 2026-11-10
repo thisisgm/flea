@@ -36,7 +36,7 @@ fn cli_contract() {
 fn cli_mutations() {
     suite(
         "cli-contract-mutations",
-        "cli-contract-mutations: all 8 source mutations rejected",
+        "cli-contract-mutations: all 9 source mutations rejected",
     );
 }
 

@@ -271,7 +271,9 @@ fn the_disk_facts_keep_their_zone() {
         status_host::disk(&i18n, "tmpfs", Some("64.1 MB"), false),
         "tmpfs · 64.1 MB free"
     );
-    assert_eq!(status_host::disk(&i18n, "tmpfs", None, false), "unknown");
+    for pending in [false, true] {
+        assert_eq!(status_host::disk(&i18n, "tmpfs", None, pending), "tmpfs");
+    }
     assert_eq!(status_host::disk(&i18n, "", None, false), "unknown");
     assert_eq!(status_host::disk(&i18n, "", None, true), "");
 }

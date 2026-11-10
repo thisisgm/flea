@@ -295,7 +295,9 @@ fn pointer_rows_and_digits_are_generated_data() {
         );
     }
     assert_eq!(action("default", Context::Listing, "0", "0", 0), "");
-    assert_eq!(action("default", Context::Listing, "F3", "", 0), "");
+    for preset in ["default", "vim", "emacs", "windows"] {
+        assert_eq!(action(preset, Context::Listing, "F3", "", 0), "viewDual");
+    }
     assert_eq!(
         action("default", Context::Listing, "F4", "", 0),
         "autofitColumns"

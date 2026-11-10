@@ -49,6 +49,11 @@
       "from": "  \"highlightToday\": false,\n  \"tabsAsIcons\": false,\n  \"emptyFolderOmi\": true,\n",
       "to": "  \"highlightToday\": false,\n  \"tabsAsIcons\": false,\n  \"emptyFolderOmi\": true,\n  \"emptyFolderRotate\": true,\n",
       "reason": "0401-settings-view-c (design-hig/CHANGES.md:3135) approves emptyFolderRotate=true."
+    },
+    {
+      "from": "  \"highlightToday\": false,\n",
+      "to": "  \"highlightToday\": false,\n  \"highlightHover\": false,\n",
+      "reason": "651d3f115 adds the approved Highlight on hover setting with its fresh-install default off."
     }
   ],
   "cli:ui-state-write": [
@@ -101,6 +106,11 @@
       "from": "  \"highlightToday\": false,\n  \"tabsAsIcons\": false,\n  \"emptyFolderOmi\": true,\n",
       "to": "  \"highlightToday\": false,\n  \"tabsAsIcons\": false,\n  \"emptyFolderOmi\": true,\n  \"emptyFolderRotate\": true,\n",
       "reason": "0401-settings-view-c (design-hig/CHANGES.md:3135) approves emptyFolderRotate=true."
+    },
+    {
+      "from": "  \"highlightToday\": false,\n",
+      "to": "  \"highlightToday\": false,\n  \"highlightHover\": false,\n",
+      "reason": "651d3f115 adds the approved Highlight on hover setting with its fresh-install default off."
     }
   ],
   "state:ui-state": [
@@ -153,6 +163,11 @@
       "from": "  \"highlightToday\": false,\n  \"tabsAsIcons\": false,\n  \"emptyFolderOmi\": true,\n",
       "to": "  \"highlightToday\": false,\n  \"tabsAsIcons\": false,\n  \"emptyFolderOmi\": true,\n  \"emptyFolderRotate\": true,\n",
       "reason": "0401-settings-view-c (design-hig/CHANGES.md:3135) approves emptyFolderRotate=true."
+    },
+    {
+      "from": "  \"highlightToday\": false,\n",
+      "to": "  \"highlightToday\": false,\n  \"highlightHover\": false,\n",
+      "reason": "651d3f115 adds the approved Highlight on hover setting with its fresh-install default off."
     }
   ],
   "cli:gui-desktop": [
@@ -209,6 +224,13 @@
       "from": "}\n",
       "to": ",\"frontend\":\"gpui\"}\n",
       "reason": "CTL2 ruling 141: the default and explicit GPUI routes launch flea-gui; the recorder names the actual child."
+    }
+  ],
+  "cli-stderr:shelf-bad": [
+    {
+      "from": "peers, paths, places, choose",
+      "to": "peers, paths, clip, places, choose",
+      "reason": "41a1b755b adds Shelf clipboard copy and lists the clip verb in its usage error."
     }
   ],
   "cli-usage:actions": [

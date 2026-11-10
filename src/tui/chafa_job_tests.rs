@@ -52,7 +52,10 @@ fn chafa_lookup_takes_executable_files_and_links_to_them_only() {
     for name in ["none", "directory", "dangling"] {
         assert_eq!(found(name), None, "{name}");
     }
-    let rejected_first = std::env::join_paths(["none", "directory", "dangling", "other"].map(|name| fixture.path(name))).unwrap();
+    let rejected_first = std::env::join_paths(
+        ["none", "directory", "dangling", "other"].map(|name| fixture.path(name)),
+    )
+    .unwrap();
     assert_eq!(find_on(&rejected_first), Some(fixture.path("other/chafa")));
 }
 
@@ -172,7 +175,7 @@ fn no_namespace_skips_jail_legs_and_runs_parser_cases() {
     writer.stdin.take().unwrap().write_all(b"#!/bin/sh\necho 'bwrap: No permissions to create new namespace, likely because the kernel does not allow non-privileged user namespaces.' >&2\nexit 1\n").unwrap();
     assert!(writer.wait().unwrap().success());
     let output = Command::new(std::env::current_exe().unwrap())
-        .args(["tui::chafa::", "--nocapture"])
+        .args(["tui::chafa::", "--show-output"])
         .env("PATH", &fake)
         .env("FLEA_CHAFA_NO_NAMESPACE_PROBE", "1")
         .output()
@@ -184,16 +187,18 @@ fn no_namespace_skips_jail_legs_and_runs_parser_cases() {
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr)
     );
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(stderr.contains("SKIP tui::chafa::"));
-    assert!(stderr.contains(
+    // Captured diagnostics print after the result rows, so another test cannot split a success line.
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let diagnostics = format!("{stdout}{}", String::from_utf8_lossy(&output.stderr));
+    assert!(diagnostics.contains("SKIP tui::chafa::"));
+    assert!(diagnostics.contains(
         ": the bwrap sandbox cannot run here: bwrap: No permissions to create new namespace"
     ));
-    let stdout = String::from_utf8_lossy(&output.stdout);
     for case in [
         "tests::valid_truecolor_and_indexed_output_becomes_cells_with_resets",
         "tests::each_control_escape_and_unsupported_sgr_is_refused_individually",
         "job_tests::missing_chafa_is_none_and_nonexecutables_do_not_count",
+        "job_tests::drop_returns_before_a_held_worker_can_finish",
         "process_tests::output_cap_kills_decoder_before_it_can_hang",
         "process_tests::dropping_job_cancels_and_eventually_joins_pending_decoder",
     ] {
@@ -207,7 +212,7 @@ fn no_namespace_skips_jail_legs_and_runs_parser_cases() {
         "dropping_job_cancels_and_eventually_joins_pending_decoder",
     ] {
         assert!(
-            stderr.contains(&format!("SKIP tui::chafa::process_tests::{case}:")),
+            diagnostics.contains(&format!("SKIP tui::chafa::process_tests::{case}:")),
             "namespace refusal did not skip jailed case {case}: {output:?}"
         );
     }
