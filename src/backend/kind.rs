@@ -19,19 +19,38 @@ pub struct Kinds {
 
 impl Kinds {
     pub fn new() -> Kinds {
-        Kinds { cache: HashMap::new(), comments: HashMap::new(), catalog: Some(super::lazy::Local::new(crate::i18n::I18n::default)), language: "en".into(), revision: 0, reads: 0 }
+        Kinds {
+            cache: HashMap::new(),
+            comments: HashMap::new(),
+            catalog: Some(super::lazy::Local::new(crate::i18n::I18n::default)),
+            language: "en".into(),
+            revision: 0,
+            reads: 0,
+        }
     }
 
     // Test-only: pre-seeds the cache so a test never depends on the box's own /usr/share/mime, the same reason rows.rs's dbs() uses literal strings.
     #[cfg(test)]
     pub fn from_pairs(pairs: &[(&str, Option<&str>)]) -> Kinds {
-        let cache = pairs.iter().map(|(k, v)| (k.to_string(), v.map(str::to_string))).collect();
-        Kinds { cache, comments: HashMap::new(), catalog: None, language: "en".into(), revision: 0, reads: 0 }
+        let cache = pairs
+            .iter()
+            .map(|(k, v)| (k.to_string(), v.map(str::to_string)))
+            .collect();
+        Kinds {
+            cache,
+            comments: HashMap::new(),
+            catalog: None,
+            language: "en".into(),
+            revision: 0,
+            reads: 0,
+        }
     }
 
     // Called once per row response, so locale watching never adds per-file stat calls.
     pub fn refresh(&mut self) -> u64 {
-        let Some(catalog) = self.catalog.as_mut() else { return self.revision };
+        let Some(catalog) = self.catalog.as_mut() else {
+            return self.revision;
+        };
         let changed = catalog.poll_changed();
         if changed || self.language != catalog.language() {
             self.language = catalog.language().into();
@@ -43,20 +62,34 @@ impl Kinds {
 
     // Each MIME file is read once; a language change selects another cached comment.
     pub fn comment(&mut self, mime: &str) -> Option<String> {
-        if let Some(hit) = self.cache.get(mime) { return hit.clone(); }
+        if let Some(hit) = self.cache.get(mime) {
+            return hit.clone();
+        }
         let comments = self.comments.entry(mime.to_string()).or_insert_with(|| {
             self.reads += 1;
             let path = PathBuf::from(MIME_ROOT).join(format!("{mime}.xml"));
             Comments::parse(&std::fs::read_to_string(path).unwrap_or_default())
         });
-        let override_word = self.catalog.as_ref().filter(|_| self.language != "en")
-            .and_then(|catalog| catalog.mime_comment(mime)).map(str::to_string);
-        let translated = (self.language != "en").then(|| comments.translation(&self.language)).flatten();
+        let override_word = self
+            .catalog
+            .as_ref()
+            .filter(|_| self.language != "en")
+            .and_then(|catalog| {
+                if mime == "text/plain" {
+                    Some(catalog.tr("mime.plain"))
+                } else {
+                    catalog.mime_comment(mime).map(str::to_string)
+                }
+            });
+        let translated = (self.language != "en")
+            .then(|| comments.translation(&self.language))
+            .flatten();
         let value = if mime == "text/markdown" {
             override_word.or(translated)
         } else {
             translated.or(override_word)
-        }.or_else(|| comments.select(&self.language));
+        }
+        .or_else(|| comments.select(&self.language));
         self.cache.insert(mime.into(), value.clone());
         value
     }
@@ -98,7 +131,10 @@ mod tests {
 
     #[test]
     fn a_translated_comment_first_does_not_win() {
-        assert_eq!(first_untranslated_comment(MSWORD_SHAPED).as_deref(), Some("Word document"));
+        assert_eq!(
+            first_untranslated_comment(MSWORD_SHAPED).as_deref(),
+            Some("Word document")
+        );
     }
 
     #[test]
@@ -117,10 +153,14 @@ mod tests {
     #[test]
     fn the_live_database_answers_a_real_type_in_ascii() {
         let mut db = Kinds::new();
-        let jpeg = db.comment("image/jpeg").expect("shared-mime-info is a hard dependency and ships image/jpeg");
+        let jpeg = db
+            .comment("image/jpeg")
+            .expect("shared-mime-info is a hard dependency and ships image/jpeg");
         assert!(!jpeg.is_empty() && !jpeg.contains('<'), "got {jpeg}");
         // msword.xml opens with zh-Hant-TW, so a reader that took the first comment of any kind would answer non-ASCII here.
-        let msword = db.comment("application/msword").expect("shared-mime-info ships application/msword");
+        let msword = db
+            .comment("application/msword")
+            .expect("shared-mime-info ships application/msword");
         assert!(msword.is_ascii(), "got a translated comment: {msword}");
         // corner: a type with no XML answers None and the caller falls back to the icon name.
         assert_eq!(db.comment("application/x-nonexistent-type"), None);
@@ -137,7 +177,10 @@ mod tests {
     #[test]
     fn from_pairs_never_touches_disk() {
         let mut db = Kinds::from_pairs(&[("text/plain", Some("Plain Text Document"))]);
-        assert_eq!(db.comment("text/plain").as_deref(), Some("Plain Text Document"));
+        assert_eq!(
+            db.comment("text/plain").as_deref(),
+            Some("Plain Text Document")
+        );
         // A pre-seeded entry is answered straight from the cache, so it costs no read.
         assert_eq!(db.reads(), 0);
     }

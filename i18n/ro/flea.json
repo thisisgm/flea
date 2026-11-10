@@ -2759,5 +2759,23 @@
   "settings.hint.key_reserved": "%1 rămâne neatribuită deoarece Flea păstrează secvența pentru sine.",
   "settings.hint.key_taken": "%1 rămâne neatribuită deoarece %2 folosește deja secvența în această presetare.",
   "settings.hint.key_unknown": "%1 rămâne neatribuită deoarece Flea nu are nicio acțiune numită %2.",
-  "mime.png": "imagine PNG"
+  "mime.png": "imagine PNG",
+  "mime.plain": "document text simplu",
+  "feedback.unheld.links": "Această unitate nu acceptă legături.",
+  "feedback.unheld.nodes": "Această unitate nu acceptă fișiere speciale.",
+  "feedback.unheld.name": "Această unitate nu permite acel nume.",
+  "feedback.unheld.long": "Acel nume este prea lung pentru această unitate.",
+  "feedback.unheld.taken": "Această unitate consideră acel nume identic cu altul din dosar.",
+  "feedback.unheld.copy_one": "Nu s-a putut copia %1: %2",
+  "feedback.unheld.move_one": "Nu s-a putut muta %1: %2",
+  "feedback.unheld.copy_many": {
+    "few": "Nu s-au putut copia %1 elemente din interior; primul este %2: %3",
+    "one": "Nu s-a putut copia %1 element din interior; primul este %2: %3",
+    "other": "Nu s-au putut copia %1 de elemente din interior; primul este %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "few": "Nu s-au putut muta %1 elemente din interior; primul este %2: %3",
+    "one": "Nu s-a putut muta %1 element din interior; primul este %2: %3",
+    "other": "Nu s-au putut muta %1 de elemente din interior; primul este %2: %3"
+  }
 }

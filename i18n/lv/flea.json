@@ -2759,5 +2759,23 @@
   "settings.hint.key_reserved": "%1 paliek nepiešķirta, jo Flea patur šo taustiņu secību sev.",
   "settings.hint.key_taken": "%1 paliek nepiešķirta, jo %2 jau izmanto šo taustiņu secību šajā priekšiestatījumā.",
   "settings.hint.key_unknown": "%1 paliek nepiešķirta, jo Flea nav darbības ar nosaukumu %2.",
-  "mime.png": "PNG attēls"
+  "mime.png": "PNG attēls",
+  "mime.plain": "Vienkārša teksta dokuments",
+  "feedback.unheld.links": "Šis disks neatbalsta saites.",
+  "feedback.unheld.nodes": "Šis disks neatbalsta īpašos failus.",
+  "feedback.unheld.name": "Šis disks neatļauj šo nosaukumu.",
+  "feedback.unheld.long": "Šis nosaukums šim diskam ir pārāk garš.",
+  "feedback.unheld.taken": "Šis disks uzskata šo nosaukumu par vienādu ar citu mapē.",
+  "feedback.unheld.copy_one": "Neizdevās kopēt %1: %2",
+  "feedback.unheld.move_one": "Neizdevās pārvietot %1: %2",
+  "feedback.unheld.copy_many": {
+    "one": "Neizdevās kopēt iekšējos vienumus (%1); pirmais ir %2: %3",
+    "other": "Neizdevās kopēt iekšējos vienumus (%1); pirmais ir %2: %3",
+    "zero": "Neizdevās kopēt iekšējos vienumus (%1); pirmais ir %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "one": "Neizdevās pārvietot iekšējos vienumus (%1); pirmais ir %2: %3",
+    "other": "Neizdevās pārvietot iekšējos vienumus (%1); pirmais ir %2: %3",
+    "zero": "Neizdevās pārvietot iekšējos vienumus (%1); pirmais ir %2: %3"
+  }
 }

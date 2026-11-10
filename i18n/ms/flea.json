@@ -2535,5 +2535,19 @@
   "settings.hint.key_reserved": "%1 kekal tanpa ikatan kerana Flea menyimpannya untuk kegunaan sendiri.",
   "settings.hint.key_taken": "%1 kekal tanpa ikatan kerana %2 sudah menggunakannya dalam pratetap ini.",
   "settings.hint.key_unknown": "%1 kekal tanpa ikatan kerana Flea tiada tindakan bernama %2.",
-  "mime.png": "Imej PNG"
+  "mime.png": "Imej PNG",
+  "mime.plain": "Dokumen teks biasa",
+  "feedback.unheld.links": "Pemacu ini tidak menyokong pautan.",
+  "feedback.unheld.nodes": "Pemacu ini tidak menyokong fail khas.",
+  "feedback.unheld.name": "Pemacu ini tidak membenarkan nama itu.",
+  "feedback.unheld.long": "Nama itu terlalu panjang untuk pemacu ini.",
+  "feedback.unheld.taken": "Pemacu ini menganggap nama itu sama dengan nama lain dalam folder.",
+  "feedback.unheld.copy_one": "%1 tidak dapat disalin: %2",
+  "feedback.unheld.move_one": "%1 tidak dapat dipindahkan: %2",
+  "feedback.unheld.copy_many": {
+    "other": "%1 item di dalam tidak dapat disalin; yang pertama ialah %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "other": "%1 item di dalam tidak dapat dipindahkan; yang pertama ialah %2: %3"
+  }
 }

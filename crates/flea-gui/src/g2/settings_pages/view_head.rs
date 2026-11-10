@@ -128,10 +128,10 @@ impl SettingsView {
         shaped_in(&self.typeface.font, text, size, window)
     }
 
-    /// A control row's room, with its label's longest word kept whole even in the bold a lifted search run draws.
+    /// A control row's room, reserving the width `label_width` finds for the whole label in the bold a lifted search run draws.
     pub(super) fn room(&self, row: &Row, segment: bool, width: f32, window: &Window) -> g::Room {
         let catalog = &self.panel.catalog;
-        let word = self.longest_word(&row.label.resolve(catalog), window);
+        let word = self.label_width(&row.label.resolve(catalog), window);
         g::control_room(
             row,
             segment,

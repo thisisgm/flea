@@ -2527,5 +2527,19 @@
   "settings.hint.key_reserved": "Flea가 자체 용도로 예약했으므로 %1 키는 지정되지 않은 상태로 남습니다.",
   "settings.hint.key_taken": "이 프리셋에서 %2 동작이 이미 사용하므로 %1 키는 지정되지 않은 상태로 남습니다.",
   "settings.hint.key_unknown": "Flea에 이름이 %2인 동작이 없으므로 %1 키는 지정되지 않은 상태로 남습니다.",
-  "mime.png": "PNG 이미지"
+  "mime.png": "PNG 이미지",
+  "mime.plain": "일반 텍스트 문서",
+  "feedback.unheld.links": "이 드라이브는 링크를 저장할 수 없습니다.",
+  "feedback.unheld.nodes": "이 드라이브는 특수 파일을 저장할 수 없습니다.",
+  "feedback.unheld.name": "이 드라이브에서는 해당 이름을 사용할 수 없습니다.",
+  "feedback.unheld.long": "이 드라이브에 사용하기에는 이름이 너무 깁니다.",
+  "feedback.unheld.taken": "이 드라이브는 이 이름을 폴더의 다른 이름과 동일하게 취급합니다.",
+  "feedback.unheld.copy_one": "%1을(를) 복사하지 못했습니다: %2",
+  "feedback.unheld.move_one": "%1을(를) 이동하지 못했습니다: %2",
+  "feedback.unheld.copy_many": {
+    "other": "내부 항목 %1개를 복사하지 못했습니다. 첫 항목은 %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "other": "내부 항목 %1개를 이동하지 못했습니다. 첫 항목은 %2: %3"
+  }
 }

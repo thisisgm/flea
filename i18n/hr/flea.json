@@ -2759,5 +2759,23 @@
   "settings.hint.key_reserved": "%1 ostaje nedodijeljen jer ga Flea zadržava za sebe.",
   "settings.hint.key_taken": "%1 ostaje nedodijeljen jer ga %2 već koristi u ovom predlošku.",
   "settings.hint.key_unknown": "%1 ostaje nedodijeljen jer Flea nema radnju s nazivom %2.",
-  "mime.png": "PNG slika"
+  "mime.png": "PNG slika",
+  "mime.plain": "Običan tekstni dokument",
+  "feedback.unheld.links": "Ovaj disk ne podržava poveznice.",
+  "feedback.unheld.nodes": "Ovaj disk ne podržava posebne datoteke.",
+  "feedback.unheld.name": "Ovaj disk ne dopušta taj naziv.",
+  "feedback.unheld.long": "Taj je naziv predug za ovaj disk.",
+  "feedback.unheld.taken": "Ovaj disk smatra da je taj naziv jednak drugome u mapi.",
+  "feedback.unheld.copy_one": "Nije moguće kopirati %1: %2",
+  "feedback.unheld.move_one": "Nije moguće premjestiti %1: %2",
+  "feedback.unheld.copy_many": {
+    "few": "Nije moguće kopirati stavke unutar mape (%1); prva je %2: %3",
+    "one": "Nije moguće kopirati stavke unutar mape (%1); prva je %2: %3",
+    "other": "Nije moguće kopirati stavke unutar mape (%1); prva je %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "few": "Nije moguće premjestiti stavke unutar mape (%1); prva je %2: %3",
+    "one": "Nije moguće premjestiti stavke unutar mape (%1); prva je %2: %3",
+    "other": "Nije moguće premjestiti stavke unutar mape (%1); prva je %2: %3"
+  }
 }

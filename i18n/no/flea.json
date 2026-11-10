@@ -2647,5 +2647,21 @@
   "settings.hint.key_reserved": "%1 forblir uten tilordning fordi Flea reserverer tastesekvensen til eget bruk.",
   "settings.hint.key_taken": "%1 forblir uten tilordning fordi %2 allerede bruker tastesekvensen i dette forvalget.",
   "settings.hint.key_unknown": "%1 forblir uten tilordning fordi Flea ikke har noen handling som heter %2.",
-  "mime.png": "PNG-bilde"
+  "mime.png": "PNG-bilde",
+  "mime.plain": "Vanlig tekstdokument",
+  "feedback.unheld.links": "Denne disken støtter ikke lenker.",
+  "feedback.unheld.nodes": "Denne disken støtter ikke spesialfiler.",
+  "feedback.unheld.name": "Denne disken tillater ikke det navnet.",
+  "feedback.unheld.long": "Navnet er for langt for denne disken.",
+  "feedback.unheld.taken": "Denne disken regner navnet som identisk med et annet i mappen.",
+  "feedback.unheld.copy_one": "%1 kunne ikke kopieres: %2",
+  "feedback.unheld.move_one": "%1 kunne ikke flyttes: %2",
+  "feedback.unheld.copy_many": {
+    "one": "%1 element inni kunne ikke kopieres; det første er %2: %3",
+    "other": "%1 elementer inni kunne ikke kopieres; det første er %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "one": "%1 element inni kunne ikke flyttes; det første er %2: %3",
+    "other": "%1 elementer inni kunne ikke flyttes; det første er %2: %3"
+  }
 }

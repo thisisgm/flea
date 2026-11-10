@@ -2535,5 +2535,19 @@
   "settings.hint.key_reserved": "%1 tetap tanpa penetapan karena Flea mencadangkannya untuk dirinya sendiri.",
   "settings.hint.key_taken": "%1 tetap tanpa penetapan karena %2 sudah menggunakannya dalam prasetel ini.",
   "settings.hint.key_unknown": "%1 tetap tanpa penetapan karena Flea tidak memiliki tindakan bernama %2.",
-  "mime.png": "Citra PNG"
+  "mime.png": "Citra PNG",
+  "mime.plain": "Dokumen teks biasa",
+  "feedback.unheld.links": "Drive ini tidak mendukung tautan.",
+  "feedback.unheld.nodes": "Drive ini tidak mendukung berkas khusus.",
+  "feedback.unheld.name": "Drive ini tidak mengizinkan nama tersebut.",
+  "feedback.unheld.long": "Nama tersebut terlalu panjang untuk drive ini.",
+  "feedback.unheld.taken": "Drive ini menganggap nama tersebut sama dengan nama lain di folder.",
+  "feedback.unheld.copy_one": "%1 tidak dapat disalin: %2",
+  "feedback.unheld.move_one": "%1 tidak dapat dipindahkan: %2",
+  "feedback.unheld.copy_many": {
+    "other": "%1 item di dalam tidak dapat disalin; yang pertama adalah %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "other": "%1 item di dalam tidak dapat dipindahkan; yang pertama adalah %2: %3"
+  }
 }

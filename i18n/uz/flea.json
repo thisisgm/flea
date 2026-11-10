@@ -2647,5 +2647,21 @@
   "settings.hint.key_reserved": "Flea oʻzi uchun ajratgani sababli %1 tugmalar ketma-ketligi tayinlanmagan holda qoladi.",
   "settings.hint.key_taken": "Bu tayyor sozlamalarda %2 allaqachon ishlatgani uchun %1 tugmalar ketma-ketligi tayinlanmagan holda qoladi.",
   "settings.hint.key_unknown": "Flea dasturida %2 nomli amal yoʻqligi uchun %1 tugmalar ketma-ketligi tayinlanmagan holda qoladi.",
-  "mime.png": "PNG tasviri"
+  "mime.png": "PNG tasviri",
+  "mime.plain": "Oddiy matn hujjati",
+  "feedback.unheld.links": "Bu disk havolalarni saqlay olmaydi.",
+  "feedback.unheld.nodes": "Bu disk maxsus fayllarni saqlay olmaydi.",
+  "feedback.unheld.name": "Bu disk bu nomga ruxsat bermaydi.",
+  "feedback.unheld.long": "Bu nom ushbu disk uchun juda uzun.",
+  "feedback.unheld.taken": "Bu disk bu nomni jilddagi boshqa nom bilan bir xil deb hisoblaydi.",
+  "feedback.unheld.copy_one": "%1 nusxalanmadi: %2",
+  "feedback.unheld.move_one": "%1 koʻchirilmadi: %2",
+  "feedback.unheld.copy_many": {
+    "one": "Ichidagi %1 ta obyekt nusxalanmadi; birinchisi %2: %3",
+    "other": "Ichidagi %1 ta obyekt nusxalanmadi; birinchisi %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "one": "Ichidagi %1 ta obyekt koʻchirilmadi; birinchisi %2: %3",
+    "other": "Ichidagi %1 ta obyekt koʻchirilmadi; birinchisi %2: %3"
+  }
 }

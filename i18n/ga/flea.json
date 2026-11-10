@@ -2983,5 +2983,27 @@
   "settings.hint.key_reserved": "Fanann %1 gan cheangal mar coimeádann Flea dó féin é.",
   "settings.hint.key_taken": "Fanann %1 gan cheangal mar úsáideann %2 é cheana sa réamhshocrú seo.",
   "settings.hint.key_unknown": "Fanann %1 gan cheangal mar níl aon ghníomh darbh ainm %2 ag Flea.",
-  "mime.png": "íomhá PNG"
+  "mime.png": "íomhá PNG",
+  "mime.plain": "cáipéis gnáth-théacs",
+  "feedback.unheld.links": "Ní féidir naisc a stóráil ar an tiomántán seo.",
+  "feedback.unheld.nodes": "Ní féidir comhaid speisialta a stóráil ar an tiomántán seo.",
+  "feedback.unheld.name": "Ní cheadaíonn an tiomántán seo an t-ainm sin.",
+  "feedback.unheld.long": "Tá an t-ainm sin rófhada don tiomántán seo.",
+  "feedback.unheld.taken": "Measann an tiomántán seo gurb ionann an t-ainm sin agus ainm eile san fhillteán.",
+  "feedback.unheld.copy_one": "Níorbh fhéidir %1 a chóipeáil: %2",
+  "feedback.unheld.move_one": "Níorbh fhéidir %1 a bhogadh: %2",
+  "feedback.unheld.copy_many": {
+    "one": "Níorbh fhéidir na míreanna laistigh (%1) a chóipeáil; is é %2 an chéad cheann: %3",
+    "two": "Níorbh fhéidir na míreanna laistigh (%1) a chóipeáil; is é %2 an chéad cheann: %3",
+    "few": "Níorbh fhéidir na míreanna laistigh (%1) a chóipeáil; is é %2 an chéad cheann: %3",
+    "many": "Níorbh fhéidir na míreanna laistigh (%1) a chóipeáil; is é %2 an chéad cheann: %3",
+    "other": "Níorbh fhéidir na míreanna laistigh (%1) a chóipeáil; is é %2 an chéad cheann: %3"
+  },
+  "feedback.unheld.move_many": {
+    "one": "Níorbh fhéidir na míreanna laistigh (%1) a bhogadh; is é %2 an chéad cheann: %3",
+    "two": "Níorbh fhéidir na míreanna laistigh (%1) a bhogadh; is é %2 an chéad cheann: %3",
+    "few": "Níorbh fhéidir na míreanna laistigh (%1) a bhogadh; is é %2 an chéad cheann: %3",
+    "many": "Níorbh fhéidir na míreanna laistigh (%1) a bhogadh; is é %2 an chéad cheann: %3",
+    "other": "Níorbh fhéidir na míreanna laistigh (%1) a bhogadh; is é %2 an chéad cheann: %3"
+  }
 }

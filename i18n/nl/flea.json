@@ -2647,5 +2647,21 @@
   "settings.hint.key_reserved": "%1 blijft zonder toewijzing omdat Flea de toetsreeks voor zichzelf reserveert.",
   "settings.hint.key_taken": "%1 blijft zonder toewijzing omdat %2 de toetsreeks al gebruikt in deze voorinstelling.",
   "settings.hint.key_unknown": "%1 blijft zonder toewijzing omdat Flea geen actie met de naam %2 heeft.",
-  "mime.png": "PNG-afbeelding"
+  "mime.png": "PNG-afbeelding",
+  "mime.plain": "Plattetekstdocument",
+  "feedback.unheld.links": "Dit station ondersteunt geen koppelingen.",
+  "feedback.unheld.nodes": "Dit station ondersteunt geen speciale bestanden.",
+  "feedback.unheld.name": "Dit station staat die naam niet toe.",
+  "feedback.unheld.long": "Die naam is te lang voor dit station.",
+  "feedback.unheld.taken": "Dit station beschouwt die naam als gelijk aan een andere in de map.",
+  "feedback.unheld.copy_one": "%1 kon niet worden gekopieerd: %2",
+  "feedback.unheld.move_one": "%1 kon niet worden verplaatst: %2",
+  "feedback.unheld.copy_many": {
+    "one": "%1 item erin kon niet worden gekopieerd; het eerste is %2: %3",
+    "other": "%1 items erin konden niet worden gekopieerd; het eerste is %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "one": "%1 item erin kon niet worden verplaatst; het eerste is %2: %3",
+    "other": "%1 items erin konden niet worden verplaatst; het eerste is %2: %3"
+  }
 }

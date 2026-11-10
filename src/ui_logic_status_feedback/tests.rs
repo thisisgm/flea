@@ -6,6 +6,7 @@ mod locale;
 mod messages;
 mod motion;
 mod status;
+mod unheld;
 
 use crate::i18n::{I18n, Paths};
 use std::path::{Path, PathBuf};

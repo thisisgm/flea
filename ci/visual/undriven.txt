@@ -154,3 +154,5 @@ i50.fit.zh-CN.list.focus BLOCKED SCENE-LANG: list registers rest only; focus nee
 i50.fit.zh-CN.menu BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); menu needs its own drawn-state readback
 i50.fit.zh-CN.rename BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); rename needs its own drawn-state readback
 i50.fit.zh-CN.settings BLOCKED SCENE-LANG: a language scene draws only the list at rest (visual/contract.rs refuses other surfaces); settings needs its own drawn-state readback
+fx-i18n3-settings-labels BLOCKED SCENE-LANG: Settings language scenes lack drawn-state readback; label_fit_tests::fxi18n3_all_settings_control_labels_fit_at_text_14 checks all 50 catalogs, with Greek minipc before/after captures at text size 14.
+fx-i18n3-paste-and-type BLOCKED NATIVE-TUI: the GUI visual lane cannot drive a terminal or mount a vfat fixture; kind_language_tests and status_feedback/tests/unheld.rs gate shared MIME descriptions and copy/move summaries, with zh-CN/el/de/ar minipc captures.

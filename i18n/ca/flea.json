@@ -2759,5 +2759,23 @@
   "settings.hint.key_reserved": "%1 queda sense assignar perquè Flea se'l reserva.",
   "settings.hint.key_taken": "%1 queda sense assignar perquè %2 ja el fa servir en aquest perfil.",
   "settings.hint.key_unknown": "%1 queda sense assignar perquè Flea no té cap acció anomenada %2.",
-  "mime.png": "imatge PNG"
+  "mime.png": "imatge PNG",
+  "mime.plain": "document de text sense format",
+  "feedback.unheld.links": "Aquesta unitat no admet enllaços.",
+  "feedback.unheld.nodes": "Aquesta unitat no admet fitxers especials.",
+  "feedback.unheld.name": "Aquesta unitat no permet aquest nom.",
+  "feedback.unheld.long": "Aquest nom és massa llarg per a aquesta unitat.",
+  "feedback.unheld.taken": "Aquesta unitat considera que aquest nom és igual que un altre de la carpeta.",
+  "feedback.unheld.copy_one": "No s'ha pogut copiar %1: %2",
+  "feedback.unheld.move_one": "No s'ha pogut moure %1: %2",
+  "feedback.unheld.copy_many": {
+    "many": "No s'han pogut copiar %1 elements de dins; el primer és %2: %3",
+    "one": "No s'ha pogut copiar %1 element de dins; el primer és %2: %3",
+    "other": "No s'han pogut copiar %1 elements de dins; el primer és %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "many": "No s'han pogut moure %1 elements de dins; el primer és %2: %3",
+    "one": "No s'ha pogut moure %1 element de dins; el primer és %2: %3",
+    "other": "No s'han pogut moure %1 elements de dins; el primer és %2: %3"
+  }
 }

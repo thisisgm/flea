@@ -2647,5 +2647,21 @@
   "settings.hint.key_reserved": "%1 jääb määramata, sest Flea reserveerib selle klahvijada enda jaoks.",
   "settings.hint.key_taken": "%1 jääb määramata, sest %2 juba kasutab seda klahvijada selles eelseadistuses.",
   "settings.hint.key_unknown": "%1 jääb määramata, sest Fleas pole toimingut nimega %2.",
-  "mime.png": "PNG pilt"
+  "mime.png": "PNG pilt",
+  "mime.plain": "Lihttekstidokument",
+  "feedback.unheld.links": "See ketas ei toeta linke.",
+  "feedback.unheld.nodes": "See ketas ei toeta erifaile.",
+  "feedback.unheld.name": "See ketas ei luba seda nime.",
+  "feedback.unheld.long": "See nimi on selle ketta jaoks liiga pikk.",
+  "feedback.unheld.taken": "See ketas peab seda nime samaks kaustas oleva teise nimega.",
+  "feedback.unheld.copy_one": "Üksust %1 ei saanud kopeerida: %2",
+  "feedback.unheld.move_one": "Üksust %1 ei saanud teisaldada: %2",
+  "feedback.unheld.copy_many": {
+    "one": "Sees olevaid üksusi (%1) ei saanud kopeerida; esimene on %2: %3",
+    "other": "Sees olevaid üksusi (%1) ei saanud kopeerida; esimene on %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "one": "Sees olevaid üksusi (%1) ei saanud teisaldada; esimene on %2: %3",
+    "other": "Sees olevaid üksusi (%1) ei saanud teisaldada; esimene on %2: %3"
+  }
 }

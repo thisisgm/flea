@@ -2535,5 +2535,19 @@
   "settings.hint.key_reserved": "%1 vẫn chưa được gán vì Flea dành riêng chuỗi phím này cho chính nó.",
   "settings.hint.key_taken": "%1 vẫn chưa được gán vì %2 đã dùng chuỗi phím này trong bộ thiết lập này.",
   "settings.hint.key_unknown": "%1 vẫn chưa được gán vì Flea không có hành động nào tên là %2.",
-  "mime.png": "Ảnh PNG"
+  "mime.png": "Ảnh PNG",
+  "mime.plain": "Tài liệu văn bản thuần",
+  "feedback.unheld.links": "Ổ đĩa này không hỗ trợ liên kết.",
+  "feedback.unheld.nodes": "Ổ đĩa này không hỗ trợ tệp đặc biệt.",
+  "feedback.unheld.name": "Ổ đĩa này không cho phép tên đó.",
+  "feedback.unheld.long": "Tên đó quá dài đối với ổ đĩa này.",
+  "feedback.unheld.taken": "Ổ đĩa này coi tên đó giống một tên khác trong thư mục.",
+  "feedback.unheld.copy_one": "Không thể sao chép %1: %2",
+  "feedback.unheld.move_one": "Không thể di chuyển %1: %2",
+  "feedback.unheld.copy_many": {
+    "other": "Không thể sao chép %1 mục bên trong; mục đầu tiên là %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "other": "Không thể di chuyển %1 mục bên trong; mục đầu tiên là %2: %3"
+  }
 }

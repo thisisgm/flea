@@ -2759,5 +2759,23 @@
   "settings.hint.key_reserved": "%1 queda sin asignar porque Flea reserva la secuencia para sí mismo.",
   "settings.hint.key_taken": "%1 queda sin asignar porque %2 ya usa la secuencia en este perfil.",
   "settings.hint.key_unknown": "%1 queda sin asignar porque Flea no tiene ninguna acción llamada %2.",
-  "mime.png": "imagen PNG"
+  "mime.png": "imagen PNG",
+  "mime.plain": "documento de texto sin formato",
+  "feedback.unheld.links": "Esta unidad no admite enlaces.",
+  "feedback.unheld.nodes": "Esta unidad no admite archivos especiales.",
+  "feedback.unheld.name": "Esta unidad no permite ese nombre.",
+  "feedback.unheld.long": "Ese nombre es demasiado largo para esta unidad.",
+  "feedback.unheld.taken": "Esta unidad considera ese nombre igual a otro de la carpeta.",
+  "feedback.unheld.copy_one": "No se pudo copiar %1: %2",
+  "feedback.unheld.move_one": "No se pudo mover %1: %2",
+  "feedback.unheld.copy_many": {
+    "one": "No se pudo copiar %1 elemento del interior; el primero es %2: %3",
+    "many": "No se pudieron copiar %1 elementos del interior; el primero es %2: %3",
+    "other": "No se pudieron copiar %1 elementos del interior; el primero es %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "one": "No se pudo mover %1 elemento del interior; el primero es %2: %3",
+    "many": "No se pudieron mover %1 elementos del interior; el primero es %2: %3",
+    "other": "No se pudieron mover %1 elementos del interior; el primero es %2: %3"
+  }
 }

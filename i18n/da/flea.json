@@ -2647,5 +2647,21 @@
   "settings.hint.key_reserved": "%1 forbliver uden tildeling, fordi Flea reserverer tastesekvensen til sig selv.",
   "settings.hint.key_taken": "%1 forbliver uden tildeling, fordi %2 allerede bruger tastesekvensen i dette forvalg.",
   "settings.hint.key_unknown": "%1 forbliver uden tildeling, fordi Flea ikke har en handling med navnet %2.",
-  "mime.png": "PNG-billede"
+  "mime.png": "PNG-billede",
+  "mime.plain": "Almindeligt tekstdokument",
+  "feedback.unheld.links": "Dette drev understøtter ikke links.",
+  "feedback.unheld.nodes": "Dette drev understøtter ikke specialfiler.",
+  "feedback.unheld.name": "Dette drev tillader ikke det navn.",
+  "feedback.unheld.long": "Navnet er for langt til dette drev.",
+  "feedback.unheld.taken": "Dette drev opfatter navnet som identisk med et andet i mappen.",
+  "feedback.unheld.copy_one": "%1 kunne ikke kopieres: %2",
+  "feedback.unheld.move_one": "%1 kunne ikke flyttes: %2",
+  "feedback.unheld.copy_many": {
+    "one": "%1 element indeni kunne ikke kopieres; det første er %2: %3",
+    "other": "%1 elementer indeni kunne ikke kopieres; det første er %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "one": "%1 element indeni kunne ikke flyttes; det første er %2: %3",
+    "other": "%1 elementer indeni kunne ikke flyttes; det første er %2: %3"
+  }
 }

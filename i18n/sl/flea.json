@@ -2871,5 +2871,25 @@
   "settings.hint.key_reserved": "%1 ostane brez dodelitve, ker Flea to zaporedje pridržuje zase.",
   "settings.hint.key_taken": "%1 ostane brez dodelitve, ker %2 že uporablja to zaporedje v tej prednastavitvi.",
   "settings.hint.key_unknown": "%1 ostane brez dodelitve, ker Flea nima dejanja z imenom %2.",
-  "mime.png": "Slika PNG"
+  "mime.png": "Slika PNG",
+  "mime.plain": "Dokument z navadnim besedilom",
+  "feedback.unheld.links": "Ta pogon ne podpira povezav.",
+  "feedback.unheld.nodes": "Ta pogon ne podpira posebnih datotek.",
+  "feedback.unheld.name": "Ta pogon ne dovoli tega imena.",
+  "feedback.unheld.long": "To ime je predolgo za ta pogon.",
+  "feedback.unheld.taken": "Ta pogon to ime obravnava kot enako drugemu v mapi.",
+  "feedback.unheld.copy_one": "Kopiranje %1 ni uspelo: %2",
+  "feedback.unheld.move_one": "Premikanje %1 ni uspelo: %2",
+  "feedback.unheld.copy_many": {
+    "few": "Kopiranje notranjih predmetov (%1) ni uspelo; prvi je %2: %3",
+    "one": "Kopiranje notranjih predmetov (%1) ni uspelo; prvi je %2: %3",
+    "other": "Kopiranje notranjih predmetov (%1) ni uspelo; prvi je %2: %3",
+    "two": "Kopiranje notranjih predmetov (%1) ni uspelo; prvi je %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "few": "Premikanje notranjih predmetov (%1) ni uspelo; prvi je %2: %3",
+    "one": "Premikanje notranjih predmetov (%1) ni uspelo; prvi je %2: %3",
+    "other": "Premikanje notranjih predmetov (%1) ni uspelo; prvi je %2: %3",
+    "two": "Premikanje notranjih predmetov (%1) ni uspelo; prvi je %2: %3"
+  }
 }

@@ -100,3 +100,17 @@ fn a_drive_name_refusal_reads_in_german_wherever_the_terminal_says_it() {
     assert_eq!(m.error, "„set/clip: final.txt“ kann nicht auf dieses Laufwerk entpackt werden: „:“ ist in einem Namen auf diesem vfat-Laufwerk nicht erlaubt.");
     crate::tui::wire::finish(wire, reader);
 }
+
+#[test]
+fn fxi18n3_paste_summary_retranslates_the_held_terminal_error() {
+    let (root, german) = german();
+    let (mut wire, reader) = crate::tui::wire::echo_wire();
+    let mut model = Model::new(PathBuf::from("/listing"), &Json::Null);
+    model.i18n = german;
+    model.receive(parse(r#"{"t":"transferitem","id":1,"index":0,"name":"bundle","ok":false,"err":"2 items inside could not be copied; the first is sub/link: this drive cannot hold links"}"#).unwrap(), &mut wire).unwrap();
+    assert_eq!(model.error, "bundle: 2 Elemente darin konnten nicht kopiert werden; das erste ist sub/link: Dieses Laufwerk kann keine Verknüpfungen speichern");
+    root.file("language", "en");
+    assert!(model.refresh_locale(&[]));
+    assert_eq!(model.error, "bundle: 2 items inside could not be copied; the first is sub/link: this drive cannot hold links");
+    crate::tui::wire::finish(wire, reader);
+}

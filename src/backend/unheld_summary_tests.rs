@@ -1,6 +1,34 @@
 // The summary of refused entries reads as one whole sentence for each verb and count.
 use std::path::Path;
 
+#[test]
+fn fxi18n3_actual_unheld_reasons_and_summaries_keep_their_catalog_identity() {
+    use flea::ui_logic_status_feedback::errors::passthrough;
+    for why in [
+        super::LINKS,
+        super::NODES,
+        super::NAME,
+        super::LONG,
+        super::TAKEN,
+    ] {
+        assert!(
+            passthrough(why).key.starts_with("feedback.unheld."),
+            "{why}"
+        );
+        for count in [1, 2] {
+            super::begin(false);
+            for name in ["a", "b"].into_iter().take(count) {
+                super::note(super::marked(&Path::new("/d").join(name), why.to_owned()));
+            }
+            for moving in [false, true] {
+                let summary = super::summary(Path::new("/d"), moving).unwrap();
+                assert_eq!(passthrough(&summary.msg).cause, Some(0), "{}", summary.msg);
+            }
+        }
+    }
+    super::begin(false);
+}
+
 // Sample output: "a could not be moved: no", or "2 items inside could not be copied; the first is a: no".
 #[test]
 fn the_summary_is_one_whole_sentence_for_each_verb_and_count() {
@@ -11,11 +39,23 @@ fn the_summary_is_one_whole_sentence_for_each_verb_and_count() {
         }
     };
     refuse(&["a"]);
-    assert_eq!(super::summary(Path::new("/d"), true).unwrap().msg, "a could not be moved: no");
-    assert_eq!(super::summary(Path::new("/d"), false).unwrap().msg, "a could not be copied: no");
+    assert_eq!(
+        super::summary(Path::new("/d"), true).unwrap().msg,
+        "a could not be moved: no"
+    );
+    assert_eq!(
+        super::summary(Path::new("/d"), false).unwrap().msg,
+        "a could not be copied: no"
+    );
     refuse(&["a", "b"]);
-    assert_eq!(super::summary(Path::new("/d"), true).unwrap().msg, "2 items inside could not be moved; the first is a: no");
-    assert_eq!(super::summary(Path::new("/d"), false).unwrap().msg, "2 items inside could not be copied; the first is a: no");
+    assert_eq!(
+        super::summary(Path::new("/d"), true).unwrap().msg,
+        "2 items inside could not be moved; the first is a: no"
+    );
+    assert_eq!(
+        super::summary(Path::new("/d"), false).unwrap().msg,
+        "2 items inside could not be copied; the first is a: no"
+    );
     super::begin(false);
 }
 
