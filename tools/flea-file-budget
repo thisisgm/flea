@@ -318,8 +318,7 @@ tests/unlock-stdin.qml 483
 src/backend/searchindex.rs 401
 tests/gridjump.qml 516
 tests/gridbare.qml 426
-src/backend/trash.rs 421
-src/backend/mountinfo.rs 420
+src/backend/trash.rs 420
 src/backend/trash_tests.rs 423
 tests/permissions-adv.qml 402
 tests/quicklook-code.qml 463

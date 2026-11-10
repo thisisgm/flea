@@ -82,15 +82,36 @@ fn trash_menu_target_follows_marks_and_cursor() {
 #[test]
 fn trash_backend_order_and_membership_pins_hold() {
     let rust = include_str!("../backend/trashbrowse.rs");
-    assert!(rust.contains("dated.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.uri.cmp(&b.1.uri)))"), "newest first, then the uri");
-    assert!(rust.contains(r#"read(&["list", "-u", "-h", "-a", "trash::deletion-date", "trash:///"])"#) && !rust.contains("fn deletion_date("),
-        "one gio list dates every volume's items");
-    assert!(rust.contains("newest_first(&mut items, |item| dates.get(&item.uri)")
-        && rust.contains("fn list() -> Result<Vec<Item>, Refusal> {\n    list_with(gio)\n}"), "one reader orders every listing");
-    assert!(rust.contains("let listed = listed_uris(&self.items);") && rust.contains("if !listed.contains(item.uri.as_str()) { continue; }")
-        && !rust.contains("binary_search"), "membership is by uri set");
-    assert!(rust.contains("if !same_items(&list()?, &self.items) {") && rust.contains("if !same_items(&list()?, &confirmation.listing) {")
-        && !rust.contains("list()? != "), "staleness ignores the order of the two reads");
+    let tokens = rust
+        .split_whitespace()
+        .collect::<String>()
+        .replace(",]", "]");
+    assert!(
+        rust.contains("dated.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.uri.cmp(&b.1.uri)))"),
+        "newest first, then the uri"
+    );
+    assert!(
+        tokens.contains(r#"read(&["list","-u","-h","-a","trash::deletion-date","trash:///"])"#)
+            && !rust.contains("fn deletion_date("),
+        "one gio list dates every volume's items"
+    );
+    assert!(
+        rust.contains("newest_first(&mut items, |item| dates.get(&item.uri)")
+            && rust.contains("fn list() -> Result<Vec<Item>, Refusal> {\n    list_with(gio)\n}"),
+        "one reader orders every listing"
+    );
+    assert!(
+        rust.contains("let listed = listed_uris(&self.items);")
+            && rust.contains("if !listed.contains(item.uri.as_str()) { continue; }")
+            && !rust.contains("binary_search"),
+        "membership is by uri set"
+    );
+    assert!(
+        rust.contains("if !same_items(&list()?, &self.items) {")
+            && rust.contains("if !same_items(&list()?, &confirmation.listing) {")
+            && !rust.contains("list()? != "),
+        "staleness ignores the order of the two reads"
+    );
 }
 
 #[test]

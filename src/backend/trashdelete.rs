@@ -293,7 +293,7 @@ fn remove_tree(tree: &Records, quarantine: &File, refused: Refusal) -> Result<()
 
 // Sample .trashinfo: "[Trash Info]\nPath=/original/photo%20one.jpg\nDeletionDate=2026-09-08T10:00:00\n".
 // Every refusal here is a damaged record, since a metadata file that parses badly was never the user's change.
-fn original_path(metadata: &File, trash_root: &Path) -> Result<PathBuf, Refusal> {
+pub(crate) fn original_path(metadata: &File, trash_root: &Path) -> Result<PathBuf, Refusal> {
     // Linux absolute paths passed to the restore syscall cannot exceed PATH_MAX bytes.
     const PATH_MAX: u64 = 4096;
     const MAX_ENCODED_PATH: u64 = PATH_MAX * 3;

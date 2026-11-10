@@ -10,8 +10,8 @@ def uri(name): return 'trash:///' + urllib.parse.quote(name)
 def described(name):
     record = root / 'data/Trash/info' / (name + '.trashinfo')
     return record.is_file() and 'Path=' in record.read_text()
-if args[0] == 'list' and 'trash::orig-path' in args:
-    for name in names: print(uri(name) + '\t1\t(regular)' + ('\ttrash::orig-path=' + str(root / 'original' / name) if described(name) else ''))
+if args[0] == 'list' and any('trash::orig-path' in arg for arg in args):
+    for name in names: print(uri(name) + '\t1\t(regular)' + ('\ttrash::orig-path=' + str(root / 'original' / name) if described(name) else '') + '\tstandard::target-uri=' + (files / name).as_uri())
 elif args[0] == 'list' and 'standard::target-uri' in args:
     for name in names: print(uri(name) + '\t1\t(regular)\tstandard::target-uri=' + (files / name).as_uri())
 elif args[0] == 'list':

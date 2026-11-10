@@ -156,26 +156,24 @@ pub(crate) fn trash_announcing(paths: &[PathBuf], selection: Option<&[super::men
         let reason = if quiet_gone || missing.is_empty() { String::new() } else { "those items are already gone".to_string() };
         return Ok((Vec::new(), if quiet_gone { 0 } else { missing.len() }, reason));
     }
-    // An item on the home Trash's own filesystem is renamed in and names its own entry, so only the rest need gio and its lists.
-    let (home, rest): (Vec<usize>, Vec<usize>) = (0..present.len()).partition(|&i| super::hometrash::renames_to_home(present[i]));
-    // A mount whose mountinfo root is not "/" (a btrfs subvolume or a bind mount) is system-internal to GLib, whose trash refuses it outright (GLib issue 1271), so such an item is renamed into that mount's own topdir Trash and names its entry too.
-    let (topdir, mut rest): (Vec<usize>, Vec<usize>) = rest.into_iter().partition(|&i| super::topdirtrash::renames_to_topdir(present[i]));
+    // Home renames win; subvolume and bind mounts gio refuses use their own topdir Trash.
+    let mut topdir = super::topdirtrash::Batch::read();
+    let (direct, mut rest): (Vec<usize>, Vec<usize>) = (0..present.len()).partition(|&i| {
+        super::hometrash::renames_to_home(present[i])
+            || super::topdirtrash::renames_to_topdir(&mut topdir, present[i])
+    });
     let mut before = if rest.is_empty() { None } else { Some(list()) };
     super::menu_actions::validate_sources(selection, paths)?;
     let mut entries: Vec<Option<Entry>> = vec![None; present.len()];
     let mut failed = if quiet_gone { 0 } else { missing.len() };
     let (mut unsynced, mut durable) = (std::collections::BTreeSet::new(), None);
-    for i in home {
-        match super::hometrash::rename_to_home(present[i], &mut unsynced, &mut durable) {
-            Some(Ok(entry)) => entries[i] = Some(entry),
-            // Gone before its move, the Issue 88 refusal; the rename left no info file behind.
-            Some(Err(_)) => failed += 1,
-            // EXDEV, EBUSY or a taken name: nothing moved, so gio gets this one as it would have.
-            None => rest.push(i),
-        }
-    }
-    for i in topdir {
-        match super::topdirtrash::rename_to_topdir(present[i], &mut unsynced, &mut durable) {
+    for i in direct {
+        // Equal st_dev does not make a rename cross a bind mount, so EXDEV from home still tries topdir.
+        let moved = super::hometrash::rename_to_home(present[i], &mut unsynced, &mut durable)
+            .or_else(|| {
+                super::topdirtrash::rename_to_topdir(&mut topdir, present[i], &mut unsynced)
+            });
+        match moved {
             Some(Ok(entry)) => entries[i] = Some(entry),
             // Gone before its move, the Issue 88 refusal; the rename left no info file behind.
             Some(Err(_)) => failed += 1,

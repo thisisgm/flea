@@ -14,6 +14,7 @@ mod job;
 mod details;
 mod restore;
 mod sweep;
+mod topdir;
 #[cfg(test)]
 mod queue_tests;
 pub(crate) use job::request;
@@ -246,9 +247,28 @@ fn list() -> Result<Vec<Item>, Refusal> {
 
 // The listing over any reader of gio's text, so a test can feed the two outputs through the real join.
 fn list_with(read: impl Fn(&[&str]) -> Result<String, Refusal>) -> Result<Vec<Item>, Refusal> {
-    let mut items = parse_list(&read(&["list", "-u", "-h", "-a", "trash::orig-path", "trash:///"])?);
+    let text = read(&[
+        "list",
+        "-u",
+        "-h",
+        "-a",
+        "trash::orig-path,standard::target-uri",
+        "trash:///",
+    ])?;
+    let mut items = parse_list(&text);
     // One gio call dates every volume's items, a dot name too; a failed call leaves the order by uri.
-    let dates = parse_dates(&read(&["list", "-u", "-h", "-a", "trash::deletion-date", "trash:///"]).unwrap_or_default());
+    let mut dates = parse_dates(
+        &read(&[
+            "list",
+            "-u",
+            "-h",
+            "-a",
+            "trash::deletion-date",
+            "trash:///",
+        ])
+        .unwrap_or_default(),
+    );
+    topdir::merge(&mut items, &mut dates, &text);
     newest_first(&mut items, |item| dates.get(&item.uri).cloned().unwrap_or_default());
     Ok(items)
 }
@@ -292,6 +312,9 @@ fn attribute<'a>(text: &'a str, name: &str) -> Option<&'a str> {
     })
 }
 fn detail(item: &Item) -> Result<Detail, Refusal> {
+    if item.uri.starts_with(super::topdirtrash::PREFIX) {
+        return topdir::detail(item);
+    }
     let text = gio(&["info", "--nofollow-symlinks", "--attributes=standard::size,standard::type,trash::deletion-date,id::file,id::filesystem,standard::icon,standard::target-uri", &item.uri])?;
     detail_text(item, &text)
 }
