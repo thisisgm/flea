@@ -111,12 +111,12 @@ fn a_kept_fit_a_hit_a_hover_a_press_and_a_popup_step_allocate_nothing() {
     });
     assert_eq!(count, 0);
     assert_eq!(strip.built, 1, "a kept fit never rebuilds");
-    strip.press(Hit::Ground, 1, 0);
     assert_eq!(
-        strip.press(Hit::Ground, 2, 0),
+        strip.press(Hit::Ground, 1, 0),
         Tap::Edit,
         "the measured presses took the real table"
     );
+    assert_eq!(strip.press(Hit::Ground, 2, 0), Tap::Nothing);
 }
 
 #[test]
