@@ -148,7 +148,10 @@ pub fn buttons(out: &mut String, theme: &Theme, card: &Card, buttons: &[Button])
         let bracket = if button.focused { &theme.foreground } else if button.default { &theme.accent } else { &theme.frame };
         let fill = if button.default { theme.wash.as_str() } else { "" };
         let label = if button.enabled { &theme.foreground } else { &theme.muted };
-        let attribute = theme.depth.overlay_attribute(button.focused, button.default);
+        let attribute =
+            theme
+                .depth
+                .control_attribute(button.enabled, button.focused, button.default);
         out.push_str(&format!("\x1b[{};{}H{}{attribute}{}[{}{} {} {}{attribute}{}]{}", y + 1, x + 1, base, bracket, fill, label, fit(&button.label, w.saturating_sub(4)), base, bracket, base));
     }
 }

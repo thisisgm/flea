@@ -57,6 +57,14 @@ impl Depth {
             ""
         }
     }
+    // Without colour a disabled control dims and drops its selection mark, but keeps its focus cue.
+    pub fn control_attribute(self, enabled: bool, cursor: bool, marked: bool) -> &'static str {
+        match (self, enabled, cursor) {
+            (Self::Mono, false, true) => "\x1b[2;7m",
+            (Self::Mono, false, false) => "\x1b[2m",
+            _ => self.overlay_attribute(cursor, marked),
+        }
+    }
     pub fn detect(cancel: &AtomicBool) -> Self {
         if Self::initial() == Self::Mono { return Self::Mono; }
         let output = |name: &str, arguments: &[&str]| {

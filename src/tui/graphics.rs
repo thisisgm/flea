@@ -35,9 +35,24 @@ impl<T> Drop for Task<T> {
 
 // Read the terminal's encoded theme roles back into the shared renderer's sRGB palette.
 pub fn palette(theme: &super::theme::Theme) -> flea::ui_logic_model_preview::color::Palette {
+    if theme.depth == super::theme::Depth::Mono {
+        // Raster pixels cannot inherit terminal attributes or its default ink.
+        return flea::ui_logic_model_preview::color::Palette {
+            ground: [0.; 3],
+            foreground: [1.; 3],
+            muted: [0.7; 3],
+            frame: [0.5; 3],
+        };
+    }
     let ground = hex(&theme.ground);
     let role = |text: &str| {
         let values: Vec<u8> = text.trim_start_matches("\x1b[").trim_end_matches('m').split(';').filter_map(|s| s.parse().ok()).collect();
+        // Sixteen-colour roles arrive as "\x1b[37m" or "\x1b[97m" and read through the same basic table.
+        let values = match values.as_slice() {
+            [n @ 30..=37] => vec![38, 5, n - 30],
+            [n @ 90..=97] => vec![38, 5, n - 90 + 8],
+            _ => values,
+        };
         match values.as_slice() {
             [38, 2, r, g, b] => [*r, *g, *b].map(|v| v as f32 / 255.),
             [38, 5, n] if *n >= 232 => [((f32::from(*n) - 232.) * 10. + 8.) / 255.; 3],
