@@ -48,3 +48,32 @@ fn an_encrypted_extract_draws_no_failed_block() {
     other.kind = "compress".into();
     assert_eq!(jobs::state(&other), jobs::State::Failed);
 }
+
+// FX-ARCHUI follow-up: the card read the backend's lower-case clause where the footer said it as a sentence.
+#[test]
+fn a_failed_extract_reads_its_reason_as_a_sentence() {
+    let cat = Catalog::english();
+    let line = r#"{"t":"job","job":{"id":8,"kind":"extract","head":"Extracting dotdot.zip","file":"","done":0,"total":1,"state":"failed","reason":"an entry in this archive would land outside its folder, so nothing was extracted","output":[],"undo":false,"cancelled":false},"unfinished":0}"#;
+    let Some(Event::Job { job, .. }) = parse(line) else {
+        panic!("not a job line");
+    };
+    let block = jobs::block(&cat.i18n, &job);
+    assert_eq!(block.head, "Extraction failed");
+    assert_eq!(
+        block.file,
+        "An entry in this archive would land outside its folder, so nothing was extracted."
+    );
+}
+
+#[test]
+fn a_failed_copy_keeps_the_item_s_literal_name() {
+    let cat = Catalog::english();
+    let line = r#"{"t":"job","job":{"id":9,"kind":"copy","state":"failed","reason":"report.txt: permission denied"}}"#;
+    let Some(Event::Job { job, .. }) = parse(line) else {
+        panic!("not a job line");
+    };
+    assert_eq!(
+        jobs::block(&cat.i18n, &job).file,
+        "report.txt: permission denied"
+    );
+}

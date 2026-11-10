@@ -8,11 +8,23 @@ use gpui::{Context, Window};
 
 impl Shell {
     pub(crate) fn request_dual(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.view != View::Dual {
+            self.dual_focus.before = self.view;
+        }
         self.dual_pending = true;
         // A fresh second pane owes no jump answers its earlier backend left out.
         self.chrome.jumps[1] = 0;
         self.start_pane(1, window, cx);
         self.settle_dual(window, cx);
+    }
+
+    /// The Dual key toggles: it enters Dual, and in Dual, or on its way there, returns to the view it left.
+    pub(crate) fn dual_key_view(&self) -> View {
+        if self.view == View::Dual || self.dual_pending {
+            self.dual_focus.before
+        } else {
+            View::Dual
+        }
     }
 
     pub(crate) fn settle_dual(&mut self, window: &mut Window, cx: &mut Context<Self>) {

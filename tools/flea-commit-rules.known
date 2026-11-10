@@ -70,3 +70,10 @@ a328efc6abea4e33280a5ba8ee655e7625d0406e	body holds 1 line(s), want 2 to 4
 6021056d2b28dbcf0a178a779d94fe83b58af5be	body holds 1 line(s), want 2 to 4
 d00959421946c3161efb52caff4362553b84d75e	subject holds 63 char(s), want at most 60
 22fa92223d7b53d8efd01f31bfebfd42d0fb5e0e	subject holds 61 char(s), want at most 60
+# CIFIX-ACCT, 2026-11-09: accepted FX-EJECT2 merge and FX-PREVIEW/FX-COPY heads, confirmed by the unchanged checker at 1737ad649.
+e6dd0916a1141f73b5cf1ffced6d779902567785	body holds 1 line(s), want 2 to 4
+10ab2b2017831e0c9de9a480b309a448473fb635	subject holds 63 char(s), want at most 60
+13802db40c01202d53318c36209c3a69a745b11d	subject holds 65 char(s), want at most 60
+# CIFIX-ACCT, 2026-11-09: full v0.4.1..1737ad649 check also confirms the accepted FX-I18N2 merge has one body line.
+72232ba55882d33ce9e0d8742ced07ebd12adbd5	body holds 1 line(s), want 2 to 4
+38090db0ef635d6a461a43e74e87cbfc0cd5d938	body holds 1 line(s), want 2 to 4

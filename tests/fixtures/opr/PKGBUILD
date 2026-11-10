@@ -68,7 +68,7 @@ optdepends=(
   'vulkan-swrast: software rendering on a GPU without a Vulkan driver'
   'zoxide: frecent folders in the folder jump of the path bar'
 )
-conflicts=('flea-bin' 'flea-git')
+conflicts=('flea-bin' 'flea-git' 'mutt') # mutt also owns /usr/bin/flea.
 # Flea is published only here now, so omarchy update moves an AUR flea-bin or flea-git onto this package.
 replaces=('flea-bin' 'flea-git')
 options=('!debug' '!lto')

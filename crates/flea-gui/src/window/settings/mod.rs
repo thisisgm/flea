@@ -93,6 +93,8 @@ pub(crate) struct Host {
     worker: Option<store::Worker>,
     reader: Option<Task<()>>,
     pub(super) subscriptions: Vec<Subscription>,
+    /// The open card's box, which the chrome and the rail paint their marks around.
+    pub cover: settings_pages::cover::Cover,
 }
 
 impl Shell {
@@ -280,9 +282,11 @@ impl Shell {
                 self.locale.catalog.clone(),
             );
             let typeface = self.settings_typeface(cx);
+            let cover = self.settings.cover.clone();
             let view = cx.new(|cx| {
                 let mut view = SettingsView::new(panel, cx);
                 view.typeface = typeface;
+                view.cover = cover;
                 view
             });
             self.settings.subscriptions.push(cx.observe_in(

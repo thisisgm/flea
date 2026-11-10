@@ -128,10 +128,10 @@ impl SettingsView {
         shaped_in(&self.typeface.font, text, size, window)
     }
 
-    /// A control row's room, with its label's longest word kept whole even in the bold a lifted search run draws.
+    /// A control row's room, reserving the width `label_width` finds for the whole label in the bold a lifted search run draws.
     pub(super) fn room(&self, row: &Row, segment: bool, width: f32, window: &Window) -> g::Room {
         let catalog = &self.panel.catalog;
-        let word = self.longest_word(&row.label.resolve(catalog), window);
+        let word = self.label_width(&row.label.resolve(catalog), window);
         g::control_room(
             row,
             segment,
@@ -236,6 +236,26 @@ impl SettingsView {
 }
 
 impl SettingsView {
+    /// The width a wrapping hint's units pack into: the pane less the hint's own inset.
+    pub(super) fn hint_room(&self, row: &Row, width: f32) -> f32 {
+        let s = self.panel.scale;
+        let inset = if row.footer {
+            2. * s.of(PAD_X)
+        } else {
+            s.label_x() + s.of(PAD_X)
+        };
+        (width - inset).max(0.)
+    }
+
+    pub(super) fn unit_width(&self, unit: &str, window: &Window) -> f32 {
+        shaped_in(
+            &self.typeface.font,
+            unit.to_owned(),
+            self.typeface.caption,
+            window,
+        )
+    }
+
     /// Plugin dialogs center over the Settings window and retain the plugin keyboard owner.
     pub(super) fn plugin_card(&self, cx: &gpui::App) -> Option<Div> {
         self.plugins

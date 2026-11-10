@@ -9,5 +9,6 @@
   "kinds": ["place"],
   "entryPoints": {"run": "bin/run"},
   "place": {"label": "Example Files", "glyph": "folder"},
+  "mark": "mark.svg",
   "access": []
 }

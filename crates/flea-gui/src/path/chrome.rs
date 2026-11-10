@@ -145,6 +145,8 @@ fn visual_geometry_toolbar_marks_keep_the_board_origin_at_14_and_20() {
 pub struct Frame {
     pub bounds: Option<Bounds<Pixels>>,
     pub controls: [Control; 11],
+    /// The open Settings card, whose marks underneath are left undrawn.
+    pub cover: crate::g2::settings_pages::cover::Cover,
     /// The pointer is over the path's own slot, which is what shows the copy mark.
     pub address_hovered: bool,
 }
@@ -231,7 +233,8 @@ impl Render for ChromeView {
                 cx,
             ));
         }
-        right = right.child(divider(palette.foreground, sizes.mark));
+        let cover = self.frame.borrow().cover.clone();
+        right = right.child(divider(palette.foreground, sizes.mark, cover.clone()));
         for (index, mode) in [
             (5, View::List),
             (6, View::Columns),
@@ -248,7 +251,7 @@ impl Render for ChromeView {
             ));
         }
         right = right
-            .child(divider(palette.foreground, sizes.mark))
+            .child(divider(palette.foreground, sizes.mark, cover))
             .child(self.button(sizes, 9, true, palette.foreground, palette.foreground, cx));
         let frame = self.frame.clone();
         let pointer_frame = self.frame.clone();

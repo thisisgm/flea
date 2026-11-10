@@ -318,10 +318,14 @@
   "device.still_ejecting": "%1 wordt nog uitgeworpen; wacht op het resultaat",
   "device.still_unmounting": "%1 wordt nog afgekoppeld; wacht op het resultaat",
   "device.still_unmounting_try_again": "%1 wordt nog afgekoppeld. Probeer het opnieuw zodra dat klaar is",
-  "device.system_drive": "%1 is de systeemschijf, die Flea nooit afkoppelt",
-  "device.system_volume": "Deze map staat op een systeemvolume, dat Flea nooit afkoppelt",
+  "device.system_drive": "%1 is de systeemschijf, die Flea nooit uitwerpt.",
+  "device.system_volume": "Deze map staat niet op een schijf die Flea kan uitwerpen.",
   "device.transfer_using": "%1 kon niet worden afgekoppeld. Een overdracht gebruikt het apparaat mogelijk nog.",
-  "device.transfer_running": "Er loopt nog een kopie op %1. Probeer het opnieuw zodra die klaar is.",
+  "device.copy_running": "Er loopt nog een kopie op %1. Probeer het opnieuw zodra die klaar is.",
+  "device.move_running": "Er loopt nog een verplaatsing op %1. Probeer het opnieuw zodra die klaar is.",
+  "device.archive_running": "Er loopt nog een archivering op %1. Probeer het opnieuw zodra die klaar is.",
+  "device.send_running": "Er loopt nog een verzending op %1. Probeer het opnieuw zodra die klaar is.",
+  "device.action_running": "Er loopt nog een actie op %1. Probeer het opnieuw zodra die klaar is.",
   "device.unconfirmed": "Kon niet bevestigen dat %1 is uitgeworpen; koppel het apparaat nog niet los.",
   "device.unlock.failed": "%1 kon niet worden ontgrendeld.",
   "device.unlock.lock_failed": "%1 is afgekoppeld maar kon niet worden vergrendeld; sluit alles wat het apparaat gebruikt.",
@@ -457,6 +461,8 @@
   "dialogs.file.permissions.read_only": "%1 · alleen-lezen",
   "dialogs.file.permissions.reading": "Rechten lezen…",
   "dialogs.file.permissions.requested": "Gevraagde rechten %1",
+  "dialogs.file.permissions.no_changes": "Geen wijzigingen om toe te passen",
+  "dialogs.file.permissions.current_mode": "Huidige rechten %1",
   "dialogs.file.permissions.scope_folder": "Alleen deze map · inhoud ongewijzigd · eigendom ongewijzigd",
   "dialogs.file.permissions.scope_folder_note": "Bereik: alleen deze map. Items erin behouden hun rechten.",
   "dialogs.file.permissions.scope_item": "Alleen dit item · eigendom ongewijzigd",
@@ -466,6 +472,7 @@
   "dialogs.file.properties.permissions": "Rechten",
   "properties.permissions": "Rechten",
   "step.permissions": "Rechten",
+  "step.convert": "Converteren",
   "dialogs.file.permissions.title_many": {
     "one": "Rechten voor %1 item",
     "other": "Rechten voor %1 items"
@@ -845,6 +852,11 @@
   "feedback.os.connection_refused": "Verbinding geweigerd.",
   "feedback.os.connection_reset": "Verbinding gereset.",
   "feedback.os.could_not_finish": "De bewerking kon niet worden voltooid.",
+  "feedback.drive.char": "“%1” is niet toegestaan in een naam op deze %2-schijf.",
+  "feedback.drive.control": "Een naam mag op deze %2-schijf geen stuurteken %1 bevatten.",
+  "feedback.drive.end_dot": "Een naam mag op deze %1-schijf niet op een punt eindigen.",
+  "feedback.drive.end_space": "Een naam mag op deze %1-schijf niet op een spatie eindigen.",
+  "feedback.drive.reserved": "“%1” is een gereserveerde naam op deze %2-schijf.",
   "feedback.os.cross_device": "De bron en de bestemming staan op verschillende schijven.",
   "feedback.os.full": "De schijf is vol.",
   "feedback.os.interrupted": "Bewerking onderbroken.",
@@ -1151,6 +1163,7 @@
   "jobs.undone.link": "Koppeling ongedaan gemaakt",
   "jobs.undone.merge": "Samenvoegen ongedaan gemaakt",
   "jobs.undone.mkdir": "Nieuwe map verwijderd.",
+  "jobs.undone.convert": "Converteren ongedaan gemaakt",
   "jobs.undone.move": "Verplaatsen ongedaan gemaakt",
   "jobs.undone.newfile": "Nieuw bestand verwijderd",
   "jobs.undone.other": "Laatste actie ongedaan gemaakt",
@@ -1364,6 +1377,7 @@
   "keys.label.aea63c219a1f": "open de rij",
   "keys.label.bcf58eaeff52": "ga terug in de geschiedenis, of één map omhoog als die er niet is",
   "keys.label.bd0b7be215ce": "Editor sluiten",
+  "keys.label.bc4dd3d76b73": "Resultaten behouden",
   "keys.label.bfa65befcad0": "ga naar het bestand in zijn eigen map en selecteer het",
   "keys.label.704fb7f8818b": "geen actie",
   "keys.label.c5f15f85156b": "ga met één tik die map in, net als bij de naastgelegen mappen",
@@ -2257,6 +2271,7 @@
   "settings.row.group_by_kind": "Groeperen op type",
   "settings.row.hidden_last": "Verborgen bestanden achteraan",
   "settings.row.highlight_today": "Datums van vandaag markeren",
+  "settings.row.highlight_hover": "Markeren onder de aanwijzer",
   "settings.row.tabs_as_icons": "Tabbladen als pictogrammen tonen",
   "settings.row.empty_omi": "Omi tonen in lege mappen",
   "settings.row.empty_rotate": "Berichten in lege mappen afwisselen",
@@ -2330,6 +2345,10 @@
   },
   "trash.deleted": "Verwijderd · %1",
   "trash.done.failed": "%1 · %2 mislukt",
+  "trash.done.leftover": {
+    "one": "%2 · %1 achtergebleven item kon niet worden verwijderd",
+    "other": "%2 · %1 achtergebleven items konden niet worden verwijderd"
+  },
   "trash.done.failure": "%1 mislukt: %2",
   "trash.drop.line": {
     "one": "%1 item naar de prullenbak verplaatsen",
@@ -2629,5 +2648,21 @@
   "settings.hint.key_reserved": "%1 blijft zonder toewijzing omdat Flea de toetsreeks voor zichzelf reserveert.",
   "settings.hint.key_taken": "%1 blijft zonder toewijzing omdat %2 de toetsreeks al gebruikt in deze voorinstelling.",
   "settings.hint.key_unknown": "%1 blijft zonder toewijzing omdat Flea geen actie met de naam %2 heeft.",
-  "mime.png": "PNG-afbeelding"
+  "mime.png": "PNG-afbeelding",
+  "mime.plain": "Plattetekstdocument",
+  "feedback.unheld.links": "Dit station ondersteunt geen koppelingen.",
+  "feedback.unheld.nodes": "Dit station ondersteunt geen speciale bestanden.",
+  "feedback.unheld.name": "Dit station staat die naam niet toe.",
+  "feedback.unheld.long": "Die naam is te lang voor dit station.",
+  "feedback.unheld.taken": "Dit station beschouwt die naam als gelijk aan een andere in de map.",
+  "feedback.unheld.copy_one": "%1 kon niet worden gekopieerd: %2",
+  "feedback.unheld.move_one": "%1 kon niet worden verplaatst: %2",
+  "feedback.unheld.copy_many": {
+    "one": "%1 item erin kon niet worden gekopieerd; het eerste is %2: %3",
+    "other": "%1 items erin konden niet worden gekopieerd; het eerste is %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "one": "%1 item erin kon niet worden verplaatst; het eerste is %2: %3",
+    "other": "%1 items erin konden niet worden verplaatst; het eerste is %2: %3"
+  }
 }

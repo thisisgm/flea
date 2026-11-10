@@ -254,9 +254,9 @@ fn ey422_the_card_grows_with_the_text_size_and_the_scale_hint_keeps_one_line(
         last.origin.y, first.origin.y,
         "the hint wraps it. onto a second line"
     );
-    // 630 and 168 at 14 grow to 720 and 192 at 16: the pane is the card less its frame and the rail.
+    // 760 and 168 at 14 grow to 869 and 192 at 16: the pane is the card less its frame and the rail.
     view.update(cx, |view, _| {
-        assert_eq!(view.panel.pane.0, 720. - 2. - 192.)
+        assert_eq!(view.panel.pane.0, 869. - 2. - 192.)
     });
 }
 

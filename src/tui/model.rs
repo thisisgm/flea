@@ -1074,7 +1074,7 @@ impl Model {
             }
             "transferitem" => {
                 if !flag(&value, "ok") {
-                    self.fail(format!("{}: {}", text(&value, "name"), text(&value, "err")));
+                    self.fail_text(super::words::Text::Joined(vec![format!("{}: ", text(&value, "name")).into(), super::words::Text::Cause(text(&value, "err").into())]));
                 }
             }
             "renamed" if self.bulk.is_some() && self.menu_action == "bulkRename" => {
@@ -1248,12 +1248,12 @@ impl Model {
             "trashbrowse" => super::trashview::receive(self, &value),
             "collisions" | "fatnames" => super::prompts::collided(self, &value, wire)?,
             "error" => {
-                let held = self.editor.as_mut().filter(|editor| editor.kind == text(&value, "where")).map(|editor| { editor.pending = false; editor.fail_data(text(&value, "msg").into()); }).is_some();
+                let held = self.editor.as_mut().filter(|editor| editor.kind == text(&value, "where")).map(|editor| { editor.pending = false; editor.fail_said(text(&value, "msg"), &self.i18n); }).is_some();
                 if !held {
                     if text(&value, "where") == "scan" && text(&value, "msg") == "permission denied" {
                         self.fail_key("pane.locked");
                     } else if text(&value, "where") == "scan" { self.fail(text(&value, "msg").into()); }
-                    else { self.fail(format!("{}: {}", text(&value, "where"), text(&value, "msg"))); }
+                    else { self.fail_text(super::words::Text::Joined(vec![format!("{}: ", text(&value, "where")).into(), super::words::Text::Cause(text(&value, "msg").into())])); }
                 }
                 if text(&value, "where") == "rename" && self.bulk.is_some() {
                     self.bulk.as_mut().unwrap().cancelled = true;

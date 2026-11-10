@@ -22,8 +22,12 @@ use gpui::{Context, Window};
 #[path = "fileops_created_tests.rs"]
 mod tests;
 
+#[cfg(test)]
+#[path = "relist_undo_tests.rs"]
+mod relist_undo_tests;
+
 impl Shell {
-    // Sample input: {"t":"made","ok":true,"path":"/home/gm/New Folder"}; duplicated and the trash and delete replies share the same t field.
+    // Sample input: {"t":"made","ok":true,"path":"/home/gm/New Folder"} or {"t":"undone","op":"trash","ok":true}; duplicated and the trash and delete replies share the same t field.
     /// A backend line this family answers; true when nobody else needs it.
     pub(crate) fn fileops_line(
         &mut self,
@@ -37,6 +41,12 @@ impl Shell {
         };
         let text = |key| document.get(key).and_then(Json::as_str).unwrap_or("");
         match text("t") {
+            "undone" | "redone" => {
+                if document.get("ok").and_then(Json::as_bool) == Some(true) {
+                    let _ = self.step(side, Step::Refresh(None), window, cx);
+                }
+                false
+            }
             "linked" => {
                 let count = |key| match document.get(key) {
                     Some(Json::Num(value)) => value.parse::<u64>().unwrap_or(0),

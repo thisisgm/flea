@@ -134,12 +134,12 @@ fn fx_eject2_a_transfer_on_the_share_refuses_its_unmount(cx: &mut TestAppContext
             }
         })
     };
-    let copy =
-        r#"{"c":"transfer","op":"copy","paths":["/fixture/home/big"],"dest":"/mnt/rclone/docs"}"#;
-    answer(&shell, copy, cx);
+    let moving =
+        r#"{"c":"transfer","op":"move","paths":["/fixture/home/big"],"dest":"/mnt/rclone/docs"}"#;
+    answer(&shell, moving, cx);
     answer(
         &shell,
-        r#"{"t":"transferstarted","id":12,"n":1,"moving":false}"#,
+        r#"{"t":"transferstarted","id":12,"n":1,"moving":true}"#,
         cx,
     );
     at(&shell, "/mnt/rclone/docs", vec![fuse()], cx);
@@ -148,7 +148,8 @@ fn fx_eject2_a_transfer_on_the_share_refuses_its_unmount(cx: &mut TestAppContext
     assert!(releases(&recorder).is_empty(), "{:?}", releases(&recorder));
     assert_eq!(
         status(&shell, cx),
-        "A copy on NAS is still running. Try again when it finishes."
+        "A move on NAS is still running. Try again when it finishes.",
+        "the refusal names the move"
     );
     answer(
         &shell,

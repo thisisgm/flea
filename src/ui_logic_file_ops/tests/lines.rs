@@ -267,6 +267,12 @@ fn undone_names_the_operation_it_reversed() {
     );
     // oracle tests/js/ops.js:83
     assert_eq!(lines::undone(&cat.i18n, "mkdir"), "Removed the new folder.");
+    // S1B-7: a single Permissions change and a Convert are journalled under these op words.
+    assert_eq!(
+        lines::undone(&cat.i18n, "permissions"),
+        "Undid the permissions"
+    );
+    assert_eq!(lines::undone(&cat.i18n, "convert"), "Undid the conversion");
 }
 
 #[test]

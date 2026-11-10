@@ -6,6 +6,7 @@ use flea::ui_logic_rail_places::rail::{Group, Kind, RailEntry, Square};
 use flea::ui_logic_rail_places::tags;
 use flea::ui_logic_rail_places::tagtheme::{tag_theme, TagTheme};
 use gpui::{Hsla, Rgba, SharedString};
+use std::sync::Arc;
 
 /// A tag's mark: the 14px swatch in its colour; with no resolved colour the painter takes the window theme's tag ink at `index`.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -28,6 +29,8 @@ pub enum RowMark {
 pub struct DrawnRow {
     pub label: SharedString,
     pub glyph: &'static str,
+    /// A plugin's own mark.svg and its cache key, drawn in place of the glyph in the row's ink.
+    pub owned: Option<(SharedString, Arc<[u8]>)>,
     pub mark: RowMark,
     /// The row's place in the flat rail, so the host can read its mount dot without re-reading the data.
     pub group: Group,
@@ -135,6 +138,12 @@ fn row(catalog: &I18n, theme: &TagTheme, entry: &RailEntry) -> DrawnRow {
     DrawnRow {
         label: row_label(catalog, entry),
         glyph: entry.glyph,
+        owned: entry.mark.as_ref().map(|mark| {
+            (
+                format!("flea-rail-mark:{}", mark.path).into(),
+                Arc::clone(&mark.svg),
+            )
+        }),
         mark,
         group: entry.group,
         kind: entry.kind,

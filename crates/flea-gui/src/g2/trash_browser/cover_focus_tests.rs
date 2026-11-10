@@ -117,8 +117,11 @@ fn s11j7_the_ring_back_to_the_list_lands_on_trash_and_skips_the_hidden_toolbar()
     );
     assert!(
         trash_holds_keys(&mut cx, window),
-        "the ring comes back to the Trash list: {stops:?}"
+        "the ring comes back to Trash: {stops:?}"
     );
+    // TR2-b: Empty Trash… is the stop before the list, so the ring reaches the list one Tab later.
+    cx.simulate_keystrokes(window.into(), "tab");
+    draw(&mut cx, window);
     assert!(
         edge(&mut cx, window),
         "the cursor lights again with the keyboard"
@@ -195,4 +198,37 @@ fn s11j7_a_key_on_the_window_handle_reaches_the_trash_list_that_covers_the_folde
     draw(&mut cx, window);
     list_keys_stay_on_trash(&mut cx, window);
     assert!(trash_holds_keys(&mut cx, window));
+}
+
+fn cursor_ground(
+    cx: &mut TestAppContext,
+    window: WindowHandle<Root>,
+) -> (Option<gpui::Hsla>, gpui::Hsla, gpui::Hsla) {
+    draw(cx, window);
+    shell(cx, window, |shell, _, cx| {
+        let paint = shell.trash.as_ref().unwrap().pane.read(cx).paint.borrow();
+        let ink = paint.ink;
+        (paint.ground(paint.cursor), ink.foreground, ink.mark_fill)
+    })
+}
+
+#[test]
+fn ff3_the_cursor_row_greys_as_a_folder_row_does_while_the_rail_has_the_keys() {
+    let mut cx = real_cx();
+    let window = trash_page(&mut cx);
+    cx.simulate_keystrokes(window.into(), "tab");
+    assert_eq!(stop(&mut cx, window), "rail");
+    let (ground, foreground, marked) = cursor_ground(&mut cx, window);
+    assert_eq!(
+        ground,
+        Some(foreground.opacity(crate::list::GREY_CURSOR)),
+        "a folder list's unfocused cursor is the foreground at 18%, not the 35% marked plate"
+    );
+    assert_ne!(ground, Some(marked));
+    cx.simulate_keystrokes(window.into(), "escape");
+    assert!(trash_holds_keys(&mut cx, window));
+    assert!(
+        edge(&mut cx, window),
+        "the accent comes back with the keyboard"
+    );
 }

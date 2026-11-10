@@ -83,6 +83,7 @@ pub static PRESET_KEYS: &[Binding] = &[
     Binding::new("windows", "alt", "Up", "alt-up", "parent", "listing", "all", 4, 1, "keys.action.parent", true),
     Binding::new("all", "none", "Escape", "escape", "escape", "rail,menu,panel,preview,pdf,media", "all", 0, 126, "keys.label.037c968467aa", true),
     Binding::new("all", "none", "Menu", "menu", "menu", "listing,rail", "all", 0, 3, "keys.action.menu", true),
+    Binding::new("all", "none", "F3", "f3", "viewDual", "listing", "gui", 0, 1, "keys.action.viewDual", true),
     Binding::new("all", "none", "F4", "f4", "autofitColumns", "listing", "gui", 0, 1, "keys.action.autofitColumns", true),
     Binding::new("all", "shift", "F10", "shift-f10", "menu", "listing,rail", "all", 2, 3, "keys.action.menu", true),
     Binding::new("all", "none", "Down", "down", "cursorDown", "rail,menu,panel,preview,pdf,media", "all", 0, 126, "keys.label.104788780cb6", true),
@@ -239,6 +240,11 @@ pub static SHARED_KEYS: &[Binding] = &[
 ];
 
 #[rustfmt::skip]
+pub static SHEET_EXTRA: &[Binding] = &[
+    Binding::new("all", "ctrl", "Return", "ctrl-enter", "keepResults", "editor", "gui", 1, 128, "keys.label.bc4dd3d76b73", true),
+];
+
+#[rustfmt::skip]
 pub static POINTER: &[PointerBinding] = &[
     PointerBinding::new("listing", "left", "any", "selectOnly", "keys.label.0f5e1d3b4d07", "left", 0, 1),
     PointerBinding::new("listing", "left x2", "any", "open", "keys.label.aea63c219a1f", "left", 0, 2),
@@ -312,7 +318,7 @@ pub static BASE_SHEET: &[SheetBinding] = &[
 pub static SHEET_GROUPS: &[SheetGroup] = &[
     SheetGroup { id: "move", label_key: "keys.group.move", actions: &["cursorDown", "cursorUp", "cursorFirst", "cursorLast", "pageDown", "pageUp", "open", "parent", "pageForward", "historyBack", "historyForward", "focusNext", "focusPrevious", "focusPreview", "tabNew", "openTab", "tabClose", "tabNext", "tabPrevious", "tabMoveLeft", "tabMoveRight", "windowNew", "escape", "carry"] },
     SheetGroup { id: "look", label_key: "keys.group.look", actions: &["viewList", "viewColumns", "viewGrid", "viewDual", "togglePreview", "factsToggle", "loadPreview", "preview", "previewPageForward", "previewPageBack", "toggleHidden", "sidebar", "zoomIn", "zoomOut", "expand", "openInPlace", "closeInPlace", "mute", "textSizeUp", "textSizeDown", "textSizeReset", "keymapSheet"] },
-    SheetGroup { id: "find", label_key: "keys.group.find", actions: &["filter", "search", "searchContents", "reveal", "sortNext", "sortReverse", "pathBar", "reload"] },
+    SheetGroup { id: "find", label_key: "keys.group.find", actions: &["filter", "search", "searchContents", "keepResults", "reveal", "sortNext", "sortReverse", "pathBar", "reload"] },
     SheetGroup { id: "change", label_key: "keys.group.change", actions: &["copy", "cut", "paste", "movePaste", "duplicate", "rename", "trash", "deletePermanently", "undo", "redo", "newFolder", "copydirpath", "copyPath", "openAgent", "toggleSelect", "selectAll", "extendDown", "extendUp", "menu", "properties", "addNetwork", "eject", "openTerminal", "settings", "autofitColumns", "copyAs", "pasteAs", "invertSelection", "tags", "print"] },
 ];
 

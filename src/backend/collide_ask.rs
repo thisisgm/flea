@@ -8,9 +8,10 @@ use flea::bytename::ExactText as _;
 use std::collections::{HashMap, HashSet};
 use std::os::unix::fs::MetadataExt;
 
-// One colliding source as the card draws it: its name, and the kind its mark is chosen from.
+// One colliding source as the card draws it: its name, the exact name it lands on, and the kind its mark is chosen from.
 pub(super) struct Shown {
     pub(super) name: String,
+    pub(super) exact: String,
     pub(super) dir: bool,
     pub(super) mode: u32,
 }
@@ -49,15 +50,17 @@ pub(super) fn ask(id: usize, paths: &[String], dest: &str, fat: Option<crate::ba
             Err(_) => continue,
         };
         if fresh && shown.len() < SHOWN {
-            shown.push(Shown { name: flea::bytename::display(&leaf).into_owned(), dir: meta.is_dir(), mode: meta.mode() });
+            shown.push(Shown { name: flea::bytename::display(&leaf).into_owned(), exact: leaf.clone(), dir: meta.is_dir(), mode: meta.mode() });
         }
     }
     (question, shown)
 }
 
 // Sample output: {"t":"collisions","id":7,"total":1,"names":[{"n":"a.png","d":false,"i":"image-x-generic"}],"mergeable":false}
+// A name that is not UTF-8 also carries its exact text in "x", so a client finds and locates that file and not its lossy twin.
 pub(super) fn collisions_line(id: usize, total: usize, shown: &[Shown], mergeable: bool, mime: &Db, icons: &Names) -> String {
-    let names: Vec<String> = shown.iter().map(|s| format!(r#"{{"n":"{}","d":{},"i":"{}"}}"#,
-        escape(&s.name), s.dir, escape(icons.icon_for(mime.lookup(&s.name), s.dir, s.mode)))).collect();
+    let names: Vec<String> = shown.iter().map(|s| format!(r#"{{"n":"{}","d":{},"i":"{}"{}}}"#,
+        escape(&s.name), s.dir, escape(icons.icon_for(mime.lookup(&s.name), s.dir, s.mode)),
+        if s.exact == s.name { String::new() } else { format!(r#","x":"{}""#, escape(&s.exact)) })).collect();
     format!(r#"{{"t":"collisions","id":{},"total":{},"names":[{}],"mergeable":{}}}"#, id, total, names.join(","), mergeable)
 }

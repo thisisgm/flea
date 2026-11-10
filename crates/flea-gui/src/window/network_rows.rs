@@ -98,6 +98,10 @@ impl Shell {
         if let (Some(rows), Some(network)) = (rows, self.network()) {
             network.rows = rows;
         }
+        let rows = self.network().map(|network| network.rows.clone());
+        if rows.is_some_and(|rows| self.alias_launched_shares(&rows)) {
+            cx.notify();
+        }
         self.rail_tail(cx);
     }
 

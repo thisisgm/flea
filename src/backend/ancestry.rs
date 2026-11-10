@@ -3,6 +3,7 @@ use crate::backend::events::{Event, Sender};
 use crate::backend::inotifyburst::each_event;
 use crate::backend::watch::{
     nearest_parent, BUF, COALESCE, IN_CLOEXEC, IN_DELETE_SELF, IN_MOVE_SELF, IN_ONLYDIR,
+    IN_Q_OVERFLOW,
 };
 use std::collections::HashMap;
 use std::ffi::{c_char, c_int, c_void, CString};
@@ -42,6 +43,7 @@ enum Ask {
 pub struct Ancestry {
     client: u64,
     events: Option<Sender<Event>>,
+    follower: Option<mpsc::Sender<Ask>>,
     // The last gone line: the open folder was said once, and only the folder it sent the client to failing too is said anew.
     leaving: Option<Gone>,
 }
@@ -52,6 +54,7 @@ impl Ancestry {
         Ancestry {
             client: NEXT.fetch_add(1, Ordering::Relaxed),
             events: Some(events),
+            follower: None,
             leaving: None,
         }
     }
@@ -60,22 +63,26 @@ impl Ancestry {
     pub fn follow(&mut self, base: &Path) {
         self.leaving = None;
         if let Some(events) = &self.events {
-            ask(Ask::Follow(self.client, events.clone(), base.to_path_buf()));
+            static ASKS: OnceLock<mpsc::Sender<Ask>> = OnceLock::new();
+            let follower = self
+                .follower
+                .get_or_insert_with(|| ASKS.get_or_init(start).clone());
+            let _ = follower.send(Ask::Follow(self.client, events.clone(), base.to_path_buf()));
         }
     }
 
     // The listing watch saw the open folder itself go or move; the follower decides off the loop.
     pub fn check(&self) {
-        if self.events.is_some() {
-            ask(Ask::Check(Some(self.client)));
+        if let Some(follower) = &self.follower {
+            let _ = follower.send(Ask::Check(Some(self.client)));
         }
     }
 
     // Nothing is followed until the next listing lands: a search, a path list or a volume that went.
     pub fn forget(&mut self) {
         self.leaving = None;
-        if self.events.is_some() {
-            ask(Ask::Leave(self.client));
+        if let Some(follower) = self.follower.take() {
+            let _ = follower.send(Ask::Leave(self.client));
         }
     }
 
@@ -103,15 +110,8 @@ impl Ancestry {
 
 impl Drop for Ancestry {
     fn drop(&mut self) {
-        if self.events.is_some() {
-            ask(Ask::Leave(self.client));
-        }
+        self.forget();
     }
-}
-
-fn ask(ask: Ask) {
-    static ASKS: OnceLock<mpsc::Sender<Ask>> = OnceLock::new();
-    let _ = ASKS.get_or_init(start).send(ask);
 }
 
 // Without inotify the follower still answers the listing watch's own checks, so only a moved folder above is missed.
@@ -135,7 +135,7 @@ fn start() -> mpsc::Sender<Ask> {
     asks
 }
 
-// Which watch fired is not read: any folder above any client moving makes every client check its own path.
+// Which watch fired is not read: a move or a queue overflow makes every client check its own path.
 fn pump(fd: c_int, wake: mpsc::Sender<Ask>) {
     let mut buf = [0u8; BUF];
     loop {
@@ -149,14 +149,16 @@ fn pump(fd: c_int, wake: mpsc::Sender<Ask>) {
         if n <= 0 {
             return;
         }
-        let mut moved = false;
+        let mut recheck = false;
         each_event(&buf[..n as usize], |_, mask| {
-            moved |= mask & (IN_DELETE_SELF | IN_MOVE_SELF) != 0
+            recheck |= mask & (IN_DELETE_SELF | IN_MOVE_SELF | IN_Q_OVERFLOW) != 0
         });
-        if moved && wake.send(Ask::Check(None)).is_err() {
-            return;
+        if recheck {
+            if wake.send(Ask::Check(None)).is_err() {
+                return;
+            }
+            thread::sleep(COALESCE);
         }
-        thread::sleep(COALESCE);
     }
 }
 

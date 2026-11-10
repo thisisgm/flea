@@ -22,7 +22,7 @@ fn open(cx: &mut TestAppContext) -> (WindowHandle<Root>, impl FnMut() -> Vec<Str
                 tagable: None,
                 path: host.path.clone(),
                 name: "testfs".into(),
-                free: 1_073_741_824,
+                free: Some(1_073_741_824),
             };
             shell.surfaces[0].filesystem =
                 crate::window::status::Filesystem::settled_fixture(facts, host.pane.held.listing);

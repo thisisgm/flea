@@ -193,6 +193,7 @@ impl Element for ShareBrowserElement {
         }
         let palette = self.palette;
         let hovered = probe.hovered.filter(|index| *index < rows.len());
+        let hover_lit = hovered.filter(|_| crate::list::hover_wash::HoverWash::on(cx));
         let picked = browser.cursor;
         let (left, width) = (bounds.origin.x, bounds.size.width);
         window.paint_quad(fill(bounds, palette.background));
@@ -205,10 +206,10 @@ impl Element for ShareBrowserElement {
                     window.paint_quad(fill(row, palette.accent.opacity(CURSOR_WASH)));
                     let edge = Bounds::new(point(left, top), size(px(EDGE_W), px(ROW_H)));
                     window.paint_quad(fill(edge, palette.accent_frame));
-                } else if hovered == Some(index) {
+                } else if hover_lit == Some(index) {
                     window.paint_quad(fill(row, palette.foreground.opacity(HOVER)));
                 }
-                let ink = if lifted || hovered == Some(index) {
+                let ink = if lifted || hover_lit == Some(index) {
                     palette.foreground
                 } else {
                     palette.metadata_frame

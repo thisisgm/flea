@@ -874,7 +874,7 @@ being deduplicated against the job that was just dropped.
 `{"c":"fsinfo"}`
 
 Answers one `fsinfo` line for the directory the current listing came from:
-`{"t":"fsinfo","fs":"<string>","free":<uint>,"path":"<string>","class":"<string>","tagable":<bool>}`.
+`{"t":"fsinfo","fs":"<string>","free":<int>,"path":"<string>","class":"<string>","tagable":<bool>}`.
 `fs` is the filesystem's own name and `free` its bytes available to an unprivileged
 process; `path` is the directory they are of, so a client that has since moved can
 tell they describe somewhere else. `tagable` is that directory's once-per-change probe
@@ -886,7 +886,10 @@ the field reads `true` until it lands, and a refusal sends the line again with `
 beside this line and never per row: network is cifs, smb3, nfs, sshfs, rclone, 9p,
 ceph and any gvfs FUSE share, phone is gvfs mtp, gphoto2 and afc, and usb is a block
 device whose sysfs path runs through USB or whose removable flag is 1. An unreadable
-path answers an empty `fs` with a free of 0 rather than a wrong number.
+path answers an empty `fs` with a free of 0 rather than a wrong number, and a client draws no free
+figure for an empty `fs`. A filesystem whose statfs reports no blocks, as gvfsd-fuse does for a share
+with no size, keeps its `fs` and sends a free of -1, the only negative value: unknown room rather than
+a full drive.
 A local directory held by a system mountpoint adds `"system":true` after `class`, and no other line carries the key.
 The mounts are matched by the directory's own device number in `/proc/self/mountinfo`, so a symlink,
 a bind mount or a second mountpoint of one volume answers as the volume does, and a mountpoint counts as a
@@ -1482,9 +1485,12 @@ Exactly one `transferdone` releases this job's slot, followed by its original `t
 reply. `ok`, `failed`, and `skipped` on `transferdone` count deleted, refused, and unstarted items;
 `cancelled` reports interruption. A validation failure carries its sentence in `note`, and the browser
 reply retains the existing `ok:false`, `stale`, and `error` fields. A completed or interrupted deletion
-retains `done`, `failed`, and `failures`, and adds `skipped` and `cancelled`. Deletion is irreversible
-and creates no undo entry. Cancellation during validation preserves the confirmation for another
-attempt. Once deletion starts it consumes the token, so remaining items require a new review.
+retains `done`, `failed`, and `failures`, and adds `skipped`, `cancelled` and `leftover`, the
+count of entries the listing left out that the sweep kept on disk: a record kept beside a claim's
+quarantine counts, and an entry a cancel stopped the sweep before trying does not
+(docs/architecture/write-operations-and-the-undo-journal.md). Deletion is irreversible and creates
+no undo entry. Cancellation during validation preserves the confirmation for another attempt. Once
+deletion starts it consumes the token, so remaining items require a new review.
 
 Cancel, quit, and stdin closing poll the same flag between items and between tree nodes. Completed
 deletions stay deleted. An interrupted folder's surviving payload and `.trashinfo` are put back
@@ -2672,7 +2678,9 @@ Example: `{"t":"collisions","id":7,"total":2,"names":[{"n":"screenshot.png","d":
 `total` counts every colliding source. `names` is the first three of them in request order, which is
 all a client's card lists before its "and N more" line, so the answer stays small however wide the
 selection. `n` is the incoming item's name, `d` whether it is a directory and `i` the same icon name a
-`rows` row carries, for the card's kind mark. `mergeable` is true when a folder lands on a folder,
+`rows` row carries, for the card's kind mark. `n` is the name as a person reads it; a name that is not UTF-8
+also carries `x`, its exact text (docs/architecture/exact-names.md), which a client matches against a `rows`
+name and joins into a `locate` path, so the question never lands on that name's lossy twin. `mergeable` is true when a folder lands on a folder,
 which is the only shape the card offers `merge` for. A `total` of 0 means nothing collides; the shipped client
 then sends its transfer with `collide` `refuse`, so a name that appears in the meantime is still refused.
 
@@ -3301,7 +3309,7 @@ Requests:
 {"t":"joberror","id":12,"error":"Only a failed job can be retried."}
 ```
 
-A queued job (`copy`, `move`, `compress`, `extract`, `send` or `action`) sends a `roots` line before its first job line, and a `retry` sends another before the job line that requeues it: `{"t":"roots","id":12,"job":true,"paths":["/home/user/Photos/a.jpg","/run/media/user/STICK"]}`. `paths` are the sources, the destination folder, an archive, and the destination row a menu transfer resolved by identity, each absolute and sorted, from the backend's own resolution of the request, so a menu or search-result selection names each row where it lives. A later `roots` line for the same id replaces the earlier set. Empty Trash adopts its job and sends none. A shelf drop sends the same line after its `transferstarted`, with `job` false, naming the shelf entries and the destination. A client holds a job's paths from its `roots` line until a job line reports it `failed` or `done`, or a snapshot no longer lists it, and holds a drop's until its `transferdone`; it checks them before it unmounts or ejects a volume. Older clients ignore the type.
+A queued job (`copy`, `move`, `compress`, `extract`, `send` or `action`) sends a `roots` line before its first job line, and a `retry` sends another before the job line that requeues it: `{"t":"roots","id":12,"job":true,"kind":"copy","paths":["/home/user/Photos/a.jpg","/run/media/user/STICK"]}`. `kind` is the job's own kind, so a retry names its job's. `paths` are the sources, the destination folder, an archive, and the destination row a menu transfer resolved by identity, each absolute and sorted, from the backend's own resolution of the request, so a menu or search-result selection names each row where it lives. A LocalSend, AirDrop or rclone send's first `roots` line also names the request that started it as `requestId` (`{"t":"roots","id":21,"job":true,"kind":"send","requestId":3,"paths":["/run/media/user/STICK/a.jpg"]}`); its retries do not. A later `roots` line for the same id replaces the earlier set. Empty Trash adopts its job and sends none. A shelf drop sends the same line after its `transferstarted`, with `job` false and `kind` `copy` or `move`, naming the shelf entries and the destination. A client holds a request's own paths from the time it sends it until the backend ends or refuses the request, or a `roots` line takes them over: a transfer's at its `transferdone` or a refusing `error`, an archive's at its `archivedone` or a refusing `error`, an action run's at its job's `roots` line or at an `actionstarted` that names no job (a terminal handoff or a refusal), and a send's at the `roots` line naming its `requestId` or an `rclonestarted` that refuses it. A LocalSend or AirDrop send always queues a job, so its `roots` line always comes. The client holds a job's paths from its `roots` line until a job line reports it `failed` or `done`, or a snapshot no longer lists it, and holds a drop's until its `transferdone`; it checks them before it unmounts or ejects a volume, and names the holding transfer's kind when it refuses. Older clients ignore the type and the new fields.
 
 Kinds are `copy`, `move`, `compress`, `extract`, `send`, `action`, and the adoption kind `emptyTrash`. States are `waiting`, `running`, `failed`, and `done`. `done` counts completed top-level items; `total` counts this attempt's items. Extraction starts with zero unknown entry counts until its producer supplies archive entry counts and reports unpacked bytes through `OpMsg::JobEntries`, without changing the wire. `file` is the current item's name; `itemBytes` is its known size. `bytes` is cumulative progress and `totalBytes` is the settled byte total, with zero meaning unknown. `rate` is bytes per second and `left` is estimated seconds or null when no estimate is available. A background action has null byte fields and a file-count bar. Empty Trash has null byte fields and counts successfully deleted filesystem nodes, including descendants, against the reviewed recursive total. Its initial total is zero until the worker reads the confirmation. It retains the current top-level item's reviewed size in `itemBytes`; `left` uses deleted nodes and elapsed time. Its terminal legacy replies still count top-level Trash entries, cancellation keeps completed deletions, and retry requires a fresh Trash confirmation.
 
@@ -3360,15 +3368,19 @@ backend's `providers` facts name `owly`'s path. The machine has one radio: the w
 exclusive lock on `$XDG_RUNTIME_DIR/flea/airdrop.lock` (with `FLEA_AIRDROP_DIR` set, the three files sit directly in that
 directory) and writes `airdrop.state` beside it, three lines: its token, `starting` or `on`, and the card. Every other
 window reads that state, browses and sends over it, and asks the owner to stop by writing the owner's token to
-`airdrop.stop`, which the owner checks once a second. A window reads the state, asks a stop and withdraws one off its
-own thread on the background executor, each after the one it asked before. A read that a later Receiving choice
+`airdrop.stop`, which the owner checks once a second. A window reads the state, asks a stop, withdraws one, takes the
+lock and writes or removes its own state off its own thread on the background executor, each after the one it asked
+before; the look before a Receiving On takes the lock when no radio is up, and gives it back if that On does not start
+the radio. A read that a later Receiving choice
 overtook never lands: a Receiving On waiting for it is dropped, the once-a-second look waits for its next second, and
 a menu or Settings look is taken again. A Receiving Off while an On waits asks the stop again, a shut menu drops a menu
-open still waiting for its read, and a stop asked just before the window closes or Flea quits is still written, Flea
-waiting up to 1 s for it as it exits. The owner removes the state at once, but the lock stays held
-until the stopped radio has exited, and a Receiving On asked meanwhile starts once it has. When the receiver or the
+open still waiting for its read, and a stop asked just before the window closes, Flea quits or Flea is ended by
+SIGTERM, SIGINT or SIGHUP is still written, Flea waiting up to 1 s for it as it exits. The owner's withdrawal removes
+the state before releasing the lock; the lock stays held until the stopped radio has exited, and a Receiving On asked
+meanwhile starts once it has, under the same lock. When the receiver or the
 radio exits, the window takes both down and says owly's reason unless the ten minutes ran out. A window that closes, a
-quit, and a Flea ended by SIGTERM, SIGINT or SIGHUP (each one still at its default action when the first owly run started) send
+quit, and a Flea ended by SIGTERM, SIGINT or SIGHUP (each one still at its default action when the first owly run
+started, the first stop was asked or Receiving was first set to On, whichever came first) send
 SIGTERM to every owly run and wait up to 5 s for them to exit, which gives Wi-Fi back. The receiver asks
 `accept? [y/N]` for each incoming request; the window answers it from a notification with Accept and Decline buttons,
 and anything but Accept within 12 s declines; the window then closes that notification by its id. The footer names

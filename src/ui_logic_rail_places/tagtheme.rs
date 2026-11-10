@@ -1,4 +1,4 @@
-//! Tag swatch colours per theme: each role, or the canonical colour where the role is far from its name, lifted to 3:1 on the listing and menu grounds, plus the digit fallback.
+//! Tag swatch colours per theme: each role, or the canonical colour where the role is far from its name or looks like an earlier tag, lifted to 3:1 on the listing and menu grounds, plus the digit fallback.
 use super::tags::NAMES;
 
 // The palette role each tag takes, member for member with ui/js/Contrast.js TAG_ROLES.
@@ -25,10 +25,12 @@ pub const HUE_WINDOWS: [(f64, f64); 6] = [
 ];
 // A slot further than this outside its tag's window reads as another colour, so the tag draws its canonical colour.
 pub const FAR_FROM_NAME: f64 = 90.0;
-// The canonical colour tags: Omarchy's default theme, tokyo-night, red through magenta.
-pub const CANONICAL: [&str; 6] = [
-    "#f7768e", "#eb927b", "#e0af68", "#9ece6a", "#7aa2f7", "#ad8ee6",
+// The canonical tag colours: Omarchy's default theme, tokyo-night, red through magenta, then its dark_foreground for Gray.
+pub const CANONICAL: [&str; 7] = [
+    "#f7768e", "#eb927b", "#e0af68", "#9ece6a", "#7aa2f7", "#ad8ee6", "#565f89",
 ];
+// Two tag inks nearer than this in OKLab read as one colour on a small square: twice the 0.02 step CSS Color 4 treats as just noticeable.
+pub const DISTINCT_OKLAB: f64 = 0.04;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct TagTheme {
@@ -191,6 +193,17 @@ pub fn named(at: usize, hex: &str) -> String {
     }
 }
 
+// Euclidean distance between two "#rrggbb" inks in OKLab; infinite when either is not a colour, as an empty slot.
+pub fn oklab_distance(a: &str, b: &str) -> f64 {
+    let (Some(a), Some(b)) = (parse(a), parse(b)) else {
+        return f64::INFINITY;
+    };
+    let lab = |rgb: [f64; 3]| crate::ui_logic_model_preview::color::oklab(rgb.map(|c| c as f32));
+    let (a, b) = (lab(a), lab(b));
+    let squared: f32 = (0..3).map(|i| (a[i] - b[i]).powi(2)).sum();
+    f64::from(squared.sqrt())
+}
+
 // Decided once per theme load: the digit fallback only for a missing colour, an exact shared colour or a grey (README Tags).
 pub fn tag_theme(role: impl Fn(&str) -> Option<String>, bg: &str, surface: &str) -> TagTheme {
     let mut theme = TagTheme::default();
@@ -211,5 +224,33 @@ pub fn tag_theme(role: impl Fn(&str) -> Option<String>, bg: &str, surface: &str)
             theme.fallback = true;
         }
     }
+    keep_apart(&mut theme, bg, surface);
     theme
+}
+
+// Two tags alike on either ground cannot be told apart: the later draws its canonical colour, or the earlier once the later has, until none are alike.
+fn keep_apart(theme: &mut TagTheme, bg: &str, surface: &str) {
+    let alike = |theme: &TagTheme, a: usize, b: usize| {
+        oklab_distance(&theme.colors[a], &theme.colors[b]) < DISTINCT_OKLAB
+            || oklab_distance(&theme.menu_colors[a], &theme.menu_colors[b]) < DISTINCT_OKLAB
+    };
+    let mut canonical = [false; NAMES.len()];
+    'settle: loop {
+        for later in 0..NAMES.len() {
+            for earlier in 0..later {
+                if !alike(theme, earlier, later) {
+                    continue;
+                }
+                // Both already canonical: nothing is left to swap, and the canonical set is held apart by its own test.
+                let Some(at) = [later, earlier].into_iter().find(|&at| !canonical[at]) else {
+                    continue;
+                };
+                canonical[at] = true;
+                theme.colors[at] = ensure_ratio(CANONICAL[at], bg, MIN_RATIO);
+                theme.menu_colors[at] = ensure_ratio(CANONICAL[at], surface, MIN_RATIO);
+                continue 'settle;
+            }
+        }
+        return;
+    }
 }

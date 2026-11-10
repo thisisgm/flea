@@ -62,6 +62,7 @@ impl Element for RailElement {
         }
         let metrics = RailMetrics::for_typeface(&self.typeface);
         let model = self.model.borrow();
+        let hover_wash = crate::list::hover_wash::HoverWash::on(cx);
         let laid = self.laid.borrow();
         self.attach_rename(&model, &laid, bounds, window, cx);
         crate::window::glass::producers::paint(
@@ -81,20 +82,21 @@ impl Element for RailElement {
                     window,
                 );
                 if let Some((add, (key, data))) = header.add.zip(super::glyph::svg("plus")) {
-                    let _ = window.paint_svg(
-                        Bounds::new(
-                            point(px(add.x), px(add.y)),
-                            size(px(add.width), px(add.height)),
-                        ),
-                        key,
-                        Some(data),
-                        TransformationMatrix::unit(),
-                        palette.muted_frame,
-                        cx,
-                    );
+                    let at = box_of(add);
+                    if !model.cover.hides(at) {
+                        let _ = window.paint_svg(
+                            at,
+                            key,
+                            Some(data),
+                            TransformationMatrix::unit(),
+                            palette.muted_frame,
+                            cx,
+                        );
+                    }
                     self.listen_add(add, window);
                 }
             }
+            let hairline = crate::list::Metrics::for_typeface(&self.typeface).hairline;
             for (at, row) in laid.rows.iter().enumerate() {
                 if row.rect.y + metrics.row <= f32::from(bounds.top())
                     || row.rect.y >= f32::from(bounds.bottom())
@@ -115,15 +117,17 @@ impl Element for RailElement {
                 } else {
                     grounds
                 };
-                super::paint::paint_ground(row, &model, &grounds, window);
-                super::paint::paint_mark(
-                    row,
-                    &palette,
-                    ready.digits[at].as_deref(),
-                    &metrics,
-                    window,
-                    cx,
-                );
+                super::paint::paint_ground(row, &model, &grounds, hairline, hover_wash, window);
+                if !model.cover.hides(super::paint::mark_slot(row, &metrics)) {
+                    super::paint::paint_mark(
+                        row,
+                        &palette,
+                        ready.digits[at].as_deref(),
+                        &metrics,
+                        window,
+                        cx,
+                    );
+                }
                 let label = &ready.labels[at];
                 let rect = row.editor.unwrap_or(row.label_rect);
                 if row.editor.is_some() {
@@ -203,10 +207,11 @@ impl Element for RailElement {
                     super::paint::detail_ink(&model, row.index, &palette),
                     window,
                 );
-                if row.eject {
+                let slot = !model.cover.hides(box_of(row.indicator_rect));
+                if row.eject && slot {
                     let hairline = crate::list::Metrics::for_typeface(&self.typeface).hairline;
                     super::paint::paint_eject(row, &model, &palette, hairline, window, cx);
-                } else if row.indicator_visible {
+                } else if !row.eject && row.indicator_visible && slot {
                     let colour = if row.mounted == Some(false) {
                         palette.muted_frame.opacity(0.5)
                     } else {

@@ -42,6 +42,11 @@ pub enum Event {
     Device(Effect),
 }
 
+/// Mount discovery state changed without necessarily changing the rendered rail.
+pub(crate) struct MountsChanged;
+
+impl gpui::EventEmitter<MountsChanged> for Source {}
+
 /// Whether the source acted on a rail activation, hands a phone to the GVFS opener, or the rail request owner keeps it.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Activation {

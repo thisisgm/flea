@@ -216,10 +216,14 @@
   "device.still_mounted": "%1 仍處於掛載狀態；請關閉使用它的程式。",
   "device.still_unmounting": "仍在卸載 %1；請等候結果",
   "device.still_unmounting_try_again": "%1 仍在卸載中。請在完成後再試",
-  "device.system_drive": "%1 是系統磁碟機，Flea 不會將其卸載",
-  "device.system_volume": "此資料夾位於系統磁碟區上，Flea 不會將其卸載",
+  "device.system_drive": "%1 是系統磁碟機，Flea 絕不將其退出。",
+  "device.system_volume": "此資料夾不在 Flea 可退出的磁碟機上。",
   "device.transfer_using": "無法卸載 %1。可能仍有傳輸作業正在使用它。",
-  "device.transfer_running": "%1 上仍有複製正在進行。請在完成後再試。",
+  "device.copy_running": "%1 上仍有複製正在進行。請在完成後再試。",
+  "device.move_running": "%1 上仍有移動正在進行。請在完成後再試。",
+  "device.archive_running": "%1 上仍有封存檔作業正在進行。請在完成後再試。",
+  "device.send_running": "%1 上仍有傳送正在進行。請在完成後再試。",
+  "device.action_running": "%1 上仍有動作正在進行。請在完成後再試。",
   "device.unconfirmed": "無法確認 %1 是否已退出；請先不要拔除。",
   "device.unlock.button": "解鎖",
   "device.unlock.cancel": "omarchy:shell.common.cancel",
@@ -317,6 +321,8 @@
   "dialogs.file.permissions.read_only": "%1 · 唯讀",
   "dialogs.file.permissions.reading": "正在讀取權限…",
   "dialogs.file.permissions.requested": "要求的權限碼 %1",
+  "dialogs.file.permissions.no_changes": "沒有要套用的變更",
+  "dialogs.file.permissions.current_mode": "目前的權限碼 %1",
   "dialogs.file.permissions.scope_folder": "僅套用至此資料夾 · 內含項目不變 · 擁有權不變",
   "dialogs.file.permissions.scope_folder_note": "僅套用至此資料夾。內含項目的權限維持不變。",
   "dialogs.file.permissions.scope_item": "僅套用至此項目 · 擁有權不變",
@@ -598,6 +604,11 @@
   "feedback.os.connection_refused": "連線遭拒。",
   "feedback.os.connection_reset": "連線已重設。",
   "feedback.os.could_not_finish": "無法完成作業。",
+  "feedback.drive.char": "此 %2 磁碟機上的名稱不能包含「%1」。",
+  "feedback.drive.control": "此 %2 磁碟機上的名稱不能包含控制字元 %1。",
+  "feedback.drive.end_dot": "此 %1 磁碟機上的名稱不能以句點結尾。",
+  "feedback.drive.end_space": "此 %1 磁碟機上的名稱不能以空格結尾。",
+  "feedback.drive.reserved": "「%1」在此 %2 磁碟機上是保留名稱。",
   "feedback.os.cross_device": "來源與目的地位於不同的磁碟機。",
   "feedback.os.full": "磁碟機已滿。",
   "feedback.os.interrupted": "作業已中斷。",
@@ -863,6 +874,7 @@
   "jobs.undone.link": "已復原建立連結",
   "jobs.undone.merge": "已復原合併",
   "jobs.undone.mkdir": "已移除新增的資料夾。",
+  "jobs.undone.convert": "已復原轉換",
   "jobs.undone.move": "已復原移動",
   "jobs.undone.newfile": "已移除新增的檔案",
   "jobs.undone.other": "已復原上次動作",
@@ -1051,6 +1063,7 @@
   "keys.label.bc99d765de7e": "標籤 5",
   "keys.label.bcf58eaeff52": "返回瀏覽紀錄的上一處；無紀錄時前往上層資料夾",
   "keys.label.bd0b7be215ce": "關閉編輯器",
+  "keys.label.bc4dd3d76b73": "保留結果",
   "keys.label.bfa65befcad0": "前往檔案所在的資料夾並選取檔案",
   "keys.label.704fb7f8818b": "無操作",
   "keys.label.c2fc6e7bc3be": "下一個工作表",
@@ -2108,6 +2121,7 @@
   "settings.row.group_by_kind": "依類型分組",
   "settings.row.hidden_last": "隱藏檔案置後",
   "settings.row.highlight_today": "突顯今天的日期",
+  "settings.row.highlight_hover": "游標停留時突顯",
   "settings.row.tabs_as_icons": "以圖示顯示分頁",
   "settings.row.empty_omi": "在空資料夾中顯示 Omi",
   "settings.row.empty_rotate": "輪換空資料夾提示語",
@@ -2198,6 +2212,7 @@
   "step.move": "移動",
   "step.newfile": "新增檔案",
   "step.permissions": "權限",
+  "step.convert": "轉換",
   "step.rename": "重新命名",
   "step.trash": "移至垃圾桶",
   "tabs.close": "關閉分頁",
@@ -2247,6 +2262,9 @@
     "other": "已刪除 %2 / %1 個項目"
   },
   "trash.done.failed": "%1 · %2 個失敗",
+  "trash.done.leftover": {
+    "other": "%2 · 有 %1 個殘留項目無法移除"
+  },
   "trash.done.failure": "%1 失敗：%2",
   "trash.done.restored": {
     "other": "已還原 %2 / %1 個項目"
@@ -2518,5 +2536,19 @@
   "settings.hint.key_reserved": "%1 仍未綁定，因為 Flea 保留此按鍵序列供自身使用。",
   "settings.hint.key_taken": "%1 仍未綁定，因為 %2 在此預設組合中已使用此按鍵序列。",
   "settings.hint.key_unknown": "%1 仍未綁定，因為 Flea 沒有名為 %2 的動作。",
-  "mime.png": "PNG 影像"
+  "mime.png": "PNG 影像",
+  "mime.plain": "純文字文件",
+  "feedback.unheld.links": "此磁碟機不支援連結。",
+  "feedback.unheld.nodes": "此磁碟機不支援特殊檔案。",
+  "feedback.unheld.name": "此磁碟機不允許使用該名稱。",
+  "feedback.unheld.long": "該名稱對此磁碟機來說太長。",
+  "feedback.unheld.taken": "此磁碟機將該名稱視為與資料夾中的另一個名稱相同。",
+  "feedback.unheld.copy_one": "無法複製 %1：%2",
+  "feedback.unheld.move_one": "無法移動 %1：%2",
+  "feedback.unheld.copy_many": {
+    "other": "內部有 %1 個項目無法複製；第一個是 %2：%3"
+  },
+  "feedback.unheld.move_many": {
+    "other": "內部有 %1 個項目無法移動；第一個是 %2：%3"
+  }
 }

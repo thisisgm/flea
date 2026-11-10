@@ -136,6 +136,7 @@ pub struct LaidRow {
     pub detail_width: f32,
     pub font_size: f32,
     pub glyph: &'static str,
+    pub owned: Option<(gpui::SharedString, std::sync::Arc<[u8]>)>,
     pub mark: RowMark,
     pub error: bool,
     pub mounted: Option<bool>,
@@ -214,6 +215,8 @@ pub struct RowsModel {
     pub drop_target: Option<(usize, gpui::SharedString)>,
     /// A Favorites row held by its reorder drag, SidebarRow.qml's DragHandler.
     pub reorder: Option<Reorder>,
+    /// The open Settings card, whose marks underneath are left undrawn.
+    pub cover: crate::g2::settings_pages::cover::Cover,
 }
 
 /// The held favourite: its rail row, its store index, the press and active heights, and where the bar lands.

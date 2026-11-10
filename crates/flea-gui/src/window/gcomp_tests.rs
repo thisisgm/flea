@@ -15,6 +15,8 @@ use gpui::{AppContext, Context, TestAppContext, Window, WindowHandle};
 mod background_menu;
 #[path = "gcomp_batch_tests.rs"]
 mod batch;
+#[path = "dual_key_tests.rs"]
+mod dual_key;
 #[path = "footer_feedback_tests.rs"]
 mod footer_feedback;
 #[path = "gcomp_geometry_tests.rs"]

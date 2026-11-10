@@ -1,11 +1,19 @@
 //! Backend failures as one translated sentence each, chosen from the wire's `where` and its fixed English before any catalog lookup.
 use crate::i18n::I18n;
 
+#[path = "drive_names.rs"]
+mod drive_names;
+pub use drive_names::drive_refusal;
+#[path = "unheld.rs"]
+mod unheld;
+
 /// A sentence ready to translate: a catalog key and its arguments, never prose matched after translation.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Sentence {
     pub key: &'static str,
     pub args: Vec<String>,
+    /// The argument that is a backend cause, said through `clause` so a fixed one reads in the catalog's language.
+    pub cause: Option<usize>,
 }
 
 impl Sentence {
@@ -13,6 +21,7 @@ impl Sentence {
         Self {
             key,
             args: Vec::new(),
+            cause: None,
         }
     }
 
@@ -20,12 +29,33 @@ impl Sentence {
         Self {
             key,
             args: vec![arg.to_owned()],
+            cause: None,
+        }
+    }
+
+    fn args(key: &'static str, args: &[&str]) -> Self {
+        Self {
+            key,
+            args: args.iter().map(|arg| (*arg).to_owned()).collect(),
+            cause: None,
         }
     }
 
     /// The sentence in the catalog's current language.
     pub fn render(&self, catalog: &I18n) -> String {
-        let args: Vec<&str> = self.args.iter().map(String::as_str).collect();
+        let args: Vec<String> = self
+            .args
+            .iter()
+            .enumerate()
+            .map(|(at, arg)| {
+                if self.cause == Some(at) {
+                    clause(arg, catalog)
+                } else {
+                    arg.clone()
+                }
+            })
+            .collect();
+        let args: Vec<&str> = args.iter().map(String::as_str).collect();
         catalog.tr_args(self.key, &args)
     }
 }
@@ -111,15 +141,32 @@ pub fn passthrough(message: &str) -> Sentence {
     if let Some(sentence) = extract_refusal(message) {
         return sentence;
     }
+    if let Some(sentence) = drive_refusal(message) {
+        return sentence;
+    }
+    if let Some(key) = unheld::reason(message) {
+        return Sentence::key(key);
+    }
+    if unheld::recognizes(message) {
+        return Sentence {
+            cause: Some(0),
+            ..Sentence::with("feedback.error.backend", message)
+        };
+    }
     Sentence::with("feedback.error.backend", &capitalised(message))
 }
 
 /// A cause set inside another sentence: a fixed one in the catalog's language without its closing stop where that language has other words, anything else as the backend said it.
 pub fn clause(message: &str, catalog: &I18n) -> String {
-    let Some(key) = os_reason(message) else {
+    let said = if let Some(key) = os_reason(message) {
+        catalog.tr(key)
+    } else if let Some(refusal) = drive_refusal(message) {
+        refusal.render(catalog)
+    } else if let Some(said) = unheld::translated(message, catalog) {
+        said
+    } else {
         return message.to_owned();
     };
-    let said = catalog.tr(key);
     let said = said.trim_end_matches(['.', '。', '।', '۔']);
     if said.to_lowercase() == message.trim().trim_end_matches('.').to_lowercase() {
         message.to_owned()
@@ -128,7 +175,7 @@ pub fn clause(message: &str, catalog: &I18n) -> String {
     }
 }
 
-// src/backend/extractnames.rs's two refusals; the refused name's reason is fsname's own words, a diagnostic as name_refusal's are.
+// src/backend/extractnames.rs's two refusals; the refused name's reason is fsname's own words, said as drive_refusal reads them.
 const TWINS_TAIL: &str = "' would take one name on this drive, so nothing was extracted";
 const REFUSED_AT: &str = "' cannot be extracted onto this drive: ";
 
@@ -145,28 +192,33 @@ pub fn extract_refusal(message: &str) -> Option<Sentence> {
             .iter()
             .find(|(one, other)| one.to_lowercase() == other.to_lowercase())
             .or(splits.first())?;
-        return Some(Sentence {
-            key: "archive.done.twins",
-            args: vec![(*one).to_owned(), (*other).to_owned()],
-        });
+        return Some(Sentence::args("archive.done.twins", &[*one, *other]));
     }
     let at = text.rfind(REFUSED_AT)?;
     Some(Sentence {
-        key: "archive.done.name_refused",
-        args: vec![
-            text[..at].to_owned(),
-            text[at + REFUSED_AT.len()..].to_owned(),
-        ],
+        cause: Some(1),
+        ..Sentence::args(
+            "archive.done.name_refused",
+            &[&text[..at], &text[at + REFUSED_AT.len()..]],
+        )
     })
 }
 
-/// The backend's own words read as a sentence: first letter raised, one full stop at the end.
+/// The backend's own words read as a sentence: one full stop at the end, the first letter raised only on a plain first word, so a leading name with a dot, slash, colon or digit keeps its case; a name that reads as a plain word is still raised, since the text marks no name.
 pub fn capitalised(message: &str) -> String {
     let mut chars = message.chars();
     let Some(first) = chars.next() else {
         return String::new();
     };
-    let mut out: String = first.to_uppercase().collect();
+    let word = message.split_whitespace().next().unwrap_or_default();
+    let plain = word
+        .chars()
+        .all(|c| c.is_alphabetic() || matches!(c, '\'' | '\u{2019}' | '-'));
+    let mut out: String = if plain {
+        first.to_uppercase().collect()
+    } else {
+        first.into()
+    };
     out.push_str(chars.as_str());
     if !out.ends_with('.') {
         out.push('.');
@@ -188,7 +240,7 @@ pub fn read_only(message: &str) -> bool {
     lower(message).contains("read-only")
 }
 
-/// A per-filesystem name refusal from src/backend/fsname.rs carries its own sentence.
+/// A per-filesystem name refusal from src/backend/fsname.rs carries its own sentence, which drive_refusal reads back.
 pub fn name_refusal(message: &str) -> bool {
     [
         "is not allowed in a name",

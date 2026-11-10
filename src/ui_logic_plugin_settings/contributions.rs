@@ -128,11 +128,19 @@ pub(super) fn validate(doc: &Json, kinds: &[String]) -> Result<Vec<(String, Json
                     .as_object()
                     .ok_or_else(|| Invalid::new("block", key))?;
                 match kind {
-                    "send-target" | "place" => {
+                    "send-target" => {
                         text(value, "label")?;
                     }
+                    "place" => {
+                        text(value, "label")?;
+                        if value.get("title").is_some() {
+                            text(value, "title")?;
+                        }
+                    }
                     "rail-section" => {
-                        text(value, "title")?;
+                        if value.get("title").is_some() {
+                            text(value, "title")?;
+                        }
                     }
                     "previewer" => {
                         if string_list(value, "mime")?.is_empty() {

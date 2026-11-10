@@ -76,9 +76,6 @@ pub(crate) fn mount_with_source(
             crate::g2::trash_browser::join::TrashEvent::Count(count) => {
                 shell.rail_trash_count(*count as u64, cx);
             }
-            crate::g2::trash_browser::join::TrashEvent::FocusRail => {
-                shell.rail_focus(true, cx);
-            }
         },
     );
     Join {
@@ -119,6 +116,7 @@ impl Shell {
             self.focus_side,
             cx,
         );
+        join.places.read(cx).model.borrow_mut().cover = self.settings.cover.clone();
         self.slots.rail = Some(AnyView::from(join.host.clone()));
         self.rail = Some(join);
         self.receive_rail_drops(cx);

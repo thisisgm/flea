@@ -13,7 +13,7 @@ impl Shell {
         if self.lifecycle.phase() != crate::window::lifecycle::Phase::Open {
             return;
         }
-        let from_dual = self.view == View::Dual;
+        let from_dual = self.view == View::Dual || self.dual_pending;
         self.set_view(view, window, cx);
         self.remember_settings_view(view, from_dual, window, cx);
     }

@@ -1,6 +1,6 @@
 //! The chooser's flat places rail: Recent, favourites, Home and its folders, network, drives and phones.
 use super::Picker;
-use crate::g2::device_rail::source::{Activation, Event, Source};
+use crate::g2::device_rail::source::{Activation, Event, MountsChanged, Source};
 use crate::g2::rail_places::content::row_label;
 use flea::i18n::I18n;
 use flea::jsondoc::Json;
@@ -61,6 +61,7 @@ pub struct Rail {
     // A place the rail opened hands the keyboard to the files on the next frame, as PickerWindow.qml onChosen does.
     pub(super) hand_off: bool,
     _devices: Option<Subscription>,
+    _mounts: Option<Subscription>,
     _dirs: Option<Task<()>>,
 }
 
@@ -81,6 +82,7 @@ impl Rail {
             recent_read: None,
             hand_off: false,
             _devices: None,
+            _mounts: None,
             _dirs: None,
         }
     }
@@ -171,6 +173,9 @@ impl Picker {
         self.start_network(runner.clone(), cx);
         let source = cx.new(|_| Source::new(runner, hostname, state));
         self.rail._devices = Some(cx.observe(&source, |picker, _, cx| picker.device_changed(cx)));
+        self.rail._mounts = Some(cx.subscribe(&source, |picker, _, _: &MountsChanged, cx| {
+            picker.read_network(cx)
+        }));
         source.update(cx, |source, cx| source.set_polling(true, cx));
         self.rail.devices = Some(source);
         self.read_network(cx);
@@ -214,7 +219,6 @@ impl Picker {
                 _ => {}
             }
         }
-        self.read_network(cx);
         self.rebuild_rail(cx);
     }
 

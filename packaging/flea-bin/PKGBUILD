@@ -25,7 +25,7 @@ optdepends=('7zip: 7z archive support'
             'zoxide: frecent folders in the folder jump of the path bar')
 provides=("$_pkgname=$pkgver")
 # All three own /usr/bin/flea, so pacman refuses the pair rather than leaving one half-installed.
-conflicts=("$_pkgname" "$_pkgname-git")
+conflicts=("$_pkgname" "$_pkgname-git" 'mutt') # mutt also owns /usr/bin/flea.
 # The release profile already stripped the binary, so there is nothing to strip and no debug package.
 options=('!strip' '!debug')
 # SKIP here keeps a version bump to one line; a build pins its architecture's sum from the release first.

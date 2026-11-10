@@ -78,7 +78,7 @@ def generate(data, rust=False):
         if not data.get(required):
             fail(f'the {required} table is missing or empty')
     bindings = []
-    for row in data['preset']:
+    for row in data['preset'] + data.get('sheet_extra', []):
         row = dict(row)
         row.setdefault('context', 'listing')
         row.setdefault('frontend', 'all')
@@ -93,6 +93,8 @@ def generate(data, rust=False):
             if same and scope_overlap(row['context'], previous['context']) and scope_overlap(row['frontend'], previous['frontend']):
                 fail(f"the {row['name']} preset claims {row['keys']} twice, for {previous['action']} and {row['action']} in {row['context']} ({row['frontend']})")
         bindings.append(row)
+    extra = bindings[len(data['preset']):]
+    bindings = bindings[:len(data['preset'])]
     shared = []
     for kind, field, mods in [('ctrlshift', 'key', 'ctrlshift'), ('ctrl', 'key', 'ctrl'),
                               ('shift', 'key', 'shift'), ('code', 'key', 'none'), ('text', 'char', 'text')]:
@@ -106,9 +108,9 @@ def generate(data, rust=False):
                                action=row['action'], context='listing', frontend='all',
                                **({} if row.get('sheet', True) else {'sheet': False}),
                                **({'label': row['label']} if 'label' in row else {})))
-    check_groups(data, bindings + shared)
+    check_groups(data, bindings + shared + extra)
     if rust:
-        return generate_rust(data, bindings, shared, CONTEXTS)
+        return generate_rust(data, bindings, shared, CONTEXTS, extra)
     lines = ['.pragma library', '', '// Generated from keys.toml by tools/flea-keymap-gen. Do not edit.']
     def emit(name, value):
         lines.append('var ' + name + ' = ' + json.dumps(value, ensure_ascii=True, separators=(',', ':')))
@@ -140,13 +142,13 @@ def generate(data, rust=False):
     listing_actions = {ARMS.get(row['action'], row['action']) for row in bindings + shared
                        if row['action'] and 'listing' in row['context'].split(',')}
     emit('SHEET_EXTRA', [dict(preset=row['name'], mods=row['mods'], keys=row['keys'],
-                              action=row['action'], label=row['label'], context=row['context'])
-                         for row in bindings + shared
+                              action=row['action'], label=row['label'], context=row['context'], frontend=row['frontend'])
+                         for row in bindings + shared + extra
                          if row['action'] in claimed(data)
                          and ARMS.get(row['action'], row['action']) not in listing_actions
                          and 'listing' not in row['context'].split(',')])
     emit('DIGITS', data['digits'])
-    check_groups(data, bindings + shared)
+    check_groups(data, bindings + shared + extra)
     script = r'''
 function applies(row, context, frontend) {
     return (row.context.split(",").indexOf(context) >= 0 || row.context === "all")
@@ -234,7 +236,9 @@ function tieRank(row, preset) {
 
 function sheetFor(name, frontend) {
     var result = [], groups = {}
-    var rows = bindingRows(name, frontend || "gui").concat(SHEET_EXTRA).filter(function (row) { return row.sheet !== false })
+    frontend = frontend || "gui"
+    var extra = SHEET_EXTRA.filter(function (row) { return (row.preset === "all" || row.preset === name) && (row.frontend === "all" || row.frontend === frontend) })
+    var rows = bindingRows(name, frontend).concat(extra).filter(function (row) { return row.sheet !== false })
     for (var i = 0; i < rows.length; i++) {
         var row = rows[i], action = actionGroup(row.action)
         var group = groups[action]
@@ -264,6 +268,12 @@ function sheetFor(name, frontend) {
         result[g].alone = keys
         for (var k = 1; k < spellings.length; k++) {
             var both = keys + " / " + spellings[k].keys
+            // Keep a short function key visible when the preset chord leaves no room for both.
+            if (both.length > SHEET_CAP_BUDGET && spellings[k].mods === "none" && /^F[0-9]+$/.test(spellings[k].key) && spellings[k].keys.length < keys.length) {
+                keys = spellings[k].keys
+                result[g].alone = keys
+                break
+            }
             if (spellings[k].keys === keys || both.length > SHEET_CAP_BUDGET) continue
             keys = both
             break
@@ -288,7 +298,7 @@ function hintsFor(name, group) {
     var hints = {}, ranks = {}, rows = bindingRows(name, "gui", group)
     for (var i = 0; i < rows.length; i++) {
         var row = rows[i]
-        if (row.mods !== "text" && row.mods !== "none" && row.mods !== "shift") continue
+        if (["text", "none", "shift"].indexOf(row.mods) < 0 && !(row.mods === "ctrl" && actionGroup(row.action) === "print")) continue  // src/keys/presentation.rs CHORD_HINTS: only Print shows its Ctrl chord.
         var action = actionGroup(row.action), rank = (row.preset === name ? 0 : 2) + (row.mods === "text" ? 0 : row.mods === "none" ? 1 : 4)
         if (ranks[action] !== undefined && ranks[action] <= rank) continue
         // A menu hint is the key the operator presses: Menus.html and the OpenWith board

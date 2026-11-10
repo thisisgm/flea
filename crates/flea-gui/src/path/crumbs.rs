@@ -137,6 +137,16 @@ pub fn alias_at(path: &str, aliases: &[Alias]) -> Option<Alias> {
         })
 }
 
+/// A failing folder's name in a sentence: a share's root by the label the path bar and rail give it, else its leaf with an exact name decoded.
+pub fn failed_name(path: &str, aliases: &[Alias]) -> String {
+    alias_at(path, aliases)
+        .filter(|alias| alias.path == clean_root(path))
+        .map_or_else(
+            || flea::bytename::display(path.rsplit('/').next().unwrap_or_default()).into_owned(),
+            |alias| alias.label,
+        )
+}
+
 pub fn remember_alias(aliases: &[Alias], path: &str, label: &str, key: Option<&str>) -> Vec<Alias> {
     let root = clean_root(path);
     if root.is_empty() || label.is_empty() {

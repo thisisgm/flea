@@ -23,7 +23,7 @@ pub(super) enum Effect {
     Arm(String),
     Dismiss,
     Count(usize),
-    FocusRail,
+    Leave(bool),
     Back,
     Action(String),
     Swept(i64),
@@ -70,8 +70,8 @@ impl Outside for OutsideHost {
     fn monitor_failed(&mut self, text: String) {
         self.0.borrow_mut().push(Effect::MonitorFailed(text));
     }
-    fn focus_rail(&mut self) {
-        self.0.borrow_mut().push(Effect::FocusRail);
+    fn leave(&mut self, forward: bool) {
+        self.0.borrow_mut().push(Effect::Leave(forward));
     }
     fn back(&mut self) {
         self.0.borrow_mut().push(Effect::Back);
@@ -84,11 +84,10 @@ impl Outside for OutsideHost {
     }
 }
 
-/// Rail owners use these events for the existing count slot and the keyboard's return stop.
+/// Rail owners use this event for the existing count slot.
 #[derive(Clone, Copy, Debug)]
 pub enum TrashEvent {
     Count(usize),
-    FocusRail,
 }
 impl gpui::EventEmitter<TrashEvent> for Shell {}
 
@@ -360,7 +359,7 @@ impl Shell {
                 Effect::Back => {
                     window.focus(&self.focus, cx);
                 }
-                Effect::FocusRail => cx.emit(TrashEvent::FocusRail),
+                Effect::Leave(forward) => self.trash_leave(forward, window, cx),
                 Effect::Action(action) => {
                     if !self.trash_action(&action, window, cx) {
                         self.forward_trash_action(&action, window, cx);

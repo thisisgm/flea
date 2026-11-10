@@ -230,9 +230,28 @@ Item {
     }
   }
 
-  // Paths: the card puts them on the clipboard, because a clipboard is a display and not a file.
-  function yank(paths) {
-    return paths.join("\n")
+  // The window's clipboard owner offers files and paths without occupying the transfer's slot.
+  function clip(paths) {
+    if (paths.length === 0 || clipper.running) {
+      return
+    }
+    clipper.count = paths.length
+    clipper.command = [root.fleaCommand, "shelf", "clip"].concat(paths)
+    clipper.running = true
+  }
+
+  Process {
+    id: clipper
+    property int count: 0
+    running: false
+    stderr: StdioCollector { waitForEnd: true }
+    onExited: function (code) {
+      if (code === 0) {
+        root.landed(Run.clippedText(clipper.count))
+      } else {
+        root.refused(Run.WORDS.clipFailed)
+      }
+    }
   }
 
 }

@@ -246,8 +246,11 @@ impl TrashPane {
         self.pump(cx);
     }
     pub fn hover(&mut self, index: Option<usize>, cx: &mut Context<Self>) {
-        if self.paint.borrow().hover != index {
-            self.paint.borrow_mut().hover = index;
+        let wash = crate::list::hover_wash::HoverWash::on(cx);
+        if self.paint.borrow().hover != index || self.paint.borrow().hover_wash != wash {
+            let mut paint = self.paint.borrow_mut();
+            paint.hover = index;
+            paint.hover_wash = wash;
             cx.notify();
         }
     }
@@ -336,7 +339,7 @@ impl TrashPane {
                 } => self.outside.result(headline, detail, error),
                 Signal::Count(total) => self.outside.count(total),
                 Signal::Back => self.outside.back(),
-                Signal::FocusRail => self.outside.focus_rail(),
+                Signal::FocusRail => self.outside.leave(true),
                 // TrashHost.onActionRequested drops forwarded actions for the whole review.
                 Signal::Action(name) if !self.host.view.confirming => self.outside.action(name),
                 Signal::Action(_) => {}

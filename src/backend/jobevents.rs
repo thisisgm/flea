@@ -18,6 +18,7 @@ pub(crate) fn observe(out: &mut impl Write, ops: &mut Ops, message: &OpMsg) {
         OpMsg::TransferDone { id, .. }
         | OpMsg::MergeDone { id, .. }
         | OpMsg::DetachedDone { id, .. }
+        | OpMsg::Converted { id, .. }
         | OpMsg::JobDone { id, .. } => (*id, true),
         #[cfg(test)]
         OpMsg::SlotDone { line } => (field_usize(line, "id").unwrap_or(0), true),
@@ -223,7 +224,7 @@ pub(crate) fn observe(out: &mut impl Write, ops: &mut Ops, message: &OpMsg) {
         }
         #[cfg(test)]
         OpMsg::SlotDone { line } => archive_done(job, line),
-        OpMsg::DetachedDone { line, .. } => archive_done(job, line),
+        OpMsg::DetachedDone { line, .. } | OpMsg::Converted { line, .. } => archive_done(job, line),
         _ => {}
     }
     if terminal {
@@ -304,7 +305,8 @@ pub(crate) fn request(out: &mut impl Write, ops: &mut Ops, line: &str) -> super:
                 Ok(()) => {
                     // A retry narrows the work to its failed items, which it names again before it queues.
                     if let Some(work) = &job.work {
-                        let roots = super::jobview::roots_line(id, true, &work.roots());
+                        let roots =
+                            super::jobview::roots_line(id, true, &job.kind, None, &work.roots());
                         writeln!(out, "{roots}").ok();
                     }
                     ops.jobs.next_order += 1;

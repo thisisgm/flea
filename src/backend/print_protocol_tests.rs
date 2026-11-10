@@ -103,7 +103,7 @@ impl Rig {
         }
         let mut command = Command::new(std::env::current_exe().unwrap());
         command.args(["--exact", HELPER, "--nocapture"]).env("FLEA_PRINT_TEST_ROOT", dir.path());
-        for (key, leaf) in [("XDG_CONFIG_HOME", "config"), ("XDG_CACHE_HOME", "cache"), ("XDG_STATE_HOME", "state"), ("XDG_RUNTIME_DIR", "runtime"), ("XDG_DATA_HOME", "data")] {
+        for (key, leaf) in [("XDG_CONFIG_HOME", "config"), ("XDG_CACHE_HOME", "cache"), ("XDG_STATE_HOME", "state"), ("XDG_RUNTIME_DIR", "runtime"), ("XDG_DATA_HOME", "data"), ("FLEA_UNDO_DIR", "undo")] {
             command.env(key, dir.dir(leaf));
         }
         if stubs { command.env("PATH", if magick.is_some() { bin.display().to_string() } else { format!("{}:/usr/bin:/bin", bin.display()) }); }
@@ -210,8 +210,14 @@ fn print_protocol_converts_images_and_pdf_pages_in_order_without_overwrite() {
     let contents = std::fs::read_to_string(&output).unwrap();
     assert!(contents.find("first image").unwrap() < contents.find("second image").unwrap());
     let again = rig.ask(&command, "convertdone");
-    assert!(field_bool(again.last().unwrap(), "collision"));
+    let landed = rig.dir.join("b (converted) copy.pdf");
+    assert_eq!(
+        field_str(again.last().unwrap(), "path").as_deref(),
+        landed.to_str(),
+        "{again:?}"
+    );
     assert_eq!(std::fs::read_to_string(&output).unwrap(), contents);
+    assert_eq!(std::fs::read_to_string(&landed).unwrap(), contents);
     let pdf = rig.dir.file("report.pdf", "%PDF");
     for format in ["png", "jpg", "webp", "tiff"] {
         let command = format!(r#"{{"c":"convertbatch","requestId":12,"path":"{}","format":"{format}","pages":"3, 1"}}"#, pdf.display());
@@ -223,6 +229,62 @@ fn print_protocol_converts_images_and_pdf_pages_in_order_without_overwrite() {
     assert!(!rig.dir.join("report (page 2).png").exists());
     assert_eq!(std::fs::read_to_string(first).unwrap(), "first image\n");
     assert_eq!(std::fs::read_to_string(next).unwrap(), "second image\n");
+}
+
+// S1B-7 and S1B-8: a second Convert keeps both outputs, and z undoes each convert newest first before any older operation.
+#[test]
+fn print_protocol_undo_removes_each_convert_and_redo_refuses() {
+    let mut rig = Rig::new(true);
+    let made = rig.ask(
+        &format!(
+            r#"{{"c":"mkdir","path":"{}","name":"older"}}"#,
+            rig.dir.path().display()
+        ),
+        "made",
+    );
+    assert!(field_bool(made.last().unwrap(), "ok"), "{made:?}");
+    let source = rig.dir.file("photo.png", "pixels\n");
+    let command = format!(
+        r#"{{"c":"convertbatch","requestId":31,"path":"{}","format":"jpg"}}"#,
+        source.display()
+    );
+    let outputs = [
+        rig.dir.join("photo (converted).jpg"),
+        rig.dir.join("photo (converted) copy.jpg"),
+    ];
+    for output in &outputs {
+        let done = rig.ask(&command, "convertdone");
+        assert_eq!(
+            field_str(done.last().unwrap(), "path").as_deref(),
+            output.to_str(),
+            "{done:?}"
+        );
+    }
+    for output in outputs.iter().rev() {
+        let undone = rig.ask(r#"{"c":"undo"}"#, "undone");
+        assert_eq!(
+            undone.last().unwrap(),
+            r#"{"t":"undone","op":"convert","ok":true}"#,
+            "{undone:?}"
+        );
+        assert!(!output.exists(), "z removes the newest convert's output");
+    }
+    let refused = rig.ask(r#"{"c":"redo"}"#, "error");
+    assert!(
+        refused.last().unwrap().contains("cannot be redone"),
+        "{refused:?}"
+    );
+    assert!(
+        !outputs[0].exists(),
+        "a convert is never redone as a copy of its source"
+    );
+    let older = rig.ask(r#"{"c":"undo"}"#, "undone");
+    assert_eq!(
+        field_str(older.last().unwrap(), "op").as_deref(),
+        Some("mkdir"),
+        "{older:?}"
+    );
+    assert!(!rig.dir.join("older").exists() && source.is_file());
 }
 
 #[test]

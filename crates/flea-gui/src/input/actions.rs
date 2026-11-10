@@ -37,6 +37,40 @@ impl Shell {
         true
     }
 
+    /// One Tab or Shift+Tab along the window's ring from `current`, the stop the keyboard is on.
+    pub(crate) fn ring_step(
+        &mut self,
+        current: &str,
+        forward: bool,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let dual = self.view == crate::window::startup::View::Dual;
+        if dual
+            && current == "list"
+            && ((forward && self.focus_side == 0) || (!forward && self.focus_side == 1))
+        {
+            self.focus_side = 1 - self.focus_side;
+            self.enter_list_stop(forward, window, cx);
+        } else if let Some(stop) = self.input.step(current, forward) {
+            window.focus(&stop.handle, cx);
+            self.keyboard.context = stop.context;
+            if stop.name == "rail" {
+                self.focus_side = 0;
+            } else if stop.name == "chrome" {
+                self.enter_chrome(forward, window, cx);
+            } else if stop.name == "strip" {
+                self.enter_strip(forward);
+            }
+        } else {
+            self.focus_side = usize::from(dual && !forward);
+            self.enter_list_stop(forward, window, cx);
+            self.keyboard.context = flea::keys::Context::Listing;
+        }
+        self.keyboard.disarm();
+        cx.notify();
+    }
+
     pub(crate) fn input_action(
         &mut self,
         action: &str,
@@ -56,33 +90,8 @@ impl Shell {
             }
         }
         if action == "focusNext" || action == "focusPrevious" {
-            let forward = action == "focusNext";
             let current = self.focus_view(window, cx);
-            let dual = self.view == crate::window::startup::View::Dual;
-            if dual
-                && current == "list"
-                && ((forward && self.focus_side == 0) || (!forward && self.focus_side == 1))
-            {
-                self.focus_side = 1 - self.focus_side;
-                window.focus(&self.overlay_return_focus(cx), cx);
-            } else if let Some(stop) = self.input.step(current, forward) {
-                window.focus(&stop.handle, cx);
-                self.keyboard.context = stop.context;
-                if stop.name == "rail" {
-                    self.focus_side = 0;
-                } else if stop.name == "chrome" {
-                    self.enter_chrome(forward, window, cx);
-                } else if stop.name == "strip" {
-                    self.enter_strip(forward);
-                }
-            } else {
-                self.focus_side = usize::from(dual && !forward);
-                // The list stop is the page covering the folder when one does, so its keys never reach the folder.
-                window.focus(&self.overlay_return_focus(cx), cx);
-                self.keyboard.context = flea::keys::Context::Listing;
-            }
-            self.keyboard.disarm();
-            cx.notify();
+            self.ring_step(current, action == "focusNext", window, cx);
             return true;
         }
         if action == "escape" && !matches!(self.focus_view(window, cx), "" | "list") {

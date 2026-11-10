@@ -154,11 +154,22 @@ An unknown glyph draws no mark. Glyph names are not manifest validation errors.
 A plugin can instead set the top-level `mark` path to its own SVG.
 The Settings view loads the file once, in the background, with a 65,536-byte limit.
 It paints the SVG as an alpha mask in the row's ink, at 16 pixels inside a 19-pixel slot.
+The plugin's rail rows, from `place` and `rail-section`, paint the same file the same way in the rail's 15-pixel icon
+square, in place of their named glyph.
 Use a self-contained SVG with a `viewBox`, transparent background and simple opaque shapes.
 Colors in the SVG do not provide a multicolor row icon.
 The manifest validator does not parse SVG, check its extension or require the mark file to exist.
 An absent or unreadable mark falls back to the named glyph; malformed loaded SVG can draw nothing.
 Restart Flea to inspect a changed asset. Reopening Settings can retain the view's cached mark.
+
+### Rail headings
+
+A `rail-section` or `place` block's `title` names the rail heading its rows stand under, set in capitals like every
+rail heading. Two plugins that name the same title share one heading, with rows in plugin order. Rows whose block names
+no title stand under one PLUGINS heading, drawn after every titled section and only while it holds a row. A title that
+reads the same as one of Flea's own headings (PLACES, FAVORITES, TAGS, NETWORK, DEVICES or PLUGINS), compared in
+capitals as the rail sets it in the current language, also goes under PLUGINS, so plugin rows never join or move a
+built-in section. PLUGINS is Flea's own word, translated with Flea; a plugin's title keeps the plugin's wording.
 
 ### Declared access
 
@@ -249,8 +260,8 @@ Each kind has a working example under [examples/plugins](examples/plugins), desc
 | --- | --- | --- |
 | `send-target` | `sendTargets` object with `label` | A separate file-menu row for the provider, with its targets. |
 | `menu-action` | `menuActions` array | File or background menu rows whose selection matches `when`. |
-| `rail-section` | `railSection` object with `title` | A section after Flea's built-in rail sections. |
-| `place` | `place` object with `label` | A rail row for a local folder or plugin-owned listing. |
+| `rail-section` | `railSection` object with optional `title` | Rows after Flea's built-in rail sections. |
+| `place` | `place` object with `label` | A rail row for a local folder or plugin-owned listing, under its optional `title`. |
 | `previewer` | `previewer` object with `mime` and `output` | The preview column and Quick Look, through the thumbnail sandbox. |
 | `shelf` | `shelf` object with `omarchyPlugin` | The named Omarchy bar plugin's switch and generated Settings page. |
 
@@ -380,10 +391,10 @@ A row appears in the file menu, the background menu, or both, while the selectio
 `run` with the action id, the captured selection and the plugin's clamped `settings`. `folder`, the folder the menu was
 opened in, is sent only when the manifest declares the `folder` access. An entry's `glyph` names the row's mark: `hash`
 or one of the file menu's own marks (`app-window archive archive-out check checkmark chevron-right clipboard code
-columns contrast copy copy-x download drive eject eye eye-off file file-plus file-text folder folder-open folder-plus
-globe image images info key lock minus network play plus printer rename scissors server shelf sliders sort star symlink
-tag terminal trash type undo bot x zap cloud-upload laptop smartphone`). It defaults to `code`, and any other name draws
-no mark.
+columns contrast copy copy-x corner-down-right download drive eject eye eye-off file file-plus file-text folder
+folder-open folder-plus globe image images info key lock minus network play plus printer rename scissors server shelf
+sliders sort star symlink tag terminal trash type undo bot x zap cloud-upload laptop smartphone`). It defaults to `code`,
+and any other name draws no mark.
 This example asks for the expected checksum in Flea's input card, described above.
 
 ```json manifest=examples/plugins/checksums/manifest.json
@@ -423,8 +434,8 @@ This example asks for the expected checksum in Flea's input card, described abov
 #### rail-section
 
 Flea asks for the section at start and every `refreshSec` seconds and draws it after the built-in rail sections, under
-`railSection.title`, at most 64 rows. A `refreshSec` is rounded and clamped to 5 to 3,600; the default is 30. Each row
-needs a unique nonempty `id` of at most 256 characters, a nonempty `label` and an `opens` location of at most 4,096
+its optional `railSection.title`, or PLUGINS without one, as described under Rail headings, at most 64 rows. A `refreshSec` is rounded and clamped to 5 to
+3,600; the default is 30. Each row needs a unique nonempty `id` of at most 256 characters, a nonempty `label` and an `opens` location of at most 4,096
 bytes. `opens` is an absolute folder, a `file://` URI or another `scheme://host/path` URI, with no `.` or `..`
 segment. Labels longer than 256 characters are cut. `glyph` (`folder`, `server`, `drive`, `network`, `globe`, `cloud`
 or `phone`, default `folder`) and `state` (`on` or `off`) are optional. A row missing `id`, `label` or `opens`, one of
@@ -456,7 +467,10 @@ those words is ignored. Activating a row opens its location in the pane. This ex
 
 #### place
 
-A place adds one rail row labelled `place.label`, with a `glyph` from the rail-section list. With `place.path` set to
+A place adds one rail row labelled `place.label`, with a `glyph` from the rail-section list, under the heading
+`place.title` names or under PLUGINS without one (see Rail headings). A supplied `title` is a nonempty string of at most
+512 characters with no control character, as `railSection.title` is; anything else is `plugins.invalid.block`. A plugin
+with its own `mark` draws it on the row in place of the glyph. With `place.path` set to
 an absolute folder, the row opens that local folder and the plugin is never asked to list it. A `path` that is not a
 valid location removes the row. Without `path`, the row opens `plugin://<id>/`, a listing the plugin owns.
 
@@ -481,6 +495,7 @@ inside its own place.
   "kinds": ["place"],
   "entryPoints": {"run": "bin/run"},
   "place": {"label": "Example Files", "glyph": "folder"},
+  "mark": "mark.svg",
   "access": []
 }
 ```

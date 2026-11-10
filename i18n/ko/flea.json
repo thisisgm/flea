@@ -348,6 +348,11 @@
   "feedback.os.stale": "파일을 더 이상 사용할 수 없습니다.",
   "feedback.os.quota": "저장 공간 할당량을 초과했습니다.",
   "feedback.os.could_not_finish": "작업을 끝낼 수 없습니다.",
+  "feedback.drive.char": "이 %2 드라이브에서는 이름에 “%1”을(를) 사용할 수 없습니다.",
+  "feedback.drive.control": "이 %2 드라이브에서는 이름에 제어 문자 %1을(를) 포함할 수 없습니다.",
+  "feedback.drive.end_dot": "이 %1 드라이브에서는 이름이 마침표로 끝날 수 없습니다.",
+  "feedback.drive.end_space": "이 %1 드라이브에서는 이름이 공백으로 끝날 수 없습니다.",
+  "feedback.drive.reserved": "이 %2 드라이브에서 “%1”은(는) 예약된 이름입니다.",
   "feedback.refusal.archives": "압축 파일은 한 번에 하나씩 열 수 있습니다.",
   "feedback.refusal.folder_with_files": "폴더와 파일을 함께 열 수 없습니다.",
   "feedback.refusal.not_loaded": "선택한 파일 중 일부를 아직 불러오지 못했습니다.",
@@ -378,9 +383,13 @@
   "device.no_disc": "%1에 디스크나 카드가 없습니다.",
   "device.not_mountable": "이 컴퓨터에서는 %1을(를) 마운트할 수 없습니다.",
   "device.transfer_using": "%1의 마운트를 해제할 수 없습니다. 전송 작업이 아직 사용 중일 수 있습니다.",
-  "device.transfer_running": "%1에서 복사가 아직 진행 중입니다. 완료 후 다시 시도하세요.",
-  "device.system_drive": "%1은(는) 시스템 드라이브이며 Flea는 시스템 드라이브의 마운트를 해제하지 않습니다",
-  "device.system_volume": "이 폴더는 시스템 볼륨에 있으며 Flea는 시스템 볼륨의 마운트를 해제하지 않습니다",
+  "device.copy_running": "%1에서 복사가 아직 진행 중입니다. 완료 후 다시 시도하세요.",
+  "device.move_running": "%1에서 이동이 아직 진행 중입니다. 완료 후 다시 시도하세요.",
+  "device.archive_running": "%1에서 압축 작업이 아직 진행 중입니다. 완료 후 다시 시도하세요.",
+  "device.send_running": "%1에서 보내기가 아직 진행 중입니다. 완료 후 다시 시도하세요.",
+  "device.action_running": "%1에서 동작이 아직 진행 중입니다. 완료 후 다시 시도하세요.",
+  "device.system_drive": "%1은(는) 시스템 드라이브이며 Flea는 이 드라이브를 절대 꺼내지 않습니다.",
+  "device.system_volume": "이 폴더는 Flea가 꺼낼 수 있는 드라이브에 있지 않습니다.",
   "device.no_volume": "이 폴더는 Flea가 꺼낼 수 있는 드라이브에 있지 않습니다.",
   "device.safe_image": "%1을(를) 꺼냈습니다.",
   "device.unconfirmed": "%1이(가) 꺼내졌는지 확인할 수 없습니다. 아직 분리하지 마세요.",
@@ -829,6 +838,7 @@
   "settings.row.columns_limit": "열 보기 제한",
   "settings.row.show_git_status": "Git 상태 표시",
   "settings.row.highlight_today": "오늘 날짜 강조",
+  "settings.row.highlight_hover": "포인터를 올리면 강조",
   "settings.row.tabs_as_icons": "탭을 아이콘으로 표시",
   "settings.row.empty_omi": "빈 폴더에 Omi 표시",
   "settings.row.empty_rotate": "빈 폴더 메시지 순환",
@@ -1274,6 +1284,7 @@
   "jobs.undone.trash": "휴지통에서 원래 위치로 되돌렸습니다.",
   "jobs.undone.settags": "이전 태그를 복원했습니다.",
   "jobs.undone.mkdir": "새 폴더를 제거했습니다.",
+  "jobs.undone.convert": "변환을 실행 취소했습니다",
   "jobs.undone.other": "마지막 작업을 실행 취소했습니다",
   "receipt.undidLast": "마지막 작업을 실행 취소했습니다",
   "jobs.redone.copy": "복사를 다시 실행했습니다",
@@ -1521,6 +1532,7 @@
   "dialogs.file.permissions.title": "권한",
   "dialogs.file.properties.permissions": "권한",
   "step.permissions": "권한",
+  "step.convert": "변환",
   "properties.owner": "소유자",
   "dialogs.file.permissions.owner": "소유자",
   "dialogs.file.properties.owner": "소유자",
@@ -1572,6 +1584,9 @@
     "other": "중단된 파일 작업 %1개 복구됨"
   },
   "trash.done.failed": "%1 · %2개 실패",
+  "trash.done.leftover": {
+    "other": "%2 · 남은 항목 %1개를 제거하지 못함"
+  },
   "trash.done.failure": "%1 실패: %2",
   "trash.arm.review": "영구 삭제를 검토하려면 %1 키를 다시 누르거나 %2 키만 누르세요.",
   "trash.confirm.empty_body": {
@@ -1685,6 +1700,8 @@
   "dialogs.file.permissions.uid": "uid %1",
   "dialogs.file.permissions.will_change": "변경 예정",
   "dialogs.file.permissions.requested": "요청한 모드 %1",
+  "dialogs.file.permissions.no_changes": "적용할 변경 사항 없음",
+  "dialogs.file.permissions.current_mode": "현재 모드 %1",
   "dialogs.file.permissions.path": "경로 %1",
   "dialogs.file.permissions.scope_item": "이 항목에만 적용 · 소유권 유지",
   "dialogs.file.permissions.scope_folder": "이 폴더에만 적용 · 내부 항목과 소유권 유지",
@@ -2067,6 +2084,7 @@
   "preview.embedded": "내장 미리보기 · %1 × %2",
   "preview.link_target": "→ %1",
   "keys.label.bd0b7be215ce": "편집기 닫기",
+  "keys.label.bc4dd3d76b73": "결과 유지",
   "keys.label.e9619e148ed8": "Control+X는 동작하지 않음",
   "keys.label.1426edd106ac": "파일 URI 복사",
   "keys.action.copyUri": "파일 URI 복사",
@@ -2510,5 +2528,19 @@
   "settings.hint.key_reserved": "Flea가 자체 용도로 예약했으므로 %1 키는 지정되지 않은 상태로 남습니다.",
   "settings.hint.key_taken": "이 프리셋에서 %2 동작이 이미 사용하므로 %1 키는 지정되지 않은 상태로 남습니다.",
   "settings.hint.key_unknown": "Flea에 이름이 %2인 동작이 없으므로 %1 키는 지정되지 않은 상태로 남습니다.",
-  "mime.png": "PNG 이미지"
+  "mime.png": "PNG 이미지",
+  "mime.plain": "일반 텍스트 문서",
+  "feedback.unheld.links": "이 드라이브는 링크를 저장할 수 없습니다.",
+  "feedback.unheld.nodes": "이 드라이브는 특수 파일을 저장할 수 없습니다.",
+  "feedback.unheld.name": "이 드라이브에서는 해당 이름을 사용할 수 없습니다.",
+  "feedback.unheld.long": "이 드라이브에 사용하기에는 이름이 너무 깁니다.",
+  "feedback.unheld.taken": "이 드라이브는 이 이름을 폴더의 다른 이름과 동일하게 취급합니다.",
+  "feedback.unheld.copy_one": "%1을(를) 복사하지 못했습니다: %2",
+  "feedback.unheld.move_one": "%1을(를) 이동하지 못했습니다: %2",
+  "feedback.unheld.copy_many": {
+    "other": "내부 항목 %1개를 복사하지 못했습니다. 첫 항목은 %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "other": "내부 항목 %1개를 이동하지 못했습니다. 첫 항목은 %2: %3"
+  }
 }

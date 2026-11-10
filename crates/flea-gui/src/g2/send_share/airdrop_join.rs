@@ -90,6 +90,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        self.airdrop_write(cx);
         for act in acts {
             match act {
                 Act::Doctor(generation, argv) => {
@@ -181,7 +182,8 @@ impl Shell {
         cx: &mut Context<Self>,
     ) {
         self.menu.providers.airdrop.ask_on(folder);
-        self.airdrop_probe(true, window, cx, move |shell, seen, window, cx| {
+        let claim = self.menu.providers.airdrop.claims();
+        self.airdrop_probe(true, claim, window, cx, move |shell, seen, window, cx| {
             // A Receiving choice made while the look ran wins over this On.
             let Some(seen) = seen else {
                 return;

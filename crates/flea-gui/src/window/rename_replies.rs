@@ -70,6 +70,17 @@ impl Shell {
                 if path.is_some_and(|path| path != destination) {
                     return false;
                 }
+                // A dot name leaves the listing while hidden files are off, so the footer says where the row went.
+                let hidden = self.panes[side]
+                    .as_ref()
+                    .is_some_and(|host| !host.nav.folders.borrow().hidden);
+                if hidden && leaf(&destination).starts_with('.') {
+                    let said = self
+                        .locale
+                        .catalog
+                        .tr_args("path.filtered", &[leaf(&destination)]);
+                    self.rename_say(said, false, cx);
+                }
                 self.rename_landed(side, Some(destination), window, cx);
                 true
             }
@@ -104,6 +115,9 @@ impl Shell {
                         self.locale
                             .catalog
                             .tr_args("jobs.rename.exists", &[leaf(&destination)])
+                    } else if let Some(refusal) = errors::drive_refusal(message) {
+                        // A drive's name refusal reads in the window's language, as the status line says it.
+                        refusal.render(&self.locale.catalog)
                     } else {
                         errors::capitalised(message)
                     };

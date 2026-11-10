@@ -210,10 +210,14 @@
   "device.still_mounted": "%1 はまだマウントされています。使用中のアプリを閉じてください。",
   "device.still_unmounting": "%1 をアンマウント中です。結果をお待ちください",
   "device.still_unmounting_try_again": "%1 をアンマウント中です。完了後に再試行してください",
-  "device.system_drive": "%1 はシステムドライブのため、Flea はアンマウントしません",
-  "device.system_volume": "このフォルダーはシステムボリューム上にあるため、Flea はアンマウントしません",
+  "device.system_drive": "%1 はシステムドライブのため、Flea は決して取り出しません。",
+  "device.system_volume": "このフォルダーは Flea が取り出せるドライブ上にありません。",
   "device.transfer_using": "%1 をアンマウントできませんでした。転送処理がまだ使用している可能性があります。",
-  "device.transfer_running": "%1 でコピーを実行中です。完了後に再試行してください。",
+  "device.copy_running": "%1 でコピーを実行中です。完了後に再試行してください。",
+  "device.move_running": "%1 で移動を実行中です。完了後に再試行してください。",
+  "device.archive_running": "%1 でアーカイブ処理を実行中です。完了後に再試行してください。",
+  "device.send_running": "%1 で送信を実行中です。完了後に再試行してください。",
+  "device.action_running": "%1 でアクションを実行中です。完了後に再試行してください。",
   "device.unconfirmed": "%1 の取り出しを確認できませんでした。まだ取り外さないでください。",
   "device.unlock.button": "ロック解除",
   "device.unlock.cancel": "omarchy:shell.common.cancel",
@@ -308,6 +312,8 @@
   "dialogs.file.permissions.read_only": "%1 · 読み取り専用",
   "dialogs.file.permissions.reading": "アクセス権を読み取り中…",
   "dialogs.file.permissions.requested": "指定モード %1",
+  "dialogs.file.permissions.no_changes": "適用する変更はありません",
+  "dialogs.file.permissions.current_mode": "現在のモード %1",
   "dialogs.file.permissions.scope_folder": "このフォルダーのみ · 内部の項目と所有者は変更しません",
   "dialogs.file.permissions.scope_folder_note": "適用範囲はこのフォルダーのみです。内部の項目のアクセス権は変更されません。",
   "dialogs.file.permissions.scope_item": "この項目のみ · 所有者は変更しません",
@@ -572,6 +578,11 @@
   "feedback.os.connection_refused": "接続が拒否されました。",
   "feedback.os.connection_reset": "接続がリセットされました。",
   "feedback.os.could_not_finish": "操作を完了できませんでした。",
+  "feedback.drive.char": "この %2 ドライブでは、名前に「%1」を使用できません。",
+  "feedback.drive.control": "この %2 ドライブでは、名前に制御文字 %1 を含めることはできません。",
+  "feedback.drive.end_dot": "この %1 ドライブでは、名前の末尾にピリオドを使用できません。",
+  "feedback.drive.end_space": "この %1 ドライブでは、名前の末尾にスペースを使用できません。",
+  "feedback.drive.reserved": "この %2 ドライブでは「%1」は予約された名前です。",
   "feedback.os.cross_device": "コピー元とコピー先が異なるドライブにあります。",
   "feedback.os.full": "ドライブの空き容量がありません。",
   "feedback.os.interrupted": "操作が中断されました。",
@@ -826,6 +837,7 @@
   "jobs.undone.link": "リンクの作成を元に戻しました",
   "jobs.undone.merge": "統合を元に戻しました",
   "jobs.undone.mkdir": "新しいフォルダーを削除しました。",
+  "jobs.undone.convert": "変換を元に戻しました",
   "jobs.undone.move": "移動を元に戻しました",
   "jobs.undone.newfile": "新しいファイルを削除しました",
   "jobs.undone.other": "最後の操作を元に戻しました",
@@ -1008,6 +1020,7 @@
   "keys.label.bc99d765de7e": "タグ 5",
   "keys.label.bcf58eaeff52": "履歴を戻るか、履歴がなければ親ディレクトリへ移動",
   "keys.label.bd0b7be215ce": "エディターを閉じる",
+  "keys.label.bc4dd3d76b73": "結果を保持",
   "keys.label.bfa65befcad0": "ファイルのあるディレクトリに移動し、そのファイルを選択",
   "keys.label.704fb7f8818b": "操作なし",
   "keys.label.c5f15f85156b": "隣の項目と同様に、1 回のタップでそのディレクトリに移動",
@@ -2038,6 +2051,7 @@
   "settings.row.group_by_kind": "種類別にグループ化",
   "settings.row.hidden_last": "隠しファイルを末尾に表示",
   "settings.row.highlight_today": "今日の日付を強調",
+  "settings.row.highlight_hover": "ポインタ下を強調",
   "settings.row.tabs_as_icons": "タブをアイコンで表示",
   "settings.row.empty_omi": "空のフォルダーに Omi を表示",
   "settings.row.empty_rotate": "空のフォルダーのメッセージを切り替え",
@@ -2128,6 +2142,7 @@
   "step.move": "移動",
   "step.newfile": "新しいファイル",
   "step.permissions": "アクセス権",
+  "step.convert": "変換",
   "step.rename": "名前を変更",
   "step.trash": "ゴミ箱に移動",
   "tabs.close": "タブを閉じる",
@@ -2177,6 +2192,9 @@
     "other": "%1 項目中 %2 を削除しました"
   },
   "trash.done.failed": "%1 · %2 項目が失敗",
+  "trash.done.leftover": {
+    "other": "%2 · 残りの %1 項目を削除できませんでした"
+  },
   "trash.done.failure": "%1 が失敗: %2",
   "trash.done.restored": {
     "other": "%1 項目中 %2 を復元しました"
@@ -2511,5 +2529,19 @@
   "settings.hint.key_taken": "このプリセットでは %2 がすでに使用しているため、%1 は未割り当てのままです。",
   "settings.hint.key_unknown": "Flea に %2 というアクションがないため、%1 は未割り当てのままです。",
   "mime.markdown": "Markdown 文書",
-  "mime.png": "PNG 画像"
+  "mime.png": "PNG 画像",
+  "mime.plain": "プレーンテキスト文書",
+  "feedback.unheld.links": "このドライブにはリンクを保存できません。",
+  "feedback.unheld.nodes": "このドライブには特殊ファイルを保存できません。",
+  "feedback.unheld.name": "このドライブではその名前を使用できません。",
+  "feedback.unheld.long": "このドライブにはその名前が長すぎます。",
+  "feedback.unheld.taken": "このドライブでは、その名前はフォルダー内の別の名前と同一とみなされます。",
+  "feedback.unheld.copy_one": "%1 をコピーできませんでした: %2",
+  "feedback.unheld.move_one": "%1 を移動できませんでした: %2",
+  "feedback.unheld.copy_many": {
+    "other": "内部の %1 項目をコピーできませんでした。最初の項目は %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "other": "内部の %1 項目を移動できませんでした。最初の項目は %2: %3"
+  }
 }

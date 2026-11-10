@@ -187,6 +187,9 @@ def run(root, home):
         path = src + "/" + r["rows"][inv]["n"]
         done = k.req({"c": "transfer", "op": "copy", "paths": [path], "dest": dst}, lambda o: o.get("t") in ("transferdone", "error"))
         check("copy paths copies the invalid file", done and done.get("ok") == 1 and tree(dst) == {INVALID: ("f", b"I")}, "%s %r" % (done, tree(dst)))
+        asked = k.req({"c": "collisions", "id": 21, "paths": [path], "dest": dst}, lambda o: o.get("t") == "collisions")
+        name = ((asked or {}).get("names") or [{}])[0]
+        check("collisions carries the exact name in x", asked and asked.get("total") == 1 and wire_bytes(name.get("x", "")) == INVALID and "\0" not in name.get("n", ""), str(asked))
         k.undo()
 
         r, inv, twin = listed(k, src)

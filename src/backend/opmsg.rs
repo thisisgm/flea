@@ -66,6 +66,8 @@ pub enum OpMsg {
     #[cfg(test)]
     SlotDone { line: String },
     DetachedDone { id: usize, line: String },
+    // A convert's terminal line, with a step for each output it published, journalled as one convert.
+    Converted { id: usize, line: String, steps: Vec<Step> },
     // A collisions answer, kept as the latest question before its line goes out; it claims no slot.
     Asked { turn: usize, question: crate::backend::collide::Question, line: String },
     // A pasted clipboard image, journaled beside its line; it claims no slot either.

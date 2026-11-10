@@ -2,6 +2,8 @@ use crate::{backend::Backend, ipc::server::Event, state::Shell};
 use flea::ipc::wire::{Reply, Request};
 use gpui::{AppContext, TestAppContext};
 
+#[path = "settings_cover_tests.rs"]
+mod cover;
 #[path = "m9_g2rows_02_tests.rs"]
 mod m9_g2rows_02;
 #[path = "m9_g2rows_02_plugins_tests.rs"]
@@ -109,7 +111,7 @@ fn u11_drawn_geometry_moves_with_the_real_window(cx: &mut TestAppContext) {
     let first = shell.update_in(cx, |shell, window, cx| {
         read(shell, "settingsCardRect", window, cx).stdout
     });
-    assert_eq!(first.trim(), "235 8 630 684");
+    assert_eq!(first.trim(), "170 8 760 684");
     shell.update_in(cx, |shell, window, cx| {
         let state =
             flea::jsondoc::parse(read(shell, "settingsScrollState", window, cx).stdout.trim())
@@ -140,7 +142,7 @@ fn u11_drawn_geometry_moves_with_the_real_window(cx: &mut TestAppContext) {
     cx.update(|window, cx| window.draw(cx).clear(cx));
     shell.update_in(cx, |shell, window, cx| {
         let second = read(shell, "settingsCardRect", window, cx).stdout;
-        assert_eq!(second.trim(), "85 8 630 484");
+        assert_eq!(second.trim(), "20 8 760 484");
         let view = shell.settings.panel.as_ref().unwrap().read(cx);
         assert!(!view.probe.centre("rail:display", "card").is_empty());
         assert_eq!(view.probe.centre("row:missing", "pane"), "");

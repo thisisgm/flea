@@ -35,8 +35,41 @@ pub fn spawn(cx: &App, argv: Vec<String>) -> Task<Exit> {
     cx.background_executor().spawn(async move { run(&argv) })
 }
 
+/// A test's stand-in editor, scratch base and terminal: the process environment is every parallel test's, so a test never sets TMPDIR, PATH or EDITOR.
+#[cfg(test)]
+#[derive(Clone, Debug)]
+pub struct Stand {
+    pub editor: String,
+    pub base: String,
+    pub terminal: String,
+}
+
+#[cfg(test)]
+pub static STAND: std::sync::Mutex<Option<Stand>> = std::sync::Mutex::new(None);
+
+#[cfg(test)]
+fn stand() -> Option<Stand> {
+    STAND
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .clone()
+}
+
+/// The terminal a test stands in for xdg-terminal-exec, which leads every editor launch.
+#[cfg(test)]
+fn stood_in(mut argv: Vec<String>) -> Vec<String> {
+    if let Some(stand) = stand() {
+        argv[0] = stand.terminal;
+    }
+    argv
+}
+
 /// The editor the session names, VISUAL before EDITOR, as v0.3.12 read them.
 pub fn session_editor() -> Option<String> {
+    #[cfg(test)]
+    if let Some(stand) = stand() {
+        return Some(stand.editor);
+    }
     ["VISUAL", "EDITOR"]
         .iter()
         .filter_map(|key| std::env::var(key).ok())
@@ -45,6 +78,10 @@ pub fn session_editor() -> Option<String> {
 
 /// The scratch base, TMPDIR or /tmp.
 pub fn scratch_base() -> String {
+    #[cfg(test)]
+    if let Some(stand) = stand() {
+        return stand.base;
+    }
     std::env::var("TMPDIR")
         .ok()
         .filter(|dir| dir.starts_with('/') && dir.len() > 1)
@@ -63,7 +100,10 @@ pub fn edit_names(
 ) -> Result<String, &'static str> {
     let editor = editor.ok_or("dialogs.file.bulk.err_editor")?.to_string();
     edit_names_with(base, names, |file| {
-        run(&bulk::editor_argv(folder, &editor, file)).0 == Some(0)
+        let argv = bulk::editor_argv(folder, &editor, file);
+        #[cfg(test)]
+        let argv = stood_in(argv);
+        run(&argv).0 == Some(0)
     })
 }
 

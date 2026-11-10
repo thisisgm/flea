@@ -1,4 +1,5 @@
 package() {
     install -Dm644 ui/*.qml -t "$pkgdir/share/ui"
 }
+conflicts=('mutt') # mutt also owns /usr/bin/flea.
 exit 37

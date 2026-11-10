@@ -350,6 +350,11 @@
   "feedback.os.stale": "Berkas tidak lagi tersedia.",
   "feedback.os.quota": "Kuota penyimpanan terlampaui.",
   "feedback.os.could_not_finish": "Operasi tidak dapat diselesaikan.",
+  "feedback.drive.char": "“%1” tidak diizinkan dalam nama di drive %2 ini.",
+  "feedback.drive.control": "Nama tidak boleh berisi karakter kontrol %1 di drive %2 ini.",
+  "feedback.drive.end_dot": "Nama tidak boleh diakhiri titik di drive %1 ini.",
+  "feedback.drive.end_space": "Nama tidak boleh diakhiri spasi di drive %1 ini.",
+  "feedback.drive.reserved": "“%1” adalah nama yang dicadangkan di drive %2 ini.",
   "feedback.refusal.archives": "Arsip dibuka satu per satu.",
   "feedback.refusal.folder_with_files": "Folder tidak dapat dibuka bersamaan dengan berkas.",
   "feedback.refusal.not_loaded": "Beberapa berkas bertanda belum dimuat.",
@@ -380,9 +385,13 @@
   "device.no_disc": "Tidak ada cakram atau kartu di %1.",
   "device.not_mountable": "%1 tidak dapat dikaitkan di komputer ini.",
   "device.transfer_using": "Kaitan %1 tidak dapat dilepas. Transfer mungkin masih menggunakannya.",
-  "device.transfer_running": "Penyalinan di %1 masih berjalan. Coba lagi setelah selesai.",
-  "device.system_drive": "%1 adalah drive sistem, yang kaitannya tidak pernah dilepas oleh Flea",
-  "device.system_volume": "Folder ini berada di volume sistem, yang kaitannya tidak pernah dilepas oleh Flea",
+  "device.copy_running": "Penyalinan di %1 masih berjalan. Coba lagi setelah selesai.",
+  "device.move_running": "Pemindahan di %1 masih berjalan. Coba lagi setelah selesai.",
+  "device.archive_running": "Pengarsipan di %1 masih berjalan. Coba lagi setelah selesai.",
+  "device.send_running": "Pengiriman di %1 masih berjalan. Coba lagi setelah selesai.",
+  "device.action_running": "Tindakan di %1 masih berjalan. Coba lagi setelah selesai.",
+  "device.system_drive": "%1 adalah drive sistem, yang tidak pernah dikeluarkan oleh Flea.",
+  "device.system_volume": "Folder ini tidak berada di drive yang dapat dikeluarkan oleh Flea.",
   "device.no_volume": "Folder ini tidak berada di drive yang dapat dikeluarkan oleh Flea.",
   "device.safe_image": "%1 dikeluarkan.",
   "device.unconfirmed": "Tidak dapat memastikan %1 sudah dikeluarkan; jangan cabut dahulu.",
@@ -841,6 +850,7 @@
   "settings.row.columns_limit": "Batas tampilan kolom",
   "settings.row.show_git_status": "Tampilkan status Git",
   "settings.row.highlight_today": "Sorot tanggal hari ini",
+  "settings.row.highlight_hover": "Sorot saat penunjuk di atasnya",
   "settings.row.tabs_as_icons": "Tampilkan tab sebagai ikon",
   "settings.row.empty_omi": "Tampilkan Omi di folder kosong",
   "settings.row.empty_rotate": "Gilir pesan folder kosong",
@@ -1287,6 +1297,7 @@
   "jobs.undone.trash": "Dikembalikan dari Sampah.",
   "jobs.undone.settags": "Tag sebelumnya dipulihkan.",
   "jobs.undone.mkdir": "Folder baru dihapus.",
+  "jobs.undone.convert": "Konversi diurungkan",
   "jobs.undone.other": "Tindakan terakhir diurungkan",
   "receipt.undidLast": "Tindakan terakhir diurungkan",
   "jobs.redone.copy": "Penyalinan diulangi",
@@ -1538,6 +1549,7 @@
   "dialogs.file.permissions.title": "Izin",
   "dialogs.file.properties.permissions": "Izin",
   "step.permissions": "Izin",
+  "step.convert": "Konversi",
   "properties.owner": "Pemilik",
   "dialogs.file.permissions.owner": "Pemilik",
   "dialogs.file.properties.owner": "Pemilik",
@@ -1590,6 +1602,9 @@
     "other": "Memulihkan %1 operasi berkas yang terinterupsi"
   },
   "trash.done.failed": "%1 · %2 gagal",
+  "trash.done.leftover": {
+    "other": "%2 · %1 entri sisa tidak dapat dihapus"
+  },
   "trash.done.failure": "%1 gagal: %2",
   "trash.arm.review": "Tekan %1 lagi untuk meninjau penghapusan permanen, atau %2 saja.",
   "trash.confirm.empty_body": {
@@ -1706,6 +1721,8 @@
   "dialogs.file.permissions.uid": "uid %1",
   "dialogs.file.permissions.will_change": "Akan berubah",
   "dialogs.file.permissions.requested": "Mode yang diminta %1",
+  "dialogs.file.permissions.no_changes": "Tidak ada perubahan untuk diterapkan",
+  "dialogs.file.permissions.current_mode": "Mode saat ini %1",
   "dialogs.file.permissions.path": "Jalur %1",
   "dialogs.file.permissions.scope_item": "Hanya item ini · kepemilikan tidak berubah",
   "dialogs.file.permissions.scope_folder": "Hanya folder ini · item di dalamnya tidak berubah · kepemilikan tidak berubah",
@@ -2100,6 +2117,7 @@
   "search.contents.limit": "Pencarian isi melampaui batas keluarannya.",
   "search.contents.identity": "Nama berkas ini tidak dapat digunakan dengan aman. Tidak ada tindakan yang dilakukan.",
   "keys.label.bd0b7be215ce": "Tutup editor",
+  "keys.label.bc4dd3d76b73": "Simpan hasil",
   "keys.label.e9619e148ed8": "Control+X tidak berfungsi",
   "keys.label.1426edd106ac": "Salin URI berkas",
   "keys.action.copyUri": "Salin URI berkas",
@@ -2518,5 +2536,19 @@
   "settings.hint.key_reserved": "%1 tetap tanpa penetapan karena Flea mencadangkannya untuk dirinya sendiri.",
   "settings.hint.key_taken": "%1 tetap tanpa penetapan karena %2 sudah menggunakannya dalam prasetel ini.",
   "settings.hint.key_unknown": "%1 tetap tanpa penetapan karena Flea tidak memiliki tindakan bernama %2.",
-  "mime.png": "Citra PNG"
+  "mime.png": "Citra PNG",
+  "mime.plain": "Dokumen teks biasa",
+  "feedback.unheld.links": "Drive ini tidak mendukung tautan.",
+  "feedback.unheld.nodes": "Drive ini tidak mendukung berkas khusus.",
+  "feedback.unheld.name": "Drive ini tidak mengizinkan nama tersebut.",
+  "feedback.unheld.long": "Nama tersebut terlalu panjang untuk drive ini.",
+  "feedback.unheld.taken": "Drive ini menganggap nama tersebut sama dengan nama lain di folder.",
+  "feedback.unheld.copy_one": "%1 tidak dapat disalin: %2",
+  "feedback.unheld.move_one": "%1 tidak dapat dipindahkan: %2",
+  "feedback.unheld.copy_many": {
+    "other": "%1 item di dalam tidak dapat disalin; yang pertama adalah %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "other": "%1 item di dalam tidak dapat dipindahkan; yang pertama adalah %2: %3"
+  }
 }

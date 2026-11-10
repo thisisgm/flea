@@ -5,9 +5,18 @@ Fifteen of the main backend's requests write. Twelve are file operations of thei
 (file tags, journalled one `Tags` step per changed file, `tagsreq.rs`) and `bulkrename` (one journal entry for the
 batch, `bulkrename.rs`); a New File from the menu writes
 through `menuaction` and journals `MadeFile` (`opsdispatch.rs` `do_newfile`), and `archive` and
-`convert` write below. Two helpers write on command loops of their own and journal nothing: the trash
-browser's `restore` and `delete` (`trashbrowse.rs`, `trashdelete.rs`) and the permissions dialog's
-`apply` (`permissions.rs`).
+`convert` write below. One helper writes on a command loop of its own and journals nothing: the trash
+browser's `restore` and `delete` (`trashbrowse.rs`, `trashdelete.rs`). The permissions dialog's single-item
+`apply` (`permissions.rs`) journals the same `Mode` step `permissionsBatch` does, under the same `permissions` op,
+so Ctrl+Z restores that mode rather than undoing whatever older write sits under it.
+A `convertbatch` journals one `convert` entry with a `Copied` step per output it published, from the file it read,
+a failed or cancelled batch included (`convertbatch.rs` `step`, landed by `OpMsg::Converted`), so undo removes an
+output only while it is still the untouched result. That step's `from` names the source, and a copy of the source is
+not the conversion, so `Replay::capture` refuses a `convert` entry and redo answers that it cannot be redone, as it
+does for a pasted image. A Convert whose output name is taken lands under Duplicate's next free copy name
+(`photo (converted) copy.jpg`, then `copy 2`) while one can be made and written, picked at the no-replace
+rename, and otherwise refuses with the reason; the GUI card's output probe names the same one (`check.rs`
+`converted`). Combine names its own output, so a taken Combine name refuses at once.
 Trash recovery uses `RecordLeft` before its record is removed and `RecordUnconfirmed` after unlink
 when the recovery folder cannot be reopened or synced: the latter says the record was removed but
 Flea could not confirm that removal on disk, with the cause and the completed delete, restore or recovery state.
@@ -19,7 +28,7 @@ records left there, while payloads stay in the quarantines their records name.
 Recovery runs on a fresh Trash open or an explicit `list` with `recover:true`; ordinary refresh does not retry it.
 The trash browser lists from `gio list -u -h -a trash::orig-path trash:///`, which escapes a line feed or any other control, non-ASCII or backslash byte in an original as `\xNN`, so one line is one item; an item gio cannot describe (no record, no `Path`, a relative original, or a uri listed twice) is left out and logged, and the rest still list, where one such item used to refuse the whole Trash.
 An original whose bytes are not UTF-8 lists as its exact text (docs/architecture/exact-names.md), so the row draws its lossy spelling and restore moves the item back to the raw bytes its `Path=` names; an original holding a NUL is left out, since it could spell another name's exact tail.
-Empty Trash also removes what the listing leaves out, as `gio trash --empty` does: `src/backend/trashbrowse/sweep.rs` reads `gio list -u -h -a standard::target-uri trash:///`, reviews every unlisted `files` entry (a claim's `.flea-delete-` quarantine never) as a permanent delete with its record, and every `.trashinfo` record whose item is gone in the home Trash and in each Trash that listing reaches. A Trash that still holds a claim's quarantine keeps its records, since a stuck claim can leave its item there with the record back in `info`. A change to any of them after the review makes the confirmation stale; what fails is logged, since nobody saw those entries, and so is a target-uri listing gio refuses. The count and bytes the card shows stay the listed items'.
+Empty Trash also removes what the listing leaves out, as `gio trash --empty` does: `src/backend/trashbrowse/sweep.rs` reads `gio list -u -h -a standard::target-uri trash:///`, reviews every unlisted `files` entry (a claim's `.flea-delete-` quarantine never) as a permanent delete with its record, and every `.trashinfo` record whose item is gone in the home Trash and in each Trash that listing reaches. A Trash that still holds a claim's quarantine keeps its records, since a stuck claim can leave its item there with the record back in `info`. A change to any of them after the review makes the confirmation stale. A left-out entry the sweep leaves on disk is logged with its reason: one the review refused and one the removal had to leave each by its path, the records kept beside a claim's quarantine once, by their `info` folder. The delete reply's `leftover` counts those still left out when the sweep runs, kept records included and the quarantine itself never, so the footer adds how many leftover entries could not be removed; an entry a cancel stopped the sweep before trying is not counted. A target-uri listing gio refuses is logged too, and the unlisted `files` entries it would have named are then neither removed nor counted. The count and bytes the card shows stay the listed items'.
 The trash browser's `restore` runs inside one `FolderSyncs` batch (`src/backend/trashdelete/syncs.rs`): each claim's sync of its Trash folder and of the recovery folder after cleanup, which ran once per item, runs once per folder when the batch closes, before the reply, and so does a new sync of each folder an item went back to. The claim's own record and quarantine syncs stay per item, since recovery needs them before and after each move.
 The trash browser's `restore` recreates an original folder that is gone before it moves the item back, the same as undo and gio, so a gone folder no longer fails the restore; one that cannot be made refuses and leaves the item in the Trash.
 Rollback keeps the first claim refusal and its cause visible, with any record cleanup failure logged separately.

@@ -182,6 +182,30 @@ pub fn error(key: &'static str) -> std::io::Error {
 pub fn args(key: &'static str, args: Vec<Text>) -> Text {
     Text::Args(key, args)
 }
+// A backend sentence read back into its key; its cause argument stays a cause, so it re-renders in a new language too.
+pub fn sentence(sentence: flea::ui_logic_status_feedback::errors::Sentence) -> Text {
+    let cause = sentence.cause;
+    let args = sentence
+        .args
+        .into_iter()
+        .enumerate()
+        .map(|(at, arg)| {
+            if cause == Some(at) {
+                Text::Cause(arg)
+            } else {
+                Text::Data(arg)
+            }
+        })
+        .collect();
+    Text::Args(sentence.key, args)
+}
+// A backend message as the footer says it: a drive's name refusal in the current language, anything else as sent.
+pub fn said(message: &str) -> Text {
+    match flea::ui_logic_status_feedback::errors::drive_refusal(message) {
+        Some(refusal) => sentence(refusal),
+        None => Text::Data(message.into()),
+    }
+}
 pub fn items(i18n: &I18n, count: usize) -> String {
     Text::Plural("items.count", count, vec![]).render(i18n)
 }

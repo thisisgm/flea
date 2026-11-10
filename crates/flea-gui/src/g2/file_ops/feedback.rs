@@ -16,11 +16,25 @@ pub(super) fn label(paint: Option<&Paint>) -> Label<'_> {
     }
 }
 
-pub(super) fn file(palette: &CardPalette, text: &str, paint: Option<&Paint>) -> Option<Div> {
+/// A failed job's reason wraps within the card, as the Delete sentence does (EY-350), so its end is never cut; a running file name stays one line.
+pub(super) fn file(
+    palette: &CardPalette,
+    text: &str,
+    paint: Option<&Paint>,
+    wrap: bool,
+) -> Option<Div> {
     if text.is_empty() {
         return None;
     }
-    let element = super::view::small(text.into(), palette.muted);
+    let element = if wrap {
+        div()
+            .text_size(gpui::px(flea::ui_logic_file_ops::card::JOBS_SMALL))
+            .line_height(gpui::px(flea::ui_logic_file_ops::card::JOBS_SMALL_LINE))
+            .text_color(palette.muted)
+            .child(SharedString::from(text.to_owned()))
+    } else {
+        super::view::small(text.into(), palette.muted)
+    };
     Some(match paint {
         Some(paint) => paint.watch(element.relative(), "source", text.to_owned().into()),
         None => element,

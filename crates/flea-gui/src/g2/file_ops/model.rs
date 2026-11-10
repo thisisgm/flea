@@ -76,6 +76,8 @@ pub struct Said {
     pub error: bool,
     // The backend's own sentence under the headline, as v0.3.12's operationResult detail; empty when none.
     pub detail: String,
+    // A failed operation's own receipt: it waits behind that operation's errors instead of replacing them.
+    pub behind: bool,
 }
 
 pub struct Operations {
@@ -174,6 +176,16 @@ impl Operations {
             text,
             error,
             detail,
+            behind: false,
+        });
+    }
+
+    pub(super) fn say_behind(&mut self, text: String) {
+        self.said.push(Said {
+            text,
+            error: false,
+            detail: String::new(),
+            behind: true,
         });
     }
 

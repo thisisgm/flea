@@ -96,14 +96,16 @@ pub fn transfer_body(catalog: &I18n, t: &Transfer, o: Outcome<'_>) -> String {
     line
 }
 
+// A fixed cause, a drive's name refusal among them, reads in the catalog's language.
 pub fn transfer_failure(catalog: &I18n, moving: bool, name: &str, error: &str) -> String {
+    let error = crate::ui_logic_status_feedback::errors::clause(error, catalog);
     catalog.tr_args(
         if moving {
             "jobs.done.move_failed"
         } else {
             "jobs.done.copy_failed"
         },
-        &[name, error],
+        &[name, &error],
     )
 }
 
@@ -166,7 +168,7 @@ const JOURNAL: [&str; 11] = [
 // The op an undone line carries is the backend's own word; a word it uses for itself is never shown.
 pub fn undone(catalog: &I18n, op: &str) -> String {
     match op {
-        "trash" | "settags" | "mkdir" => catalog.tr(&format!("jobs.undone.{op}")),
+        "trash" | "settags" | "mkdir" | "convert" => catalog.tr(&format!("jobs.undone.{op}")),
         _ if JOURNAL.contains(&op) => catalog.tr(&format!("jobs.undone.{op}")),
         _ => catalog.tr("jobs.undone.other"),
     }

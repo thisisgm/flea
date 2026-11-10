@@ -2,6 +2,7 @@
 use crate::g2::device_rail::listing::Listing;
 use crate::g2::device_rail::process::Runner;
 use crate::g2::device_rail::secret::Secret;
+use crate::g2::device_rail::source::MountsChanged;
 use crate::g2::file_ops::palette::CardPalette;
 use crate::g2::network_shares::{
     bookmarks,
@@ -126,7 +127,9 @@ impl Shell {
         let card = cx.new(|cx| NetworkView::new(catalog.clone(), palette, cx));
         let shares = cx.new(|cx| ShareView::new(catalog, palette, cx));
         let subscriptions = vec![
-            cx.observe(&devices, |shell, _, cx| shell.network_sync_mounts(cx)),
+            cx.subscribe(&devices, |shell, _, _: &MountsChanged, cx| {
+                shell.network_sync_mounts(cx)
+            }),
             cx.subscribe_in(
                 &cx.entity(),
                 window,

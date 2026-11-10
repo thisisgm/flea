@@ -56,7 +56,7 @@ impl Shell {
                     match action {
                         "viewColumns" => View::Columns,
                         "viewGrid" => View::Grid,
-                        "viewDual" => View::Dual,
+                        "viewDual" => self.dual_key_view(),
                         _ => View::List,
                     },
                     window,
@@ -74,7 +74,9 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        if id == "language" {
+        if id == "viewDual" {
+            self.choose_settings_view(View::Dual, window, cx);
+        } else if id == "language" {
             self.launch_settings_program(
                 "omarchy-menu",
                 vec!["summon".into(), "setup.language".into()],

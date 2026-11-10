@@ -73,6 +73,8 @@ impl View {
             return self.refused(&Reply { error: None, stale: false, ..reply.clone() }, i18n);
         };
         self.total = rows::count(body, "total").unwrap_or(0) as usize;
+        // An empty Trash lets Empty Trash…'s focus go, so items that come back later find the keyboard on the list.
+        self.strip_focus &= self.total > 0;
         self.signals.push(Signal::Count(self.total));
         self.set_rows(rows::count(body, "start").unwrap_or(0) as usize, rows);
         if self.selection.all {
@@ -121,16 +123,25 @@ impl View {
         let body = &reply.body;
         let done = rows::count(body, "done").unwrap_or(0) as usize;
         let failed = rows::count(body, "failed").unwrap_or(0) as usize;
+        let leftover = rows::count(body, "leftover").unwrap_or(0) as usize;
         let failures = body.get("failures").and_then(crate::jsondoc::Json::as_array).unwrap_or(&[]);
         let marked: Vec<(String, String)> = failures.iter()
             .filter_map(|f| Some((rows::text(f, "uri")?, rows::text(f, "identity").unwrap_or_default()))).collect();
         self.selection.failures(&marked);
-        let headline = words::done_line(i18n, reply.op == "restore", done, failed);
+        let headline = words::leftover_line(
+            i18n,
+            words::done_line(i18n, reply.op == "restore", done, failed),
+            leftover,
+        );
         let detail = failures.iter().map(|f| {
             let name = rows::text(f, "name").or_else(|| rows::text(f, "uri")).unwrap_or_default();
             words::failure_line(i18n, &name, &rows::text(f, "error").unwrap_or_default())
         }).collect::<Vec<_>>().join("\n");
-        self.signals.push(Signal::Result { headline, detail, error: failed > 0 });
+        self.signals.push(Signal::Result {
+            headline,
+            detail,
+            error: failed + leftover > 0,
+        });
         self.refresh();
         self.operation_active = false;
     }

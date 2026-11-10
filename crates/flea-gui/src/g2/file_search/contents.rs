@@ -337,7 +337,7 @@ impl Element for ContentsElement {
                     } else {
                         palette.foreground.opacity(crate::list::TRACK)
                     })
-                } else if row.hovered {
+                } else if row.hover_lit {
                     Some(palette.foreground.opacity(HOVER))
                 } else {
                     None

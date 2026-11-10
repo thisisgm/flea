@@ -157,6 +157,36 @@ fn s1_escape_clears_the_filter_before_the_marks(cx: &mut TestAppContext) {
     });
 }
 
+// S1B-2: a committed filter takes its own Escape ahead of the status line and the dispatch fallback, so a standing error is neither acknowledged nor replaced.
+#[gpui::test]
+fn s1_escape_on_a_committed_filter_keeps_a_standing_error(cx: &mut TestAppContext) {
+    use flea::ui_logic_status_feedback::status::Hint;
+    let handle = committed_and_marked(cx);
+    let errors = |cx: &mut TestAppContext| {
+        edit(cx, handle, |shell, _, cx| {
+            shell.status_messages(cx, |messages, _| {
+                messages
+                    .errors()
+                    .iter()
+                    .map(|entry| entry.text.clone())
+                    .collect::<Vec<_>>()
+            })
+        })
+    };
+    edit(cx, handle, |shell, _, cx| {
+        shell.status_messages(cx, |messages, now| {
+            messages.say("copy failed", true, "", Hint::None, now)
+        })
+    });
+    assert_eq!(errors(cx), ["copy failed"]);
+    press(cx, handle, "escape", None, false);
+    edit(cx, handle, |shell, _, _| {
+        let host = shell.panes[0].as_ref().unwrap();
+        assert!(!host.filter.owner.up(), "the filter took its Escape");
+    });
+    assert_eq!(errors(cx), ["copy failed"], "the error still stands");
+}
+
 #[gpui::test]
 fn s1_filtered_empty_ground_opens_the_background_menu(cx: &mut TestAppContext) {
     use crate::window::startup::View;

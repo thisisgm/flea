@@ -32,6 +32,7 @@ mod join_sweep;
 #[cfg(test)]
 mod join_tests;
 pub mod list;
+mod list_ground;
 #[cfg(test)]
 mod list_readiness_tests;
 pub mod monitor;
@@ -69,6 +70,8 @@ mod parity_sweep_tests;
 mod relist_tests;
 #[cfg(test)]
 mod status_line_tests;
+#[cfg(test)]
+mod tab_reach_tests;
 #[cfg(test)]
 mod trashview_tests;
 #[cfg(test)]

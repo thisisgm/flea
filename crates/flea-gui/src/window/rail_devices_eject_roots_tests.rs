@@ -96,12 +96,16 @@ fn fx_eject2_a_drop_out_of_the_shelf_holds_the_drive_its_entries_live_on(cx: &mu
     );
     roots(
         &shell,
-        r#"{"t":"roots","id":13,"job":false,"paths":["/media/128GB/a.jpg","/fixture/work"]}"#,
+        r#"{"t":"roots","id":13,"job":false,"kind":"move","paths":["/media/128GB/a.jpg","/fixture/work"]}"#,
         cx,
     );
     click_mark(&shell, cx);
     assert_eq!(ejects(&service), 0, "{:?}", jobs(&service));
-    assert_eq!(status(&shell, cx), REFUSED);
+    assert_eq!(
+        status(&shell, cx),
+        "A move on 128GB is still running. Try again when it finishes.",
+        "a drop out of the shelf moves its entries"
+    );
     reply(
         &shell,
         r#"{"t":"transferdone","id":13,"ok":1,"failed":0,"cancelled":false}"#,
@@ -131,3 +135,6 @@ fn fx_eject2_a_release_with_no_volume_is_never_held_by_a_copy_elsewhere(cx: &mut
     let said = status(&shell, cx);
     assert!(!said.contains("still running"), "{said}");
 }
+
+#[path = "rail_devices_eject_kind_tests.rs"]
+mod kind;

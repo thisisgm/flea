@@ -101,6 +101,7 @@ impl Shell {
                             .is_some_and(|cover| window.mouse_position().x < cover.right())
                     })
             }),
+            hover_wash: crate::list::hover_wash::HoverWash::on(cx),
             renaming: self.renaming_row(side),
             grow: self.grows[side],
             ..self

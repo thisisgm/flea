@@ -110,9 +110,7 @@ pub(super) fn check_artifacts() {
         };
         let output = card.output(model.selection.as_ref().unwrap()).unwrap();
         assert_eq!(
-            check::paths(vec![output.clone()], false)
-                .unwrap()
-                .as_slice(),
+            check::paths(vec![output.clone()]).unwrap().as_slice(),
             std::slice::from_ref(&output)
         );
         let sources = model
@@ -168,7 +166,7 @@ pub(super) fn check_artifacts() {
             &pixels[pixels.len() - 3..]
         );
         assert!(matches!(
-            check::paths(vec![output.clone()], false),
+            check::paths(vec![output.clone()]),
             Err(OutputError::Exists(_))
         ));
         let copy = root.join(format!("proof-{layout}.png"));
@@ -205,12 +203,14 @@ pub(super) fn check_artifacts() {
     let first = card.outputs[0].clone();
     let original = std::fs::read(root.join("z.png")).unwrap();
     std::fs::write(&first, &original).unwrap();
-    let resolved = check::paths(card.outputs.clone(), true).unwrap();
+    let resolved = check::converted(card.outputs.clone(), true).unwrap();
     assert!(resolved[0].ends_with("report (page 1) (converted).png"));
     assert_eq!(std::fs::read(&first).unwrap(), original);
     std::fs::write(&resolved[0], b"existing output").unwrap();
-    assert!(matches!(
-        check::paths(card.outputs.clone(), true),
-        Err(OutputError::Exists(_))
-    ));
+    let stepped = check::converted(card.outputs.clone(), true).unwrap();
+    assert!(
+        stepped[0].ends_with("report (page 1) (converted) copy.png"),
+        "{stepped:?}"
+    );
+    assert_eq!(std::fs::read(&resolved[0]).unwrap(), b"existing output");
 }

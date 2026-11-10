@@ -390,7 +390,7 @@ fn refuse_for_size(name: &str, magic: Option<i64>, free: u64, blocks: u64, size:
         return None;
     }
     if size > free {
-        return Some(format!("{name} needs {}, and the drive has {} free", format_size(size), format_size(free)));
+        return Some(format!("{name} needs {}, and the drive has {} free.", format_size(size), format_size(free)));
     }
     None
 }

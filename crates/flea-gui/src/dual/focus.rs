@@ -4,6 +4,8 @@ use gpui::{Context, FocusHandle, Window};
 
 pub struct Focus {
     pub last_side: usize,
+    /// The single view Dual was entered from, where the Dual key returns; List when the window opened in Dual.
+    pub before: View,
     pub rail: FocusHandle,
     pub chrome: FocusHandle,
     pub strip: FocusHandle,
@@ -13,6 +15,7 @@ impl Focus {
     pub fn new(cx: &mut Context<Shell>) -> Self {
         Self {
             last_side: 0,
+            before: View::List,
             rail: cx.focus_handle(),
             chrome: cx.focus_handle(),
             strip: cx.focus_handle(),
@@ -53,6 +56,18 @@ impl Shell {
             "strip" => 4,
             _ => return false,
         };
+        self.dual_walk(current, forward, window, cx);
+        true
+    }
+
+    /// One step of the Dual ring from stop `current`: 0 and 1 the lists, 2 the rail, 3 the chrome, 4 the tab strip.
+    pub(crate) fn dual_walk(
+        &mut self,
+        current: usize,
+        forward: bool,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         let places = self
             .launch
             .settings
@@ -79,13 +94,12 @@ impl Shell {
         if to <= 2 {
             self.focus_pane(usize::from(to == 1), cx);
         }
-        let handle = match to {
-            2 => self.dual_focus.rail.clone(),
-            3 => self.dual_focus.chrome.clone(),
-            4 => self.dual_focus.strip.clone(),
-            _ => self.overlay_return_focus(cx),
-        };
-        window.focus(&handle, cx);
+        match to {
+            2 => window.focus(&self.dual_focus.rail, cx),
+            3 => window.focus(&self.dual_focus.chrome, cx),
+            4 => window.focus(&self.dual_focus.strip, cx),
+            _ => self.enter_list_stop(forward, window, cx),
+        }
         if to == 3 {
             self.enter_chrome(forward, window, cx);
         } else if to == 4 {
@@ -98,7 +112,6 @@ impl Shell {
         };
         self.focus_rail(to == 2, cx);
         cx.notify();
-        true
     }
 
     pub(crate) fn focus_rail(&self, held: bool, cx: &mut Context<Self>) {

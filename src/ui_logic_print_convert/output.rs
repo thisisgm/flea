@@ -112,3 +112,25 @@ pub fn page_fallback(path: &Path) -> String {
         extension(path)
     )
 }
+
+// The most copy names a taken output steps through, as Duplicate does.
+pub const COPY_TRIES: usize = 999;
+
+// Duplicate's copy names in the name's own bytes: n 0 is "a.jpg" itself, 1 "a copy.jpg", 2 "a copy 2.jpg".
+pub fn copy_path(output: &Path, n: usize) -> Option<std::path::PathBuf> {
+    if n == 0 {
+        return Some(output.to_path_buf());
+    }
+    let name = Path::new(output.file_name()?);
+    let mut copy = name.file_stem()?.to_os_string();
+    copy.push(if n == 1 {
+        " copy".to_string()
+    } else {
+        format!(" copy {n}")
+    });
+    if let Some(ext) = name.extension() {
+        copy.push(".");
+        copy.push(ext);
+    }
+    Some(output.with_file_name(copy))
+}

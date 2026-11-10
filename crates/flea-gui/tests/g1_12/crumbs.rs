@@ -1,8 +1,8 @@
 //! tests/js/crumbs.js, case for case: the chrome's crumbs, the aliased network roots and the fit to the strip.
 use super::HOME;
 use flea_gui::path::crumbs::{
-    alias_at, crumbs, fit_crumbs, labels_by_key, relabel_aliases, remember_alias, Alias, Crumb,
-    Place,
+    alias_at, crumbs, failed_name, fit_crumbs, labels_by_key, relabel_aliases, remember_alias,
+    Alias, Crumb, Place,
 };
 
 #[track_caller]
@@ -285,4 +285,21 @@ fn noscene_parent_is_true_only_for_a_real_parent_crumb() {
         .iter()
         .filter(|crumb| !crumb.last && !crumb.elided)
         .all(Crumb::parent));
+}
+
+/// S8-11: a share root that cannot be read is named by its alias, the path bar's and rail's label, never its gvfs directory.
+#[test]
+fn s8_11_a_failing_share_root_is_named_by_its_label() {
+    let root = "/run/user/1000/gvfs/dav:host=127.0.0.1,port=18767,ssl=false";
+    let aliases = remember_alias(&[], root, "127.0.0.1:18767", Some("dav://127.0.0.1:18767/"));
+    assert_eq!(failed_name(root, &aliases), "127.0.0.1:18767");
+    assert_eq!(
+        failed_name(&format!("{root}/"), &aliases),
+        "127.0.0.1:18767"
+    );
+    assert_eq!(failed_name(&format!("{root}/photos"), &aliases), "photos");
+    assert_eq!(
+        failed_name(root, &[]),
+        "dav:host=127.0.0.1,port=18767,ssl=false"
+    );
 }

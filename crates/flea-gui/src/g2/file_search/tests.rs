@@ -314,6 +314,10 @@ fn platform_keys_map_onto_the_query_line() {
         StripKey::Enter
     );
     assert_eq!(
+        StripKey::from_event(&event("enter", control, None)),
+        StripKey::Enter
+    );
+    assert_eq!(
         StripKey::from_event(&event("tab", shift, None)),
         StripKey::Tab
     );

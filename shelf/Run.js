@@ -13,7 +13,10 @@ var WORDS = {
   sentOne: "Sent %1 item to %2",
   sentMany: "Sent %1 items to %2",
   moveFailed: "The items could not be moved.",
-  copyFailed: "The items could not be copied."
+  copyFailed: "The items could not be copied.",
+  clippedOne: "Copied %1 item to the clipboard",
+  clippedMany: "Copied %1 items to the clipboard",
+  clipFailed: "The items could not be copied to the clipboard."
 }
 
 function idle() {
@@ -115,12 +118,13 @@ function zippedText(count) {
   return Model.fill(n === 1 ? WORDS.zippedOne : WORDS.zippedMany, Model.grouped(n))
 }
 
-function copiedPathsText(count) {
+// The files themselves went to the clipboard, so the line counts items, as the window's own copy does.
+function clippedText(count) {
   var n = Number(count)
   if (!isFinite(n) || n <= 0) {
     return ""
   }
-  return "Copied " + Model.grouped(n) + (n === 1 ? " path" : " paths")
+  return Model.fill(n === 1 ? WORDS.clippedOne : WORDS.clippedMany, Model.grouped(n))
 }
 
 // A send reports only by notification, so the shelf says what it handed over and keeps the pile.

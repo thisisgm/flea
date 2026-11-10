@@ -114,7 +114,7 @@ fn u13_replies_and_actions_keep_the_origin_after_pane_focus_moves(cx: &mut TestA
             tagable: None,
             path: host.path.clone(),
             name: "testfs".into(),
-            free: 1_073_741_824,
+            free: Some(1_073_741_824),
         };
         shell.surfaces[1].filesystem =
             crate::window::status::Filesystem::settled_fixture(facts, host.pane.held.listing);

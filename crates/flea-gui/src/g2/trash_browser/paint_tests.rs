@@ -61,6 +61,7 @@ fn trash_rows_ground_as_the_boards_draw_them() {
             assert_eq!(paint.ground(1), None, "an unmarked row draws no ground");
             drop(paint);
             pane.action("extendDown", false, cx);
+            cx.set_global(crate::list::hover_wash::HoverWash(true));
             pane.hover(Some(2), cx);
             let paint = pane.paint.borrow();
             assert_eq!(
@@ -76,7 +77,7 @@ fn trash_rows_ground_as_the_boards_draw_them() {
             assert_eq!(
                 paint.ground(2),
                 Some(ink.foreground.opacity(HOVER)),
-                "the pointer's 8% wash"
+                "the pointer's 8% wash under Highlight on hover"
             );
             drop(paint);
             pane.click_row(2, false, cx);

@@ -290,6 +290,21 @@ fn plugin_menu_runtime_host_send_uses_real_target_discovery_and_failed_plugin_re
     drop(runtime);
     let mut fixture = open(cx, root.clone(), plugin.clone());
     let folder = attach(cx, &mut fixture, &root, "send-target", &plugin);
+    let completed = Rc::new(std::cell::Cell::new(false));
+    let sent = completed.clone();
+    let _response = update(cx, fixture.handle, |shell, _, cx| {
+        cx.subscribe(
+            shell.plugins.host.as_ref().unwrap(),
+            move |_, _, response: &Response, _| {
+                if response.request.get("op").and_then(Json::as_str) == Some("send")
+                    && response.message.get("op").and_then(Json::as_str) == Some("done")
+                    && response.ok
+                {
+                    sent.set(true);
+                }
+            },
+        )
+    });
     fixture.menu(cx, 1, vec![0]);
     wait(cx, |cx| {
         fixture
@@ -302,6 +317,8 @@ fn plugin_menu_runtime_host_send_uses_real_target_discovery_and_failed_plugin_re
         .unwrap();
     fixture.validated(cx, &validate, &[root.join("notes.txt")]);
     wait(cx, |_| !receipt(&folder, "send").is_empty());
+    // The receipt precedes the answer; only the terminal response proves the session can accept the next send.
+    wait(cx, |_| completed.get());
     assert_eq!(
         receipt(&folder, "send")[0].get("paths"),
         Some(&Json::Arr(vec![Json::Str(

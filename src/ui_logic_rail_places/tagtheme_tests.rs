@@ -139,8 +139,12 @@ fn the_bench_palette_draws_the_tag_marks_and_tags_menu_board_colours() {
         ("dark_foreground", "#907e64"),
     ];
     let theme = tag_theme(palette(&bench), "#1c120d", "#150d0a");
+    // Gray's #907e64 looks like Purple's #8f7351, so Gray draws its canonical colour; the other six are the board's.
     let board = [
-        "#d65a4f", "#e19763", "#dc9c36", "#79ab55", "#509467", "#8f7351", "#907e64",
+        "#d65a4f", "#e19763", "#dc9c36", "#79ab55", "#509467", "#8f7351", "#576089",
+    ];
+    let menu = [
+        "#d65a4f", "#e19763", "#dc9c36", "#79ab55", "#509467", "#8f7351", "#565f89",
     ];
     assert!(
         !theme.fallback,
@@ -153,7 +157,7 @@ fn the_bench_palette_draws_the_tag_marks_and_tags_menu_board_colours() {
     );
     assert_eq!(
         theme.menu_colors,
-        board.map(String::from),
+        menu.map(String::from),
         "--tagm-* on the menu surface"
     );
 }
@@ -171,8 +175,9 @@ fn a_colour_far_from_its_tags_name_draws_the_canonical_colour() {
         ("dark_foreground", "#6a6e95"),
     ];
     let theme = tag_theme(palette(&hackerman), "#0b0c16", "#080910");
+    // Purple's #86a7df is a hue near its name but looks like Blue's #829dd4, so it draws its canonical colour too.
     let want = [
-        "#f7768e", "#eb927b", "#e0af68", "#4fe88f", "#829dd4", "#86a7df", "#6a6e95",
+        "#f7768e", "#eb927b", "#e0af68", "#4fe88f", "#829dd4", "#ad8ee6", "#6a6e95",
     ];
     assert_eq!(theme.colors, want.map(String::from), "listing");
     assert_eq!(theme.menu_colors, want.map(String::from), "menu");
@@ -199,6 +204,109 @@ fn a_hue_near_its_name_and_a_grey_keep_the_themes_colour() {
     assert_eq!(named(6, "#50f872"), "#50f872", "the Gray tag has no window");
     assert_eq!(named(4, "#e68e0d"), "#7aa2f7", "an orange Blue is far");
     assert_eq!(named(0, "nope"), "nope");
+}
+
+#[test]
+fn a_tag_that_looks_like_an_earlier_one_draws_its_canonical_colour() {
+    let (bg, surface) = ("#282c34", "#21252b");
+    let mut alike = DISTINCT;
+    alike[5] = ("magenta", "#e06c75");
+    alike[6] = ("dark_foreground", "#62afee");
+    let theme = tag_theme(palette(&alike), bg, surface);
+    assert_eq!(
+        theme.colors[0], "#e06c75",
+        "the earlier tag keeps its colour"
+    );
+    assert_eq!(
+        theme.colors[4], "#61afef",
+        "the earlier tag keeps its colour"
+    );
+    assert_eq!(
+        theme.colors[5], "#ad8ee6",
+        "Purple shares Red's exact colour"
+    );
+    assert_eq!(
+        theme.colors[6],
+        ensure_ratio("#565f89", bg, MIN_RATIO),
+        "Gray is one step from Blue"
+    );
+    assert_eq!(
+        theme.menu_colors[6],
+        ensure_ratio("#565f89", surface, MIN_RATIO)
+    );
+    assert!(
+        theme.fallback,
+        "an exact shared colour still reports the fallback"
+    );
+    assert!(oklab_distance("#62afee", "#61afef") < DISTINCT_OKLAB);
+    assert!(oklab_distance("#e06c75", "#d19a66") > DISTINCT_OKLAB);
+    assert_eq!(
+        oklab_distance("", "#61afef"),
+        f64::INFINITY,
+        "an empty slot is like nothing"
+    );
+}
+
+#[test]
+fn a_tag_alike_only_on_the_menu_ground_draws_its_canonical_colour_on_both() {
+    let (bg, surface) = ("#282c34", "#fafafa");
+    let mut alike = DISTINCT;
+    alike[3] = ("green", "#00ff00");
+    alike[6] = ("dark_foreground", "#00dd00");
+    assert!(oklab_distance("#00ff00", "#00dd00") > DISTINCT_OKLAB);
+    assert_eq!(
+        ensure_ratio("#00ff00", surface, MIN_RATIO),
+        ensure_ratio("#00dd00", surface, MIN_RATIO),
+        "both darken to one ink on the light menu"
+    );
+    let theme = tag_theme(palette(&alike), bg, surface);
+    assert_eq!(
+        theme.colors[3], "#00ff00",
+        "the earlier tag keeps its colour"
+    );
+    assert_eq!(theme.colors[6], ensure_ratio(CANONICAL[6], bg, MIN_RATIO));
+    assert_eq!(
+        theme.menu_colors[6],
+        ensure_ratio(CANONICAL[6], surface, MIN_RATIO)
+    );
+}
+
+#[test]
+fn a_canonical_colour_that_matches_an_earlier_tag_sends_that_tag_to_its_own() {
+    let (bg, surface) = ("#282c34", "#21252b");
+    let mut alike = DISTINCT;
+    alike[4] = ("blue", "#a990e8");
+    alike[5] = ("magenta", "#a88fe5");
+    assert!(oklab_distance("#a990e8", CANONICAL[5]) < DISTINCT_OKLAB);
+    let theme = tag_theme(palette(&alike), bg, surface);
+    assert_eq!(
+        theme.colors[4], CANONICAL[4],
+        "Blue gives way to Purple's canonical colour"
+    );
+    assert_eq!(theme.colors[5], CANONICAL[5]);
+    assert!(oklab_distance(&theme.colors[4], &theme.colors[5]) >= DISTINCT_OKLAB);
+}
+
+#[test]
+fn the_canonical_colours_stay_distinct_on_dark_and_light_grounds() {
+    // A mid-grey ground squeezes every colour toward black to reach 3:1, and no theme draws on one.
+    let grounds = [
+        "#000000", "#101010", "#1e1e2e", "#2e3440", "#d8dee9", "#eff1f5", "#ffffff",
+    ];
+    for ground in grounds {
+        let lifted = CANONICAL.map(|hex| ensure_ratio(hex, ground, MIN_RATIO));
+        for a in 0..CANONICAL.len() {
+            for b in a + 1..CANONICAL.len() {
+                let apart = oklab_distance(&lifted[a], &lifted[b]);
+                assert!(
+                    apart >= DISTINCT_OKLAB,
+                    "{} and {} on {ground} sit {apart} apart",
+                    lifted[a],
+                    lifted[b]
+                );
+            }
+        }
+    }
 }
 
 #[test]

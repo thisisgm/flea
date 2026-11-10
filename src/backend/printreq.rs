@@ -194,7 +194,12 @@ pub fn serve(out: &mut impl Write, ops: &mut Ops, request: Request, mime: Arc<Db
         let line = match request {
             Request::Options { id, printer } => options_line(id, &printer, &cancel),
             Request::Print(ask) => print(ask, selection, id, &mime, &aliases, cancel, &tx),
-            Request::Convert(ask) => super::convertbatch::run(ask, selection, id, &mime, &aliases, cancel, &tx),
+            Request::Convert(ask) => {
+                let (line, steps) =
+                    super::convertbatch::run(ask, selection, id, &mime, &aliases, cancel, &tx);
+                let _ = tx.send(OpMsg::Converted { id, line, steps });
+                return;
+            }
             Request::Combine(ask) => super::combine::run(ask, selection, id, &mime, &aliases, cancel, &tx),
         };
         let _ = tx.send(OpMsg::DetachedDone { id, line });

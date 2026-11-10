@@ -134,6 +134,8 @@ pub struct Ink {
     pub muted_frame: Hsla,
     pub accent: Hsla,
     pub accent_frame: Hsla,
+    /// Settings > View > Highlight on hover: the pointer's tile takes the 8% wash; the name tip shows either way.
+    pub hover_wash: bool,
 }
 
 impl Ink {
@@ -146,6 +148,7 @@ impl Ink {
             muted_frame: base.muted_frame,
             accent: base.accent,
             accent_frame: base.accent_frame,
+            hover_wash: false,
         }
     }
 }

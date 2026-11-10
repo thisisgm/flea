@@ -23,7 +23,7 @@ def context_label(row):
 
 def catalog_entries(data):
     labels = {row['label'] for row in data['pointer']}
-    labels.update(context_label(row) for row in data['preset']
+    labels.update(context_label(row) for row in data['preset'] + data.get('sheet_extra', [])
                   if row.get('context', 'listing') != 'all' and 'listing' not in row.get('context', 'listing').split(','))
     arms = {row['arm']: row['action'] for row in data['sequence']}
     for table in ('preset', 'ctrlshift', 'ctrl', 'shift', 'code', 'text', 'sheet'):
@@ -38,7 +38,7 @@ def catalog_entries(data):
 
 
 def validate(data):
-    for table in ('ctrlshift', 'ctrl', 'shift', 'code', 'text', 'preset'):
+    for table in ('ctrlshift', 'ctrl', 'shift', 'code', 'text', 'preset', 'sheet_extra'):
         for row in data.get(table, []):
             text = table == 'text' or row.get('mods') == 'text'
             key = row.get('char' if table == 'text' else 'key')
@@ -102,7 +102,7 @@ def pointer_parts(press):
     return button, sum(MODIFIERS[p] for p in parts), taps
 
 
-def generate_rust(data, bindings, shared, contexts):
+def generate_rust(data, bindings, shared, contexts, extra):
     priorities = data['sheetties']
     unknown = {key for chords in priorities.values() for key in chords} - {row['keys'] for row in bindings + shared}
     if unknown:
@@ -121,7 +121,7 @@ def generate_rust(data, bindings, shared, contexts):
         lines.extend(['', '#[rustfmt::skip]', f'pub static {name}: &[{kind}] = &['])
         lines.extend('    ' + row + ',' for row in rows)
         lines.append('];')
-    for name, rows in [('PRESET_KEYS', bindings), ('SHARED_KEYS', shared)]:
+    for name, rows in [('PRESET_KEYS', bindings), ('SHARED_KEYS', shared), ('SHEET_EXTRA', extra)]:
         def binding(row):
             label = row.get('label', re.sub(r'([a-z0-9])([A-Z])', r'\1 \2', row['action']).lower())
             wording = display_key(row['action'], label)

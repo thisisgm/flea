@@ -1,5 +1,5 @@
 //! The Trash rows as one custom Element: the list's rows at the text size, a glyph or its thumbnail, the name, the location and the date.
-use super::board::{Board, HOVER, WASH};
+use super::board::Board;
 use super::elide;
 use super::ink::Ink;
 use crate::row::marks::Mark;
@@ -47,8 +47,11 @@ pub struct ListPaint {
     pub scroll_y: f32,
     pub cursor: usize,
     pub hover: Option<usize>,
+    pub hover_wash: bool,
     /// The cursor's accent edge shows only while the list holds the keyboard.
     pub edge: bool,
+    /// The keyboard is in another part of the window, the rail or the tab strip, so the cursor row greys as a folder list's does.
+    pub away: bool,
     shaped: Vec<Option<Shaped>>,
     shaped_for: (u64, usize),
     advance: Option<Pixels>,
@@ -80,7 +83,9 @@ impl ListPaint {
             scroll_y: 0.,
             cursor: 0,
             hover: None,
+            hover_wash: false,
             edge: true,
+            away: false,
             shaped: Vec::new(),
             shaped_for: (u64::MAX, 0),
             advance: None,
@@ -106,26 +111,6 @@ impl ListPaint {
         index
             .checked_sub(self.first)
             .and_then(|at| self.lines.get(at))
-    }
-
-    /// The marked cursor row's rung and accent edge, drawn only while the list has the keyboard.
-    pub fn edge_at(&self, index: usize) -> bool {
-        // TrashView.qml grounds marked rows only, so a cursor row v unmarked draws no rung (EY-388).
-        index == self.cursor && self.edge && self.line(index).is_some_and(|line| line.marked)
-    }
-
-    /// The row's ground: the cursor rung while the list has the keyboard, the marked plate, or the pointer wash.
-    pub fn ground(&self, index: usize) -> Option<Hsla> {
-        let marked = self.line(index).is_some_and(|line| line.marked);
-        if self.edge_at(index) {
-            Some(self.ink.accent.opacity(WASH))
-        } else if marked {
-            Some(self.ink.mark_fill)
-        } else if self.hover == Some(index) {
-            Some(self.ink.foreground.opacity(HOVER))
-        } else {
-            None
-        }
     }
 
     /// The window's system font and text size; a change reshapes every row and measures the digit advance again.
@@ -228,6 +213,7 @@ impl Element for TrashList {
         cx: &mut App,
     ) {
         let mut state = self.0.borrow_mut();
+        state.hover_wash = crate::list::hover_wash::HoverWash::on(cx);
         state.bounds = Some(bounds);
         let visible = bounds
             .intersect(&window.content_mask().bounds)

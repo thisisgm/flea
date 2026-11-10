@@ -510,7 +510,11 @@ pub fn block(scene: &Scene, track: f32, block: &Block, mode: Mode) -> Div {
         .flex_col()
         .gap(px(card::JOBS_GAP))
         .child(head);
-    out = out.children(super::feedback::file(palette, &block.file, paint));
+    let failed = block.state == State::Failed;
+    out = out.children(
+        super::feedback::file(palette, &block.file, paint, failed)
+            .map(|file| file.debug_selector(move || format!("op1-job-{id}-file"))),
+    );
     for line in &block.output {
         out = out.child(small(line.clone(), palette.muted));
     }

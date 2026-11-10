@@ -910,6 +910,17 @@ pub(crate) fn report_op(out: &mut impl Write, ops: &mut Ops, mut msg: OpMsg) {
             forget_pending(ops, id);
             ops.live.finished_if(id);
         }
+        // A convert journals what it published, so z removes those outputs and never an older operation.
+        OpMsg::Converted { id, line, steps } => {
+            if !steps.is_empty() {
+                ops.journal.push(Entry {
+                    op: "convert".to_string(),
+                    steps,
+                });
+            }
+            writeln!(out, "{}", line).ok();
+            ops.detached.remove(id);
+        }
         // Meta never claims the operation slot, so it does not clear it either.
         OpMsg::Meta { line } => {
             writeln!(out, "{}", line).ok();

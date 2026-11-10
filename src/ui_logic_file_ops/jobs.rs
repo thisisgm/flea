@@ -311,9 +311,18 @@ pub fn block(catalog: &I18n, row: &JobRow) -> Block {
         cancelling: row.state == "cancelling",
     };
     match st {
+        // Archive clauses read as the footer's sentence; other jobs may begin with an item's literal name.
         State::Failed => Block {
-            file: row.reason.clone(),
-            buttons: vec![Action::Retry, Action::Dismiss],
+            file: if matches!(row.kind.as_str(), "extract" | "compress") {
+                crate::ui_logic_status_feedback::errors::capitalised(&row.reason)
+            } else {
+                row.reason.clone()
+            },
+            buttons: if retryable(&row.reason) {
+                vec![Action::Retry, Action::Dismiss]
+            } else {
+                vec![Action::Dismiss]
+            },
             ..base
         },
         State::Done => Block {
@@ -353,6 +362,26 @@ pub fn block(catalog: &I18n, row: &JobRow) -> Block {
             }
         }
     }
+}
+
+/// The backend's fixed refusals that the same request meets again every time, so Retry could never succeed.
+pub(super) const SETTLED: [&str; 6] = [
+    "cannot move or copy a folder into itself",
+    "already in that folder",
+    "a file of 4 GiB or more does not fit on a FAT32 drive",
+    "that name is too long",
+    "operation is not supported",
+    "an entry in this archive would land outside its folder, so nothing was extracted",
+];
+
+/// Retry is offered unless the failure is one of those refusals, a name the destination cannot hold, or an archive's names refused before extracting.
+pub fn retryable(reason: &str) -> bool {
+    let text = reason.to_lowercase();
+    !SETTLED
+        .iter()
+        .any(|words| text.contains(&words.to_lowercase()))
+        && !crate::ui_logic_status_feedback::errors::name_refusal(reason)
+        && crate::ui_logic_status_feedback::errors::extract_refusal(reason).is_none()
 }
 
 // A refusal the card shows in its own words where the backend sent a code, else the backend's sentence.

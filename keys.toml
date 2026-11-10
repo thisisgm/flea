@@ -777,7 +777,7 @@ move = ["cursorDown", "cursorUp", "cursorFirst", "cursorLast", "pageDown", "page
 look = ["viewList", "viewColumns", "viewGrid", "viewDual", "togglePreview", "factsToggle", "loadPreview", "preview", "previewPageForward", "previewPageBack",
         "toggleHidden", "sidebar", "zoomIn", "zoomOut", "expand", "openInPlace", "closeInPlace", "mute", "textSizeUp", "textSizeDown",
         "textSizeReset", "keymapSheet"]
-find = ["filter", "search", "searchContents", "reveal", "sortNext", "sortReverse", "pathBar", "reload"]
+find = ["filter", "search", "searchContents", "keepResults", "reveal", "sortNext", "sortReverse", "pathBar", "reload"]
 change = ["copy", "cut", "paste", "movePaste", "duplicate", "rename", "trash",
           "deletePermanently", "undo", "redo", "newFolder", "copydirpath", "copyPath", "openAgent",
           "toggleSelect", "selectAll", "extendDown", "extendUp", "menu", "properties", "addNetwork", "eject",
@@ -2120,6 +2120,17 @@ label = "context menu"
 frontend = "all"
 context = "listing,rail"
 
+# F3 turns the dual pane on, and off again to the view it left, in every preset (GUI only).
+[[preset]]
+name = "all"
+mods = "none"
+key = "F3"
+keys = "f3"
+action = "viewDual"
+label = "dual pane"
+frontend = "gui"
+context = "listing"
+
 # ListColumns040: F4 fits every drawn list column, the keyboard twin of the header's double click (GUI only).
 [[preset]]
 name = "all"
@@ -2631,6 +2642,17 @@ keys = "escape"
 action = "escape"
 label = "close editor"
 frontend = "all"
+context = "editor"
+
+# The search strip already handles Ctrl+Return itself; this row documents it without adding a dispatch binding.
+[[sheet_extra]]
+name = "all"
+mods = "ctrl"
+key = "Return"
+keys = "ctrl-enter"
+action = "keepResults"
+label = "Keep results"
+frontend = "gui"
 context = "editor"
 
 # Page the Columns preview while the listing keeps the keyboard.

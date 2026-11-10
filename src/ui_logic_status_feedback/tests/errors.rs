@@ -1,7 +1,7 @@
 use super::english;
 use crate::ui_logic_status_feedback::errors::{
-    clause, connect_failure, extract_refusal, listing_state, locked_line, os_reason, passthrough,
-    sentence, ListingState,
+    clause, connect_failure, drive_refusal, extract_refusal, listing_state, locked_line, os_reason,
+    passthrough, sentence, ListingState,
 };
 
 fn said(place: &str, message: &str, named: &str) -> String {
@@ -323,4 +323,68 @@ fn an_extract_refusal_reads_back_its_key_and_names_whatever_quotes_the_names_hol
         "English keeps the backend's own case inside a sentence"
     );
     assert_eq!(clause("gio: no trash", &english()), "gio: no trash");
+}
+
+#[test]
+fn a_drive_name_refusal_reads_back_whole_and_says_the_backend_words_in_english() {
+    let read = |message: &str| drive_refusal(message).map(|refusal| (refusal.key, refusal.args));
+    let pair = |key, args: &[&str]| {
+        Some((
+            key,
+            args.iter().map(|arg| (*arg).to_owned()).collect::<Vec<_>>(),
+        ))
+    };
+    assert_eq!(
+        read("':' is not allowed in a name on this vfat drive"),
+        pair("feedback.drive.char", &[":", "vfat"])
+    );
+    assert_eq!(
+        read("'\\' is not allowed in a name on this ntfs3 drive"),
+        pair("feedback.drive.char", &["\\", "ntfs3"])
+    );
+    assert_eq!(
+        read("a name cannot hold control character U+001F on this exfat drive"),
+        pair("feedback.drive.control", &["U+001F", "exfat"])
+    );
+    assert_eq!(
+        read("a name cannot end in a dot on this vfat drive"),
+        pair("feedback.drive.end_dot", &["vfat"])
+    );
+    assert_eq!(
+        read("a name cannot end in a space on this exfat drive"),
+        pair("feedback.drive.end_space", &["exfat"])
+    );
+    assert_eq!(
+        read("'LPT9' is reserved on this vfat drive"),
+        pair("feedback.drive.reserved", &["LPT9", "vfat"])
+    );
+    for other in [
+        "'a' is not allowed in a name on this vfat drive",
+        "':' is not allowed in a name on this ext4 drive",
+        "'COM0' is reserved on this vfat drive",
+        "'con' is reserved on this vfat drive",
+        "a name cannot hold control character U+00g1 on this vfat drive",
+        "a name cannot end in a dot on this vfat drive, twice",
+        "'x' cannot be extracted onto this drive: 'CON' is reserved on this vfat drive",
+        "sub/a:b could not be copied: ':' is not allowed in a name on this vfat drive",
+    ] {
+        assert_eq!(read(other), None, "{other} is not one of fsname's refusals");
+    }
+    assert_eq!(
+        said(
+            "rename",
+            "a name cannot end in a space on this vfat drive",
+            ""
+        ),
+        "A name cannot end in a space on this vfat drive."
+    );
+    assert_eq!(
+        said("transfer", "'NUL' is reserved on this exfat drive", ""),
+        "'NUL' is reserved on this exfat drive."
+    );
+    assert_eq!(
+        clause("a name cannot end in a dot on this vfat drive", &english()),
+        "a name cannot end in a dot on this vfat drive",
+        "English keeps the backend's own case inside a sentence"
+    );
 }

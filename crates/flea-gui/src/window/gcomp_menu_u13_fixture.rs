@@ -17,7 +17,7 @@ fn settle(shell: &mut crate::state::Shell) {
             tagable: None,
             path: host.path.clone(),
             name: "testfs".into(),
-            free: 1_073_741_824,
+            free: Some(1_073_741_824),
         };
         shell.surfaces[side].filesystem =
             crate::window::status::Filesystem::settled_fixture(facts, host.pane.held.listing);
