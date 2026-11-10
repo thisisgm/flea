@@ -392,6 +392,15 @@ impl Shell {
                     adapters.len() - 1
                 };
                 let cohesion = self.cohesion_inputs(host, &states, &rows, cx);
+                let overlays: [&dyn crate::ipc::Adapter; 4] =
+                    [&network_menu, &menu, &network, &preview_look];
+                let owners = crate::ipc::cohesion_controls::Owners::new(
+                    &adapters[..count],
+                    &overlays,
+                    self,
+                    window,
+                    cx,
+                );
                 let reply = if let Some(chrome) = &self.chrome.view {
                     let (path, frame) =
                         chrome.read_with(cx, |view, _| (view.path.clone(), view.frame.clone()));
@@ -400,14 +409,17 @@ impl Shell {
                         let frame = frame.borrow();
                         let chrome = crate::ipc::chrome::ChromeAdapter { frame: &frame };
                         let laid = cohesion.laid.as_ref().map(|laid| laid.borrow());
-                        let cohesion = cohesion.adapter(&frame, &path, laid.as_deref());
-                        let mut mounted = adapters[..count].to_vec();
+                        let mut cohesion = cohesion.adapter(&frame, &path, laid.as_deref());
+                        cohesion.lane = preview.cohesion_lane();
+                        let mut mounted: Vec<&dyn crate::ipc::Adapter> = vec![&owners];
+                        mounted.extend_from_slice(&adapters[..count]);
                         mounted.extend([&path as &dyn crate::ipc::Adapter, &chrome, &tabs]);
                         mounted.push(&cohesion);
                         surface.dispatch_to(request, &mounted)
                     })
                 } else {
-                    let mut mounted = adapters[..count].to_vec();
+                    let mut mounted: Vec<&dyn crate::ipc::Adapter> = vec![&owners];
+                    mounted.extend_from_slice(&adapters[..count]);
                     mounted.push(&tabs);
                     surface.dispatch_to(request, &mounted)
                 };

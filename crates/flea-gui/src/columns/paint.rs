@@ -182,6 +182,7 @@ impl FolderSizes for DirSizes {
 
 /// Paint state one track keeps across frames: its shaped rows, the face's advance and this frame's rows.
 pub struct TrackPaint {
+    pub(crate) language_paint: RefCell<Vec<crate::row::language_capture::Painted>>,
     pub(super) drop_line: Option<crate::list::painted_row::DropLine>,
     pub drawn: Option<Drawn>,
     pub paint_serial: u64,
@@ -212,6 +213,7 @@ impl TrackPaint {
     pub fn new(typeface: Typeface) -> Self {
         Self {
             drawn: None,
+            language_paint: Default::default(),
             paint_serial: 0,
             typeface,
             cache: TrackCache::default(),
@@ -270,6 +272,7 @@ impl TrackPaint {
         self.drawn = None;
         self.visible.clear();
         self.pictures.clear();
+        self.language_paint.borrow_mut().clear();
     }
 
     /// One advance of "0" at the body size, Theme.bodyAdvance, which turns a name width into cells.

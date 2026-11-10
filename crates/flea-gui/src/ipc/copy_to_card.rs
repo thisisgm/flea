@@ -32,6 +32,9 @@ pub(crate) fn menu_copy_to_state(overlay: &Overlay) -> Option<String> {
         });
         object([
             ("name", Json::Str(name.into())),
+            ("primary", Json::Bool(press == Some(Press::CopyConfirm))),
+            ("hoverLive", Json::Bool(press.is_some())),
+            ("pressLive", Json::Bool(press.is_some())),
             (
                 "label",
                 Json::Str(

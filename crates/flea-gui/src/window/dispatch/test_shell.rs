@@ -55,7 +55,7 @@ pub(crate) fn open_root<'a>(
 }
 
 // The native root with its own settings fields and a --select path.
-pub(super) fn open_root_with<'a>(
+pub(crate) fn open_root_with<'a>(
     cx: &'a mut TestAppContext,
     settings: &str,
     select: Option<&str>,

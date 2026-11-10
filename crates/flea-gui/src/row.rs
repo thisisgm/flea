@@ -22,6 +22,7 @@ pub fn left_elide(text: &str, max_cells: usize) -> Cow<'_, str> {
     format!("\u{2026}{}", &text[start..]).into()
 }
 
+pub(crate) mod language_capture;
 #[cfg(test)]
 mod language_tests;
 pub mod marks;

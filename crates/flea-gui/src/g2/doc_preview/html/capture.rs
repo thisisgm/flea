@@ -51,6 +51,69 @@ pub(crate) fn column(column: &Frame, hairline: f32, ring: Hsla) -> Option<AnyEle
 }
 
 impl HtmlView {
+    /// The live image submission and retained document facts, without changing the preview.
+    pub fn capture_state(&self, window: &gpui::Window, cx: &App) -> flea::jsondoc::Json {
+        use flea::jsondoc::Json;
+        let (submitted, drawn) = self.captured_image.get();
+        let text = |v: String| Json::Str(v);
+        let number = |v: f32| Json::Num(v.to_string());
+        let rect = self.bounds.map_or_else(String::new, |b| {
+            crate::ipc::rows::rect_of(
+                b.origin.x.into(),
+                b.origin.y.into(),
+                b.size.width.into(),
+                b.size.height.into(),
+            )
+        });
+        crate::visual::object([
+            (
+                "visible",
+                Json::Bool(self.doc.active && self.bounds.is_some()),
+            ),
+            ("ready", Json::Bool(self.first_screen(cx))),
+            (
+                "view",
+                text(
+                    if self.doc.source_view() {
+                        "source"
+                    } else {
+                        "rendered"
+                    }
+                    .into(),
+                ),
+            ),
+            (
+                "state",
+                text(
+                    self.catalog
+                        .as_ref()
+                        .map_or_else(String::new, |catalog| self.status(catalog, cx)),
+                ),
+            ),
+            ("file", text(self.doc.image_file.clone())),
+            ("drawn", Json::Bool(drawn)),
+            ("clip", Json::Bool(submitted)),
+            ("accelerated", Json::Bool(drawn)),
+            (
+                "failed",
+                Json::Bool(
+                    self.doc.read_failed
+                        || self.doc.picture == flea::ui_logic_doc_preview::html::Picture::Error,
+                ),
+            ),
+            ("large", Json::Bool(self.doc.over_size())),
+            ("pending", Json::Bool(self.doc.pending)),
+            ("frame", text(rect)),
+            (
+                "window",
+                crate::visual::object([
+                    ("width", number(window.viewport_size().width.into())),
+                    ("height", number(window.viewport_size().height.into())),
+                ]),
+            ),
+        ])
+    }
+
     pub(crate) fn viewport_metrics(&self, cx: &App) -> (f32, f32, f32) {
         if self.doc.source_view() {
             self.source

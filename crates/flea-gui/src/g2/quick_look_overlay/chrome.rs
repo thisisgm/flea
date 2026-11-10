@@ -113,7 +113,7 @@ pub fn bar(
         .border_color(look.hair())
         .text_size(px(look::CAPTION))
         .whitespace_nowrap()
-        .child(bar_mark(glyph, look))
+        .child(bar_mark(glyph, look, &state.observations))
         .children(name_parts(&name, look, &state.observations));
     if filled {
         row = row.bg(look.surface);

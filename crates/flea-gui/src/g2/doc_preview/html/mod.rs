@@ -70,6 +70,7 @@ pub struct HtmlView {
     decode: Option<Task<()>>,
     /// Frames painted and pages decoded, for the count tests and the native idle check.
     pub painted: Cell<usize>,
+    pub(crate) captured_image: Cell<(bool, bool)>,
     pub decoded: usize,
     /// Command flushes, for the count tests: an unchanged frame flushes nothing.
     pub flushes: usize,
@@ -116,6 +117,7 @@ impl HtmlView {
             timer: None,
             decode: None,
             painted: Cell::new(0),
+            captured_image: Cell::new((false, false)),
             decoded: 0,
             flushes: 0,
             laid: None,
@@ -165,6 +167,7 @@ impl HtmlView {
         if let Some(old) = self.image.take() {
             self.released.push(old.1);
         }
+        self.captured_image.set((false, false));
         self.decode = None;
         self.sync_source(true, cx);
         self.flush(cx);

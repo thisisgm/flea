@@ -85,6 +85,8 @@ impl Adapter for LiveOperationsAdapter<'_> {
             });
             object([
                 ("name", Json::Str(choice.wire().into())),
+                ("primary", Json::Bool(choice == collide::PRIMARY)),
+                ("destructive", Json::Bool(choice == collide::DESTRUCTIVE)),
                 (
                     "label",
                     Json::Str(part.as_ref().map_or("", |part| part.text.as_str()).into()),

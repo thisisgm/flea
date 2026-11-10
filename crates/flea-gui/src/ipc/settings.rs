@@ -14,7 +14,7 @@ use flea::{
 };
 use gpui::App;
 #[path = "settings_cohesion.rs"]
-mod cohesion;
+pub(super) mod cohesion;
 #[path = "settings_plugins.rs"]
 mod plugins;
 #[path = "settings_rows.rs"]

@@ -169,6 +169,13 @@ impl Element for CrumbElement {
                             && !crumb.elided);
                     let extent = strip.extent(index);
                     let x = left + px(extent.map_or(0., |(left, _)| left));
+                    if let Some((_, width)) = extent {
+                        paint.pointer.painted(
+                            format!("crumb:{slot}:{index}"),
+                            Bounds::new(point(x, bounds.top()), size(px(width), height)),
+                            window,
+                        );
+                    }
                     // The wash spans the whole crumb, separator included, the same span hit accepts, as v0.3.12 does.
                     if let Some((_, width)) = extent.filter(|_| held) {
                         let target = Bounds::new(point(x, bounds.top()), size(px(width), height));

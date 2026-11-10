@@ -14,6 +14,7 @@ import time
 
 from flea_transport_lifecycle import drain, exited, identity, subreaper
 from flea_native_inputs import seed, seed_fonts
+import flea_transport_scope as scope
 
 REPO = Path(__file__).resolve().parents[2]
 MARKER = ".flea-test-sandbox"
@@ -160,7 +161,14 @@ def endpoint(record, supplied=None, timeout=None, discovering=False):
         connection.connect(f"{record['runtime']}/{relative}")
         pid, uid, _ = struct.unpack("3i", connection.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, 12))
         if discovering and record["wrap"] and uid == os.geteuid():
-            current = owned(pid, record)
+            if record["frontend"] == "gpui" and scope.scoped(record["wrap"]):
+                try:
+                    current = scope.admit(pid, record)
+                except ValueError as error:
+                    raise TransportError(str(error)) from error
+                owned(pid, record)
+            else:
+                current = owned(pid, record)
             record.update(pid=pid, start=current["start"])
         if (pid, uid) != (record["pid"], os.geteuid()):
             raise TransportError(f"reply from another window: PID {pid}")
@@ -235,7 +243,7 @@ class Window:
 
     @classmethod
     def start(cls, path, *, parent=None, binary=None, backend=None, frontend=None, picker=False, ui=None, timeout=5, log=None, command=None,
-              wrap=(), select=None, share=None):
+              wrap=(), select=None, share=None, fixture=None):
         frontend = frontend or os.environ.get("FLEA_TEST_FRONTEND", "gpui")
         if frontend not in ("qml", "gpui"):
             raise TransportError(f"unknown test frontend: {frontend}")
@@ -259,6 +267,12 @@ class Window:
         if direct_qml and select is not None:
             raise TransportError(f"a select target needs the flea --gui launch, not a direct qs command: {select}")
         gui = built_binary("flea-gui", os.environ.get("FLEA_GUI_BIN")) if frontend == "gpui" else None
+        if fixture is not None:
+            if fixture != "html-lifecycle" or frontend != "gpui" or picker or direct_qml or wrap:
+                raise TransportError("unsupported native component fixture")
+            fixture = Path(binary).parent / "examples" / fixture
+            if fixture.is_symlink() or fixture.resolve() != fixture or not fixture.is_file() or not os.access(fixture, os.X_OK):
+                raise TransportError("missing matching native component fixture")
         if backend is not None:
             backend = sandbox_backend(backend)
         elif direct_qml:
@@ -273,7 +287,7 @@ class Window:
                        binary=binary, gui=gui,
                        frontend=frontend, picker=picker, ui=str(Path(ui or REPO / "ui").absolute()), timeout=float(timeout),
                        log=str(log or root / "window.log"), command=command if direct_qml else None, wrap=list(wrap),
-                       backend=backend, share=None if share is None else str(share),
+                       backend=backend, share=None if share is None else str(share), fixture=None if fixture is None else str(fixture),
                        owner=int(os.environ.get("FLEA_TEST_OWNER_PID", os.getpid())),
                        drain_timeout=drain_timeout())
         if not all(0 < options[key] < float("inf") for key in ("timeout", "drain_timeout")):
@@ -429,13 +443,18 @@ def serve(root):
         command.append(options["path"])
         if options["command"]:
             command = options["command"]
+        if options.get("fixture"):
+            command = [options["fixture"], options["path"]]
         if options["picker"]:
             environment["FLEA_PICKER_REPLY"] = str(root / "picker-reply")
             environment["FLEA_PICKER"] = json.dumps({"folder": options["path"]})
             if not options["command"]:
                 command = [options["binary"], "--pick", str(root / "picker-reply")]
+        wrapped = options["wrap"] + command
+        if options["frontend"] == "gpui" and scope.scoped(options["wrap"]):
+            wrapped, environment = scope.launch(root, options["wrap"], command, environment)
         with open(options["log"], "ab") as output:
-            child = subprocess.Popen(options["wrap"] + command, env=environment, stdin=subprocess.DEVNULL, stdout=output, stderr=output,
+            child = subprocess.Popen(wrapped, env=environment, stdin=subprocess.DEVNULL, stdout=output, stderr=output,
                                      start_new_session=True)
         current = identity(child.pid)
         record = dict(options, pid=child.pid, start=current["start"], runtime=alias, runtime_dir=str(runtime_dir),

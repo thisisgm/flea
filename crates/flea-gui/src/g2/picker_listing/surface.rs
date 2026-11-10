@@ -164,6 +164,10 @@ impl ListingView {
         self.surface.focused = focused;
     }
 
+    pub(crate) fn keyboard_focused(&self) -> bool {
+        self.surface.focused
+    }
+
     pub fn set_view(&mut self, mode: &str) {
         self.surface.mode = if mode == "grid" { "grid" } else { "list" };
         self.reveal();

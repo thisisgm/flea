@@ -254,7 +254,11 @@ impl Shell {
                 Effect::Send(line) => {
                     self.open_with_send(side, line, cx);
                 }
-                Effect::Close => self.open_with = None,
+                Effect::Close => {
+                    if let Some(open) = self.open_with.take() {
+                        open.frame.unmount();
+                    }
+                }
                 Effect::Message(text) => self.opener_say(side, text, false, cx),
                 Effect::Launch(_) | Effect::EditNames { .. } | Effect::Refresh => {}
             }

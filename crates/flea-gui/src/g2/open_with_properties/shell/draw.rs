@@ -23,8 +23,8 @@ impl Draw<'_> {
             Control::Applications => "applications".into(),
             Control::Application(at) => format!("application:{at}"),
         };
-        let element = if self.measure.is_some() {
-            self.track(element.relative(), &id)
+        let element = if let Some(measure) = self.measure {
+            measure.observe(self.track(element.relative(), &id), &id)
         } else {
             element
         };

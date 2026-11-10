@@ -27,10 +27,10 @@ crates/flea-gui/src/g2/trash_browser/trashview_tests.rs 415
 crates/flea-gui/src/g2/listing_filter/tests_flow.rs 408
 crates/flea-gui/src/navigation/steps.rs 409
 crates/flea-gui/src/window/dispatch/fileops.rs 411
-crates/flea-gui/src/window/dispatch/mod.rs 406
-crates/flea-gui/src/window/dispatch/openwith_tests.rs 447
+crates/flea-gui/src/window/dispatch/mod.rs 408
+crates/flea-gui/src/window/dispatch/openwith_tests.rs 449
 crates/flea-gui/src/window/dispatch/quick_look_state_tests.rs 427
-crates/flea-gui/src/window/events_ipc.rs 425
+crates/flea-gui/src/window/events_ipc.rs 433
 crates/flea-gui/src/window/network.rs 411
 crates/flea-gui/src/window/status.rs 408
 crates/flea-gui/src/g2/context_menus/delivery.rs 423
@@ -92,7 +92,7 @@ crates/flea-gui/src/g2/settings_pages/panel.rs 421
 crates/flea-gui/src/window/settings/fix1_tests.rs 409
 crates/flea-gui/src/g2/trash_browser/tests.rs 527
 crates/flea-gui/src/g2/file_search/contents.rs 430
-crates/flea-gui/src/grid/element/paint.rs 444
+crates/flea-gui/src/grid/element/paint.rs 463
 crates/flea-gui/src/list/element.rs 667
 crates/flea-gui/src/path/paint.rs 451
 crates/flea-gui/tests/g1_07/cols_pwid.rs 420

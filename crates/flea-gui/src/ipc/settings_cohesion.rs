@@ -45,9 +45,22 @@ fn entry(
 
 // v0.3.12 SettingsRow.qml:54 greys a row that is unavailable or an inert check; its HoverHandler and TapHandler always stand.
 fn row(row: &Row, view: &SettingsView) -> Option<Json> {
-    let bounds = view.probe.bounds(&format!("row:{}", row.id))?;
+    let id = format!("row:{}", row.id);
+    let probe = &view.probe;
+    probe.bounds(&id)?;
     let enabled = row.available && !(row.kind == Kind::Check && row.inert);
-    Some(entry("SettingsRow", bounds, false, true, enabled, ""))
+    let (hovered, pressed) = probe.pointer(&id);
+    let source = crate::visual::object([
+        ("name", Json::Str(String::new())),
+        ("rect", Json::Str(probe.rect(&id))),
+        ("centre", Json::Str(probe.centre(&id, "pane"))),
+        ("visible", Json::Bool(true)),
+        ("enabled", Json::Bool(enabled)),
+        ("hovered", Json::Bool(hovered)),
+        ("pressed", Json::Bool(pressed)),
+        ("value", Json::Str(format!("{:?}", row.kind))),
+    ]);
+    crate::ipc::cohesion_controls::control(&source, "SettingsPanel", "SettingsRow")
 }
 
 /// ui/Ipc.qml cohesionControls while Settings holds the keyboard: its keys item fills the window, so focus is that plain item.
@@ -60,12 +73,33 @@ pub(super) fn controls(view: &SettingsView) -> Option<Json> {
         .filter_map(|r| row(r, view))
         .collect();
     Some(Json::Obj(vec![
+        ("captureReader".into(), Json::Str("gpui-paint-v1".into())),
         (
             "focus".into(),
             entry("QQuickItem", ground, true, false, true, "item"),
         ),
         ("controls".into(), Json::Arr(controls)),
     ]))
+}
+
+pub(crate) fn sheet_controls(view: &crate::g2::settings_pages::SheetView, focused: bool) -> Json {
+    let probe = &view.probe;
+    let (hovered, pressed) = probe.pointer("body");
+    let source = crate::visual::object([
+        ("name", Json::Str("Keys body".into())),
+        ("rect", Json::Str(probe.rect("body"))),
+        ("centre", Json::Str(probe.centre("body", "card"))),
+        ("visible", Json::Bool(true)),
+        ("enabled", Json::Bool(true)),
+        ("focused", Json::Bool(focused)),
+        ("hovered", Json::Bool(hovered)),
+        ("pressed", Json::Bool(pressed)),
+    ]);
+    crate::ipc::cohesion_controls::state(
+        crate::ipc::cohesion_controls::control(&source, "KeymapSheet", "CardScroll")
+            .into_iter()
+            .collect(),
+    )
 }
 pub(super) fn rail_width(
     view: Option<&crate::g2::settings_pages::view::SettingsView>,

@@ -14,6 +14,9 @@ use flea::{
 };
 use gpui::{AppContext, Context, TestAppContext, VisualTestContext, Window, WindowHandle};
 
+#[path = "cohesion_pdf_tests.rs"]
+mod cohesion_pdf;
+
 type Handle = WindowHandle<Root>;
 
 /// The window and the backend's request reader, which the caller keeps so the backend stays open.

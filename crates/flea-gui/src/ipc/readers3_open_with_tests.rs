@@ -40,11 +40,12 @@ fn ipc_readers3_open_with_card_reports_its_model_and_its_painted_parts(cx: &mut 
         assert_eq!(control.get("visible"), Some(&Json::Bool(false)));
         assert_eq!(control.get("centre").and_then(Json::as_str), Some(""));
         assert_eq!(control.get("rect").and_then(Json::as_str), Some(""));
+        assert_eq!(control.get("hovered"), Some(&Json::Bool(false)));
+        assert_eq!(control.get("pressed"), Some(&Json::Bool(false)));
     }
-    assert_eq!(
-        text("unavailable").as_deref(),
-        Some("controls[].hovered, controls[].pressed")
-    );
+    assert_eq!(controls[0].get("pressLive"), Some(&Json::Bool(false)));
+    assert_eq!(controls[3].get("pressLive"), Some(&Json::Bool(true)));
+    assert_eq!(text("unavailable").as_deref(), Some(""));
     // No frame has painted the card in this test, so every part reads empty rather than invented.
     for key in [
         "rect",
@@ -94,10 +95,7 @@ fn uish_open_with_card_reports_v0312_model_facts(cx: &mut TestAppContext) {
         state.starts_with(model.split("\"controls\"").next().unwrap()),
         "{state}"
     );
-    assert!(
-        state.ends_with(r#","unavailable":"controls[].hovered, controls[].pressed"}"#),
-        "{state}"
-    );
+    assert!(state.ends_with(r#","unavailable":""}"#), "{state}");
     let state = jsondoc::parse(state).unwrap();
     assert_controls(&state, model);
 }

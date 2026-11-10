@@ -273,6 +273,7 @@ fn uish_04_mounted_palette_follows_runtime_theme_without_producer_work(cx: &mut 
                     assert_eq!(lines.len(), 34);
                     for wanted in [
                         format!("baseSize={base}"),
+                        format!("markSize={}", list.borrow().drawn.metrics.mark),
                         format!("cornerRadius={corner}"),
                         "columnSize=117".into(),
                     ] {

@@ -194,6 +194,7 @@ impl Adapter for JoinedAdapter<'_> {
             origin: (0., 0.),
         };
         match function {
+            "cohesionControls" => base.cohesion(self.joined.pointer).map(Reply::value),
             "menuState" => {
                 let mut state = base.state();
                 state.pop();

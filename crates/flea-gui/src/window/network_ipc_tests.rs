@@ -5,6 +5,9 @@ use crate::ipc::server;
 use flea::ipc::wire;
 use gpui::{point, px, size, Modifiers};
 
+#[path = "network_cohesion_tests.rs"]
+mod cohesion;
+
 fn call(shell: &Entity<Shell>, name: &str, args: &[&str], cx: &mut VisualTestContext) -> String {
     let (answer, receiver) = std::sync::mpsc::sync_channel(1);
     cx.update(|window, cx| {

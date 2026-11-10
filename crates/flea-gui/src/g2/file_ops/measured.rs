@@ -1,9 +1,12 @@
 //! Measurements come from the card's laid-out elements, never from the IPC caller.
-use gpui::{canvas, prelude::*, px, Bounds, Pixels, Window};
+use gpui::{canvas, prelude::*, px, Bounds, Div, MouseButton, Pixels, Stateful, Window};
 use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 
 #[derive(Clone, Default)]
-pub struct Frame(Rc<RefCell<BTreeMap<String, Part>>>);
+pub struct Frame {
+    parts: Rc<RefCell<BTreeMap<String, Part>>>,
+    pointer: Rc<RefCell<BTreeMap<String, (bool, bool)>>>,
+}
 
 #[derive(Clone)]
 pub struct Part {
@@ -15,10 +18,43 @@ pub struct Part {
 
 impl Frame {
     pub fn clear(&self) {
-        self.0.borrow_mut().clear();
+        self.parts.borrow_mut().clear();
+    }
+    pub fn unmount(&self) {
+        self.clear();
+        self.pointer.borrow_mut().clear();
     }
     pub fn part(&self, name: &str) -> Option<Part> {
-        self.0.borrow().get(name).cloned()
+        self.parts.borrow().get(name).cloned()
+    }
+
+    pub fn pointer(&self, id: &str) -> (bool, bool) {
+        self.part(id)
+            .and_then(|_| self.pointer.borrow().get(id).copied())
+            .unwrap_or_default()
+    }
+
+    pub fn observe(&self, element: Stateful<Div>, id: &str) -> Stateful<Div> {
+        let (over, down, up, out) = (
+            self.pointer.clone(),
+            self.pointer.clone(),
+            self.pointer.clone(),
+            self.pointer.clone(),
+        );
+        let (a, b, c, d) = (id.to_owned(), id.to_owned(), id.to_owned(), id.to_owned());
+        element
+            .on_hover(move |hovered, _, _| {
+                over.borrow_mut().entry(a.clone()).or_default().0 = *hovered
+            })
+            .on_mouse_down(MouseButton::Left, move |_, _, _| {
+                down.borrow_mut().entry(b.clone()).or_default().1 = true
+            })
+            .on_mouse_up(MouseButton::Left, move |_, _, _| {
+                up.borrow_mut().entry(c.clone()).or_default().1 = false
+            })
+            .on_mouse_up_out(MouseButton::Left, move |_, _, _| {
+                out.borrow_mut().entry(d.clone()).or_default().1 = false
+            })
     }
 
     pub fn track<D: ParentElement>(&self, div: D, name: String, text: String) -> D {
@@ -43,7 +79,7 @@ impl Frame {
             &[style.to_run(text.len())],
             None,
         );
-        self.0.borrow_mut().insert(
+        self.parts.borrow_mut().insert(
             name,
             Part {
                 bounds,

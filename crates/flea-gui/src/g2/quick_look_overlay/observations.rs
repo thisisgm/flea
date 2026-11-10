@@ -78,6 +78,7 @@ enum Reveal {
 
 #[derive(Default)]
 pub(crate) struct Observations {
+    pub bar_mark: Option<(gpui::SharedString, gpui::Hsla, Bounds<Pixels>)>,
     pub title: Option<Bounds<Pixels>>,
     pub copy: Option<Bounds<Pixels>>,
     pub copy_hovered: bool,
@@ -100,6 +101,7 @@ pub(crate) type Shared = Rc<RefCell<Observations>>;
 
 impl Observations {
     pub fn opened(&mut self, now: u64, ready: bool) {
+        self.bar_mark = None;
         self.title = None;
         self.copy = None;
         self.copy_hovered = false;

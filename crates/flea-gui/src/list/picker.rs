@@ -115,13 +115,17 @@ pub(super) fn mark_ink(
 
 pub(super) fn paint_icon(
     shown: &Shown,
-    view: &ListView,
-    metrics: Metrics,
+    layout: (&ListView, Metrics),
     ink: Hsla,
     origin: (Pixels, Pixels, Option<&flea::protocol::RowFacts>),
+    captured: (
+        &std::cell::RefCell<Vec<crate::row::language_capture::Painted>>,
+        f32,
+    ),
     window: &mut Window,
     cx: &mut App,
 ) -> (usize, usize) {
+    let (view, metrics) = layout;
     let (left, top, row) = origin;
     let offset =
         leading(view, &metrics) + row.map_or(0., |row| super::outline::indent(row, &metrics));
@@ -155,6 +159,31 @@ pub(super) fn paint_icon(
         .or_else(|| shown.prepared.as_ref().map(|prepared| prepared.mark))
         .unwrap_or(Mark::File);
     let (key, data) = mark.svg();
-    paint_mark(key, data, at, metrics.mark, ink.opacity(dim), window, cx);
+    if paint_mark(
+        key.clone(),
+        data,
+        at,
+        metrics.mark,
+        ink.opacity(dim),
+        window,
+        cx,
+    ) && row.is_some()
+    {
+        captured
+            .0
+            .borrow_mut()
+            .push(crate::row::language_capture::Painted {
+                index: shown.index,
+                key,
+                data,
+                ink: ink.opacity(dim),
+                slot: Bounds::new(at, size(px(metrics.mark), px(metrics.mark))),
+                label_x: captured.1,
+                cursor: shown.state.cursor,
+                hovered: shown.state.hovered,
+                cut: dim != 1.,
+                opacity: dim,
+            });
+    }
     (1, 0)
 }
