@@ -150,7 +150,7 @@ impl TrackElement {
                                 let bright = cursor
                                     || lifted
                                     || self.focus.selected.contains(index)
-                                    || self.focus.hover == Some((view.slot, *index));
+                                    || self.focus.hover_lit(view.slot, *index);
                                 paint_line(
                                     location,
                                     name_x + name.line().width + px(gap),

@@ -2262,6 +2262,7 @@
   "settings.row.group_by_kind": "Seskupovat podle typu",
   "settings.row.hidden_last": "Skryté soubory poslední",
   "settings.row.highlight_today": "Zvýraznit dnešní data",
+  "settings.row.highlight_hover": "Zvýraznit pod ukazatelem",
   "settings.row.tabs_as_icons": "Zobrazit karty jako ikony",
   "settings.row.empty_omi": "Zobrazit Omi v prázdných složkách",
   "settings.row.empty_rotate": "Střídat zprávy prázdné složky",

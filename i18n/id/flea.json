@@ -850,6 +850,7 @@
   "settings.row.columns_limit": "Batas tampilan kolom",
   "settings.row.show_git_status": "Tampilkan status Git",
   "settings.row.highlight_today": "Sorot tanggal hari ini",
+  "settings.row.highlight_hover": "Sorot saat penunjuk di atasnya",
   "settings.row.tabs_as_icons": "Tampilkan tab sebagai ikon",
   "settings.row.empty_omi": "Tampilkan Omi di folder kosong",
   "settings.row.empty_rotate": "Gilir pesan folder kosong",

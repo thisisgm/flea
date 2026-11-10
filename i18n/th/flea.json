@@ -2121,6 +2121,7 @@
   "settings.row.group_by_kind": "จัดกลุ่มตามชนิด",
   "settings.row.hidden_last": "ไฟล์ที่ซ่อนอยู่ท้ายสุด",
   "settings.row.highlight_today": "เน้นวันที่วันนี้",
+  "settings.row.highlight_hover": "เน้นเมื่อชี้เมาส์",
   "settings.row.tabs_as_icons": "แสดงแท็บเป็นไอคอน",
   "settings.row.empty_omi": "แสดง Omi ในโฟลเดอร์ว่าง",
   "settings.row.empty_rotate": "สลับข้อความในโฟลเดอร์ว่าง",

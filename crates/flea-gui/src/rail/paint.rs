@@ -5,6 +5,8 @@ pub(super) fn paint_ground(
     row: &LaidRow,
     model: &RowsModel,
     palette: &Palette,
+    hairline: f32,
+    hover_wash: bool,
     window: &mut Window,
 ) {
     if is_cue(model, row.index) {
@@ -14,11 +16,14 @@ pub(super) fn paint_ground(
     if model.menu_open {
         return;
     }
-    if model.hovered == Some(row.index) {
-        window.paint_quad(fill(
-            box_of(row.rect),
-            palette.foreground.opacity(crate::list::HOVER),
-        ));
+    // 0402-rail-hover: every ground stops at the divider hair's snapped left edge, so the hair stays bare.
+    let mut ground = box_of(row.rect);
+    let scale = window.scale_factor();
+    let right = ((f32::from(ground.right()) - hairline) * scale).round() / scale;
+    ground.size.width = px((right - f32::from(ground.left())).max(0.));
+    // 0402-rail-hover: the pointer's row takes the list's 8% wash only while Highlight on hover is ticked.
+    if hover_wash && model.hovered == Some(row.index) {
+        window.paint_quad(fill(ground, palette.foreground.opacity(crate::list::HOVER)));
     }
     let keyboard = model.focused && !model.pointer_focus;
     let highlighted = if keyboard { model.cursor } else { model.lit };
@@ -30,7 +35,7 @@ pub(super) fn paint_ground(
         } else {
             palette.foreground.opacity(crate::list::GREY_CURSOR)
         };
-        window.paint_quad(fill(box_of(row.rect), plate));
+        window.paint_quad(fill(ground, plate));
         // HIG rail-favorites and SidebarRow.qml: the keyboard cursor keeps its accent edge, eject focus included.
         if keyboard {
             window.paint_quad(fill(

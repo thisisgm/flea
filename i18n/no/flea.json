@@ -2172,6 +2172,7 @@
   "settings.row.group_by_kind": "Grupper etter type",
   "settings.row.hidden_last": "Skjulte filer sist",
   "settings.row.highlight_today": "Fremhev dagens datoer",
+  "settings.row.highlight_hover": "Fremhev under pekeren",
   "settings.row.tabs_as_icons": "Vis faner som ikoner",
   "settings.row.empty_omi": "Vis Omi i tomme mapper",
   "settings.row.empty_rotate": "Bytt meldinger i tomme mapper",

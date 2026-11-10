@@ -2172,6 +2172,7 @@
   "settings.row.group_by_kind": "Ομαδοποίηση κατά τύπο",
   "settings.row.hidden_last": "Κρυφά αρχεία τελευταία",
   "settings.row.highlight_today": "Επισήμανση σημερινών ημερομηνιών",
+  "settings.row.highlight_hover": "Επισήμανση κάτω από τον δείκτη",
   "settings.row.tabs_as_icons": "Εμφάνιση καρτελών ως εικονιδίων",
   "settings.row.empty_omi": "Εμφάνιση του Omi σε κενούς φακέλους",
   "settings.row.empty_rotate": "Εναλλαγή μηνυμάτων κενού φακέλου",

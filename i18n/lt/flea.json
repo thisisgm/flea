@@ -2262,6 +2262,7 @@
   "settings.row.group_by_kind": "Grupuoti pagal tipą",
   "settings.row.hidden_last": "Paslėpti failai pabaigoje",
   "settings.row.highlight_today": "Paryškinti šiandienos datas",
+  "settings.row.highlight_hover": "Paryškinti po žymekliu",
   "settings.row.tabs_as_icons": "Rodyti korteles kaip piktogramas",
   "settings.row.empty_omi": "Rodyti Omi tuščiuose aplankuose",
   "settings.row.empty_rotate": "Keisti tuščio aplanko pranešimus",

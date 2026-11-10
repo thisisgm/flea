@@ -668,6 +668,7 @@
   "settings.row.columns_limit": "分栏视图栏数上限",
   "settings.row.show_git_status": "显示 Git 状态",
   "settings.row.highlight_today": "突出显示今天的日期",
+  "settings.row.highlight_hover": "悬停时突出显示",
   "settings.row.tabs_as_icons": "以图标显示标签页",
   "settings.row.empty_omi": "在空文件夹中显示 Omi",
   "settings.row.empty_rotate": "轮换空文件夹提示语",

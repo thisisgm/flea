@@ -2172,6 +2172,7 @@
   "settings.row.group_by_kind": "Ryhmittele tyypin mukaan",
   "settings.row.hidden_last": "Piilotiedostot viimeiseksi",
   "settings.row.highlight_today": "Korosta tämän päivän päivämääriä",
+  "settings.row.highlight_hover": "Korosta osoittimen alla",
   "settings.row.tabs_as_icons": "Näytä välilehdet kuvakkeina",
   "settings.row.empty_omi": "Näytä Omi tyhjissä kansioissa",
   "settings.row.empty_rotate": "Vaihtele tyhjän kansion viestejä",

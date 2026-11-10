@@ -2121,6 +2121,7 @@
   "settings.row.group_by_kind": "依類型分組",
   "settings.row.hidden_last": "隱藏檔案置後",
   "settings.row.highlight_today": "突顯今天的日期",
+  "settings.row.highlight_hover": "游標停留時突顯",
   "settings.row.tabs_as_icons": "以圖示顯示分頁",
   "settings.row.empty_omi": "在空資料夾中顯示 Omi",
   "settings.row.empty_rotate": "輪換空資料夾提示語",

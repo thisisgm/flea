@@ -838,6 +838,7 @@
   "settings.row.columns_limit": "열 보기 제한",
   "settings.row.show_git_status": "Git 상태 표시",
   "settings.row.highlight_today": "오늘 날짜 강조",
+  "settings.row.highlight_hover": "포인터를 올리면 강조",
   "settings.row.tabs_as_icons": "탭을 아이콘으로 표시",
   "settings.row.empty_omi": "빈 폴더에 Omi 표시",
   "settings.row.empty_rotate": "빈 폴더 메시지 순환",

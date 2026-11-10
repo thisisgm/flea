@@ -2394,6 +2394,7 @@
   "settings.row.group_by_kind": "Групувати за типом",
   "settings.row.hidden_last": "Приховані файли в кінці",
   "settings.row.highlight_today": "Виділяти сьогоднішні дати",
+  "settings.row.highlight_hover": "Виділяти під вказівником",
   "settings.row.tabs_as_icons": "Показувати вкладки значками",
   "settings.row.empty_omi": "Показувати Omi в порожніх теках",
   "settings.row.empty_rotate": "Змінювати повідомлення порожньої теки",

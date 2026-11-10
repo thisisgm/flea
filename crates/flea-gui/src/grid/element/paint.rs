@@ -7,7 +7,6 @@ use crate::grid::{
     tile::{self, Shaping},
     Shown,
 };
-use crate::palette::Theme;
 use gpui::{
     fill, outline, point, px, relative, size, App, BorderStyle, Bounds, ContentMask, Corners,
     Element, ElementId, GlobalElementId, InspectorElementId, LayoutId, Pixels, Style,
@@ -323,7 +322,6 @@ impl Element for GridElement {
         window: &mut Window,
         cx: &mut App,
     ) -> Ink {
-        let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
         let mut state = self.state.borrow_mut();
         self.prepare(&mut state, bounds, window);
         if state.shaped_labels.is_none() && state.drawn.iter().any(|drawn| drawn.drop.is_some()) {
@@ -336,7 +334,7 @@ impl Element for GridElement {
             state.shaped_labels = Some([move_, copy, link]);
         }
         state.frame_held = Some(Rc::clone(&self.held));
-        state.record_frame(bounds, Ink::inherited(&window.text_style(), theme))
+        state.record_frame(bounds, Ink::for_window(window, cx))
     }
 
     fn paint(

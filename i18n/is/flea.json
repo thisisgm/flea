@@ -2172,6 +2172,7 @@
   "settings.row.group_by_kind": "Flokka eftir tegund",
   "settings.row.hidden_last": "Faldar skrár síðast",
   "settings.row.highlight_today": "Auðkenna dagsetningar dagsins",
+  "settings.row.highlight_hover": "Auðkenna undir bendli",
   "settings.row.tabs_as_icons": "Sýna flipa sem tákn",
   "settings.row.empty_omi": "Sýna Omi í tómum möppum",
   "settings.row.empty_rotate": "Skipta um skilaboð í tómum möppum",

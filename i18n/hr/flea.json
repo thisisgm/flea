@@ -2262,6 +2262,7 @@
   "settings.row.group_by_kind": "Grupiraj po vrsti",
   "settings.row.hidden_last": "Skrivene datoteke posljednje",
   "settings.row.highlight_today": "Istakni današnje datume",
+  "settings.row.highlight_hover": "Istakni pod pokazivačem",
   "settings.row.tabs_as_icons": "Prikaži kartice kao ikone",
   "settings.row.empty_omi": "Prikaži Omi u praznim mapama",
   "settings.row.empty_rotate": "Izmjenjuj poruke prazne mape",

@@ -105,6 +105,8 @@ pub struct Focus {
     /// Marked listing indices, sorted.
     pub selected: Rc<[usize]>,
     pub hover: Option<(Slot, usize)>,
+    /// Settings > View > Highlight on hover: the pointer's row washes and brightens; hover stays the pointer's.
+    pub hover_wash: bool,
     /// The listing row a rename edits, and the rename band's Grow on the active track.
     pub renaming: Option<usize>,
     pub rename_slot: Option<Slot>,
@@ -113,6 +115,11 @@ pub struct Focus {
 }
 
 impl Focus {
+    /// The pointer's row as drawn: lit only while Highlight on hover is ticked.
+    pub(super) fn hover_lit(&self, slot: Slot, index: usize) -> bool {
+        self.hover_wash && self.hover == Some((slot, index))
+    }
+
     pub(super) fn dropping(&self, slot: Slot, index: usize) -> bool {
         self.drop
             .as_ref()
@@ -135,9 +142,7 @@ impl Focus {
             _ if active && self.selected.binary_search(&index).is_ok() => {
                 Some(palette.foreground.opacity(MARKED))
             }
-            _ if lifted || self.hover == Some((slot, index)) => {
-                Some(palette.foreground.opacity(HOVER))
-            }
+            _ if lifted || self.hover_lit(slot, index) => Some(palette.foreground.opacity(HOVER)),
             _ => None,
         }
     }

@@ -2051,6 +2051,7 @@
   "settings.row.group_by_kind": "種類別にグループ化",
   "settings.row.hidden_last": "隠しファイルを末尾に表示",
   "settings.row.highlight_today": "今日の日付を強調",
+  "settings.row.highlight_hover": "ポインタ下を強調",
   "settings.row.tabs_as_icons": "タブをアイコンで表示",
   "settings.row.empty_omi": "空のフォルダーに Omi を表示",
   "settings.row.empty_rotate": "空のフォルダーのメッセージを切り替え",

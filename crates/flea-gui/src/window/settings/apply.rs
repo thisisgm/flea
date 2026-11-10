@@ -245,6 +245,7 @@ impl Shell {
         }
         self.rail_state(&data, cx);
         crate::g2::status_feedback::hero::EmptyLook::apply(&data, cx);
+        crate::list::hover_wash::HoverWash::apply(&data, cx);
         if let Some(host) = self.panes.iter().flatten().next() {
             *host.nav.folders.borrow_mut() = Folders::from_settings(&data, newest);
         }

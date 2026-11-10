@@ -6,6 +6,7 @@ pub mod element;
 mod git;
 pub mod header;
 mod hit;
+pub mod hover_wash;
 mod loading;
 mod locale;
 mod measure;
@@ -94,6 +95,8 @@ pub struct RowStates {
     /// Marked rows in ascending order; None is no selection, which costs nothing.
     pub selected: Option<Rc<[usize]>>,
     pub hovered: Option<usize>,
+    /// Settings > View > Highlight on hover: the pointer's row draws the wash and the lifted ink.
+    pub hover_wash: bool,
     pub renaming: Option<usize>,
     /// The rename band's Grow for this side this render: the edited row grows and the rows below move down.
     pub grow: pane::Grow,
@@ -108,14 +111,16 @@ pub struct RowState {
     pub cursor: bool,
     pub selected: bool,
     pub hovered: bool,
+    /// The pointer's row under Highlight on hover, the only hover that washes or lifts; hovered alone stays the pointer's.
+    pub hover_lit: bool,
     pub renaming: bool,
     pub drop_target: bool,
 }
 
 impl RowState {
-    /// Row.qml lifted: the cursor, the pointer, a mark or a drop target draw names, marks and cells in the foreground.
+    /// Row.qml lifted: the cursor, the lit pointer row, a mark or a drop target draw names, marks and cells in the foreground.
     pub fn lifted(self) -> bool {
-        self.cursor || self.selected || self.hovered || self.drop_target
+        self.cursor || self.selected || self.hover_lit || self.drop_target
     }
 }
 
@@ -145,6 +150,7 @@ impl RowStates {
                 .as_ref()
                 .is_some_and(|marked| marked.binary_search(&index).is_ok()),
             hovered: self.hovered == Some(index),
+            hover_lit: self.hover_wash && self.hovered == Some(index),
             renaming: self.renaming == Some(index),
             drop_target: self.drop_target == Some(index),
         }

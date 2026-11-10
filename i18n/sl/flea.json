@@ -2394,6 +2394,7 @@
   "settings.row.group_by_kind": "Združi po vrsti",
   "settings.row.hidden_last": "Skrite datoteke na koncu",
   "settings.row.highlight_today": "Poudari današnje datume",
+  "settings.row.highlight_hover": "Poudari pod kazalcem",
   "settings.row.tabs_as_icons": "Pokaži zavihke kot ikone",
   "settings.row.empty_omi": "Pokaži Omi v praznih mapah",
   "settings.row.empty_rotate": "Izmenjuj sporočila prazne mape",

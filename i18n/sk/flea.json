@@ -2303,6 +2303,7 @@
   "settings.row.group_by_kind": "Zoskupiť podľa typu",
   "settings.row.hidden_last": "Skryté súbory na konci",
   "settings.row.highlight_today": "Zvýrazniť dnešné dátumy",
+  "settings.row.highlight_hover": "Zvýrazniť pod ukazovateľom",
   "settings.row.tabs_as_icons": "Zobraziť karty ako ikony",
   "settings.row.empty_omi": "Zobraziť Omi v prázdnych priečinkoch",
   "settings.row.empty_rotate": "Striedať správy prázdneho priečinka",

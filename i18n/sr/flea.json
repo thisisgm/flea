@@ -2303,6 +2303,7 @@
   "settings.row.group_by_kind": "Групиши по врсти",
   "settings.row.hidden_last": "Скривене датотеке на крају",
   "settings.row.highlight_today": "Истакни данашње датуме",
+  "settings.row.highlight_hover": "Истакни испод показивача",
   "settings.row.tabs_as_icons": "Прикажи картице као иконе",
   "settings.row.empty_omi": "Прикажи Omi у празним фасциклама",
   "settings.row.empty_rotate": "Смењуј поруке празне фасцикле",

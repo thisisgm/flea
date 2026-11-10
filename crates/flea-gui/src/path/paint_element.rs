@@ -149,7 +149,11 @@ impl Element for CrumbElement {
                     strip.crumbs().iter().zip(&paint.runs[slot]).enumerate()
                 {
                     let held = view.drop_target == Some((slot, index)) && cx.has_active_drag();
-                    let lit = crumb.last || held || (strip.hovered == Some(index) && !crumb.elided);
+                    let lit = crumb.last
+                        || held
+                        || (crate::list::hover_wash::HoverWash::on(cx)
+                            && strip.hovered == Some(index)
+                            && !crumb.elided);
                     let extent = strip.extent(index);
                     let x = left + px(extent.map_or(0., |(left, _)| left));
                     // The wash spans the whole crumb, separator included, the same span hit accepts, as v0.3.12 does.

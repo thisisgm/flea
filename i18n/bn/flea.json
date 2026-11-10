@@ -2212,6 +2212,7 @@
   "settings.row.group_by_kind": "ধরন অনুযায়ী দলবদ্ধ করুন",
   "settings.row.hidden_last": "লুকানো ফাইল শেষে",
   "settings.row.highlight_today": "আজকের তারিখ উজ্জ্বল করুন",
+  "settings.row.highlight_hover": "পয়েন্টারের নিচে উজ্জ্বল করুন",
   "settings.row.tabs_as_icons": "ট্যাবগুলো আইকন হিসেবে দেখান",
   "settings.row.empty_omi": "খালি ফোল্ডারে Omi দেখান",
   "settings.row.empty_rotate": "খালি ফোল্ডারের বার্তা ঘোরান",

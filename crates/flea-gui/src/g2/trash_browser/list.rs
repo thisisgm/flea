@@ -47,6 +47,7 @@ pub struct ListPaint {
     pub scroll_y: f32,
     pub cursor: usize,
     pub hover: Option<usize>,
+    pub hover_wash: bool,
     /// The cursor's accent edge shows only while the list holds the keyboard.
     pub edge: bool,
     /// The keyboard is in another part of the window, the rail or the tab strip, so the cursor row greys as a folder list's does.
@@ -82,6 +83,7 @@ impl ListPaint {
             scroll_y: 0.,
             cursor: 0,
             hover: None,
+            hover_wash: false,
             edge: true,
             away: false,
             shaped: Vec::new(),
@@ -211,6 +213,7 @@ impl Element for TrashList {
         cx: &mut App,
     ) {
         let mut state = self.0.borrow_mut();
+        state.hover_wash = crate::list::hover_wash::HoverWash::on(cx);
         state.bounds = Some(bounds);
         let visible = bounds
             .intersect(&window.content_mask().bounds)

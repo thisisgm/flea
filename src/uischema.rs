@@ -23,6 +23,7 @@ pub const DEFAULTS: &str = r#"{
   "hiddenLast": false,
   "showGitStatus": false,
   "highlightToday": false,
+  "highlightHover": false,
   "tabsAsIcons": false,
   "emptyFolderOmi": true,
   "emptyFolderRotate": true,
@@ -217,6 +218,7 @@ pub const SCHEMA: &[(&str, Rule)] = &[
     ("hiddenLast", Rule::Bool),
     ("showGitStatus", Rule::Bool),
     ("highlightToday", Rule::Bool),
+    ("highlightHover", Rule::Bool),
     // Settings > View's tab marks and the empty folder's two rows; off, on and on draw 0.4.1's window.
     ("tabsAsIcons", Rule::Bool),
     ("emptyFolderOmi", Rule::Bool),
@@ -319,6 +321,7 @@ mod tests {
                 "hiddenLast",
                 "showGitStatus",
                 "highlightToday",
+                "highlightHover",
                 "tabsAsIcons",
                 "emptyFolderOmi",
                 "emptyFolderRotate",
@@ -349,6 +352,7 @@ mod tests {
         assert_eq!(d.get("langMarks").and_then(Json::as_bool), Some(true));
         assert_eq!(d.get("showGitStatus").and_then(Json::as_bool), Some(false));
         assert_eq!(d.get("highlightToday").and_then(Json::as_bool), Some(false));
+        assert_eq!(d.get("highlightHover").and_then(Json::as_bool), Some(false));
         assert_eq!(d.get("tabsAsIcons").and_then(Json::as_bool), Some(false));
         assert_eq!(d.get("emptyFolderOmi").and_then(Json::as_bool), Some(true));
         assert_eq!(

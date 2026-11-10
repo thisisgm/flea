@@ -19,7 +19,7 @@ impl ListPaint {
             Some(self.ink.foreground.opacity(crate::list::GREY_CURSOR))
         } else if marked {
             Some(self.ink.mark_fill)
-        } else if self.hover == Some(index) {
+        } else if self.hover_wash && self.hover == Some(index) {
             Some(self.ink.foreground.opacity(HOVER))
         } else {
             None

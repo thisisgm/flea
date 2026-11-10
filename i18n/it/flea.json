@@ -2262,6 +2262,7 @@
   "settings.row.group_by_kind": "Raggruppa per tipo",
   "settings.row.hidden_last": "File nascosti in fondo",
   "settings.row.highlight_today": "Evidenzia le date di oggi",
+  "settings.row.highlight_hover": "Evidenzia al passaggio del puntatore",
   "settings.row.tabs_as_icons": "Mostra le schede come icone",
   "settings.row.empty_omi": "Mostra Omi nelle cartelle vuote",
   "settings.row.empty_rotate": "Alterna i messaggi delle cartelle vuote",

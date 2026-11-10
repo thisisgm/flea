@@ -2212,6 +2212,7 @@
   "settings.row.group_by_kind": "قسم کے لحاظ سے گروپ کریں",
   "settings.row.hidden_last": "چھپی فائلیں آخر میں",
   "settings.row.highlight_today": "آج کی تاریخیں نمایاں کریں",
+  "settings.row.highlight_hover": "پوائنٹر کے نیچے نمایاں کریں",
   "settings.row.tabs_as_icons": "ٹیبز کو آئیکنز کے طور پر دکھائیں",
   "settings.row.empty_omi": "خالی فولڈرز میں Omi دکھائیں",
   "settings.row.empty_rotate": "خالی فولڈر کے پیغامات بدلتے رہیں",

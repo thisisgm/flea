@@ -2172,6 +2172,7 @@
   "settings.row.group_by_kind": "گروه‌بندی بر پایهٔ نوع",
   "settings.row.hidden_last": "فایل‌های پنهان در پایان",
   "settings.row.highlight_today": "برجسته کردن تاریخ‌های امروز",
+  "settings.row.highlight_hover": "برجسته کردن زیر نشانگر",
   "settings.row.tabs_as_icons": "نمایش زبانه‌ها به‌صورت نماد",
   "settings.row.empty_omi": "نمایش Omi در پوشه‌های خالی",
   "settings.row.empty_rotate": "چرخش پیام‌های پوشهٔ خالی",

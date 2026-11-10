@@ -9,6 +9,8 @@ fn grounds(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> Vec<gpui::Hsla>
         let index = producer.cursor().unwrap();
         producer.laid.borrow().row(index).unwrap().rect
     });
+    // Rail grounds stop short of the divider hair; the 2 px quad is the cursor's accent edge.
+    let hairline = list::Metrics::for_typeface(&list::Typeface::omarchy_default()).hairline;
     cx.update(|window, _| {
         let scale = window.scale_factor();
         window
@@ -19,7 +21,7 @@ fn grounds(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> Vec<gpui::Hsla>
                 (bounds.origin.x.0 / scale - rect.x).abs() < 0.1
                     && (bounds.origin.y.0 / scale - rect.y).abs() < 0.1
                     && (bounds.size.height.0 / scale - rect.height).abs() < 0.1
-                    && ((bounds.size.width.0 / scale - rect.width).abs() < 0.1
+                    && ((bounds.size.width.0 / scale - (rect.width - hairline)).abs() < 0.1
                         || (bounds.size.width.0 / scale - 2.).abs() < 0.1)
             })
             .filter_map(|quad| quad.background.as_solid())

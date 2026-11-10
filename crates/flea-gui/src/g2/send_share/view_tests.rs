@@ -132,6 +132,39 @@ fn the_pointer_lifts_the_row_under_it_and_never_moves_the_pick() {
     );
 }
 
+#[test]
+fn highlight_hover_controls_send_rows_without_moving_the_pick() {
+    let mut cx = real_cx();
+    let (window, browser, _, probe) = open(&mut cx);
+    open_browser(&browser, &["media", "docs"]);
+    let mut visual = VisualTestContext::from_window(window.into(), &cx);
+    draw(&mut visual);
+    visual.simulate_mouse_move(
+        point(px(450.), px(ROW as f32 * 1.5)),
+        None,
+        Modifiers::none(),
+    );
+    for on in [false, true, false] {
+        visual.update(|window, cx| {
+            cx.set_global(crate::list::hover_wash::HoverWash(on));
+            window.refresh();
+            window.draw(cx).clear(cx);
+            let scale = window.scale_factor();
+            let washed = window.painted_quads().iter().any(|quad| {
+                (quad.bounds.top().0 / scale - ROW as f32).abs() < 0.01
+                    && quad
+                        .background
+                        .as_solid()
+                        .is_some_and(|ink| (ink.a - crate::list::HOVER).abs() < 0.0001)
+            });
+            assert_eq!(washed, on, "Send row: Highlight on hover={on}");
+        });
+        let probe = probe.borrow();
+        assert_eq!(probe.hovered, Some(1));
+        assert_eq!(probe.picked, Some(0));
+    }
+}
+
 // The listing under the overlay, counting any press or wheel that reaches it past the opaque ground.
 struct Under {
     browser: Rc<RefCell<ShareBrowser>>,

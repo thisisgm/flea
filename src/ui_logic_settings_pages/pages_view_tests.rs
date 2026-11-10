@@ -1,4 +1,4 @@
-// 0401-settings-view-c: Show tabs as icons and the empty folder's two rows, in the board's order, marks and defaults.
+// 0401-settings-view-c and 0401-settings-hover: Highlight on hover, Show tabs as icons and the empty folder's two rows, in the boards' order, marks and defaults.
 use super::*;
 use crate::jsondoc::{parse, Json};
 use crate::ui_logic_settings_pages::test_support::say;
@@ -14,30 +14,37 @@ fn row<'a>(rows: &'a [Row], id: &str) -> &'a Row {
 }
 
 #[test]
-fn the_three_rows_sit_after_today_and_before_dragging_with_the_boards_marks() {
+fn the_four_rows_sit_after_today_and_before_dragging_with_the_boards_marks() {
     let rows = view("{}");
     let ids: Vec<&str> = rows.iter().map(|row| row.id.as_str()).collect();
     let today = ids.iter().position(|id| *id == "highlightToday").unwrap();
     assert_eq!(
-        ids[today..today + 5],
+        ids[today..today + 6],
         [
             "highlightToday",
+            "highlightHover",
             "tabsAsIcons",
             "emptyFolderOmi",
             "emptyFolderRotate",
             "openFoldersWhileDragging"
         ]
     );
-    let drawn: Vec<String> = ["tabsAsIcons", "emptyFolderOmi", "emptyFolderRotate"]
-        .iter()
-        .map(|id| {
-            let r = row(&rows, id);
-            format!("{}|{}|{}|{}", say(&r.label), r.glyph, r.on, say(&r.caption))
-        })
-        .collect();
+    let drawn: Vec<String> = [
+        "highlightHover",
+        "tabsAsIcons",
+        "emptyFolderOmi",
+        "emptyFolderRotate",
+    ]
+    .iter()
+    .map(|id| {
+        let r = row(&rows, id);
+        format!("{}|{}|{}|{}", say(&r.label), r.glyph, r.on, say(&r.caption))
+    })
+    .collect();
     assert_eq!(
         drawn,
         [
+            "Highlight on hover|pointer|false|",
             "Show tabs as icons|app-window|false|",
             "Show Omi in empty folders|bot|true|",
             "Rotate empty folder messages|bot|true|",
@@ -54,12 +61,16 @@ fn each_row_reads_its_own_key_and_turns_off_alone() {
     assert!(row(&rotate_off, "emptyFolderOmi").on && !row(&rotate_off, "emptyFolderRotate").on);
     assert!(row(&rotate_off, "emptyFolderOmi").available);
     assert!(row(&view(r#"{"tabsAsIcons":true}"#), "tabsAsIcons").on);
+    let hover = view(r#"{"highlightHover":true}"#);
+    assert!(row(&hover, "highlightHover").on && !row(&hover, "highlightToday").on);
+    assert!(!row(&view(r#"{"highlightToday":true}"#), "highlightHover").on);
 }
 
 #[test]
 fn the_schema_ships_the_rows_as_041_draws_and_takes_only_booleans() {
     let fresh = crate::uistate::from_file("{}");
     for (key, on) in [
+        ("highlightHover", false),
         ("tabsAsIcons", false),
         ("emptyFolderOmi", true),
         ("emptyFolderRotate", true),

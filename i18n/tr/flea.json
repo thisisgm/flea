@@ -2212,6 +2212,7 @@
   "settings.row.group_by_kind": "Türe göre grupla",
   "settings.row.hidden_last": "Gizli dosyalar sonda",
   "settings.row.highlight_today": "Bugünün tarihlerini vurgula",
+  "settings.row.highlight_hover": "İşaretçinin altındakini vurgula",
   "settings.row.tabs_as_icons": "Sekmeleri simge olarak göster",
   "settings.row.empty_omi": "Boş klasörlerde Omi'yi göster",
   "settings.row.empty_rotate": "Boş klasör mesajlarını döndür",

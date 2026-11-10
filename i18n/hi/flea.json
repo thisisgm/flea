@@ -2172,6 +2172,7 @@
   "settings.row.group_by_kind": "प्रकार के अनुसार समूह बनाएँ",
   "settings.row.hidden_last": "छिपी फ़ाइलें अंत में",
   "settings.row.highlight_today": "आज की तिथियाँ उभारें",
+  "settings.row.highlight_hover": "पॉइंटर के नीचे उभारें",
   "settings.row.tabs_as_icons": "टैब को आइकन के रूप में दिखाएँ",
   "settings.row.empty_omi": "खाली फ़ोल्डरों में Omi दिखाएँ",
   "settings.row.empty_rotate": "खाली फ़ोल्डर के संदेश बदलते रहें",

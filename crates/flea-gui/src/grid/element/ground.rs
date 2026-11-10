@@ -60,9 +60,23 @@ pub(super) fn plate(
         } else {
             ink.foreground.opacity(crate::list::TRACK)
         })
-    } else if drawn.hovered {
+    } else if drawn.hovered && ink.hover_wash {
         Some(ink.foreground.opacity(super::HOVER))
     } else {
         None
+    }
+}
+
+impl Ink {
+    /// The window's roles and Settings > View > Highlight on hover, read once per frame in prepaint.
+    pub(super) fn for_window(window: &Window, cx: &gpui::App) -> Self {
+        let theme = cx
+            .try_global::<crate::palette::Theme>()
+            .copied()
+            .unwrap_or_default();
+        Self {
+            hover_wash: crate::list::hover_wash::HoverWash::on(cx),
+            ..Self::inherited(&window.text_style(), theme)
+        }
     }
 }

@@ -710,6 +710,7 @@
   "settings.row.columns_limit": "Limite da vista de colunas",
   "settings.row.show_git_status": "Mostrar estado Git",
   "settings.row.highlight_today": "Realçar as datas de hoje",
+  "settings.row.highlight_hover": "Realçar ao passar o ponteiro",
   "settings.row.tabs_as_icons": "Mostrar separadores como ícones",
   "settings.row.empty_omi": "Mostrar Omi em pastas vazias",
   "settings.row.empty_rotate": "Alternar mensagens de pasta vazia",

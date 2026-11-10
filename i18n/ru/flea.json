@@ -2394,6 +2394,7 @@
   "settings.row.group_by_kind": "Группировать по типу",
   "settings.row.hidden_last": "Скрытые файлы в конце",
   "settings.row.highlight_today": "Выделять сегодняшние даты",
+  "settings.row.highlight_hover": "Выделять под указателем",
   "settings.row.tabs_as_icons": "Показывать вкладки значками",
   "settings.row.empty_omi": "Показывать Omi в пустых папках",
   "settings.row.empty_rotate": "Сменять сообщения в пустых папках",

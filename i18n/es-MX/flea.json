@@ -2262,6 +2262,7 @@
   "settings.row.group_by_kind": "Agrupar por tipo",
   "settings.row.hidden_last": "Archivos ocultos al final",
   "settings.row.highlight_today": "Resaltar fechas de hoy",
+  "settings.row.highlight_hover": "Resaltar al pasar el puntero",
   "settings.row.tabs_as_icons": "Mostrar pestañas como íconos",
   "settings.row.empty_omi": "Mostrar a Omi en carpetas vacías",
   "settings.row.empty_rotate": "Alternar mensajes de carpeta vacía",
