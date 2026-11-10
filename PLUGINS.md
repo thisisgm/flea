@@ -380,10 +380,10 @@ A row appears in the file menu, the background menu, or both, while the selectio
 `run` with the action id, the captured selection and the plugin's clamped `settings`. `folder`, the folder the menu was
 opened in, is sent only when the manifest declares the `folder` access. An entry's `glyph` names the row's mark: `hash`
 or one of the file menu's own marks (`app-window archive archive-out check checkmark chevron-right clipboard code
-columns contrast copy copy-x download drive eject eye eye-off file file-plus file-text folder folder-open folder-plus
-globe image images info key lock minus network play plus printer rename scissors server shelf sliders sort star symlink
-tag terminal trash type undo bot x zap cloud-upload laptop smartphone`). It defaults to `code`, and any other name draws
-no mark.
+columns contrast copy copy-x corner-down-right download drive eject eye eye-off file file-plus file-text folder
+folder-open folder-plus globe image images info key lock minus network play plus printer rename scissors server shelf
+sliders sort star symlink tag terminal trash type undo bot x zap cloud-upload laptop smartphone`). It defaults to `code`,
+and any other name draws no mark.
 This example asks for the expected checksum in Flea's input card, described above.
 
 ```json manifest=examples/plugins/checksums/manifest.json
