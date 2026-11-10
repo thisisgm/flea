@@ -391,7 +391,7 @@ case_f3_dual_grid() ( f3_roundtrip grid )
 # FX-POLISH uses the existing Permissions, Jobs, keymap and Trash recipes.
 CASES+=("permissions-readonly 1100x700 surface:PermissionsDialog"
         "archive-failed-reason 1100x700 surface:TransferCard"
-        "keymap-keep-results 1100x700 surface:KeymapSheet"
+        "keymap-keep-results 1100x700 surface:KeymapSheet key:keepResults"
         "trash-cursor-rest 1100x700 surface:TrashView"
         "trash-cursor-hover 1100x700 surface:TrashView"
         "trash-cursor-keyboard 1100x700 surface:TrashView"
@@ -428,27 +428,36 @@ case_keymap_keep_results() (
     snap
 )
 
+# Escape would leave Trash, so Tab walks the focus ring to the wanted stop instead.
+fxpolish_tab_to() {
+    local stop=$1 presses ring_limit=6
+    for presses in $(seq 1 "$ring_limit"); do
+        [ "$(ipc focusStop)" = "$stop" ] && return 0
+        key -k Tab
+        sleep 0.1
+    done
+    wait_ipc focusStop "$stop"
+}
+
 fxpolish_trash() {
     [ "$VISUAL_FRONTEND" = gpui ] || return 77
     open_trash || return 1
-    key -k Escape
-    wait_ipc focusStop list || return 1
+    wait_ipc_has trashState '"total":1' || return 1
+    fxpolish_tab_to list || return 1
     park_pointer
 }
 
 case_trash_cursor_keyboard() ( fxpolish_trash && snap )
 case_trash_cursor_rest() (
     fxpolish_trash || return $?
-    key -k Tab
-    wait_ipc focusStop rail || return 1
+    fxpolish_tab_to rail || return 1
     snap
 )
 case_trash_cursor_unfocused() ( case_trash_cursor_rest )
 case_trash_cursor_hover() (
     local x y ax ay
     fxpolish_trash || return $?
-    key -k Tab
-    wait_ipc focusStop rail || return 1
+    fxpolish_tab_to rail || return 1
     read -r x y <<< "$(ipc trashRowCentre 0)"
     [ -n "$x" ] && [ -n "$y" ] || return 1
     read -r ax ay <<< "$(win_json | jq -r '.at | "\(.[0]) \(.[1])"')"
