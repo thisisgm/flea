@@ -195,6 +195,7 @@ impl Gate {
             }
         } else { None };
         if let Some(work) = work {
+            if !matches!(work, Work::Query(..)) { super::searchremap::freeze(st); }
             let mut session = st.search_session.take().unwrap();
             self.gen = match &work { Work::Query(_, gen, _, _) => *gen, _ => session.last_answered_gen };
             // Row ids move only with a patch or a compaction, and both advance the index epoch.

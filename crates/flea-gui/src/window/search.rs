@@ -31,6 +31,9 @@ mod grid_tests;
 #[path = "../g2/file_search/i50_query_host_tests.rs"]
 mod i50_query_host_tests;
 #[cfg(test)]
+#[path = "search_keep_tests.rs"]
+mod keep_tests;
+#[cfg(test)]
 #[path = "search_presented_tests.rs"]
 mod presented_tests;
 #[cfg(test)]
@@ -44,8 +47,11 @@ mod tests;
 mod contents;
 #[path = "search_host.rs"]
 mod host;
+#[path = "search_keep.rs"]
+mod keep;
 #[path = "search_lines.rs"]
 mod lines;
+pub(crate) use keep::Kept;
 #[path = "search_tag.rs"]
 mod tag;
 pub(crate) use host::Runtime;
@@ -88,6 +94,9 @@ impl Shell {
         let was = (host.search.owner.active(), host.search.owner.session.kind);
         change(&mut host.search.owner, &mut pending);
         if let Some(session) = pending.session {
+            if session.drops(host.search.rows_generation) {
+                host.search.kept = None;
+            }
             host.pane.swap.session = session;
         }
         let mut relisted = false;

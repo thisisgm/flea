@@ -167,7 +167,7 @@ impl Shell {
         let event = match event {
             BackendEvent::Plugins(_) => unreachable!("plugins handled above"),
             BackendEvent::Session { generation, reply } => {
-                if host.pane.swap.session.drops(generation) {
+                if host.search_reply_dropped(generation, &reply, &self.locale) {
                     return;
                 }
                 match host

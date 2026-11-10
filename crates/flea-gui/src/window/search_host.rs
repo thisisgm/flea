@@ -6,6 +6,7 @@ use crate::{
 use flea::ui_logic_file_search::Wire;
 use std::{cell::RefCell, rc::Rc};
 pub(crate) struct Runtime {
+    pub(crate) kept: Option<super::Kept>,
     pub owner: Search,
     pub input: Option<gpui::Entity<file_search::input::QueryInput>>,
     pub rows_generation: usize,
@@ -32,6 +33,7 @@ impl Runtime {
 
     pub fn new(face: crate::list::Typeface) -> Self {
         Self {
+            kept: None,
             // The GUI wires the contents producer, so Ctrl+G switches the strip to contents instead of doing nothing.
             owner: Search::new(Wire {
                 contents: true,

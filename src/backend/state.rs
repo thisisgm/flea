@@ -65,6 +65,7 @@ pub struct State {
     pub search: Option<Search>,
     // The live search session; a list, sort or close drops it and frees its arena.
     pub search_session: Option<Session>,
+    pub(crate) search_remap: super::searchremap::Remap,
     // When the running walk last announced its count, so SEARCH_REPORT can throttle the stream.
     pub search_reported: Instant,
     // Which numbering the rows are in; forget_rows moves it, see src/backend/rowguard.rs.
@@ -118,6 +119,7 @@ impl State {
             settled: Default::default(),
             search: None, search_reported: Instant::now(), generation: FIRST_LISTING - 1, held: Held::List,
             search_session: None,
+            search_remap: Default::default(),
             clip_watching: false,
             nearby: Default::default(),
         }

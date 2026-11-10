@@ -81,6 +81,7 @@ pub(crate) fn on_delta(
     pool: &super::thumbs::Pool,
     token: usize,
 ) {
+    super::searchremap::freeze(st);
     let mut empty = None;
     let answer = st.search_session.as_mut().and_then(|session| {
         if !session.apply_watch_token(token) { return None; }

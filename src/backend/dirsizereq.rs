@@ -107,6 +107,7 @@ mod tests {
             settled: Default::default(),
             search: None,
             search_session: None,
+            search_remap: Default::default(),
             search_reported: Instant::now(),
             generation: 0,
             held: crate::backend::state::Held::List,

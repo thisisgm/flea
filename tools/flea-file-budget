@@ -34,7 +34,7 @@ crates/flea-gui/src/window/events_ipc.rs 425
 crates/flea-gui/src/window/network.rs 411
 crates/flea-gui/src/window/status.rs 408
 crates/flea-gui/src/g2/context_menus/delivery.rs 417
-src/backend/mod.rs 407
+src/backend/mod.rs 408
 crates/flea-gui/src/window/columns_render.rs 407
 crates/flea-gui/src/window/composition.rs 401
 crates/flea-gui/src/g2/file_clipboard/join_tests.rs 447
@@ -147,7 +147,7 @@ src/backend/opsdispatch.rs 2414
 src/backend/opsreq.rs 605
 src/backend/opsreq/tests.rs 502
 src/backend/permissions.rs 703
-src/backend/run.rs 1280
+src/backend/run.rs 1286
 src/backend/run_session_tests.rs 582
 src/backend/ops.rs 440
 src/backend/thumbs.rs 562

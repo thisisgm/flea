@@ -1300,6 +1300,7 @@ udisks_out=$(python3 tests/flash-udisks.py "$PWD/tools/flea-udisks" 2>&1)
 check "the udisks helper's decisions all hold" "1" "$(printf '%s\n' "$udisks_out" | grep -c '^flash-udisks: all checks passed$')"
 printf '%s\n' "$udisks_out" | grep '^FAIL' || true
 
+python3 tests/search-remap.py "$BIN" || fail=1
 # No per-key cleanup: the cache is inside the sandbox, so it goes when the sandbox does.
 sandbox_remove "$SB"
 exit $fail

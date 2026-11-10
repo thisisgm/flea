@@ -129,6 +129,11 @@ pub fn parse_request(line: &str) -> Request {
             sizes: field_usize(line, "sizes"),
         },
         Some("searchclose") => Request::SearchClose,
+        // {"c":"searchremap","gen":7,"from":12,"rows":[0,900],"cursor":900}
+        Some("searchremap") => Request::SearchRemap {
+            gen: field_usize(line, "gen").unwrap_or(0), from: field_usize(line, "from").unwrap_or(0),
+            rows: field_usize_array(line, "rows"), cursor: field_usize(line, "cursor").unwrap_or(usize::MAX),
+        },
         Some("thumb") => match crate::backend::thumbreq::identity::Tag::parse(line) {
             Ok(identity) => Request::Thumb { rows: field_usize_array(line, "rows"), cache_only: field_bool(line, "cacheOnly"), identity },
             Err(_) => Request::Unknown,
