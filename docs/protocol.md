@@ -601,6 +601,27 @@ A `list`, `listpaths`, `sort`,
 `search` or `searchclose` closes the session too, and drops
 its index. Closing mid-walk cancels it: no directory opens after close.
 
+### searchremap
+
+`{"c":"searchremap","gen":7,"from":12,"rows":[0,900],"cursor":900}`
+
+A client displaying a same-generation Search replacement can remap its marks and cursor from
+the old `from` listing stamp. The backend keeps one immutable source listing, including names
+outside the first window, until it answers a remap. It resolves full paths into the current
+result listing, never basenames. The reply is bounded by the requested selection:
+
+`{"t":"searchremap","ok":true,"gen":7,"from":12,"listing":15,"rows":[8],"cursor":8}`
+
+Missing files are omitted from `rows`; an absent cursor is `null`. Rows are unique and ascending.
+`listing` names the current answer, which can be newer than the replacement that prompted the
+request. Repeated replacements retain the source until a successful remap, which releases it;
+the next index change snapshots the answered listing again before it mutates anything.
+Stream order puts that reply before later replacements.
+The frontend keeps one request in flight and applies it only to its matching generation, source
+and current listing. A stale source, query generation, closed search or different scope answers
+`ok:false`, empty `rows` and a null cursor. Navigation and a new query discard the snapshot.
+Old clients need not send this optional request; existing replies are unchanged.
+
 ### searchquery
 
 `{"c":"searchquery","query":"<string>","gen":<uint>,"count":<uint>[,"sizes":<uint>]}`

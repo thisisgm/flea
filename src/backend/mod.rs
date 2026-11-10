@@ -137,6 +137,7 @@ mod searchwalkread;
 #[cfg(test)]
 pub(crate) mod searchwalkhold;
 pub mod searchreq;
+mod searchremap;
 pub mod searchhold;
 pub mod searchpatch;
 pub(crate) mod searchwatch;

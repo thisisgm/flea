@@ -14,6 +14,9 @@ impl Shell {
             || self.menu_opened()
             || self.menu.presentation.at.is_some()
             || self.input.blocked
+            || self.panes[self.focus_side]
+                .as_ref()
+                .is_some_and(|host| host.search.kept.is_some())
     }
     pub(crate) fn pointer_down(
         &mut self,

@@ -53,6 +53,7 @@ pub enum Request {
     SearchOpen { path: String, hidden: bool, folder: String },
     SearchQuery { query: String, gen: usize, count: Option<usize>, sizes: Option<usize> },
     SearchClose,
+    SearchRemap { gen: usize, from: usize, rows: Vec<usize>, cursor: usize },
     // cacheOnly answers from the shared cache alone and never starts a decoder, for a
     // storage class whose switch is off; absent is today's full path, see docs/protocol.md "thumb".
     Thumb { rows: Vec<usize>, cache_only: bool, identity: Option<super::thumbreq::identity::Tag> },

@@ -271,6 +271,7 @@ fn dispatch_inner<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tabl
         // A late list worker's descriptor goes unless a re-list aliased it onto the live watch, which a scan still out may not have committed yet.
         Event::AbandonWatch(wd) => gate.park_late(wd).into_iter().for_each(|late| watch.abandon_wd(late)),
         Event::Op(m) => {
+            super::searchremap::freeze(st);
             #[cfg(test)]
             if matches!(&m, crate::backend::opsreq::OpMsg::RenameDone { .. }) { super::renametiming::mark("patch_begin"); }
             if let Some(session) = st.search_session.as_mut() {
@@ -347,6 +348,7 @@ fn land<W: Write>(out: &mut W, st: &mut State, tb: &Tables, pool: &Pool, watch: 
 
 // The listed folder's change line, after an open search session patches that folder's own entries.
 fn say_changed(out: &mut impl Write, st: &mut State) {
+    super::searchremap::freeze(st);
     if let Some(session) = st.search_session.as_mut() {
         session.row_cache.clear();
         let folder = session.folder.clone();
@@ -404,6 +406,7 @@ fn handle_line(
     // A session answer adopts only its first window, so rows past the head join the listing before any arm reads them.
     extend_search_listing(st, rows_needed(&request));
     match request {
+        Request::SearchRemap { gen, from, rows, cursor } => say(out, &super::searchremap::answer(st, gen, from, &rows, cursor)),
         Request::Nearby { op, id } => say(out, &st.nearby.request(&op, id, loop_tx.clone())),
         Request::NetworkAddress { address, id } => say(out, &super::networkaddress::answer(id, &address)),
         Request::Git { line } => st
@@ -879,6 +882,7 @@ fn handle_line(
 
 // An own write's landed paths patch the session index; out-of-scope paths patch nothing.
 fn patch_session_paths(st: &mut State, touched: Vec<PathBuf>) {
+    super::searchremap::freeze(st);
     if let Some(session) = st.search_session.as_mut() {
         session.patch_after_writes(&touched);
     }
@@ -896,7 +900,7 @@ mod row_needs;
 use row_needs::rows_needed;
 
 // Appends held rest rows in the answer's order and never renumbers; true when rows joined, so a miss can retry.
-fn extend_search_listing(st: &mut State, end: usize) -> bool {
+pub(crate) fn extend_search_listing(st: &mut State, end: usize) -> bool {
     let adopted = st.listing.len();
     if adopted >= end {
         return false;
@@ -914,6 +918,7 @@ fn extend_search_listing(st: &mut State, end: usize) -> bool {
 
 // A navigation drops the session and frees its arena; Esc reaches this through searchclose.
 pub(crate) fn close_search_session(st: &mut State) {
+    st.search_remap = Default::default();
     if let Some(session) = st.search_session.take() {
         let _ = session.close();
     }
@@ -921,6 +926,7 @@ pub(crate) fn close_search_session(st: &mut State) {
 
 // A session walk landed; a held query answers from the whole index, else the standing query is re-run once when it is still the newest.
 fn on_search_walked(out: &mut impl Write, st: &mut State, tb: &Tables, pool: &Pool) {
+    super::searchremap::freeze(st);
     if let Some(session) = st.search_session.as_mut() {
         if session.poll_walked() {
             if let Some(answer) = session.answer_held().or_else(|| session.re_answer_standing()) {

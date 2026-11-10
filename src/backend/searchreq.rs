@@ -173,6 +173,7 @@ pub fn emit_session_answer_cancelled(
     answer: &Answer,
     cancelled: bool,
 ) {
+    super::searchremap::landing(st, answer.gen, &answer.scope);
     st.base = answer.scope.clone();
     let names = answer.rows.iter().map(|(path, _)| path.len()).sum();
     st.listing = crate::backend::listing::Listing::with_reserve(names, answer.rows.len());
