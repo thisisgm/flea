@@ -254942,7 +254942,7 @@
     "crates/flea-gui/src/pane/presentation.rs": "775583f86268441b76fb1110bdd9c2605ebd8568985fef3b5213ec1d5ad99cdf",
     "crates/flea-gui/src/pane/requests.rs": "774c1d43afd738f48794053bc2acbdac487fbc720ec701c47dff48001d768d66",
     "crates/flea-gui/src/pane/states.rs": "3e0d7b812a41832cbea10f55a088ffd46c3ff9dbd1b7f4585596e498ab959f70",
-    "crates/flea-gui/src/pane/swap.rs": "0801002c5ad828cf3cc795b38c44b36dc7e3bc505e6639799a284baa19f1c8ad",
+    "crates/flea-gui/src/pane/swap.rs": "1e081e9e9da934804afc96ee708f528a5b0b0ec34b279a82e79b1739fd56b2be",
     "crates/flea-gui/src/pane/swap/progress.rs": "83bf2d93b54493362a16da29ab8fe861d7503e0ebbd44dcb2c2b668185a5c11f",
     "crates/flea-gui/src/path/aliases.rs": "0eebdf92c1b012542154be38438a987d6ab027e7ffe9bf184cc48620a261d11b",
     "crates/flea-gui/src/path/chrome.rs": "9b2e7a8ed5263a643c17d4ce48decc16b37844d0c900ff21bdc658c88ac22c09",
@@ -255230,7 +255230,7 @@
     "crates/flea-gui/src/window/retry.rs": "47e28348d173fb17751a0bbec862d77ff370e9c88d7c190c9489c2dad3b1e8b9",
     "crates/flea-gui/src/window/root.rs": "a681345ded3631e1bc392b279c9ac13ff87446783e9f79cbe59c22ab36c5f006",
     "crates/flea-gui/src/window/run_card.rs": "eceed40e05a8ffb658a226d39ec62f849d41ae60f00dc5f6b77a5079ba35c21b",
-    "crates/flea-gui/src/window/search.rs": "a5908391f88ac075924bdb798f8ec9e6773fa58f898e254cc51409325140bc21",
+    "crates/flea-gui/src/window/search.rs": "1b13d0d6321fcfb9ca8bbe9bcf18c696fc559ef642893820eef374abf2b44e36",
     "crates/flea-gui/src/window/search_contents.rs": "dbe4b29bbebcc96a65994afa1b8ab580d41a1d351c232e742fe0d5d09b3d4671",
     "crates/flea-gui/src/window/search_density_guards.rs": "73a4271aad704d8e6afcb95d2d028c95419238b5d34f4e9d99317d6e9b1129c8",
     "crates/flea-gui/src/window/search_empty.rs": "4b7f8b549be5f741fc3978f941d4dbc9b814498f4a962e3edc81b6f563ab6f05",
@@ -256841,8 +256841,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "fd7df5a8c51e08f9d6aa63aa6ce91478971bdd6b",
-  "source_sha": "fd7df5a8c51e08f9d6aa63aa6ce91478971bdd6b",
+  "source_ref_sha": "e9675aa2ed09cc287e871fe894adad4c298032bb",
+  "source_sha": "e9675aa2ed09cc287e871fe894adad4c298032bb",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1377,

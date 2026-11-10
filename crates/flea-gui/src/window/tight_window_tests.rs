@@ -12,6 +12,9 @@ use flea::protocol::{Reply, RowFacts};
 use gpui::{px, size, TestAppContext, WindowHandle};
 use std::{cell::Cell, sync::Arc};
 
+#[path = "search_window_tests.rs"]
+mod search_window;
+
 const TOTAL: usize = 470;
 
 #[derive(Default)]
