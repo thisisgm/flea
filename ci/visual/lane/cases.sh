@@ -1,5 +1,6 @@
 # Source after the shared flea-ci-visual lane cases to register the plugin SOURCE regression and the AirDrop plugin.
 . "$(dirname "${BASH_SOURCE[0]}")/trash.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/state_pairs.sh"
 CASES+=("settings-plugin-source-row 1100x700 surface:SettingsPanel")
 # Print and print-no-printer boards: Ctrl+P opens the real card with fixture CUPS replies.
 CASES+=("print-card 1100x700 key:print"
@@ -481,13 +482,13 @@ fxpolish_tab_to() {
 
 fxpolish_trash() {
     [ "$VISUAL_FRONTEND" = gpui ] || return 77
-    open_trash || return 1
-    wait_ipc_has trashState '"total":1' || return 1
+    open_trash "${1:-1}" || return 1
+    wait_ipc_has trashState "\"total\":${1:-1}," || return 1
     fxpolish_tab_to list || return 1
     park_pointer
 }
 
-case_trash_cursor_keyboard() ( fxpolish_trash && snap )
+case_trash_cursor_keyboard() ( trash_keyboard_shot )
 case_trash_cursor_rest() (
     fxpolish_trash || return $?
     fxpolish_tab_to rail || return 1
@@ -590,8 +591,8 @@ case_grid_hover() { hover_surface grid row true; }
 case_grid_hover_off() { hover_surface grid row false; }
 case_crumb_hover() { hover_surface list crumb true; }
 case_crumb_hover_off() { hover_surface list crumb false; }
-case_tab_hover() { hover_surface list tab true; }
-case_tab_hover_off() { hover_surface list tab false; }
+case_tab_hover() { tab_pointer_shot close true; }
+case_tab_hover_off() { tab_pointer_shot body false; }
 
 # FX-ADDRCOPY: board 0401-address-copy-a; hover and keyboard focus show the mark, list-populated covers rest.
 CASES+=("address-copy-hover 1100x700 surface:ChromeBar"
