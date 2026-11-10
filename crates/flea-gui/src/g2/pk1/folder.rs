@@ -33,8 +33,9 @@ impl Picker {
         }
         let catalog = &self.locale.catalog;
         let tracking = crate::g2::fb1::caption::tracking_for(catalog.language());
-        // The window's own New Folder name and the field name its prompt uses.
-        let (seed, label) = (catalog.tr("prompt.newFolder"), catalog.tr("prompt.folder"));
+        // The window's own New Folder name, and the same words label its field: prompt.create is the
+        // rule line the create card prints, which would teach a slash this folder-only field cannot take.
+        let (seed, label) = (catalog.tr("prompt.newFolder"), catalog.tr("prompt.newFolder"));
         let field = cx.new(|cx| Filename::folder_name(&seed, label, tracking, cx));
         self.chrome.folder_edits = Some(cx.subscribe(&field, |picker, _, event, cx| {
             if matches!(event, FieldKey::Edited(_)) {
