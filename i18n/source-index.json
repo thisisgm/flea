@@ -63717,7 +63717,7 @@
         },
         {
           "excerpt": "self.locale.catalog.tr(\"jobs.delete.failed\")",
-          "line": 250,
+          "line": 260,
           "path": "crates/flea-gui/src/window/dispatch/fileops_wire.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -64070,7 +64070,7 @@
       "call_sites": [
         {
           "excerpt": "let line = catalog.tr_args(\"jobs.done.duplicated\", &[leaf]);",
-          "line": 80,
+          "line": 90,
           "path": "crates/flea-gui/src/window/dispatch/fileops_wire.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -254206,7 +254206,7 @@
     "crates/flea-gui/src/window/dispatch/fileops.rs": "c3b62fff1a261a470f6ca378f1aae6565822641447341762ff12941a04d08d40",
     "crates/flea-gui/src/window/dispatch/fileops_created.rs": "a9865f340288542eec69309ddbeed2807b80f092cf7915ca9a7a5e4ae80a48e5",
     "crates/flea-gui/src/window/dispatch/fileops_route.rs": "f917c3d89bf4da87cdac171577793cc1b5305e051d7930168a6a292b83cff9f8",
-    "crates/flea-gui/src/window/dispatch/fileops_wire.rs": "78fa459874df74dcb49980f9faeb00868a31b2726bc51719b837b27b1569de10",
+    "crates/flea-gui/src/window/dispatch/fileops_wire.rs": "0dbf8146e33ed37b62d9236f25c02ea40a6db23c555cc905758170bc670a4c29",
     "crates/flea-gui/src/window/dispatch/gh_preview_fixture.rs": "85d025e506e9faa7a6b368611a43a103037d3b24d65cefdc5e1d643f20907d77",
     "crates/flea-gui/src/window/dispatch/gh_rename_proof_lane.rs": "79911dd08bf148c35622bf7370b9724c488736a37534d05c36513b5acbd094ec",
     "crates/flea-gui/src/window/dispatch/gm_prevsel_tests/focus.rs": "0d6d528a90a4b5f1d9718e6d688306ac1b9c17354434255f6e47a68ac499c537",
@@ -255945,8 +255945,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "58274c98237fa3602e6fccc5a4db73f2eaec8705",
-  "source_sha": "58274c98237fa3602e6fccc5a4db73f2eaec8705",
+  "source_ref_sha": "4f9493b0f36eba2cabd3d01fae2fffa3278b7b6b",
+  "source_sha": "4f9493b0f36eba2cabd3d01fae2fffa3278b7b6b",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1376,
