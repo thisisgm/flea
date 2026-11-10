@@ -44,7 +44,7 @@ fn rev_r3_first_screen_widths_take_every_first_screen_row() {
     feed.apply(table);
     feed.measure(f64::INFINITY, &mut measure);
     assert!(
-        !feed.frozen,
+        !feed.frozen(),
         "the first reply holds only part of the first screen"
     );
     assert!(
@@ -52,7 +52,7 @@ fn rev_r3_first_screen_widths_take_every_first_screen_row() {
         "no column is measured before the first screen is whole"
     );
     drive(&mut feed, &mut engine, f64::INFINITY);
-    assert!(feed.frozen, "the whole first screen froze the widths");
+    assert!(feed.frozen(), "the whole first screen froze the widths");
     assert_eq!(
         feed.widths,
         vec![209.0, 29.0, 58.0],
@@ -96,7 +96,7 @@ fn sideways() -> String {
 fn late_setup() -> (Feed, usize, usize) {
     let (mut feed, mut engine) = open(&sideways(), ',', look(), 24);
     drive(&mut feed, &mut engine, 1100.0);
-    assert!(feed.frozen, "the first screen froze");
+    assert!(feed.frozen(), "the first screen froze");
     let reached = feed.widths.len();
     assert!(
         (1..40).contains(&reached),
@@ -117,7 +117,7 @@ fn late_setup() -> (Feed, usize, usize) {
 fn widen_all(feed: &mut Feed) -> usize {
     let mut frames = 1;
     feed.measure(f64::INFINITY, &mut measure);
-    while feed.widening {
+    while feed.widening() {
         frames += 1;
         assert!(frames < 10_000, "the widening ends");
         feed.measure(f64::INFINITY, &mut measure);
@@ -160,17 +160,20 @@ fn s9g8_far_column_cost_is_the_first_screen_and_a_bounded_slice() {
         "one frame to the right measures the first screen's cells and one whole slice"
     );
     // The next frame resumes at the row the last one stopped on, never at the first row.
-    let resumed = feed.widen_from;
-    assert!(resumed > 0 && feed.widening, "the slice stopped part way");
+    let resumed = feed.widen_from();
+    assert!(resumed > 0 && feed.widening(), "the slice stopped part way");
     feed.measure(f64::INFINITY, &mut measure);
     assert!(
-        feed.widen_from > resumed,
+        feed.widen_from() > resumed,
         "the next slice walks on from row {resumed}"
     );
     widen_all(&mut feed);
-    assert_eq!(
-        feed.widen_from,
-        feed.table.rows.len(),
+    let columns = feed.widths.len();
+    assert!(
+        feed.table
+            .rows
+            .iter()
+            .all(|row| feed.folded.get(&row.record) == Some(&columns)),
         "every held row is walked"
     );
     assert_eq!(
@@ -214,7 +217,46 @@ fn s9g8_a_table_not_yet_frozen_is_not_widening() {
     let table = feed.job().run();
     feed.apply(table);
     assert!(
-        !feed.frozen && !feed.widening,
+        !feed.frozen() && !feed.widening(),
         "a partial first screen asks for no widening frame"
     );
+}
+
+#[test]
+fn csv_engine_parse_holds_asks_until_it_lands_then_resumes_the_partial_screen() {
+    let (mut feed, mut engine) = open(&multiline(), ',', look(), 24);
+    assert_eq!(feed.parse_phase, Parse::Engine);
+    let reply = engine.reply(&feed.ask().unwrap());
+    feed.sent(reply.token);
+    assert!(feed.answered(&reply));
+    assert_eq!(feed.parse_phase, Parse::ParsingEngine);
+    assert!(feed.ask().is_none(), "no ask races its parse");
+    let table = feed.job().run();
+    assert!(feed.ask().is_none(), "running a job does not publish it");
+    feed.apply(table);
+    assert_eq!(feed.parse_phase, Parse::Engine);
+    assert_eq!(feed.column_phase, Columns::Waiting);
+    assert!(feed.ask().is_some(), "the partial first screen resumes");
+}
+
+#[test]
+fn csv_plain_parse_measure_and_reset_return_to_the_engine_phase() {
+    let mut feed = Feed::new(Some(','), look());
+    feed.set_view(24, 2);
+    feed.answer_plain("a,b\n1,2\n3,4\n");
+    assert_eq!(feed.parse_phase, Parse::ParsingPlain);
+    assert!(feed.ask().is_none());
+    let table = feed.job().run();
+    feed.apply(table);
+    assert_eq!(feed.parse_phase, Parse::Plain);
+    assert_eq!(feed.column_phase, Columns::Widening(0));
+    feed.measure(f64::INFINITY, &mut measure);
+    assert_eq!(feed.column_phase, Columns::Measured);
+    assert!(!feed.wants_measure(f64::INFINITY));
+    assert!(feed.ask().is_none(), "plain text never asks the engine");
+    feed.reset(Some(','));
+    assert_eq!(feed.parse_phase, Parse::Engine);
+    assert_eq!(feed.column_phase, Columns::Waiting);
+    assert!(feed.widths.is_empty());
+    assert!(feed.ask().is_some(), "reset accepts an engine source again");
 }

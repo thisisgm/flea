@@ -245,11 +245,9 @@ impl TrashPane {
         index: Option<usize>,
         cx: &mut Context<Self>,
     ) {
-        if self.quiet && self.pointer == Some(at) {
+        if !self.pointer.moved(at) {
             return;
         }
-        self.quiet = false;
-        self.pointer = Some(at);
         self.hover(index, cx);
     }
 

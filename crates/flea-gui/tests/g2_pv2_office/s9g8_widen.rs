@@ -60,7 +60,7 @@ fn s9g8_widening_asks_for_its_own_next_frame(cx: &mut TestAppContext) {
     frames(cx);
     draw(cx, view);
     assert!(
-        read(cx, view, |v| v.feed.widening),
+        read(cx, view, |v| v.feed.widening()),
         "held cells are left after one frame"
     );
     assert!(frames(cx) >= 1, "the table asked for its next frame");

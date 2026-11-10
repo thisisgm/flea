@@ -138,7 +138,7 @@ fn csv_feed_stale_replies_and_resets() {
     feed.sent(reply.token);
     feed.reset(Some(','));
     assert!(!feed.answered(&reply), "a reply after a reset is dropped");
-    assert!(feed.held.is_empty() && !feed.frozen && feed.widths.is_empty());
+    assert!(feed.held.is_empty() && !feed.frozen() && feed.widths.is_empty());
     let ask = feed.ask().unwrap();
     let reply = engine.reply(&ask);
     feed.sent(reply.token);

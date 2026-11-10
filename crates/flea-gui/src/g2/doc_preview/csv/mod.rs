@@ -234,7 +234,7 @@ impl CsvView {
         self.scroll.1 = self.scroll.1.min(content - body).max(0.);
         self.measure(window);
         // Held cells left to widen by take the next frames, so no one frame measures every held row.
-        if self.feed.widening {
+        if self.feed.widening() {
             window.request_animation_frame();
         }
         self.lay_slots();

@@ -64,9 +64,8 @@ pub struct TrashPane {
     epoch: Instant,
     /// Starts the Trash watch when Trash opens; None leaves it to a host that already watches.
     pub monitor_start: Option<fn() -> Started>,
-    // The last pointer point over the rows, and whether the keyboard has quieted its wash since (#322).
-    pub(super) pointer: Option<gpui::Point<gpui::Pixels>>,
-    pub(super) quiet: bool,
+    // The row pointer and the point the keyboard quieted (#322).
+    pub(super) pointer: input::Pointer,
     /// The window's keyboard is on another stop (the rail, the tab strip), so the cursor drops its accent as a folder's does.
     pub(super) keys_away: bool,
     /// The strip's controls as the last frame laid them out, for the IPC centre readers.
@@ -111,8 +110,7 @@ impl TrashPane {
             retired: Vec::new(),
             epoch: Instant::now(),
             monitor_start: Some(Monitor::start),
-            pointer: None,
-            quiet: false,
+            pointer: input::Pointer::Absent,
             keys_away: false,
         }
     }

@@ -164,7 +164,7 @@ fn draw<V: 'static>(cx: &mut TestAppContext, view: WindowHandle<V>) {
 // Draws until no held cell is left to widen by, as the view's own next-frame requests would.
 fn widen(cx: &mut TestAppContext, view: WindowHandle<CsvView>) {
     for _ in 0..10_000 {
-        if !read(cx, view, |v| v.feed.widening) {
+        if !read(cx, view, |v| v.feed.widening()) {
             return;
         }
         draw(cx, view);
