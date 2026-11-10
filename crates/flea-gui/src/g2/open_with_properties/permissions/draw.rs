@@ -215,6 +215,21 @@ impl Permissions {
                     "dialogs.file.permissions.scope_folder_note",
                 )));
             }
+            // v0.3.12 PermissionsDialog.qml:602-606: only an editable card with a whole mode requests one; a refused card names the mode it keeps.
+            let mut lines = vec![
+                if self.changeable() && logic::parse(&self.text).is_some() {
+                    i18n.tr_args("dialogs.file.permissions.requested", &[&self.text])
+                } else {
+                    tr("dialogs.file.permissions.no_changes")
+                },
+                i18n.tr_args("dialogs.file.permissions.path", &[&self.held.path]),
+            ];
+            if !self.held.reason.is_empty() {
+                lines.push(
+                    i18n.tr_args("dialogs.file.permissions.current_mode", &[&self.held.mode]),
+                );
+            }
+            lines.push(tr(scope));
             stack.extend([
                 Block::Rule {
                     above: 11.,
@@ -222,11 +237,7 @@ impl Permissions {
                 },
                 Block::Section {
                     head: tr("dialogs.file.permissions.will_change"),
-                    lines: vec![
-                        i18n.tr_args("dialogs.file.permissions.requested", &[&self.text]),
-                        i18n.tr_args("dialogs.file.permissions.path", &[&self.held.path]),
-                        tr(scope),
-                    ],
+                    lines,
                 },
             ]);
             body.push(Block::Stack(stack));

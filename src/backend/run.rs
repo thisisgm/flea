@@ -84,6 +84,8 @@ pub fn run() -> i32 {
     if let Some(status) = super::model3dreq::worker_entry() { return status }
     // Before the first listing, because a threshold glibc has already ratcheted strands the next arena on the heap.
     heap::pin_mmap_threshold();
+    // After the worker entries return, so only a window's backend sweeps; the sweep runs on its own thread, so the first listing never waits.
+    super::archivework::workhome::sweep_at_start();
     let mut out = BufWriter::new(io::stdout());
     let tb = Tables::load();
     let (tx, rx, inbox) = match super::inbox::open() { Ok(open) => open, Err(e) => { say(&mut out, &error_line(&e)); return 1 } };

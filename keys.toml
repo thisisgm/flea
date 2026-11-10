@@ -765,7 +765,7 @@ move = ["cursorDown", "cursorUp", "cursorFirst", "cursorLast", "pageDown", "page
 look = ["viewList", "viewColumns", "viewGrid", "viewDual", "togglePreview", "factsToggle", "loadPreview", "preview", "previewPageForward", "previewPageBack",
         "toggleHidden", "sidebar", "zoomIn", "zoomOut", "expand", "openInPlace", "closeInPlace", "mute", "textSizeUp", "textSizeDown",
         "textSizeReset", "keymapSheet"]
-find = ["filter", "search", "searchContents", "reveal", "sortNext", "sortReverse", "pathBar", "reload"]
+find = ["filter", "search", "searchContents", "keepResults", "reveal", "sortNext", "sortReverse", "pathBar", "reload"]
 change = ["copy", "cut", "paste", "movePaste", "duplicate", "rename", "trash",
           "deletePermanently", "undo", "redo", "newFolder", "copydirpath", "copyPath", "openAgent",
           "toggleSelect", "selectAll", "extendDown", "extendUp", "menu", "properties", "addNetwork", "eject",
@@ -2618,6 +2618,17 @@ keys = "escape"
 action = "escape"
 label = "close editor"
 frontend = "all"
+context = "editor"
+
+# The search strip already handles Ctrl+Return itself; this row documents it without adding a dispatch binding.
+[[sheet_extra]]
+name = "all"
+mods = "ctrl"
+key = "Return"
+keys = "ctrl-enter"
+action = "keepResults"
+label = "Keep results"
+frontend = "gui"
 context = "editor"
 
 # Page the Columns preview while the listing keeps the keyboard.

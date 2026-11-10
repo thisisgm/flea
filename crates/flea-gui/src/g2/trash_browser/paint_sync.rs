@@ -78,6 +78,7 @@ impl TrashPane {
         paint.scroll_y = view.scroll_y;
         paint.cursor = view.cursor;
         paint.edge = self.cursor_edge();
+        paint.away = self.cursor_away();
     }
 
     /// The cursor's accent edge and wash, only while the list itself holds the keyboard; the strip, a menu, a card or another window stop keep the marked plate.
@@ -85,12 +86,19 @@ impl TrashPane {
         !self.host.view.strip_focus && !self.keys_away && !self.menu_open && self.card.is_none()
     }
 
+    /// Only the rail or the tab strip holding the keys greys the cursor; the strip, a menu or a card keep the marked plate, as trash-strip-focus and trash-menu draw it.
+    fn cursor_away(&self) -> bool {
+        self.keys_away && !self.host.view.strip_focus && !self.menu_open && self.card.is_none()
+    }
+
     /// The frame reads where the window's keyboard is, since the rail and the tab strip take it without telling the pane.
     pub(crate) fn sync_keys_away(&mut self, window: &Window, cx: &gpui::App) {
         let away = window.focused(cx).is_some() && !self.focus.contains_focused(window, cx);
         if away != self.keys_away {
             self.keys_away = away;
-            self.paint.borrow_mut().edge = self.cursor_edge();
+            let mut paint = self.paint.borrow_mut();
+            paint.edge = self.cursor_edge();
+            paint.away = self.cursor_away();
         }
     }
 }

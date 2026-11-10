@@ -12,6 +12,10 @@ function run(check) {
     }
     for (var i = 0; i < Keymap.PRESETS.length; i++) {
         var preset = Keymap.PRESETS[i]
+        var keep = Keymap.sheetFor(preset, "gui").filter(function (row) { return row.action === "keepResults" })
+        check(preset + " search strip key is documented", keep.length === 1 && keep[0].keys === "ctrl-enter", true)
+        check(preset + " search strip key stays off the TUI sheet", Keymap.sheetFor(preset, "tui").some(function (row) { return row.action === "keepResults" }), false)
+        key(preset, "Return", "", ctrl, "", "editor", "gui")
         key(preset, "F", "F", shift, "previewPageForward")
         key(preset, "B", "B", shift, "previewPageBack")
         key(preset, "F", "f", none, "search")
@@ -282,7 +286,7 @@ function run(check) {
         previewPageBack: "Page preview back", toggleHidden: "Show hidden files", sidebar: "Sidebar", zoomIn: "Zoom in",
         zoomOut: "Zoom out", expand: "Expand", mute: "Mute", textSizeUp: "Larger text", textSizeDown: "Smaller text",
         textSizeReset: "Reset text size", keymapSheet: "Keyboard Shortcuts", filter: "Filter", search: "Find",
-        reveal: "Reveal", sortNext: "Sort", sortReverse: "Reverse sort", pathBar: "Go to folder", reload: "Reload",
+        keepResults: "Keep results", reveal: "Reveal", sortNext: "Sort", sortReverse: "Reverse sort", pathBar: "Go to folder", reload: "Reload",
         copy: "Copy", cut: "Cut", paste: "Paste", rename: "Rename", trash: "Move to Trash",
         deletePermanently: "Delete permanently", undo: "Undo", redo: "Redo", newFolder: "New folder",
         copydirpath: "Copy folder path", copyPath: "Copy path", openAgent: "Open agent here"

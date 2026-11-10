@@ -201,3 +201,43 @@ fn fxprops_s2_2_an_editable_card_still_names_a_typing_error() {
     }
     assert!(notes(&card.card(&i18n)).contains(&(invalid, Ink::Error)));
 }
+
+fn summary(card: &Card) -> Vec<String> {
+    card.body
+        .iter()
+        .find_map(|block| match block {
+            Block::Stack(parts) => parts.iter().find_map(|part| match part {
+                Block::Section { lines, .. } => Some(lines.clone()),
+                _ => None,
+            }),
+            _ => None,
+        })
+        .unwrap()
+}
+
+// v0.3.12 PermissionsDialog.qml:602-606: a card that cannot change the mode says so and names the mode it keeps.
+#[test]
+fn fxpolish_a_read_only_card_requests_no_mode() {
+    let i18n = english();
+    let (mut card, _) = Permissions::open(7, vec!["/fx/v/work/tool".into()], "");
+    card.reply(&i18n, &parse(SETUID).unwrap());
+    assert_eq!(
+        summary(&card.card(&i18n)),
+        [
+            "No changes to apply",
+            "Path /fx/v/work/tool",
+            "Current mode 4644",
+            "Scope this item only \u{b7} ownership unchanged",
+        ]
+    );
+    let editable = SETUID
+        .replace(r#""mode":"4644""#, r#""mode":"0644""#)
+        .replace("Read-only: setuid bit is present.", "");
+    let (mut card, _) = Permissions::open(7, vec!["/fx/v/work/tool".into()], "");
+    card.reply(&i18n, &parse(&editable).unwrap());
+    assert_eq!(
+        summary(&card.card(&i18n))[..2],
+        ["Requested mode 0644", "Path /fx/v/work/tool"],
+        "an editable card still names the mode Apply sets"
+    );
+}

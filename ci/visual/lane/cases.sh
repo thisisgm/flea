@@ -178,7 +178,11 @@ fxpreview_files() {
 
 case_ql_sniff_script() ( fxpreview_files && quick_look "$C/FxPreview" myscript )
 case_ql_text_latin1() ( fxpreview_files && quick_look "$C/FxPreview" latin1.txt )
-case_ql_text_utf16() ( fxpreview_files && quick_look "$C/FxPreview" utf16.txt )
+case_ql_text_utf16() (
+    fxpreview_files && quick_look_open "$C/FxPreview" utf16.txt || return 1
+    wait_code_state false '.total == 1' || return 1
+    snap
+)
 
 case_cols_sniff_notes() (
     fxpreview_files || return 1
@@ -291,5 +295,74 @@ case_text_menu_path() (
     key :
     wait_ipc pathBarOpen true || return 1
     click_at "$(ipc pathCentre)" right || return 1
+    snap
+)
+
+# FX-POLISH uses the existing Permissions, Jobs, keymap and Trash recipes.
+CASES+=("permissions-readonly 1100x700 surface:PermissionsDialog"
+        "archive-failed-reason 1100x700 surface:TransferCard"
+        "keymap-keep-results 1100x700 surface:KeymapSheet"
+        "trash-cursor-rest 1100x700 surface:TrashView"
+        "trash-cursor-hover 1100x700 surface:TrashView"
+        "trash-cursor-keyboard 1100x700 surface:TrashView"
+        "trash-cursor-unfocused 1100x700 surface:TrashView")
+
+fxpolish_files() {
+    python3 /src/ci/visual/polish_fixture.py "$C/FxPolish"
+}
+
+case_permissions_readonly() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    fxpolish_files || return 1
+    menu_dialog_open "$C/FxPolish" special.txt 'Permissions…' || return 1
+    wait_ipc_has permissionsState 'No changes to apply' || return 1
+    wait_ipc_has permissionsState 'Current mode 4644' || return 1
+    snap
+)
+
+case_archive_failed_reason() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    fxpolish_files || return 1
+    menu_dialog_open "$C/FxPolish" unsafe.zip Extract || return 1
+    wait_ipc_has statusActivityState 'An entry in this archive would land outside its folder, so nothing was extracted.' || return 1
+    snap
+)
+
+case_keymap_keep_results() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    launch list "$W" || return 1
+    key '?'
+    wait_ipc keymapSheetOpen true || return 1
+    key keep
+    wait_ipc_has keymapSheetResults 'Keep results' || return 1
+    snap
+)
+
+fxpolish_trash() {
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    open_trash || return 1
+    key -k Escape
+    wait_ipc focusStop list || return 1
+    park_pointer
+}
+
+case_trash_cursor_keyboard() ( fxpolish_trash && snap )
+case_trash_cursor_rest() (
+    fxpolish_trash || return $?
+    key -k Tab
+    wait_ipc focusStop rail || return 1
+    snap
+)
+case_trash_cursor_unfocused() ( case_trash_cursor_rest )
+case_trash_cursor_hover() (
+    local x y ax ay
+    fxpolish_trash || return $?
+    key -k Tab
+    wait_ipc focusStop rail || return 1
+    read -r x y <<< "$(ipc trashRowCentre 0)"
+    [ -n "$x" ] && [ -n "$y" ] || return 1
+    read -r ax ay <<< "$(win_json | jq -r '.at | "\(.[0]) \(.[1])"')"
+    omarchy-drive move "$(awk -v a="$ax" -v b="$x" 'BEGIN {printf "%.0f", a+b}')" "$(awk -v a="$ay" -v b="$y" 'BEGIN {printf "%.0f", a+b}')" > /dev/null || return 1
+    nudge_pointer 3 || return 1
     snap
 )
