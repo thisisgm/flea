@@ -12,14 +12,11 @@ impl Shell {
         let Some(host) = self.panes[side].as_ref() else {
             return;
         };
-        let has_trash = match self.fileops_route(side, &host.path) {
-            trash::Route::Refuse => {
-                // A refused press ends a pair armed before it, as a press in another seat would.
-                self.operations.fileops.disarm();
-                return self.fileops_no_trash(side, cx);
-            }
-            route => route == trash::Route::Trash,
-        };
+        if self.fileops_route(side, &host.path) != trash::Route::Trash {
+            self.operations.fileops.disarm();
+            self.keyboard.disarm();
+            return self.fileops_no_trash(side, cx);
+        }
         let now = host.pane.now();
         let held = &mut self.operations.fileops;
         // A pair belongs to one listing, cursor, view and pane; a press anywhere else arms again.
@@ -34,11 +31,7 @@ impl Shell {
         }
         let stamp = held.arm.stamp;
         let rows = self.fileops_targets(side).map_or(0, |(_, rows)| rows.len());
-        let prompt = if has_trash {
-            trash::trash_prompt(&self.locale.catalog, &self.fileops_preset(), rows)
-        } else {
-            trash::review_prompt(&self.locale.catalog, &self.fileops_preset())
-        };
+        let prompt = trash::trash_prompt(&self.locale.catalog, &self.fileops_preset(), rows);
         if let Some(host) = self.panes[side].as_mut() {
             host.status = prompt.clone().into();
         }

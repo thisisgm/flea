@@ -93,8 +93,11 @@ impl Shell {
         // Every modal key belongs to the card; a cardless Escape still reaches the window.
         if let Some(overlay) = self.overlay.clone() {
             let modal = overlay.read_with(cx, |card, cx| card.modal(cx));
+            let menu = self.menu_opened() || self.menu.presentation.at.is_some();
             if modal
-                || (event.keystroke.key == "escape" && modifiers(event.keystroke.modifiers) == 0)
+                || (!menu
+                    && event.keystroke.key == "escape"
+                    && modifiers(event.keystroke.modifiers) == 0)
             {
                 let taken = overlay.update(cx, |card, cx| card.dispatch_key(event, window, cx));
                 let still = overlay.read_with(cx, |card, cx| card.showing(cx));
@@ -145,15 +148,15 @@ impl Shell {
         if self.settings_dismiss(event, cx) {
             return;
         }
+        if self.menu_key(event, window, cx) {
+            return;
+        }
         if self.trash_key(event, window, cx) {
             cx.stop_propagation();
             return;
         }
         if self.network_key(event, window, cx) {
             cx.stop_propagation();
-            return;
-        }
-        if self.menu_key(event, window, cx) {
             return;
         }
         if self.path_holds_keyboard(window, cx) {

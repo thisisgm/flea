@@ -30,6 +30,40 @@ fn warm(
     impl FnMut() -> Option<String>,
     u64,
 ) {
+    warm_selection(cx, 0, Vec::new())
+}
+
+fn warm_at(
+    cx: &mut TestAppContext,
+    outside: bool,
+) -> (
+    Entity<Shell>,
+    &mut VisualTestContext,
+    impl FnMut() -> Option<String>,
+    u64,
+) {
+    warm_selection(
+        cx,
+        usize::from(outside),
+        if outside { vec![0] } else { vec![0, 1] },
+    )
+}
+
+fn warm_selection(
+    cx: &mut TestAppContext,
+    cursor: usize,
+    selected: Vec<usize>,
+) -> (
+    Entity<Shell>,
+    &mut VisualTestContext,
+    impl FnMut() -> Option<String>,
+    u64,
+) {
+    let total = if cursor > 0 || selected.len() > 1 {
+        2
+    } else {
+        1
+    };
     let (backend, mut lines) = Backend::test_lines();
     let (shell, cx) = cx.add_window_view(|_, cx| {
         let mut shell = shell_with(backend, cx);
@@ -37,17 +71,28 @@ fn warm(
             flea::jsondoc::parse(r#"{"menu":{"hidden":["runScript","actions"]}}"#).unwrap();
         shell.panes[0].as_mut().unwrap().pane.held = Rc::new(crate::list::pane::Held {
             listing: 2,
-            total: 1,
+            total,
             start: 0,
-            rows: vec![RowFacts {
-                name: "notes.txt".into(),
-                mode: 0o100644,
-                ..Default::default()
-            }],
+            rows: [
+                RowFacts {
+                    name: "notes.txt".into(),
+                    mode: 0o100644,
+                    ..Default::default()
+                },
+                RowFacts {
+                    name: "outside.txt".into(),
+                    mode: 0o100644,
+                    ..Default::default()
+                },
+            ]
+            .into_iter()
+            .take(total)
+            .collect(),
         });
+        shell.panes[0].as_mut().unwrap().selected = selected;
         shell
     });
-    let capture = open(&shell, cx, 0, &mut lines);
+    let capture = open_at(&shell, cx, 0, cursor, &mut lines);
     let id = capture.id;
     feed(
         &shell,

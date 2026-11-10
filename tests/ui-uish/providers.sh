@@ -438,7 +438,7 @@ STATES
         mv -- "$path/b-cursor.txt" "$saved" || fail 'providers: cannot retain cursor original'
         providers_write "${path#"$menu_box/"}/b-cursor.txt" replacement
         providers_release "$name"
-        menus_error 'Selected items changed' "$action refuses an asynchronously replaced unmarked cursor"
+        menus_error 'Selected item moved or disappeared; reopen the menu.' "$action refuses an asynchronously replaced unmarked cursor"
         providers_expect '(.refreshing | not) and (.pendingActivation | not)' 'refused activation has no pending provider work'
         if [[ "$action" == taildrop ]]; then menus_equal 'stale Taildrop never reaches sender' "$before" "$(providers_calls omarchy-tailscale-send)"
         else menus_equal 'stale Share Link makes only its fresh status query' "$((before + 1))" "$(providers_calls dropbox-cli)"; fi
@@ -462,7 +462,7 @@ STATES
     menus_guard "$menu_box/Dropbox"
     mkdir "$menu_box/Dropbox" || fail 'providers: cannot replace fixture destination'
     providers_release dropbox-cli
-    menus_error 'Dropbox account folder changed' 'Move to Dropbox refuses a replaced account directory'
+    menus_error 'Selected item moved or disappeared; reopen the menu.' 'Move to Dropbox refuses a replaced account directory'
     providers_expect '(.refreshing | not) and (.pendingActivation | not)' 'destination refusal clears pending activation'
     menus_equal 'refused destination remains empty' 0 "$(find "$menu_box/Dropbox" -mindepth 1 -maxdepth 1 | wc -l | tr -d ' ')"
     menus_equal 'destination refusal preserves marked source' 'list/a-marked.txt original' "$(cat "$menu_dir/a-marked.txt")"

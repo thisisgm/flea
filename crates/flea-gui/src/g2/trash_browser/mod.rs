@@ -75,4 +75,6 @@ mod tab_reach_tests;
 #[cfg(test)]
 mod trashview_tests;
 #[cfg(test)]
+mod uish_def1_tests;
+#[cfg(test)]
 mod window_tests;

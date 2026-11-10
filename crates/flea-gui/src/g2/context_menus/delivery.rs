@@ -1,6 +1,7 @@
 //! Snapshot retirement, backend validation and captured choices delivered to their producer owners.
 use super::{join::Chosen, menu::Outcome};
 use crate::{
+    g2::plugins::menu::{send_validation_verb, validation_choice},
     state::Shell,
     window::{dispatch::Order, navigate::Step},
 };
@@ -52,8 +53,11 @@ impl Shell {
         }
         self.keyboard.context = flea::keys::Context::Listing;
         self.keyboard.disarm();
-        // Sidebar.qml openRailMenu: every rail row's menu closes back to the rail it opened from.
-        if place || rail {
+        // A menu on the open Trash browser returns to that browser's keys.
+        if rail && self.trash_opened(cx) {
+            window.focus(&self.overlay_return_focus(cx), cx);
+            self.keyboard.context = flea::keys::Context::Listing;
+        } else if place || rail {
             window.focus(&self.dual_focus.rail, cx);
             self.keyboard.context = flea::keys::Context::Rail;
         }
@@ -108,7 +112,7 @@ impl Shell {
                 host.nav.gate.menu_pending = true;
             }
             // Dropbox rows name the account root the backend already took as this menu's destination.
-            let dest = if matches!(action.as_str(), "dropbox" | "sharelink") {
+            let dest = if matches!(send_validation_verb(&action), "dropbox" | "sharelink") {
                 format!(
                     ",\"dest\":\"{}\"",
                     escape(&self.provider_destination(capture.side))
@@ -116,11 +120,7 @@ impl Shell {
             } else {
                 String::new()
             };
-            let chosen = if leaf.is_empty() {
-                action
-            } else {
-                format!("{action}:{leaf}")
-            };
+            let chosen = validation_choice(&action, &leaf, capture.rows.contains(&capture.cursor));
             self.menu_send(
                 capture.side,
                 format!(
@@ -262,11 +262,8 @@ impl Shell {
                 let Some((action, leaf)) = &self.menu.pending else {
                     return true;
                 };
-                let expected = if leaf.is_empty() {
-                    action.clone()
-                } else {
-                    format!("{action}:{leaf}")
-                };
+                let expected =
+                    validation_choice(action, leaf, capture.rows.contains(&capture.cursor));
                 if string(&reply, "action") != expected {
                     return true;
                 }

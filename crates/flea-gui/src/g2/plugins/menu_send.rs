@@ -47,6 +47,29 @@ pub(crate) fn send_role(action: &str) -> Option<Role> {
     })
 }
 
+/// Built-in plugins retain the backend's captured target rules under their wire verbs.
+pub(crate) fn send_validation_verb(action: &str) -> &str {
+    if action.starts_with(PREFIX) {
+        send_role(action).map_or(action, |role| role.menu_id())
+    } else {
+        action
+    }
+}
+
+/// The backend validates `taildrop:` against the cursor alone, so Taildrop over a marked group keeps the plugin verb.
+pub(crate) fn validation_choice(action: &str, leaf: &str, cursor_in_targets: bool) -> String {
+    let verb = if cursor_in_targets && send_role(action) == Some(Role::Tailscale) {
+        action
+    } else {
+        send_validation_verb(action)
+    };
+    if leaf.is_empty() {
+        verb.to_owned()
+    } else {
+        format!("{verb}:{leaf}")
+    }
+}
+
 impl Shell {
     pub(crate) fn plugin_provider_states(&mut self) {
         let states = self.declared_provider_states();
@@ -86,7 +109,7 @@ impl Shell {
         }
         for row in entries.iter_mut() {
             if let Some(role) = builtin(&row.action) {
-                // The generic validation verb returns the selected files, including a marked set whose cursor is outside it.
+                // The menu contribution keeps its plugin identity; validation_choice picks the wire verb.
                 if matches!(role, Role::Tailscale | Role::AirDrop) {
                     row.action = format!("{PREFIX}{}", role.plugin_id()).into();
                 }

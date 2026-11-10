@@ -107,7 +107,8 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        if self.input_blocked(cx)
+        if self.wheel_blocked(cx)
+            || self.jobs_card_at(event.position, cx)
             || (side == 1 && self.view != View::Dual)
             || self.slots.covers[side].is_some()
             || self.flash_covers(side)

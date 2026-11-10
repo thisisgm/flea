@@ -133,6 +133,7 @@ case_runscript() {
     printf 'RUNSCRIPT args=%s cwd=%s\n' "$(head -1 "$dir/ran.log")" "$(tail -1 "$dir/ran.log")"
 
     echo "-- and a non-zero exit is its own last stderr line --"
+    wait_listing 3
     click_row "$(ipc cursor)" right
     settle
     menus_expect menuState '.opened and .snapshotReady' 'the post-script menu snapshot settles after the listing watch'

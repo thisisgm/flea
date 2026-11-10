@@ -64,6 +64,8 @@ pub(crate) mod measured;
 
 mod progress;
 mod transfer_status;
+#[cfg(test)]
+mod uish_def1_tests;
 
 #[cfg(test)]
 mod atomic_dialog_tests;

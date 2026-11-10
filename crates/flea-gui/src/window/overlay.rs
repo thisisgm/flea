@@ -3,6 +3,17 @@ use crate::state::Shell;
 use gpui::{App, Context, Window};
 
 impl Shell {
+    pub(crate) fn jobs_card_at(&self, point: gpui::Point<gpui::Pixels>, cx: &App) -> bool {
+        self.overlay.as_ref().is_some_and(|view| {
+            let overlay = view.read(cx);
+            overlay.jobs_showing(cx)
+                && overlay
+                    .feedback_paint
+                    .get("frame")
+                    .is_some_and(|frame| frame.bounds.contains(&point))
+        })
+    }
+
     /// An overlay entity can outlive its card, so only a card still showing takes the keyboard from the list.
     pub(crate) fn card_holds_keyboard(&self, cx: &App) -> bool {
         self.modal_card_holds_keyboard(cx) || self.jobs_card_showing(cx)
