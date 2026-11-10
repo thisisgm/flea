@@ -14,6 +14,8 @@ pub use crate::keys::actions::{NO_WINDOW, RAN, UNAVAILABLE, UNKNOWN, USAGE};
 const COMPOSITOR_WAIT: Duration = Duration::from_millis(500);
 const COMPOSITOR_POLL: Duration = Duration::from_millis(5);
 const CLIENTS_LIMIT: usize = 4 * 1024 * 1024;
+// Probe once; a full accept queue cannot prove the window has gone.
+const WINDOW_PROBE_TIMEOUT: Duration = Duration::ZERO;
 
 #[derive(Debug, PartialEq)]
 pub struct Options {
@@ -199,6 +201,32 @@ fn checked(listing: bool, reply: Reply) -> Reply {
     )
 }
 
+fn exchange_failed(path: &Path, error: io::Error) -> Reply {
+    let gone = match error.kind() {
+        io::ErrorKind::ConnectionRefused | io::ErrorKind::NotFound => true,
+        io::ErrorKind::ConnectionReset
+        | io::ErrorKind::BrokenPipe
+        | io::ErrorKind::UnexpectedEof => {
+            matches!(
+                super::connect::with_timeout(path, WINDOW_PROBE_TIMEOUT),
+                Err(probe) if matches!(probe.kind(), io::ErrorKind::ConnectionRefused | io::ErrorKind::NotFound)
+            )
+        }
+        _ => false,
+    };
+    if gone {
+        Reply::error(
+            NO_WINDOW,
+            "flea: no Flea window is running, so there is nothing to run the action in",
+        )
+    } else {
+        Reply::error(
+            UNAVAILABLE,
+            format!("flea: the window did not answer: {error}"),
+        )
+    }
+}
+
 pub fn execute(root: &Path, options: &Options, focus: impl FnOnce() -> Vec<u32>) -> Reply {
     let windows = match endpoint::instances(root) {
         Ok(windows) => windows,
@@ -222,21 +250,7 @@ pub fn execute(root: &Path, options: &Options, focus: impl FnOnce() -> Vec<u32>)
         matches!(&options.request, Request::Call { function, .. } if function == "actionIds");
     match client::exchange(&path, &options.request) {
         Ok(reply) => checked(listing, reply),
-        Err(error)
-            if matches!(
-                error.kind(),
-                io::ErrorKind::ConnectionRefused | io::ErrorKind::NotFound
-            ) =>
-        {
-            Reply::error(
-                NO_WINDOW,
-                "flea: no Flea window is running, so there is nothing to run the action in",
-            )
-        }
-        Err(error) => Reply::error(
-            UNAVAILABLE,
-            format!("flea: the window did not answer: {error}"),
-        ),
+        Err(error) => exchange_failed(&path, error),
     }
 }
 
