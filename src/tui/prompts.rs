@@ -59,8 +59,20 @@ pub fn status(m: &Model, theme: &Theme, columns: usize, elapsed: Duration) -> (S
         "mkdir" | "newfile" => "prompt.create",
         "path" => "prompt.path", "filter" => "prompt.filter", _ => "prompt.find",
     });
-    let mut used = text_width(&label).min(columns);
-    let mut out = format!("{}{}", theme.muted, fit(&label, used));
+    // A row this narrow still owes the field cells to show the name and the caret; past that the rule gives way.
+    const FIELD_FLOOR: usize = 12;
+    let label_width = text_width(&label);
+    let mut used = if label_width + 1 + FIELD_FLOOR <= columns {
+        label_width
+    } else {
+        columns.saturating_sub(1 + FIELD_FLOOR)
+    };
+    let mut out = format!(
+        "{}{}",
+        theme.muted,
+        if used < label_width { ellipsis(&label, used) } else { label.clone() }
+    );
+    used = used.min(columns);
     let ghost = if editor.kind == "path" { m.completion.strip_prefix(editor.value.as_str()).unwrap_or("") } else { "" };
     let (field, cells, caret) = editor.field(ghost, columns.saturating_sub(used + 1), theme);
     let caret = caret.filter(|_| cells > 0).map(|at| used + 1 + at);

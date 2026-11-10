@@ -174,7 +174,7 @@
   ],
   "source_index": {
     "path": "i18n/source-index.json",
-    "sha256": "0d3760a7145c735fa304619ac72d42e43c23ee447afade78df3d14f399bf3204",
+    "sha256": "a52c9fb4ee2a7f9dce92e608366e2060b239823137fa6459f97d03ef33790de8",
     "source": "COMPOSE-I50 stage index, refrozen from the whole joined source after each join; I50-01 merged at 020e19dac, I50-02 at 476301de2"
   },
   "rtl_policy": {

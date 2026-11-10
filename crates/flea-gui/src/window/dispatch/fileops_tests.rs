@@ -77,7 +77,6 @@ pub(super) fn create_card(shell: &Entity<Shell>, cx: &mut VisualTestContext) {
         });
     });
     cx.run_until_parked();
-    shell.update(cx, |shell, _| { let _ = shell; });
 }
 
 // The keyboard the listing had before a card took it; a real window restores this on its next paint.

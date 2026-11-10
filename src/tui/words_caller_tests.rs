@@ -73,6 +73,34 @@ fn tui_words_name_faults_keep_specific_shared_validation_detail() {
     }
 }
 
+// A 64-column terminal leaves 2 cells once the four-line rule is drawn whole, so the rule gives way instead.
+#[test]
+fn tui_words_create_prompt_keeps_its_field_on_a_narrow_row() {
+    let fixture = name_fixture();
+    let mut model = fixture.model();
+    let theme = crate::tui::theme::Theme::from_text("");
+    model.editor = Some(crate::tui::editor::Editor::new(
+        "mkdir",
+        "New Folder/".into(),
+        "/fx".into(),
+    ));
+    for columns in [64, 80, 130] {
+        let (row, caret) =
+            crate::tui::prompts::status(&model, &theme, columns, std::time::Duration::ZERO);
+        let plain = crate::tui::render::frame_tests::plain(&row);
+        assert_eq!(
+            crate::tui::cells::text_width(&plain),
+            columns,
+            "{columns}: the row fills the terminal"
+        );
+        assert!(
+            plain.contains("New Folder/"),
+            "{columns}: the name and its caret survive: {plain:?}"
+        );
+        assert!(caret.is_some(), "{columns}: the caret has a column");
+    }
+}
+
 #[test]
 fn tui_words_name_backend_error_keeps_data_identity() {
     let fixture = name_fixture();
