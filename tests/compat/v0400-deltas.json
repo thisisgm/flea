@@ -34,6 +34,21 @@
       "from": "      \"openAgent\"\n    ]",
       "to": "      \"openAgent\",\n      \"toggleHidden\",\n      \"toggleLangMarks\"\n    ]",
       "reason": "0.4.1 shows Properties and Permissions and moves Show Hidden Files and Hide Code Icons off the file menu (src/uimigrate.rs menuVersion 1)"
+    },
+    {
+      "from": "  \"highlightToday\": false,\n",
+      "to": "  \"highlightToday\": false,\n  \"tabsAsIcons\": false,\n",
+      "reason": "0401-settings-view-c (design-hig/CHANGES.md:3135) approves tabsAsIcons=false."
+    },
+    {
+      "from": "  \"highlightToday\": false,\n  \"tabsAsIcons\": false,\n",
+      "to": "  \"highlightToday\": false,\n  \"tabsAsIcons\": false,\n  \"emptyFolderOmi\": true,\n",
+      "reason": "0401-settings-view-c (design-hig/CHANGES.md:3135) approves emptyFolderOmi=true."
+    },
+    {
+      "from": "  \"highlightToday\": false,\n  \"tabsAsIcons\": false,\n  \"emptyFolderOmi\": true,\n",
+      "to": "  \"highlightToday\": false,\n  \"tabsAsIcons\": false,\n  \"emptyFolderOmi\": true,\n  \"emptyFolderRotate\": true,\n",
+      "reason": "0401-settings-view-c (design-hig/CHANGES.md:3135) approves emptyFolderRotate=true."
     }
   ],
   "cli:ui-state-write": [
@@ -71,6 +86,21 @@
       "from": "      \"openAgent\"\n    ]",
       "to": "      \"openAgent\",\n      \"toggleHidden\",\n      \"toggleLangMarks\"\n    ]",
       "reason": "0.4.1 shows Properties and Permissions and moves Show Hidden Files and Hide Code Icons off the file menu (src/uimigrate.rs menuVersion 1)"
+    },
+    {
+      "from": "  \"highlightToday\": false,\n",
+      "to": "  \"highlightToday\": false,\n  \"tabsAsIcons\": false,\n",
+      "reason": "0401-settings-view-c (design-hig/CHANGES.md:3135) approves tabsAsIcons=false."
+    },
+    {
+      "from": "  \"highlightToday\": false,\n  \"tabsAsIcons\": false,\n",
+      "to": "  \"highlightToday\": false,\n  \"tabsAsIcons\": false,\n  \"emptyFolderOmi\": true,\n",
+      "reason": "0401-settings-view-c (design-hig/CHANGES.md:3135) approves emptyFolderOmi=true."
+    },
+    {
+      "from": "  \"highlightToday\": false,\n  \"tabsAsIcons\": false,\n  \"emptyFolderOmi\": true,\n",
+      "to": "  \"highlightToday\": false,\n  \"tabsAsIcons\": false,\n  \"emptyFolderOmi\": true,\n  \"emptyFolderRotate\": true,\n",
+      "reason": "0401-settings-view-c (design-hig/CHANGES.md:3135) approves emptyFolderRotate=true."
     }
   ],
   "state:ui-state": [
@@ -108,6 +138,21 @@
       "from": "      \"actions\"\n    ]",
       "to": "      \"actions\",\n      \"toggleHidden\",\n      \"toggleLangMarks\"\n    ]",
       "reason": "0.4.1 shows Properties and Permissions and moves Show Hidden Files and Hide Code Icons off the file menu (src/uimigrate.rs menuVersion 1)"
+    },
+    {
+      "from": "  \"highlightToday\": false,\n",
+      "to": "  \"highlightToday\": false,\n  \"tabsAsIcons\": false,\n",
+      "reason": "0401-settings-view-c (design-hig/CHANGES.md:3135) approves tabsAsIcons=false."
+    },
+    {
+      "from": "  \"highlightToday\": false,\n  \"tabsAsIcons\": false,\n",
+      "to": "  \"highlightToday\": false,\n  \"tabsAsIcons\": false,\n  \"emptyFolderOmi\": true,\n",
+      "reason": "0401-settings-view-c (design-hig/CHANGES.md:3135) approves emptyFolderOmi=true."
+    },
+    {
+      "from": "  \"highlightToday\": false,\n  \"tabsAsIcons\": false,\n  \"emptyFolderOmi\": true,\n",
+      "to": "  \"highlightToday\": false,\n  \"tabsAsIcons\": false,\n  \"emptyFolderOmi\": true,\n  \"emptyFolderRotate\": true,\n",
+      "reason": "0401-settings-view-c (design-hig/CHANGES.md:3135) approves emptyFolderRotate=true."
     }
   ],
   "cli:gui-desktop": [

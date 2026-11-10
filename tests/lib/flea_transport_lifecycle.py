@@ -11,6 +11,15 @@ def identity(pid):
     return dict(state=fields[0], parent=int(fields[1]), group=int(fields[2]), session=int(fields[3]), start=fields[19])
 
 
+def exited(pid, start=None):
+    # A start names one process: a different start means the pid was reused, so the one asked about is gone.
+    try:
+        current = identity(pid)
+    except (FileNotFoundError, ProcessLookupError):
+        return True
+    return current['state'] == 'Z' or (start is not None and current['start'] != start)
+
+
 def signal_if_matches(pid, start, signum, *, group=None, verify=None):
     try:
         fd = os.pidfd_open(pid)
@@ -19,14 +28,17 @@ def signal_if_matches(pid, start, signum, *, group=None, verify=None):
     try:
         try:
             current = identity(pid)
-        except FileNotFoundError:
+        except (FileNotFoundError, ProcessLookupError):
             return False
         if current['start'] != str(start) or current['state'] == 'Z':
             return False
         if group is not None and (current['group'] != group or current['session'] != group):
             return False
         if verify is not None:
-            checked = verify(pid)
+            try:
+                checked = verify(pid)
+            except (FileNotFoundError, ProcessLookupError):
+                return False
             if checked['start'] != current['start'] or checked['state'] == 'Z':
                 return False
         try:
@@ -53,7 +65,7 @@ def reap_descendants(record):
             current = identity(process.name)
             if current['group'] == record['group'] and current['parent'] == os.getpid() and current['state'] == 'Z':
                 os.waitpid(int(process.name), os.WNOHANG)
-        except (FileNotFoundError, ChildProcessError):
+        except (FileNotFoundError, ProcessLookupError, ChildProcessError):
             continue
 
 
