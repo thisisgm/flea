@@ -220967,7 +220967,7 @@
     },
     {
       "excerpt": "[ -x \"$FLEA_BIN\" ] && [ -x \"$FLEA_GUI_BIN\" ] || die \"build flea and flea-gui first: $FLEA_BIN $FLEA_GUI_BIN\"",
-      "line": 18,
+      "line": 21,
       "literal": "build flea and flea-gui first: $FLEA_BIN $FLEA_GUI_BIN",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -220976,7 +220976,7 @@
     },
     {
       "excerpt": "FLEA_BIN=$(realpath -e \"$FLEA_BIN\") || die \"candidate backend cannot be resolved\"",
-      "line": 19,
+      "line": 22,
       "literal": "candidate backend cannot be resolved",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -220985,7 +220985,7 @@
     },
     {
       "excerpt": "FLEA_GUI_BIN=$(realpath -e \"$FLEA_GUI_BIN\") || die \"candidate GUI cannot be resolved\"",
-      "line": 20,
+      "line": 23,
       "literal": "candidate GUI cannot be resolved",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -220994,7 +220994,7 @@
     },
     {
       "excerpt": "''|*\"/run/user/$(id -u)/bus\"*) die \"run under dbus-run-session, so the Trash this battery fills is a private one\" ;;",
-      "line": 24,
+      "line": 27,
       "literal": "run under dbus-run-session, so the Trash this battery fills is a private one",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221003,7 +221003,7 @@
     },
     {
       "excerpt": "press() { LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive key --window \"$WINDOW\" -k \"$1\" >/dev/null 2>&1 || die \"key delivery failed: $1\"; sleep 0.5; }",
-      "line": 75,
+      "line": 78,
       "literal": "key delivery failed: $1",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221012,7 +221012,7 @@
     },
     {
       "excerpt": "typek() { LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive key --window \"$WINDOW\" \"$1\" >/dev/null 2>&1 || die \"text delivery failed\"; sleep 0.4; }",
-      "line": 76,
+      "line": 79,
       "literal": "text delivery failed",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221021,7 +221021,7 @@
     },
     {
       "excerpt": "read -r wx wy <<< \"$(hyprctl clients -j | jq -r --arg a \"$WINDOW\" '.[] | select(.address == $a) | \"\\(.at[0]) \\(.at[1])\"')\"",
-      "line": 84,
+      "line": 87,
       "literal": "$(hyprctl clients -j | jq -r --arg a ",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221030,7 +221030,7 @@
     },
     {
       "excerpt": "[[ \"$cx $cy\" =~ ^[0-9]+\\ [0-9]+$ && \"$wx $wy\" =~ ^-?[0-9]+\\ -?[0-9]+$ ]] || die \"owned row click has no measured target\"",
-      "line": 85,
+      "line": 88,
       "literal": "owned row click has no measured target",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221039,7 +221039,7 @@
     },
     {
       "excerpt": "LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive click \"$((cx + wx))\" \"$((cy + wy))\" \"$button\" >/dev/null 2>&1 || die \"owned row click failed\"",
-      "line": 86,
+      "line": 89,
       "literal": "owned row click failed",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221048,7 +221048,7 @@
     },
     {
       "excerpt": "echo \"  could not reach row: $want\"",
-      "line": 98,
+      "line": 101,
       "literal": "  could not reach row: $want",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221057,7 +221057,7 @@
     },
     {
       "excerpt": "flea_test_launch \"$SB\" \"$RUN/flea.log\" --binary \"$FLEA_BIN\" || die \"owned window launch failed\"",
-      "line": 141,
+      "line": 144,
       "literal": "owned window launch failed",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221066,7 +221066,7 @@
     },
     {
       "excerpt": "flea_ipc_wait --pid \"$FLEA_PID\" flea ready true --timeout 20 || die \"the window never answered ready\"",
-      "line": 143,
+      "line": 146,
       "literal": "the window never answered ready",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221075,7 +221075,7 @@
     },
     {
       "excerpt": "[ -n \"$WINDOW\" ] || die \"pid $FLEA_PID never mapped one window\"",
-      "line": 145,
+      "line": 148,
       "literal": "pid $FLEA_PID never mapped one window",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221084,7 +221084,7 @@
     },
     {
       "excerpt": "check \"the app came up on the fixture\" \"$SB\" \"$(q path)\"",
-      "line": 147,
+      "line": 150,
       "literal": "the app came up on the fixture",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221093,7 +221093,7 @@
     },
     {
       "excerpt": "echo \"--- rename through r, and z puts it back ---\"",
-      "line": 149,
+      "line": 152,
       "literal": "--- rename through r, and z puts it back ---",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221102,7 +221102,7 @@
     },
     {
       "excerpt": "check \"the new name is on disk\" \"yes\" \"$([ -f \"$SB/renamed.txt\" ] && echo yes || echo no)\"",
-      "line": 155,
+      "line": 158,
       "literal": "the new name is on disk",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221111,7 +221111,7 @@
     },
     {
       "excerpt": "check \"the new name is on disk\" \"yes\" \"$([ -f \"$SB/renamed.txt\" ] && echo yes || echo no)\"",
-      "line": 155,
+      "line": 158,
       "literal": "yes",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221120,7 +221120,7 @@
     },
     {
       "excerpt": "check \"the new name is on disk\" \"yes\" \"$([ -f \"$SB/renamed.txt\" ] && echo yes || echo no)\"",
-      "line": 155,
+      "line": 158,
       "literal": " ] && echo yes || echo no)",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221129,7 +221129,7 @@
     },
     {
       "excerpt": "check \"the old name is gone\" \"no\" \"$([ -e \"$SB/alpha.txt\" ] && echo yes || echo no)\"",
-      "line": 156,
+      "line": 159,
       "literal": "the old name is gone",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221138,7 +221138,7 @@
     },
     {
       "excerpt": "check \"the old name is gone\" \"no\" \"$([ -e \"$SB/alpha.txt\" ] && echo yes || echo no)\"",
-      "line": 156,
+      "line": 159,
       "literal": " ] && echo yes || echo no)",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221147,7 +221147,7 @@
     },
     {
       "excerpt": "check \"the bytes survived the rename\" \"alpha body\" \"$(cat \"$SB/renamed.txt\")\"",
-      "line": 157,
+      "line": 160,
       "literal": "the bytes survived the rename",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221156,7 +221156,7 @@
     },
     {
       "excerpt": "check \"the bytes survived the rename\" \"alpha body\" \"$(cat \"$SB/renamed.txt\")\"",
-      "line": 157,
+      "line": 160,
       "literal": "alpha body",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221165,7 +221165,7 @@
     },
     {
       "excerpt": "check \"committing the rename did not also open the row\" \"\" \"$(q lastMessage)\"",
-      "line": 158,
+      "line": 161,
       "literal": "committing the rename did not also open the row",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221174,7 +221174,7 @@
     },
     {
       "excerpt": "check \"the cursor followed the renamed row\" \"renamed.txt\" \"$(q rowAt \"$(q cursor)\" | cut -d'|' -f1)\"",
-      "line": 159,
+      "line": 162,
       "literal": "the cursor followed the renamed row",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221183,7 +221183,7 @@
     },
     {
       "excerpt": "check \"z undid the rename\" \"yes\" \"$([ -f \"$SB/alpha.txt\" ] && echo yes || echo no)\"",
-      "line": 162,
+      "line": 165,
       "literal": "z undid the rename",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221192,7 +221192,7 @@
     },
     {
       "excerpt": "check \"z undid the rename\" \"yes\" \"$([ -f \"$SB/alpha.txt\" ] && echo yes || echo no)\"",
-      "line": 162,
+      "line": 165,
       "literal": "yes",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221201,7 +221201,7 @@
     },
     {
       "excerpt": "check \"z undid the rename\" \"yes\" \"$([ -f \"$SB/alpha.txt\" ] && echo yes || echo no)\"",
-      "line": 162,
+      "line": 165,
       "literal": " ] && echo yes || echo no)",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221210,7 +221210,7 @@
     },
     {
       "excerpt": "check \"and took the new name away\" \"no\" \"$([ -e \"$SB/renamed.txt\" ] && echo yes || echo no)\"",
-      "line": 163,
+      "line": 166,
       "literal": "and took the new name away",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221219,7 +221219,7 @@
     },
     {
       "excerpt": "check \"and took the new name away\" \"no\" \"$([ -e \"$SB/renamed.txt\" ] && echo yes || echo no)\"",
-      "line": 163,
+      "line": 166,
       "literal": " ] && echo yes || echo no)",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221228,7 +221228,7 @@
     },
     {
       "excerpt": "check \"the bar said what it reversed\" \"Undid the rename\" \"$(message \"Undid the rename\")\"",
-      "line": 164,
+      "line": 167,
       "literal": "the bar said what it reversed",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221237,7 +221237,7 @@
     },
     {
       "excerpt": "check \"the bar said what it reversed\" \"Undid the rename\" \"$(message \"Undid the rename\")\"",
-      "line": 164,
+      "line": 167,
       "literal": "Undid the rename",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221246,7 +221246,7 @@
     },
     {
       "excerpt": "echo \"--- trash through Delete, with no confirmation, and z restores ---\"",
-      "line": 166,
+      "line": 169,
       "literal": "--- trash through Delete, with no confirmation, and z restores ---",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221255,7 +221255,7 @@
     },
     {
       "excerpt": "check \"the row left the directory\" \"no\" \"$([ -e \"$SB/gamma.txt\" ] && echo yes || echo no)\"",
-      "line": 170,
+      "line": 173,
       "literal": "the row left the directory",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221264,7 +221264,7 @@
     },
     {
       "excerpt": "check \"the row left the directory\" \"no\" \"$([ -e \"$SB/gamma.txt\" ] && echo yes || echo no)\"",
-      "line": 170,
+      "line": 173,
       "literal": " ] && echo yes || echo no)",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221273,7 +221273,7 @@
     },
     {
       "excerpt": "check \"the item is in this run's own Trash\" \"gamma body\" \"$(cat \"$XDG_DATA_HOME/Trash/files/gamma.txt\" 2>/dev/null)\"",
-      "line": 171,
+      "line": 174,
       "literal": "the item is in this run's own Trash",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221282,7 +221282,7 @@
     },
     {
       "excerpt": "check \"the item is in this run's own Trash\" \"gamma body\" \"$(cat \"$XDG_DATA_HOME/Trash/files/gamma.txt\" 2>/dev/null)\"",
-      "line": 171,
+      "line": 174,
       "literal": "gamma body",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221291,7 +221291,7 @@
     },
     {
       "excerpt": "check \"the bar named the reversal\" \"Moved 1 item to Trash · z undoes\" \"$(message \"Moved 1 item to Trash · z undoes\")\"",
-      "line": 172,
+      "line": 175,
       "literal": "the bar named the reversal",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221300,7 +221300,7 @@
     },
     {
       "excerpt": "check \"the bar named the reversal\" \"Moved 1 item to Trash · z undoes\" \"$(message \"Moved 1 item to Trash · z undoes\")\"",
-      "line": 172,
+      "line": 175,
       "literal": "Moved 1 item to Trash · z undoes",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221309,7 +221309,7 @@
     },
     {
       "excerpt": "check \"z restored it from the trash\" \"gamma body\" \"$(cat \"$SB/gamma.txt\" 2>/dev/null)\"",
-      "line": 175,
+      "line": 178,
       "literal": "z restored it from the trash",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221318,7 +221318,7 @@
     },
     {
       "excerpt": "check \"z restored it from the trash\" \"gamma body\" \"$(cat \"$SB/gamma.txt\" 2>/dev/null)\"",
-      "line": 175,
+      "line": 178,
       "literal": "gamma body",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221327,7 +221327,7 @@
     },
     {
       "excerpt": "check \"the bar said so\" \"Put it back from Trash.\" \"$(message \"Put it back from Trash.\")\"",
-      "line": 176,
+      "line": 179,
       "literal": "the bar said so",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221336,7 +221336,7 @@
     },
     {
       "excerpt": "check \"the bar said so\" \"Put it back from Trash.\" \"$(message \"Put it back from Trash.\")\"",
-      "line": 176,
+      "line": 179,
       "literal": "Put it back from Trash.",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221345,7 +221345,7 @@
     },
     {
       "excerpt": "echo \"--- cut with x, paste with p in another directory, and z moves it back ---\"",
-      "line": 178,
+      "line": 181,
       "literal": "--- cut with x, paste with p in another directory, and z moves it back ---",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221354,7 +221354,7 @@
     },
     {
       "excerpt": "check \"the clipboard reports what it took\" \"Cut 1 item · p pastes\" \"$(message \"Cut 1 item · p pastes\")\"",
-      "line": 182,
+      "line": 185,
       "literal": "the clipboard reports what it took",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221363,7 +221363,7 @@
     },
     {
       "excerpt": "check \"the pane is in the destination\" \"$SB/dest\" \"$(q path)\"",
-      "line": 186,
+      "line": 189,
       "literal": "the pane is in the destination",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221372,7 +221372,7 @@
     },
     {
       "excerpt": "check \"the file landed in the destination\" \"beta body\" \"$(cat \"$SB/dest/beta.txt\" 2>/dev/null)\"",
-      "line": 189,
+      "line": 192,
       "literal": "the file landed in the destination",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221381,7 +221381,7 @@
     },
     {
       "excerpt": "check \"the file landed in the destination\" \"beta body\" \"$(cat \"$SB/dest/beta.txt\" 2>/dev/null)\"",
-      "line": 189,
+      "line": 192,
       "literal": "beta body",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221390,7 +221390,7 @@
     },
     {
       "excerpt": "check \"and left its old directory\" \"no\" \"$([ -e \"$SB/beta.txt\" ] && echo yes || echo no)\"",
-      "line": 190,
+      "line": 193,
       "literal": "and left its old directory",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221399,7 +221399,7 @@
     },
     {
       "excerpt": "check \"and left its old directory\" \"no\" \"$([ -e \"$SB/beta.txt\" ] && echo yes || echo no)\"",
-      "line": 190,
+      "line": 193,
       "literal": " ] && echo yes || echo no)",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221408,7 +221408,7 @@
     },
     {
       "excerpt": "check \"the bar called it a move, not a copy\" \"Moved 1 item · z undoes\" \"$(message \"Moved 1 item · z undoes\")\"",
-      "line": 193,
+      "line": 196,
       "literal": "the bar called it a move, not a copy",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221417,7 +221417,7 @@
     },
     {
       "excerpt": "check \"and the sticky slot is clear once the operation ends\" \"\" \"$(q stickyMessage)\"",
-      "line": 194,
+      "line": 197,
       "literal": "and the sticky slot is clear once the operation ends",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221426,7 +221426,7 @@
     },
     {
       "excerpt": "check \"z moved it back where it came from\" \"beta body\" \"$(cat \"$SB/beta.txt\" 2>/dev/null)\"",
-      "line": 197,
+      "line": 200,
       "literal": "z moved it back where it came from",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221435,7 +221435,7 @@
     },
     {
       "excerpt": "check \"z moved it back where it came from\" \"beta body\" \"$(cat \"$SB/beta.txt\" 2>/dev/null)\"",
-      "line": 197,
+      "line": 200,
       "literal": "beta body",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221444,7 +221444,7 @@
     },
     {
       "excerpt": "check \"and took it out of the destination\" \"no\" \"$([ -e \"$SB/dest/beta.txt\" ] && echo yes || echo no)\"",
-      "line": 198,
+      "line": 201,
       "literal": "and took it out of the destination",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221453,7 +221453,7 @@
     },
     {
       "excerpt": "check \"and took it out of the destination\" \"no\" \"$([ -e \"$SB/dest/beta.txt\" ] && echo yes || echo no)\"",
-      "line": 198,
+      "line": 201,
       "literal": " ] && echo yes || echo no)",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221462,7 +221462,7 @@
     },
     {
       "excerpt": "echo \"--- copy with y, paste with p, and the same slot says copy ---\"",
-      "line": 200,
+      "line": 203,
       "literal": "--- copy with y, paste with p, and the same slot says copy ---",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221471,7 +221471,7 @@
     },
     {
       "excerpt": "check \"the copy case starts in the parent directory\" \"$SB\" \"$(q path)\"",
-      "line": 204,
+      "line": 207,
       "literal": "the copy case starts in the parent directory",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221480,7 +221480,7 @@
     },
     {
       "excerpt": "check \"the clipboard reports a copy\" \"Copied 1 item · p pastes\" \"$(message \"Copied 1 item · p pastes\")\"",
-      "line": 208,
+      "line": 211,
       "literal": "the clipboard reports a copy",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221489,7 +221489,7 @@
     },
     {
       "excerpt": "check \"the copy landed in the destination\" \"gamma body\" \"$(cat \"$SB/dest/gamma.txt\" 2>/dev/null)\"",
-      "line": 214,
+      "line": 217,
       "literal": "the copy landed in the destination",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221498,7 +221498,7 @@
     },
     {
       "excerpt": "check \"the copy landed in the destination\" \"gamma body\" \"$(cat \"$SB/dest/gamma.txt\" 2>/dev/null)\"",
-      "line": 214,
+      "line": 217,
       "literal": "gamma body",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221507,7 +221507,7 @@
     },
     {
       "excerpt": "check \"and the source is still there\" \"gamma body\" \"$(cat \"$SB/gamma.txt\" 2>/dev/null)\"",
-      "line": 215,
+      "line": 218,
       "literal": "and the source is still there",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221516,7 +221516,7 @@
     },
     {
       "excerpt": "check \"and the source is still there\" \"gamma body\" \"$(cat \"$SB/gamma.txt\" 2>/dev/null)\"",
-      "line": 215,
+      "line": 218,
       "literal": "gamma body",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221525,7 +221525,7 @@
     },
     {
       "excerpt": "check \"the bar called it a copy\" \"Copied 1 item · z undoes\" \"$(message \"Copied 1 item · z undoes\")\"",
-      "line": 216,
+      "line": 219,
       "literal": "the bar called it a copy",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221534,7 +221534,7 @@
     },
     {
       "excerpt": "check \"z removed only the copy\" \"no\" \"$([ -e \"$SB/dest/gamma.txt\" ] && echo yes || echo no)\"",
-      "line": 219,
+      "line": 222,
       "literal": "z removed only the copy",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221543,7 +221543,7 @@
     },
     {
       "excerpt": "check \"z removed only the copy\" \"no\" \"$([ -e \"$SB/dest/gamma.txt\" ] && echo yes || echo no)\"",
-      "line": 219,
+      "line": 222,
       "literal": " ] && echo yes || echo no)",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221552,7 +221552,7 @@
     },
     {
       "excerpt": "echo \"--- duplicate through the context menu, and z removes only the copy ---\"",
-      "line": 221,
+      "line": 224,
       "literal": "--- duplicate through the context menu, and z removes only the copy ---",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221561,7 +221561,7 @@
     },
     {
       "excerpt": "check \"backspace returned to the parent directory\" \"$SB\" \"$(q path)\"",
-      "line": 224,
+      "line": 227,
       "literal": "backspace returned to the parent directory",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221570,7 +221570,7 @@
     },
     {
       "excerpt": "check \"the cursor is on the row the menu will open on\" \"beta.txt\" \"$(q rowAt \"$(q cursor)\" | cut -d'|' -f1)\"",
-      "line": 226,
+      "line": 229,
       "literal": "the cursor is on the row the menu will open on",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221579,7 +221579,7 @@
     },
     {
       "excerpt": "check \"the menu opened on the row\" \"true\" \"$(q contextMenuVisible)\"",
-      "line": 233,
+      "line": 236,
       "literal": "the menu opened on the row",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221588,7 +221588,7 @@
     },
     {
       "excerpt": "check \"the menu opens with Open and ends with Move to Trash\" \"Open ... Move to Trash\" \"${entries%%|*} ... ${entries##*|}\"",
-      "line": 236,
+      "line": 239,
       "literal": "the menu opens with Open and ends with Move to Trash",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221597,7 +221597,7 @@
     },
     {
       "excerpt": "check \"the menu opens with Open and ends with Move to Trash\" \"Open ... Move to Trash\" \"${entries%%|*} ... ${entries##*|}\"",
-      "line": 236,
+      "line": 239,
       "literal": "Open ... Move to Trash",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221606,7 +221606,7 @@
     },
     {
       "excerpt": "check \"every menu row has one glyph slot\" \"${#menu_entries[@]}\" \"${#menu_glyphs[@]}\"",
-      "line": 239,
+      "line": 242,
       "literal": "every menu row has one glyph slot",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221615,7 +221615,7 @@
     },
     {
       "excerpt": "check \"separator $i has no action glyph\" - \"${menu_glyphs[$i]:-}\"",
-      "line": 242,
+      "line": 245,
       "literal": "separator $i has no action glyph",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221624,7 +221624,7 @@
     },
     {
       "excerpt": "check \"action row $i carries a glyph\" present missing",
-      "line": 244,
+      "line": 247,
       "literal": "action row $i carries a glyph",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221633,7 +221633,7 @@
     },
     {
       "excerpt": "check \"the menu offers Duplicate once\" \"1\" \"$(tr '|' '\\n' <<< \"$entries\" | grep -cx 'Duplicate')\"",
-      "line": 248,
+      "line": 251,
       "literal": "the menu offers Duplicate once",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221642,7 +221642,7 @@
     },
     {
       "excerpt": "[[ \"$duplicate\" =~ ^[0-9]+$ ]] || die \"Duplicate is missing or ambiguous\"",
-      "line": 249,
+      "line": 252,
       "literal": "Duplicate is missing or ambiguous",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221651,7 +221651,7 @@
     },
     {
       "excerpt": "check \"the menu opens on its first real row\" \"0\" \"$(q contextMenuCursor)\"",
-      "line": 250,
+      "line": 253,
       "literal": "the menu opens on its first real row",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221660,7 +221660,7 @@
     },
     {
       "excerpt": "check \"down walked to Duplicate\" \"$((duplicate - 1))\" \"$(q contextMenuCursor)\"",
-      "line": 255,
+      "line": 258,
       "literal": "down walked to Duplicate",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221669,7 +221669,7 @@
     },
     {
       "excerpt": "check \"the menu closed when the entry was chosen\" \"false\" \"$(q contextMenuVisible)\"",
-      "line": 258,
+      "line": 261,
       "literal": "the menu closed when the entry was chosen",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221678,7 +221678,7 @@
     },
     {
       "excerpt": "check \"the bar named the copy and its reversal\" \"Duplicated to beta copy.txt · z undoes\" \"$(message \"Duplicated to beta copy.txt · z undoes\")\"",
-      "line": 259,
+      "line": 262,
       "literal": "the bar named the copy and its reversal",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221687,7 +221687,7 @@
     },
     {
       "excerpt": "check \"the bar named the copy and its reversal\" \"Duplicated to beta copy.txt · z undoes\" \"$(message \"Duplicated to beta copy.txt · z undoes\")\"",
-      "line": 259,
+      "line": 262,
       "literal": "Duplicated to beta copy.txt · z undoes",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221696,7 +221696,7 @@
     },
     {
       "excerpt": "check \"the copy is on disk under the design's own name\" \"beta body\" \"$(cat \"$SB/beta copy.txt\" 2>/dev/null)\"",
-      "line": 260,
+      "line": 263,
       "literal": "the copy is on disk under the design's own name",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221705,7 +221705,7 @@
     },
     {
       "excerpt": "check \"the copy is on disk under the design's own name\" \"beta body\" \"$(cat \"$SB/beta copy.txt\" 2>/dev/null)\"",
-      "line": 260,
+      "line": 263,
       "literal": "beta body",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221714,7 +221714,7 @@
     },
     {
       "excerpt": "check \"z removed the copy\" \"no\" \"$([ -e \"$SB/beta copy.txt\" ] && echo yes || echo no)\"",
-      "line": 263,
+      "line": 266,
       "literal": "z removed the copy",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221723,7 +221723,7 @@
     },
     {
       "excerpt": "check \"z removed the copy\" \"no\" \"$([ -e \"$SB/beta copy.txt\" ] && echo yes || echo no)\"",
-      "line": 263,
+      "line": 266,
       "literal": " ] && echo yes || echo no)",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221732,7 +221732,7 @@
     },
     {
       "excerpt": "check \"and left the original\" \"beta body\" \"$(cat \"$SB/beta.txt\" 2>/dev/null)\"",
-      "line": 264,
+      "line": 267,
       "literal": "and left the original",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221741,7 +221741,7 @@
     },
     {
       "excerpt": "check \"and left the original\" \"beta body\" \"$(cat \"$SB/beta.txt\" 2>/dev/null)\"",
-      "line": 264,
+      "line": 267,
       "literal": "beta body",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221750,7 +221750,7 @@
     },
     {
       "excerpt": "echo \"--- undo with an empty journal is a message, not a crash ---\"",
-      "line": 266,
+      "line": 269,
       "literal": "--- undo with an empty journal is a message, not a crash ---",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221759,7 +221759,7 @@
     },
     {
       "excerpt": "check \"the app is still answering\" \"true\" \"$(q ready)\"",
-      "line": 269,
+      "line": 272,
       "literal": "the app is still answering",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221768,7 +221768,7 @@
     },
     {
       "excerpt": "check \"and says there is nothing left\" \"There is nothing to undo.\" \"$(message \"There is nothing to undo.\")\"",
-      "line": 270,
+      "line": 273,
       "literal": "and says there is nothing left",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221777,7 +221777,7 @@
     },
     {
       "excerpt": "check \"and says there is nothing left\" \"There is nothing to undo.\" \"$(message \"There is nothing to undo.\")\"",
-      "line": 270,
+      "line": 273,
       "literal": "There is nothing to undo.",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221786,7 +221786,7 @@
     },
     {
       "excerpt": "echo \"--- the directory is back to where it started ---\"",
-      "line": 275,
+      "line": 278,
       "literal": "--- the directory is back to where it started ---",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221795,7 +221795,7 @@
     },
     {
       "excerpt": "check \"every fixture file is present and nothing extra\" \"alpha.txt beta.txt dest gamma.txt subdir \" \"$(listing)\"",
-      "line": 276,
+      "line": 279,
       "literal": "every fixture file is present and nothing extra",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221804,7 +221804,7 @@
     },
     {
       "excerpt": "check \"every fixture file is present and nothing extra\" \"alpha.txt beta.txt dest gamma.txt subdir \" \"$(listing)\"",
-      "line": 276,
+      "line": 279,
       "literal": "alpha.txt beta.txt dest gamma.txt subdir ",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221813,7 +221813,7 @@
     },
     {
       "excerpt": "if [ \"$fail\" = 0 ]; then echo \"flea-live-ops: all checks passed\"; else echo \"flea-live-ops: FAILURES above\"; fi",
-      "line": 279,
+      "line": 282,
       "literal": "flea-live-ops: all checks passed",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -221822,7 +221822,7 @@
     },
     {
       "excerpt": "if [ \"$fail\" = 0 ]; then echo \"flea-live-ops: all checks passed\"; else echo \"flea-live-ops: FAILURES above\"; fi",
-      "line": 279,
+      "line": 282,
       "literal": "flea-live-ops: FAILURES above",
       "owner": "controller",
       "path": "tools/flea-live-ops",
@@ -255785,7 +255785,7 @@
     "tools/flea-ipc-pid": "111739583c9d10e2e7058e0eefb147c94a2a8b4a0777d09361b0c6827ab77518",
     "tools/flea-keymap-gen": "27c255369943a5548fd2213d715a2a06db15152a8c7f01c966fe16b2112c889f",
     "tools/flea-keymap-lint": "685dd15739937f99b51ddb241c104ed291b11c8c893d239a1ff6b41d6b68d7dd",
-    "tools/flea-live-ops": "e0804c1db0383f29cecd6bdb5a91c0afee6335e53d29be39f5bf77ed058528c0",
+    "tools/flea-live-ops": "2f8db582482011d20febac48f5b10811b4e2c819cc656021d5a9bbbf75d3cfbd",
     "tools/flea-localsend-battery": "9a799cb5e68d245363cdfb33401cc70e5bddd73f92a8a420cc542245145b0e7e",
     "tools/flea-magick-font": "aeea289a8300c9be8c09fa9ae3671811ff465546405dc5111fd085c1433f359a",
     "tools/flea-matchbench/Cargo.toml": "1c091116113a2ddd2e3d9f3d04c356ca7ad9ef00b59b5fdc1bcc9700ee0f91cf",
@@ -256301,8 +256301,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "9d8a78e142b7d54fa34ae9e378b93fa61370d079",
-  "source_sha": "9d8a78e142b7d54fa34ae9e378b93fa61370d079",
+  "source_ref_sha": "ecf106624808c32663bf7652769112556eda68ee",
+  "source_sha": "ecf106624808c32663bf7652769112556eda68ee",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1377,

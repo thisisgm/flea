@@ -2,6 +2,8 @@
 
 # Seconds one IPC poll waits for its state, used by the polling helpers below.
 sweep_wait_seconds=30
+# Seconds allowed for the model preview to decode and reach the column.
+sweep_model_wait_seconds=25
 # Eight wheel notches reach the two-page PDF stack's end at the capture window size.
 sweep_pdf_end_notches=8
 
@@ -609,7 +611,7 @@ case_cap_columns14() { sweep_run current columns; }
 
 # An STL previews as a flat-shaded model, in the column and in Quick Look (HIG ql-stl, GM 2026-10-17 3D previews), never a cache thumbnail or the unreadable sentence.
 capsweepstl_wait_column() {
-    local file="$1" end=$((SECONDS + 25)) path="" state=""
+    local file="$1" end=$((SECONDS + sweep_model_wait_seconds)) path="" state=""
     while (( SECONDS < end )); do
         path=$(ipc previewSelectionState | jq -r .path)
         state=$(ipc previewColumnState)
@@ -619,6 +621,7 @@ capsweepstl_wait_column() {
     fail "capsweepstl: the column shows $path as '$state', want $file as model3d"
 }
 
+# The STL renders as a shaded model in both the preview column and Quick Look.
 case_capsweepstl() {
     local dir="$fixture_root/capsweepstl" seen end
     sandbox_scratch "$dir"

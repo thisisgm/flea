@@ -25,7 +25,7 @@ trap cleanup EXIT
 # The helpers, the focus readers, the keys and the pid route, cut out of the files that ship them.
 eval "$(sed -n -e '/^cap_dropmods_box()/,/^}/p' -e '/^cap_dropmods_focus_pid()/,/^}/p' tests/ui-captures-dropmods.sh)"
 eval "$(sed -n -e '/^ipc_pid=""$/,/^}$/p' -e '/^focused_class()/,/^}/p' -e '/^focused_pid()/,/^}/p' -e '/^window_addr_of_pid()/,/^}/p' \
-    -e '/^assert_focus()/,/^}/p' -e '/^key()/,/^}/p' -e '/^hotkey()/,/^}/p' -e '/^seek_row_named()/,/^}/p' tests/ui.sh)"
+    -e '/^assert_focus()/,/^}/p' -e '/^key()/,/^}/p' -e '/^hotkey()/,/^}/p' -e '/^async_wait_ms=/p' -e '/^seek_row_named()/,/^}/p' tests/ui.sh)"
 
 # Sample input, hyprctl clients -j: [{"class":"com.thisisgm.flea","pid":11,"address":"0xa1","at":[0,40],"size":[900,700]}], one entry per window.
 clients='[{"class":"com.thisisgm.flea","pid":11,"address":"0xa1","at":[0,40],"size":[900,700]},{"class":"com.thisisgm.flea","pid":22,"address":"0xb2","at":[900,40],"size":[950,700]},{"class":"other","pid":33,"address":"0xc3","at":[1,1],"size":[2,2]}]'
