@@ -20,7 +20,7 @@
     {"id": "tui-menu", "frontend": "tui", "boards": ["tui-lang-ja-menu"], "states": ["rest", "focus"]},
     {"id": "tui-keys", "frontend": "tui", "boards": ["tui-lang-ru-keys"], "states": ["rest"]}
   ],
-  "source_index": {"path": "i18n/source-index.json", "sha256": "de7fa623176638ad3a6c4bf0ded71a0c715bae5542f229a58473854a66312b89", "source": "COMPOSE-I50 stage index, refrozen from the whole joined source after each join; I50-01 merged at 020e19dac, I50-02 at 476301de2"},
+  "source_index": {"path": "i18n/source-index.json", "sha256": "43a0b471821a50f8ec3bc83dcbdf7c3e6d9dc84feb9c285a3bdb20db3bc8189c", "source": "COMPOSE-I50 stage index, refrozen from the whole joined source after each join; I50-01 merged at 020e19dac, I50-02 at 476301de2"},
   "rtl_policy": {"path": "i18n/rtl-policy.json", "sha256": "5db3d4fb59ea48297aa1fd619aaa45469278ddaae6c1305271adcb3b66c49d77", "source": "I50 stage 088069d43: I50-04 merged at c7fafc60b"},
   "ime_inventory": {"path": "ci/visual/i50/ime-cases.tsv", "sha256": "6b59a0d0d5c0bca4e39f9d450da4222d9515dea9e7d3172d90a814e6a931efaa", "source": "accepted I50-07 evidence native-cases.tsv at host 54fe171381a328614a28cc96c8aefff1b9d77e23"},
   "dependencies": [

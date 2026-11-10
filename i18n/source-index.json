@@ -1979,7 +1979,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
-      "line": 252,
+      "line": 253,
       "path": "src/tui/cards.rs",
       "pattern": null,
       "possible_keys": [],
@@ -1989,7 +1989,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
-      "line": 369,
+      "line": 370,
       "path": "src/tui/cards.rs",
       "pattern": null,
       "possible_keys": [],
@@ -1998,7 +1998,7 @@
     {
       "coverage": "dynamic-needs-owner-verification",
       "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-      "line": 309,
+      "line": 308,
       "path": "src/tui/combine/card.rs",
       "pattern": "dialogs.output.{key}",
       "possible_keys": [
@@ -2090,7 +2090,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "&format!(\"dialogs.output.{key}\")",
-      "line": 309,
+      "line": 308,
       "path": "src/tui/combine/card.rs",
       "pattern": null,
       "possible_keys": [],
@@ -22599,7 +22599,7 @@
       "call_sites": [
         {
           "excerpt": "Button { label: m.i18n.tr(\"card.cancel\"), default: true, focused: !focus, enabled: true },",
-          "line": 166,
+          "line": 167,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -22621,14 +22621,14 @@
       "call_sites": [
         {
           "excerpt": "let close = button_width(&m.i18n.tr(\"card.close\"));",
-          "line": 296,
+          "line": 297,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "buttons(out, theme, &card, &[Button { label: m.i18n.tr(\"card.close\"), default: true, focused: true, enabled: true }]);",
-          "line": 311,
+          "line": 312,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -22650,7 +22650,7 @@
       "call_sites": [
         {
           "excerpt": "Button { label: m.i18n.tr(\"card.delete\"), default: false, focused: focus, enabled: token != 0 },",
-          "line": 167,
+          "line": 168,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -22679,14 +22679,14 @@
         },
         {
           "excerpt": "let need = rows.iter().map(|row| text_width(row)).max().unwrap_or(0).max(text_width(&title) + 2 + text_width(&m.i18n.tr(\"card.esc\")))",
-          "line": 173,
+          "line": 174,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": ".max(text_width(&m.i18n.tr(\"properties.title\")) + 2 + text_width(&m.i18n.tr(\"card.esc\")));",
-          "line": 298,
+          "line": 299,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -23240,7 +23240,7 @@
       "call_sites": [
         {
           "excerpt": "let body = if token == 0 { m.i18n.tr(\"delete.inspecting\") } else { m.i18n.trn(\"delete.body\", count) };",
-          "line": 161,
+          "line": 162,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -23271,7 +23271,7 @@
       "call_sites": [
         {
           "excerpt": "let body = if token == 0 { m.i18n.tr(\"delete.inspecting\") } else { m.i18n.trn(\"delete.body\", count) };",
-          "line": 161,
+          "line": 162,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -23293,7 +23293,7 @@
       "call_sites": [
         {
           "excerpt": "(m.i18n.trn(\"delete.title\", count), rows, [",
-          "line": 165,
+          "line": 166,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -30950,7 +30950,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -31248,7 +31248,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -31574,7 +31574,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -31872,7 +31872,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -32222,7 +32222,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -32681,7 +32681,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -33140,7 +33140,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -33599,7 +33599,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -34065,7 +34065,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -34524,7 +34524,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -34983,7 +34983,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -35442,7 +35442,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -35901,7 +35901,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -36360,7 +36360,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -36819,7 +36819,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -37278,7 +37278,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -37737,7 +37737,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -38196,7 +38196,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -38655,7 +38655,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -39114,7 +39114,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -39573,7 +39573,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -39983,7 +39983,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -40281,7 +40281,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -40593,7 +40593,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -40905,7 +40905,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -41205,7 +41205,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -41517,7 +41517,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -41829,7 +41829,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -42048,7 +42048,7 @@
         },
         {
           "excerpt": "format!(\"  {}\", m.i18n.tr(\"dialogs.output.default\"))",
-          "line": 233,
+          "line": 234,
           "path": "src/tui/print/card.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -42148,7 +42148,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -42446,7 +42446,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -42758,7 +42758,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -43084,7 +43084,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -43389,7 +43389,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -43736,7 +43736,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -44041,7 +44041,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -44350,7 +44350,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -44648,7 +44648,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -44955,7 +44955,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -45253,7 +45253,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -45572,7 +45572,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -45870,7 +45870,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -46175,7 +46175,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -46494,7 +46494,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -46801,7 +46801,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -47120,7 +47120,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -47420,7 +47420,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -47727,7 +47727,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -48025,7 +48025,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -48353,7 +48353,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -48651,7 +48651,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -48949,7 +48949,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -49261,7 +49261,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -49552,7 +49552,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -49853,7 +49853,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -50165,7 +50165,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -50465,7 +50465,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -50763,7 +50763,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -51061,7 +51061,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -51359,7 +51359,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -51664,7 +51664,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -51962,7 +51962,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -52267,7 +52267,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -52565,7 +52565,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -52877,7 +52877,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -53175,7 +53175,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -53480,7 +53480,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -53699,7 +53699,7 @@
         },
         {
           "excerpt": "let output = m.i18n.tr(\"dialogs.output.output\");",
-          "line": 356,
+          "line": 357,
           "path": "src/tui/convert/card.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -53799,7 +53799,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -54104,7 +54104,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -54426,7 +54426,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -54724,7 +54724,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -55029,7 +55029,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -55334,7 +55334,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -55642,7 +55642,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -55940,7 +55940,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -56252,7 +56252,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -56568,7 +56568,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -56875,7 +56875,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -57191,7 +57191,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -57498,7 +57498,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -57805,7 +57805,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -58128,7 +58128,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "let label = m.i18n.tr(&format!(\"dialogs.output.{key}\")).to_uppercase();",
-          "line": 309,
+          "line": 308,
           "path": "src/tui/combine/card.rs",
           "pattern": "dialogs.output.{key}",
           "possible_keys": [
@@ -82007,7 +82007,7 @@
         },
         {
           "excerpt": "facts.insert(3, fact(\"properties.birth\", if birth.is_empty() { i18n.tr(\"pane.unavailable\") } else { birth }));",
-          "line": 273,
+          "line": 274,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -91577,7 +91577,7 @@
       "call_sites": [
         {
           "excerpt": "Kind::Archive => m.preview_state.archive.as_ref().map(|a| i18n.trn(\"preview.entries\", a.entries as i64)).unwrap_or_default(),",
-          "line": 125,
+          "line": 127,
           "path": "src/tui/look.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -93113,7 +93113,7 @@
       "call_sites": [
         {
           "excerpt": "Kind::Image | Kind::Video if probe.0 > 0 && probe.1 > 0 => i18n.tr_args(\"preview.pixels\", &[&i18n.locale().format_count(probe.0 as i64), &i18n.locale().format_count(probe.1 as i64)]),",
-          "line": 122,
+          "line": 124,
           "path": "src/tui/look.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -94179,7 +94179,7 @@
       "call_sites": [
         {
           "excerpt": "facts.insert(3, fact(\"properties.birth\", if birth.is_empty() { i18n.tr(\"pane.unavailable\") } else { birth }));",
-          "line": 273,
+          "line": 274,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -94215,7 +94215,7 @@
       "call_sites": [
         {
           "excerpt": "fact(\"properties.size\", i18n.trn_args(\"properties.bytes\", bytes as i64, &[&i18n.locale().format_size(bytes as u64)])),",
-          "line": 264,
+          "line": 265,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -94249,7 +94249,7 @@
       "call_sites": [
         {
           "excerpt": "if !deleted.is_empty() { facts.push(fact(\"properties.deleted\", deleted)); }",
-          "line": 276,
+          "line": 277,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -94271,7 +94271,7 @@
       "call_sites": [
         {
           "excerpt": "fact(\"properties.group\", i18n.tr_args(\"properties.groupValue\", &[&count(value, \"gid\").to_string()])),",
-          "line": 267,
+          "line": 268,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -94293,7 +94293,7 @@
       "call_sites": [
         {
           "excerpt": "fact(\"properties.group\", i18n.tr_args(\"properties.groupValue\", &[&count(value, \"gid\").to_string()])),",
-          "line": 267,
+          "line": 268,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -94317,7 +94317,7 @@
       "call_sites": [
         {
           "excerpt": "fact(\"properties.kind\", kind),",
-          "line": 263,
+          "line": 264,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -94361,7 +94361,7 @@
       "call_sites": [
         {
           "excerpt": "if !modified.is_empty() { facts.insert(3, fact(\"properties.modified\", modified)); }",
-          "line": 270,
+          "line": 271,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -94383,7 +94383,7 @@
       "call_sites": [
         {
           "excerpt": "fact(\"properties.owner\", i18n.tr_args(\"properties.ownerValue\", &[text(value, \"owner\"), &count(value, \"uid\").to_string()])),",
-          "line": 266,
+          "line": 267,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -94419,7 +94419,7 @@
       "call_sites": [
         {
           "excerpt": "fact(\"properties.owner\", i18n.tr_args(\"properties.ownerValue\", &[text(value, \"owner\"), &count(value, \"uid\").to_string()])),",
-          "line": 266,
+          "line": 267,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -94444,7 +94444,7 @@
       "call_sites": [
         {
           "excerpt": "fact(\"properties.path\", text(value, \"path\").into()),",
-          "line": 262,
+          "line": 263,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -94466,7 +94466,7 @@
       "call_sites": [
         {
           "excerpt": "fact(\"properties.permissions\", text(value, \"mode\").into()),",
-          "line": 265,
+          "line": 266,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -94488,7 +94488,7 @@
       "call_sites": [
         {
           "excerpt": "fact(\"properties.size\", i18n.trn_args(\"properties.bytes\", bytes as i64, &[&i18n.locale().format_size(bytes as u64)])),",
-          "line": 264,
+          "line": 265,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -94510,7 +94510,7 @@
       "call_sites": [
         {
           "excerpt": "if flag(value, \"symlink\") { facts.push(fact(\"properties.target\", text(value, \"target\").into())); }",
-          "line": 277,
+          "line": 278,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -94532,14 +94532,14 @@
       "call_sites": [
         {
           "excerpt": ".max(text_width(&m.i18n.tr(\"properties.title\")) + 2 + text_width(&m.i18n.tr(\"card.esc\")));",
-          "line": 298,
+          "line": 299,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "frame(out, m, theme, &card, &m.i18n.tr(\"properties.title\"));",
-          "line": 304,
+          "line": 305,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -94561,7 +94561,7 @@
       "call_sites": [
         {
           "excerpt": "_ if !m.preview_body.is_empty() => i18n.trn(\"quicklook.lines\", m.preview_body.lines().count() as i64),",
-          "line": 126,
+          "line": 128,
           "path": "src/tui/look.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -94594,7 +94594,7 @@
       "call_sites": [
         {
           "excerpt": "Kind::Pdf => m.pdf.as_ref().filter(|pdf| pdf.pages > 0).map(|pdf| i18n.trn(\"quicklook.pages\", pdf.pages as i64)).unwrap_or_default(),",
-          "line": 124,
+          "line": 126,
           "path": "src/tui/look.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -103978,7 +103978,7 @@
         },
         {
           "excerpt": "let disk = if (m.disk_path == m.path || super::trashview::opened_from(m) == Some(&m.disk_path)) && !m.disk_fs.is_empty() { m.i18n.tr_args(\"status.host.free\", &[&m.disk_fs, &m.i18n.locale().format_size(m.disk_free as u64)]) } else { String::new() };",
-          "line": 161,
+          "line": 162,
           "path": "src/tui/layout.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -104043,7 +104043,7 @@
         },
         {
           "excerpt": "format!(\"{}{}\", m.i18n.trn_args(\"status.host.selected\", m.selected.len() as i64, &[&m.i18n.locale().format_count(m.total as i64)]),",
-          "line": 163,
+          "line": 164,
           "path": "src/tui/layout.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -107767,7 +107767,7 @@
       "call_sites": [
         {
           "excerpt": "let help = if m.hints.keys.is_empty() { String::new() } else { m.i18n.tr_args(\"tui.frame.keys\", &[&m.hints.keys]) };",
-          "line": 160,
+          "line": 161,
           "path": "src/tui/layout.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -107960,7 +107960,7 @@
       "call_sites": [
         {
           "excerpt": "let message = i18n.tr(\"tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall\");",
-          "line": 143,
+          "line": 144,
           "path": "src/tui/layout.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -178975,7 +178975,7 @@
     },
     {
       "excerpt": "let mut cancel = key.name == \"Escape\";",
-      "line": 192,
+      "line": 193,
       "literal": "Escape",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -178984,7 +178984,7 @@
     },
     {
       "excerpt": "else if key.mods.is_empty() && key.name == \"Down\" { deletion.scroll = (card.top + 1).min(most); }",
-      "line": 207,
+      "line": 208,
       "literal": "Down",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -178993,7 +178993,7 @@
     },
     {
       "excerpt": "else if (matches!(key.name.as_str(), \"Tab\" | \"Backtab\") && matches!(key.mods.as_str(), \"\" | \"shift\"))",
-      "line": 208,
+      "line": 209,
       "literal": "Tab",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -179002,7 +179002,7 @@
     },
     {
       "excerpt": "else if (matches!(key.name.as_str(), \"Tab\" | \"Backtab\") && matches!(key.mods.as_str(), \"\" | \"shift\"))",
-      "line": 208,
+      "line": 209,
       "literal": "Backtab",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -179011,7 +179011,7 @@
     },
     {
       "excerpt": "|| (key.mods.is_empty() && (matches!(key.name.as_str(), \"Right\" | \"Left\") || matches!(key.text.as_str(), \"h\" | \"l\"))) {",
-      "line": 209,
+      "line": 210,
       "literal": "Right",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -179020,7 +179020,7 @@
     },
     {
       "excerpt": "|| (key.mods.is_empty() && (matches!(key.name.as_str(), \"Right\" | \"Left\") || matches!(key.text.as_str(), \"h\" | \"l\"))) {",
-      "line": 209,
+      "line": 210,
       "literal": "Left",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -179029,7 +179029,7 @@
     },
     {
       "excerpt": "\"Left\" => rtl, \"Right\" => !rtl,",
-      "line": 211,
+      "line": 212,
       "literal": "Left",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -179038,7 +179038,7 @@
     },
     {
       "excerpt": "\"Left\" => rtl, \"Right\" => !rtl,",
-      "line": 211,
+      "line": 212,
       "literal": "Right",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -179047,7 +179047,7 @@
     },
     {
       "excerpt": "} else if key.mods.is_empty() && matches!(key.name.as_str(), \"Return\" | \"Enter\" | \"Space\") { activate = true; }",
-      "line": 215,
+      "line": 216,
       "literal": "Return",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -179056,7 +179056,7 @@
     },
     {
       "excerpt": "} else if key.mods.is_empty() && matches!(key.name.as_str(), \"Return\" | \"Enter\" | \"Space\") { activate = true; }",
-      "line": 215,
+      "line": 216,
       "literal": "Enter",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -179065,7 +179065,7 @@
     },
     {
       "excerpt": "} else if key.mods.is_empty() && matches!(key.name.as_str(), \"Return\" | \"Enter\" | \"Space\") { activate = true; }",
-      "line": 215,
+      "line": 216,
       "literal": "Space",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -179074,7 +179074,7 @@
     },
     {
       "excerpt": "\"File\" | \"Directory\" | \"Symbolic link\" | \"Special file\" => flea::ui_logic_open_with_properties::properties::kind_word(",
-      "line": 255,
+      "line": 256,
       "literal": "File",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -179083,7 +179083,7 @@
     },
     {
       "excerpt": "\"File\" | \"Directory\" | \"Symbolic link\" | \"Special file\" => flea::ui_logic_open_with_properties::properties::kind_word(",
-      "line": 255,
+      "line": 256,
       "literal": "Directory",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -179092,7 +179092,7 @@
     },
     {
       "excerpt": "\"File\" | \"Directory\" | \"Symbolic link\" | \"Special file\" => flea::ui_logic_open_with_properties::properties::kind_word(",
-      "line": 255,
+      "line": 256,
       "literal": "Symbolic link",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -179101,7 +179101,7 @@
     },
     {
       "excerpt": "\"File\" | \"Directory\" | \"Symbolic link\" | \"Special file\" => flea::ui_logic_open_with_properties::properties::kind_word(",
-      "line": 255,
+      "line": 256,
       "literal": "Special file",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -179110,7 +179110,7 @@
     },
     {
       "excerpt": "if flag(value, \"symlink\") { facts.push(fact(\"properties.target\", text(value, \"target\").into())); }",
-      "line": 277,
+      "line": 278,
       "literal": "symlink",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -255807,14 +255807,14 @@
     "src/tui/batch.rs": "ed0719bf8ebff2e79724b5d1b1cdd50757a355553f7694b23bd1216a8bb5788a",
     "src/tui/calendar.rs": "203b5d1b559f78cae42cfdb6f2dc4bce95b437579db485f63615a3fb9eb96230",
     "src/tui/capabilities.rs": "a8790641f17557c0e34c7b417b5d321bb6f8ebb8e1becd0ab37060b947596eb9",
-    "src/tui/cards.rs": "10f382d8b61c7646deffaa552ff8ff0137b7dbb6a49643b41b11313c5adcf3c5",
+    "src/tui/cards.rs": "6fdcecb15048830eb83bd005aec56cdb95029d95c345dcafe63598d6832cf3db",
     "src/tui/cards/words.rs": "fdff477f46d3b5c62f9ffa99d50144ff653885144051b0a83c09d9c5a6517aba",
     "src/tui/cells.rs": "acd8db85699af84982869dedf3738162a241d86ecdaca21a69c0dd49967ec512",
     "src/tui/chafa.rs": "8f0a06ee01069e36e703619ed6c5770d6764fab464aec587c8919e705c5ccbf0",
     "src/tui/chafa_process.rs": "e88bd7ad9d1ac18581ce19444c750572c513182a139d8a2c164ab75bd0a0cd5a",
     "src/tui/claims.rs": "c520335a41e07298ffb3690bbe697786db36db583cb648f6eff35d635fd3e42a",
     "src/tui/combine.rs": "1cb77217cb8cc0552ee4128b64def2e48885bea4fa9cc48d25850077f721984d",
-    "src/tui/combine/card.rs": "ef6b5eee96b6e67fbe2860413c69d191af2efd9f4d6032b90ee8ab2d6480ff96",
+    "src/tui/combine/card.rs": "3a1f0094e6a578e1dc97f7b57156ee2ec4d6f412054d209bf0b04d93a64808cc",
     "src/tui/combine/card_layout.rs": "5496031b09999340d4ed721de81be5e1585793dcba0d2c4ca65cb34ff714d1c0",
     "src/tui/combine/font.rs": "d84d2e462c3b5d7ae5c791683fd0f29d14594d21f679929a76d27ea6f812ac3a",
     "src/tui/combine/input.rs": "bd8eba002f636d8dec17755deb6bba04047b806b0f745ea0ff48c90829a77c0e",
@@ -255825,7 +255825,7 @@
     "src/tui/contents.rs": "8aa0c3ec7778b24364bbb686ba4aca0e25e273efdb91f07a8156a0e48727cc2a",
     "src/tui/contents/failure.rs": "7bff3518c6d58500217f7f7a01bb99f70a67962a6b2ad16eb4b5af1347cd2808",
     "src/tui/convert.rs": "55db49b48b829095caf5402989a475c13dda032f77042e6941c766085ed39794",
-    "src/tui/convert/card.rs": "60bace60689b49331529baca9689986828c4bc1d67e2a18ed7771eab5f52b3bc",
+    "src/tui/convert/card.rs": "f99a995fddfe0ab09a8baa2b110ae27777dd77d9e145e60cd916e880b03e9b4a",
     "src/tui/convert/input.rs": "5c58f1f6dbca09cd9397275976d1af0e8192548f341e47b1aadfc4b7b6f57dab",
     "src/tui/convert/replies.rs": "0bb3f382e556326a50650b1b999121c1fe535480ddec61d150b52c120721b5bb",
     "src/tui/cwd.rs": "68b1f7c4493200964a84de4e3a49c1cdea108875387d0668aff6de242c1ae018",
@@ -255850,10 +255850,10 @@
     "src/tui/keycaps.rs": "b039b08e4e69962e463a53a4dc56654a188937b12a2075f2bcedf3c6681bc48a",
     "src/tui/keymap.rs": "e5a15589d0e3b79c498587b104711b288de229705e0b887bd0574de04ae83518",
     "src/tui/launch.rs": "6056ce1745d8ad7c47f6c365573250c887a040205ae179538bcb553b395b542b",
-    "src/tui/layout.rs": "e3e060fc8c325138a3cd02619c9975c818f32a68b6e168b49f41481db5392e8d",
-    "src/tui/look.rs": "92a86d8e44cd7382b8b061afa688b47b74ff9df1888a49b532035e29ef05509d",
+    "src/tui/layout.rs": "d80f85e89e4859c5f45cb5b731de3b7227b131a79c93d3deefba1280ba260dc8",
+    "src/tui/look.rs": "77fe2a88e01ab3579960d3cc054cc331556e00352a97ed81197d4e3496d84988",
     "src/tui/media.rs": "5af57bdb96142f0f88beda14937e69a60aec50f552147176785c0c5f4f19fa73",
-    "src/tui/menu_layout.rs": "727fc220b8d74e47d429a15543e544ada4458dc8423e987194c447b6eef4a5c8",
+    "src/tui/menu_layout.rs": "df6c4574fc594f5f11a3c78f8111c7b0c8dfdf4643b4cc07e6b63e9dc0570c33",
     "src/tui/menu_run.rs": "d17a9c47d79be3b433987a49d30207875b62654bf20df7289f07012625c1dd32",
     "src/tui/mod.rs": "f7e83ab580d36717ced57aba396a9d490295101436a3d31ae0d74437e0b62a29",
     "src/tui/model.rs": "81ca4bd76b3402860526cd0d53980a30cd68cd342084cae2a66483a8ed3e45b9",
@@ -255872,7 +255872,7 @@
     "src/tui/preview/words.rs": "f7173cf365031ee196b4694bcfe7dd558ad8853e1ca46fd04a3d140dfe742794",
     "src/tui/preview_keys.rs": "f168da485b74a5d92b6c8a06015dd7f849f4fe91faddd2030c0f086aecdcaff4",
     "src/tui/print.rs": "a47d203a7a43552643ea3ab67d3fe535677a089ef7aad73464685aa58d81eb7f",
-    "src/tui/print/card.rs": "7e513d5ef0fe27901abf502bf9372ae74c97d54df86066e0de71aea4ab7174b0",
+    "src/tui/print/card.rs": "d35b49ea98edbcff2a11638feff69a08517575ef436a345ec73016f44f9adc4d",
     "src/tui/print/input.rs": "2feadebdca18d18e77e604d762044c371781dfc4c265662d47e8e71d8920cc98",
     "src/tui/print/replies.rs": "02b5a80fe69671d8c07e3695746f8e2dd0983c51085271f7fead1a6a7655f76b",
     "src/tui/prompts.rs": "68d8f4020f570cc1e089abdb10f31378c284a5d53ae6810d254e05ca3aa85ee4",
@@ -255887,7 +255887,7 @@
     "src/tui/terminal.rs": "b855eda8fc1ab45104e380b3aae2d94d535cb0097cca491cdead241029531c89",
     "src/tui/terminal_editor.rs": "a533dd080b71b4ed18103101e140eb499b9a6b0541271949f8227028989b9e47",
     "src/tui/terminal_suspend_fixture.rs": "ad6be04a4087cca37e4c4da82e36d75feb01f274897ff3f3a01f29d1c317f2df",
-    "src/tui/theme.rs": "76adc30629062fa41519f2bad1cf04ea43d82be990b9771eeeed4089e3fb755c",
+    "src/tui/theme.rs": "9093a0ebba34c0ff5a5b07f827c1d217e6b46ff1ac4f428b3fe2e2e6e14690b6",
     "src/tui/tmux.rs": "54f48512fd40051fc430fb8459c32ba6579ba5ff60918337558f0392ff0c6a1e",
     "src/tui/trashview.rs": "47d342f84b4329e014360ee403aac7dc228d767b3a373585f32c8c06706a5573",
     "src/tui/visual.rs": "8cf13e1f95c65db49ab567b97fb551eb87355c6ecb79a0c3993f093bf6014648",
@@ -256827,8 +256827,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "a0477c282af92562c03c189aab329dc0dca6dd11",
-  "source_sha": "a0477c282af92562c03c189aab329dc0dca6dd11",
+  "source_ref_sha": "45becf14eab2970ed7584677571237ecc258fc35",
+  "source_sha": "45becf14eab2970ed7584677571237ecc258fc35",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1377,

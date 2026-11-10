@@ -49,6 +49,14 @@ impl Depth {
     pub fn row_attribute(self, cursor: bool, marked: bool) -> &'static str {
         if cursor && self.reverses() { "\x1b[7m" } else if marked && self == Self::Mono { "\x1b[4m" } else { "" }
     }
+    // Overlays keep their colour recipes; only NO_COLOR needs the listing's attribute fallback.
+    pub fn overlay_attribute(self, cursor: bool, marked: bool) -> &'static str {
+        if self == Self::Mono {
+            self.row_attribute(cursor, marked)
+        } else {
+            ""
+        }
+    }
     pub fn detect(cancel: &AtomicBool) -> Self {
         if Self::initial() == Self::Mono { return Self::Mono; }
         let output = |name: &str, arguments: &[&str]| {
@@ -285,3 +293,6 @@ mod tests;
 #[cfg(test)]
 #[path = "ground_tests.rs"]
 mod ground_tests;
+#[cfg(test)]
+#[path = "mono_tests.rs"]
+mod mono_tests;

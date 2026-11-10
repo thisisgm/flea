@@ -262,20 +262,19 @@ pub fn draw(out: &mut String, m: &Model, theme: &Theme) {
     outline(out, g.preview, &theme.frame, &base);
     if m.capabilities.graphics == super::super::graphics::Protocol::None {
         for (i, rect) in g.tiles.iter().enumerate() {
-            outline(
-                out,
-                *rect,
-                if f.focus == 0 && f.image == i {
-                    &theme.foreground
-                } else {
-                    &theme.frame
-                },
-                &base,
-            );
+            let attribute = theme
+                .depth
+                .overlay_attribute(f.focus == 0 && f.image == i, false);
+            let ink = if f.focus == 0 && f.image == i {
+                &theme.foreground
+            } else {
+                &theme.frame
+            };
+            outline(out, *rect, &format!("{attribute}{ink}"), &base);
             let number = m.i18n.locale().format_count((i + 1) as i64);
             if rect.width > 0 && rect.height > 0 {
                 out.push_str(&format!(
-                    "\x1b[{};{}H{}{number}{base}",
+                    "\x1b[{};{}H{}{attribute}{number}{base}",
                     rect.y + 1,
                     rect.x + 1,
                     theme.muted
@@ -321,6 +320,10 @@ pub fn draw(out: &mut String, m: &Model, theme: &Theme) {
         }
     }
     for field in &g.fields {
+        let attribute = theme.depth.overlay_attribute(
+            field.enabled && f.focus == field.focus && field.chosen,
+            field.chosen,
+        );
         let ink = if !field.enabled {
             &theme.unavailable_word
         } else if field.chosen {
@@ -329,7 +332,7 @@ pub fn draw(out: &mut String, m: &Model, theme: &Theme) {
             &theme.muted
         };
         out.push_str(&format!(
-            "\x1b[{};{}H{base}{}{}{}{}{base}",
+            "\x1b[{};{}H{base}{attribute}{}{}{}{}{base}",
             field.rect.y + 1,
             field.rect.x + 1,
             if matches!(field.focus, 2 | 6) {
