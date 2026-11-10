@@ -47,6 +47,12 @@ def unlink(path):
 library = owned(root / "block.so")
 subprocess.run(["cc", "-shared", "-fPIC", "-o", str(library),
                 str(Path(__file__).with_name("properties-races-block.c")), "-ldl"], check=True)
+probe = owned(root / "statx-probe")
+subprocess.run(["cc", "-o", str(probe),
+                str(Path(__file__).with_name("properties-races-block-test.c"))], check=True)
+subprocess.run([str(probe)], cwd=root, env=dict(os.environ, LD_PRELOAD=str(library),
+               FLEA_REVIEW_STAT=str(root / "unused"), FLEA_REVIEW_ARM=str(root / "unarmed")),
+               stdin=subprocess.DEVNULL, check=True)
 for name in ("cache", "state", "runtime", "config"):
     folder(name)
 owned(root / "runtime").chmod(0o700)

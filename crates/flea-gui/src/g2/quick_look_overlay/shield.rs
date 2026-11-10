@@ -1,10 +1,10 @@
 //! Quick Look's ground (#331): one blocking hitbox over the window and a listener that ends every pointer event there.
+use crate::leaf::{Leaf, Painted};
 use flea::ui_logic_preview_core::ground::{Button, Pointer};
 use gpui::{
-    fill, relative, size, App, Bounds, DispatchPhase, Element, ElementId, GlobalElementId, Hitbox,
-    HitboxBehavior, Hsla, InspectorElementId, IntoElement, LayoutId, MouseButton, MouseDownEvent,
-    MouseMoveEvent, MouseUpEvent, PinchEvent, Pixels, Point, ScrollDelta, ScrollWheelEvent, Style,
-    Window,
+    fill, relative, size, App, Bounds, DispatchPhase, Hitbox, HitboxBehavior, Hsla, IntoElement,
+    LayoutId, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, PinchEvent, Pixels, Point,
+    ScrollDelta, ScrollWheelEvent, Style, Window,
 };
 use std::rc::Rc;
 
@@ -58,61 +58,30 @@ fn button(button: MouseButton) -> Button {
 }
 
 impl IntoElement for Shield {
-    type Element = Self;
-    fn into_element(self) -> Self {
-        self
+    type Element = Painted<Self>;
+    fn into_element(self) -> Self::Element {
+        Painted(self)
     }
 }
 
-impl Element for Shield {
-    type RequestLayoutState = ();
-    type PrepaintState = Hitbox;
+impl Leaf for Shield {
+    type Prepaint = Hitbox;
 
-    fn id(&self) -> Option<ElementId> {
-        None
-    }
-    fn source_location(&self) -> Option<&'static core::panic::Location<'static>> {
-        None
-    }
-
-    fn request_layout(
-        &mut self,
-        _: Option<&GlobalElementId>,
-        _: Option<&InspectorElementId>,
-        window: &mut Window,
-        cx: &mut App,
-    ) -> (LayoutId, ()) {
+    fn layout(&mut self, window: &mut Window, cx: &mut App) -> LayoutId {
         let mut style = Style {
             size: size(relative(1.).into(), relative(1.).into()),
             ..Style::default()
         };
         style.position = gpui::Position::Absolute;
-        (window.request_layout(style, None, cx), ())
+        window.request_layout(style, None, cx)
     }
 
-    fn prepaint(
-        &mut self,
-        _: Option<&GlobalElementId>,
-        _: Option<&InspectorElementId>,
-        bounds: Bounds<Pixels>,
-        _: &mut (),
-        window: &mut Window,
-        _: &mut App,
-    ) -> Hitbox {
+    fn prepaint(&mut self, bounds: Bounds<Pixels>, window: &mut Window, _: &mut App) -> Hitbox {
         // BlockMouse: every hitbox behind reads unhovered, so no hover, click, tooltip or wheel handler behind it fires.
         window.insert_hitbox(bounds, HitboxBehavior::BlockMouse)
     }
 
-    fn paint(
-        &mut self,
-        _: Option<&GlobalElementId>,
-        _: Option<&InspectorElementId>,
-        bounds: Bounds<Pixels>,
-        _: &mut (),
-        _: &mut Hitbox,
-        window: &mut Window,
-        _: &mut App,
-    ) {
+    fn paint(&mut self, bounds: Bounds<Pixels>, _: &mut Hitbox, window: &mut Window, _: &mut App) {
         window.paint_quad(fill(bounds, self.ground));
         let (card, dragging) = (self.card, self.dragging);
         // Bubble runs front to back, so a listener here ends the event after the card's controls and before anything behind.

@@ -113,6 +113,8 @@ os.environ.update({k: args[args.index(f) + 1] for k, f in (("FLEA_PATH", "--"), 
     expected = {} if CAPTURE else json.loads(GOLDEN.read_text())
     for name, changes in ({} if CAPTURE else deltas.load("cli")).items():
         expected[name] = dict(expected[name], stdout=deltas.apply(name, expected[name]["stdout"], changes))
+    for name, changes in ({} if CAPTURE else deltas.load("cli-stderr")).items():
+        expected[name] = dict(expected[name], stderr=deltas.apply(name, expected[name]["stderr"], changes))
     usage_changes = [] if CAPTURE else deltas.load("cli-usage").get("actions", [])
     for name, record in expected.items():
         if b"usage: flea " in base64.b64decode(record["stderr"]):
