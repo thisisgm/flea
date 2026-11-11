@@ -190,7 +190,7 @@ fn review_op4_preview_dimensions_match_real_composition_commands() {
     run_real_composition_commands();
 }
 
-fn run_real_composition_commands() {
+fn run_real_composition_commands() -> std::path::PathBuf {
     use flea::ui_logic_print_convert::{composition::*, geometry::Composition};
     use std::process::Command;
     struct Sandbox(std::path::PathBuf, std::path::PathBuf);
@@ -310,6 +310,7 @@ fn run_real_composition_commands() {
         disappeared.is_empty(),
         "sources disappeared from the preview in cases {disappeared:?}"
     );
+    root
 }
 
 #[test]
@@ -317,33 +318,9 @@ fn review_op4_real_composition_test_leaves_no_sandbox_root() {
     let _serial = GEOMETRY_SERIAL
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
-    let roots = || {
-        let mut found = vec![];
-        for (dir, prefix) in [
-            (
-                std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-                    .join("../../.superpowers/g2-op4/fix1"),
-                "geometry.",
-            ),
-            (std::env::temp_dir(), "flea-geometry."),
-        ] {
-            if let Ok(entries) = std::fs::read_dir(&dir) {
-                for e in entries.flatten() {
-                    if e.file_name().to_string_lossy().starts_with(prefix) {
-                        found.push(e.path());
-                    }
-                }
-            }
-        }
-        found.sort();
-        found
-    };
-    let before = roots();
-    run_real_composition_commands();
-    let after = roots();
-    eprintln!("geometry cleanup probe: before={before:?} after={after:?}");
-    assert_eq!(
-        before, after,
-        "the real-command geometry test left a root behind"
+    let root = run_real_composition_commands();
+    assert!(
+        !root.exists(),
+        "the real-command geometry test left its root behind: {root:?}"
     );
 }

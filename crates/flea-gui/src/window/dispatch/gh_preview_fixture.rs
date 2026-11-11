@@ -103,6 +103,7 @@ pub(super) fn opened_at<'a>(
     };
     let (_sender, events) = async_channel::unbounded();
     cx.update(|cx| {
+        cx.set_global(crate::state::constructor_fixture::NoSettingsWorker);
         cx.set_global(crate::state::constructor_fixture::Services {
             backend: |_, cx| {
                 let (backend, requests) = Backend::test_channel();

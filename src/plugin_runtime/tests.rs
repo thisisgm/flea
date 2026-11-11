@@ -11,15 +11,17 @@ fn json(text: &str) -> Json {
 fn config(dir: &TestDir, script: &str) -> Config {
     dir.script("run", script);
     let manifest = manifest::parse(r#"{"schemaVersion":1,"id":"example.test","name":"Test","version":"1","author":"Flea","description":"Test plugin.","kinds":["menu-action","rail-section"],"entryPoints":{"run":"run"},"menuActions":[{"id":"run","label":"Run"}],"railSection":{"title":"Test"}}"#, false).unwrap();
+    let limits = json(protocol::CONTRACT);
+    let seconds = |key| Duration::from_secs_f64(limits.get(key).and_then(Json::as_f64).unwrap());
     Config {
         folder: dir.path().to_owned(),
         manifest,
         hello: json(
             r#"{"op":"hello","protocolVersion":1,"flea":"0.4.0","language":"en","decimal":".","settings":{},"kinds":["menu-action","rail-section"]}"#,
         ),
-        ready_timeout: Duration::from_millis(500),
-        request_timeout: Duration::from_millis(500),
-        idle_timeout: Duration::from_secs(30),
+        ready_timeout: seconds("readyTimeoutSeconds"),
+        request_timeout: seconds("requestTimeoutSeconds"),
+        idle_timeout: seconds("idleTimeoutSeconds"),
     }
 }
 
@@ -85,7 +87,9 @@ fn plugin_runtime_hang_crash_and_malformed_are_bounded() {
         ),
     ] {
         let dir = TestDir::new(&format!("plugin-{tag}"));
-        let runtime = Runtime::new(config(&dir, script));
+        let mut config = config(&dir, script);
+        config.ready_timeout = Duration::from_millis(500);
+        let runtime = Runtime::new(config);
         let started = Instant::now();
         assert!(runtime.ensure_ready().is_err(), "{tag}");
         assert!(started.elapsed() < Duration::from_secs(3), "{tag}");

@@ -60,6 +60,43 @@ fn a_radio_going_down_reads_off_at_once_but_stays_owned_until_owly_has_exited() 
 }
 
 #[test]
+fn a_released_radio_is_free_even_while_an_inherited_descriptor_remains_open() {
+    let root = dir("inherited");
+    let (mut owner, mut other) = (Shared::at(root.clone()), Shared::at(root.clone()));
+    assert!(owner.claim("Intel AX210"));
+    let inherited = owner.lock.as_ref().unwrap().file.try_clone().unwrap();
+    owner.release();
+    let claimed = other.claim("");
+    drop(inherited);
+    other.release();
+    assert!(root.is_absolute() && root.join(".flea-test-sandbox").is_file());
+    std::fs::remove_dir_all(&root).unwrap();
+    assert!(
+        claimed,
+        "the former owner's inherited descriptor kept the radio locked"
+    );
+}
+
+#[test]
+fn a_finished_radio_probe_does_not_keep_an_inherited_shared_lock() {
+    let root = dir("inherited-probe");
+    let probe = open_lock(&root).unwrap();
+    assert!(try_flock(&probe, LOCK_SH));
+    let inherited = probe.file.try_clone().unwrap();
+    drop(probe);
+    let mut owner = Shared::at(root.clone());
+    let claimed = owner.claim("");
+    drop(inherited);
+    owner.release();
+    assert!(root.is_absolute() && root.join(".flea-test-sandbox").is_file());
+    std::fs::remove_dir_all(&root).unwrap();
+    assert!(
+        claimed,
+        "the finished probe's inherited descriptor kept the radio locked"
+    );
+}
+
+#[test]
 fn an_off_asked_of_the_owner_reads_off_in_every_window_until_it_is_withdrawn() {
     let root = dir("asked");
     let (mut owner, other) = (Shared::at(root.clone()), Shared::at(root.clone()));

@@ -7,6 +7,11 @@ use crate::uischema::defaults;
 use std::os::unix::fs::FileTypeExt;
 use std::time::{Duration, Instant};
 
+// A linear load charges a few units per key byte; a quadratic one exceeds this many per file byte.
+const KEY_WORK_PER_BYTE: u64 = 128;
+// The former wall-clock limit, now on thread CPU so a loaded host's run queue cannot exceed it.
+const LINEAR_LOAD_CPU: Duration = Duration::from_secs(60);
+
 fn store(d: &TestDir) -> Store {
     Store::at(&d.dir("state"), &d.dir("config"))
 }
@@ -239,16 +244,21 @@ fn a_wide_folder_sorts_map_loads_and_settles_in_linear_time() {
     }
     text.push_str("}}");
     fs::write(s.file(), &text).expect("wide");
-    let (state, config) = (d.join("state"), d.join("config"));
-    // Quadratic duplicate removal took 10.8 s at 30000 in a release build; linear is well under a second.
-    let (tx, rx) = std::sync::mpsc::channel();
-    std::thread::spawn(move || {
-        let s = Store::at(&state, &config);
-        let _ = tx.send((s.read(), s.settle()));
-    });
-    let (read, settled) = rx
-        .recv_timeout(Duration::from_secs(60))
-        .expect("a wide map must load in linear time");
+    // Quadratic duplicate removal took 10.8 s at 30000 entries in a release build.
+    let budget = text.len() as u64 * KEY_WORK_PER_BYTE;
+    let cpu = jsondoc::cost::thread_cpu();
+    let ((read, settled), work) = jsondoc::cost::measured(budget, || (s.read(), s.settle()));
+    let spent = jsondoc::cost::thread_cpu() - cpu;
+    eprintln!("wide map: {work} key-work units, {spent:?} thread CPU");
+    // The meter counts jsondoc's name hashes, clones and comparisons and every Json::get, so CPU bounds the rest.
+    assert!(
+        (count as u64..=budget).contains(&work),
+        "wide map used {work} key-work units"
+    );
+    assert!(
+        spent < LINEAR_LOAD_CPU,
+        "a wide map must load and settle in linear time: {spent:?} of thread CPU"
+    );
     settled.expect("settle trims it");
     let kept = |doc: &Json| {
         doc.get("folderSorts")
@@ -288,12 +298,20 @@ fn a_repeated_name_is_the_later_value_in_the_later_place() {
         }
     }
     wide.push('}');
-    let (tx, rx) = std::sync::mpsc::channel();
-    std::thread::spawn(move || {
-        let _ = tx.send(jsondoc::parse(&wide).map(|v| v.as_object().map(<[(String, Json)]>::len)));
+    let budget = wide.len() as u64 * KEY_WORK_PER_BYTE;
+    let cpu = jsondoc::cost::thread_cpu();
+    let (len, work) = jsondoc::cost::measured(budget, || {
+        jsondoc::parse(&wide).map(|v| v.as_object().map(<[(String, Json)]>::len))
     });
-    let len = rx
-        .recv_timeout(Duration::from_secs(60))
-        .expect("every name repeated once must stay linear");
+    let spent = jsondoc::cost::thread_cpu() - cpu;
+    eprintln!("duplicate map: {work} key-work units, {spent:?} thread CPU");
+    assert!(
+        (100_000..=budget).contains(&work),
+        "duplicate map used {work} key-work units"
+    );
+    assert!(
+        spent < LINEAR_LOAD_CPU,
+        "every name repeated once must stay linear: {spent:?} of thread CPU"
+    );
     assert_eq!(len, Ok(Some(50_000)));
 }

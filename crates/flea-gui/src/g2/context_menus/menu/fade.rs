@@ -11,6 +11,17 @@ use std::{
 pub const CLOSE: Duration = Duration::from_millis(140);
 static NEXT: AtomicU64 = AtomicU64::new(1);
 
+pub fn close_easing(progress: f32) -> f32 {
+    1. - (1. - progress).powi(3)
+}
+
+#[test]
+fn close_easing_has_the_cubic_midpoint_and_exact_endpoints() {
+    assert_eq!(close_easing(0.), 0.);
+    assert_eq!(close_easing(0.5), 0.875);
+    assert_eq!(close_easing(1.), 1.);
+}
+
 pub struct Faded {
     pub flyout: Flyout,
     pub id: u64,

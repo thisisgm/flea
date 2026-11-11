@@ -215,7 +215,10 @@ fn column_clip(
 
 #[gpui::test]
 fn fx_uish_def3_quick_look_releases_the_columns_player(cx: &mut TestAppContext) {
-    let (shell, cx, _script, frame) = column_clip(cx);
+    let (shell, cx, script, frame) = column_clip(cx);
+    shell.update_in(cx, |shell, window, cx| {
+        shell.quick_look_host(0, window, cx).backend = Some(Rc::new(Fake(script)));
+    });
     cx.simulate_click(frame, Modifiers::none());
     column::pump(cx);
     assert_eq!(read(&shell, cx, "columnPlayerLoaded", &[]), "true");

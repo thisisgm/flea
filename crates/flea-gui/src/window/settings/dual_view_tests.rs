@@ -9,6 +9,7 @@ fn standing(data: &Json) -> Option<&str> {
 
 #[gpui::test]
 fn s2_10_choosing_dual_writes_the_standing_view_a_relaunch_reads(cx: &mut TestAppContext) {
+    cx.update(crate::state::constructor_fixture::isolated_services);
     for per_folder in [false, true] {
         let (backend, _requests) = Backend::test_channel();
         let (entity, cx) = cx.add_window_view(|_, cx| {
@@ -35,6 +36,7 @@ fn s2_10_choosing_dual_writes_the_standing_view_a_relaunch_reads(cx: &mut TestAp
 
 #[gpui::test]
 fn s2_10_leaving_dual_sets_the_standing_view_even_per_folder(cx: &mut TestAppContext) {
+    cx.update(crate::state::constructor_fixture::isolated_services);
     let (backend, _requests) = Backend::test_channel();
     let (entity, cx) = cx.add_window_view(|_, cx| {
         let mut shell = crate::state::tests::shell_with(backend, cx);

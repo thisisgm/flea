@@ -46,6 +46,7 @@ fn mount(
     &mut VisualTestContext,
     impl FnMut() -> Option<String>,
 ) {
+    cx.update(crate::state::constructor_fixture::isolated_services);
     let (backend, requests) = Backend::test_lines();
     let (root, cx) = cx.add_window_view(|window, cx| {
         let shell = cx.new(|cx| shell_with(backend, cx));

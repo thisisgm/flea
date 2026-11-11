@@ -134,6 +134,25 @@ impl Fixture {
     }
 }
 
+pub(crate) const PROBE_OPEN: &str = "late-probe-open";
+// The probe's own kill ends a blocked stub; this bound ends one whose test process died first.
+const BLOCKED_STUB_SECONDS: u32 = 30;
+
+pub(crate) fn service_after(
+    before_watch: impl FnOnce() + Send + 'static,
+) -> (super::Service, super::Snapshot) {
+    super::Service::start_with(
+        super::source::Sources::current(),
+        super::service::TICK,
+        before_watch,
+    )
+}
+
+pub(crate) fn gated_probe(script: &str) -> String {
+    let body = script.strip_prefix("#!/bin/sh\n").unwrap();
+    format!("#!/bin/sh\nroot=\"${{0%/bin/fc-match}}\"\n[ \"$(cat \"$root/.flea-test-sandbox\")\" = flea-u01-owned-fixture ] || exit 91\nif [ ! -f \"$root/{PROBE_OPEN}\" ]; then\nmkfifo \"$root/launch-block\" || exit 92\nexec timeout {BLOCKED_STUB_SECONDS} cat \"$root/launch-block\"\nfi\n{body}")
+}
+
 pub(crate) const SHELL_GUARD: &str = r#"guard() {
     [ -n "$1" ] && [ -n "$2" ] && [ -n "$3" ] || exit 91
     case "$1" in "$3"/*) ;; *) exit 92 ;; esac

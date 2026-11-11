@@ -117,11 +117,14 @@ fn glass_rule_material_floor_preserves_mode_and_explicit_precedence() {
 // The first Lua line, for example "-- flea-glassy enable 42", identifies an ownership operation to the fake compositor.
 fn fake_hyprctl(root: &Path) -> OsString {
     let path = root.join("hyprctl");
+    if path.is_file() {
+        return path.into_os_string();
+    }
     let script = format!(
         r#"#!/bin/sh
 d="${{0%/*}}"
 case "$1" in
-clients) printf '[{{"address":"0x1a","pid":{}}}]' ;;
+clients) if [ -f "$d/clients" ]; then cat "$d/clients"; else printf '[{{"address":"0x1a","pid":{}}}]'; fi ;;
 getprop) if [ "$3" = opacity ]; then cut -d' ' -f1 "$d/props"; else cut -d' ' -f2 "$d/props"; fi ;;
 eval)
   [ "$2" != -- ] || shift
@@ -148,7 +151,7 @@ esac
     let written = std::process::Command::new("/bin/sh")
         .args([
             "-c",
-            "printf '%s' \"$2\" > \"$1\" && chmod 700 \"$1\"",
+            "printf '%s' \"$2\" > \"$1\" && chmod 500 \"$1\"",
             "sh",
         ])
         .arg(&path)

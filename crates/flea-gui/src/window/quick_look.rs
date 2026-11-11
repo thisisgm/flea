@@ -99,7 +99,7 @@ impl Shell {
     }
 
     /// Builds the card on the first open; later opens reuse it.
-    fn quick_look_host(
+    pub(super) fn quick_look_host(
         &mut self,
         side: usize,
         window: &mut Window,

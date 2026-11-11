@@ -28,7 +28,8 @@ pub(crate) fn layer(shell: &Entity<Shell>, window: &Window, cx: &mut App) -> Opt
             .child(element)
             .with_animation(
                 ("flyout-fade", id as usize),
-                Animation::new(super::menu::fade::CLOSE).with_easing(|t| 1. - (1. - t).powi(3)),
+                Animation::new(super::menu::fade::CLOSE)
+                    .with_easing(super::menu::fade::close_easing),
                 move |element, delta| {
                     painted.set(from * (1. - delta));
                     element.opacity(from * (1. - delta))

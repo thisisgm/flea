@@ -167,7 +167,10 @@ fn trash_font_window_accepts_a_350ms_fontconfig_answer_without_restart() {
         use gpui::AppContext;
         let fixture = Fixture::open(root.into()).unwrap();
         let expected = std::fs::read_to_string(fixture.path().join("expected")).unwrap();
-        let (service, initial) = Service::start();
+        let (release, ready) = std::sync::mpsc::channel();
+        let (service, initial) = super::fixture::service_after(move || {
+            let _ = ready.recv();
+        });
         let first = initial.fonts.family.clone();
         assert_eq!(
             first, FALLBACK_FAMILY,
@@ -183,7 +186,15 @@ fn trash_font_window_accepts_a_350ms_fontconfig_answer_without_restart() {
                 shell
             }),
         });
-        // The first real draw pays GPUI's system font scan, seconds on a loaded runner; a match ends the wait early.
+        cx.run_until_parked();
+        cx.update_window(handle.into(), |_, window, cx| {
+            window.refresh();
+            window.draw(cx).clear(cx);
+        })
+        .unwrap();
+        fixture.write(&fixture.path().join(super::fixture::PROBE_OPEN), "");
+        release.send(()).unwrap();
+        // The patient probe starts after the fallback has actually been drawn.
         let until = Instant::now() + Duration::from_secs(20);
         let mut family = first.clone();
         while Instant::now() < until {
@@ -224,7 +235,7 @@ fn trash_font_window_accepts_a_350ms_fontconfig_answer_without_restart() {
     let fixture = Fixture::new("trash-font-350ms");
     fixture.write(&fixture.path().join("expected"), "TRASH FONT Late Mono");
     isolated("presentation::trash_font_tests::trash_font_window_accepts_a_350ms_fontconfig_answer_without_restart", &fixture,
-        "#!/bin/sh\nsleep 0.35\nprintf 'TRASH FONT Late Mono'\n");
+        &super::fixture::gated_probe("#!/bin/sh\nsleep 0.35\nprintf 'TRASH FONT Late Mono'\n"));
     fixture.cleanup();
 }
 
