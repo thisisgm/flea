@@ -83,7 +83,7 @@ impl State {
         true
     }
 
-    pub fn accept(&mut self, offer: &Offer) -> bool {
+    pub fn admit(&mut self, offer: &Offer) -> bool {
         let order = (offer.lift_stamp, offer.pid, offer.stamp);
         if !offer.live() || order <= self.latest || self.retired.contains_key(&offer.token) {
             return false;
@@ -91,6 +91,21 @@ impl State {
         self.newest = self.newest.max(offer.stamp);
         self.latest = order;
         true
+    }
+}
+
+impl Carrying {
+    fn claimable(&self, token: &str) -> Option<Offer> {
+        self.ipc
+            .current
+            .as_ref()
+            .filter(|offer| {
+                self.ipc.owned
+                    && offer.live()
+                    && self.ipc.authorizes(token, offer)
+                    && self.carry.riding() == Some(&offer.lifted)
+            })
+            .cloned()
     }
 }
 
@@ -204,7 +219,7 @@ impl Shell {
 
     fn carry_accept(&mut self, offer: Offer, window: &mut Window, cx: &mut Context<Self>) {
         let carrying = cx.default_global::<Carrying>();
-        if !carrying.ipc.accept(&offer) {
+        if !carrying.ipc.admit(&offer) {
             return;
         }
         carrying.carry.cancel();
@@ -242,15 +257,14 @@ impl Shell {
 
     pub(super) fn carry_end_shared(&mut self, cx: &mut Context<Self>) {
         let carrying = cx.global_mut::<Carrying>();
-        if carrying.ipc.owned
-            && carrying.ipc.current.as_ref().is_some_and(|offer| {
-                carrying
+        let owned = carrying.ipc.owned;
+        if let Some(offer) = carrying.ipc.current.take_if(|offer| {
+            owned
+                && carrying
                     .carry
                     .riding()
                     .is_none_or(|lifted| lifted.serial != offer.lifted.serial)
-            })
-        {
-            let offer = carrying.ipc.current.take().unwrap();
+        }) {
             for token in carrying.ipc.end_lift(&offer) {
                 send("carryCancel", vec![token], cx);
             }
@@ -313,17 +327,7 @@ impl Shell {
             }
             "carryClaim" => {
                 let carrying = cx.default_global::<Carrying>();
-                let offer = carrying
-                    .ipc
-                    .current
-                    .as_ref()
-                    .filter(|offer| {
-                        carrying.ipc.owned
-                            && offer.live()
-                            && carrying.ipc.authorizes(token, offer)
-                            && carrying.carry.riding() == Some(&offer.lifted)
-                    })
-                    .cloned();
+                let offer = carrying.claimable(token);
                 let Some(offer) = offer else {
                     return Some(Reply::value("false"));
                 };
@@ -339,17 +343,7 @@ impl Shell {
             "carryCancel" | "carryTaken" => {
                 let carrying = cx.default_global::<Carrying>();
                 let mut cancelled = Vec::new();
-                let owned = carrying
-                    .ipc
-                    .current
-                    .as_ref()
-                    .filter(|offer| {
-                        carrying.ipc.owned
-                            && offer.live()
-                            && carrying.ipc.authorizes(token, offer)
-                            && carrying.carry.riding() == Some(&offer.lifted)
-                    })
-                    .cloned();
+                let owned = carrying.claimable(token);
                 if function == "carryCancel" {
                     if let Some(offer) = owned {
                         carrying.carry.cancel();
@@ -358,13 +352,7 @@ impl Shell {
                     }
                 }
                 carrying.ipc.retire(token.clone());
-                if carrying
-                    .ipc
-                    .current
-                    .as_ref()
-                    .is_some_and(|offer| offer.token == *token)
-                {
-                    let offer = carrying.ipc.current.take().unwrap();
+                if let Some(offer) = carrying.ipc.current.take_if(|offer| offer.token == *token) {
                     carrying.ipc.drop_lift(&offer);
                     carrying.carry.cancel();
                 }

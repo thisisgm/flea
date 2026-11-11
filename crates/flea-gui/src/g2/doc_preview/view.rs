@@ -105,7 +105,7 @@ impl PdfView {
     pub(crate) fn cohesion_lane(&self) -> Option<flea::jsondoc::Json> {
         self.bars
             .painted_lane()
-            .map(|lane| lane.control("PreviewColumn"))
+            .and_then(|lane| lane.control("PreviewColumn"))
     }
     /// A surface with its own render thread; replies land on the foreground as they come.
     pub fn new(

@@ -104,7 +104,7 @@ fn carry_claim_peer_expiry_keeps_the_offer_so_escape_drops_the_lift(cx: &mut Tes
     refresh.stamp += 1;
     refresh.token = format!("{}-refresh", offer.token);
     refresh.expires = now() + LIFETIME_MS;
-    let accepted = cx.update(|cx| cx.global_mut::<Carrying>().ipc.accept(&refresh));
+    let accepted = cx.update(|cx| cx.global_mut::<Carrying>().ipc.admit(&refresh));
     assert!(!accepted, "ESCAPE_MID_CLAIM_MUST_DROP_THE_LIFT");
     edit(cx, from, |shell, _, _| shell.stop_for_app_quit());
     edit(cx, to, |shell, _, _| shell.stop_for_app_quit());

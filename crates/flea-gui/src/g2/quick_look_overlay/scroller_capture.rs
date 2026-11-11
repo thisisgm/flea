@@ -11,7 +11,7 @@ pub(crate) struct Painted {
 }
 
 impl Painted {
-    pub(crate) fn control(self, surface: &str) -> flea::jsondoc::Json {
+    pub(crate) fn control(self, surface: &str) -> Option<flea::jsondoc::Json> {
         use flea::jsondoc::Json;
         let b = self.lane;
         let centre = self.knob.center();
@@ -41,7 +41,6 @@ impl Painted {
             ("pressed", Json::Bool(self.pressed)),
         ]);
         crate::ipc::cohesion_controls::control(&source, surface, "ViewportScrollBar")
-            .expect("painted scrollbar geometry")
     }
 }
 
