@@ -49,6 +49,10 @@ pub(crate) struct Footer {
     pub zone_width: f32,
     probe: Option<crate::visual::Probe>,
     revision: u64,
+    /// What a screen reader was last told (accessible::announcement), and the folder it named.
+    announce: SharedString,
+    announced_path: String,
+    announced_counts: String,
     _changed: gpui::Subscription,
 }
 
@@ -76,6 +80,9 @@ impl Footer {
             zone_width: 0.,
             probe: None,
             revision: 0,
+            announce: SharedString::default(),
+            announced_path: String::new(),
+            announced_counts: String::new(),
             _changed: changed,
         }
     }
@@ -237,6 +244,15 @@ impl Shell {
                 || footer.filesystem.as_ref() != filesystem
                 || footer.width != width
                 || footer.revision != revision;
+            // Said once per change: a footer sync that changes neither the folder nor its counts says nothing.
+            if footer.announced_path != path || footer.announced_counts != counts {
+                let said = super::accessible::announcement(&footer.announced_path, &path, &counts);
+                if !said.is_empty() {
+                    footer.announced_path = path.clone();
+                    footer.announced_counts = counts.clone();
+                    footer.announce = said.into();
+                }
+            }
             footer.path = path.clone();
             footer.total = total;
             footer.selected = selected;
@@ -391,11 +407,14 @@ impl Render for Footer {
                     SharedString::default(),
                 ),
             );
+        let message: SharedString = self.message_line().read(cx).messages().shown().text.into();
         let footer = div()
             .size_full()
             .flex()
             .flex_col()
             .child(self.painted.watch(root, "frame", SharedString::default()))
+            .child(super::accessible::live("a11y-counts", self.announce.clone()))
+            .child(super::accessible::live("a11y-message", message))
             .children(
                 self.message_line()
                     .read_with(cx, |line, cx| line.detail(window, cx)),

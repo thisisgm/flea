@@ -1,6 +1,7 @@
 //! The toolbar button owns pointer capture, its sized mark and its focus frame.
-use super::{ChromeView, Sizes, ACTIONS, GLYPHS};
+use super::{ChromeView, Sizes, ACTIONS, GLYPHS, NAMES};
 use crate::path::mark::{mark_ink, mark_sized};
+use crate::window::startup::View;
 use gpui::{canvas, div, prelude::*, px, Context, MouseButton};
 
 impl ChromeView {
@@ -24,8 +25,36 @@ impl ChromeView {
         let ink = mark_ink(enabled, focused, resting, foreground);
         let hoverable = self.inputs.live;
         let live = enabled && hoverable;
+        let name = self.path.read(cx).catalog().tr(NAMES[index]);
+        // The four view buttons say which view is on, as their lit mark does.
+        let view = [View::List, View::Columns, View::Grid, View::Dual]
+            .get(index.wrapping_sub(5))
+            .map(|view| *view == self.inputs.view);
         div()
             .id(("chrome-button", index))
+            .role(gpui::Role::Button)
+            .aria_label(name)
+            .when_some(view, |button, on| {
+                button.aria_toggled(if on {
+                    gpui::accesskit::Toggled::True
+                } else {
+                    gpui::accesskit::Toggled::False
+                })
+            })
+            .when(!enabled, |button| {
+                button.a11y_synthetic_children(|builder| builder.parent_node().set_disabled())
+            })
+            // A screen reader's press is a tap on the button.
+            .on_a11y_action(gpui::accesskit::Action::Click, {
+                let this = cx.entity().downgrade();
+                move |_, _, cx| {
+                    let _ = this.update(cx, |view, cx| {
+                        if live && view.inputs.live {
+                            cx.emit(ACTIONS[index]);
+                        }
+                    });
+                }
+            })
             .w(px(sizes.slot))
             .h(px(sizes.band))
             .flex_none()

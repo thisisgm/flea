@@ -40,6 +40,20 @@ pub const ACTIONS: [&str; 10] = [
     "settings",
 ];
 
+/// The name a screen reader gives each button above, from the shortcut list's own words.
+pub const NAMES: [&str; 10] = [
+    "keys.action.historyBack",
+    "keys.action.parent",
+    "keys.action.search",
+    "keys.action.filter",
+    "keys.action.sortNext",
+    "keys.action.viewList",
+    "keys.action.viewColumns",
+    "keys.action.viewGrid",
+    "keys.action.viewDual",
+    "keys.action.settings",
+];
+
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Control {
     pub bounds: Option<Bounds<Pixels>>,

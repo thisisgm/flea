@@ -1,4 +1,5 @@
 //! Native window host and composition interfaces shared by later surfaces.
+pub(crate) mod accessible;
 pub(crate) mod chrome_move;
 #[cfg(test)]
 mod chrome_move_tests;

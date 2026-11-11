@@ -130,5 +130,50 @@ impl Render for Producer {
                 }
             })
             .child(element)
+            .child(self.accessible_rows())
+    }
+}
+
+fn current(builder: &mut gpui::A11ySubtreeBuilder) {
+    builder.parent_node().set_aria_current(gpui::accesskit::AriaCurrent::Location);
+}
+
+impl Producer {
+    /// The rail as a screen reader reads it: every row by its whole name (the painted one may end in an ellipsis),
+    /// the first of each section with the section's heading, and the cursor row as the focused item.
+    fn accessible_rows(&self) -> gpui::Stateful<gpui::Div> {
+        use gpui::Role;
+        let model = self.model.borrow();
+        let total: usize = model.sections.iter().map(|section| section.rows.len()).sum();
+        let mut rows = Vec::with_capacity(total);
+        for section in model.sections.iter() {
+            for (at, row) in section.rows.iter().enumerate() {
+                let index = rows.len();
+                // the window's root, which holds the list's focus, is an ancestor too: claim only while the rail has it
+                let cursor = model.focused && model.cursor == Some(index);
+                rows.push(
+                    gpui::div()
+                        .id(("a11y-rail-row", index))
+                        .role(Role::ListBoxOption)
+                        .aria_label(row.label.clone())
+                        .when(at == 0 && !section.heading.is_empty(), |item| {
+                            item.aria_description(section.heading.clone())
+                        })
+                        // the place the pane shows is the current one, not a selection: a screen reader follows
+                        // selection changes, and would leave the list for the rail each time a folder opens
+                        .when(model.lit == Some(index), |item| item.a11y_synthetic_children(current))
+                        .aria_position_in_set(index + 1)
+                        .aria_size_of_set(total)
+                        .when(cursor, |item| item.aria_active_descendant()),
+                );
+            }
+        }
+        gpui::div()
+            .id("a11y-rail")
+            .role(Role::ListBox)
+            .aria_label(self.catalog.tr("keys.action.sidebar"))
+            .absolute()
+            .size_0()
+            .children(rows)
     }
 }

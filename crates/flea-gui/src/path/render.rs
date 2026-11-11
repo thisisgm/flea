@@ -24,7 +24,11 @@ impl Render for PathView {
         let probe = self.probe.clone();
         let root = div().size_full().relative();
         if self.entry.editing {
-            let field = div()
+            let field = crate::window::accessible::text_field(
+                div().id("path-field"),
+                self.catalog().tr("keys.action.pathBar"),
+                &self.entry,
+            )
                 .size_full()
                 .track_focus(&self.focus)
                 .on_key_down(cx.listener(Self::key_down))

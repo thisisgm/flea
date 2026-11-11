@@ -42,6 +42,8 @@ impl Picker {
                     .probe
                     .attach(div().relative(), "picker-new-folder")
                     .id("picker-new-folder")
+                    .role(gpui::Role::Button)
+                    .aria_label(self.locale.catalog.tr("picker.browser.new_folder"))
                     .debug_selector(|| "picker-new-folder".into())
                     .track_focus(&self.chrome.new_folder)
                     .flex_none()
@@ -89,6 +91,8 @@ impl Picker {
                 .probe
                 .attach(div().relative(), "picker-filter")
                 .id("picker-filter")
+                .role(gpui::Role::Button)
+                .aria_label(self.locale.catalog.tr("keys.action.filter"))
                 .debug_selector(|| "picker-filter".into())
                 .track_focus(&self.chrome.filter)
                 .w(px(FILTER_WIDTH))

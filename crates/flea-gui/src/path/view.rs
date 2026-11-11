@@ -126,6 +126,10 @@ impl PathView {
         self.catalog = catalog;
     }
 
+    pub fn catalog(&self) -> &Arc<I18n> {
+        &self.catalog
+    }
+
     /// The favourites the jump ranks first, from the places producer.
     pub fn set_favourites(&mut self, favourites: Vec<String>) {
         self.favourites = favourites;

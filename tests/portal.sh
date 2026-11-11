@@ -28,6 +28,7 @@ fi
 # Hard rule 9's guard, which owns FIXTURE_ROOT and every create and delete below.
 . "$(dirname "$0")/../tools/flea-sandbox-guard"
 cd "$(dirname "$0")/.." || exit 1
+python3 tests/portal-mnemonics.py || exit 1
 
 backend=tools/flea-portal
 [ -f "$backend" ] || { printf 'portal.sh: %s is missing, refusing to report on nothing\n' "$backend" >&2; exit 1; }

@@ -263,7 +263,11 @@ pub(crate) fn render(
             false,
         )
         .child(paths[0].clone()),
-    });
+    }
+    // The toolbar's focus holder is a node too, named by the folder its path shows.
+    .id("toolbar")
+    .role(gpui::Role::Toolbar)
+    .aria_label(paths[0].clone()));
     if let Some(view) = &slots.tabs {
         root = root.child(
             geometry
@@ -281,7 +285,10 @@ pub(crate) fn render(
                 .element()
                 .track_focus(&focus.rail)
                 .on_any_mouse_down(keep_the_keys)
-                .child(view.clone()),
+                .child(view.clone())
+                // the rail's focus holder is a node, so the rail's cursor row reports as the focused item
+                .id("rail")
+                .role(gpui::Role::Group),
         );
     }
     for (side, content) in panes.into_iter().enumerate() {
@@ -376,7 +383,7 @@ pub(crate) fn render(
             geometry
                 .rail
                 .element()
-                .child(div().absolute().size_0().track_focus(&focus.rail))
+                .child(div().absolute().size_0().track_focus(&focus.rail).id("rail").role(gpui::Role::Group))
                 .child(view.clone()),
         );
     }
