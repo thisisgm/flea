@@ -13,6 +13,35 @@ pub(crate) fn plain_enter() -> KeyDownEvent {
     }
 }
 
+// Filtered arrows use the same visual neighbours and end policy as an unfiltered Grid.
+pub(super) fn vertical_step(host: &crate::window::pane::PaneHost, grid: bool, down: bool) -> isize {
+    if !grid {
+        return if down { 1 } else { -1 };
+    }
+    let Some(grid) = host.grid.as_ref() else {
+        return 0;
+    };
+    let shown = host.filter.shown.as_deref().map_or(
+        crate::grid::Shown::All(host.pane.held.total),
+        crate::grid::Shown::Only,
+    );
+    let Some(view) = shown.view_of(host.pane.cursor) else {
+        return 0;
+    };
+    let arrow = if down {
+        crate::grid::Arrow::Down
+    } else {
+        crate::grid::Arrow::Up
+    };
+    crate::grid::arrow(
+        grid.view.layout(shown).columns,
+        Some(view),
+        shown.total(),
+        arrow,
+    )
+    .map_or(0, |next| next as isize - view as isize)
+}
+
 impl Shell {
     /// The query line's keys while it has the caret, and Escape while a filter stands, ahead of search and marks.
     pub(crate) fn filter_key(
