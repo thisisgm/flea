@@ -8,6 +8,9 @@ use crate::tui::{
 
 #[test]
 fn mono_model_raster_uses_graphics_without_an_ansi_colour_mode() {
+    if crate::backend::sandboxprobe::skipped() {
+        return;
+    }
     let root = Fixture::new();
     for protocol in [Protocol::Kitty, Protocol::Sixel] {
         let mut m = model(&root);
