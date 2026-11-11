@@ -21,6 +21,10 @@ pub const OUTPUT_CAP: usize = 1 << 20;
 /// Escaped descendants cannot hold the runner after the direct child exits.
 const DRAIN_AFTER_EXIT: Duration = Duration::from_millis(100);
 
+#[cfg(test)]
+#[path = "process_withhold_tests.rs"]
+mod withhold_tests;
+
 /// A command line, its added environment, and bytes for its stdin that are never on argv.
 #[derive(Debug, Default)]
 pub struct Job {

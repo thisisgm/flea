@@ -221,6 +221,7 @@ check "removing the rotation swap refuses the same target before motion" "$? $(w
 
 # Three distinct preview controls must each retain their own hit point through the actual surface loop.
 (
+    real_state_dir="$scratch/live-state"
     coh_launch() { :; }
     coh_park() { :; }
     coh_cancel_press() { coh_held=0; }
@@ -235,12 +236,18 @@ check "removing the rotation swap refuses the same target before motion" "$? $(w
         {"kind":"ViewportScrollBar","name":"Vertical","value":"vertical","x":1080,"y":40,"w":12,"h":300,"targetX":1086,"targetY":115}]}'
     control_json=$(jq -c '.controls |= map(. + {surface:"PreviewColumn",exposed:true,enabled:true,hoverLive:true,pressLive:true})' <<< "$control_json")
     ipc() {
+        if [[ "$1" == pdfState ]]; then
+            printf '%s\n' '{"frame":"640 40 460 630"}'
+            return
+        fi
         jq -c --argjson x "$point_x" --argjson y "$point_y" --argjson held "$coh_held" '.controls |= map(. + {
             hovered:(.targetX == $x and .targetY == $y),pressed:(.targetX == $x and .targetY == $y and $held == 1)})' <<< "$control_json"
     }
     coh_run_surface cols-pdf coh_open_main '{}' none '640 40 1100 670'
 ) > "$scratch/preview-targets.log" 2>&1
-check "the PDF surface finishes its multi-control walk" "$?" 0
+walk_rc=$?
+(( walk_rc == 0 )) || cat "$scratch/preview-targets.log"
+check "the PDF surface finishes its multi-control walk" "$walk_rc" 0
 for target in 'ChromeButton|Zoom|700|50 715,65' 'DialogButton|Open|800|50 830,65' 'ViewportScrollBar|Vertical|1080|40 1086,115'; do
     for phase in hover press; do
         check "the PDF surface drives $target once at $phase" "$(grep -Fxc "REPLAY_TARGET $phase $target" "$scratch/preview-targets.log")" 1
@@ -349,8 +356,13 @@ coh_picker >> "$scratch/expired-budget.log" 2>&1
 check "expired budgets retain both failed surface names" "$? $coh_failed" '0  replay/expired replay/picker'
 check "expired budgets skip both workers before setup" "$(grep -c '^COH_SKIPPED ' "$scratch/expired-budget.log") $(grep -c '^UNEXPECTED_START$' "$scratch/expired-budget.log")" '2 0'
 
-coh_deadline=$((SECONDS + 8))
-coh_bounded own-limit 1 command sleep 60 > "$scratch/own-limit.log" 2>&1
+# Fix only the budget's logical second; the watchdog still enforces its real one-second timeout.
+(
+    unset SECONDS
+    SECONDS=0
+    coh_deadline=8
+    coh_bounded own-limit 1 command sleep 60
+) > "$scratch/own-limit.log" 2>&1
 check "a shorter own timeout remains capped within the theme budget" "$?" 124
 grep -q '^COH_SKIPPED replay own-limit cut after 1s (theme remaining 8s)$' "$scratch/own-limit.log"
 check "the runner retains an own timeout shorter than the remaining budget" "$?" 0

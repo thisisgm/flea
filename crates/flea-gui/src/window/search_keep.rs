@@ -107,7 +107,9 @@ impl Shell {
             return;
         }
         // The backend answers the one request in flight once, so even an unappliable answer ends the wait.
-        let mut kept = host.search.kept.take().unwrap();
+        let Some(mut kept) = host.search.kept.take() else {
+            return;
+        };
         if !json::field_bool(line, "ok")
             || !host.pane.state.search
             || json::field_usize(line, "listing") != Some(host.pane.held.listing)

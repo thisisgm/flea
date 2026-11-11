@@ -111007,7 +111007,7 @@
     },
     {
       "excerpt": ".expect(\"real HTML request\");",
-      "line": 33,
+      "line": 34,
       "literal": "real HTML request",
       "owner": "I50-07",
       "path": "crates/flea-gui/examples/html-lifecycle.rs",
@@ -111016,7 +111016,7 @@
     },
     {
       "excerpt": ".expect(\"real HTML cancellation\");",
-      "line": 41,
+      "line": 42,
       "literal": "real HTML cancellation",
       "owner": "I50-07",
       "path": "crates/flea-gui/examples/html-lifecycle.rs",
@@ -111024,45 +111024,63 @@
       "surface": "gui"
     },
     {
-      "excerpt": "let path = PathBuf::from(std::env::args().nth(1).expect(\"an owned HTML file\"));",
-      "line": 80,
-      "literal": "an owned HTML file",
+      "excerpt": ".ok_or(\"an owned HTML file is required\")?,",
+      "line": 85,
+      "literal": "an owned HTML file is required",
       "owner": "I50-07",
       "path": "crates/flea-gui/examples/html-lifecycle.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "gui"
     },
     {
-      "excerpt": "let metadata = std::fs::metadata(&path).expect(\"initial HTML metadata\");",
-      "line": 82,
-      "literal": "initial HTML metadata",
+      "excerpt": ".ok_or(\"the HTML file must have a parent\")?",
+      "line": 89,
+      "literal": "the HTML file must have a parent",
       "owner": "I50-07",
       "path": "crates/flea-gui/examples/html-lifecycle.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "gui"
     },
     {
-      "excerpt": ".expect(\"matching backend\"),",
-      "line": 90,
-      "literal": "matching backend",
+      "excerpt": ".map_err(|error| format!(\"initial HTML metadata {}: {error}\", path.display()))?;",
+      "line": 93,
+      "literal": "initial HTML metadata {}: {error}",
       "owner": "I50-07",
       "path": "crates/flea-gui/examples/html-lifecycle.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "gui"
     },
     {
-      "excerpt": "let server = Server::bind(&flea::ipc::endpoint::runtime().expect(\"private runtime\"))",
-      "line": 97,
-      "literal": "private runtime",
+      "excerpt": ".map_err(|error| format!(\"initial HTML mtime {}: {error}\", path.display()))?;",
+      "line": 96,
+      "literal": "initial HTML mtime {}: {error}",
       "owner": "I50-07",
       "path": "crates/flea-gui/examples/html-lifecycle.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "gui"
     },
     {
-      "excerpt": ".expect(\"fixture IPC\");",
-      "line": 98,
-      "literal": "fixture IPC",
+      "excerpt": ".map_err(|error| format!(\"matching backend for {}: {error}\", parent.display()))?,",
+      "line": 100,
+      "literal": "matching backend for {}: {error}",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/examples/html-lifecycle.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "flea::ipc::endpoint::runtime().map_err(|error| format!(\"private runtime: {error}\"))?;",
+      "line": 108,
+      "literal": "private runtime: {error}",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/examples/html-lifecycle.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": ".map_err(|error| format!(\"fixture IPC in {}: {error}\", runtime.display()))?;",
+      "line": 110,
+      "literal": "fixture IPC in {}: {error}",
       "owner": "I50-07",
       "path": "crates/flea-gui/examples/html-lifecycle.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -111070,7 +111088,7 @@
     },
     {
       "excerpt": "title: Some(\"Flea\".into()),",
-      "line": 106,
+      "line": 118,
       "literal": "Flea",
       "owner": "I50-07",
       "path": "crates/flea-gui/examples/html-lifecycle.rs",
@@ -111079,7 +111097,7 @@
     },
     {
       "excerpt": ".expect(\"native fixture window\");",
-      "line": 256,
+      "line": 268,
       "literal": "native fixture window",
       "owner": "I50-07",
       "path": "crates/flea-gui/examples/html-lifecycle.rs",
@@ -114931,7 +114949,7 @@
     },
     {
       "excerpt": "stderr: format!(\"nonblocking output pipe setup failed: {error}\"),",
-      "line": 256,
+      "line": 260,
       "literal": "nonblocking output pipe setup failed: {error}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/device_rail/process.rs",
@@ -165870,8 +165888,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "let out = local_time(seconds).ok_or_else(|| \"Could not format the selected items' modification dates.\".to_string())?;",
-      "line": 30,
+      "excerpt": ".ok_or_else(|| \"Could not format the selected items' modification dates.\".to_string())?;",
+      "line": 36,
       "literal": "Could not format the selected items' modification dates.",
       "owner": "controller",
       "path": "src/backend/trashdate.rs",
@@ -254088,7 +254106,7 @@
     "crates/flea-gui/Cargo.toml": "86fd25848a1a993a0ae1a91f210ca4f93e6ad212ab521895072022a39322597d",
     "crates/flea-gui/build.rs": "06ea5b8a62b74a9d659b1ef6d92393cc68507f8484717678054144ec06daccaf",
     "crates/flea-gui/deny.toml": "1d3ec035ff745443250ea0d7f23f7cae39329f446c869b92b4365df3cc73fd2b",
-    "crates/flea-gui/examples/html-lifecycle.rs": "59b87175bef10273ff5f4b753dc69459345e9b3fbb5c557a91e3fb4d9f30cfdb",
+    "crates/flea-gui/examples/html-lifecycle.rs": "626e01142d1cb7cab7a8963e09d4efaac279a7c032ee0d78cecba8cad1a64033",
     "crates/flea-gui/examples/ipc-fixture.rs": "4e931f7c60bd1a15e3c2c9c06bfd921a207ce099b4e280d1d73676f5c0bb495b",
     "crates/flea-gui/examples/memory-empty-shell.rs": "e7945c4ad18c759dc8f1a10f0eac99fc0a7365ef0080010d12da36a4b86496c1",
     "crates/flea-gui/examples/memory-probe.rs": "4615b8fb5e3a143bf3e04a7f83ed3f88a58101d57c41f30e9a75cfb1e1a0943c",
@@ -254245,7 +254263,7 @@
     "crates/flea-gui/src/g2/device_rail/phones.rs": "4284b292c378de0d13c197a2f2884e0e938f52e30303fedf9c7d862964afcbcd",
     "crates/flea-gui/src/g2/device_rail/private_entry.rs": "c28bd583b13b6e362f12b419bbaa12f805b56f698176ebfac543897b8bc5e7a2",
     "crates/flea-gui/src/g2/device_rail/probes.rs": "8a1f3ea97e464062e839eadf102486912c71541a5f3a77fce1a2cbacb19e1a00",
-    "crates/flea-gui/src/g2/device_rail/process.rs": "03b8743d4f7c823f792f594ba8373ae7f9e6389983bbba467009853259423bd0",
+    "crates/flea-gui/src/g2/device_rail/process.rs": "345ba361bb97ab6beb0cf29f51e0ee299dbf22b61e0f965787451ebdbeda503e",
     "crates/flea-gui/src/g2/device_rail/process_input.rs": "f9348d2c4fab7b88b2522a548563d7385cddebbceff4ed75ba643d4c869aa878",
     "crates/flea-gui/src/g2/device_rail/process_io.rs": "e5c9e991588e06fb78679cbc671c062e3aac05414f67b30535ab7f8c578528ad",
     "crates/flea-gui/src/g2/device_rail/rail_events.rs": "c5e7e13aa618637991a121965f7e1cc73182acb7e7433815312820ccae907b2d",
@@ -255236,7 +255254,7 @@
     "crates/flea-gui/src/window/search_empty.rs": "4b7f8b549be5f741fc3978f941d4dbc9b814498f4a962e3edc81b6f563ab6f05",
     "crates/flea-gui/src/window/search_header.rs": "a1b809d05931ff7185f75a8a37edd940249a17c15b0b0aa14480121112c6ce52",
     "crates/flea-gui/src/window/search_host.rs": "99fe52cb793245004aad985567c80c903016f07cc665e87bde66ed02e762d334",
-    "crates/flea-gui/src/window/search_keep.rs": "b48ca9bf42c5a42c12fb59cf494d13e15bd8e18a745d28242d64830b62995a0e",
+    "crates/flea-gui/src/window/search_keep.rs": "2060c0f17dfc025ac43c4bce6a297efb0280b77447ec0da9f2bd34782fbd8f40",
     "crates/flea-gui/src/window/search_keys.rs": "a47df62f8872b06e242c10a156369a07746ff6475da73f8e678efb6909db7d29",
     "crates/flea-gui/src/window/search_lines.rs": "4119593d563214acc51e716925f91f9647701d284196d7082419ebecdab8e7c6",
     "crates/flea-gui/src/window/search_observe.rs": "4b6a0f26dfeb419eae15e7a5f420ac2b253bf6d33fb69936831eb40327a1a769",
@@ -255607,7 +255625,7 @@
     "src/backend/searchprior.rs": "874b0b573aa7aed1bf82a87e36e434bd217c5add7ed242c8a715b700cf65594a",
     "src/backend/searchpriorxml.rs": "14df71fe8b032788ab7d594e01bcbc37f58b47f0e746fa6734ee6e464dd1f124",
     "src/backend/searchread.rs": "77cffbc5b402e68587f192d4cf59581cf9c3cb95b656fa5637ec02a49147a6a4",
-    "src/backend/searchremap.rs": "1b761b1be2318e27c8e2c4172ca46e83802d0eef1e46ba4c482b69cf3088e9db",
+    "src/backend/searchremap.rs": "0b580103e8ca1038f4e11ac71b00d40c68c71b2a75e4194275fb9e47f4024553",
     "src/backend/searchreq.rs": "4635625188f93aea489172c47ade456d801d5de1fab88e558855715b451b524b",
     "src/backend/searchrest.rs": "3fc4b6e4119cee9d5ad853bd2045b9b54d65c8fc49856e9aca855aa1ee999e7a",
     "src/backend/searchrowcache.rs": "a4dfcee0e92ea476692c55a7ba809c6442ea372802b9e1b4936efefa0d75129b",
@@ -255663,7 +255681,7 @@
     "src/backend/trashbrowse/restore.rs": "1c93b22f7ac2f93a5b9a70f5320ded8c4ec0d8ff7ea1ff8124cb1bdecb546bc0",
     "src/backend/trashbrowse/sweep.rs": "f4674f549a1cbdab741aa2bc324400e937de5666dd55ba7043b5cca124d4bd3e",
     "src/backend/trashbrowse/topdir.rs": "0866b09927c68f71d88434e6b003d48ad1581b3d75b40adc04cc345382523739",
-    "src/backend/trashdate.rs": "a6312b012015592eedd2497a52af2d53bec49e58e5deb40327ae80ce75bbd8c1",
+    "src/backend/trashdate.rs": "98917fa4e0fc58c9ea5043e1d96ceaa4be1fbf604f488db052d1ef95e916e5b2",
     "src/backend/trashdelete.rs": "5596187035f4918deb6c9ffe3e026e5ed2b2d87d61856cbd7d766639b1c522f8",
     "src/backend/trashdelete/cancel.rs": "40ca4b37e9d0873594832957bb6e0b8db0f4f586128d6ff69cf8aceb3340cc25",
     "src/backend/trashdelete/deletetest.rs": "54dcc4855047a92d9c48829c321d246dff9a3971d4795617a214500b2ad8ecba",
@@ -256841,8 +256859,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "64aadcc22cb58acb13dbcaee56d1c92f09e730c1",
-  "source_sha": "64aadcc22cb58acb13dbcaee56d1c92f09e730c1",
+  "source_ref_sha": "561b88d242be6f969fb5d88b279b302ccdf6ff9b",
+  "source_sha": "561b88d242be6f969fb5d88b279b302ccdf6ff9b",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1377,
@@ -256856,7 +256874,7 @@
     },
     "gui": {
       "keys_with_occurrences": 566,
-      "missing_literal_candidates": 2305,
+      "missing_literal_candidates": 2307,
       "source_files": 1208
     },
     "qml-reference": {

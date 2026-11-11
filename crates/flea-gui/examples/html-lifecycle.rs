@@ -10,10 +10,11 @@ use flea_gui::{
         html::{HtmlHost, HtmlView, Metrics, SourceParts},
     },
     ipc::server::{Answer, Event, Server},
+    palette::Theme,
 };
 use gpui::{
-    div, prelude::*, px, rgb, size, App, AppContext, Context, Entity, Render, Task,
-    TitlebarOptions, Window, WindowBounds, WindowOptions,
+    div, prelude::*, px, size, App, AppContext, Context, Entity, Render, Task, TitlebarOptions,
+    Window, WindowBounds, WindowOptions,
 };
 use std::{cell::Cell, path::PathBuf, rc::Rc, time::Duration};
 
@@ -48,14 +49,15 @@ struct Fixture {
 }
 impl Render for Fixture {
     fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-        div().size_full().bg(rgb(0x101315)).child(
+        let theme = Theme::default();
+        div().size_full().bg(theme.background).child(
             div()
                 .absolute()
                 .left(px(40.))
                 .top(px(40.))
                 .w(px(300.))
                 .h(px(200.))
-                .bg(rgb(0x101315))
+                .bg(theme.background)
                 .rounded(px(12.))
                 .child(self.view.clone()),
         )
@@ -76,26 +78,36 @@ fn parsed_reply(doc: &Json) -> flea::ui_logic_doc_preview::html::Reply {
     }
 }
 
-fn main() {
-    let path = PathBuf::from(std::env::args().nth(1).expect("an owned HTML file"));
-    assert!(path.is_absolute() && path.parent().unwrap().join(".flea-test-sandbox").is_file());
-    let metadata = std::fs::metadata(&path).expect("initial HTML metadata");
-    let stamp = (
-        metadata.len(),
-        metadata.modified().unwrap(),
-        metadata.permissions(),
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let path = PathBuf::from(
+        std::env::args()
+            .nth(1)
+            .ok_or("an owned HTML file is required")?,
     );
+    let parent = path
+        .parent()
+        .ok_or("the HTML file must have a parent")?
+        .to_owned();
+    assert!(path.is_absolute() && parent.join(".flea-test-sandbox").is_file());
+    let metadata = std::fs::metadata(&path)
+        .map_err(|error| format!("initial HTML metadata {}: {error}", path.display()))?;
+    let modified = metadata
+        .modified()
+        .map_err(|error| format!("initial HTML mtime {}: {error}", path.display()))?;
+    let stamp = (metadata.len(), modified, metadata.permissions());
     let backend = Rc::new(
-        Backend::start(path.parent().unwrap().to_string_lossy().into(), None, 1)
-            .expect("matching backend"),
+        Backend::start(parent.to_string_lossy().into(), None, 1)
+            .map_err(|error| format!("matching backend for {}: {error}", parent.display()))?,
     );
     let drained = backend.drained();
     let host = Host {
         backend: backend.clone(),
         serial: Rc::default(),
     };
-    let server = Server::bind(&flea::ipc::endpoint::runtime().expect("private runtime"))
-        .expect("fixture IPC");
+    let runtime =
+        flea::ipc::endpoint::runtime().map_err(|error| format!("private runtime: {error}"))?;
+    let server = Server::bind(&runtime)
+        .map_err(|error| format!("fixture IPC in {}: {error}", runtime.display()))?;
     let events = server.events.clone();
     let replies = backend.replies.clone();
     gpui_platform::application().run(move |cx: &mut App| {
@@ -110,7 +122,8 @@ fn main() {
         };
         cx.open_window(options, move |window, cx| {
             cx.new(move |cx| {
-                let foreground = rgb(0xffffff).into();
+                let theme = Theme::default();
+                let foreground = theme.foreground;
                 let view = cx.new(|cx| {
                     let parts = SourceParts {
                         typeface: code::Typeface {
@@ -137,7 +150,7 @@ fn main() {
                     let mut view = HtmlView::new(
                         "column",
                         doc_preview::Palette {
-                            background: rgb(0x101315).into(),
+                            background: theme.background,
                         },
                         Metrics {
                             row_height: 20.,
@@ -152,7 +165,7 @@ fn main() {
                     view.set_catalog(
                         std::sync::Arc::new(flea::i18n::I18n::load(flea::i18n::Paths {
                             omarchy: "/usr/share/omarchy".into(),
-                            language_file: path.parent().unwrap().join("language"),
+                            language_file: parent.join("language"),
                             catalogs: vec!["/usr/share/flea/i18n".into()],
                         })),
                         cx,
@@ -226,11 +239,10 @@ fn main() {
                             .spawn(async move { std::fs::metadata(file) })
                             .await;
                         let Ok(metadata) = metadata else { continue };
-                        let current = (
-                            metadata.len(),
-                            metadata.modified().unwrap(),
-                            metadata.permissions(),
-                        );
+                        let Ok(modified) = metadata.modified() else {
+                            continue;
+                        };
+                        let current = (metadata.len(), modified, metadata.permissions());
                         if current == previous {
                             continue;
                         }
@@ -257,4 +269,5 @@ fn main() {
         cx.activate(true);
     });
     let _ = drained.recv_blocking();
+    Ok(())
 }
