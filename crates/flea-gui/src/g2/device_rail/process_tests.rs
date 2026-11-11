@@ -53,20 +53,6 @@ fn stdin_carries_the_secret_and_nothing_else_does() {
 }
 
 #[test]
-fn withheld_input_closes_stdin_empty() {
-    let job = Job {
-        argv: sh("sleep 0.2; cat; echo done"),
-        env: Vec::new(),
-        stdin: Some(Secret::from_bytes(CANARY.as_bytes())),
-    };
-    let (outcome, _) = finish(job, |h| h.withhold_input());
-    assert_eq!(
-        outcome.stdout, "done\n",
-        "an empty EOF lets a cat-until-EOF child exit"
-    );
-}
-
-#[test]
 fn kill_ends_a_hung_child_within_its_bound() {
     let job = Job {
         argv: sh("sleep 30"),

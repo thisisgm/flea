@@ -61,12 +61,12 @@ pub(crate) fn answer(
     let valid = gen > 0
         && gen == st.search_remap.gen
         && st.held == Held::Walk
-        && st.base == st.search_remap.scope
-        && source.is_some();
+        && st.base == st.search_remap.scope;
+    let source = source.filter(|_| valid);
+    let valid = source.is_some();
     let mut mapped = Vec::new();
     let mut pointer = Json::Null;
-    if valid {
-        let source = &source.unwrap().1;
+    if let Some((_, source)) = source {
         let paths: Vec<String> = rows
             .iter()
             .copied()

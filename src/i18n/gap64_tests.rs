@@ -1,9 +1,6 @@
 //! Each clock oracle runs in its own process so timezone state cannot leak between tests.
 use super::Locale;
-use std::{
-    process::Command,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::process::Command;
 
 fn date(arguments: &[&str]) -> String {
     let output = Command::new("date")
@@ -31,11 +28,11 @@ fn sol_gap64_shared_clock_matches_date_in_four_isolated_timezones() {
             glibc_locale: "C".into(),
             ..Locale::default()
         };
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs() as i64;
-        for timestamp in [-1, 0, 951868799, 2147483648, 4102444800, now] {
+        // Include adjacent seconds, year rollover and both Berlin DST transitions.
+        for timestamp in [
+            -1, 0, 951868799, 2147483648, 4102444800, 1794339157, 1794339158, 1774745999,
+            1774746000, 1792890000,
+        ] {
             let input = format!("@{timestamp}");
             let expected = date(&["-d", &input, "+%Y-%m-%d %H:%M"]);
             assert_eq!(
@@ -43,15 +40,15 @@ fn sol_gap64_shared_clock_matches_date_in_four_isolated_timezones() {
                 Some(expected.as_str()),
                 "{zone} {timestamp}"
             );
+            let expected_stamp = date(&["-d", &input, "+%Y-%m-%dT%H:%M:%S"]);
+            let deleted = crate::backend::trashdate::deletion_date_at(timestamp);
+            assert_eq!(deleted, expected_stamp, "{zone} {timestamp} Trash stamp");
+            let parsed = date(&["-d", &deleted, "+%Y-%m-%dT%H:%M:%S"]);
+            assert_eq!(
+                parsed, expected_stamp,
+                "{zone} local stamp parses unchanged"
+            );
         }
-        let before = date(&["+%s"]).parse::<i64>().unwrap();
-        let deleted = crate::backend::trashdate::deletion_date_local();
-        let after = date(&["+%s"]).parse::<i64>().unwrap();
-        let parsed = date(&["-d", &deleted, "+%s"]).parse::<i64>().unwrap();
-        assert!(
-            (before..=after).contains(&parsed),
-            "{zone}: {before} <= {parsed} <= {after}"
-        );
         return;
     }
     for zone in ZONES {
