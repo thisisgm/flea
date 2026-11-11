@@ -21,12 +21,13 @@ pub mod strip;
 mod strip_input;
 pub mod suggestions;
 pub(crate) mod tap;
+pub(crate) mod text_menu;
 pub mod view;
 mod wire;
 
 use crate::pane::Kind;
 use flea::i18n::I18n;
-use flea::ui_logic_pl2::networkaddress;
+use flea::ui_logic_network_shares::networkaddress;
 pub use wire::{answer, is_jump_line, jump_line, peek_line, Answer, Jumped, Peeked};
 
 // The one place a path is made canonical: "." and ".." resolve here, so the bar draws the path the backend lists.

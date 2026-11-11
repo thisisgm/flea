@@ -1,6 +1,6 @@
 //! EY-550: a shelf plugin someone added gets Add to Shelf while the built-in Shelf is off, and the files reach it.
 use super::*;
-use flea::ui_logic_st2::wire;
+use flea::ui_logic_plugin_settings::wire;
 
 const MANIFEST: &str = r#"{"schemaVersion":1,"id":"example.pile","name":"Pile","version":"1.0.0","author":"Me","license":"MIT",
 "description":"Switches a bar pile.","kinds":["shelf"],"entryPoints":{"run":"run"},
@@ -17,8 +17,7 @@ fn pile(root: &Path, run: &str) -> (Plugin, PathBuf) {
     let folder = root.join("config/flea/plugins/example.pile");
     std::fs::create_dir_all(&folder).unwrap();
     std::fs::write(folder.join("manifest.json"), MANIFEST).unwrap();
-    std::fs::write(folder.join("run"), run).unwrap();
-    std::fs::set_permissions(folder.join("run"), std::fs::Permissions::from_mode(0o755)).unwrap();
+    flea::executable_file::write(&folder.join("run"), run.as_bytes(), 0o755).unwrap();
     std::fs::create_dir_all(root.join("state/flea")).unwrap();
     std::fs::write(
         root.join("state/flea/ui.json"),
@@ -116,7 +115,7 @@ fn add_to_shelf_follows_the_builtin_switch_even_when_the_listing_says_on(cx: &mu
     let root = scratch();
     let (plugin, _) = pile(&root, RUN);
     let fixture = open(cx, root, plugin);
-    let (manifest, _) = flea::ui_logic_st2::builtin::manifests()
+    let (manifest, _) = flea::ui_logic_plugin_settings::builtin::manifests()
         .into_iter()
         .find(|(m, _)| m.id == "flea.shelf")
         .unwrap();

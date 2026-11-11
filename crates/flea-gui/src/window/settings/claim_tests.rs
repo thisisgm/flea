@@ -1,8 +1,7 @@
 use super::*;
-use crate::g2::st1::claim::DESKTOP;
+use crate::g2::settings_pages::claim::DESKTOP;
 use std::{
     fs,
-    os::unix::fs::PermissionsExt,
     path::Path,
     process::Stdio,
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
@@ -13,7 +12,7 @@ const CHILD: &str = "window::settings::claim::tests::isolated_completed";
 fn script(root: &Path, name: &str, body: &str) {
     let path = root.join("bin").join(name);
     fs::write(&path, format!("#!/bin/sh\n{body}\n")).unwrap();
-    fs::set_permissions(path, fs::Permissions::from_mode(0o700)).unwrap();
+    flea::executable_file::write(&path, &std::fs::read(&path).unwrap(), 0o700).unwrap();
 }
 
 fn run(case: &str) {

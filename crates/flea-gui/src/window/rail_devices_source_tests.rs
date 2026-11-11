@@ -1,6 +1,138 @@
 //! Live source controls for bounded listings, optical state and identity-safe activation.
 use super::*;
-use crate::g2::pl1::{devices::Effect, source::Event};
+use crate::g2::device_rail::{devices::Effect, source::Event};
+
+#[gpui::test]
+fn rail_devices_unchanged_poll_does_not_notify_the_window(cx: &mut TestAppContext) {
+    let (shell, service, cx) = open("{}", cx);
+    ready(&service, cx);
+    cx.executor().advance_clock(Duration::from_millis(800));
+    frame(cx);
+    let notifications = Rc::new(std::cell::Cell::new(0));
+    let heard = notifications.clone();
+    let source_notifications = Rc::new(std::cell::Cell::new(0));
+    let source_heard = source_notifications.clone();
+    let devices = source(&shell, cx);
+    cx.update(|_, cx| {
+        cx.observe(&shell, move |_, _| heard.set(heard.get() + 1))
+            .detach();
+        cx.observe(&devices, move |_, _| {
+            source_heard.set(source_heard.get() + 1)
+        })
+        .detach();
+    });
+    let before = notifications.get();
+    let shown = labels(&shell, cx);
+    cx.executor().advance_clock(Duration::from_millis(5_000));
+    cx.run_until_parked();
+    assert_eq!(
+        service.jobs.borrow().len(),
+        4,
+        "the periodic lsblk and gio polls still run"
+    );
+    cx.simulate_frame_request(gpui::RequestFrameOptions::default());
+    cx.run_until_parked();
+    assert_eq!(
+        source_notifications.get(),
+        0,
+        "polls do not invalidate source readers"
+    );
+    assert_eq!(
+        notifications.get(),
+        before,
+        "starting a background poll does not change the scene"
+    );
+    service.answer("lsblk", 1, BLOCKS);
+    service.answer("gio", 1, PHONE);
+    cx.run_until_parked();
+    cx.simulate_frame_request(gpui::RequestFrameOptions::default());
+    cx.run_until_parked();
+    assert_eq!(labels(&shell, cx), shown);
+    assert_eq!(
+        source_notifications.get(),
+        0,
+        "identical answers do not invalidate source readers"
+    );
+    assert_eq!(
+        notifications.get(),
+        before,
+        "identical discovery answers keep the presented scene"
+    );
+    cx.executor().advance_clock(Duration::from_millis(5_000));
+    cx.run_until_parked();
+    service.answer("lsblk", 2, &BLOCKS.replace("Backup", "Renamed"));
+    service.answer("gio", 2, PHONE);
+    cx.run_until_parked();
+    cx.simulate_frame_request(gpui::RequestFrameOptions::default());
+    cx.run_until_parked();
+    assert!(labels(&shell, cx).contains(&"Renamed".to_owned()));
+    assert!(notifications.get() > before);
+    assert!(source_notifications.get() > 0);
+}
+
+#[gpui::test]
+fn rail_devices_unchanged_mount_poll_still_emits_discovery_state(cx: &mut TestAppContext) {
+    let (shell, service, cx) = open("{}", cx);
+    ready(&service, cx);
+    let devices = source(&shell, cx);
+    let snapshots = Rc::new(RefCell::new(Vec::new()));
+    let heard = snapshots.clone();
+    cx.update(|_, cx| {
+        cx.subscribe(
+            &devices,
+            move |source, _: &crate::g2::device_rail::source::MountsChanged, cx| {
+                let (generation, listing) = source.read(cx).mount_snapshot();
+                heard.borrow_mut().push((generation, listing.running));
+            },
+        )
+        .detach();
+    });
+    let generation = devices.read_with(cx, |source, _| source.mount_snapshot().0);
+    cx.executor().advance_clock(Duration::from_millis(5_000));
+    cx.run_until_parked();
+    assert_eq!(&*snapshots.borrow(), &[(generation, true)]);
+    service.answer("lsblk", 1, BLOCKS);
+    service.answer("gio", 1, PHONE);
+    cx.run_until_parked();
+    assert_eq!(
+        &*snapshots.borrow(),
+        &[(generation, true), (generation + 1, false)]
+    );
+}
+
+#[gpui::test]
+fn rail_devices_queued_action_still_reaches_the_window_without_row_change(cx: &mut TestAppContext) {
+    let (shell, service, cx) = open("{}", cx);
+    ready(&service, cx);
+    let notifications = Rc::new(std::cell::Cell::new(0));
+    let heard = notifications.clone();
+    cx.update(|_, cx| {
+        cx.observe(&shell, move |_, _| heard.set(heard.get() + 1))
+            .detach();
+    });
+    let archive = producer(&shell, cx).read_with(cx, |producer, _| {
+        producer
+            .entries()
+            .into_iter()
+            .find(|row| row.label == "Archive")
+            .unwrap()
+    });
+    source(&shell, cx).update(cx, |source, cx| {
+        source.activate(&archive, 0, cx);
+    });
+    cx.run_until_parked();
+    assert!(
+        notifications.get() > 0,
+        "the queued action wakes the window"
+    );
+    frame(cx);
+    assert_eq!(
+        shell.read_with(cx, |shell, _| {
+            shell.panes[0].as_ref().unwrap().pane.place().to_owned()
+        }),
+        "/media/archive"
+    );
+}
 
 #[gpui::test]
 fn rail_devices_listing_timeout_keeps_last_complete_rows(cx: &mut TestAppContext) {

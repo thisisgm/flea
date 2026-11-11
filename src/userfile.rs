@@ -83,6 +83,11 @@ fn data_file_from(get: Get, relative: &str) -> Option<PathBuf> {
     data_dirs_from(get).into_iter().map(|d| d.join(relative)).find(|p| p.is_file())
 }
 
+// A user's own state or config file, bounded and opened non-blocking, so a fifo or an endless file in its place is an error.
+pub fn read_text(path: &Path, limit: u64) -> std::io::Result<String> {
+    crate::backend::regfile::read_text(path, limit)
+}
+
 // The write AGENTS.md "Predictable path writes" describes: exclusive temp file at the original's own mode, then a rename.
 pub fn replace_file(path: &Path, text: &str) -> Result<(), String> {
     // Through the symlink a dotfiles manager may have put here, so the link survives and its target is what changes.

@@ -281,7 +281,7 @@ case_cap_gm_nethold() {
         cap_gm_hold "protocol-$protocol" "$protocol" "$cx" "$cy" "$width" networkChipCentre
     done
     action=$(ipc networkAction) || fail "gmlook: action label unavailable"
-    [[ "$action" == 'Connect and save' ]] || fail "gmlook: network action is $action"
+    [[ "$action" == 'Connect and Save' ]] || fail "gmlook: network action is $action"
     action_width=$(((${#action} * cap_gm_advance + 500) / 1000 + cap_gm_button_pad))
     cancel_width=$(((6 * cap_gm_advance + 500) / 1000 + cap_gm_button_pad))
     width=$((cap_gm_button_pad / 2 - 1))

@@ -38,7 +38,10 @@ impl Shell {
         if self.lifecycle.phase() != super::lifecycle::Phase::Open {
             return Ok(false);
         }
-        if let Some(result) = self.covered_step(side, &step, window, cx) {
+        if let Some(result) = self
+            .covered_step(side, &step, window, cx)
+            .or_else(|| self.search_reread(side, &step))
+        {
             return result;
         }
         if matches!(step, Step::Back | Step::MouseBack)
@@ -153,6 +156,11 @@ impl Shell {
         }
         host.take_lone_mark();
         super::outline::keep_lone(host);
+        // An order the folder took in another pane while this listing was out applies once it lands.
+        let failure = self.locale.catalog.tr("navigation.save_failed");
+        let _ = host
+            .nav
+            .apply_pending_sort(&mut host.pane, &mut host.selected, failure);
         if let Some(changed) = host.nav.reloaded.take() {
             let notice = crate::strips::status_host::reloaded(&self.locale.catalog, changed);
             self.status_messages(cx, |messages, now| {
@@ -160,7 +168,7 @@ impl Shell {
                     &notice,
                     false,
                     "",
-                    flea::ui_logic_fb1::status::Hint::None,
+                    flea::ui_logic_status_feedback::status::Hint::None,
                     now,
                 )
             });
@@ -265,6 +273,9 @@ impl Shell {
         if listed {
             self.arm_transition(side, window, cx);
             self.arm_listing_wait(side, window, cx);
+        }
+        for path in super::folder_follow::sorted_folders(&commands) {
+            self.follow_folder_sort(side, &path, window, cx);
         }
     }
 

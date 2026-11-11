@@ -32,7 +32,7 @@ cap_collide_paste() {
     wait_path "$dir/Pictures"
     cap_collide_listed "$dir/Pictures"
     key p >/dev/null
-    menus_expect collideState ".opened and .title == \"$name already exists in Pictures\" and .focus == \"keep\"" "the card for $name opens on Keep both"
+    menus_expect collideState ".opened and .title == \"$name already exists in Pictures.\" and .focus == \"keep\"" "the card for $name opens on Keep both"
 }
 cap_collide_back() {
     local dir="$1"
@@ -77,20 +77,21 @@ cap_collide_card() {
     local name="$1" focus step walked=" "
     cap_collide_park
     shot "$name-rest"
-    key h >/dev/null
-    key h >/dev/null
-    menus_expect collideState '.focus == "cancel"' "h twice reaches Cancel on $name"
-    for step in 1 2 3 4 5 6 7 8; do  # a card has fewer than 8 buttons, so a Replace out of reach fails instead of looping
+    local left=3
+    [[ "$(ipc collideState | jq -r '[.buttons[] | select(.name == "merge" and .visible)] | length')" == 0 ]] || left=4
+    for ((step = 0; step < left; step++)); do key h >/dev/null; done
+    menus_expect collideState '.focus == "cancel"' "h reaches the leftmost Cancel on $name"
+    for step in 1 2 3 4 5 6 7 8; do  # a card has fewer than 8 buttons, so a Keep Both out of reach fails instead of looping
         focus=$(ipc collideState | jq -r '.focus')
-        [[ "$walked" != *" $focus "* ]] || fail "cap_collide: the focus walk on $name came round to $focus before it reached replace"
+        [[ "$walked" != *" $focus "* ]] || fail "cap_collide: the focus walk on $name came round to $focus before it reached keep"
         walked+="$focus "
         settle
         shot "$name-focus-$focus"
-        [[ "$focus" != replace ]] || break
+        [[ "$focus" != keep ]] || break
         key l >/dev/null
         menus_expect collideState ".focus != \"$focus\"" "l leaves $focus on $name"
     done
-    [[ "$focus" == replace ]] || fail "cap_collide: l never reached Replace on $name"
+    [[ "$focus" == keep ]] || fail "cap_collide: l never reached Keep Both on $name"
     key -k Escape >/dev/null
     menus_expect collideState '.opened | not' "Escape cancels the $name card"
 }
@@ -112,6 +113,7 @@ cap_collide_theme() {
     cap_collide_fixture "$dir"
     fixture_home_make "$home"
     state_theme="$home/.local/state/omarchy/current"
+    local real_state_dir="$state_theme"
     if [[ "$theme" != live ]]; then
         cp "/usr/share/omarchy/themes/$theme/colors.toml" "$state_theme/theme/colors.toml" || fail "cap_collide: no $theme palette"
         printf '%s\n' "$theme" > "$state_theme/theme.name"
@@ -131,8 +133,8 @@ cap_collide_theme() {
         cap_collide_paste_again "$dir" "$name"
         buttons=$(ipc collideState | jq -er '[.buttons[] | select(.visible) | .name] | join(" ")') || fail "cap_collide: no button list on $name"
         # The folder card offers Merge and the file card does not.
-        want="cancel skip keep merge replace"
-        [[ "$name" == trip ]] || want="cancel skip keep replace"
+        want="cancel skip merge replace keep"
+        [[ "$name" == trip ]] || want="cancel skip replace keep"
         [[ "$buttons" == "$want" ]] || fail "cap_collide: $name shows buttons '$buttons', not '$want'"
         for button in $buttons; do
             cap_collide_pointer "$button" "collide-$theme-${name%%.*}"

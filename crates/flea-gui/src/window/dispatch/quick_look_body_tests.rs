@@ -3,8 +3,8 @@ use super::preview_tests::{body, close, context, draw, file, opened, press, sent
 use super::test_shell::{land, row, set_cursor};
 use crate::{
     g2::{
-        pv1::{doc::View, Body},
-        pv3::engine::{feed, Backend, Feed, FeedSender, Playback, Request},
+        media_preview::engine::{feed, Backend, Feed, FeedSender, Playback, Request},
+        quick_look_overlay::{doc::View, Body},
     },
     state::Shell,
     window::u07_tests::read,
@@ -13,7 +13,7 @@ use flea::{
     jsondoc::{self, Json},
     keys::Context,
     protocol::RowFacts,
-    ui_logic_pv3::frame::{Command, Event},
+    ui_logic_media_preview::frame::{Command, Event},
 };
 use gpui::{Entity, TestAppContext, VisualTestContext};
 use std::{cell::RefCell, rc::Rc};
@@ -21,7 +21,7 @@ use std::{cell::RefCell, rc::Rc};
 #[derive(Default)]
 pub(super) struct Script {
     starts: RefCell<Vec<Request>>,
-    commands: Rc<RefCell<Vec<Command>>>,
+    pub(super) commands: Rc<RefCell<Vec<Command>>>,
     pub(super) feeds: RefCell<Vec<FeedSender>>,
 }
 
@@ -105,7 +105,7 @@ pub(super) fn open_kind(shell: &Entity<Shell>, cx: &mut VisualTestContext, name:
     cx.simulate_frame_request(gpui::RequestFrameOptions::default());
     cx.executor()
         .advance_clock(std::time::Duration::from_millis(
-            flea::ui_logic_pv2::html::SETTLE_MS,
+            flea::ui_logic_doc_preview::html::SETTLE_MS,
         ));
     draw(cx);
 }
@@ -333,7 +333,9 @@ fn media_plays_and_p_m_and_the_arrows_reach_the_player(cx: &mut TestAppContext) 
     draw(cx);
     // EY-447: previewState is the player's word, as PreviewMedia.status, never the kind.
     assert_eq!(read(&shell, cx, "previewState", &[]), "playing");
-    let muted = shell.read_with(cx, |_, cx| crate::g2::pv3::sound::MediaSound::get(cx).muted);
+    let muted = shell.read_with(cx, |_, cx| {
+        crate::g2::media_preview::sound::MediaSound::get(cx).muted
+    });
     for (key, command) in [
         ("p", Command::Pause),
         ("m", Command::Mute(!muted)),

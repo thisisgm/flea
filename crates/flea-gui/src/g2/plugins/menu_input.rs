@@ -1,6 +1,6 @@
 //! A native action prompt keeps its original backend snapshot until submit validates it again.
-use crate::{g2::mn1::join::Captured, state::Shell};
-use flea::{jsondoc::Json, ui_logic_st2::contributions::ActionInput};
+use crate::{g2::context_menus::join::Captured, state::Shell};
+use flea::{jsondoc::Json, ui_logic_plugin_settings::contributions::ActionInput};
 use gpui::{Context, Window};
 
 pub(super) struct Pending {

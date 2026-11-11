@@ -90,7 +90,7 @@ action = "reload"
 key = "Comma"
 action = "settings"
 
-# Checked before the plain ctrl rows and falling through when unmatched, so Ctrl+Shift+D still
+# A row answers only its exact modifiers, so Ctrl+Shift+D never reaches a plain ctrl row or
 # pages. Ctrl+Shift+N is Nautilus's own New Folder and Finder's with Cmd read as Ctrl, and the
 # window reaches the backend's mkdir through Ops.newFolder. Shift+period is delivered as Greater
 # on a US layout and as Period elsewhere, so both rows name the one action.
@@ -727,6 +727,18 @@ label = "Close in place"
 context = "listing"
 frontend = "gui"
 
+# Ctrl+P prints in every preset, and the menu's Print… hint reads this row; the sheet board draws no print row.
+[[preset]]
+name = "all"
+mods = "ctrl"
+key = "P"
+keys = "ctrl-p"
+action = "print"
+label = "Print…"
+context = "listing"
+frontend = "gui"
+sheet = false
+
 # #412: > and < act on every marked folder in all four presets; the sheet board draws the Ctrl pair alone.
 [[preset]]
 name = "all"
@@ -765,11 +777,12 @@ move = ["cursorDown", "cursorUp", "cursorFirst", "cursorLast", "pageDown", "page
 look = ["viewList", "viewColumns", "viewGrid", "viewDual", "togglePreview", "factsToggle", "loadPreview", "preview", "previewPageForward", "previewPageBack",
         "toggleHidden", "sidebar", "zoomIn", "zoomOut", "expand", "openInPlace", "closeInPlace", "mute", "textSizeUp", "textSizeDown",
         "textSizeReset", "keymapSheet"]
-find = ["filter", "search", "searchContents", "reveal", "sortNext", "sortReverse", "pathBar", "reload"]
+find = ["filter", "search", "searchContents", "keepResults", "reveal", "sortNext", "sortReverse", "pathBar", "reload"]
 change = ["copy", "cut", "paste", "movePaste", "duplicate", "rename", "trash",
           "deletePermanently", "undo", "redo", "newFolder", "copydirpath", "copyPath", "openAgent",
           "toggleSelect", "selectAll", "extendDown", "extendUp", "menu", "properties", "addNetwork", "eject",
-          "openTerminal", "settings", "autofitColumns", "copyAs", "pasteAs", "invertSelection", "tags"]
+          "openTerminal", "settings", "autofitColumns", "copyAs", "pasteAs", "invertSelection", "tags",
+          "print"]
 
 # The digit range, expanded by the generator into tab1 through tab9.
 [digits]
@@ -1509,9 +1522,9 @@ label = "open the peeked directory in a new tab"
 # board draws it in the foreground role while every segment above it is muted. The row column reads
 # "parent" for that reason: a row saying "crumb" would promise a press the leaf never answers. A
 # parent answers on the first tap (decided 2026-09-22), because waiting to rule out a double click held
-# every crumb click for the whole double-click interval, so the double click that opens the bar
-# lives only where a tap opens nothing: the leaf, the collapsed marker and the strip around them,
-# which the second row calls "inert".
+# every crumb click for the whole double-click interval, so the tap that opens the bar lives only
+# where a tap opens no folder: the leaf, the collapsed marker and the strip around them, which the
+# second row calls "inert". One tap there opens the bar, as : and Ctrl+L do (issue 327).
 [[pointer]]
 where = "chrome"
 press = "left"
@@ -1521,7 +1534,7 @@ label = "open the directory that segment of the path names, on the first tap"
 
 [[pointer]]
 where = "chrome"
-press = "left x2"
+press = "left"
 row = "inert"
 does = "pathBar"
 label = "type the path: the current folder's own segment, the collapsed marker or the strip beside the path"
@@ -2107,6 +2120,17 @@ label = "context menu"
 frontend = "all"
 context = "listing,rail"
 
+# F3 turns the dual pane on, and off again to the view it left, in every preset (GUI only).
+[[preset]]
+name = "all"
+mods = "none"
+key = "F3"
+keys = "f3"
+action = "viewDual"
+label = "dual pane"
+frontend = "gui"
+context = "listing"
+
 # ListColumns040: F4 fits every drawn list column, the keyboard twin of the header's double click (GUI only).
 [[preset]]
 name = "all"
@@ -2170,8 +2194,7 @@ label = "playPause"
 frontend = "all"
 context = "media"
 
-# MediaMute rule 4: m mutes while a media preview is open, and keeps its listing meaning everywhere
-# else, which the media context is what makes possible.
+# MediaMute rule 4: m mutes only in the window's media context; the terminal draws no mute state.
 [[preset]]
 name = "all"
 mods = "text"
@@ -2179,7 +2202,7 @@ key = "m"
 keys = "m"
 action = "mute"
 label = "Mute"
-frontend = "all"
+frontend = "gui"
 context = "media"
 
 [[preset]]
@@ -2619,6 +2642,17 @@ keys = "escape"
 action = "escape"
 label = "close editor"
 frontend = "all"
+context = "editor"
+
+# The search strip already handles Ctrl+Return itself; this row documents it without adding a dispatch binding.
+[[sheet_extra]]
+name = "all"
+mods = "ctrl"
+key = "Return"
+keys = "ctrl-enter"
+action = "keepResults"
+label = "Keep results"
+frontend = "gui"
 context = "editor"
 
 # Page the Columns preview while the listing keeps the keyboard.

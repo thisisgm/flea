@@ -3,12 +3,12 @@ use super::{
     preview_tests::{close, file, opened, press},
     test_shell::land,
 };
-use crate::g2::pv1::doc::View;
+use crate::g2::quick_look_overlay::doc::View;
 use gpui::TestAppContext;
 
 #[gpui::test]
 fn s5_markdown_quick_look_uses_saved_wrap_on_each_mount(cx: &mut TestAppContext) {
-    crate::g2::pv2::render::without_markdown_threads(|| {
+    crate::g2::doc_preview::render::without_markdown_threads(|| {
         let (shell, cx, _requests) = opened(cx);
         land(
             &shell,
@@ -40,7 +40,7 @@ fn s5_markdown_quick_look_uses_saved_wrap_on_each_mount(cx: &mut TestAppContext)
 
 #[gpui::test]
 fn s5_pdf_e_opens_quick_look_when_the_preview_holds_focus(cx: &mut TestAppContext) {
-    crate::g2::pv2::render::without_threads(|| {
+    crate::g2::doc_preview::render::without_threads(|| {
         let (shell, cx, _) = super::pb_preview_fixture::pdf(cx);
         let read = crate::window::u07_tests::read;
         assert_eq!(read(&shell, cx, "previewOpen", &[]), "false");

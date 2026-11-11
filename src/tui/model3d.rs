@@ -1,5 +1,6 @@
+use flea::bytename::ExactText as _;
 use super::{graphics::{Graphics, Task}, model::Model, pane_state::Unshown, wire::Wire};
-use flea::ui_logic_pv4::{self as pv4, color::Palette, scene::Scene, wire::{Data, State as ReplyState}};
+use flea::ui_logic_model_preview::{self as pv4, color::Palette, scene::Scene, wire::{Data, State as ReplyState}};
 use std::{fs::File, io, os::unix::fs::MetadataExt, path::PathBuf, sync::{atomic::{AtomicBool, Ordering}, Arc}};
 
 const SLOT: &str = "tui-model3d";
@@ -270,13 +271,16 @@ pub fn step(m: &mut Model, graphics: &mut Graphics, wire: &mut Wire, room: (usiz
                 m.model3d.token = m.model3d.token.wrapping_add(1);
                 m.model3d.waiting = true;
                 let path = &m.model3d.held.as_ref().unwrap().path;
-                send(wire, pv4::wire::request(SLOT, m.model3d.token as u64, &path.to_string_lossy(), None))?;
+                send(
+                    wire,
+                    pv4::wire::request(SLOT, m.model3d.token as u64, &path.exact_text(), None),
+                )?;
             }
             Err(_) => failure(m),
         }
     }
-    let can_draw = m.preview_state.colors.is_some() && (graphics.protocol != super::graphics::Protocol::None
-        || m.model3d.chafa == Some(true));
+    let can_draw = graphics.protocol != super::graphics::Protocol::None
+        || (m.preview_state.colors.is_some() && m.model3d.chafa == Some(true));
     if graphics.protocol != super::graphics::Protocol::None && m.preview_state.cell.is_none() { return Ok(()); }
     let Some(pixels) = pixels(room, m.preview_state.cell.unwrap_or(super::graphics::FALLBACK_CELL)).filter(|_| can_draw) else { return Ok(()); };
     let Some((path, generation)) = m.model3d.source.clone() else { return Ok(()); };
@@ -354,3 +358,6 @@ mod transport_tests;
 #[cfg(test)]
 #[path = "model3d_fixtui3d_tests.rs"]
 mod fixtui3d_tests;
+#[cfg(test)]
+#[path = "model3d_mono_tests.rs"]
+mod mono_tests;

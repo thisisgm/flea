@@ -1,7 +1,7 @@
 //! HIG rail line boxes, including the extra group and the surfaces without ordinary chrome.
 use super::*;
-use crate::g2::pl4::content::DrawnRow;
-use flea::ui_logic_pl4::rail::{Group, Kind};
+use crate::g2::rail_places::content::DrawnRow;
+use flea::ui_logic_rail_places::rail::{Group, Kind};
 use gpui::AppContext;
 
 fn section(heading: &'static str, group: Group, labels: &[&str]) -> DrawnSection {
@@ -13,6 +13,7 @@ fn section(heading: &'static str, group: Group, labels: &[&str]) -> DrawnSection
             .map(|label| DrawnRow {
                 label: label.to_string().into(),
                 glyph: "house",
+                owned: None,
                 mark: RowMark::None,
                 group,
                 kind: Kind::Home,

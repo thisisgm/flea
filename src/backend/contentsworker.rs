@@ -1,10 +1,13 @@
+use flea::bytename::ExactText as _;
 use super::{
     parse::{self, Hit, Record},
     Ask, Outcome, Snapshot,
 };
 use crate::backend::{jail, sandbox, sort::name_order};
-use flea::ui_logic_sr1::ContentsMatch;
-use std::collections::{HashMap, HashSet};
+use flea::ui_logic_file_search::ContentsMatch;
+use std::collections::HashMap;
+use std::ffi::OsStr;
+use std::os::unix::ffi::OsStrExt;
 use std::io::Read;
 use std::os::fd::AsRawFd;
 use std::os::unix::fs::MetadataExt;
@@ -86,7 +89,7 @@ fn program() -> Result<PathBuf, String> {
 
 fn argv(ask: &Ask, tool: &Path) -> Vec<String> {
     let mut inner = vec![
-        tool.to_string_lossy().into_owned(),
+        tool.exact_text().into_owned(),
         "--no-config".into(),
         "--json".into(),
         "--fixed-strings".into(),
@@ -137,7 +140,8 @@ fn execute(
     if stop.load(Ordering::Acquire) {
         return Ok(None);
     }
-    let root = Path::new(&ask.path);
+    let root = flea::bytename::view(&ask.path);
+    let root = &*root;
     let meta = root.metadata().map_err(|error| error.to_string())?;
     if !meta.is_dir() {
         return Err("not a directory".into());
@@ -192,17 +196,13 @@ fn execute(
         return Ok(None);
     };
     hits.sort_by(|a, b| ranked(&a.path, &b.path));
-    let unsafe_names: HashSet<String> = hits
-        .iter()
-        .filter(|hit| std::str::from_utf8(&hit.path).is_err())
-        .map(|hit| String::from_utf8_lossy(&hit.path).into_owned())
-        .collect();
     let matches = hits
         .into_iter()
         .enumerate()
         .map(|(row, hit)| {
-            let path = String::from_utf8_lossy(&hit.path).into_owned();
-            let operable = !unsafe_names.contains(&path);
+            let path =
+                flea::bytename::path_text(Path::new(OsStr::from_bytes(&hit.path))).into_owned();
+            let operable = true;
             ContentsMatch {
                 row,
                 path,

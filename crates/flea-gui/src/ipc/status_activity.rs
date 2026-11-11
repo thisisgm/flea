@@ -4,7 +4,10 @@ use crate::visual::{number, object};
 use flea::jsondoc::Json;
 
 impl StatusAdapter<'_> {
-    pub(super) fn activity_state(&self, line: &crate::g2::fb1::line::MessageLine) -> Json {
+    pub(super) fn activity_state(
+        &self,
+        line: &crate::g2::status_feedback::line::MessageLine,
+    ) -> Json {
         let messages = line.messages();
         object([
             (

@@ -1,13 +1,13 @@
 //! ui/Ipc.qml cohesionControls over the main window: the toolbar, the crumbs and the rail rows it drew, and the list row holding the keyboard.
 use super::{path::PathAdapter, Adapter};
 use crate::{
-    g2::pl4::rows::Laid,
+    g2::rail_places::rows::Laid,
     path::chrome::{Control, Frame},
 };
 use flea::{ipc::wire::Reply, jsondoc::Json};
 
-/// ChromeBar.qml's accessible names in GLYPHS order, as v0.3.12 reports them untranslated.
-const NAMES: [&str; 10] = [
+/// Toolbar names in GLYPHS order: ChromeBar.qml's untranslated v0.3.12 names, followed by the copy mark's.
+const NAMES: [&str; 11] = [
     "Back",
     "Parent folder",
     "Search",
@@ -18,6 +18,7 @@ const NAMES: [&str; 10] = [
     "Grid view",
     "dual",
     "sliders",
+    "Copy path",
 ];
 
 pub(crate) struct MainCohesion<'a> {
@@ -27,6 +28,7 @@ pub(crate) struct MainCohesion<'a> {
     pub rail: Option<&'a Laid>,
     /// The cursor row's "x y width height" while the list holds the keyboard.
     pub focus: Option<String>,
+    pub lane: Option<Json>,
 }
 
 struct Entry<'a> {
@@ -51,10 +53,16 @@ fn entry(e: Entry) -> Json {
             ("y", number(y)),
             ("w", number(w)),
             ("h", number(h)),
+            ("surface", Json::Str(String::new())),
+            ("exposed", Json::Bool(w > 0. && h > 0.)),
+            ("targetX", number(x + w / 2.)),
+            ("targetY", number(y + h / 2.)),
             ("focused", Json::Bool(e.state.focused)),
             ("hovered", Json::Bool(e.state.hovered)),
             ("pressed", Json::Bool(e.state.pressed)),
             ("hoverable", Json::Bool(e.hoverable)),
+            ("hoverLive", Json::Bool(e.hoverable)),
+            ("pressLive", Json::Bool(e.kind != "Row")),
             ("pressable", Json::Bool(true)),
             ("enabled", Json::Bool(e.state.enabled)),
             ("value", Json::Str(String::new())),
@@ -69,7 +77,7 @@ fn entry(e: Entry) -> Json {
     )
 }
 
-fn plain(kind: &'static str, rect: (f32, f32, f32, f32), hoverable: bool) -> Entry<'static> {
+fn plain<'a>(kind: &'a str, rect: (f32, f32, f32, f32), hoverable: bool) -> Entry<'a> {
     let mut state = Control::default();
     state.enabled = true;
     Entry {
@@ -109,8 +117,19 @@ impl MainCohesion<'_> {
             let crumbs = view.strips[0].crumbs().len();
             controls.extend(
                 (0..crumbs)
-                    .filter_map(|at| self.path.crumb_box(0, at))
-                    .map(|rect| entry(plain("Crumb", rect, true))),
+                    .filter_map(|at| self.path.crumb_box(0, at).map(|rect| (at, rect)))
+                    .map(|(at, rect)| {
+                        let mut row = plain("Crumb", rect, true);
+                        let flags = view
+                            .paint
+                            .borrow()
+                            .pointer
+                            .pointer(&format!("crumb:0:{at}"));
+                        row.state.hovered = flags.0;
+                        row.state.pressed = flags.1;
+                        row.name = &view.strips[0].crumbs()[at].text;
+                        entry(row)
+                    }),
             );
         }
         // Sidebar.qml rows take a press and draw no hover of their own, as the reader reports them.
@@ -120,6 +139,7 @@ impl MainCohesion<'_> {
                 entry(plain("SidebarRow", (r.x, r.y, r.width, r.height), false))
             }));
         }
+        controls.extend(self.lane.iter().cloned());
         controls
     }
 
@@ -145,9 +165,16 @@ impl MainCohesion<'_> {
 impl Adapter for MainCohesion<'_> {
     fn call(&self, function: &str, _: &[String]) -> Option<Reply> {
         (function == "cohesionControls").then(|| {
+            let controls = self.controls();
+            let focus = controls
+                .iter()
+                .find(|row| row.get("focused").and_then(Json::as_bool) == Some(true))
+                .cloned()
+                .unwrap_or_else(|| self.focus());
             let value = Json::Obj(vec![
-                ("focus".into(), self.focus()),
-                ("controls".into(), Json::Arr(self.controls())),
+                ("captureReader".into(), Json::Str("gpui-paint-v1".into())),
+                ("focus".into(), focus),
+                ("controls".into(), Json::Arr(controls)),
             ]);
             Reply::value(flea::jsondoc::render(&value).trim_end())
         })
@@ -172,6 +199,7 @@ impl Inputs {
             path,
             rail,
             focus: self.focus.clone(),
+            lane: None,
         }
     }
 }

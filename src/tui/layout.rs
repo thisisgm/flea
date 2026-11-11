@@ -92,6 +92,7 @@ pub fn header(m: &Model, theme: &Theme, columns: usize) -> String {
             else {
                 out.push_str(if index == m.tab { &theme.tab } else { &theme.background });
                 out.push_str(if index == m.tab { &theme.foreground } else { &theme.muted });
+                out.push_str(theme.depth.overlay_attribute(index == m.tab, false));
                 out.push_str(&text);
                 out.push_str(&theme.base());
             }
@@ -176,7 +177,13 @@ pub fn footer(m: &Model, theme: &Theme, columns: usize, _elapsed: Duration) -> S
         }
         if !suffix.is_empty() { parts.push((&theme.muted, suffix.trim_start().into(), 2)); }
     }
-    if m.error.is_empty() && m.transfer.is_empty() && m.search.is_empty() && !m.message.is_empty() { parts.extend(super::prompts::message(m, theme)); }
+    if m.error.is_empty() && m.transfer.is_empty() && !m.message.is_empty() {
+        // A receipt or refusal during Find takes the query's place until it clears, so the results never hide it.
+        if !m.search.is_empty() && m.filter.is_empty() {
+            parts.pop();
+        }
+        parts.extend(super::prompts::message(m, theme));
+    }
     let left_width = parts.iter().map(|(_, s, gap)| text_width(s) + gap).sum::<usize>();
     let mut right = String::new();
     let mut right_width = 0;
@@ -223,7 +230,7 @@ impl Live {
     pub fn new(model: &mut Model) -> Self {
         model.font_marks = icons::builtin();
         model.force_text_marks = std::env::var_os("FLEA_TUI_TEST_NO_ICONS").is_some_and(|value| value == "1");
-        Self { theme: Theme::with_depth("", Depth::Sixteen), source: String::new(), depth: Depth::Sixteen,
+        Self { theme: Theme::with_depth("", Depth::initial()), source: String::new(), depth: Depth::initial(),
             probe: icons::Probe::start(), watcher: super::theme::Watch::start(Theme::path()) }
     }
     pub fn prepare(&mut self, model: &mut Model, wire: &mut super::wire::Wire) -> std::io::Result<()> {

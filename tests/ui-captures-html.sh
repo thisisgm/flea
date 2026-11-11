@@ -175,6 +175,7 @@ cap_html_clip_shot() {
         || fail "HTML clip: $phase pixel check failed"
 }
 cap_html_clip() {
+    [[ "$test_frontend" != gpui ]] || { cap_html_clip_gpui "$1"; return; }
     local refusal="$1" menus_checks=0 dir before
     kill_flea
     dir=$(mktemp -d "$fixture_root/html-clip.XXXXXXXX") || fail "HTML clip: cannot create sandbox"
@@ -201,6 +202,34 @@ cap_html_clip() {
     [[ "$(ipc htmlState true | jq -er '.file')" == "$before" ]] || fail "HTML clip: $refusal discarded the old image before the check"
     cap_html_clip_shot "$refusal" "html-clip-$refusal"
     [[ "$(ipc htmlState true | jq -er '.clip | not')" == true ]] || fail "HTML clip: $refusal keeps its texture loader active"
+    cap_html_close
+}
+
+# The production GPUI component and backend observe genuine changes to their owned HTML input.
+cap_html_clip_gpui() {
+    local refusal="$1" menus_checks=0 dir before
+    local flea_launch_fixture=html-lifecycle
+    kill_flea
+    dir=$(mktemp -d "$fixture_root/html-clip.XXXXXXXX") || fail "HTML clip: cannot create sandbox"
+    sandbox_require "$dir"
+    cap_html_dir="$dir"
+    : > "$dir/$SANDBOX_MARKER"
+    trap cap_html_close EXIT
+    printf '<body style="margin:0;background:#2345bc;min-height:400px"></body>\n' > "$dir/page.html"
+    launch_window "$dir/page.html"
+    cap_resize 380 280
+    cap_html_expect true '.visible and .ready and .accelerated and .drawn and .clip and .state == "ready" and (.pending | not)' "native clip draws its real helper output on GPUI"
+    cap_html_clip_shot ready "html-clip-$refusal-before"
+    before=$(ipc htmlState true | jq -er '.file') || fail "HTML clip: no drawn image path"
+    case "$refusal" in
+        failed) chmod 000 "$dir/page.html" || fail "HTML clip: input read refusal could not be caused" ;;
+        large) truncate -s 1048577 "$dir/page.html" || fail "HTML clip: oversized input could not be caused" ;;
+        *) fail "HTML clip: unknown refusal $refusal" ;;
+    esac
+    cap_html_expect true ".visible and .ready and .drawn and .$refusal and (.pending | not)" "$refusal settles after the page was drawn"
+    [[ "$(ipc htmlState true | jq -er '.file')" == "$before" ]] || fail "HTML clip: $refusal discarded the old image before the check"
+    cap_html_clip_shot "$refusal" "html-clip-$refusal"
+    [[ "$(ipc htmlState true | jq -er '.clip | not')" == true ]] || fail "HTML clip: $refusal keeps image submission active"
     cap_html_close
 }
 case_cap_html_failed() { cap_html_clip failed; }

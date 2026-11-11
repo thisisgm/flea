@@ -28,8 +28,8 @@ fn pv2_office_document_converts_then_opens_in_the_pdf_viewer(cx: &mut TestAppCon
             .iter()
             .filter(|(i, _, _)| matches!(
                 i.control,
-                flea::ui_logic_pv2::viewer::Control::ZoomIn
-                    | flea::ui_logic_pv2::viewer::Control::ZoomOut
+                flea::ui_logic_doc_preview::viewer::Control::ZoomIn
+                    | flea::ui_logic_doc_preview::viewer::Control::ZoomOut
             ))
             .all(|(i, _, _)| !i.enabled),
         "the zoom marks rest dimmed"
@@ -40,8 +40,8 @@ fn pv2_office_document_converts_then_opens_in_the_pdf_viewer(cx: &mut TestAppCon
             .iter()
             .filter(|(i, _, _)| matches!(
                 i.control,
-                flea::ui_logic_pv2::viewer::Control::Previous
-                    | flea::ui_logic_pv2::viewer::Control::Next
+                flea::ui_logic_doc_preview::viewer::Control::Previous
+                    | flea::ui_logic_doc_preview::viewer::Control::Next
             ))
             .all(|(i, _, _)| !i.visible),
         "no pager"

@@ -63,8 +63,16 @@ fn a_markdown_fence_colour_reply_reaches_the_column_and_releases_the_first_scree
             field(&fence, "token")
         ),
     );
-    pump(cx);
-    let (done, shown) = state(cx);
+    // The release also waits on the visible blocks' layout, a worker reply that can land after one pump.
+    let until = std::time::Instant::now() + std::time::Duration::from_secs(10);
+    let (done, shown) = loop {
+        pump(cx);
+        let now = state(cx);
+        if now.1 || std::time::Instant::now() >= until {
+            break now;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(50));
+    };
     assert!(done, "the column takes the fence's colour reply");
     assert!(
         shown,

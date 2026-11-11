@@ -1,8 +1,4 @@
-use super::{
-    input::Key,
-    render,
-    theme::{Depth, Theme},
-};
+use super::{input::Key, render, theme::Theme};
 use std::os::unix::fs::MetadataExt;
 use std::path::PathBuf;
 
@@ -84,7 +80,13 @@ impl Editor {
     }
     /// Shows the message for key and remembers it for a later re-render
     fn fail_key(&mut self, key: &'static str, i18n: &crate::i18n::I18n) {
-        let text = super::words::Text::Key(key);
+        self.fail_text(super::words::Text::Key(key), i18n);
+    }
+    // The backend's refusal of this edit: a drive's name refusal follows the language, anything else stays as sent.
+    pub fn fail_said(&mut self, message: &str, i18n: &crate::i18n::I18n) {
+        self.fail_text(super::words::said(message), i18n);
+    }
+    fn fail_text(&mut self, text: super::words::Text, i18n: &crate::i18n::I18n) {
         self.error = text.render(i18n);
         self.error_text = Some((text, self.error.clone()));
     }
@@ -316,7 +318,7 @@ impl Editor {
             if wanted != ink {
                 ink = wanted;
                 out.push_str(&match ink {
-                    "stem" if theme.depth == Depth::Sixteen => {
+                    "stem" if theme.depth.reverses() => {
                         format!("\x1b[0m{}{}\x1b[7m", theme.field, theme.foreground)
                     }
                     "stem" => format!("\x1b[0m{}{}", theme.stem, theme.foreground),

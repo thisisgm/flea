@@ -5,21 +5,18 @@ use super::{
 };
 use crate::{
     g2::{
-        pv1::{doc::View, Body},
-        pv2::markdown::{Status, View as Shown},
+        doc_preview::markdown::{Status, View as Shown},
+        quick_look_overlay::{doc::View, Body},
     },
     state::Shell,
     window::u07_tests::read,
 };
-use flea::{ui_logic_pv2::archive::Meta, ui_logic_pv3::frame::Event};
+use flea::{ui_logic_doc_preview::archive::Meta, ui_logic_media_preview::frame::Event};
 use gpui::{Entity, TestAppContext, VisualTestContext};
 
-fn mounted_view(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> View {
-    let Some(Body::Doc(doc)) = body(shell, cx) else {
-        panic!("a document is mounted")
-    };
-    doc.view
-}
+#[path = "uish_media_tests.rs"]
+mod media_readers;
+use media_readers::mounted_view;
 
 #[gpui::test]
 fn quick_look_state_duration_reads_the_player_length(cx: &mut TestAppContext) {
@@ -49,6 +46,9 @@ fn quick_look_state_markdown_reads_view_text_length_and_end_gap(cx: &mut TestApp
         panic!("Markdown view")
     };
     assert_eq!(read(&shell, cx, "previewMarkdownView", &[]), "rendered");
+    let raw = "# Remote\n![Image](https://cdn.example.com/preview.png)\n";
+    markdown.update(cx, |view, _| view.doc.text = Some(raw.into()));
+    assert_eq!(read(&shell, cx, "previewText", &[]), raw.trim_end());
     cx.simulate_keystrokes("r");
     draw(cx);
     assert_eq!(
@@ -59,6 +59,7 @@ fn quick_look_state_markdown_reads_view_text_length_and_end_gap(cx: &mut TestApp
     markdown.update(cx, |view, _| {
         view.doc.text = Some("a\u{1F600}".into());
     });
+    assert_eq!(read(&shell, cx, "previewText", &[]), "a\u{1F600}");
     assert_eq!(
         read(&shell, cx, "previewTextLength", &[]),
         "3",
@@ -192,36 +193,6 @@ fn quick_look_state_media_strip_reads_the_painted_seek_and_mute_centres(cx: &mut
     close(&shell, cx);
 }
 
-#[gpui::test]
-fn quick_look_state_video_strip_retires_hidden_paint_geometry(cx: &mut TestAppContext) {
-    let (shell, cx, _requests, script) = mounted(cx);
-    open_kind(&shell, cx, "clip.mp4");
-    assert!(script.feeds.borrow()[0].event(Event::Loaded {
-        video: true,
-        duration_ms: 20_000,
-    }));
-    draw(cx);
-    let paused = read(&shell, cx, "previewStrip", &[]);
-    assert!(paused.starts_with(r#"{"visible":true,"muted":false,"mute":""#));
-    assert!(!paused.contains(r#""mute":"""#));
-    assert!(script.feeds.borrow()[0].event(Event::Playing));
-    cx.executor()
-        .advance_clock(std::time::Duration::from_secs(4));
-    draw(cx);
-    let hidden = read(&shell, cx, "previewStrip", &[]);
-    assert!(
-        hidden.starts_with(r#"{"visible":false,"muted":false,"mute":""}"#),
-        "a hidden video strip has no visible paint or mute target: {hidden}"
-    );
-    assert_eq!(read(&shell, cx, "previewSliderCentre", &[]), "");
-    assert!(script.feeds.borrow()[0].event(Event::Paused));
-    draw(cx);
-    let paused_again = read(&shell, cx, "previewStrip", &[]);
-    assert!(paused_again.starts_with(r#"{"visible":true,"muted":false,"mute":""#));
-    assert!(!paused_again.contains(r#""mute":"""#));
-    close(&shell, cx);
-}
-
 // EY-238: every reader the sa11 preview scenes ask answers a value on each Quick Look kind and on the closed card, as IpcPreviewState.qml does.
 #[gpui::test]
 fn ey238_preview_readers_answer_on_every_kind(cx: &mut TestAppContext) {
@@ -287,7 +258,7 @@ fn ey238_preview_readers_answer_on_every_kind(cx: &mut TestAppContext) {
 // EY-238: text and code, including HTML Source, count UTF-16 units from owned text or joined backend lines.
 #[gpui::test]
 fn ey238_preview_text_length_counts_utf16_on_text_code_and_html(cx: &mut TestAppContext) {
-    use flea::ui_logic_pv2::{
+    use flea::ui_logic_doc_preview::{
         code_view::{Answer, Lines, Reply},
         html::View as HtmlView,
     };
@@ -342,11 +313,12 @@ fn ey238_preview_text_length_counts_utf16_on_text_code_and_html(cx: &mut TestApp
 // EY-238: previewFigures names each top-level figure block of the open Markdown card instead of answering unported.
 #[gpui::test]
 fn ey238_preview_figures_reads_the_open_markdown_figures(cx: &mut TestAppContext) {
-    use flea::ui_logic_pv2::markdown::{
+    use flea::ui_logic_doc_preview::markdown::{
         markdown_layout::{Counter, FigureState},
         Block, Figure, FigureKind,
     };
     use std::sync::Arc;
+    use std::time::{Duration, Instant};
     let (shell, cx, _requests, _script) = mounted(cx);
     open_kind(&shell, cx, "readme.md");
     let View::Markdown(markdown) = mounted_view(&shell, cx) else {
@@ -365,11 +337,20 @@ fn ey238_preview_figures_reads_the_open_markdown_figures(cx: &mut TestAppContext
         figure,
         ..Counter::default()
     };
+    // The real load replies from its own thread; one landing after the edit below would overwrite it.
+    let until = Instant::now() + Duration::from_secs(10);
+    while markdown.read_with(cx, |view, _| view.doc.status == Status::Loading) {
+        assert!(Instant::now() < until, "the real load never landed");
+        draw(cx);
+        std::thread::sleep(Duration::from_millis(5));
+    }
     markdown.update(cx, |view, _| {
+        let mut parsed = view.doc.parsed.clone();
+        parsed.blocks = Arc::new(vec![run, figure.clone(), figure]);
+        parsed.prefix = Arc::new(vec![counter(0), counter(0), counter(1), counter(2)]);
+        // Taken as a parse, so the per-block layout vectors match the blocks.
+        view.doc.take(parsed, true);
         view.doc.status = Status::Ready;
-        view.doc.complete = true;
-        view.doc.parsed.blocks = Arc::new(vec![run, figure.clone(), figure]);
-        view.doc.parsed.prefix = Arc::new(vec![counter(0), counter(0), counter(1), counter(2)]);
         let mut assets = (*view.doc.assets).clone();
         assets.figures.insert(1, FigureState::Failed);
         view.doc.assets = Arc::new(assets);

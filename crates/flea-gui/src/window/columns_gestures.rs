@@ -52,7 +52,7 @@ pub(super) fn draggable(
     side: usize,
     cx: &mut Context<Shell>,
 ) -> gpui::Stateful<gpui::Div> {
-    use crate::g2::dg2::join::{flock, Seed};
+    use crate::g2::drag_drop::join::{flock, Seed};
     let lifter = cx.entity().downgrade();
     div()
         .id(("columns-file-drag", side))
@@ -98,8 +98,8 @@ impl Shell {
             || self.shown_view() != crate::window::startup::View::Columns
             || self.input_blocked(cx)
             || cx
-                .try_global::<crate::g2::dg1::carry::Carrying>()
-                .is_some_and(|carrying| carrying.carry.active())
+                .try_global::<crate::g2::file_clipboard::carry::Carrying>()
+                .is_some_and(|carrying| carrying.active())
         {
             return;
         }
@@ -278,7 +278,7 @@ fn destination(
             .then_some(drawn.row_at(position))
             .flatten();
         if view.slot == Slot::Active {
-            let dest = crate::g2::dg2::join::row_spot(host, row, carried);
+            let dest = crate::g2::drag_drop::join::row_spot(host, row, carried);
             return (!spring || dest != host.path).then_some(dest);
         }
         let target = match &view.rows {

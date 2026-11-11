@@ -1,7 +1,7 @@
 //! EY-466: a Trash watch or count failure reaches the window's status bar while the rail shows the count (Sidebar.qml onFailed).
 use crate::{
     backend::Backend,
-    g2::pl3::monitor::Heard,
+    g2::trash_browser::monitor::Heard,
     state::{constructor_fixture::Services, Shell},
     window::{
         locale::Snapshot,

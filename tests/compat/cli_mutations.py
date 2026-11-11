@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compile eight source mutants and require the real CLI checks to reject each."""
+"""Compile source mutants and require the real CLI checks to reject each."""
 import os
 from pathlib import Path
 import shutil
@@ -23,6 +23,7 @@ dependencies = rest.split("\n[", 1)[0]
 shutil.copyfile(repo / "Cargo.lock", root / "Cargo.lock")
 mutants = [
     ("unknown", "usage.rs", '    exit(2)\n}', '    exit(0)\n}'),
+    ("shelf-bad", "shelfcli.rs", 'peers, paths, clip, places, choose', 'peers, paths, places, choose'),
     ("backend", "main.rs", 'if args.iter().any(|a| a == "--backend") {', 'if false {'),
     ("gui-desktop", "launchargs.rs", 'let mut options = Self::default();', 'let mut options = Self { want_tui: true, ..Self::default() };'),
     ("tui-pipe", "main.rs", 'if !interactive {', 'if false {'),

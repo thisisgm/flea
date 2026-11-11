@@ -1,3 +1,99 @@
+# Flea 0.4.2
+
+- A new search starts in the current folder (#451, @muellan).
+- Large folders open at Tight row density instead of failing to load (#454, @austrasien).
+- A second file paste queues behind a running transfer, with each job keeping its own progress, Cancel, receipt and Undo (#443, #444, @AksharP5).
+- Copy, move, rename, Trash and delete act on the selected file when its name is not valid UTF-8, even beside a file with the same displayed name.
+- A cross-drive move keeps its source intact if the new copy cannot be verified or a read-only parent prevents removal.
+- Copies to removable drives confirm the written data before reporting completion, including encrypted USB drives, SD cards and Thunderbolt storage.
+- Trash works on btrfs subvolume and bind mounts that GIO refuses, with listing, restore and Empty Trash supported (#436, @AkitaOnRails).
+- Empty Trash from the sidebar keeps the current folder behind the confirmation card (#419, @k-kostin).
+- Extract is available for several selected archives, with a separate job for each (#397, @MISTERNEGATIVE21).
+- Extract, Compress, Convert and Combine publish complete outputs on rclone and WebDAV mounts without reporting a successful copy as failed (#370, @vitonique).
+- Files with no known extension preview as text or code when their contents identify them, including executable scripts with a shebang (#377, @mtp13; #393, @filip-spaldon).
+- A click on a playing video pauses it, and another click resumes it, in Quick Look and the preview pane (#424, @timothy-ecc).
+- Videos with rotation metadata play in the right orientation without crashing the media helper on libmpv 0.41 (#450, @kevinpardo).
+- A copy button beside the address bar copies the folder path, and a single click on empty address space opens the path editor (#327, @dpan).
+- F3 toggles Dual and returns to the previous view, and Dual is remembered across relaunch.
+- A folder open in both Dual panes keeps the same remembered sort in both (#179, @zm14).
+- Settings > View offers Show tabs as icons, off by default (#308, @jlahijani).
+- Settings > View can hide Omi in empty folders or stop the empty-folder messages rotating.
+- Highlight on hover also controls sidebar, breadcrumb and share-row highlights, and stays off by default (#230, @alextakitani).
+- Tag colours stay distinct from one another in listings and menus on the bundled themes.
+- Columns thumbnails appear on every visible row at the chosen Row density.
+- Dragging a selection band over a filtered listing marks only the files being shown.
+- Up and Down in a filtered Grid move by the rows being drawn.
+- Search keeps marked files, the cursor and the scroll position when files in its scope change.
+- Search results still load when row density, text size or window height changes while the search is running.
+- Filter and Sort stay disabled while Search is open, including while its query is being typed.
+- One Enter in Search, Find or Filter opens the highlighted file or enters the highlighted folder.
+- Fuzzy search highlights only the letters that matched, and long no-match headlines fit inside the pane.
+- A double-click also selects a word in the card, Settings and Save-name fields.
+- The address, rename, search, filter, Settings and Save-name fields offer a right-click menu with Undo, Cut, Copy, Paste and Select All.
+- Dragging in the Save chooser name field selects text.
+- Inline rename keeps the typed name and refuses the change if another file has replaced the selected one, whether rename started from the keyboard or the menu.
+- Escape keeps an inline rename open while its change is pending, and renaming to a hidden name says why the row disappears.
+- Carried files land in List, Columns, Grid and another Flea window; Escape in either window cancels the carry.
+- The footer's Undo hint works on click, and completed undo and redo refresh the folder even when no file-watch event arrives.
+- Undo and redo work inside the Trash view and show their receipts there.
+- Restore recreates a missing original folder, and damaged Trash records no longer hide healthy entries.
+- Empty Trash also removes leftover files and records omitted from the listing, and reports entries it cannot remove.
+- Large Trash selections undo and restore faster.
+- Tab and Shift+Tab reach Empty Trash, and the Trash view updates from the first real change after it opens.
+- A single Permissions change and a Convert output can be undone, and Convert uses a free copy name when its output name is taken.
+- Compress and Extract choose a free copy name when the destination name is taken.
+- Archives keep names beginning with @ or a dash literally; ZIP skips pipes and devices and explains names it cannot preserve.
+- Paste and Extract catch names that collide on a case-insensitive drive, and undo and redo preserve the original spelling, including on exFAT.
+- Copy, folder-size walks and delete handle deeply nested folders without a stack overflow or running out of open files.
+- Sparse files keep their holes when copied where the filesystem supports it, and Duplicate and Keep both work with names near the filename-length limit.
+- A copy reports failure if its source is truncated before it finishes.
+- Copies that exceed a shell file-size limit report an error without interrupting the rest of Flea.
+- Convert and Combine keep percent signs in output paths literal.
+- Eject and unmount refuse while a transfer uses the drive, name the running job, and keep the folder and transfer card in place.
+- An open folder that disappears returns to its nearest surviving parent.
+- Revisiting a folder recomputes its size when files have hard links outside it or the filesystem cannot report remote changes.
+- Text and Markdown previews read UTF-16 and Windows-1252 text and omit the byte-order mark.
+- CSV columns widen for longer values found while scrolling, and a spreadsheet's reading mark clears when the new sheet appears.
+- Font previews use characters the font contains.
+- Quick Look moves one file at a time over Grid, and opening it stops media in the Columns preview beneath it.
+- End and Ctrl+End reach the final page of a code preview.
+- Properties shows photo Camera, Lens, Exposure and Taken details.
+- Empty files open in the application for their filename type.
+- Permissions explains a read-only mode, keeps invalid Octal text for correction, retains the form after a failed change, and scrolls in a small window.
+- Space toggles Always in Open With, and a failed launch keeps its reason visible.
+- AirDrop shares one Receiving state across windows, stays responsive during changes, and shuts down cleanly on quit.
+- AirDrop reports received files, links and failures in the footer and names the receiving device on send jobs.
+- Shelf offers Copy to Clipboard for files (#361, @Ewerton).
+- Plugin sidebar places keep their section titles and can draw the plugin's own mark (#418, @rms1982).
+- Installed plugin executables start without an intermittent Text file busy refusal.
+- Plugin menu actions reach the selected provider, and a refused destination keeps its reason.
+- Settings opens at a wider size, long labels and hints fit, and keyboard-shortcut columns keep their chords whole.
+- Job headings, plain-text file kinds and file-operation refusals read in the selected language, and right-to-left hints keep Latin key chords in order.
+- Filenames in rows and breadcrumbs omit bidirectional override characters from their displayed text.
+- A held settings lock opens a read-only session instead of hanging startup, and invalid saved settings start on defaults while preserving the original file.
+- Settings and Favorites keep read and navigation errors visible instead of silently discarding them.
+- Scrolling Favorites retries a stalled status check.
+- Footer errors clear on their own, a new notice replaces an old error, and Retry appears only when another attempt can help.
+- Failed-job reasons wrap inside the card, and network folders use their saved sidebar label without showing unknown free space as zero.
+- Returning focus to Trash keeps keys on Trash, hidden controls leave the Tab order, and Tab and Shift+Tab move a menu's highlight.
+- Tab-number and tab-move keys work from the sidebar, and a right-clicked Columns row keeps a visible menu target.
+- Menus can open beside a running Jobs card, and Trash is refused before deletion is armed on a phone or mount without Trash.
+- Ctrl+P reaches Print and appears in the menu's key hint.
+- About identifies a flea-bin installation as a Release build.
+- The TUI honours NO_COLOR, keeps menu and card focus visible, and draws readable image and 3D previews in monochrome and 16-colour terminals.
+- The TUI opens symlinked folders under the link's path and explains a broken link.
+- TUI Find and Filter open the highlighted result with one Enter, and Right or l chooses a file in chooser mode.
+- Ctrl+click in the TUI keeps the previously clicked row in the selection, and F5 reloads.
+- The TUI preview, key sheet and Properties answer paging and first/last keys, and p plays or pauses TUI media.
+- TUI Go to folder cleans up dots and trailing slashes without resolving links, and r copies a relative path.
+- TUI editing and bulk rename use VISUAL before EDITOR and name a missing editor or helper program.
+- TUI receipts remain visible during Find, modified Return and Space do not accidentally accept fields or toggle options, and the key sheet fits a short terminal.
+- flea --help, -h and -V answer directly, and unknown options are refused.
+- Arch packages declare their conflict with mutt so pacman explains the shared /usr/bin/flea path (#437, @synacktic).
+- The command interface distinguishes a closed window from a window that dropped a request without replying.
+
+Thanks to @AkitaOnRails, @AksharP5, @alextakitani, @austrasien, @dpan, @Ewerton, @filip-spaldon, @jlahijani, @k-kostin, @kevinpardo, @MISTERNEGATIVE21, @mtp13, @muellan, @rms1982, @synacktic, @timothy-ecc, @vitonique and @zm14.
+
 # Flea 0.4.1
 
 - The AirDrop plugin, off by default, sends files to nearby Apple devices and accepts incoming files from a notification; it is built on [owly](https://github.com/t4t5/owly/releases/tag/v0.4.0) by @t4t5 and needs a supported Wi-Fi card and the owly package (#369, @netmojo).

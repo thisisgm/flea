@@ -353,3 +353,6 @@ fn minified_json_is_formatted_in_the_jail_and_refused_json_is_coloured_as_it_is(
     let pretty = answered("codereq-jqpretty", &file_ask(&d.file("p.json", "{\n  \"a\": 1\n}\n"), ""), Some(bat.as_str()));
     assert_eq!(total(&pretty), 3, "a formatted file keeps its lines");
 }
+
+#[path = "codereq_encoding_tests.rs"]
+mod encoding;

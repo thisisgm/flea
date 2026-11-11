@@ -47,7 +47,7 @@ impl ListState {
             Metrics::for_typeface(&self.typeface).for_dual(self.view.dual, self.typeface.body);
         metrics.row = self.columns_row();
         if self.view.contents {
-            metrics.row = crate::g2::sr1::contents::BLOCK_H;
+            metrics.row = crate::g2::file_search::contents::BLOCK_H;
         }
         metrics
     }
@@ -111,7 +111,7 @@ impl ListState {
             tokens.measured[super::columns::Column::Date.slot()] = 80.;
         }
         if self.view.tags_shown {
-            tokens.name_min += flea::ui_logic_pl4::tags::ROW_SLOT + metrics.gap;
+            tokens.name_min += flea::ui_logic_rail_places::tags::ROW_SLOT + metrics.gap;
         }
         let row = (width - metrics.lane).max(0.);
         let mut layout = if self.view.place_recent.is_some() {

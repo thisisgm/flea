@@ -57,7 +57,7 @@ impl Shell {
                     &text,
                     error,
                     "",
-                    flea::ui_logic_fb1::status::Hint::None,
+                    flea::ui_logic_status_feedback::status::Hint::None,
                     now,
                 )
             }),
@@ -90,11 +90,11 @@ impl Shell {
             let count = cx
                 .background_executor()
                 .spawn(async move {
-                    crate::g2::pv2::poppler::Document::open(Path::new(&path))
+                    crate::g2::doc_preview::poppler::Document::open(&flea::bytename::view(&path))
                         .map(|document| u32::try_from(document.page_count()).unwrap_or(u32::MAX))
                         .map_err(|failure| match failure {
-                            crate::g2::pv2::poppler::Failure::Library(reason) => reason,
-                            crate::g2::pv2::poppler::Failure::Unreadable => String::new(),
+                            crate::g2::doc_preview::poppler::Failure::Library(reason) => reason,
+                            crate::g2::doc_preview::poppler::Failure::Unreadable => String::new(),
                         })
                 })
                 .await;

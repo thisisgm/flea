@@ -6,7 +6,11 @@ fn gcomp39_real_rail_focus_handoff_preserves_queued_origins_invalid_targets_and_
     cx: &mut TestAppContext,
 ) {
     let (shell, cx) = open(false, cx);
-    rows(&shell, vec![flea::ui_logic_pl4::order::trash_entry()], cx);
+    rows(
+        &shell,
+        vec![flea::ui_logic_rail_places::order::trash_entry()],
+        cx,
+    );
     let heard = Rc::new(RefCell::new(Vec::<Request>::new()));
     let sink = heard.clone();
     let _subscription = cx.update(|_, cx| {
@@ -64,7 +68,11 @@ fn gcomp39_real_rail_focus_handoff_preserves_queued_origins_invalid_targets_and_
 #[gpui::test]
 fn uish_misc_l_on_a_rail_row_opens_it_as_enter_does(cx: &mut TestAppContext) {
     let (shell, cx) = open(false, cx);
-    rows(&shell, vec![flea::ui_logic_pl4::order::trash_entry()], cx);
+    rows(
+        &shell,
+        vec![flea::ui_logic_rail_places::order::trash_entry()],
+        cx,
+    );
     let heard = Rc::new(RefCell::new(Vec::<Request>::new()));
     let sink = heard.clone();
     let _subscription = cx.update(|_, cx| {

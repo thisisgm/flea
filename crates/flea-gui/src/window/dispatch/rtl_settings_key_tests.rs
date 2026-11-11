@@ -1,7 +1,6 @@
 use crate::g2::{
-    op3,
-    st1::{Facts, MemoryStore, Panel, SettingsView, Side},
-    st2,
+    open_with_properties, plugin_settings,
+    settings_pages::{Facts, MemoryStore, Panel, SettingsView, Side},
 };
 use flea::jsondoc::{parse, render};
 use gpui::{AppContext as _, TestAppContext};
@@ -11,7 +10,7 @@ fn panel() -> Panel {
     Panel::new(
         Box::new(MemoryStore::new(parse("{}").unwrap())),
         Facts::default(),
-        op3::tests::english().into(),
+        open_with_properties::tests::english().into(),
     )
 }
 
@@ -53,15 +52,15 @@ fn i50_rtl_the_settings_view_routes_arrows_and_h_l_through_the_production_handle
 
 #[derive(Default)]
 struct Wire(RefCell<Vec<String>>);
-impl st2::seam::PluginsWire for Wire {
+impl plugin_settings::seam::PluginsWire for Wire {
     fn send(&self, line: String) -> Result<(), String> {
         self.0.borrow_mut().push(line);
         Ok(())
     }
 }
 
-fn plugin() -> flea::ui_logic_st2::wire::Plugin {
-    use flea::ui_logic_st2::{
+fn plugin() -> flea::ui_logic_plugin_settings::wire::Plugin {
+    use flea::ui_logic_plugin_settings::{
         manifest, schema,
         wire::{Plugin, Source},
     };
@@ -95,18 +94,24 @@ fn plugin() -> flea::ui_logic_st2::wire::Plugin {
 fn i50_rtl_the_settings_plugin_adapter_changes_a_real_choice_in_reading_order(
     cx: &mut TestAppContext,
 ) {
-    use flea::ui_logic_st2::{
+    use flea::ui_logic_plugin_settings::{
         pages::Row,
         wire::{listing_line, Listing},
     };
     let wire = Rc::new(Wire::default());
     let sink = wire.clone();
     let (view, cx) = cx.add_window_view(move |window, cx| {
-        let catalog = std::sync::Arc::new(op3::tests::english());
+        let catalog = std::sync::Arc::new(open_with_properties::tests::english());
         let palette =
             crate::list::Palette::inherited(&window.text_style(), crate::palette::Theme::default());
         let pane = cx.new(|cx| {
-            st2::view::PluginsPane::new(catalog, sink, st2::seam::Tokens::interim(&palette), 0., cx)
+            plugin_settings::view::PluginsPane::new(
+                catalog,
+                sink,
+                plugin_settings::seam::Tokens::interim(&palette),
+                0.,
+                cx,
+            )
         });
         let mut view = SettingsView::new(panel(), cx);
         view.panel.show_section("plugins");
@@ -133,10 +138,10 @@ fn i50_rtl_the_settings_plugin_adapter_changes_a_real_choice_in_reading_order(
             if pane.page().cursor() == Some(at) {
                 break;
             }
-            pane.key(st2::page::Key::Down, cx);
+            pane.key(plugin_settings::page::Key::Down, cx);
         }
         assert_eq!(pane.page().cursor(), Some(at));
-        pane.key(st2::page::Key::Enter, cx);
+        pane.key(plugin_settings::page::Key::Enter, cx);
         let at = pane
             .page()
             .rows()
@@ -147,7 +152,7 @@ fn i50_rtl_the_settings_plugin_adapter_changes_a_real_choice_in_reading_order(
             if pane.page().cursor() == Some(at) {
                 break;
             }
-            pane.key(st2::page::Key::Down, cx);
+            pane.key(plugin_settings::page::Key::Down, cx);
         }
         assert_eq!(pane.page().cursor(), Some(at));
     });

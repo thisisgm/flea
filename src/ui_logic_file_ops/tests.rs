@@ -1,0 +1,20 @@
+// Ported oracle checks; each carries the oracle file and line it answers, so the row ledger can name it.
+mod arm;
+mod boards;
+mod card;
+mod collide;
+mod collide_done;
+mod collide_more;
+mod confirm;
+mod extract_job;
+mod heads;
+mod jobs;
+mod jobs_retry;
+mod lines;
+mod lines_claim;
+mod lines_more;
+mod lines_sample;
+mod transfer;
+mod transfer_held;
+mod trash;
+mod units;

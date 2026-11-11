@@ -3,7 +3,7 @@ use super::{
     preview_tests::{answer, body, close, context, drain, draw, file, opened, sent, token, Lines},
     test_shell::{land, land_on, row},
 };
-use crate::{g2::pv1::Body, state::Shell, window::u07_tests::read};
+use crate::{g2::quick_look_overlay::Body, state::Shell, window::u07_tests::read};
 use flea::{
     json::escape,
     jsondoc::{self, Json},
@@ -93,6 +93,11 @@ fn compare_shows_the_patch_keeps_the_cursor_still_copies_and_closes(cx: &mut gpu
     let state = compare(&shell, cx, &mut requests, "diff", PATCH);
     assert_eq!(state.get("opened").and_then(Json::as_bool), Some(true));
     assert_eq!(text(&state, "answer"), "diff");
+    assert_eq!(
+        text(&state, "mark"),
+        "file-text",
+        "the IPC reports the drawn glyph name"
+    );
     assert_eq!(
         text(&state, "title"),
         "notes-a.txt and notes-b.txt \u{b7} 2 lines differ"

@@ -2,7 +2,7 @@
 use super::{Clip, Theme, GAP};
 use flea::{
     protocol::RowFacts,
-    ui_logic_pl4::tags::{ROW_SLOT, SWATCH_SIZE},
+    ui_logic_rail_places::tags::{ROW_SLOT, SWATCH_SIZE},
 };
 use gpui::{point, px, Pixels, Point, Window};
 

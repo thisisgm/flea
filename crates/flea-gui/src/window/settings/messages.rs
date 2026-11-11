@@ -1,5 +1,5 @@
 use crate::state::Shell;
-use flea::ui_logic_fb1::{messages::Escape, status::Hint};
+use flea::ui_logic_status_feedback::{messages::Escape, status::Hint};
 use gpui::{Context, KeyDownEvent, SharedString};
 
 impl Shell {

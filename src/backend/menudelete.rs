@@ -1,4 +1,5 @@
 // Permanent deletion reuses the disk-backed tree review and durable recovery path used by Trash.
+use flea::bytename::ExactText as _;
 use super::menu_actions::Selected;
 use super::trashdelete::PathReview;
 use super::trashmanifest::{Cancellation, Manifest};
@@ -99,8 +100,12 @@ impl Review {
     }
 
     fn remaining(&self) -> String {
-        self.selection.iter().filter(|item| item.current().is_ok())
-            .map(|item| format!(r#""{}""#, escape(&item.path.to_string_lossy()))).collect::<Vec<_>>().join(",")
+        self.selection
+            .iter()
+            .filter(|item| item.current().is_ok())
+            .map(|item| format!(r#""{}""#, escape(&item.path.exact_text())))
+            .collect::<Vec<_>>()
+            .join(",")
     }
 }
 

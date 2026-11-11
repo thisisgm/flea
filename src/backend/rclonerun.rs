@@ -3,7 +3,6 @@ use super::menu_actions::Selected;
 use super::opsreq::OpMsg;
 use super::rclonelog::Log;
 use crate::json::escape;
-use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Sender;
 use std::sync::Arc;
@@ -88,7 +87,8 @@ pub(super) fn background(id: usize, send: Send, cancel: Arc<AtomicBool>, tx: Sen
                 if cancel.load(Ordering::Relaxed) {
                     break;
                 }
-                let source = Path::new(path);
+                let source = flea::bytename::view(path);
+                let source = &*source;
                 let selected: Vec<_> = items.iter().filter(|i| i.path == source).cloned().collect();
                 let name = source.file_name().unwrap().to_string_lossy();
                 let mut log = Log::default();
@@ -162,7 +162,8 @@ pub(super) fn background(id: usize, send: Send, cancel: Arc<AtomicBool>, tx: Sen
                     if cancel.load(Ordering::Relaxed) {
                         break;
                     }
-                    let source = Path::new(path);
+                    let source = flea::bytename::view(path);
+                    let source = &*source;
                     let name = source.file_name().unwrap().to_string_lossy();
                     let detail = if check == "size" {
                         "comparing sizes"
@@ -270,11 +271,14 @@ fn prepare(
     for path in &send.paths {
         let selected = items
             .iter()
-            .find(|item| item.path == Path::new(path))
-            .ok_or_else(|| format!("Could not inspect {}.", path))?;
+            .find(|item| item.path == *flea::bytename::view(path))
+            .ok_or_else(|| format!("Could not inspect {}.", flea::bytename::display(path)))?;
         let meta = selected.current()?;
         if !meta.is_dir() && !meta.is_file() {
-            return Err(format!("Cannot send {} with rclone.", path));
+            return Err(format!(
+                "Cannot send {} with rclone.",
+                flea::bytename::display(path)
+            ));
         }
         if !names.insert(selected.path.file_name()) {
             return Err("Selected items have the same destination name.".into());

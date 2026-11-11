@@ -1,5 +1,5 @@
 use flea::jsondoc::{self, Json};
-use flea::ui_logic_st2::{manifest, sentence_key, wire, ERROR_CODES};
+use flea::ui_logic_plugin_settings::{manifest, sentence_key, wire, ERROR_CODES};
 use std::collections::BTreeSet;
 
 const GUIDE: &str = include_str!("../PLUGINS.md");
@@ -284,8 +284,8 @@ fn example_plugin_actions() -> BTreeSet<String> {
             continue;
         };
         let parsed = manifest::parse(&text, false).unwrap();
-        for c in flea::ui_logic_st2::contributions::menu_actions(&parsed).unwrap() {
-            ids.insert(flea::ui_logic_mn2::plugins::leaf(&c));
+        for c in flea::ui_logic_plugin_settings::contributions::menu_actions(&parsed).unwrap() {
+            ids.insert(flea::ui_logic_custom_actions::plugins::leaf(&c));
         }
     }
     ids

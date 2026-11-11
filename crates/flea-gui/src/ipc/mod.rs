@@ -2,8 +2,11 @@ pub(crate) mod archive_cards;
 pub(crate) mod browse_state;
 pub(crate) mod card_geometry;
 pub mod chrome;
+pub(crate) mod cohesion_controls;
+mod cohesion_surfaces;
 pub mod columns;
 pub(crate) mod columns_preview;
+pub(crate) mod copy_to_card;
 pub mod devices;
 pub(crate) mod dialog_cards;
 pub(crate) mod drag_state;
@@ -14,7 +17,9 @@ pub mod focus;
 pub mod grid;
 pub(crate) mod grid_rows;
 pub(crate) mod keyboard_state;
+pub(crate) mod langmarks;
 pub(crate) mod main_cohesion;
+mod menu_cards;
 pub mod native_window;
 pub mod navigation;
 pub(crate) mod network;
@@ -80,5 +85,7 @@ mod vfix_table_tests;
 
 #[cfg(test)]
 mod pc2_output_geometry_tests;
+#[cfg(test)]
+mod uish_readers_tests;
 #[cfg(test)]
 mod vfix_card_tests;

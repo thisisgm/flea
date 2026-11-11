@@ -3,10 +3,10 @@ use super::preview_tests::{body, close, draw, file, opened, sent};
 use super::test_shell::{land, set_cursor};
 use crate::{
     backend::Event,
-    g2::pv1::{doc::View, Body},
+    g2::quick_look_overlay::{doc::View, Body},
     state::Shell,
 };
-use flea::ui_logic_pv2::{font::next_look_id, pdf::Fetch};
+use flea::ui_logic_doc_preview::{font::next_look_id, pdf::Fetch};
 use gpui::{Entity, TestAppContext, VisualTestContext};
 
 #[path = "quick_look_hold_tests.rs"]
@@ -260,7 +260,7 @@ fn another_pdf_surface_keeps_its_own_copy_reply(cx: &mut TestAppContext) {
 fn quick_look_video_strip_opens_rearms_and_hides_after_contact(cx: &mut TestAppContext) {
     use super::quick_look_body_tests::{mounted, open_kind};
     use crate::window::u07_tests::read;
-    use flea::ui_logic_pv3::frame::Event;
+    use flea::ui_logic_media_preview::frame::Event;
     use std::time::Duration;
 
     let (shell, cx, _requests, script) = mounted(cx);

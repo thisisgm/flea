@@ -1,5 +1,6 @@
 //! The toolbar's drawn marks: the SVG glyph, the focused ink and the press tween.
 use super::chrome::Frame;
+use crate::g2::settings_pages::cover::Cover;
 use gpui::{canvas, div, prelude::*, px, Div};
 use std::{cell::RefCell, rc::Rc, time::Instant};
 
@@ -60,12 +61,18 @@ pub fn press_scale(press: Option<Press>, now: Instant, reduced: bool) -> (f32, b
 }
 
 /// ui/ChromeModes.qml: a hairline one pixel shorter than the mark.
-pub fn divider(ink: gpui::Hsla, mark: f32) -> Div {
-    div()
-        .w(px(1.))
-        .h(px(mark - 1.))
-        .flex_none()
-        .bg(ink.opacity(0.12))
+pub fn divider(ink: gpui::Hsla, mark: f32, cover: Cover) -> Div {
+    div().w(px(1.)).h(px(mark - 1.)).flex_none().child(
+        canvas(
+            |_, _, _| {},
+            move |bounds, _, window, _| {
+                if !cover.hides(bounds) {
+                    window.paint_quad(gpui::fill(bounds, ink.opacity(0.12)));
+                }
+            },
+        )
+        .size_full(),
+    )
 }
 
 /// Theme.chromeMarkSize at text size 14.
@@ -85,7 +92,7 @@ pub fn mark_sized(
     let own = match name {
         "arrow-left" => Some(("flea-chrome:arrow-left".into(), br#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"><path d="M19 12H5 M12 19l-7-7 7-7"/></svg>"#.as_slice())),
         "filter" => Some(("flea-chrome:filter".into(), br#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"><path d="M3 4h18l-7 8v7l-4 2v-9z"/></svg>"#.as_slice())),
-        _ => crate::g2::st1::glyphs::svg(name),
+        _ => crate::g2::settings_pages::glyphs::svg(name),
     };
     let slot = div().size(px(side)).flex_none();
     let Some((key, data)) = own else { return slot };
@@ -94,6 +101,13 @@ pub fn mark_sized(
         canvas(
             |_, _, _| {},
             move |bounds, _, window, cx| {
+                if frame.borrow().cover.hides(bounds) {
+                    #[cfg(test)]
+                    {
+                        frame.borrow_mut().controls[index].mark_bounds = None;
+                    }
+                    return;
+                }
                 let (scale, moving) = press_scale(
                     frame.borrow().controls[index].press,
                     cx.background_executor().now(),

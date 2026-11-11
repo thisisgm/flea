@@ -2,7 +2,7 @@
 use super::transfer::{self, TAB_MIME};
 use crate::{
     backend::Backend,
-    g2::dg2::router::{self, Native, Offered},
+    g2::drag_drop::router::{self, Native, Offered},
     state::tests::shell_with,
 };
 use gpui::{point, px, size, Bounds, TestAppContext};

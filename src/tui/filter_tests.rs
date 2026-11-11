@@ -36,12 +36,12 @@ fn rows(m: &mut Model, wire: &mut wire::Wire, start: usize, names: &[&str]) {
     let rows = names.iter().map(|n| format!(r#"{{"n":"{n}"}}"#)).collect::<Vec<_>>().join(",");
     m.receive(jsondoc::parse(&format!(r#"{{"t":"rows","start":{start},"rows":[{rows}]}}"#)).unwrap(), wire).unwrap();
 }
-// A filter on the large folder, typed and closed with Return, its answer drawn three rows at a time.
+// A filter on the large folder, typed and committed with Down, which acts on no row, its answer drawn three rows at a time.
 fn answered(w: &mut wire::Wire, query: &str, matches: &str) -> Model {
     let mut m = large(w);
     m.height = 3;
     typed(&mut m, w, &format!("/{query}"));
-    press(&mut m, w, Key::named("Return", ""));
+    press(&mut m, w, Key::named("Down", ""));
     let ask = last_ask(&drain(w)).clone();
     answer(&mut m, w, &ask, matches);
     m
@@ -94,7 +94,8 @@ fn superseded_answers_drop_and_scrolling_fetches_only_the_missing_matches() {
     rows(&mut m, &mut w, 0, &["ne0", "one", "ne2"]);
     assert_eq!(held(&m), [1], "a reply to an older window cannot bring back a row the filter does not draw");
     rows(&mut m, &mut w, 40, &["ne40", "new41"]);
-    press(&mut m, &mut w, Key::named("Return", ""));
+    // Down commits the line and keeps the filter without acting on the highlighted row, which one Return would open.
+    press(&mut m, &mut w, Key::named("Down", ""));
     for _ in 0..3 { press(&mut m, &mut w, Key::named("Down", "")); }
     assert_eq!((m.cursor, m.visible()), (42, vec![40, 41, 42]));
     assert_eq!(windows(&drain(&mut w)), [(42, 1)]);

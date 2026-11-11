@@ -5,8 +5,8 @@ use super::Adapter;
 use crate::{
     columns::TrackRows,
     g2::{
-        pv1::{doc::View as Document, QuickLook},
-        pv2::PdfView,
+        doc_preview::PdfView,
+        quick_look_overlay::{doc::View as Document, QuickLook},
     },
     state::Shell,
     window::{selection_preview::Kind, startup::View},
@@ -40,6 +40,10 @@ impl PreviewState<'_> {
         let host = self.shell.panes[self.shell.focus_side].as_ref()?;
         let column = host.preview.as_ref().map(|view| view.read(self.cx));
         let visible = host.drawn_view == Some(View::Columns)
+            && self
+                .shell
+                .no_match_headline(self.shell.focus_side)
+                .is_none()
             && column.is_some_and(|view| view.visible)
             && host.columns.as_ref().is_some_and(|columns| {
                 columns.preview_hosted
@@ -53,7 +57,7 @@ impl PreviewState<'_> {
         let index = frame
             .filter(|_| visible)
             .map_or(-1, |frame| frame.subject.index as i64);
-        let path = frame.map_or_else(String::new, |frame| {
+        let path = frame.filter(|_| visible).map_or_else(String::new, |frame| {
             crate::navigation::history::join(&frame.subject.directory, &frame.subject.row.name)
         });
         let pending = frame
@@ -92,9 +96,10 @@ impl PreviewState<'_> {
                 f32::from(bounds.center().y).round()
             )
         });
-        let hovered = observed.close_hovered || look.hovered() == Some(crate::g2::pv1::Hit::Close);
-        let pressed = look.pressed() == Some(crate::g2::pv1::Hit::Close);
-        let focused = look.focused() == Some(crate::g2::pv1::Hit::Close)
+        let hovered = observed.close_hovered
+            || look.hovered() == Some(crate::g2::quick_look_overlay::Hit::Close);
+        let pressed = look.pressed() == Some(crate::g2::quick_look_overlay::Hit::Close);
+        let focused = look.focused() == Some(crate::g2::quick_look_overlay::Hit::Close)
             || doc.chrome(&look.i18n, self.cx).close_focused;
         Reply::value(format!("{{\"hovered\":{hovered},\"pressed\":{pressed},\"focused\":{focused},\"centre\":\"{centre}\"}}"))
     }

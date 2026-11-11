@@ -90,7 +90,7 @@ fn u08_failed_favorite_write_keeps_the_old_rows_and_reports_the_failure(cx: &mut
     service.update(cx, |places, _| places.exe = "/bin/false".into());
     producer.update(cx, |producer, cx| {
         producer.write_favourite(
-            &flea::ui_logic_pl4::favourites::Operation::Rename {
+            &flea::ui_logic_rail_places::favourites::Operation::Rename {
                 index: 0,
                 label: "Lost".into(),
             },
@@ -113,7 +113,11 @@ fn u08_repainting_keeps_text_cache_hits_and_trash_activation_reaches_its_owner(
     cx: &mut TestAppContext,
 ) {
     let (shell, cx) = open(false, cx);
-    rows(&shell, vec![flea::ui_logic_pl4::order::trash_entry()], cx);
+    rows(
+        &shell,
+        vec![flea::ui_logic_rail_places::order::trash_entry()],
+        cx,
+    );
     let producer = producer(&shell, cx);
     let before = producer.read_with(cx, |producer, _| producer.model.borrow().shape_misses());
     for _ in 0..5 {
@@ -147,7 +151,7 @@ fn u08_recent_history_uses_the_existing_reader_and_hands_real_visits_to_navigati
     let producer = producer(&shell, cx);
     let path = concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/g2/pl4/recent-fixture.xbel"
+        "/src/g2/rail_places/recent-fixture.xbel"
     );
     producer.update(cx, |producer, cx| producer.read_recent(path.into(), cx));
     cx.run_until_parked();
@@ -178,7 +182,7 @@ fn u08_fix1_new_recent_request_cancels_pending_origin_and_keeps_its_own_id(
     let producer = producer(&shell, cx);
     let fixture = concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/g2/pl4/recent-fixture.xbel"
+        "/src/g2/rail_places/recent-fixture.xbel"
     );
     shell.update(cx, |shell, cx| {
         shell.view = crate::window::startup::View::Dual;
@@ -217,7 +221,11 @@ fn u08_fix1_new_recent_request_cancels_pending_origin_and_keeps_its_own_id(
 #[gpui::test]
 fn u08_fix1_deferred_requests_keep_the_enqueue_pane_and_distinct_ids(cx: &mut TestAppContext) {
     let (shell, cx) = open(false, cx);
-    rows(&shell, vec![flea::ui_logic_pl4::order::trash_entry()], cx);
+    rows(
+        &shell,
+        vec![flea::ui_logic_rail_places::order::trash_entry()],
+        cx,
+    );
     let heard = Rc::new(RefCell::new(Vec::<Request>::new()));
     let sink = heard.clone();
     cx.update(|_, cx| {

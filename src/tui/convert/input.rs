@@ -77,7 +77,7 @@ pub fn key(m: &mut Model, key: &Key, w: &mut Wire) -> io::Result<()> {
             f.scroll = f.scroll.min(row).max((row + 1).saturating_sub(card.shown));
         }
     } else if matches!(key.name.as_str(), "Return" | "Enter")
-        || key.name == "Space" && !(f.kind == Kind::Pdf && f.focus == 1)
+        || key.name == "Space" && key.mods.is_empty() && !(f.kind == Kind::Pdf && f.focus == 1)
     {
         return activate(m, w);
     } else if f.kind != Kind::Office
@@ -115,7 +115,9 @@ pub fn key(m: &mut Model, key: &Key, w: &mut Wire) -> io::Result<()> {
                 f.pages.clear();
                 f.edit_fresh = false;
             }
-            if f.pages.len() + key.text.len() <= flea::ui_logic_op4::pages::MAX_RANGE_BYTES {
+            if f.pages.len() + key.text.len()
+                <= flea::ui_logic_print_convert::pages::MAX_RANGE_BYTES
+            {
                 f.pages.push_str(&key.text);
             }
         }

@@ -48,6 +48,9 @@
   "archive.compressing": "Đang nén %1 thành .%2",
   "archive.confirm": "Xác nhận",
   "archive.done.cancelled": "Đã hủy giải nén.",
+  "archive.done.extracted": "Đã giải nén.",
+  "archive.done.name_refused": "Không thể giải nén “%1” vào ổ đĩa này: %2.",
+  "archive.done.twins": "“%1” và “%2” sẽ có cùng một tên trên ổ đĩa này, nên không có gì được giải nén.",
   "archive.done.unverified": "Đã giải nén. Không thể đọc chỉ mục tệp nén nên chưa xác minh được kết quả.",
   "archive.done.written": "Đã ghi tệp nén.",
   "archive.encrypt_names": "Mã hóa tên tệp",
@@ -213,9 +216,14 @@
   "device.still_mounted": "%1 vẫn đang được gắn kết; hãy đóng ứng dụng đang sử dụng thiết bị.",
   "device.still_unmounting": "Vẫn đang bỏ gắn kết %1; hãy chờ kết quả",
   "device.still_unmounting_try_again": "%1 vẫn đang được bỏ gắn kết. Hãy thử lại khi hoàn tất",
-  "device.system_drive": "%1 là ổ đĩa hệ thống, Flea không bao giờ bỏ gắn kết ổ này",
-  "device.system_volume": "Thư mục này nằm trên phân vùng hệ thống, Flea không bao giờ bỏ gắn kết phân vùng này",
+  "device.system_drive": "%1 là ổ đĩa hệ thống, Flea không bao giờ đẩy ổ này ra.",
+  "device.system_volume": "Thư mục này không nằm trên ổ đĩa mà Flea có thể đẩy ra.",
   "device.transfer_using": "Không thể bỏ gắn kết %1. Một lượt truyền có thể vẫn đang sử dụng thiết bị.",
+  "device.copy_running": "Một bản sao trên %1 vẫn đang chạy. Hãy thử lại khi hoàn tất.",
+  "device.move_running": "Một thao tác di chuyển trên %1 vẫn đang chạy. Hãy thử lại khi hoàn tất.",
+  "device.archive_running": "Một thao tác tệp nén trên %1 vẫn đang chạy. Hãy thử lại khi hoàn tất.",
+  "device.send_running": "Một thao tác gửi trên %1 vẫn đang chạy. Hãy thử lại khi hoàn tất.",
+  "device.action_running": "Một hành động trên %1 vẫn đang chạy. Hãy thử lại khi hoàn tất.",
   "device.unconfirmed": "Không thể xác nhận %1 đã được đẩy ra; chưa được rút thiết bị.",
   "device.unlock.button": "Mở khóa",
   "device.unlock.cancel": "omarchy:shell.common.cancel",
@@ -313,6 +321,8 @@
   "dialogs.file.permissions.read_only": "%1 · chỉ đọc",
   "dialogs.file.permissions.reading": "Đang đọc quyền…",
   "dialogs.file.permissions.requested": "Chế độ quyền yêu cầu %1",
+  "dialogs.file.permissions.no_changes": "Không có thay đổi nào để áp dụng",
+  "dialogs.file.permissions.current_mode": "Chế độ quyền hiện tại %1",
   "dialogs.file.permissions.scope_folder": "Chỉ áp dụng cho thư mục này · không đổi các mục bên trong · không đổi chủ sở hữu",
   "dialogs.file.permissions.scope_folder_note": "Phạm vi: chỉ thư mục này. Các mục bên trong giữ nguyên quyền truy cập.",
   "dialogs.file.permissions.scope_item": "Chỉ áp dụng cho mục này · không đổi chủ sở hữu",
@@ -594,6 +604,11 @@
   "feedback.os.connection_refused": "Kết nối bị từ chối.",
   "feedback.os.connection_reset": "Kết nối bị đặt lại.",
   "feedback.os.could_not_finish": "Không thể hoàn tất thao tác.",
+  "feedback.drive.char": "Không được dùng “%1” trong tên trên ổ đĩa %2 này.",
+  "feedback.drive.control": "Tên trên ổ đĩa %2 này không được chứa ký tự điều khiển %1.",
+  "feedback.drive.end_dot": "Tên trên ổ đĩa %1 này không được kết thúc bằng dấu chấm.",
+  "feedback.drive.end_space": "Tên trên ổ đĩa %1 này không được kết thúc bằng dấu cách.",
+  "feedback.drive.reserved": "“%1” là tên dành riêng trên ổ đĩa %2 này.",
   "feedback.os.cross_device": "Nguồn và đích nằm trên các ổ đĩa khác nhau.",
   "feedback.os.full": "Ổ đĩa đã đầy.",
   "feedback.os.interrupted": "Thao tác bị gián đoạn.",
@@ -756,6 +771,26 @@
   "jobs.failed.compress": "Nén thất bại",
   "jobs.failed.copy": "Sao chép thất bại",
   "jobs.failed.emptyTrash": "Dọn Thùng rác thất bại",
+  "jobs.head.send_waiting": "Đang gửi",
+  "jobs.head.copying": "Đang sao chép %1 trên %2 vào %3",
+  "jobs.head.moving": "Đang di chuyển %1 trên %2 vào %3",
+  "jobs.head.sending": "Đang gửi %1 trên %2 đến %3",
+  "jobs.head.action": "%1 · %2 trên %3",
+  "jobs.head.checking": {
+    "other": "Đang kiểm tra %1 mục trên %2"
+  },
+  "jobs.head.copy_waiting": {
+    "other": "Sao chép %1 mục vào %2"
+  },
+  "jobs.head.move_waiting": {
+    "other": "Di chuyển %1 mục vào %2"
+  },
+  "jobs.head.compress_waiting": {
+    "other": "Nén %1 mục thành %2"
+  },
+  "jobs.head.compressing": {
+    "other": "Đang nén %1 mục"
+  },
   "jobs.failed.extract": "Giải nén thất bại",
   "jobs.failed.move": "Di chuyển thất bại",
   "jobs.failed.send": "Gửi thất bại",
@@ -839,6 +874,7 @@
   "jobs.undone.link": "Đã hoàn tác việc tạo liên kết",
   "jobs.undone.merge": "Đã hoàn tác việc hợp nhất",
   "jobs.undone.mkdir": "Đã xóa thư mục mới.",
+  "jobs.undone.convert": "Đã hoàn tác việc chuyển đổi",
   "jobs.undone.move": "Đã hoàn tác việc di chuyển",
   "jobs.undone.newfile": "Đã xóa tệp mới",
   "jobs.undone.other": "Đã hoàn tác hành động gần nhất",
@@ -1027,6 +1063,7 @@
   "keys.label.bc99d765de7e": "Nhãn 5",
   "keys.label.bcf58eaeff52": "quay lại theo lịch sử hoặc lên thư mục cha nếu không có lịch sử",
   "keys.label.bd0b7be215ce": "Đóng trình soạn thảo",
+  "keys.label.bc4dd3d76b73": "Giữ kết quả",
   "keys.label.bfa65befcad0": "đi đến thư mục chứa tệp và chọn tệp",
   "keys.label.704fb7f8818b": "không có thao tác",
   "keys.label.c2fc6e7bc3be": "Trang tính tiếp theo",
@@ -1036,6 +1073,7 @@
   "keys.label.cbb73e0f65c2": "thêm dòng vào vùng chọn",
   "keys.label.cc5b682e634f": "mở tệp",
   "keys.label.e3a4d6eba0c6": "Trang tính trước",
+  "keys.label.07c371255954": "In…",
   "keys.label.e9619e148ed8": "ctrl-x không có tác dụng",
   "keys.label.ecea0deb9e7f": "mở vị trí trong thẻ mới",
   "keys.label.ed077f3d8125": "Mở",
@@ -1339,6 +1377,7 @@
   "pane.empty.beat_two": "CHẲNG THẤY TỆP NÀO",
   "pane.empty.initial": "CHƯA CÓ GÌ Ở ĐÂY",
   "pane.empty.rest": "NƠI NÀY YÊN ẮNG",
+  "pane.empty.fixed": "THƯ MỤC TRỐNG",
   "pane.empty.hint_new_folder": "Nhấn %1 để tạo thư mục mới.",
   "pane.locked": "Bạn không có quyền mở thư mục này.",
   "pane.permissions_other_owner": "%1 · không thuộc sở hữu của bạn",
@@ -1839,6 +1878,7 @@
   "send.providers.airdrop_accept": "Chấp nhận",
   "send.providers.airdrop_decline": "Từ chối",
   "send.providers.airdrop_someone": "Một thiết bị ở gần",
+  "send.providers.airdrop_received": "Đã nhận %1 bằng AirDrop",
   "send.rclone.cancel": "omarchy:shell.common.cancel",
   "send.rclone.cancelling": "Đang hủy",
   "send.rclone.checked_checksum": "đã kiểm tra bằng tổng kiểm",
@@ -2000,6 +2040,7 @@
   "settings.hint.thumbs_kept": "Khi tắt, ảnh thu nhỏ đã tạo vẫn được hiển thị.",
   "settings.keys.move_cursor": "Di chuyển con trỏ",
   "settings.keys.move_open_up": "Di chuyển, mở, lên",
+  "settings.keys.arrows": "mũi tên",
   "settings.list.separator": ", ",
   "settings.menus.compress": "Nén",
   "settings.menus.convert": "Chuyển đổi",
@@ -2080,6 +2121,10 @@
   "settings.row.group_by_kind": "Nhóm theo loại",
   "settings.row.hidden_last": "Tệp ẩn cuối cùng",
   "settings.row.highlight_today": "Làm nổi bật các ngày là hôm nay",
+  "settings.row.highlight_hover": "Làm nổi bật khi trỏ chuột",
+  "settings.row.tabs_as_icons": "Hiện thẻ dưới dạng biểu tượng",
+  "settings.row.empty_omi": "Hiện Omi trong thư mục trống",
+  "settings.row.empty_rotate": "Xoay vòng thông báo thư mục trống",
   "settings.row.hyprland_icons": "Biểu tượng theo Hyprland",
   "settings.row.lang_marks": "Hiện biểu tượng mã nguồn",
   "settings.row.load": "Tải",
@@ -2135,8 +2180,10 @@
   "settings.update.note_failed": "Ngoại tuyến: vẫn mở được trình cập nhật Omarchy",
   "settings.update.note_launched": "Khởi động lại Flea khi cập nhật xong",
   "settings.update.note_source": "Biên dịch lại từ cây mã nguồn để cập nhật.",
+  "settings.update.note_release": "Trình cập nhật Omarchy sẽ cài các bản phát hành mới hơn.",
   "settings.update.opening": "Đang mở trình cập nhật Omarchy · khởi động lại Flea khi hoàn tất",
   "settings.update.source": "Biên dịch từ mã nguồn",
+  "settings.update.release": "Bản phát hành",
   "settings.words.dropbox_down": "chưa chạy",
   "settings.words.dropbox_signed_out": "đã đăng xuất",
   "settings.words.localsend_folder": "chỉ tệp",
@@ -2165,6 +2212,7 @@
   "step.move": "Di chuyển",
   "step.newfile": "Tệp mới",
   "step.permissions": "Quyền",
+  "step.convert": "Chuyển đổi",
   "step.rename": "Đổi tên",
   "step.trash": "Chuyển vào Thùng rác",
   "tabs.close": "Đóng thẻ",
@@ -2214,6 +2262,9 @@
     "other": "Đã xóa %2 trên %1 mục"
   },
   "trash.done.failed": "%1 · %2 thất bại",
+  "trash.done.leftover": {
+    "other": "%2 · không thể xóa %1 mục còn sót"
+  },
   "trash.done.failure": "%1 thất bại: %2",
   "trash.done.restored": {
     "other": "Đã khôi phục %2 trên %1 mục"
@@ -2371,6 +2422,7 @@
   "tui.cwd.the_output_needs_a_file_name": "Đầu ra cần một tên tệp",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "--tui-keymap chấp nhận default, vim, mac, windows hoặc yazi",
   "tui.cwd.twice": "%1 được chỉ định hai lần",
+  "tui.cwd.folder_missing": "Thư mục cho %1 không tồn tại: %2",
   "tui.cwd.write_error": "Không thể ghi %1: %2",
   "tui.editor.enter_a_filename_before_the_extension": "Nhập tên tệp trước phần mở rộng.",
   "tui.editor.invalid_name": "Nhập tên không rỗng, không phải . hay .. và không chứa / hoặc ký tự null.",
@@ -2395,6 +2447,7 @@
   "tui.launch.could_not_finish": "%1 không thể hoàn tất (%2)",
   "tui.launch.could_not_observe": "Không thể theo dõi %1: %2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "Đó không phải thư mục nên không mở thiết bị đầu cuối",
+  "tui.launch.program_not_found": "Không tìm thấy chương trình %1",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "Đặt kích thước cửa sổ tối thiểu là 12 cột rộng và 5 hàng cao.",
   "tui.model.bulk_done": {
     "other": "Đã đổi tên %1 mục · Hoàn tác khôi phục một lần đổi tên"
@@ -2483,5 +2536,19 @@
   "settings.hint.key_reserved": "%1 vẫn chưa được gán vì Flea dành riêng chuỗi phím này cho chính nó.",
   "settings.hint.key_taken": "%1 vẫn chưa được gán vì %2 đã dùng chuỗi phím này trong bộ thiết lập này.",
   "settings.hint.key_unknown": "%1 vẫn chưa được gán vì Flea không có hành động nào tên là %2.",
-  "mime.png": "Ảnh PNG"
+  "mime.png": "Ảnh PNG",
+  "mime.plain": "Tài liệu văn bản thuần",
+  "feedback.unheld.links": "Ổ đĩa này không hỗ trợ liên kết.",
+  "feedback.unheld.nodes": "Ổ đĩa này không hỗ trợ tệp đặc biệt.",
+  "feedback.unheld.name": "Ổ đĩa này không cho phép tên đó.",
+  "feedback.unheld.long": "Tên đó quá dài đối với ổ đĩa này.",
+  "feedback.unheld.taken": "Ổ đĩa này coi tên đó giống một tên khác trong thư mục.",
+  "feedback.unheld.copy_one": "Không thể sao chép %1: %2",
+  "feedback.unheld.move_one": "Không thể di chuyển %1: %2",
+  "feedback.unheld.copy_many": {
+    "other": "Không thể sao chép %1 mục bên trong; mục đầu tiên là %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "other": "Không thể di chuyển %1 mục bên trong; mục đầu tiên là %2: %3"
+  }
 }

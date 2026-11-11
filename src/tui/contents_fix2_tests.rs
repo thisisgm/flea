@@ -12,7 +12,7 @@ use super::{
     wire::{self, count, text},
 };
 use crate::jsondoc::Json;
-use flea::ui_logic_sr1::Scope;
+use flea::ui_logic_file_search::Scope;
 use std::time::{Duration, Instant};
 
 #[test]
@@ -32,7 +32,7 @@ fn tui_contents_fix2_everywhere_enter_preserves_editor_and_snapshot() {
         m.prompts.i18n = super::contents_tests::catalog(&root);
         m.find.session.wire.everywhere = true;
         press(&mut m, &mut wire, Key::character('g', "ctrl"));
-        press(&mut m, &mut wire, Key::named("Tab", ""));
+        // /listing is outside Home, so Tab skips Home, which would search /listing again, and reaches Everywhere.
         press(&mut m, &mut wire, Key::named("Tab", ""));
         assert_eq!(m.find.session.scope, Scope::Everywhere);
         m.editor.as_mut().unwrap().replace("new needle".into());

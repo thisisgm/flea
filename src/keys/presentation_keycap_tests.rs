@@ -1,7 +1,7 @@
 //! Keycaps in the active language: Omarchy's own key words in every language, isolated LRI..PDI inside right-to-left text.
 use super::{hinted, hinted_all, key_for};
 use crate::i18n::{I18n, Paths};
-use crate::ui_logic_st1::Text;
+use crate::ui_logic_settings_pages::Text;
 use std::path::Path;
 
 const LRI: char = '\u{2066}';

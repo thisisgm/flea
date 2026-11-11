@@ -1,7 +1,7 @@
 //! A tag place opens the pane's existing Home-scoped search session.
 use super::Order;
-use crate::{g2::pl4::producer::Event, state::Shell};
-use flea::ui_logic_pl4::{rail::Kind, tags};
+use crate::{g2::rail_places::producer::Event, state::Shell};
+use flea::ui_logic_rail_places::{rail::Kind, tags};
 use gpui::{Context, Window};
 
 pub(super) fn run(

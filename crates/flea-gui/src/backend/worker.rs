@@ -122,6 +122,7 @@ pub(super) struct Worker<'a> {
     wake_open: bool,
     closing: Arc<Mutex<Closing>>,
     folders: Arc<Mutex<super::Writable>>,
+    transfers: Arc<Mutex<super::transfers::Transfers>>,
     output: &'a async_channel::Sender<Event>,
     bytes: Vec<u8>,
     eof: bool,
@@ -132,7 +133,10 @@ impl<'a> Worker<'a> {
         requests: Receiver<Control>,
         wake: UnixStream,
         closing: Arc<Mutex<Closing>>,
-        folders: Arc<Mutex<super::Writable>>,
+        (folders, transfers): (
+            Arc<Mutex<super::Writable>>,
+            Arc<Mutex<super::transfers::Transfers>>,
+        ),
         output: &'a async_channel::Sender<Event>,
     ) -> Self {
         Self {
@@ -141,6 +145,7 @@ impl<'a> Worker<'a> {
             wake_open: true,
             closing,
             folders,
+            transfers,
             output,
             bytes: Vec::new(),
             eof: false,
@@ -290,6 +295,15 @@ impl<'a> Worker<'a> {
                 return;
             }
         };
+        // A roots line only feeds the eject check, so it is never parsed for an owner downstream.
+        if self
+            .transfers
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .answered(line)
+        {
+            return;
+        }
         let event = wire_event(line);
         // The folder fact lands before its listed event, so a menu built on that landing reads it.
         if let Some((folder, writable)) = transport::listed_folder(&event, line) {

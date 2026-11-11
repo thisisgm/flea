@@ -287,19 +287,19 @@ case_cap_menus() {
     click_row "$(row_index_of target.txt)" right
     settle
     [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "cap_menus: the file menu never opened"
-    [[ "|$(ipc contextMenuEntries)|" == *"|Copy as|"* ]] \
-        || fail "cap_menus: the file menu offers no Copy as, got $(ipc contextMenuEntries)"
-    menu_seek "Copy as"
+    [[ "|$(ipc contextMenuEntries)|" == *"|Copy As|"* ]] \
+        || fail "cap_menus: the file menu offers no Copy As, got $(ipc contextMenuEntries)"
+    menu_seek "Copy As"
     key -k Right >/dev/null
     settle
     [[ "$(ipc contextMenuSubmenuEntries)" == *"Path"* ]] \
-        || fail "cap_menus: the Copy as flyout offers $(ipc contextMenuSubmenuEntries)"
+        || fail "cap_menus: the Copy As flyout offers $(ipc contextMenuSubmenuEntries)"
     shot cap-menus-file-copyas
     key -k Escape >/dev/null
     settle
     key -k Escape >/dev/null
     settle
-    [[ "$(ipc contextMenuVisible)" == "false" ]] || fail "cap_menus: the Copy as menu stayed open"
+    [[ "$(ipc contextMenuVisible)" == "false" ]] || fail "cap_menus: the Copy As menu stayed open"
     click_row "$(row_index_of target.txt)" left
     settle
     key y >/dev/null
@@ -321,13 +321,13 @@ case_cap_menus() {
     [[ "$(ipc contextMenuVisible)" == "false" ]] || fail "cap_menus: the Paste as menu stayed open"
     click_row "$(row_index_of link.txt)" right
     settle
-    [[ "|$(ipc contextMenuEntries)|" == *"|Show original|"* ]] \
+    [[ "|$(ipc contextMenuEntries)|" == *"|Show Original|"* ]] \
         || fail "cap_menus: the symlink menu offers no Show original, got $(ipc contextMenuEntries)"
     shot cap-menus-symlink
     key -k Escape >/dev/null
     settle
     kill_flea
-    seed_ui_state "$fixture_root/cap-menus-background-state" '{"keys":"default","view":"list","keyHints":true,"menu":{"hidden":["delete","openTerminal","placeMenu","runScript","moveto","copyto","properties","permissions","copyAs","pasteAs","extThumbs"]}}'
+    seed_ui_state "$fixture_root/cap-menus-background-state" '{"keys":"default","view":"list","keyHints":true,"menu":{"hidden":["delete","openTerminal","openAgent","placeMenu","runScript","moveto","copyto","properties","permissions","copyAs","pasteAs","extThumbs"]}}'
     launch "$dir"
     wait_listing 2
     click_row "$(row_index_of target.txt)" left
@@ -341,7 +341,7 @@ case_cap_menus() {
     click_background
     settle
     [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "cap_menus: the background menu never opened"
-    local background_labels='New folder|New file|-|Paste|Select all|Invert selection|-|Open in terminal|Add to Favorites|-|Sort by|Show hidden files|Hide code icons|-|Settings'
+    local background_labels='New Folder|New File|-|Paste|Select All|Invert Selection|-|Open in Terminal|Add to Favorites|-|Sort By|Show Hidden Files|Hide Code Icons|-|Settings…'
     [[ "$(ipc contextMenuEntries)" == "$background_labels" ]] \
         || fail "cap_menus: background specimen drew $(ipc contextMenuEntries), want $background_labels"
     shot cap-menus-background
@@ -354,9 +354,9 @@ case_cap_menus() {
     settings_open_key
     settle
     settings_section menus
-    [[ "$(ipc settingsRows)" == *"Copy as"* ]] || fail "cap_menus: Menus lists no Copy as"
-    [[ "$(ipc settingsRows)" == *"Paste as"* ]] || fail "cap_menus: Menus lists no Paste as"
-    [[ "$(ipc settingsRows)" == *"Invert selection"* ]] || fail "cap_menus: Menus lists no Invert selection"
+    [[ "$(ipc settingsRows)" == *"Copy As"* ]] || fail "cap_menus: Menus lists no Copy As"
+    [[ "$(ipc settingsRows)" == *"Paste As"* ]] || fail "cap_menus: Menus lists no Paste As"
+    [[ "$(ipc settingsRows)" == *"Invert Selection"* ]] || fail "cap_menus: Menus lists no Invert Selection"
     [[ "$(ipc settingsRows)" == *"Permissions"* ]] || fail "cap_menus: Menus lists no Permissions"
     shot cap-menus-settings
     key -k Escape >/dev/null
@@ -383,11 +383,11 @@ case_cap_menus2() {
     settle
     [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "cap_menus2: the script's menu never opened"
     for attempt in $(seq 1 "$makeexec_polls"); do
-        [[ "|$(ipc contextMenuEntries)|" == *"|Make executable|"* ]] && break
+        [[ "|$(ipc contextMenuEntries)|" == *"|Make Executable|"* ]] && break
         sleep 0.25
     done
-    [[ "|$(ipc contextMenuEntries)|" == *"|Make executable|"* ]] \
-        || fail "cap_menus2: a 0644 script at defaults offers no Make executable, got $(ipc contextMenuEntries)"
+    [[ "|$(ipc contextMenuEntries)|" == *"|Make Executable|"* ]] \
+        || fail "cap_menus2: a 0644 script at defaults offers no Make Executable, got $(ipc contextMenuEntries)"
     shot cap-menus2-makeexec
     key -k Escape >/dev/null
     settle
@@ -408,11 +408,11 @@ case_cap_menus2() {
     wait_listing 4
     click_row "$(row_index_of one.txt)" right
     settle
-    menu_seek "Copy as"
+    menu_seek "Copy As"
     key -k Right >/dev/null
     settle
     [[ "$(ipc contextMenuSubmenuEntries)" == *"Path"* ]] \
-        || fail "cap_menus2: the Copy as flyout offers $(ipc contextMenuSubmenuEntries)"
+        || fail "cap_menus2: the Copy As flyout offers $(ipc contextMenuSubmenuEntries)"
     shot cap-menus2-copyas-nohints
     key -k Escape >/dev/null
     settle
@@ -442,10 +442,10 @@ case_cap_menus2() {
     settings_open_key
     settle
     settings_section menus
-    [[ "$(ipc settingsRows)" == *"Paste as"* ]] || fail "cap_menus2: Menus lists no Paste as"
+    [[ "$(ipc settingsRows)" == *"Paste As"* ]] || fail "cap_menus2: Menus lists no Paste As"
     settings_focus_row invertSelection
     settle
-    [[ "$(ipc settingsRows)" == *"Invert selection"* ]] || fail "cap_menus2: Menus lists no Invert selection"
+    [[ "$(ipc settingsRows)" == *"Invert Selection"* ]] || fail "cap_menus2: Menus lists no Invert Selection"
     shot cap-menus2-settings-tail
     key -k Escape >/dev/null
     settle
@@ -460,7 +460,7 @@ case_cap_menus2() {
     click_rail_row "$favourite_index" right
     settle
     [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "cap_menus2: the favourite's menu never opened"
-    [[ "|$(ipc contextMenuEntries)|" == *"|New tab|"* && "|$(ipc contextMenuEntries)|" != *"|Copy path|"* ]] \
+    [[ "|$(ipc contextMenuEntries)|" == *"|Open in New Tab|"* && "|$(ipc contextMenuEntries)|" != *"|Copy Path|"* ]] \
         || fail "cap_menus2: the place-menu-only specimen drew $(ipc contextMenuEntries)"
     shot cap-menus2-place-only
     key -k Escape >/dev/null
@@ -475,7 +475,7 @@ case_cap_menus2() {
     click_rail_row "$favourite_index" right
     settle
     [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "cap_menus2: the favourite's menu never opened with Copy path on"
-    [[ "|$(ipc contextMenuEntries)|" == *"|Copy path|"* && "|$(ipc contextMenuEntries)|" != *"|Copy as|"* ]] \
+    [[ "|$(ipc contextMenuEntries)|" == *"|Copy Path|"* && "|$(ipc contextMenuEntries)|" != *"|Copy As|"* ]] \
         || fail "cap_menus2: the Copy path specimen drew $(ipc contextMenuEntries)"
     shot cap-menus2-place-copypath
     key -k Escape >/dev/null
@@ -493,8 +493,8 @@ case_cap_menus3() {
     printf 'target\n' > "$dir/orig/target.txt"
     printf 'plain\n' > "$dir/plain.txt"
     ln -s orig/target.txt "$dir/link.txt" || fail "cap_menus3: the symlink fixture could not be made"
-    copyas_leaves='Path|Name|Name without extension|Folder path|File URI|Shell-quoted'
-    pasteas_leaves='Link|Absolute link|Hard link'
+    copyas_leaves='Path|Relative Path|Name|Name Without Extension|Folder Path|File URI|Shell-Quoted'
+    pasteas_leaves='Link|Absolute Link|Hard Link'
     # DEFAULTS' twelve less Copy as and Paste as, which board a switches on; the other ten stay as shipped.
     hidden_board_a='"delete","openTerminal","placeMenu","runScript","moveto","copyto","properties","permissions","invertSelection","extThumbs"'
     seed_ui_state "$fixture_root/cap-menus3-a-state" "$(printf '{"keys":"default","view":"list","keyHints":true,"menu":{"hidden":[%s]}}' "$hidden_board_a")"
@@ -510,11 +510,11 @@ case_cap_menus3() {
     settle
     cap_menu_expect '.opened and .hasRow and ([.entries[] | select(.action == "copyAs" or .action == "pasteAs")] | length) == 2 and ([.entries[] | select(.action == "paste")][0].disabled == false)' "board a: the file menu shows Copy as and Paste as with a live Paste"
     [[ "$(ipc contextMenuHints | tr -d '|')" != "" ]] || fail "cap_menus3: board a drew no key hints"
-    menu_seek "Copy as"
+    menu_seek "Copy As"
     key -k Right >/dev/null
     settle
     [[ "$(ipc contextMenuSubmenuEntries)" == "$copyas_leaves" ]] \
-        || fail "cap_menus3: board a's Copy as flyout offers $(ipc contextMenuSubmenuEntries), want $copyas_leaves"
+        || fail "cap_menus3: board a's Copy As flyout offers $(ipc contextMenuSubmenuEntries), want $copyas_leaves"
     shot cap-menus3-board-a-copyas
     key -k Escape >/dev/null
     settle
@@ -547,7 +547,7 @@ case_cap_menus3() {
     settle
     key -k Escape >/dev/null
     settle
-    [[ "$(ipc contextMenuVisible)" == "false" ]] || fail "cap_menus3: the lone Copy as menu stayed open"
+    [[ "$(ipc contextMenuVisible)" == "false" ]] || fail "cap_menus3: the lone Copy As menu stayed open"
     key P >/dev/null
     settle
     cap_menu_expect '.opened and .submenu and ([.entries[] | select(.action == "pasteAs")] | length) == 0 and ([.submenuEntries[].label] | join("|")) == "'"$pasteas_leaves"'"' "P at defaults opens the lone Paste as flyout"
@@ -586,9 +586,9 @@ case_cap_menus3() {
     wait_listing 3
     click_row "$(row_index_of link.txt)" right
     settle
-    [[ "|$(ipc contextMenuEntries)|" == *"|Show original|"* ]] \
+    [[ "|$(ipc contextMenuEntries)|" == *"|Show Original|"* ]] \
         || fail "cap_menus3: the symlink menu offers no Show original, got $(ipc contextMenuEntries)"
-    menu_seek "Show original"
+    menu_seek "Show Original"
     key -k Return >/dev/null
     wait_path "$dir/orig"
     # The reveal lands the target's row as the sole selection once the listing of its folder arrives.
@@ -734,13 +734,13 @@ cap_permissions_menu_specimen() {
     # The row goes live when the two-byte shebang read answers, so the wait is on the live row, not on its label.
     while (( SECONDS < end )); do
         entries=$(ipc contextMenuEntries)
-        [[ "$entries" == *"Make executable"* && "$(cap_permissions_makeexec_state)" == "live" ]] && break
+        [[ "$entries" == *"Make Executable"* && "$(cap_permissions_makeexec_state)" == "live" ]] && break
         sleep 0.1
     done
-    [[ "$entries" == *"Make executable"* && "$entries" == *"Permissions"* ]] \
-        || fail "cap_permissions: the shebang script's menu lacks Make executable or Permissions, got $entries"
+    [[ "$entries" == *"Make Executable"* && "$entries" == *"Permissions"* ]] \
+        || fail "cap_permissions: the shebang script's menu lacks Make Executable or Permissions, got $entries"
     [[ "$(cap_permissions_makeexec_state)" == "live" ]] \
-        || fail "cap_permissions: Make executable is not live on the shebang script, it reads $(cap_permissions_makeexec_state)"
+        || fail "cap_permissions: Make Executable is not live on the shebang script, it reads $(cap_permissions_makeexec_state)"
     shot cap-permissions-makeexec-menu
     key -k Escape >/dev/null
     settle
@@ -752,13 +752,13 @@ cap_permissions_special_single() {
     settle
     cap_permissions_open 5
     state=$(ipc permissionsState) || fail "cap_permissions: the permissions reader failed on the setuid file"
+    shot cap-permissions-special-single
     [[ "$(jq -r '.displayedError' <<< "$state")" == "Read-only: setuid bit is present." ]] \
         || fail "cap_permissions: the setuid card names no reason, state $state"
     [[ "$(jq -r '[.controls[] | select(.bit != null and .enabled == false)] | length' <<< "$state")" == "9" ]] \
         || fail "cap_permissions: the setuid card leaves a box enabled, state $state"
     [[ "$(jq -r '[.controls[] | select(.bit != null and .value == "on")] | length' <<< "$state")" == "4" ]] \
         || fail "cap_permissions: the setuid card lost its 4644 values, state $state"
-    shot cap-permissions-special-single
     key -k Escape >/dev/null
     settle
 }
@@ -850,7 +850,7 @@ cap_permissions_skips() {
     [[ "$(ipc statusPrimary)" == "$foreign_applied" ]] || fail "cap_permissions: the status line after Apply reads $(ipc statusPrimary) beside a foreign file"
     shot cap-permissions-applied-foreign
 }
-# Permissions040: Apply held in flight by a paused owned backend leaves Cancel and the close mark disabled, then the backend resumes.
+# Permissions040: Apply held in flight by a paused owned backend leaves Cancel disabled and draws no close mark, then the backend resumes.
 cap_permissions_inflight() {
     click_row 1 left
     settle
@@ -864,7 +864,7 @@ cap_permissions_inflight() {
     convert_pause_backend "$pid"
     cap_permissions_focus Apply forward
     key -k Return >/dev/null
-    cap_permissions_await '.opened and .busy and ([.controls[] | select(.name == "Cancel" or .name == "Close")] | length == 2 and all(.enabled | not))' "Cancel and the close mark stay live while Apply is in flight"
+    cap_permissions_await '.opened and .busy and ([.controls[] | select(.name == "Cancel")] | length == 1 and all(.enabled | not)) and ([.controls[] | select(.name == "Close")] | length == 0)' "Cancel stays disabled and no Close draws while Apply is in flight"
     settle
     shot cap-permissions-apply-inflight
     permissions_resume_stopped "$pid" || fail "cap_permissions: the owned backend did not resume"
@@ -925,9 +925,8 @@ case_cap_permissions() {
     cap_permissions_open 0
     cap_permissions_focus Apply forward
     shot cap-permissions-apply-focus
-    cap_permissions_focus Close forward
-    cap_permissions_expect '([.controls[] | select(.name == "Close")][0] | .focused and .ring) and ([.controls[] | select(.name != "Close" and .ring)] | length == 0)' "the focused close mark draws no ring"
-    shot cap-permissions-close-focus
+    # The close mark left the title (HIG permissions-close, APL-DIALOG-33): Cancel and esc dismiss the card.
+    cap_permissions_expect '[.controls[] | select(.name == "Close")] | length == 0' "the card still lists a close mark"
     cap_permissions_focus Octal back
     shot cap-permissions-octal-focus
     key -M ctrl -k a -m ctrl -k 9 >/dev/null
@@ -951,14 +950,10 @@ case_cap_permissions() {
     cap_permissions_open 0
     cap_permissions_pointer Apply hover cap-permissions-apply-hover
     cap_permissions_pointer Apply press cap-permissions-apply-pressed
-    # The keyboard moves to Apply, so Cancel and the close mark are shot hovered and pressed with no ring of their own.
+    # The keyboard moves to Apply, so Cancel is shot hovered and pressed with no ring of its own.
     cap_permissions_focus Apply forward
-    cap_permissions_expect '[.controls[] | select(.name == "Close")][0] | (.hovered | not) and (.ring | not)' "the close mark is not at rest before its rest shot"
-    shot cap-permissions-close-rest
     cap_permissions_pointer Cancel hover cap-permissions-cancel-hover-apply-focus '([.controls[] | select(.name == "Apply")][0].focused) and ([.controls[] | select(.name == "Cancel")][0] | .hovered and (.focused | not))'
     cap_permissions_pointer Cancel press cap-permissions-cancel-pressed-apply-focus '([.controls[] | select(.name == "Apply")][0].focused) and ([.controls[] | select(.name == "Cancel")][0] | .pressed and (.focused | not))'
-    cap_permissions_pointer Close hover cap-permissions-close-hover '[.controls[] | select(.name == "Close")][0] | .hovered and (.focused | not) and (.ring | not)'
-    cap_permissions_pointer Close press cap-permissions-close-pressed '[.controls[] | select(.name == "Close")][0] | .pressed and (.focused | not) and (.ring | not)'
     key -k Escape >/dev/null
     settle
     click_row 3 right
@@ -987,11 +982,11 @@ case_cap_permissions() {
     settle
     cap_permissions_vanished 0 "$dir/zz-gone.txt" 8
     cap_permissions_inflight
-    printf 'CAP_PERMISSIONS mixed=3rows boxes=on,mixed,off,hover,pressed,click1,click2 single=apply,octal,error,disabled,close,special,pointer symlink=errored note=setuid menu=makeexec skips=applied,note,foreign other=note inflight=disabled closemark=rest,hover,pressed,focus\n'
+    printf 'CAP_PERMISSIONS mixed=3rows boxes=on,mixed,off,hover,pressed,click1,click2 single=apply,octal,error,disabled,close,special,pointer symlink=errored note=setuid menu=makeexec skips=applied,note,foreign other=note inflight=disabled closemark=absent\n'
     kill_flea
 }
 
-# PropertiesCount: Format.js size() for a byte total, round half up on the double's exact value as toFixed does.
+# PropertiesCount: Format.js size() for a byte total, round half up on the double's exact value as toFixed does; the HIG boards group the byte count (2,560,562 bytes).
 cap_propcount_size() {
     python3 -I - "$1" <<'EOF2' || fail "cap_propcount: the expected size did not derive from $1"
 import sys
@@ -1004,7 +999,7 @@ else:
     v, u = float(b), 0
     while v >= 1000 and u < 4:
         v, u = v / 1000, u + 1
-    print("%s %s (%d bytes)" % (Decimal(v).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP), units[u], b))
+    print("%s %s (%s bytes)" % (Decimal(v).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP), units[u], format(b, ",")))
 EOF2
 }
 
@@ -1244,8 +1239,9 @@ EOS
     flea_at=$(grep -Fxn ' Open flea' <<< "$sheet_rows" | head -n 1 | cut -d: -f1)
     mix_at=$(grep -Fxn ' Open mix.flac' <<< "$sheet_rows" | head -n 1 | cut -d: -f1)
     (( flea_at < mix_at )) || fail "cap_sheet: the fl query does not lead with the favourite: ${sheet_rows//$'\n'/ | }"
-    cap_sheet_where "Open flea" " in Favorites" "the favourite flea draws no where Favorites"
-    cap_sheet_where "Open mix.flac" " in ~/Documents/claude" "the recent mix.flac draws no where ~/Documents/claude"
+    # The where reads "in Favorites" as the sheet draws it (settings.sheet.in, g2/st1/sheet_view.rs); no HIG board draws it.
+    cap_sheet_where "Open flea" "in Favorites" "the favourite flea draws no where Favorites"
+    cap_sheet_where "Open mix.flac" "in ~/Documents/claude" "the recent mix.flac draws no where ~/Documents/claude"
     shot cap-sheet-query-fl
     key -k Escape >/dev/null
     cap_sheet_expect keymapSheetOpen false "Escape did not close the sheet after fl"
@@ -1266,7 +1262,7 @@ EOS
     cap_sheet_expect keymapSheetOpen true "? did not reopen the sheet"
     cap_sheet_type mute
     cap_sheet_rows_hold 'm mute' "the mute query lists no m mute row"
-    cap_sheet_where mute " in Preview" "the mute row draws no where Preview"
+    cap_sheet_where mute "in Preview" "the mute row draws no where Preview"
     shot cap-sheet-query-mute
     key -k Escape >/dev/null
     cap_sheet_expect keymapSheetOpen false "Escape did not close the sheet after mute"
@@ -1311,6 +1307,15 @@ EOS
     [[ -e "$dir/a.txt" ]] || fail "cap_sheet: Escape on the delete card still deleted a.txt"
     printf 'CAP_SHEET rest=ok queries=trash,fl,comp,mute,perm permissions=opened delete=cancel-then-delete\n'
     kill_flea
+}
+
+# The current matrix cell's drawn picture box, "x y width height", from the frontend under test.
+matrix_media_rect() {
+    if [[ "$test_frontend" == gpui ]]; then
+        ipc previewStrip | jq -er '.mediaRect | select(length > 0)'
+    else
+        ipc previewSurfaceRect
+    fi
 }
 
 # Aspect rule check for one matrix cell: drawn picture against ownsize, fit or fill.
@@ -1495,7 +1500,7 @@ case_previewmatrix() {
     matrix_wait_column video d-tiny.mp4
     key -k space >/dev/null
     wait_preview_state playing
-    matrix_check "quicklook d-tiny.mp4" "$(ipc previewSurfaceRect)" "$(ipc previewPictureRect)" "64 64" fill 0
+    matrix_check "quicklook d-tiny.mp4" "$(matrix_media_rect)" "$(ipc previewPictureRect)" "64 64" fill 0
     shot matrix-look-d-player
     key -k Escape >/dev/null
     settle
@@ -1503,7 +1508,7 @@ case_previewmatrix() {
     matrix_wait_column video e-big.mp4
     key -k space >/dev/null
     wait_preview_state playing
-    matrix_check "quicklook e-big.mp4" "$(ipc previewSurfaceRect)" "$(ipc previewPictureRect)" "1920 1080" fill 0
+    matrix_check "quicklook e-big.mp4" "$(matrix_media_rect)" "$(ipc previewPictureRect)" "1920 1080" fill 0
     shot matrix-look-e-player
     key -k Escape >/dev/null
     settle

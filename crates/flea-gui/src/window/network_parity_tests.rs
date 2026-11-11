@@ -48,7 +48,7 @@ fn pb_network_2_opened_share_draws_its_saved_label_as_a_root_crumb(cx: &mut Test
     use crate::window::dispatch::test_shell::{land, open_root};
     let recorder = Rc::new(Recorder::default());
     cx.update(|cx| {
-        cx.set_global(crate::g2::pl1::source::fixture::Services {
+        cx.set_global(crate::g2::device_rail::source::fixture::Services {
             runner: recorder.clone(),
             hostname: "testhost".into(),
         })

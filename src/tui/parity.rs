@@ -19,7 +19,7 @@ pub fn refusal_text(action: &str) -> super::words::Text {
         "addNetwork" => "tui.parity.add_network_places_in_the_flea_window",
         "eject" => "tui.parity.unmount_volumes_in_the_flea_window",
         "tags" => "tui.parity.tags_are_unavailable_in_this_terminal_build",
-        "copyAs" | "copyPath" | "copyName" | "copyStem" | "copyUri" | "copydirpath" | "copyQuoted" => "tui.parity.copy_as_text_is_unavailable_in_this_terminal_build",
+        "copyAs" => "tui.parity.copy_as_text_is_unavailable_in_this_terminal_build",
         "pasteAs" | "pasteLink" | "pasteAbsoluteLink" | "pasteHardLink" => "tui.parity.paste_links_are_unavailable_in_this_terminal_build",
         "zoomOut" | "zoomIn" | "zoomFit" | "expand" => "tui.parity.focus_a_supported_preview_to_use_its_controls",
         "markdownView" | "toggleWrap" | "copyPatch" => "tui.parity.this_preview_control_is_unavailable_in_this_terminal_build",

@@ -62,22 +62,24 @@ pub(super) fn check() -> Vec<String> {
         shell.open_overlay_copy_to(false, "/files", window, cx);
         shell.overlay.as_ref().unwrap().update(cx, |view, cx| {
             view.model.dialog = None;
-            view.model.jobs.snapshot(vec![flea::ui_logic_op1::JobRow {
-                id: 1,
-                kind: "copy".into(),
-                state: "running".into(),
-                file: "Font gate copying.txt".into(),
-                head: "Font gate job".into(),
-                total: 2,
-                total_bytes: Some(128),
-                bytes: Some(64),
-                ..Default::default()
-            }]);
+            view.model
+                .jobs
+                .snapshot(vec![flea::ui_logic_file_ops::JobRow {
+                    id: 1,
+                    kind: "copy".into(),
+                    state: "running".into(),
+                    file: "Font gate copying.txt".into(),
+                    head: "Font gate job".into(),
+                    total: 2,
+                    total_bytes: Some(128),
+                    bytes: Some(64),
+                    ..Default::default()
+                }]);
             cx.notify();
         });
     });
     // The Plugins page's own rows are gated in settings.rs; its section label is a nav row here.
-    for section in flea::ui_logic_st1::pages::SECTIONS
+    for section in flea::ui_logic_settings_pages::pages::SECTIONS
         .iter()
         .filter(|section| section.id != "plugins")
     {

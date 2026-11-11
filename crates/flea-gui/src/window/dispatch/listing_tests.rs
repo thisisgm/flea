@@ -207,7 +207,7 @@ fn escape_stays_put_with_escape_up_off(cx: &mut TestAppContext) {
                 "Copied 1 item",
                 false,
                 "",
-                flea::ui_logic_fb1::status::Hint::None,
+                flea::ui_logic_status_feedback::status::Hint::None,
                 now,
             )
         })

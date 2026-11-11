@@ -2,7 +2,7 @@
 use super::Host;
 use crate::state::Shell;
 use flea::jsondoc::Json;
-use flea::ui_logic_pl4::{
+use flea::ui_logic_rail_places::{
     order::{Heading, RailSection},
     plugin,
     rail::RailEntry,
@@ -20,14 +20,28 @@ pub(super) struct Rail {
     armed: Option<Instant>,
 }
 
+/// Each plugin's rows under its own title, empty when it names none; plugin::plugin_headings merges and files them.
 pub(crate) fn sections(host: &Host) -> Vec<RailSection> {
     let mut sections = Vec::new();
     for p in host.plugins.iter().filter(|p| host.healthy(p)) {
+        let mark = host.mark(p);
+        let titled = |block: &Json, rows: Vec<RailEntry>| RailSection {
+            heading: Heading::Plugin(
+                block
+                    .get("title")
+                    .and_then(Json::as_str)
+                    .unwrap_or_default()
+                    .into(),
+            ),
+            rows: rows
+                .into_iter()
+                .map(|row| RailEntry {
+                    mark: mark.clone(),
+                    ..row
+                })
+                .collect(),
+        };
         if let Some(block) = p.manifest.block("rail-section") {
-            let title = block
-                .get("title")
-                .and_then(Json::as_str)
-                .unwrap_or(&p.manifest.name);
             let rows = host
                 .answers
                 .get(&(p.manifest.id.clone(), "section".into()))
@@ -35,18 +49,12 @@ pub(crate) fn sections(host: &Host) -> Vec<RailSection> {
                     plugin::parse_section(&p.manifest.id, &flea::jsondoc::render(answer))
                 });
             if let Some(rows) = rows.filter(|rows| !rows.is_empty()) {
-                sections.push(RailSection {
-                    heading: Heading::Plugin(title.into()),
-                    rows,
-                });
+                sections.push(titled(block, rows));
             }
         }
         if p.manifest.id != "flea.dropbox" {
-            if let Some(row) = super::place::rail_row(p) {
-                sections.push(RailSection {
-                    heading: Heading::None,
-                    rows: vec![row],
-                });
+            if let Some((block, row)) = p.manifest.block("place").zip(super::place::rail_row(p)) {
+                sections.push(titled(block, vec![row]));
             }
         }
     }

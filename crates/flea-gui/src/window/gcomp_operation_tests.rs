@@ -1,7 +1,7 @@
 //! The first Root submission must mount and focus the session selected by a real producer.
 use super::*;
-use crate::g2::op1::model::Dialog;
-use flea::ui_logic_op1::{
+use crate::g2::file_ops::model::Dialog;
+use flea::ui_logic_file_ops::{
     confirm::Source,
     trash::{Review, Scope},
 };

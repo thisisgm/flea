@@ -51,7 +51,7 @@ fn call(
 
 fn root(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestContext) {
     cx.update(|cx| {
-        cx.set_global(crate::g2::pl1::source::fixture::Services {
+        cx.set_global(crate::g2::device_rail::source::fixture::Services {
             runner: crate::window::network::default_runner(),
             hostname: "testhost".into(),
         })
@@ -134,7 +134,7 @@ fn pb_network_mountinfo_rebuilds_root_rows_without_replacing_gio(cx: &mut TestAp
 #[gpui::test]
 fn sol_gh374_375_mac_cifs_children_do_not_flood_the_mounted_rail(cx: &mut TestAppContext) {
     let (shell, cx) = root(cx);
-    let fixture = include_str!("../../../../src/ui_logic_pl2/fixtures/gh374.mountinfo");
+    let fixture = include_str!("../../../../src/ui_logic_network_shares/fixtures/gh374.mountinfo");
     assert_eq!(
         call(&shell, "flea", "networkFeedMountinfo", &[fixture], cx),
         Reply::value("fed")

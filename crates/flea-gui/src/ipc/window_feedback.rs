@@ -113,7 +113,7 @@ impl Adapter for FeedbackAdapter<'_> {
                         if line.undo.is_empty() {
                             ""
                         } else {
-                            flea::ui_logic_fb1::status::SEP
+                            flea::ui_logic_status_feedback::status::SEP
                         },
                         line.undo,
                         line.extra,

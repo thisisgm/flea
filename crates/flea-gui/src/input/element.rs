@@ -179,12 +179,21 @@ fn viewport(
             window.on_mouse_event(move |event: &MouseDownEvent, phase, window, cx| {
                 if phase == DispatchPhase::Bubble && hit.is_hovered(window) {
                     let _ = down.update(cx, |shell, cx| {
+                        // A typing line drawn over the pane opens its own text menu.
+                        if event.button == gpui::MouseButton::Right
+                            && shell.text_line_at(event.position)
+                        {
+                            return;
+                        }
                         if grid && frame.in_lane(event.position) {
                             shell.grid_bar_down(side, event, window, cx);
                         } else if !grid
                             && shell.view == crate::window::startup::View::Columns
-                            && (event.button == gpui::MouseButton::Right || shell.input_blocked(cx))
+                            && (event.button == gpui::MouseButton::Right
+                                || shell.input_blocked(cx)
+                                || shell.carry_riding_or_pending(cx))
                         {
+                            // A carry lands through the track it was clicked on, as a neighbour column's press does.
                             shell.columns_pointer(side, event, window, cx);
                         } else if !grid || shell.band_press(side, frame, event, cx) {
                             shell.hold_pointer(side, true, window, cx);

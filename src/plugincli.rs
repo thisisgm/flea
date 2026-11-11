@@ -1,8 +1,8 @@
 // `flea plugin <verb>`, Omarchy's plugin verbs over the backend's own plugins request.
 use crate::backend::plugins::{handle, Env};
 use flea::i18n::I18n;
-use flea::ui_logic_st2::wire::{self, Reply};
-use flea::ui_logic_st2::sentence_key;
+use flea::ui_logic_plugin_settings::wire::{self, Reply};
+use flea::ui_logic_plugin_settings::sentence_key;
 
 const VERBS: [&str; 7] = ["list", "add", "enable", "disable", "update", "remove", "validate"];
 

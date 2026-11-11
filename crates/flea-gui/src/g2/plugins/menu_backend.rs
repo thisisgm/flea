@@ -5,7 +5,7 @@ use std::{
     sync::OnceLock,
 };
 
-use crate::g2::mn1::foldhash;
+use crate::g2::context_menus::foldhash;
 
 // Each test process owns its cached executable so concurrent suites cannot replace it.
 pub(super) fn binary() -> &'static Path {

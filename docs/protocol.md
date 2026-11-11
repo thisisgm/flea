@@ -601,6 +601,27 @@ A `list`, `listpaths`, `sort`,
 `search` or `searchclose` closes the session too, and drops
 its index. Closing mid-walk cancels it: no directory opens after close.
 
+### searchremap
+
+`{"c":"searchremap","gen":7,"from":12,"rows":[0,900],"cursor":900}`
+
+A client displaying a same-generation Search replacement can remap its marks and cursor from
+the old `from` listing stamp. The backend keeps one immutable source listing, including names
+outside the first window, until it answers a remap. It resolves full paths into the current
+result listing, never basenames. The reply is bounded by the requested selection:
+
+`{"t":"searchremap","ok":true,"gen":7,"from":12,"listing":15,"rows":[8],"cursor":8}`
+
+Missing files are omitted from `rows`; an absent cursor is `null`. Rows are unique and ascending.
+`listing` names the current answer, which can be newer than the replacement that prompted the
+request. Repeated replacements retain the source until a successful remap, which releases it;
+the next index change snapshots the answered listing again before it mutates anything.
+Stream order puts that reply before later replacements.
+The frontend keeps one request in flight and applies it only to its matching generation, source
+and current listing. A stale source, query generation, closed search or different scope answers
+`ok:false`, empty `rows` and a null cursor. Navigation and a new query discard the snapshot.
+Old clients need not send this optional request; existing replies are unchanged.
+
 ### searchquery
 
 `{"c":"searchquery","query":"<string>","gen":<uint>,"count":<uint>[,"sizes":<uint>]}`
@@ -874,7 +895,7 @@ being deduplicated against the job that was just dropped.
 `{"c":"fsinfo"}`
 
 Answers one `fsinfo` line for the directory the current listing came from:
-`{"t":"fsinfo","fs":"<string>","free":<uint>,"path":"<string>","class":"<string>","tagable":<bool>}`.
+`{"t":"fsinfo","fs":"<string>","free":<int>,"path":"<string>","class":"<string>","tagable":<bool>}`.
 `fs` is the filesystem's own name and `free` its bytes available to an unprivileged
 process; `path` is the directory they are of, so a client that has since moved can
 tell they describe somewhere else. `tagable` is that directory's once-per-change probe
@@ -886,7 +907,10 @@ the field reads `true` until it lands, and a refusal sends the line again with `
 beside this line and never per row: network is cifs, smb3, nfs, sshfs, rclone, 9p,
 ceph and any gvfs FUSE share, phone is gvfs mtp, gphoto2 and afc, and usb is a block
 device whose sysfs path runs through USB or whose removable flag is 1. An unreadable
-path answers an empty `fs` with a free of 0 rather than a wrong number.
+path answers an empty `fs` with a free of 0 rather than a wrong number, and a client draws no free
+figure for an empty `fs`. A filesystem whose statfs reports no blocks, as gvfsd-fuse does for a share
+with no size, keeps its `fs` and sends a free of -1, the only negative value: unknown room rather than
+a full drive.
 A local directory held by a system mountpoint adds `"system":true` after `class`, and no other line carries the key.
 The mounts are matched by the directory's own device number in `/proc/self/mountinfo`, so a symlink,
 a bind mount or a second mountpoint of one volume answers as the volume does, and a mountpoint counts as a
@@ -1027,7 +1051,9 @@ destination it is still confirmed before `transferdone`. At the top of the selec
 the item's own failure with the reason as its `err`. Each entry is named on `transferdone`'s `refused`.
 
 **Copies onto removable, phone and network targets are durable before "done".** When the
-destination classes usb, phone or network, or its filesystem is vfat, exfat or ntfs, each file is
+destination classes usb, phone or network, sits on a disk that can be pulled out which that class does not
+name (an SD card in a PCI reader, a drive behind a Thunderbolt or USB4 port, a btrfs or dm-crypt stick,
+see `src/backend/removable.rs`), or its filesystem is vfat, exfat or ntfs, each file is
 fsync'd after its last write and every directory Flea created or wrote into is fsync'd before the
 transfer reports done. An rclone mount is the exception: the copy lands in rclone's cache first,
 so no fsync forces its upload and the done line names the background upload instead. Local btrfs and ext4 targets keep today's behaviour. A failed file fsync fails
@@ -1480,9 +1506,12 @@ Exactly one `transferdone` releases this job's slot, followed by its original `t
 reply. `ok`, `failed`, and `skipped` on `transferdone` count deleted, refused, and unstarted items;
 `cancelled` reports interruption. A validation failure carries its sentence in `note`, and the browser
 reply retains the existing `ok:false`, `stale`, and `error` fields. A completed or interrupted deletion
-retains `done`, `failed`, and `failures`, and adds `skipped` and `cancelled`. Deletion is irreversible
-and creates no undo entry. Cancellation during validation preserves the confirmation for another
-attempt. Once deletion starts it consumes the token, so remaining items require a new review.
+retains `done`, `failed`, and `failures`, and adds `skipped`, `cancelled` and `leftover`, the
+count of entries the listing left out that the sweep kept on disk: a record kept beside a claim's
+quarantine counts, and an entry a cancel stopped the sweep before trying does not
+(docs/architecture/write-operations-and-the-undo-journal.md). Deletion is irreversible and creates
+no undo entry. Cancellation during validation preserves the confirmation for another attempt. Once
+deletion starts it consumes the token, so remaining items require a new review.
 
 Cancel, quit, and stdin closing poll the same flag between items and between tree nodes. Completed
 deletions stay deleted. An interrupted folder's surviving payload and `.trashinfo` are put back
@@ -1499,6 +1528,14 @@ later browser reads cannot cancel the delete. A superseded check answers its ord
 `{"c":"rename","path":"<string>","to":"<string>"}`
 
 Example: `{"c":"rename","path":"/home/gm/old.txt","to":"new.txt"}`
+
+Inline editors preserve the displayed row's optional `source` string, encoded as decimal
+`device:inode:file-type`, and send it on commit. The backend checks that identity in the rename
+worker using the same selected-item guard as `menuId`; a replacement or missing source is refused
+without moving it. Metadata and contents may change while the same inode remains selected.
+Rows without this lstat identity use an asynchronous menu snapshot before the editor opens, then
+commit with that snapshot's `menuId`. Virtual plugin places retain their provider's operation
+contract because their rows have no filesystem inode. Older callers may omit both fields.
 
 Renames one file within its own directory and answers one `renamed` line. `to` is a bare name, not a
 path: an empty `to`, `.`, `..`, or anything containing `/` or an interior NUL is refused with an `error`
@@ -2233,6 +2270,10 @@ A first listing and a navigation carry no `changed`, and a client reads a missin
 
 ### rows
 
+Local lstat rows include optional `source` as `device:inode:file-type` for inline rename. These are
+decimal integers in a string, preserving full inode precision. Cached GIO rows omit it and use an
+on-demand selection snapshot instead. The field does not require an additional stat.
+
 Each viewport row also carries `b`, an optional creation timestamp as Unix seconds
 or null. The source is Linux `statx(STATX_BTIME)`, with no-follow and no-automount
 flags and the returned mask checked. Missing support stays null. It is read only
@@ -2253,8 +2294,9 @@ whose `start` lands past the end of the listing answers with `start` equal to th
 listing's length and an empty `rows` array, not the value that was requested.
 
 Each row object holds a name (`n`, JSON-escaped; a valid UTF-8 name may carry any
-character including a quote or a newline, but a non-UTF8 name arrives lossy and then
-cannot be stat'd, so it reports zeroes, see AGENTS.md "Deliberate corners"), a
+character including a quote or a newline, and a name that is not UTF-8 arrives as its lossy
+spelling, a NUL and its raw bytes in lowercase hex, which every path field accepts back and
+a client draws each such component without its NUL and hex tail, see docs/architecture/exact-names.md), a
 directory flag (`d`, the link's own type rather than its target's: a symlink to a
 directory reports `d:false` and carries `S_IFLNK` in `p`), a size in bytes (`s`), an
 mtime as a unix timestamp (`m`), a raw `st_mode` (`p`), a freedesktop icon name
@@ -2669,7 +2711,9 @@ Example: `{"t":"collisions","id":7,"total":2,"names":[{"n":"screenshot.png","d":
 `total` counts every colliding source. `names` is the first three of them in request order, which is
 all a client's card lists before its "and N more" line, so the answer stays small however wide the
 selection. `n` is the incoming item's name, `d` whether it is a directory and `i` the same icon name a
-`rows` row carries, for the card's kind mark. `mergeable` is true when a folder lands on a folder,
+`rows` row carries, for the card's kind mark. `n` is the name as a person reads it; a name that is not UTF-8
+also carries `x`, its exact text (docs/architecture/exact-names.md), which a client matches against a `rows`
+name and joins into a `locate` path, so the question never lands on that name's lossy twin. `mergeable` is true when a folder lands on a folder,
 which is the only shape the card offers `merge` for. A `total` of 0 means nothing collides; the shipped client
 then sends its transfer with `collide` `refuse`, so a name that appears in the meantime is still refused.
 
@@ -2982,7 +3026,9 @@ The mechanism is one inotify watch on that one directory, non-recursive, with th
 `IN_ATTRIB | IN_CLOSE_WRITE | IN_MOVED_FROM | IN_MOVED_TO | IN_CREATE | IN_DELETE | IN_MOVE_SELF`,
 which is exactly the set of events that changes what a listing says: which names are in it, and the
 size, date and mode its columns draw. Deleting the watched directory needs no bit of its own: the
-kernel removes the watch along with it and reports that removal whatever the mask holds.
+kernel removes the watch along with it and reports that removal whatever the mask holds. The listed
+directory itself going or moving ends in a `gone` line (below), never in a failed re-list, and only
+an expanded child going re-lists its parent.
 **A file growing under an open handle is not one of them.** `IN_MODIFY` fires on every `write(2)`
 and a listing does not draw a partial size, so a row's size follows the writer closing the file
 rather than the writer writing to it.
@@ -3002,6 +3048,38 @@ network mount is the other case: inotify sees the local kernel's own view of a d
 change another machine makes to an NFS or SMB share is not delivered, and Flea is stale there in
 exactly the way it was before this line existed.
 
+### gone
+
+`{"t":"gone","path":"<string>","parent":"<string>"}`
+
+Example: `{"t":"gone","path":"/home/gm/parent/open-me","parent":"/home/gm"}`
+
+**The listed directory, or a directory above it, was deleted or moved away.** `path` is the listed
+directory and `parent` the nearest directory above it that still exists; the directory that went is
+the one directly under `parent` on the way to `path`. A client on `path`, or on a directory under it,
+opens `parent` without adding a history step and says why, dropping any `list` still out inside the
+directory that went, exactly as it does for `unmounted`, the line the backend sends when the listed
+directory's volume goes; a client that has moved on drops the line. For either line, every hidden
+tab the client holds inside the directory that went opens `parent` too.
+
+Every directory from the listed one up to, but not including, `/` is watched for its own
+`IN_DELETE_SELF` and `IN_MOVE_SELF` on one inotify instance the backend's watches share, armed off the
+loop each time a `list` lands. When one fires, or the listed directory's own watch reports it went,
+the backend checks the listed path against the directory the `list` landed on: `gone` when no
+directory answers there, a `changed` line when a different directory now answers to it, and nothing
+when it is the same directory, unless the listed directory's own watch asked, which always gets a
+`changed` line. A listed directory the backend could not look up when the `list` landed (a share
+whose mount stopped answering) is never called gone this way; only its own failed re-list is. The
+line is sent once. Until a `list` lands again, a `list` inside the directory that went, sent before
+the client read the line, is answered with that same line again whether it would have failed or
+landed, so a `list` the client dropped never lands in place of the one it sent next. A `list` that
+fails because its directory does not exist, or is no longer a directory, is answered with `gone`
+instead of an error when it names the listed directory or the `parent` the last `gone` line named.
+So the re-list a delete's own `changed` line starts never draws an unreadable folder, nor does a
+folder the client was entering or going up into, and a parent deleted before the client lands there
+sends it on again. No `gone` line is sent while a search or a path list stands, since neither is a
+directory.
+
 ### plugins
 
 `{"t":"plugins","id":1,"plugins":[{"id":"flea.shelf","name":"Shelf","version":"0.4.0","author":"Flea","license":"MIT","description":"...","kinds":["shelf"],"glyph":"flea","mark":"","access":["shelf:pile"],"source":"builtin","origin":"","enabled":false,"failure":"","detail":"","schema":[],"settings":{},"shelf":{"enabled":false,"bar":true,"rail":"off","screenshots":true,"recordings":true,"recent":3,"pins":[]}}]}`
@@ -3014,7 +3092,7 @@ plugin's own SVG when it has one. `shelf` is `null` on every plugin but the Shel
 `{"t":"pluginop","id":2,"op":"add","plugin":"mtorvik.checksums","ok":true,"code":"","detail":"","version":"0.2.0"}`
 
 One change's outcome. A refusal has `ok` false and a `code` with one `detail` argument; the codes are the ones
-`src/ui_logic_st2.rs` and `src/ui_logic_st2/wire.rs` list, each selecting a `plugins.error.*` or
+`src/ui_logic_plugin_settings.rs` and `src/ui_logic_plugin_settings/wire.rs` list, each selecting a `plugins.error.*` or
 `plugins.invalid.*` catalog sentence. `version` is the plugin's version after an `add` or `update`.
 
 ### pluginprogress
@@ -3158,6 +3236,19 @@ codes and technical listing keys and never from the tool's words; the card words
 template, the client asks again on both rather than messaging, and Cancel runs nothing. A line carrying
 either code also names the retry: `{"t":"archivedone","id":<uint>,"ok":false,"verified":true,"err":"encrypted"|"wrong-password","path":"<archive>","dest":"<destination>"}`,
 so the card opens over the archive that asked and no client-side stash can name another extract's.
+A successful extract names the same two fields, `{"t":"archivedone","id":<uint>,"ok":true,"verified":<bool>,"err":"","path":"<archive>","dest":"<destination>"}`,
+so a client tells it from a compress, whose success line names neither.
+
+A `dest` already taken is never written over or merged into. The result lands beside it under the next
+free name in Duplicate's words: `pack.zip` becomes `pack copy.zip`, then `pack copy 2.zip`, keeping the
+whole `format` as the extension (`pack copy.tar.gz`), and an extract folder `plain` becomes `plain copy`.
+The name is picked when the finished result is renamed into place, so one taken while the tool ran is
+passed over too; `dest` in the success line stays the name the request asked for. A taken `dest` whose
+name is not UTF-8 has no copy name, as with Duplicate, and answers `err` of
+`"that name is taken and no copy name can be made from it"`. When bsdtar runs the extract, a member that
+would land outside the folder (a `../` entry, or one written through a link the archive made) refuses the
+whole extract with `err` of `"an entry in this archive would land outside its folder, so nothing was extracted"`;
+7z, which runs password and `.7z` extracts, drops the `../` and keeps the member inside the folder.
 
 A `.iso` lists and is never extracted: an `extract` naming one answers one `archivedone` with `ok` false
 and `err` of `"a disk image opens as a listing and is never extracted"`, and starts nothing, so no `archivestarted`
@@ -3251,6 +3342,8 @@ Requests:
 {"t":"joberror","id":12,"error":"Only a failed job can be retried."}
 ```
 
+A queued job (`copy`, `move`, `compress`, `extract`, `send` or `action`) sends a `roots` line before its first job line, and a `retry` sends another before the job line that requeues it: `{"t":"roots","id":12,"job":true,"kind":"copy","paths":["/home/user/Photos/a.jpg","/run/media/user/STICK"]}`. `kind` is the job's own kind, so a retry names its job's. `paths` are the sources, the destination folder, an archive, and the destination row a menu transfer resolved by identity, each absolute and sorted, from the backend's own resolution of the request, so a menu or search-result selection names each row where it lives. A LocalSend, AirDrop or rclone send's first `roots` line also names the request that started it as `requestId` (`{"t":"roots","id":21,"job":true,"kind":"send","requestId":3,"paths":["/run/media/user/STICK/a.jpg"]}`); its retries do not. A later `roots` line for the same id replaces the earlier set. Empty Trash adopts its job and sends none. A shelf drop sends the same line after its `transferstarted`, with `job` false and `kind` `copy` or `move`, naming the shelf entries and the destination. A client holds a request's own paths from the time it sends it until the backend ends or refuses the request, or a `roots` line takes them over: a transfer's at its `transferdone` or a refusing `error`, an archive's at its `archivedone` or a refusing `error`, an action run's at its job's `roots` line or at an `actionstarted` that names no job (a terminal handoff or a refusal), and a send's at the `roots` line naming its `requestId` or an `rclonestarted` that refuses it. A LocalSend or AirDrop send always queues a job, so its `roots` line always comes. The client holds a job's paths from its `roots` line until a job line reports it `failed` or `done`, or a snapshot no longer lists it, and holds a drop's until its `transferdone`; it checks them before it unmounts or ejects a volume, and names the holding transfer's kind when it refuses. Older clients ignore the type and the new fields.
+
 Kinds are `copy`, `move`, `compress`, `extract`, `send`, `action`, and the adoption kind `emptyTrash`. States are `waiting`, `running`, `failed`, and `done`. `done` counts completed top-level items; `total` counts this attempt's items. Extraction starts with zero unknown entry counts until its producer supplies archive entry counts and reports unpacked bytes through `OpMsg::JobEntries`, without changing the wire. `file` is the current item's name; `itemBytes` is its known size. `bytes` is cumulative progress and `totalBytes` is the settled byte total, with zero meaning unknown. `rate` is bytes per second and `left` is estimated seconds or null when no estimate is available. A background action has null byte fields and a file-count bar. Empty Trash has null byte fields and counts successfully deleted filesystem nodes, including descendants, against the reviewed recursive total. Its initial total is zero until the worker reads the confirmation. It retains the current top-level item's reviewed size in `itemBytes`; `left` uses deleted nodes and elapsed time. Its terminal legacy replies still count top-level Trash entries, cancellation keeps completed deletions, and retry requires a fresh Trash confirmation.
 
 Copies, moves, compressions, and extractions are queued in arrival order per destination filesystem. The device is resolved off the request loop, following a symlinked target. Btrfs subvolumes share the mount's source key because their anonymous `st_dev` values can differ. Separate destination filesystems run concurrently. A waiting copy uses `Copy 8 items to NAS` and names its predecessor in `reason`, for example `waiting for the copy to NAS`. Cancellation addresses only the named job, including a queued job. `transfercancel` also reaches jobs with that id, including compression. A clean shutdown cancels queued and running jobs through the existing drain.
@@ -3293,9 +3386,9 @@ Executable regular files directly under `$XDG_CONFIG_HOME/flea/scripts` remain A
 
 ## AirDrop sends (0.4.1)
 
-`{"c":"airdrop","op":"send","id":1,"peer":"3a9f0c2be41d","paths":["/home/u/a.png"]}` sends the files to one
-AirDrop device by the service ID `owly browse` printed before its name, since two devices can share a name, as a
-`send` job: the backend runs
+`{"c":"airdrop","op":"send","id":1,"peer":"3a9f0c2be41d","name":"Jane's iPhone","paths":["/home/u/a.png"]}` sends the
+files to one AirDrop device by the service ID `owly browse` printed before its name, since two devices can share a name,
+as a `send` job headed by `name` (the service ID when `name` is absent or empty): the backend runs
 `owly send --to=<peer> -- <paths>`, turns its `<sent> / <total> bytes` progress into job progress, and kills it on
 `{"c":"jobs","op":"cancel","id":<job>}`. It answers one line when the job ends:
 
@@ -3304,10 +3397,29 @@ AirDrop device by the service ID `owly browse` printed before its name, since tw
 `code` is `delivered`, `declined` (the device refused), `failed` (with owly's own `reason`), `cancelled`, `missing`
 (owly is not on PATH) or `stale` (a path is gone). The window owns the radio, the receiver and discovery: it runs
 `owly doctor --json`, `owly radio up --for 600`, `owly receive --dir <folder>` and `owly browse` itself, and the
-backend's `providers` facts name `owly`'s path. When the receiver or the radio exits, the window takes both down and
-says owly's reason unless the ten minutes ran out. The receiver asks `accept? [y/N]` for each incoming request; the window
-answers it from a notification with Accept and Decline buttons, and anything but Accept within 12 s declines; the
-window then closes that notification by its id. [owly](https://github.com/t4t5/owly) is MIT, by Tristan (t4t5).
+backend's `providers` facts name `owly`'s path. The machine has one radio: the window that turns it on holds an
+exclusive lock on `$XDG_RUNTIME_DIR/flea/airdrop.lock` (with `FLEA_AIRDROP_DIR` set, the three files sit directly in that
+directory) and writes `airdrop.state` beside it, three lines: its token, `starting` or `on`, and the card. Every other
+window reads that state, browses and sends over it, and asks the owner to stop by writing the owner's token to
+`airdrop.stop`, which the owner checks once a second. A window reads the state, asks a stop, withdraws one, takes the
+lock and writes or removes its own state off its own thread on the background executor, each after the one it asked
+before; the look before a Receiving On takes the lock when no radio is up, and gives it back if that On does not start
+the radio. A read that a later Receiving choice
+overtook never lands: a Receiving On waiting for it is dropped, the once-a-second look waits for its next second, and
+a menu or Settings look is taken again. A Receiving Off while an On waits asks the stop again, a shut menu drops a menu
+open still waiting for its read, and a stop asked just before the window closes, Flea quits or Flea is ended by
+SIGTERM, SIGINT or SIGHUP is still written, Flea waiting up to 1 s for it as it exits. The owner's withdrawal removes
+the state before releasing the lock; the lock stays held until the stopped radio has exited, and a Receiving On asked
+meanwhile starts once it has, under the same lock. When the receiver or the
+radio exits, the window takes both down and says owly's reason unless the ten minutes ran out. A window that closes, a
+quit, and a Flea ended by SIGTERM, SIGINT or SIGHUP (each one still at its default action when the first owly run
+started, the first stop was asked or Receiving was first set to On, whichever came first) send
+SIGTERM to every owly run and wait up to 5 s for them to exit, which gives Wi-Fi back. The receiver asks
+`accept? [y/N]` for each incoming request; the window answers it from a notification with Accept and Decline buttons,
+and anything but Accept within 12 s declines; the window then closes that notification by its id. The footer names
+each file the receiver saved (several within 2 s as one count) and each link it was sent (shown, never opened), and
+says when a transfer failed or the sender withdrew its request. [owly](https://github.com/t4t5/owly) is MIT, by
+Tristan (t4t5).
 
 ## Checked rclone sends (0.4.0)
 
@@ -3365,7 +3477,7 @@ while this snapshot is held. Backend row and explicit-path requests for either
 ambiguous identity are refused with `where:"contentsidentity"` before resolution.
 An adapter must refuse external open, reveal, clipboard, drag and operation
 dispatch for these rows; it must never construct an operation path from display
-text. The shared `ui_logic_sr1` parser validates metadata for both front ends.
+text. The shared `ui_logic_file_search` parser validates metadata for both front ends.
 This producer does not enable either adapter's contents capability.
 
 `searchcancel` and `searchclose` stop and reap the running jail, including startup.

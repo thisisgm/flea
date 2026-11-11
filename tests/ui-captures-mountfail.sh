@@ -3,6 +3,15 @@
 # The scope polkit trusts: an ssh-started process is an inactive subject, so loop-setup, unmount and loop-delete run in the graphical slice like Flea.
 cap_mountfail_wrap=(systemd-run --user --scope --quiet --slice=app-graphical.slice)
 
+# The manager is on the real user bus; only its child keeps the fixture's isolated bus and runtime.
+cap_mountfail_scope() {
+    local runtime="/run/user/$(id -u)"
+    local -a session=("--setenv=XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR")
+    [[ -z "${DBUS_SESSION_BUS_ADDRESS-}" ]] || session+=("--setenv=DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS")
+    env XDG_RUNTIME_DIR="$runtime" DBUS_SESSION_BUS_ADDRESS="unix:path=$runtime/bus" \
+        "${cap_mountfail_wrap[@]}" "${session[@]}" "$@"
+}
+
 # Builds the 64 MiB image at a new absolute IMG and prints its filesystem (btrfs, else ext4); blkid drops a bad checksum, so only what the kernel alone reads is broken.
 cap_mountfail_image() {
     local img="$1" fs="" seen=""
@@ -47,7 +56,7 @@ PY
 # Attaches IMG read-only through udisks and prints its /dev/loopN.
 cap_mountfail_attach() {
     local img="$1" out="" dev=""
-    out=$("${cap_mountfail_wrap[@]}" udisksctl loop-setup --no-user-interaction -r -f "$img" 2>&1) || { printf 'cap_mountfail_attach: loop-setup refused: %s\n' "$out" >&2; return 1; }
+    out=$(cap_mountfail_scope udisksctl loop-setup --no-user-interaction -r -f "$img" 2>&1) || { printf 'cap_mountfail_attach: loop-setup refused: %s\n' "$out" >&2; return 1; }
     # Sample input: "Mapped file /home/flea-sandbox/x/disk.img as /dev/loop3."
     dev=$(sed -n 's/.* as \(\/dev\/loop[0-9][0-9]*\)\.$/\1/p' <<< "$out" | head -n 1)
     [[ "$dev" =~ ^/dev/loop[0-9]+$ ]] || { printf 'cap_mountfail_attach: no loop device in [%s]\n' "$out" >&2; return 1; }
@@ -58,8 +67,8 @@ cap_mountfail_attach() {
 cap_mountfail_cleanup() {
     local dev="$1" box="$2"
     if [[ "$dev" =~ ^/dev/loop[0-9]+$ ]]; then
-        "${cap_mountfail_wrap[@]}" udisksctl unmount --no-user-interaction -b "$dev" >/dev/null 2>&1 || true
-        "${cap_mountfail_wrap[@]}" udisksctl loop-delete --no-user-interaction -b "$dev" >/dev/null 2>&1 \
+        cap_mountfail_scope udisksctl unmount --no-user-interaction -b "$dev" >/dev/null 2>&1 || true
+        cap_mountfail_scope udisksctl loop-delete --no-user-interaction -b "$dev" >/dev/null 2>&1 \
             || printf 'CAP NOTE mountfail: %s was not detached; run udisksctl loop-delete -b %s\n' "$dev" "$dev"
     fi
     sandbox_remove "$box"

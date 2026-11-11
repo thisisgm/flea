@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import re
 import signal
+import stat
 import subprocess
 import sys
 import tempfile
@@ -14,7 +15,8 @@ import tomllib
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
 from flea_ipc import Client
-IPC = Client("qs")
+frontend = os.environ.get("FLEA_TEST_FRONTEND", "gpui")
+IPC = Client(os.environ.get("FLEA_BIN", "flea"), frontend=frontend)
 IPC.export()
 import gi
 gi.require_version("Gio", "2.0")
@@ -70,15 +72,25 @@ def socket_fits(runtime):
 
 
 def private_runtime(parent):
-    # The fixture root sits too deep for a socket path, so each picker run takes a private dir in the suite's run root.
-    made = Path(tempfile.mkdtemp(prefix="picker-run-", dir=parent))
-    if not socket_fits(made):
-        raise AssertionError(f"picker runtime dir is too deep for an IPC socket: {made}")
-    return made
+    # Keep sockets beneath an owned marked ancestor when the evidence directory is too deep.
+    for candidate in (parent, *parent.parents):
+        info = candidate.lstat()
+        marker = candidate / ".flea-test-sandbox"
+        if (candidate.resolve() != candidate or info.st_uid != os.getuid()
+                or stat.S_IMODE(info.st_mode) != 0o700 or not marker.is_file()
+                or marker.is_symlink() or not socket_fits(candidate / "pkr.xxxxxxxx")):
+            continue
+        made = Path(tempfile.mkdtemp(prefix="pkr.", dir=candidate))
+        (made / ".flea-test-sandbox").write_text("private picker runtime\n")
+        if not socket_fits(made):
+            raise AssertionError(f"picker runtime dir is too deep for an IPC socket: {made}")
+        return made
+    raise AssertionError(f"picker has no owned marked runtime ancestor: {parent}")
 
 
 runtime = private_runtime(run_root)
 picker_env["XDG_RUNTIME_DIR"] = str(runtime)
+picker_env["FLEA_FRONTEND"] = frontend
 # Quickshell finds the compositor under the runtime dir, which the private one hides; a short alias keeps the socket path inside sockaddr_un.
 instance = Path(drive_env["XDG_RUNTIME_DIR"]) / "hypr" / drive_env["HYPRLAND_INSTANCE_SIGNATURE"]
 if not instance.is_dir():
@@ -150,7 +162,16 @@ def owned_window():
         raise AssertionError("owned picker window missing or ambiguous")
     # Sample input: b"HOME=/fixture/home\0FLEA_PICKER_REPLY=/fixture/run/reply\0".
     environment = dict(row.split(b"=", 1) for row in Path(f"/proc/{picker_pid}/environ").read_bytes().split(b"\0") if b"=" in row)
-    reply = Path(os.fsdecode(environment.get(b"FLEA_PICKER_REPLY", b""))).resolve()
+    if frontend == "gpui":
+        # The native chooser receives the reply path as argv, not the QML environment field.
+        arguments = Path(f"/proc/{picker_pid}/cmdline").read_bytes().rstrip(b"\0").split(b"\0")
+        binary = Path(picker_env["FLEA_GUI_BIN"]).resolve(strict=True)
+        if (len(arguments) != 3 or arguments[:2] != [os.fsencode(binary), b"--pick"]
+                or Path(f"/proc/{picker_pid}/exe").resolve(strict=True) != binary):
+            raise AssertionError("picker window is not the direct candidate chooser")
+        reply = Path(os.fsdecode(arguments[2])).resolve()
+    else:
+        reply = Path(os.fsdecode(environment.get(b"FLEA_PICKER_REPLY", b""))).resolve()
     if not reply.is_relative_to(runtime) or environment.get(b"HOME") != os.fsencode(theme_home):
         raise AssertionError("picker window has foreign reply or theme inputs")
     if environment.get(b"FLEA_BIN") != os.fsencode(picker_env["FLEA_BIN"]):
@@ -158,10 +179,16 @@ def owned_window():
     return found[0]
 
 
-def state():
+def picker_read(function):
     owned_window()
+    # The public chooser is independently authenticated, outside the parent window's test route.
+    command = [picker_env["FLEA_BIN"], "ipc"] if frontend == "gpui" else IPC.command()
+    return json.loads(run([*command, "--pid", picker_pid, "call", "fleapicker", function], picker_env, 5))
+
+
+def state():
     # Sample input: {"view":"grid","marksBusy":false,"marks":[],"themeLoaded":true,"themeForeground":"#dfe8e0"}.
-    return json.loads(run([*IPC.command(), "--pid", picker_pid, "call", "fleapicker", "snapshot"], picker_env, 5))
+    return picker_read("snapshot")
 
 
 def capture_state(mode):
@@ -263,8 +290,7 @@ try:
 
     # Sample input: {"focus":{"kind":"DialogButton","name":"Open","x":900,"y":700,"via":"owner"},"controls":[{"kind":"DialogButton","name":"Open","x":900,"y":700,"w":80,"h":30,"hovered":true,"hoverable":true}]}
     def controls():
-        owned_window()
-        return json.loads(run([*IPC.command(), "--pid", picker_pid, "call", "fleapicker", "cohesionControls"], picker_env, 5))
+        return picker_read("cohesionControls")
 
     def sig(entry):
         return f"{entry['kind']}|{entry['name']}|{entry['x']}|{entry['y']}" if entry else "none"

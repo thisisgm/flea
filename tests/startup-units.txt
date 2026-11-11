@@ -179,4 +179,5 @@ js/TrashDates.js
 js/UiState.js
 js/Update.js
 js/UserDirs.js
-bytes 1782973
+# Re-derived for 0.4.2 with the same 180 units: js/Keymap.js grew by its print rows, Ctrl print hint and 14261ccb3's regenerated rows (+347 bytes), js/SettingsAbout.js by the release kind.
+bytes 1784487

@@ -1,3 +1,4 @@
+use flea::bytename::ExactText as _;
 use super::{
     input::Key,
     model::Model,
@@ -29,7 +30,14 @@ pub fn edit(m: &mut Model, key: &Key, w: &mut Wire) -> io::Result<()> {
         }
         return Ok(());
     }
-    if key.name == "Return" || key.name == "Enter" {
+    // Only a plain Return or keypad Enter commits; Shift, Ctrl or Alt with Return leaves the line as it is.
+    if matches!(key.name.as_str(), "Return" | "Enter") && !key.mods.is_empty() {
+        m.editor = Some(editor);
+        return Ok(());
+    }
+    // Down on a typing Find or Filter line commits it without acting on a row, so its results can be read first.
+    let browse = matches!(kind, "search" | "filter") && key.name == "Down" && key.mods.is_empty();
+    if key.name == "Return" || key.name == "Enter" || browse {
         if !editor.valid_localized(&m.i18n) {
             m.editor = Some(editor);
             return Ok(());
@@ -38,7 +46,11 @@ pub fn edit(m: &mut Model, key: &Key, w: &mut Wire) -> io::Result<()> {
         match kind {
             "path" => {
                 let home = PathBuf::from(std::env::var("HOME").unwrap_or_default());
-                let p = super::completion::expand(value, &home, &editor.path);
+                let p = super::completion::lexical(&super::completion::expand(
+                    value,
+                    &home,
+                    &editor.path,
+                ));
                 super::actions::navigate(m, p, w)?;
             }
             "findPrevious" => super::finder::query(m, value.clone(), true, w)?,
@@ -56,7 +68,7 @@ pub fn edit(m: &mut Model, key: &Key, w: &mut Wire) -> io::Result<()> {
             "rename" => {
                 w.send(vec![
                     ("c", word("rename")),
-                    ("path", word(&editor.path.to_string_lossy())),
+                    ("path", word(&editor.path.exact_text())),
                     ("to", word(value)),
                 ])?;
             }
@@ -72,8 +84,11 @@ pub fn edit(m: &mut Model, key: &Key, w: &mut Wire) -> io::Result<()> {
                     ("c", word(if folder { "mkdir" } else { "newfile" })),
                     ("op", word("newFile")),
                     ("id", super::wire::number(m.action_id)),
-                    ("path", word(&editor.path.to_string_lossy())),
-                    ("name", word(if default_base.is_some() { "" } else { name })),
+                    ("path", word(&editor.path.exact_text())),
+                    (
+                        "name",
+                        word(if default_base.is_some() { "" } else { name }),
+                    ),
                 ];
                 if let Some(base) = default_base {
                     fields.push(("defaultBase", word(base)));
@@ -86,7 +101,11 @@ pub fn edit(m: &mut Model, key: &Key, w: &mut Wire) -> io::Result<()> {
             editor.pending = true;
             m.editor = Some(editor);
         }
-        return Ok(());
+        return if browse {
+            Ok(())
+        } else {
+            enter_once::arm(m, kind, w)
+        };
     } else if key.name == "Tab" && kind == "path" {
         if !m.completion.is_empty() {
             editor.replace(m.completion.clone());
@@ -94,7 +113,10 @@ pub fn edit(m: &mut Model, key: &Key, w: &mut Wire) -> io::Result<()> {
     } else if key.name == "G" && key.mods == "ctrl" && kind == "search" {
         m.find.mode = !m.find.mode;
     } else if key.name == "Tab" && kind == "search" {
-        m.find.session.scope = m.find.session.next_scope();
+        // Tab skips a scope that would search this same folder again; with none left the scope stays.
+        if let Some(scope) = super::prompts::tab_scope(&m.find.session, &editor.path) {
+            m.find.session.scope = scope;
+        }
     } else {
         editor.update(key);
     }
@@ -109,3 +131,6 @@ pub fn edit(m: &mut Model, key: &Key, w: &mut Wire) -> io::Result<()> {
     m.editor = Some(editor);
     Ok(())
 }
+
+#[path = "enter_once.rs"]
+pub(super) mod enter_once;

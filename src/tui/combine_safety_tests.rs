@@ -1,7 +1,6 @@
 //! Collision, source replacement and both asynchronous cancellation handoffs use private files.
 use super::super::input::Key;
 use super::*;
-use std::os::unix::fs::PermissionsExt;
 
 pub(super) fn run(root: &Path) {
     let paths = fixture(root);
@@ -118,7 +117,7 @@ fi
 exec /usr/bin/bwrap "$@"
 "#;
     std::fs::write(&path, script).unwrap();
-    std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o755)).unwrap();
+    flea::executable_file::write(&path, &std::fs::read(&path).unwrap(), 0o755).unwrap();
 }
 
 fn epoch_change(root: &Path) {

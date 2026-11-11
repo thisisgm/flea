@@ -29,6 +29,10 @@ impl Shell {
         if self.view != super::super::startup::View::Columns {
             return;
         }
+        // A typing line drawn over the track opens its own text menu.
+        if event.button == MouseButton::Right && self.text_line_at(event.position) {
+            return;
+        }
         self.columns_scroll_hold(side, event.position);
         // Carry25's card gate stops only a carry landing; a plain press keeps the gate Columns had before carry.
         let blocked = self.input_blocked(cx);
@@ -84,8 +88,8 @@ impl Shell {
             && event.button == MouseButton::Left
             && !blocked
             && !cx
-                .try_global::<crate::g2::dg1::carry::Carrying>()
-                .is_some_and(|carrying| carrying.carry.active())
+                .try_global::<crate::g2::file_clipboard::carry::Carrying>()
+                .is_some_and(|carrying| carrying.active())
         {
             return;
         }
@@ -120,8 +124,8 @@ impl Shell {
         }
         if event.button == MouseButton::Left {
             if let Some(carrying) = cx
-                .try_global::<crate::g2::dg1::carry::Carrying>()
-                .filter(|carrying| carrying.carry.active())
+                .try_global::<crate::g2::file_clipboard::carry::Carrying>()
+                .filter(|carrying| carrying.active())
             {
                 host.input.press = None;
                 if blocked {
@@ -129,7 +133,7 @@ impl Shell {
                 }
                 let dest = if view.slot == Slot::Active {
                     let carried = carrying.source_rows(window, side, host);
-                    crate::g2::dg2::join::row_spot(host, row.as_ref().map(|_| index), carried)
+                    crate::g2::drag_drop::join::row_spot(host, row.as_ref().map(|_| index), carried)
                 } else {
                     match row.as_ref() {
                         Some((name, true)) => crate::navigation::history::join(&view.path, name),
@@ -162,7 +166,7 @@ impl Shell {
                 };
                 self.columns_neighbour_menu(
                     side,
-                    crate::g2::mn1::target::PathMenu {
+                    crate::g2::context_menus::target::PathMenu {
                         base: view.path.clone(),
                         row: facts,
                     },

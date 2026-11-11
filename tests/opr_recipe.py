@@ -40,6 +40,7 @@ def controls(text):
     cases = {
         "release fields may change": (release, True),
         "a dependency may not change": (text.replace("depends=(\n", "depends=(\n  'drift'\n", 1), False),
+        "a conflict may not change": (text.replace("conflicts=(", "conflicts=('drift' ", 1), False),
         "code after pkgver is refused": (re.sub(r"(?m)^pkgver=(.*)$", r"pkgver=\1; true", text), False),
         "a SKIP checksum is refused": (SHA256SUMS.sub("sha256sums=('SKIP')", text), False),
         "an unparsable checksum is refused": (SHA256SUMS.sub("sha256sums=(" + "a" * 40 + "!)", text), False),

@@ -1,7 +1,7 @@
 use super::*;
 use crate::backend::archivework::last_jail;
 use crate::backend::proto::{parse_request, Request};
-use flea::ui_logic_pv2::office::{parse, Wire};
+use flea::ui_logic_doc_preview::office::{parse, Wire};
 
 #[path = "officesheets_guard_tests.rs"]
 mod guard;
@@ -83,7 +83,7 @@ fn officesheets_parses_as_the_office_request_in_sheets_mode() {
             ..
         }
     ));
-    let asked = flea::ui_logic_pv2::office::request_line(7, "/d/a \"b\".xlsx", true);
+    let asked = flea::ui_logic_doc_preview::office::request_line(7, "/d/a \"b\".xlsx", true);
     assert!(
         matches!(parse_request(&asked), Request::OfficePdf { id: 7, ref path, sheets: true } if path == "/d/a \"b\".xlsx")
     );

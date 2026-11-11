@@ -121,7 +121,8 @@ pub fn prepare(
     } else {
         per_line as f64
     };
-    let caption = captions::grid_caption(&row.name, budget, count as f64).into_owned();
+    let shown = crate::row::shown_name(&row.name);
+    let caption = captions::grid_caption(&shown, budget, count as f64).into_owned();
     let mut lines = Vec::with_capacity(count);
     let mut at = 0;
     for text in caption.split('\n') {
@@ -135,10 +136,7 @@ pub fn prepare(
             window,
         ));
     }
-    let elided = !caption
-        .split('\n')
-        .flat_map(str::chars)
-        .eq(row.name.chars());
+    let elided = !caption.split('\n').flat_map(str::chars).eq(shown.chars());
     Tile {
         name: row.name.clone(),
         icon: row.icon.clone(),

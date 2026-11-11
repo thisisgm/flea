@@ -160,7 +160,8 @@ pub(super) fn find(m: &mut Model, wire: &mut Wire, value: &str) -> io::Result<()
         .as_mut()
         .expect("real Ctrl+G Find")
         .replace(value.into());
-    actions::key(m, &Key::named("Enter", ""), &map, wire)
+    // Down commits the line and only shows the results; one Enter would also open the first of them.
+    actions::key(m, &Key::named("Down", ""), &map, wire)
 }
 #[test]
 fn tui_contents_real_process_finds_text_and_pages() {
@@ -231,11 +232,11 @@ fn tui_contents_real_process_cancels_the_shared_worker() {
     if crate::backend::sandboxprobe::skipped() {
         return;
     }
-    use std::os::unix::fs::PermissionsExt;
+
     let root = Root::new();
     let tool = root.0.join("tools/rg");
     std::fs::write(&tool, "#!/bin/sh\nexec /usr/bin/sleep 30\n").unwrap();
-    std::fs::set_permissions(&tool, std::fs::Permissions::from_mode(0o700)).unwrap();
+    flea::executable_file::write(&tool, &std::fs::read(&tool).unwrap(), 0o700).unwrap();
     for program in ["bwrap", "prlimit"] {
         std::os::unix::fs::symlink(
             format!("/usr/bin/{program}"),

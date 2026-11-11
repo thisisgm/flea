@@ -1,4 +1,5 @@
 // Trash joins the listing's thumbnail queue only after its backing identity reads back.
+use flea::bytename::ExactText as _;
 use super::state::{State, Tables};
 use super::thumbcache::{Cache, Hit};
 use super::thumbs::{Job, Pool};
@@ -28,9 +29,11 @@ fn reply(out: &mut impl Write, id: usize, file: &str) {
 
 // Sample input: {"c":"trashthumb","id":41,"original":"/home/user/Pictures/photo.jpg","path":"/home/user/.local/share/Trash/files/photo.jpg","provider":"l2049:123","identity":"Identity { dev: 2049, ino: 123, size: 4096, mtime: 1760000000, nanos: 0, mode: 33188 }|Identity { dev: 2049, ino: 124, size: 64, mtime: 1760000000, nanos: 0, mode: 33188 }","mtime":1760000000,"cacheOnly":false}
 fn inspect(line: &str, tb: &Tables) -> Option<(Reviewed, PathBuf, i64, String)> {
-    let path = PathBuf::from(field_str(line, "path")?);
+    let path = flea::bytename::exact(field_str(line, "path")?);
     let original = field_str(line, "original")?;
-    let mime = tb.mime.lookup(original.rsplit('/').next()?)?;
+    let mime = tb
+        .mime
+        .lookup(flea::bytename::display(&original).rsplit('/').next()?)?;
     if !mime.starts_with("image/") || tb.thumbs.for_mime(mime, &tb.aliases).is_none() {
         return None;
     }
@@ -80,7 +83,7 @@ pub(crate) fn request(
     let identity = reviewed.selection_identity();
     match cache.lookup_for(&path, mtime, tb.thumbs.fingerprint(), Some(&identity)) {
         Hit::Ready(file) => {
-            reply(out, id, &file.to_string_lossy());
+            reply(out, id, &file.exact_text());
             return;
         }
         Hit::Failed => {

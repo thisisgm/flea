@@ -271,3 +271,49 @@ fn tui_combine_cache_revision_uses_held_source_and_reuses_snapshot() {
     }
     super::combine_process_tests::scenario("cache-revision");
 }
+
+// Only a plain Space presses the focused button; Ctrl+Space presses nothing.
+#[test]
+fn tui_combine_space_presses_only_without_a_modifier() {
+    let (mut w, reader) = wire::echo_wire();
+    let mut m = model();
+    for (i, name) in [(7, "photo.png"), (8, "sunset.jpg")] {
+        m.rows.insert(i, entry(name, false, 99));
+    }
+    m.selected = [7, 8].into_iter().collect();
+    m.remember_selection();
+    for (focus, pressed) in [(7, "cancels"), (0, "starts")] {
+        actions::act(&mut m, "combine", &mut w).unwrap();
+        let id = m.action_id;
+        for line in [
+            r#"{"t":"menuaction","op":"snapshot","id":ID,"ok":true}"#,
+            r#"{"t":"menuaction","op":"validate","action":"combine","id":ID,"ok":true,"paths":["/work/a.png","/work/b.png"]}"#,
+        ] {
+            m.receive(
+                crate::jsondoc::parse(&line.replace("ID", &id.to_string())).unwrap(),
+                &mut w,
+            )
+            .unwrap();
+        }
+        m.combining.card.as_mut().unwrap().focus = focus;
+        press(&mut m, &mut w, Key::named("Space", "ctrl"));
+        assert!(
+            m.combining.card.is_some() && m.combining.run.is_none(),
+            "Ctrl+Space on focus {focus} presses nothing"
+        );
+        press(&mut m, &mut w, Key::named("Space", ""));
+        if focus == 7 {
+            assert!(m.combining.card.is_none(), "Space {pressed}");
+        } else {
+            assert!(m.combining.run.is_some(), "Space {pressed}");
+            m.receive(
+                crate::jsondoc::parse(r#"{"t":"error","where":"convert","msg":"source busy"}"#)
+                    .unwrap(),
+                &mut w,
+            )
+            .unwrap();
+        }
+        super::action_key_tests::drain(&mut w);
+    }
+    wire::finish(w, reader);
+}

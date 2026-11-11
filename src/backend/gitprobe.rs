@@ -1,4 +1,5 @@
 // Repository discovery never starts Git, and the status process sees only read-only mounts.
+use flea::bytename::ExactText as _;
 use super::gitstatus::budget::Budget;
 use super::{jail, regfile, sandbox};
 use std::io::Read;
@@ -128,7 +129,7 @@ pub fn argv(repo: &Repository) -> Vec<String> {
         at..at,
         [
             "--chdir".into(),
-            repo.root.to_string_lossy().into_owned(),
+            repo.root.exact_text().into_owned(),
             "--setenv".into(),
             "GIT_OPTIONAL_LOCKS".into(),
             "0".into(),

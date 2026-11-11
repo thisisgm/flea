@@ -1,6 +1,6 @@
 //! The production pane owns Filter040: its query line, the backend's `filtered` answer, the strip slot and the rows List and Grid draw.
 use crate::{
-    g2::sr2::{
+    g2::listing_filter::{
         filter::{Asked, Drawn, Filter, LineKey, PaneSeam},
         keys::{self, Classified},
         present,
@@ -235,7 +235,7 @@ impl Shell {
         }
         if let Some(generation) = entry.session() {
             if host.filter.input_generation != Some(generation) {
-                let input = crate::g2::sr2::input::FilterInput::new(
+                let input = crate::g2::listing_filter::input::FilterInput::new(
                     cx.weak_entity(),
                     side,
                     generation,
@@ -340,13 +340,20 @@ impl Shell {
                 true
             }
             _ => {
+                let vertical = match action {
+                    "cursorDown" | "cursorUp" => input::vertical_step(
+                        host,
+                        self.view == crate::window::startup::View::Grid,
+                        action == "cursorDown",
+                    ),
+                    _ => 0,
+                };
                 let page = (host.pane.visible_rows() / 2).max(1) as isize;
                 self.filter_update(
                     side,
                     |filter, pane| {
                         match action {
-                            "cursorDown" => filter.step(1, pane),
-                            "cursorUp" => filter.step(-1, pane),
+                            "cursorDown" | "cursorUp" => filter.step(vertical, pane),
                             "pageDown" => filter.step(page, pane),
                             "pageUp" => filter.step(-page, pane),
                             "cursorFirst" => filter.set_cursor_view(0, pane),

@@ -219,6 +219,52 @@ fn gone(pid: i32) -> bool {
     }
 }
 
+#[test]
+fn a_raw_named_argument_reaches_the_child_as_its_own_bytes() {
+    use flea::bytename::ExactText as _;
+    use std::io::Read;
+    use std::os::unix::ffi::OsStrExt;
+    let root = crate::backend::testdir::TestDir::new("jail-raw-arg");
+    let raw = root
+        .path()
+        .join(std::ffi::OsStr::from_bytes(b"part-\xff.txt"));
+    std::fs::write(&raw, b"raw").unwrap();
+    std::fs::write(root.path().join("part-\u{fffd}.txt"), b"twin").unwrap();
+    // Production argv starts with prlimit, which takes the nested branch; a bare program takes the other.
+    for wrapper in [
+        vec![],
+        vec![
+            crate::backend::sandbox::PRLIMIT.to_string(),
+            "--cpu=5".to_string(),
+        ],
+    ] {
+        let full: Vec<String> = wrapper
+            .into_iter()
+            .chain([
+                "/usr/bin/cat".to_string(),
+                "--".to_string(),
+                raw.exact_text().into_owned(),
+            ])
+            .collect();
+        let mut jailed = spawn_jailed(&full, |cmd| {
+            cmd.stdin(std::process::Stdio::null());
+            cmd.stdout(std::process::Stdio::piped());
+            cmd.stderr(std::process::Stdio::null());
+        })
+        .expect("plain cat jail did not start");
+        let mut seen = String::new();
+        jailed
+            .child
+            .stdout
+            .take()
+            .unwrap()
+            .read_to_string(&mut seen)
+            .unwrap();
+        assert!(jailed.child.wait().unwrap().success(), "{full:?}");
+        assert_eq!(seen, "raw", "{full:?}");
+    }
+}
+
 // Sample /proc/<pid>/cmdline: NUL-separated argv, so the token matches exactly one argument.
 fn proc_with_token(token: &str) -> bool {
     let procs = match std::fs::read_dir("/proc") {

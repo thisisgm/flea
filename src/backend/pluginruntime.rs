@@ -2,7 +2,7 @@
 use super::plugins::{self, Env, Installed};
 use flea::jsondoc::Json;
 use flea::plugin_runtime::{protocol, Config, Reply, Runtime};
-use flea::ui_logic_st2::{
+use flea::ui_logic_plugin_settings::{
     manifest::{Invalid, Manifest},
     wire,
 };

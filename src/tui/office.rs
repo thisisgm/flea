@@ -1,4 +1,5 @@
 // Office documents in the TUI preview: one officepdf request per source, the converted PDF handed to the page path.
+use flea::bytename::ExactText as _;
 use super::{
     graphics::Task,
     icons, job,
@@ -8,8 +9,8 @@ use super::{
     wire::{self, Wire},
 };
 use crate::jsondoc::{self, Json};
-use flea::ui_logic_pv2::office::{self as shared, Applied, Office};
-use flea::ui_logic_pv2::office_sniff;
+use flea::ui_logic_doc_preview::office::{self as shared, Applied, Office};
+use flea::ui_logic_doc_preview::office_sniff;
 use std::{
     fs::File,
     io,
@@ -123,7 +124,7 @@ impl Preview {
     }
     fn send(&mut self, path: &Path, wire: &mut Wire) -> io::Result<()> {
         self.issued += 1;
-        let text = path.to_string_lossy();
+        let text = path.exact_text();
         wire.send(vec![
             ("c", wire::word("officepdf")),
             ("id", wire::number(self.issued as usize)),
@@ -131,7 +132,7 @@ impl Preview {
         ])
     }
     fn ask(&mut self, path: &Path, generation: usize) {
-        self.doc.open(&path.to_string_lossy(), 0);
+        self.doc.open(&path.exact_text(), 0);
         self.subject = Some((path.into(), generation));
         self.capture(path);
     }
@@ -299,7 +300,7 @@ pub fn receive(m: &mut Model, value: &Json, _wire: &mut Wire) -> io::Result<()> 
     };
     let office = &mut m.preview_state.office;
     match office.doc.reply(&line) {
-        Applied::Pdf(path) => office.open_converted(PathBuf::from(path)),
+        Applied::Pdf(path) => office.open_converted(flea::bytename::exact(path)),
         Applied::Sniff => {
             let Some((path, _)) = office.subject.clone() else {
                 return Ok(());
@@ -357,7 +358,7 @@ pub fn page_drawn(pdf: &pdf::Pdf) -> bool {
 pub fn ready_pdf(state: &State) -> Option<PathBuf> {
     let office = &state.office;
     let ready = office.subject.is_some() && office.converted.is_some() && office.checked.is_some();
-    office.doc.pdf.as_ref().filter(|_| ready).map(PathBuf::from)
+    office.doc.pdf.as_ref().filter(|_| ready).map(flea::bytename::exact)
 }
 
 // The count of pages, sheets or slides, then the title and author of the converted PDF as facts rows; a converter that wrote no title or author gives none.

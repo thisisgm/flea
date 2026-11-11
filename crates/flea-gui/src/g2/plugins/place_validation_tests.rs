@@ -183,7 +183,8 @@ fn plugin_runtime_place_literal_text_window_bound_and_sort_use_the_normal_wire()
         panic!("sort replies")
     };
     assert!(matches!(
-        flea::protocol::parse_reply(&flea::ui_logic_st2::wire::compact(&sorted[1])).unwrap(),
+        flea::protocol::parse_reply(&flea::ui_logic_plugin_settings::wire::compact(&sorted[1]))
+            .unwrap(),
         flea::protocol::Reply::Rows { .. }
     ));
     assert_eq!(model.rows[0].name, "Photos");

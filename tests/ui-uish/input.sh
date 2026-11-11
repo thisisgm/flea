@@ -109,7 +109,7 @@ case_shiftscroll() {
 }
 
 case_overlays() {
-    local dir="$fixture_root/overlays" mode n cx cy wx wy before after
+    local dir="$fixture_root/overlays" mode n cx cy wx wy before after menu_row menus_checks=0
     views_fixture "$dir"
     launch "$dir"
     wait_listing 406
@@ -129,21 +129,26 @@ case_overlays() {
         key -k Home >/dev/null
         settle
         [[ "$(ipc viewContentY)" == "0" ]] || fail "$mode: Home did not bring the view back to 0, it is $(ipc viewContentY)"
+        menu_row=$(ipc visibleRowName 2)
         click_row 2 right
         settle
-        [[ "$(ipc contextMenuVisible)" == "true" && "$(ipc cursor)" == "2" ]] || fail "$mode: a right click on row 2 opened no menu (visible $(ipc contextMenuVisible), cursor $(ipc cursor))"
+        shot "overlays-$mode-menu"
+        local menu_cursor=2
+        [[ "$mode" != columns ]] || menu_cursor=0
+        # Columns keeps the cursor where it was, so only the menu's own snapshot shows it opened on row 2.
+        [[ "$mode" != columns ]] || menus_expect menuState ".snapshotReady and .snapshotRowName == \"$menu_row\"" "columns: the menu acts on row 2, $menu_row"
+        [[ "$(ipc contextMenuVisible)" == "true" && "$(ipc cursor)" == "$menu_cursor" ]] || fail "$mode: a right click on row 2 opened no menu with the expected cursor (visible $(ipc contextMenuVisible), cursor $(ipc cursor))"
         before=$(ipc viewContentY)
         hover_row "$n"
         settle
         [[ "$(ipc rowHovered "$n")" == "false" ]] || fail "$mode: row $n lifted under the open menu"
-        shot "overlays-$mode-menu"
         omarchy-drive scroll down 3 >/dev/null
         settle
         after=$(ipc viewContentY)
         [[ "$after" == "$before" && "$(ipc contextMenuVisible)" == "true" ]] || fail "$mode: the wheel under the menu moved the view from $before to $after (menu $(ipc contextMenuVisible))"
         click_row_beside_menu "$n" left
         settle
-        [[ "$(ipc contextMenuVisible)" == "false" && "$(ipc cursor)" == "2" ]] || fail "$mode: the click outside the menu left it $(ipc contextMenuVisible) and moved the cursor to $(ipc cursor)"
+        [[ "$(ipc contextMenuVisible)" == "false" && "$(ipc cursor)" == "$menu_cursor" ]] || fail "$mode: the click outside the menu left it $(ipc contextMenuVisible) and moved the cursor to $(ipc cursor)"
         key -k Home >/dev/null
         settle
         printf 'OVERLAYS_DIAG %s before view=%s focus=%s settings=%s menu=%s path=%s\n' \

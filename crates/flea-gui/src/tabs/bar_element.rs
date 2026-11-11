@@ -154,6 +154,29 @@ impl Element for StripElement {
                     );
                     frame_box(window, inside, palette.foreground);
                 }
+                // 0401-tabs-icons-a: the folder's mark alone, centred, foreground on the current tab, muted frame ink elsewhere.
+                if let Some(icons) = &frame.icons {
+                    let mark = Bounds::new(
+                        point(
+                            x + (width - px(MARK)) / 2.,
+                            top + px((TAB_HEIGHT - MARK) / 2.),
+                        ),
+                        size(px(MARK), px(MARK)),
+                    );
+                    let glyph = icons.marks.get(index).copied().unwrap_or("folder");
+                    if let Some((key, data)) = crate::g2::rail_places::rows::glyph::svg(glyph) {
+                        let ink = palette.mark(current).opacity(fade);
+                        let _ = window.paint_svg(
+                            mark,
+                            key,
+                            Some(data),
+                            TransformationMatrix::unit(),
+                            ink,
+                            cx,
+                        );
+                    }
+                    continue;
+                }
                 let run = &labels.entries[*label].2;
                 let line = run.line();
                 let baseline = window.pixel_snap(

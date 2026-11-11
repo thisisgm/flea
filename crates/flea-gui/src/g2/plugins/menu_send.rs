@@ -1,17 +1,17 @@
 //! Built-in transports and external targets enter through their declared send contribution.
 use crate::{
     g2::{
-        mn1::join::{Captured, Chosen},
-        sd1::seams::ProviderState,
+        context_menus::join::{Captured, Chosen},
+        send_share::seams::ProviderState,
     },
     state::Shell,
 };
 use flea::{
     jsondoc::Json,
-    ui_logic_mn1::{entry::Text, Entry},
-    ui_logic_mn2::rows,
-    ui_logic_sd1::providers::Role,
-    ui_logic_st2::wire::Source,
+    ui_logic_context_menus::{entry::Text, Entry},
+    ui_logic_custom_actions::rows,
+    ui_logic_plugin_settings::wire::Source,
+    ui_logic_send_share::providers::Role,
 };
 use gpui::{Context, Window};
 use std::{
@@ -45,6 +45,29 @@ pub(crate) fn send_role(action: &str) -> Option<Role> {
             .find(|r| r.plugin_id() == id)
         })
     })
+}
+
+/// Built-in plugins retain the backend's captured target rules under their wire verbs.
+pub(crate) fn send_validation_verb(action: &str) -> &str {
+    if action.starts_with(PREFIX) {
+        send_role(action).map_or(action, |role| role.menu_id())
+    } else {
+        action
+    }
+}
+
+/// The backend validates `taildrop:` against the cursor alone, so Taildrop over a marked group keeps the plugin verb.
+pub(crate) fn validation_choice(action: &str, leaf: &str, cursor_in_targets: bool) -> String {
+    let verb = if cursor_in_targets && send_role(action) == Some(Role::Tailscale) {
+        action
+    } else {
+        send_validation_verb(action)
+    };
+    if leaf.is_empty() {
+        verb.to_owned()
+    } else {
+        format!("{verb}:{leaf}")
+    }
 }
 
 impl Shell {
@@ -86,7 +109,7 @@ impl Shell {
         }
         for row in entries.iter_mut() {
             if let Some(role) = builtin(&row.action) {
-                // The generic validation verb returns the selected files, including a marked set whose cursor is outside it.
+                // The menu contribution keeps its plugin identity; validation_choice picks the wire verb.
                 if matches!(role, Role::Tailscale | Role::AirDrop) {
                     row.action = format!("{PREFIX}{}", role.plugin_id()).into();
                 }

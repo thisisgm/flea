@@ -34,6 +34,7 @@ pub fn paths(list: &[&str]) -> Vec<String> {
 pub fn list_rows(dir: &str, n: usize) -> Vec<RowFacts> {
     (0..n)
         .map(|i| RowFacts {
+            source: None,
             depth: 0,
             open: false,
             name: format!("{dir}{i}"),

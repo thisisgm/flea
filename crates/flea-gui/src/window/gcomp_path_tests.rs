@@ -243,12 +243,12 @@ fn gcomp_batch6_toolbar_uses_the_real_u11_settings_and_folder_view_owner() {
                     "pane choice keeps global default"
                 );
                 assert_eq!(
-                    flea::ui_logic_st1::pages::at(data, &["folderViews", "/files"])
+                    flea::ui_logic_settings_pages::pages::at(data, &["folderViews", "/files"])
                         .and_then(Json::as_str),
                     Some("columns")
                 );
                 assert_eq!(
-                    flea::ui_logic_st1::pages::at(data, &["folderViews", "/other"])
+                    flea::ui_logic_settings_pages::pages::at(data, &["folderViews", "/other"])
                         .and_then(Json::as_str),
                     Some("columns")
                 );

@@ -1,3 +1,4 @@
+use flea::bytename::ExactText as _;
 use super::{terminal::Terminal, wire::{number, word, Wire}};
 use crate::backend::{ops::valid_name, regfile};
 use crate::oflags::O_NOFOLLOW;
@@ -40,9 +41,7 @@ impl Batch {
         Ok(Self { sources, pending: VecDeque::new(), completed: 0, total: 0, last: None, cancelled: false })
     }
     pub fn edit(&mut self, terminal: &mut Terminal) -> io::Result<()> {
-        let editor = std::env::var("VISUAL").ok().filter(|value| !value.trim().is_empty())
-            .or_else(|| std::env::var("EDITOR").ok().filter(|value| !value.trim().is_empty()))
-            .ok_or_else(|| failure("tui.batch.no_editor"))?;
+        let editor = super::external_editor::chosen().ok_or_else(|| failure("tui.batch.no_editor"))?;
         let document = self.sources.iter().map(|(path, _)| path.file_name().unwrap().to_str().unwrap()).collect::<Vec<_>>().join("\n") + "\n";
         let mut names = NamesFile::new(&document)?;
         let result = terminal.run_editor(&editor, &names.path).and_then(|_| {
@@ -83,8 +82,15 @@ impl Batch {
         Ok(())
     }
     pub fn send_next(&self, wire: &mut Wire, id: usize) -> io::Result<bool> {
-        let Some((path, name)) = self.pending.front().filter(|_| !self.cancelled) else { return Ok(false); };
-        wire.send(vec![("c", word("rename")), ("path", word(&path.to_string_lossy())), ("to", word(name)), ("menuId", number(id))])?;
+        let Some((path, name)) = self.pending.front().filter(|_| !self.cancelled) else {
+            return Ok(false);
+        };
+        wire.send(vec![
+            ("c", word("rename")),
+            ("path", word(&path.exact_text())),
+            ("to", word(name)),
+            ("menuId", number(id)),
+        ])?;
         Ok(true)
     }
     pub fn complete(&mut self, path: &str) -> io::Result<()> {

@@ -33,7 +33,7 @@ fn preview_quality_look_video_decoder_takes_the_card_device_pixels(cx: &mut Test
     });
     let want = crate::preview_quality::physical(
         f64::from(card.size.width),
-        f64::from(card.size.height) - f64::from(crate::g2::pv3::ink::size::STRIP),
+        f64::from(card.size.height) - f64::from(crate::g2::media_preview::ink::size::STRIP),
         1.5,
     );
     assert_eq!(

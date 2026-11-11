@@ -134,6 +134,8 @@ pub struct Ink {
     pub muted_frame: Hsla,
     pub accent: Hsla,
     pub accent_frame: Hsla,
+    /// Settings > View > Highlight on hover: the pointer's tile takes the 8% wash; the name tip shows either way.
+    pub hover_wash: bool,
 }
 
 impl Ink {
@@ -146,6 +148,7 @@ impl Ink {
             muted_frame: base.muted_frame,
             accent: base.accent,
             accent_frame: base.accent_frame,
+            hover_wash: false,
         }
     }
 }
@@ -214,6 +217,7 @@ struct Bold {
 
 /// Paint state the grid keeps across frames: shaped tiles, the drop labels, and what the last frame drew.
 pub struct GridState {
+    pub(crate) language_paint: std::cell::RefCell<Vec<crate::row::language_capture::Painted>>,
     pub font: Font,
     pub(crate) frame_held: Option<Rc<Held>>,
     tiles: TileCache,
@@ -236,6 +240,7 @@ impl GridState {
     pub fn new(font: Font) -> Self {
         Self {
             font,
+            language_paint: Default::default(),
             frame_held: None,
             tiles: TileCache::default(),
             labels: Default::default(),

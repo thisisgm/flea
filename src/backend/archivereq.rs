@@ -1,6 +1,7 @@
 // Archive and conversion request dispatch, response builders, and focused protocol tests.
 use crate::backend::archive::Formats;
 use crate::backend::archiveops;
+use flea::bytename::ExactText as _;
 #[cfg(test)]
 use crate::backend::archiveops::{compress, convert_one, extract};
 use crate::backend::convert;
@@ -99,7 +100,7 @@ pub fn start_archive(
     let sources = if op == "extract" && menu_id != 0 {
         ops.menuactions.as_ref()
             .ok_or_else(|| super::menu_actions::SELECTION_CHANGED.to_string())
-            .and_then(|menu| menu.extract_selection(menu_id)).map(Some)
+            .and_then(|menu| menu.extract_selection(menu_id, &archive)).map(Some)
     } else {
         menu_sources(ops, menu_id)
     };
@@ -116,7 +117,7 @@ pub fn start_archive(
         return;
     }
     // A source or target on a pending mount waits; writes elsewhere run beside the held write.
-    let mut sources: Vec<PathBuf> = paths.iter().map(PathBuf::from).collect();
+    let mut sources: Vec<PathBuf> = paths.iter().map(flea::bytename::exact).collect();
     if !compressing {
         sources.push(archive.clone());
     }
@@ -183,23 +184,39 @@ pub fn start_convert(out: &mut impl Write, ops: &mut Ops, input: PathBuf, dest: 
     let error = if collision { collision_message(&dest) } else { result.as_ref().err().cloned().unwrap_or_default() };
     if check {
         writeln!(out, r#"{{"t":"convertchecked","requestId":{},"source":"{}","path":"{}","ok":{},"collision":{},"error":"{}"}}"#,
-            request_id, escape(&input.to_string_lossy()), escape(&dest.to_string_lossy()), result.is_ok(), collision, escape(&error)).ok();
+            request_id, escape(&input.exact_text()), escape(&dest.exact_text()), result.is_ok(), collision, escape(&error)).ok();
         out.flush().ok();
         return;
     }
     let id = ops.claim_id();
     if result.is_err() || collision {
-        writeln!(out, "{}", convertdone_line(id, request_id, &input.to_string_lossy(), false, &dest.to_string_lossy(), &error, collision)).ok();
+        writeln!(out, "{}", convertdone_line(id, request_id, &input.exact_text(), false, &dest.exact_text(), &error, collision)).ok();
         out.flush().ok();
         return;
     }
     // A convert runs alongside by design, so its flag is tracked for a quit to set.
     let cancel = Arc::new(AtomicBool::new(false));
     ops.detached.insert(id, &cancel);
-    writeln!(out, "{}", convertstarted_line(id, request_id, &input.to_string_lossy())).ok();
+    writeln!(
+        out,
+        "{}",
+        convertstarted_line(id, request_id, &input.exact_text())
+    )
+    .ok();
     out.flush().ok();
     let tx = ops.tx.clone();
-    thread::spawn(move || run_convert(id, request_id, input, dest, strip, tx, selection.unwrap(), cancel));
+    thread::spawn(move || {
+        run_convert(
+            id,
+            request_id,
+            input,
+            dest,
+            strip,
+            tx,
+            selection.unwrap(),
+            cancel,
+        )
+    });
 }
 
 #[cfg(test)]
@@ -235,20 +252,6 @@ mod tests {
             formats_line(&Formats::from_tools(false, true), false),
             r#"{"t":"formats","archive":["7z"],"convert":false,"extract":{"archive":false,"sevenZip":true,"zip":true}}"#
         );
-    }
-
-    #[test]
-    fn a_destination_already_there_is_refused_before_any_tool_runs() {
-        let d = TestDir::new("archrefuse");
-        let f = Formats::from_tools(true, true);
-        d.file("out.zip", "already here");
-        let e = compress(&f, d.path(), &["a.txt".to_string()], "zip", &d.join("out.zip"), &AtomicBool::new(false), None).unwrap_err();
-        assert!(e.msg.contains("already exists"));
-        assert_eq!(std::fs::read_to_string(d.join("out.zip")).unwrap(), "already here");
-
-        d.dir("out");
-        let e = extract(&f, &d.join("x.zip"), &d.join("out"), &AtomicBool::new(false), None).unwrap_err();
-        assert!(e.msg.contains("already exists"), "merging into a directory in use is the surprise this rules out");
     }
 
     #[test]

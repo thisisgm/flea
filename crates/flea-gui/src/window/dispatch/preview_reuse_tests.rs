@@ -263,14 +263,15 @@ fn preview_quality_reuse_quick_look_jpeg_ends_on_sharp_full_source_frame(cx: &mu
     // A separate path keeps the negative control out of the preview's decode ledger.
     let reference = root.0.join("reference.jpg");
     std::fs::copy(root.0.join("big.jpg"), &reference).unwrap();
-    let bounded = crate::g2::pv1::raster::run(&crate::g2::pv1::raster::Job {
-        path: reference,
-        size: target,
-        epoch: 1,
-        latest: std::sync::Arc::new(std::sync::atomic::AtomicU64::new(1)),
-        raster: std::sync::Arc::new(|_, _| panic!("JPEG must use the bounded photo decoder")),
-    });
-    let crate::g2::pv1::raster::RasterOutcome::Raster(bounded) = bounded else {
+    let bounded =
+        crate::g2::quick_look_overlay::raster::run(&crate::g2::quick_look_overlay::raster::Job {
+            path: reference,
+            size: target,
+            epoch: 1,
+            latest: std::sync::Arc::new(std::sync::atomic::AtomicU64::new(1)),
+            raster: std::sync::Arc::new(|_, _| panic!("JPEG must use the bounded photo decoder")),
+        });
+    let crate::g2::quick_look_overlay::raster::RasterOutcome::Raster(bounded) = bounded else {
         panic!("the JPEG first-frame job decodes its bounded negative control");
     };
     assert_ne!(

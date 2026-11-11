@@ -20,7 +20,8 @@ const MIN_COMPONENTS: usize = 3;
 static NEXT: AtomicUsize = AtomicUsize::new(0);
 
 fn canonical_temp_root_allowed(root: &Path, home: &Path) -> bool {
-    root.is_absolute() && home.is_absolute()
+    root.is_absolute()
+        && home.is_absolute()
         && root.components().count() >= MIN_COMPONENTS - 1
         && !root.starts_with(home)
 }
@@ -48,8 +49,12 @@ pub struct TestDir {
 impl TestDir {
     // Panics rather than returning an error: a test that cannot make its sandbox must not go on to write anywhere.
     pub fn new(tag: &str) -> TestDir {
-        let root = temporary_root().unwrap_or_else(|| panic!(
-            "test temporary root {} must resolve to an absolute directory outside HOME", std::env::temp_dir().display()));
+        let root = temporary_root().unwrap_or_else(|| {
+            panic!(
+                "test temporary root {} must resolve to an absolute directory outside HOME",
+                std::env::temp_dir().display()
+            )
+        });
         Self::new_in(tag, &root)
     }
 
@@ -59,15 +64,22 @@ impl TestDir {
         let name = format!("{}{}-{}-{}", PREFIX, tag, std::process::id(), n);
         let path = root.join(name);
         std::fs::create_dir(&path).expect("test sandbox could not be created");
-        let rollback = UnmarkedDir::new(&path).inspect_err(|_| {
-            if path.is_absolute() && !path.as_os_str().is_empty() {
-                if let Err(error) = std::fs::remove_dir(&path) {
-                    eprintln!("test sandbox initialization left a directory behind: {}: {error}", path.display());
+        let rollback = UnmarkedDir::new(&path)
+            .inspect_err(|_| {
+                if path.is_absolute() && !path.as_os_str().is_empty() {
+                    if let Err(error) = std::fs::remove_dir(&path) {
+                        eprintln!(
+                            "test sandbox initialization left a directory behind: {}: {error}",
+                            path.display()
+                        );
+                    }
                 }
-            }
-        }).expect("hold the newly created test sandbox");
+            })
+            .expect("hold the newly created test sandbox");
         let mut marker = rollback.marker().expect("test sandbox marker");
-        marker.write_all(b"flea test sandbox\n").expect("test sandbox marker");
+        marker
+            .write_all(b"flea test sandbox\n")
+            .expect("test sandbox marker");
         rollback.disarm();
         TestDir { path, root }
     }
@@ -77,11 +89,21 @@ impl TestDir {
     }
 
     pub fn assert_contains(&self, path: &Path) {
-        assert!(removable_in(&self.path, &self.root), "test sandbox is not owned: {}", self.path.display());
-        assert!(!path.as_os_str().is_empty() && path.is_absolute()
-            && path.starts_with(&self.path)
-            && !path.components().any(|part| part == std::path::Component::ParentDir),
-            "test path escapes sandbox: {}", path.display());
+        assert!(
+            removable_in(&self.path, &self.root),
+            "test sandbox is not owned: {}",
+            self.path.display()
+        );
+        assert!(
+            !path.as_os_str().is_empty()
+                && path.is_absolute()
+                && path.starts_with(&self.path)
+                && !path
+                    .components()
+                    .any(|part| part == std::path::Component::ParentDir),
+            "test path escapes sandbox: {}",
+            path.display()
+        );
     }
 
     // Every test that names a file inside its sandbox goes through here, so no test builds a path by hand.
@@ -99,21 +121,11 @@ impl TestDir {
         self.executable(name, body.as_bytes(), 0o755)
     }
 
-    // Written by a child process: the fork's copy of a held write fd is what made exec fail with ETXTBSY. Any file that will be exec'd goes through here.
+    // Product and fixtures share the isolated writer, so no sibling fork inherits a writable executable.
     pub fn executable(&self, name: &str, body: &[u8], mode: u32) -> PathBuf {
         let p = self.join(name);
         self.assert_contains(&p);
-        let mut writer = std::process::Command::new("/bin/sh")
-            .arg("-c")
-            .arg("cat > \"$1\" && chmod \"$2\" \"$1\"")
-            .arg("sh")
-            .arg(&p)
-            .arg(format!("{mode:o}"))
-            .stdin(std::process::Stdio::piped())
-            .spawn()
-            .expect("test script writer");
-        writer.stdin.take().expect("test script writer stdin").write_all(body).expect("test script body");
-        assert!(writer.wait().expect("test script writer exit").success(), "test script not written: {}", p.display());
+        flea::executable_file::write(&p, body, mode).expect("test script writer");
         p
     }
 
@@ -131,8 +143,18 @@ impl TestDir {
         std::fs::remove_file(path).expect("test sandbox remove");
         std::fs::write(path, body).expect("test sandbox file");
         let now = path.symlink_metadata().expect("the replacement");
-        assert_ne!(old.ino(), now.ino(), "the replacement must have a new inode: {}", path.display());
-        assert_eq!(std::fs::read_to_string(path).expect("read the replacement"), body, "the replacement must hold the new body: {}", path.display());
+        assert_ne!(
+            old.ino(),
+            now.ino(),
+            "the replacement must have a new inode: {}",
+            path.display()
+        );
+        assert_eq!(
+            std::fs::read_to_string(path).expect("read the replacement"),
+            body,
+            "the replacement must hold the new body: {}",
+            path.display()
+        );
         drop(held);
     }
 }
@@ -149,8 +171,14 @@ fn removable_in(path: &Path, root: &Path) -> bool {
     if path.components().count() < MIN_COMPONENTS {
         return false;
     }
-    let Some(root) = allowed_root(root) else { return false; };
-    if !path.starts_with(root) || path.components().any(|part| part == std::path::Component::ParentDir) {
+    let Some(root) = allowed_root(root) else {
+        return false;
+    };
+    if !path.starts_with(root)
+        || path
+            .components()
+            .any(|part| part == std::path::Component::ParentDir)
+    {
         return false;
     }
     match path.file_name().and_then(|n| n.to_str()) {
@@ -169,7 +197,11 @@ impl Drop for TestDir {
             owner_can_write(&self.path);
             // Loud: a sandbox outliving its test is the state that left eleven roots on this box.
             if let Err(e) = std::fs::remove_dir_all(&self.path) {
-                eprintln!("flea test sandbox left behind: {}: {}", self.path.display(), e);
+                eprintln!(
+                    "flea test sandbox left behind: {}: {}",
+                    self.path.display(),
+                    e
+                );
             }
         }
     }
@@ -183,7 +215,9 @@ fn owner_can_write(root: &Path) {
     let Ok(dir) = open_dir(root) else { return };
     let held = PathBuf::from(format!("/proc/self/fd/{}", dir.as_raw_fd()));
     let _ = std::fs::set_permissions(&held, std::fs::Permissions::from_mode(0o700));
-    let Ok(entries) = std::fs::read_dir(&held) else { return };
+    let Ok(entries) = std::fs::read_dir(&held) else {
+        return;
+    };
     for entry in entries.flatten() {
         if !entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
             continue;
@@ -228,7 +262,12 @@ pub fn with_forking_siblings<T>(body: impl FnOnce() -> T) -> T {
                 while !stop.load(Ordering::Relaxed) {
                     let mut child = std::process::Command::new("/bin/true");
                     // SAFETY: the hook only sleeps and touches no shared state, and it runs in the forked child before exec.
-                    unsafe { child.pre_exec(|| { std::thread::sleep(SIBLING_HOLD); Ok(()) }); }
+                    unsafe {
+                        child.pre_exec(|| {
+                            std::thread::sleep(SIBLING_HOLD);
+                            Ok(())
+                        });
+                    }
                     child.status().expect("a sibling fork runs");
                 }
             });

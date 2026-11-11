@@ -13,7 +13,8 @@ fn a_columns_edit_drops_once_its_row_leaves_the_track(cx: &mut TestAppContext) {
 
 // A clashing rename keeps its editor open under the refusal: the frame and the refusal take the error ink, and the edited row grows so the row below clears the refusal.
 // The clashing draft's own send, and the refusal the backend answers with.
-const CLASH_SEND: &str = r#"{"c":"rename","path":"/files/notes.txt","to":"beta.md","menuId":0}"#;
+const CLASH_SEND: &str =
+    r#"{"c":"rename","path":"/files/notes.txt","to":"beta.md","menuId":0,"source":"1:2:32768"}"#;
 
 fn clash_refusal() -> BackendEvent {
     BackendEvent::Refused {
@@ -327,6 +328,15 @@ fn error_height_is_the_drawn_band(cx: &mut TestAppContext, view: View) {
         (reported - drawn).abs() < 0.01,
         "{view:?} reports the band it drew: {reported} against {drawn}"
     );
+    let state = flea::jsondoc::parse(&read(&shell, cx, "renameState", &[])).unwrap();
+    let height = |key| {
+        state
+            .get(key)
+            .and_then(flea::jsondoc::Json::as_f64)
+            .unwrap()
+    };
+    assert!(height("rowHeight") > height("normalRowHeight"), "{state:?}");
+    assert_eq!(height("currentRowHeight"), height("rowHeight"));
     close(&shell, cx);
 }
 

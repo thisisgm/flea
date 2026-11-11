@@ -49,7 +49,7 @@ TEXT
 # One IPC sample must satisfy the whole state immediately before its shot.
 cap_compare_shot() {
     local name="$1" filter="$2"
-    menus_expect compareState ".opened and .visible and .landed and .ready and .controls[0].label == \"Copy patch\" and .controls[1].label == \"Close\" and ($filter)" "$name"
+    menus_expect compareState ".opened and .visible and .landed and .ready and (if .controls[0].visible then .controls[0].label == \"Copy Patch\" else .controls[0].label == \"\" end) and .controls[1].label == \"Close\" and ($filter)" "$name"
     shot "$name"
 }
 
@@ -177,7 +177,7 @@ case_cap_compare() {
     cap_compare_shot compare-binary '.answer == "binary" and .sentence == "These files are binary, so there is nothing to compare." and .rows == [] and [.controls[] | select(.name == "copy") | .visible] == [false]'
     cap_compare_open "$dir/large" dump-a.log dump-b.log over 'dump-a.log and dump-b.log'
     cap_compare_point title
-    cap_compare_shot compare-large '.answer == "over" and .sentence == "These files are over 1 MiB, too large to compare." and .rows == [] and [.controls[] | select(.name == "copy") | .visible] == [false]'
+    cap_compare_shot compare-large '.answer == "over" and .sentence == "These files are over 1.0 MB, too large to compare." and .rows == [] and [.controls[] | select(.name == "copy") | .visible] == [false]'
     key -k Escape >/dev/null
     menus_expect compareState '.opened | not' "Escape closes Compare"
     printf 'CAP_COMPARE specimens=diff,identical,binary,large copy=rest,hover,focus,pressed,key close=rest,hover\n'

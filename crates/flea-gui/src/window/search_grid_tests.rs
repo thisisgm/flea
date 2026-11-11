@@ -4,6 +4,9 @@ use crate::{backend::Event as BackendEvent, window::startup::View};
 use flea::protocol::RowFacts;
 use gpui::TestAppContext;
 
+#[path = "search_long_query_tests.rs"]
+mod long_query;
+
 fn answer(cx: &mut TestAppContext, handle: Handle, generation: usize, names: &[&str]) {
     answer_at(cx, handle, generation, "/files", names);
 }
@@ -203,7 +206,7 @@ fn ey20_keystroke_cost_by_origin_view() {
             assert!(
                 names
                     .iter()
-                    .all(|name| crate::g2::sr1::run::run_in(name, &query).is_some()),
+                    .all(|name| crate::g2::file_search::run::run_in(name, &query).is_some()),
                 "timed answers must match the actual query {query:?}"
             );
         }

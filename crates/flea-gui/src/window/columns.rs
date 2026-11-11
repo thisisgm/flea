@@ -2,7 +2,7 @@
 use super::{pane::PaneHost, startup::View};
 use crate::{
     columns::{paint::Painters, peeks::Lens, preview_host::ThirdSwap, Area, PaneView, Ports},
-    g2::fb1::{hero::EmptyHero, state::StateMessage},
+    g2::status_feedback::{hero::EmptyHero, state::StateMessage},
     navigation::Navigator,
     pane::Pane,
     state::Shell,

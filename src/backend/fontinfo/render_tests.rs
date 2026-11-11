@@ -307,7 +307,7 @@ fn foreign_and_newer_sample_documents_survive_read_and_first_render() {
     let path = font(&d, "Inter.ttf");
     let ask = ask(&path);
     let root = d.dir("cache");
-    let key = key(&path, &path.metadata().unwrap(), &ask);
+    let key = key(&path, &path.metadata().unwrap(), &ask, &ask.text);
     let target = entry(&root, &key, 0);
     for original in ["{\"foreign\":true}", "{\"schemaVersion\":999}", "unparsable"] {
         std::fs::write(&target, original).unwrap();
@@ -318,4 +318,27 @@ fn foreign_and_newer_sample_documents_survive_read_and_first_render() {
         assert_eq!(std::fs::read_to_string(&target).unwrap(), original);
     }
     assert_eq!(rig.jobs.get(), 0);
+}
+
+// S1A-9: a font with no Latin letters draws a sample its cmap covers, under its own cache key, never a blank specimen.
+#[test]
+fn a_font_with_no_latin_letters_draws_a_sample_it_covers() {
+    let d = TestDir::new("font-georgian");
+    let rig = Rig::new();
+    let path = d.join("Georgian.ttf");
+    std::fs::write(
+        &path,
+        crate::backend::fontinfo::sample::tests::font_with(&[(0x20, 0x40), (0x10D0, 0x10FF)]),
+    )
+    .unwrap();
+    rig.run(&ask(&path), &d.join("cache"));
+    let seen = rig.seen.borrow();
+    let label = seen[0]
+        .iter()
+        .find(|a| a.starts_with("label:"))
+        .expect("a label");
+    assert!(
+        label.starts_with("label:\u{10D0}\u{10D1}"),
+        "the Georgian alphabet is drawn: {label}"
+    );
 }

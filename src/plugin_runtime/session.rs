@@ -1,6 +1,6 @@
 use super::{process::Process, protocol};
 use crate::jsondoc::Json;
-use crate::ui_logic_st2::manifest::{self, Manifest};
+use crate::ui_logic_plugin_settings::manifest::{self, Manifest};
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 use std::sync::{
@@ -289,7 +289,7 @@ fn exchange(
         if protocol::response(&message, expected.unwrap_or("done"))? {
             return Ok(Reply { message, progress });
         }
-        progress_bytes += crate::ui_logic_st2::wire::compact(&message).len();
+        progress_bytes += crate::ui_logic_plugin_settings::wire::compact(&message).len();
         if progress.len() == protocol::MAX_PROGRESS || progress_bytes > protocol::MAX_PROGRESS_BYTES
         {
             return Err("too many plugin progress messages".into());

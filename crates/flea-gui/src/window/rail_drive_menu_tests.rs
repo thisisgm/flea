@@ -24,11 +24,11 @@ fn choose(shell: &Entity<Shell>, keys: &str, cx: &mut VisualTestContext) {
 
 // Opens the device menu by `keys` and asserts its rows were painted in a native frame.
 fn open_painted(shell: &Entity<Shell>, keys: &str, cx: &mut VisualTestContext) -> Vec<String> {
-    crate::g2::mn1::element::PAINTED.with(|painted| painted.borrow_mut().clear());
+    crate::g2::context_menus::element::PAINTED.with(|painted| painted.borrow_mut().clear());
     cx.simulate_keystrokes(keys);
     native_frames(cx);
     assert!(
-        crate::g2::mn1::element::PAINTED.with(|painted| !painted.borrow().is_empty()),
+        crate::g2::context_menus::element::PAINTED.with(|painted| !painted.borrow().is_empty()),
         "{keys} paints the device menu"
     );
     menu_rows(shell, cx)
@@ -77,7 +77,7 @@ fn raildrive_flash_image_takes_the_keys_and_up_reaches_the_image_row(cx: &mut Te
     frame(cx);
     assert_eq!(
         shell.read_with(cx, |shell, _| shell.operations.archive.flash.park()),
-        crate::g2::op2::flash::Seat::Image,
+        crate::g2::archive_flash::flash::Seat::Image,
         "Up from the drive reaches Choose an image… before an image is chosen"
     );
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
@@ -168,6 +168,67 @@ fn raildrive_device_menu_mount_opens_an_unmounted_phone_through_gvfs(cx: &mut Te
     assert!(
         jobs.iter().any(|job| job == mount),
         "Mount opens the phone through GVFS: {jobs:?}"
+    );
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+#[gpui::test]
+fn fx_eject2_a_transfer_on_the_phone_refuses_its_unmount(cx: &mut TestAppContext) {
+    let (shell, service, cx) = root_devices(cx, PLACES, BLOCKS, PHONE);
+    let answer = |shell: &Entity<Shell>, line: &str, cx: &mut VisualTestContext| {
+        shell.read_with(cx, |shell, _| {
+            let backend = shell.panes[0].as_ref().unwrap().backend.as_ref().unwrap();
+            if line.starts_with(r#"{"c""#) {
+                backend.line(line.into()).unwrap();
+            } else {
+                backend.test_answered(line);
+            }
+        })
+    };
+    let moving = r#"{"c":"transfer","op":"move","paths":["/run/user/1000/gvfs/mtp:host=pixel/DCIM/a.jpg"],"dest":"/fixture/home"}"#;
+    answer(&shell, moving, cx);
+    answer(
+        &shell,
+        r#"{"t":"transferstarted","id":12,"n":1,"moving":true}"#,
+        cx,
+    );
+    let unmount = |shell: &Entity<Shell>, cx: &mut VisualTestContext| {
+        cx.simulate_keystrokes("m");
+        native_frames(cx);
+        choose(shell, "down enter", cx);
+    };
+    walk_to(&shell, "Pixel 8", cx);
+    unmount(&shell, cx);
+    let phone = |service: &FakeDevices| {
+        argv_lines(service)
+            .iter()
+            .filter(|job| *job == "gio mount -u mtp://pixel/")
+            .count()
+    };
+    assert_eq!(phone(&service), 0, "{:?}", argv_lines(&service));
+    let said = shell.read_with(cx, |shell, cx| {
+        let footer = shell.surfaces[0].footer.as_ref().unwrap().read(cx);
+        let line = footer.line.read(cx);
+        line.painted
+            .get("primary")
+            .map(|drawn| drawn.text.to_string())
+            .unwrap_or_default()
+    });
+    assert_eq!(
+        said, "A move on Pixel 8 is still running. Try again when it finishes.",
+        "the refusal names the move"
+    );
+    answer(
+        &shell,
+        r#"{"t":"transferdone","id":12,"ok":1,"failed":0}"#,
+        cx,
+    );
+    unmount(&shell, cx);
+    assert_eq!(
+        phone(&service),
+        1,
+        "the copy has ended: {:?}",
+        argv_lines(&service)
     );
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }

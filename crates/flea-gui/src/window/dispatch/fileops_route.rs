@@ -1,7 +1,9 @@
 //! The dd pair and where a trash key goes: Trash, the permanent review where there is none, or a refusal in a read-only folder.
 use super::ARM_OWNER;
 use crate::state::Shell;
-use flea::{keys::sequence::Seat, ui_logic_fb1::status::Hint, ui_logic_op1::trash};
+use flea::{
+    keys::sequence::Seat, ui_logic_file_ops::trash, ui_logic_status_feedback::status::Hint,
+};
 use gpui::Context;
 
 impl Shell {
@@ -10,14 +12,11 @@ impl Shell {
         let Some(host) = self.panes[side].as_ref() else {
             return;
         };
-        let has_trash = match self.fileops_route(side, &host.path) {
-            trash::Route::Refuse => {
-                // A refused press ends a pair armed before it, as a press in another seat would.
-                self.operations.fileops.disarm();
-                return self.fileops_no_trash(side, cx);
-            }
-            route => route == trash::Route::Trash,
-        };
+        if self.fileops_route(side, &host.path) != trash::Route::Trash {
+            self.operations.fileops.disarm();
+            self.keyboard.disarm();
+            return self.fileops_no_trash(side, cx);
+        }
         let now = host.pane.now();
         let held = &mut self.operations.fileops;
         // A pair belongs to one listing, cursor, view and pane; a press anywhere else arms again.
@@ -32,11 +31,7 @@ impl Shell {
         }
         let stamp = held.arm.stamp;
         let rows = self.fileops_targets(side).map_or(0, |(_, rows)| rows.len());
-        let prompt = if has_trash {
-            trash::trash_prompt(&self.locale.catalog, &self.fileops_preset(), rows)
-        } else {
-            trash::review_prompt(&self.locale.catalog, &self.fileops_preset())
-        };
+        let prompt = trash::trash_prompt(&self.locale.catalog, &self.fileops_preset(), rows);
         if let Some(host) = self.panes[side].as_mut() {
             host.status = prompt.clone().into();
         }
@@ -53,7 +48,10 @@ impl Shell {
             .as_ref()
             .and_then(|host| host.backend.as_ref())
             .is_none_or(|backend| backend.dir_writable(base));
-        trash::delete_route(flea::ui_logic_pl1::mounts::trashable(base, None), writable)
+        trash::delete_route(
+            flea::ui_logic_device_rail::mounts::trashable(base, None),
+            writable,
+        )
     }
 
     // Focus.js trashRefused: the key refuses in the error role before arming, naming the key that still deletes.

@@ -31,13 +31,27 @@ fn a_gio_that_fails_says_the_trash_could_not_be_read_and_logs_what_gio_said() {
     assert_logged(seen, "Could not start the Trash helper");
 }
 
+// One damaged line of each kind beside a good one, in gio 2.90.1's gio list shape: one bad item never hides the rest.
 #[test]
-fn a_listing_gio_garbled_says_the_trash_could_not_be_read_and_logs_which_line() {
-    for (text, detail) in [("bad", "The Trash helper returned an unreadable listing."), ("file:///x\t/x", "The Trash helper returned an invalid item identity."),
-        ("trash:///a\t/a\ntrash:///a\t/a", "The Trash helper returned duplicate item identities.")] {
+fn an_item_gio_cannot_describe_is_left_out_and_logged_and_the_rest_still_list() {
+    let good = "trash:///good.txt\t5\t(regular)\ttrash::orig-path=/tmp/good one.txt\n";
+    assert!(parse_list("").is_empty());
+    for (bad, left_out) in [
+        // No .trashinfo, an empty one, or one with no Path line: gio prints no orig-path at all.
+        ("trash:///bad.txt\t4\t(regular)\n", "trash:///bad.txt"),
+        ("trash:///bad.txt\t4\t(regular)\ttrash::orig-path=relative/bad.txt\n", "trash:///bad.txt"),
+        ("trash:///bad.txt\t4\t(regular)\ttrash::orig-path=/tmp/a\\x00b.txt\n", "trash:///bad.txt"),
+        ("trash:///bad.txt\t4\t(regular)\ttrash::orig-path=/tmp/a\\x0\n", "trash:///bad.txt"),
+        ("file:///x\t1\t(regular)\ttrash::orig-path=/x\n", "file:///x"),
+        ("trash:///\t1\t(regular)\ttrash::orig-path=/x\n", "trash:///"),
+        ("bad\n", "bad"),
+        ("trash:///d\t1\t(regular)\ttrash::orig-path=/a\ntrash:///d\t1\t(regular)\ttrash::orig-path=/b\n", "trash:///d"),
+        ("trash:///d\t1\t(regular)\ntrash:///d\t1\t(regular)\ttrash::orig-path=/b\n", "trash:///d"),
+    ] {
         let seen = logged().len();
-        assert_eq!(parse_list(text).unwrap_err().shown(), "The Trash could not be read.");
-        assert_logged(seen, detail);
+        let items = parse_list(&format!("{good}{bad}"));
+        assert_eq!(items, [Item { uri: "trash:///good.txt".into(), original: "/tmp/good one.txt".into() }], "{bad:?}");
+        assert_logged(seen, &format!("Trash left out what gio could not describe: {left_out}"));
     }
 }
 
@@ -54,7 +68,7 @@ fn a_gio_that_hit_its_deadline_says_the_trash_took_too_long() {
 #[test]
 fn every_selection_that_no_longer_holds_says_the_selection_changed_and_logs_why() {
     let sentence = "The Trash selection changed; select the items again.";
-    let mut session = Session { items: parse_list("trash:///a\t/tmp/a\n").unwrap(), ..Session::default() };
+    let mut session = Session { items: listed("trash:///a\t/tmp/a\n"), ..Session::default() };
     let seen = logged().len();
     assert_eq!(session.targets(r#"{"uris":["trash:///a"],"identities":[]}"#).unwrap_err(), sentence);
     assert_eq!(session.targets(r#"{"uris":["trash:///a"],"identities":[""]}"#).unwrap_err(), sentence);
@@ -139,7 +153,7 @@ fn a_record_that_will_not_read_after_the_confirmation_fails_its_item_and_the_res
     items.append(first_record.as_bytes()).unwrap();
     items.append(br#"{"uri":"trash:///b","original":"/original/b","size":7}"#).unwrap();
     items.append(third_record.as_bytes()).unwrap();
-    let confirmation = Confirmation { token: 1, items, trees, listing: Vec::new(), targets: Manifest::new(d.path()).unwrap(), count: 3, nodes: 3, all: false };
+    let confirmation = Confirmation { token: 1, items, trees, listing: Vec::new(), targets: Manifest::new(d.path()).unwrap(), count: 3, nodes: 3, all: false, sweep: Default::default() };
     let reply = delete(&confirmation, &d);
     assert!(reply.starts_with(r#""done":2,"failed":1,"failures":["#), "{reply}");
     assert!(reply.contains(r#""uri":"trash:///b""#) && reply.contains("One Trash record could not be read, so that item was left in place."), "{reply}");
@@ -155,7 +169,7 @@ fn a_record_with_no_text_or_frame_fails_with_an_empty_uri() {
     let mut items = Manifest::new(d.path()).unwrap();
     items.append(first_record.as_bytes()).unwrap();
     items.append(&[0xff]).unwrap();
-    let confirmation = Confirmation { token: 1, items, trees, listing: Vec::new(), targets: Manifest::new(d.path()).unwrap(), count: 2, nodes: 2, all: false };
+    let confirmation = Confirmation { token: 1, items, trees, listing: Vec::new(), targets: Manifest::new(d.path()).unwrap(), count: 2, nodes: 2, all: false, sweep: Default::default() };
     let reply = delete(&confirmation, &d);
     assert!(reply.starts_with(r#""done":1,"failed":1,"failures":[{"uri":"","#), "{reply}");
     assert!(!first.exists());
@@ -176,7 +190,7 @@ fn four_confirmed(d: &crate::backend::testdir::TestDir, order: [&str; 4], damage
     }
     damage(&items, item_at[damaged]);
     for &at in break_targets { damage(&targets, target_at[at]); }
-    (Confirmation { token: 1, items, trees, listing: Vec::new(), targets, count: 4, nodes: 4, all: false }, paths)
+    (Confirmation { token: 1, items, trees, listing: Vec::new(), targets, count: 4, nodes: 4, all: false, sweep: Default::default() }, paths)
 }
 
 #[test]
@@ -193,7 +207,7 @@ fn a_damaged_frame_fails_every_confirmed_item_after_it_and_not_one_row() {
 #[test]
 fn a_damaged_frame_names_the_targets_at_its_own_index_in_the_order_they_were_written() {
     let d = crate::backend::testdir::TestDir::new("browse-frame-order");
-    let session = Session { items: parse_list("trash:///a\t/original/a\ntrash:///b\t/original/b\ntrash:///c\t/original/c\ntrash:///d\t/original/d\n").unwrap(),
+    let session = Session { items: listed("trash:///a\t/original/a\ntrash:///b\t/original/b\ntrash:///c\t/original/c\ntrash:///d\t/original/d\n"),
         scratch: d.path().to_path_buf(), ..Session::default() };
     let written = session.targets(r#"{"uris":["trash:///d","trash:///b","trash:///c","trash:///a"],"identities":["x","x","x","x"]}"#).unwrap();
     let mut offset = 0;

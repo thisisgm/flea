@@ -379,8 +379,8 @@ empty_hero_capture() {
             sleep 0.05
             continue
         fi
-        jq -e '.captionColor == .foreground and .markColor == .muted' <<< "$before" >/dev/null \
-            || fail "empty hero: caption or the retained v0.1.6 spiral ink differs: $before"
+        jq -e '.captionColor == .foreground and .markColor == .accent' <<< "$before" >/dev/null \
+            || fail "empty hero: caption ink or Omi's accent ink (GM 2026-11-07, HIG CHANGES empty folder) differs: $before"
         attempt=$((attempt + 1))
         shot "$label-phase-$attempt"
         after=$(ipc emptyHeroState) || fail "empty hero: post-capture paint state unavailable"
@@ -407,7 +407,7 @@ mark = ImageColor.getrgb(sys.argv[3])
 if len(mark) != 3:
     raise SystemExit("empty hero: expected an opaque mark color")
 crop = image.crop((x, y, x + width, y + height))
-# The 24-grid spiral leaves a two-unit margin, so its top-left corner measures the painted background.
+# Omi sits inside its slot with a clear margin, so the slot's top-left corner measures the painted background.
 background = crop.getpixel((0, 0))
 distance = lambda pixel, color: sum((channel - target) ** 2 for channel, target in zip(pixel, color))
 print(sum(distance(pixel, mark) < distance(pixel, background) for pixel in crop.getdata()))
@@ -555,7 +555,7 @@ case_emptystate() (
         cardsize_expect viewMode "$mode"
         menus_expect stateLayers '.empty and (.message | not)' "$mode empty hero excludes the ordinary state sentence"
         menus_expect previewSelectionState '(.inlineVisible | not)' "$mode empty listing has no file preview"
-        menus_expect emptyHeroState '.visible and (.reducedMotion | not) and (.settled | not)' "$mode normal motion draws the spiral"
+        menus_expect emptyHeroState '.visible and (.reducedMotion | not) and (.settled | not)' "$mode normal motion draws Omi"
         empty_hero_capture "empty-state-$mode"
     done
     sandbox_require "$directory"

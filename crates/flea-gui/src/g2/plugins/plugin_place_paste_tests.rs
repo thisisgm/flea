@@ -164,7 +164,7 @@ fn plugin_place_paste_move_to_plugin_destination(cx: &mut TestAppContext) {
 
 #[test]
 fn plugin_place_paste_copy_to_carries_validated_paths_across_owners() {
-    use crate::g2::op1::model::Operations;
+    use crate::g2::file_ops::model::Operations;
     use flea::jsondoc;
     let cat = crate::test_catalogs::english();
     for source in [
@@ -193,7 +193,7 @@ fn plugin_place_paste_copy_to_carries_validated_paths_across_owners() {
 
 #[test]
 fn plugin_place_paste_wire_trace_resolves_rows_before_transfer() {
-    use flea::ui_logic_dg1::{self as clip, Clip, Out, PendingPaste, Stamp};
+    use flea::ui_logic_file_clipboard::{self as clip, Clip, Out, PendingPaste, Stamp};
     let mut model = Model {
         path: ROOT.into(),
         ..Default::default()
@@ -245,7 +245,10 @@ fn plugin_place_paste_wire_trace_resolves_rows_before_transfer() {
     );
     let wire = match &effects[0] {
         Out::Send(line) => line.clone(),
-        Out::Ask(ask) => crate::g2::dg1::join::request(ask).unwrap().0.json(),
+        Out::Ask(ask) => crate::g2::file_clipboard::join::request(ask)
+            .unwrap()
+            .0
+            .json(),
         other => panic!("unexpected effect: {other:?}"),
     };
     println!("TRACE paste wire: {wire}");
@@ -257,5 +260,28 @@ fn plugin_place_paste_wire_trace_resolves_rows_before_transfer() {
     assert!(
         matches!(result, Ok(Action::Runtime { .. })),
         "file paste must reach the place protocol"
+    );
+}
+
+#[gpui::test]
+fn fx_eject2_a_plugin_place_paste_holds_its_paths_only_until_the_place_answers(
+    cx: &mut TestAppContext,
+) {
+    let (mut fixture, shell, cx) = open(cx);
+    shell.update(cx, |s, _| s.panes[0].as_mut().unwrap().pane.cursor = 0);
+    verb(&shell, "copy", cx);
+    settle(&mut fixture, cx);
+    navigate(&shell, Step::OpenPlace(PHOTOS.into()), cx);
+    settle(&mut fixture, cx);
+    verb(&shell, "paste", cx);
+    settle(&mut fixture, cx);
+    assert_eq!(fixture.count("copy"), 1, "{:?}", fixture.pane_calls);
+    let held = shell.read_with(cx, |s, _| {
+        let backend = s.panes[0].as_ref().unwrap().backend.as_ref().unwrap();
+        backend.transfers_on(PHOTOS)
+    });
+    assert!(
+        !held,
+        "the place answered its paste, so no eject waits for it"
     );
 }

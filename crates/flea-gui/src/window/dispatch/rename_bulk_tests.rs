@@ -57,7 +57,7 @@ fn several_marked_rows_open_the_bulk_card_and_its_done_line_refreshes(cx: &mut T
         BackendEvent::Producer(r#"{"t":"bulkrenamed","ok":2,"unchanged":0}"#.into()),
     );
     let done = shell.read_with(cx, |shell, _| {
-        flea::ui_logic_op1::lines::bulk_done_line(&shell.locale.catalog, "default", 2)
+        flea::ui_logic_file_ops::lines::bulk_done_line(&shell.locale.catalog, "default", 2)
     });
     assert_eq!(notice(&shell, cx), done);
     assert_eq!(lists(&shell, cx), before + 1);

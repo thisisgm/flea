@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.thisisgm.flea-shelf",
   "name": "Flea shelf",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "author": "GM",
   "license": "MIT",
   "description": "A drop shelf on the Omarchy bar: files gathered from anywhere, held in one pile, taken out together.",

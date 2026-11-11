@@ -68,7 +68,8 @@ pub fn preview_row(m: &Model, y: usize, columns: usize, height: usize, theme: &T
     let inner = match y {
         0 => {
             let mark = if m.marks() { format!("{} ", icons::row(row, true)) } else { String::new() };
-            let leaf = row.name.rsplit('/').next().unwrap_or(&row.name);
+            let shown = row.shown();
+            let leaf = shown.rsplit('/').next().unwrap_or(&shown);
             let head = (text_width(&mark) + text_width(leaf)).min(width);
             let name = title(&mark, leaf, head, i18n);
             let target = if row.link.is_empty() { String::new() } else { format!(" {}", i18n.tr_args("preview.link_target", &[&row.link])) };
@@ -77,9 +78,11 @@ pub fn preview_row(m: &Model, y: usize, columns: usize, height: usize, theme: &T
         }
         1 => {
             let modified = i18n.locale().format_date(row.modified).filter(|_| row.modified != 0).unwrap_or_default();
-            let kind = if row.directory { i18n.tr("preview.points.folder") } else { row.kind.clone() };
+            let kind = if row.folder() { i18n.tr("preview.points.folder") } else { row.kind.clone() };
             let (bytes, partial) = m.folder_sizes.get(&m.cursor).copied().unwrap_or((row.size, row.directory));
             let size = format!("{}{}", if partial { ">" } else { "" }, i18n.locale().format_size(bytes as u64));
+            // A link to a folder is never walked (request_sizes reads d), so it says link as the window's size column does.
+            let size = if row.folder() && !row.directory { i18n.tr("list.size_link") } else { size };
             let facts = header(&kind, &size, &modified, width, i18n);
             format!("{}{facts}", theme.meta)
         }
@@ -94,7 +97,7 @@ pub fn body(m: &Model, i: usize, area: &Area, theme: &Theme) -> String {
     let width = area.width();
     let Some(row) = m.rows.get(&m.cursor) else { return padded(&fit("", width), area, theme) };
     let state = &m.preview_state;
-    if row.directory && m.preview_rows_generation == m.preview_generation {
+    if row.folder() && m.preview_rows_generation == m.preview_generation {
         return folder(m, i, area, theme);
     }
     if let Some(unshown) = &state.unshown {
@@ -267,7 +270,7 @@ pub fn prepare(m: &mut Model) {
     let changed = m.preview_width != columns || m.preview_layout_generation != m.preview_generation || m.preview_body_bytes != m.preview_body.len();
     if m.selected.len() <= 1 && !changed && m.preview_layout_scroll == m.preview_scroll && m.preview_layout_height == m.height { return; }
     let rows = rows(m);
-    let folder = m.rows.get(&m.cursor).is_some_and(|row| row.directory) && m.preview_rows_generation == m.preview_generation;
+    let folder = m.rows.get(&m.cursor).is_some_and(|row| row.folder()) && m.preview_rows_generation == m.preview_generation;
     let refusal = folder && !m.preview_refusal.is_empty();
     let graphical = m.player.is_some() || m.pdf.is_some() || m.image_file.is_some() || m.preview_state.unshown.is_some()
         || m.rows.get(&m.cursor).is_some_and(|r| super::pane_state::kind(r) == super::pane_state::Kind::Model3d);

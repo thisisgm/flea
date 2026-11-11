@@ -1,5 +1,7 @@
 //! Compose the committed track Elements and the shared empty and refusal producers inside each track's clip.
 use super::Columns;
+#[path = "columns_render/census.rs"]
+mod census;
 use render_tile::{loading_tile, tile};
 #[path = "columns_render/render_tile.rs"]
 mod render_tile;
@@ -17,7 +19,7 @@ impl Shell {
         &mut self,
         side: usize,
         mark_drawn: bool,
-        held_contents: Option<Rc<crate::g2::sr1::contents::Held>>,
+        held_contents: Option<Rc<crate::g2::file_search::contents::Held>>,
         mut rows: crate::list::RowStates,
         window: &mut gpui::Window,
         cx: &mut Context<Self>,
@@ -28,7 +30,14 @@ impl Shell {
             .copied()
             .unwrap_or_default();
         let palette = crate::list::Palette::inherited(&window.text_style(), theme);
-        let no_match = self.no_match_hero(side, window, cx);
+        // A headline wider than the span from the active column to the edge elides to fit it, as hero_span places it there.
+        let room = self.panes[side]
+            .as_ref()
+            .and_then(|host| host.columns.as_ref())
+            .map_or(0., |columns| {
+                columns.area.layout.width - columns.area.layout.active_x()
+            });
+        let no_match = self.no_match_hero(side, room, window, cx);
         let blocked = self.input_blocked(cx) || cx.has_active_drag(); // No hover under a held drag, as List.
         let renaming = self.renaming_row(side);
         let grow = self.grows[side];
@@ -102,6 +111,7 @@ impl Shell {
                 .hover
                 .as_ref()
                 .map(|hover| (hover.slot, hover.index)),
+            hover_wash: crate::list::hover_wash::HoverWash::on(cx),
             grey,
         });
         drop(list);
@@ -310,6 +320,11 @@ impl Shell {
                 );
             }
         }
+        area = area.children(census::surface(
+            host.pane.path(),
+            &columns.painters,
+            &tracks,
+        ));
         area = area.children(super::edge::surface(self, side, cx));
         Some(
             super::gestures::draggable(area, side, cx)
@@ -354,7 +369,7 @@ fn sync_tile(
     if view.state == TrackState::Empty {
         let hero = columns.heroes[at].get_or_insert_with(|| {
             cx.new(|cx| {
-                let mut hero = crate::g2::fb1::hero::EmptyHero::new(catalog, cx);
+                let mut hero = crate::g2::status_feedback::hero::EmptyHero::new(catalog, cx);
                 hero.set_overlaid();
                 hero
             })
@@ -364,11 +379,12 @@ fn sync_tile(
             hero.show(columns.area.hero_settled.as_deref() != Some(&view.path), cx);
         });
     } else if let TrackState::Locked(mode) = view.state {
-        let notice = columns.notices[at]
-            .get_or_insert_with(|| cx.new(|_| crate::g2::fb1::state::StateMessage::new()));
+        let notice = columns.notices[at].get_or_insert_with(|| {
+            cx.new(|_| crate::g2::status_feedback::state::StateMessage::new())
+        });
         notice.update(cx, |notice, cx| {
             notice.set(
-                Some(crate::g2::fb1::state::Facts::failed(
+                Some(crate::g2::status_feedback::state::Facts::failed(
                     "scan",
                     "Permission denied",
                     mode,

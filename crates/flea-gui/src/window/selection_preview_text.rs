@@ -4,7 +4,7 @@ use super::{
     wire::Wire,
     *,
 };
-use crate::g2::pv2::code::CodeView;
+use crate::g2::doc_preview::code::CodeView;
 use gpui::AppContext;
 use std::io::Read as _;
 
@@ -15,7 +15,7 @@ enum Read {
 }
 
 fn read(path: &str, limit: u64) -> Read {
-    let Some(file) = flea::backend::regfile::open_regular(std::path::Path::new(path)) else {
+    let Some(file) = flea::backend::regfile::open_regular(&flea::bytename::view(path)) else {
         return Read::Failed;
     };
     if file.metadata().is_ok_and(|meta| meta.len() > limit) {
@@ -28,7 +28,7 @@ fn read(path: &str, limit: u64) -> Read {
     if bytes.len() as u64 > limit {
         return Read::Large;
     }
-    Read::Text(String::from_utf8_lossy(&bytes).into_owned())
+    Read::Text(flea::textdecode::decode(&bytes).into_owned())
 }
 
 pub(super) fn code(
@@ -89,7 +89,7 @@ pub(super) fn read_document(
                 cx.spawn(async move |this, cx| {
                     let result = read.await;
                     let _ = this.update(cx, |view, cx| {
-                        use flea::ui_logic_pv2::csv_feed::Answer;
+                        use flea::ui_logic_doc_preview::csv_feed::Answer;
                         match result {
                             Read::Text(text) => view.set_text(&path, &text, cx),
                             Read::Large => view.feed.answer = Answer::Large,

@@ -1,0 +1,95 @@
+# Flea 0.4.2
+
+- Start a new search in the current folder (#451, @muellan).
+- Open large folders at Tight row density instead of failing to load (#454, @austrasien).
+- Queue a second file paste behind a running transfer, with each job keeping its own progress, Cancel, receipt and Undo (#443, #444, @AksharP5).
+- Act on the selected file for copy, move, rename, Trash and delete when its name is not valid UTF-8, even beside a file with the same displayed name.
+- Keep a cross-drive move's source intact if the new copy cannot be verified or a read-only parent prevents removal.
+- Confirm the written data before reporting completion of copies to removable drives, including encrypted USB drives, SD cards and Thunderbolt storage.
+- Support Trash on btrfs subvolume and bind mounts that GIO refuses, including listing, restore and Empty Trash (#436, @AkitaOnRails).
+- Keep the current folder behind the confirmation card when emptying Trash from the sidebar (#419, @k-kostin).
+- Offer Extract for several selected archives, with a separate job for each (#397, @MISTERNEGATIVE21).
+- Publish complete outputs from Extract, Compress, Convert and Combine on rclone and WebDAV mounts without reporting a successful copy as failed (#370, @vitonique).
+- Preview files with no known extension as text or code when their contents identify them, including executable scripts with a shebang (#377, @mtp13; #393, @filip-spaldon).
+- Pause a playing video with a click and resume it with another click in Quick Look and the preview pane (#424, @timothy-ecc).
+- Play videos with rotation metadata in the right orientation without crashing the media helper on libmpv 0.41 (#450, @kevinpardo).
+- Copy the folder path with a copy button beside the address bar, and open the path editor with a single click on empty address space (#327, @dpan).
+- Toggle Dual with F3 and return to the previous view, and remember Dual across relaunch.
+- Keep the same remembered sort in both Dual panes when a folder is open in both (#179, @zm14).
+- Offer Show tabs as icons in Settings > View, off by default (#308, @jlahijani).
+- Use Settings > View to hide Omi in empty folders or stop the empty-folder messages rotating.
+- Apply Highlight on hover to sidebar, breadcrumb and share-row highlights too, and keep it off by default (#230, @alextakitani).
+- Keep tag colours distinct from one another in listings and menus on the bundled themes.
+- Show Columns thumbnails on every visible row at the chosen Row density.
+- Mark only the files being shown when dragging a selection band over a filtered listing.
+- Move by the rows being drawn with Up and Down in a filtered Grid.
+- Keep marked files, the cursor and the scroll position in Search when files in its scope change.
+- Load Search results even when row density, text size or window height changes while the search is running.
+- Keep Filter and Sort disabled while Search is open, including while its query is being typed.
+- Open the highlighted file or enter the highlighted folder with one Enter in Search, Find or Filter.
+- Highlight only the letters that matched in fuzzy search, and fit long no-match headlines inside the pane.
+- Select a word with a double-click in the card, Settings and Save-name fields too.
+- Offer a right-click menu with Undo, Cut, Copy, Paste and Select All in the address, rename, search, filter, Settings and Save-name fields.
+- Select text by dragging in the Save chooser name field.
+- Keep the typed name in inline rename and refuse the change if another file has replaced the selected one, whether rename started from the keyboard or the menu.
+- Keep an inline rename open on Escape while its change is pending, and explain why the row disappears when renaming to a hidden name.
+- Land carried files in List, Columns, Grid and another Flea window; cancel the carry with Escape in either window.
+- Make the footer's Undo hint work on click, and refresh the folder after completed undo and redo even when no file-watch event arrives.
+- Support undo and redo inside the Trash view, and show their receipts there.
+- Recreate a missing original folder on Restore, and keep healthy entries visible when Trash records are damaged.
+- Remove leftover files and records omitted from the listing with Empty Trash too, and report entries it cannot remove.
+- Undo and restore large Trash selections faster.
+- Reach Empty Trash with Tab and Shift+Tab, and update the Trash view from the first real change after it opens.
+- Allow undo of a single Permissions change and a Convert output, and use a free copy name in Convert when its output name is taken.
+- Choose a free copy name in Compress and Extract when the destination name is taken.
+- Keep archive names beginning with @ or a dash literal; skip pipes and devices in ZIP and explain names it cannot preserve.
+- Catch names that collide on a case-insensitive drive in Paste and Extract, and preserve the original spelling on undo and redo, including on exFAT.
+- Handle deeply nested folders in copy, folder-size walks and delete without a stack overflow or running out of open files.
+- Keep sparse files' holes when copying where the filesystem supports it, and support names near the filename-length limit in Duplicate and Keep both.
+- Report a copy failure if its source is truncated before it finishes.
+- Report an error for copies that exceed a shell file-size limit without interrupting the rest of Flea.
+- Keep percent signs in Convert and Combine output paths literal.
+- Refuse eject and unmount while a transfer uses the drive, name the running job, and keep the folder and transfer card in place.
+- Return to the nearest surviving parent when an open folder disappears.
+- Recompute a folder's size on revisiting it when files have hard links outside it or the filesystem cannot report remote changes.
+- Read UTF-16 and Windows-1252 text in text and Markdown previews and omit the byte-order mark.
+- Widen CSV columns for longer values found while scrolling, and clear a spreadsheet's reading mark when the new sheet appears.
+- Use characters the font contains in font previews.
+- Move one file at a time in Quick Look over Grid, and stop media in the Columns preview beneath it when Quick Look opens.
+- Reach the final page of a code preview with End and Ctrl+End.
+- Show photo Camera, Lens, Exposure and Taken details in Properties.
+- Open empty files in the application for their filename type.
+- Explain a read-only mode in Permissions, keep invalid Octal text for correction, retain the form after a failed change, and scroll in a small window.
+- Toggle Always with Space in Open With, and keep the reason for a failed launch visible.
+- Share one AirDrop Receiving state across windows, stay responsive during changes, and shut down cleanly on quit.
+- Report received files, links and failures from AirDrop in the footer and name the receiving device on send jobs.
+- Offer Copy to Clipboard for files in Shelf (#361, @Ewerton).
+- Keep plugin sidebar places' section titles and allow them to draw the plugin's own mark (#418, @rms1982).
+- Start installed plugin executables without an intermittent Text file busy refusal.
+- Send plugin menu actions to the selected provider, and keep the reason for a refused destination.
+- Open Settings at a wider size, fit long labels and hints, and keep chords whole in keyboard-shortcut columns.
+- Show job headings, plain-text file kinds and file-operation refusals in the selected language, and keep Latin key chords in order in right-to-left hints.
+- Omit bidirectional override characters from filenames' displayed text in rows and breadcrumbs.
+- Open a read-only session when a settings lock is held instead of hanging startup, and start on defaults for invalid saved settings while preserving the original file.
+- Keep read and navigation errors visible in Settings and Favorites instead of silently discarding them.
+- Retry a stalled status check when scrolling Favorites.
+- Clear footer errors on their own, replace an old error with a new notice, and show Retry only when another attempt can help.
+- Wrap failed-job reasons inside the card, and use network folders' saved sidebar label without showing unknown free space as zero.
+- Keep keys on Trash when focus returns to it, remove hidden controls from the Tab order, and move a menu's highlight with Tab and Shift+Tab.
+- Use tab-number and tab-move keys from the sidebar, and keep a visible menu target on a right-clicked Columns row.
+- Open menus beside a running Jobs card, and refuse Trash before deletion is armed on a phone or mount without Trash.
+- Reach Print with Ctrl+P and show Ctrl+P in the menu's key hint.
+- Identify a flea-bin installation as a Release build in About.
+- Honour NO_COLOR in the TUI, keep menu and card focus visible, and draw readable image and 3D previews in monochrome and 16-colour terminals.
+- Open symlinked folders under the link's path in the TUI and explain a broken link.
+- Open the highlighted result with one Enter in TUI Find and Filter, and choose a file with Right or l in chooser mode.
+- Keep the previously clicked row in the selection on Ctrl+click in the TUI, and reload with F5.
+- Answer paging and first/last keys in the TUI preview, key sheet and Properties, and play or pause TUI media with p.
+- Clean up dots and trailing slashes in TUI Go to folder without resolving links, and copy a relative path with r.
+- Use VISUAL before EDITOR for TUI editing and bulk rename and name a missing editor or helper program.
+- Keep TUI receipts visible during Find, stop modified Return and Space from accidentally accepting fields or toggling options, and fit the key sheet in a short terminal.
+- Answer flea --help, -h and -V directly, and refuse unknown options.
+- Declare Arch packages' conflict with mutt so pacman explains the shared /usr/bin/flea path (#437, @synacktic).
+- Distinguish in the command interface between a closed window and a window that dropped a request without replying.
+
+Thanks to @AkitaOnRails, @AksharP5, @alextakitani, @austrasien, @dpan, @Ewerton, @filip-spaldon, @jlahijani, @k-kostin, @kevinpardo, @MISTERNEGATIVE21, @mtp13, @muellan, @rms1982, @synacktic, @timothy-ecc, @vitonique and @zm14.

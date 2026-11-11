@@ -24,7 +24,7 @@ fn entry_fits(value: &Json, patch: bool) -> bool {
 pub fn fits(value: &Json) -> bool {
     value.as_object().is_some_and(|pairs| {
         pairs.len() <= MAX_PLUGINS
-            && pairs.iter().all(|(id, entry)| flea::ui_logic_st2::manifest::is_id(id) && entry_fits(entry, false))
+            && pairs.iter().all(|(id, entry)| flea::ui_logic_plugin_settings::manifest::is_id(id) && entry_fits(entry, false))
     })
 }
 
@@ -32,7 +32,7 @@ pub fn fits(value: &Json) -> bool {
 pub fn is_patch(value: &Json) -> bool {
     value.as_object().is_some_and(|pairs| {
         pairs.iter().all(|(id, entry)| {
-            flea::ui_logic_st2::manifest::is_id(id) && (matches!(entry, Json::Null) || entry_fits(entry, true))
+            flea::ui_logic_plugin_settings::manifest::is_id(id) && (matches!(entry, Json::Null) || entry_fits(entry, true))
         })
     })
 }
@@ -42,7 +42,7 @@ pub fn clean(value: &Json) -> Json {
     let pairs = value.as_object().unwrap_or(&[]);
     let kept: Vec<(String, Json)> = pairs
         .iter()
-        .filter(|(id, entry)| flea::ui_logic_st2::manifest::is_id(id) && entry_fits(entry, false))
+        .filter(|(id, entry)| flea::ui_logic_plugin_settings::manifest::is_id(id) && entry_fits(entry, false))
         .take(MAX_PLUGINS)
         .cloned()
         .collect();

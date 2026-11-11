@@ -194,3 +194,7 @@ impl Drop for Server {
 #[cfg(test)]
 #[path = "server_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "server_fixture_child_tests.rs"]
+mod fixture_child;

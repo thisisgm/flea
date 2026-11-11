@@ -6,10 +6,21 @@ files = root / 'data/Trash/files'
 names = sorted(p.name for p in files.iterdir() if p.is_file())
 args = sys.argv[1:]
 def uri(name): return 'trash:///' + urllib.parse.quote(name)
-if args[:2] == ['trash', '--list']:
-    for name in names: print(uri(name) + '\t' + str(root / 'original' / name))
-elif args[0] == 'list':
-    for name in names: print(uri(name) + '  trash::deletion-date=2026-10-18T09:00:00')
+# As gio 2.90.1 does, an item with no record, or a record with no Path line, lists with no orig-path.
+def described(name):
+    record = root / 'data/Trash/info' / (name + '.trashinfo')
+    return record.is_file() and 'Path=' in record.read_text()
+if args[0] == 'list':
+    requested = args[args.index('-a') + 1].split(',') if '-a' in args else []
+    for name in names:
+        attributes = []
+        if 'standard::target-uri' in requested:
+            attributes.append('standard::target-uri=' + (files / name).as_uri())
+        if 'trash::deletion-date' in requested:
+            attributes.append('trash::deletion-date=2026-10-18T09:00:00')
+        if 'trash::orig-path' in requested and described(name):
+            attributes.append('trash::orig-path=' + str(root / 'original' / name))
+        print(uri(name) + '\t1\t(regular)\t' + ' '.join(attributes))
 elif args[0] == 'info':
     for target in [arg for arg in args[1:] if arg.startswith('trash:///')]:
         print('uri: ' + target)

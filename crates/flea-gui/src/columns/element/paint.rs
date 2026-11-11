@@ -11,6 +11,7 @@ impl TrackElement {
     ) {
         let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
         let paint = self.paint.borrow();
+        paint.language_paint.borrow_mut().clear();
         let focus = &paint.drawn.as_ref().expect("prepainted track").focus;
         let view = &self.tracks[self.at];
         let held = self.held.as_deref();
@@ -67,7 +68,9 @@ impl TrackElement {
                                 point(x + from, y),
                                 size(to - from, line.ascent + line.descent),
                             ),
-                            palette.accent.opacity(crate::g2::sr1::run::RUN_WASH),
+                            palette
+                                .accent
+                                .opacity(crate::g2::file_search::run::RUN_WASH),
                         ));
                     }
                 }
@@ -128,14 +131,37 @@ impl TrackElement {
                                 );
                                 #[cfg(test)]
                                 crate::bfx_cols_tests::record_mark(&key, at);
-                                let _ = window.paint_svg(
-                                    at,
-                                    key,
-                                    Some(data),
-                                    TransformationMatrix::unit(),
-                                    inks.mark,
-                                    cx,
-                                );
+                                if window
+                                    .paint_svg(
+                                        at,
+                                        key.clone(),
+                                        Some(data),
+                                        TransformationMatrix::unit(),
+                                        inks.mark,
+                                        cx,
+                                    )
+                                    .is_ok()
+                                    && row_at(&view.rows, held, *index).is_some()
+                                {
+                                    paint.language_paint.borrow_mut().push(
+                                        crate::row::language_capture::Painted {
+                                            index: *index,
+                                            key,
+                                            data,
+                                            ink: inks.mark,
+                                            slot: at,
+                                            label_x: f32::from(left) + geometry.name_x,
+                                            cursor,
+                                            hovered: self.focus.hover_lit(view.slot, *index),
+                                            cut: *clip == Clip::Cut,
+                                            opacity: if *clip == Clip::Cut {
+                                                crate::columns::paint::CUT
+                                            } else {
+                                                1.
+                                            },
+                                        },
+                                    );
+                                }
                             }
                             let name = prepared.name_for(chevron, cursor);
                             let name_x = left + px(geometry.name_x);
@@ -148,7 +174,7 @@ impl TrackElement {
                                 let bright = cursor
                                     || lifted
                                     || self.focus.selected.contains(index)
-                                    || self.focus.hover == Some((view.slot, *index));
+                                    || self.focus.hover_lit(view.slot, *index);
                                 paint_line(
                                     location,
                                     name_x + name.line().width + px(gap),

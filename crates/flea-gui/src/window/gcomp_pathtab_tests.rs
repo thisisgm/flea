@@ -66,7 +66,7 @@ fn check_message(cx: &mut TestAppContext, handle: Handle, expected: &str) {
 
 fn expire(cx: &mut TestAppContext, handle: Handle) {
     cx.executor().advance_clock(Duration::from_millis(
-        flea::ui_logic_fb1::messages::MESSAGE_MS + 1,
+        flea::ui_logic_status_feedback::messages::MESSAGE_MS + 1,
     ));
     cx.run_until_parked();
     frame(cx, handle);

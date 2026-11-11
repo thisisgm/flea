@@ -4,6 +4,7 @@ use crate::backend::archivework::{cancel_failure, failure_message, spawn_stderr_
 use crate::backend::opsreq::op_err;
 use crate::backend::sandbox;
 use crate::error::{from_io, FleaError};
+use flea::bytename::ExactText as _;
 use std::io::Write;
 use std::path::Path;
 use std::process::{Child, Stdio};
@@ -38,8 +39,12 @@ pub fn compress_argv(format: &str, staged: &Path, parent: &Path, names: &[String
     } else if encrypt_names {
         argv.push(HEADER_ENCRYPTION.to_string());
     }
-    argv.push(staged.to_string_lossy().to_string());
-    argv.extend(names.iter().map(|n| parent.join(n).to_string_lossy().to_string()));
+    argv.push(staged.exact_text().to_string());
+    argv.extend(
+        names
+            .iter()
+            .map(|n| parent.join(n).exact_text().to_string()),
+    );
     argv
 }
 
@@ -76,8 +81,13 @@ pub fn asks_again(err: &str) -> bool {
 // The terminal line for a password code, naming the archive and destination the card retries.
 pub fn asks_again_line(id: usize, err: &str, archive: &Path, dest: &Path) -> String {
     use crate::json::escape;
-    format!(r#"{{"t":"archivedone","id":{},"ok":false,"verified":true,"err":"{}","path":"{}","dest":"{}"}}"#,
-            id, escape(err), escape(&archive.to_string_lossy()), escape(&dest.to_string_lossy()))
+    format!(
+        r#"{{"t":"archivedone","id":{},"ok":false,"verified":true,"err":"{}","path":"{}","dest":"{}"}}"#,
+        id,
+        escape(err),
+        escape(&archive.exact_text()),
+        escape(&dest.exact_text())
+    )
 }
 
 // A failed run: the exit code the verdict reads, and the tool's own sentence for any other failure.

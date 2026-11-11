@@ -68,7 +68,7 @@ fn shell_with_listing<'a>(
             },
             monitor: None,
         });
-        cx.set_global(crate::g2::pl1::source::fixture::Services {
+        cx.set_global(crate::g2::device_rail::source::fixture::Services {
             runner,
             hostname: "minipc\n".into(),
         });
@@ -117,7 +117,7 @@ fn row(
     shell: &Entity<Shell>,
     label: &str,
     cx: &mut VisualTestContext,
-) -> crate::g2::pl4::rows::LaidRow {
+) -> crate::g2::rail_places::rows::LaidRow {
     producer(shell, cx).read_with(cx, |producer, _| {
         producer
             .laid
@@ -351,6 +351,7 @@ fn release_quiesce_failure_is_said_and_the_eject_still_runs(cx: &mut TestAppCont
         "the release still runs after a failed quiesce: {:?}",
         jobs(&service)
     );
+    // The eject notice is said first, so the quiesce failure after it stands.
     assert_eq!(status(&shell, cx), "The backend stopped accepting requests");
 }
 

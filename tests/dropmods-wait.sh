@@ -21,7 +21,7 @@ trap cleanup EXIT
 # Every wait helper and the state they read, cut out of the case file as shipped; the settled and rename waits are other probes.
 eval "$(sed -n -e '/^cap_drops_wait_[a-z_]*=/p' -e '/^cap_drops_wait_[a-z_]*()/,/^}/p' -e '/^cap_drops_undo_copy()/,/^}/p' tests/ui-captures-drops.sh)"
 
-move_line='Move 1 item to sub · Ctrl copies, Shift moves'
+move_line='Move 1 item to sub · ctrl copies, shift moves'
 copy_line='Copy 1 item to sub'
 
 # Sample input, ipc statusActivityState: {"activities":[{"id":0,"text":"Copy 1 item to sub","running":false,...}],...}, a drag line always id 0.
@@ -105,10 +105,10 @@ out=$(run "$(target "$copy_line")" eval "d_text='$copy_line'; abandon() { echo r
 # Sample input, case_cap_drops: the five hover waits, in order, are the lines that wait on a drag target.
 calls=()
 while IFS= read -r line; do calls+=("${line# }"); done < <(sed -n '/^case_cap_drops()/,/^}/p' tests/ui-captures-drops.sh | grep -E '^    cap_drops_wait_' | grep -Ev '^    cap_drops_wait_(settled|rename|column) ')
-photos_line='Move 1 item to Photos · Ctrl copies, Shift moves'
-crumb_line='Move 1 item to outer/ · Ctrl copies, Shift moves'
-columns_line='Move 1 item to deep · Ctrl copies, Shift moves'
-held_line='Move 1 item to a folder · Ctrl copies, Shift moves'
+photos_line='Move 1 item to Photos · ctrl copies, shift moves'
+crumb_line='Move 1 item to outer/ · ctrl copies, shift moves'
+columns_line='Move 1 item to deep · ctrl copies, shift moves'
+held_line='Move 1 item to a folder · ctrl copies, shift moves'
 sentences=("$photos_line" "$photos_line" "$crumb_line" "$columns_line" "$held_line")
 # Another target's sentence for each leg, never its own.
 others=("$crumb_line" "$crumb_line" "$columns_line" "$photos_line" "$columns_line")

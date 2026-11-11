@@ -58,15 +58,17 @@ fn an_oversized_file_loads_nothing() {
     let keys = parse(&"#".repeat(MAX_BYTES + 1));
     assert!(keys.bindings.is_empty());
     assert_eq!(keys.problems.len(), 1);
-    let facts = crate::ui_logic_st1::pages::UserKeyFacts {
+    let facts = crate::ui_logic_settings_pages::pages::UserKeyFacts {
         keys,
         plugins: Vec::new(),
         catalog: None,
         resolved: None,
     };
     assert_eq!(
-        crate::ui_logic_st1::pages::user_key_refusals(&facts, "default"),
-        vec![crate::ui_logic_st1::Text::Key("settings.hint.key_file")]
+        crate::ui_logic_settings_pages::pages::user_key_refusals(&facts, "default"),
+        vec![crate::ui_logic_settings_pages::Text::Key(
+            "settings.hint.key_file"
+        )]
     );
 }
 
@@ -195,7 +197,7 @@ fn plugin_ids_are_the_menu_leaf_form() {
 
 #[test]
 fn settings_keys_lists_live_bindings_and_one_refusal_line_each() {
-    use crate::ui_logic_st1::{
+    use crate::ui_logic_settings_pages::{
         pages::{user_key_rows, UserKeyFacts, USER_KEYS},
         rows::Kind,
         Text,
@@ -283,7 +285,7 @@ fn text_and_code_spellings_of_one_chord_are_refused_in_either_order() {
 
 #[test]
 fn missing_plugin_actions_are_reported_only_after_the_catalog_arrives() {
-    use crate::ui_logic_st1::pages::{user_key_refusals, UserKeyFacts};
+    use crate::ui_logic_settings_pages::pages::{user_key_refusals, UserKeyFacts};
     let mut facts = UserKeyFacts {
         keys: parse("[[ctrlshift]]\nkey = \"K\"\naction = \"example.checksums:typo\"\n"),
         ..Default::default()

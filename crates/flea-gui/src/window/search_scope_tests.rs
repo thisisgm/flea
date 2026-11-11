@@ -7,7 +7,7 @@ use gpui::TestAppContext;
 
 #[gpui::test]
 fn ey475_tab_rescopes_after_home_results_without_losing_query_or_focus(cx: &mut TestAppContext) {
-    use flea::{json, ui_logic_sr1::Scope};
+    use flea::{json, ui_logic_file_search::Scope};
     let (handle, mut read) = open(cx);
     let home = std::env::var("HOME").expect("HOME");
     let notes = format!("{home}/Notes");
@@ -15,6 +15,7 @@ fn ey475_tab_rescopes_after_home_results_without_losing_query_or_focus(cx: &mut 
         shell.panes[0].as_mut().unwrap().path = notes.clone()
     });
     key(cx, handle, "f", Some("f"));
+    key(cx, handle, "tab", None);
     for letter in ["k", "i", "w", "i"] {
         key(cx, handle, letter, Some(letter));
     }

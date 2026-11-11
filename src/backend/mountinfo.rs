@@ -143,16 +143,14 @@ pub(crate) fn raw_mount_options_in(path: &Path, body: &str) -> Option<String> {
     best.map(|(_, options)| options)
 }
 
+mod topdir;
+pub(crate) use topdir::{deepest, mount_roots_in, mounts_in};
+
 // Sample line as above: the fields after the source are the filesystem's super options.
 fn super_options(line: &str) -> String {
     let fields: Vec<&str> = line.split_whitespace().collect();
     let Some(split) = fields.iter().position(|field| *field == "-") else { return String::new() };
     fields.iter().skip(split + 3).copied().collect::<Vec<_>>().join(" ")
-}
-
-// Every mount point and its filesystem type, in file order, read once for a caller that asks about many paths.
-pub(crate) fn mounts_in(body: &str) -> Vec<(PathBuf, String)> {
-    body.lines().filter_map(parse_line).map(|(mount, fstype, _, _)| (mount, fstype)).collect()
 }
 
 // The deepest mount holding path, the later line winning a tie as the kernel's own stacking order does.

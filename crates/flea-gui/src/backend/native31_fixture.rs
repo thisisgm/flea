@@ -27,7 +27,7 @@ fn native31_full_wire_keeps_both_projections_and_class_only_adapter_compatibilit
         Event::FilesystemDetails { facts, class } => {
             assert_eq!(
                 (facts.path.as_str(), facts.name.as_str(), facts.free),
-                ("/files", "btrfs", 7)
+                ("/files", "btrfs", Some(7))
             );
             assert_eq!(class, "network");
         }
@@ -37,13 +37,19 @@ fn native31_full_wire_keeps_both_projections_and_class_only_adapter_compatibilit
         transport::parse(r#"{"t":"fsinfo","path":"/files","class":"network"}"#).unwrap(),
         Event::ListDetails(_)
     ));
-    for line in [
-        r#"{"t":"fsinfo","path":"/files","class":"","fs":"btrfs","free":-1}"#,
-        r#"{"t":"fsinfo","path":"/files","class":"","fs":"btrfs"}"#,
-    ] {
-        assert!(
-            transport::parse(line).is_err(),
-            "malformed disk facts became a class-only reply"
-        );
+    // S8-15: a named filesystem with no blocks answers -1, room unknown; a named one with no free is malformed.
+    match transport::parse(
+        r#"{"t":"fsinfo","path":"/files","class":"network","fs":"fuse","free":-1}"#,
+    )
+    .unwrap()
+    {
+        Event::FilesystemDetails { facts, .. } => {
+            assert_eq!((facts.name.as_str(), facts.free), ("fuse", None))
+        }
+        event => panic!("a share with unknown room lost its disk facts: {event:?}"),
     }
+    assert!(
+        transport::parse(r#"{"t":"fsinfo","path":"/files","class":"","fs":"btrfs"}"#).is_err(),
+        "malformed disk facts became a class-only reply"
+    );
 }

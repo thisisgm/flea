@@ -48,6 +48,9 @@
   "archive.compressing": "กำลังบีบอัด %1 เป็น .%2",
   "archive.confirm": "ยืนยัน",
   "archive.done.cancelled": "ยกเลิกการแตกไฟล์แล้ว",
+  "archive.done.extracted": "แตกไฟล์แล้ว",
+  "archive.done.name_refused": "ไม่สามารถแตกไฟล์ “%1” ลงในไดรฟ์นี้: %2",
+  "archive.done.twins": "“%1” และ “%2” จะได้ชื่อเดียวกันบนไดรฟ์นี้ จึงไม่ได้แตกไฟล์ใดเลย",
   "archive.done.unverified": "แตกไฟล์แล้ว แต่อ่านดัชนีไฟล์บีบอัดไม่ได้ จึงยังไม่ได้ตรวจสอบ",
   "archive.done.written": "เขียนไฟล์บีบอัดแล้ว",
   "archive.encrypt_names": "เข้ารหัสชื่อไฟล์",
@@ -213,9 +216,14 @@
   "device.still_mounted": "%1 ยังเมานต์อยู่ ปิดสิ่งที่ใช้อยู่",
   "device.still_unmounting": "ยังเลิกเมานต์ %1 อยู่ รอผลก่อน",
   "device.still_unmounting_try_again": "%1 ยังเลิกเมานต์อยู่ ลองอีกครั้งเมื่อเสร็จ",
-  "device.system_drive": "%1 เป็นไดรฟ์ระบบ ซึ่ง Flea จะไม่เลิกเมานต์",
-  "device.system_volume": "โฟลเดอร์นี้อยู่ในโวลุ่มระบบ ซึ่ง Flea จะไม่เลิกเมานต์",
+  "device.system_drive": "%1 เป็นไดรฟ์ระบบ ซึ่ง Flea จะไม่นำออกเด็ดขาด",
+  "device.system_volume": "โฟลเดอร์นี้ไม่ได้อยู่ในไดรฟ์ที่ Flea นำออกได้",
   "device.transfer_using": "เลิกเมานต์ %1 ไม่ได้ การถ่ายโอนอาจยังใช้อยู่",
+  "device.copy_running": "การคัดลอกบน %1 ยังทำงานอยู่ ลองอีกครั้งเมื่อเสร็จ",
+  "device.move_running": "การย้ายบน %1 ยังทำงานอยู่ ลองอีกครั้งเมื่อเสร็จ",
+  "device.archive_running": "การจัดการไฟล์บีบอัดบน %1 ยังทำงานอยู่ ลองอีกครั้งเมื่อเสร็จ",
+  "device.send_running": "การส่งบน %1 ยังทำงานอยู่ ลองอีกครั้งเมื่อเสร็จ",
+  "device.action_running": "การดำเนินการบน %1 ยังทำงานอยู่ ลองอีกครั้งเมื่อเสร็จ",
   "device.unconfirmed": "ยืนยันไม่ได้ว่านำ %1 ออกแล้ว อย่าเพิ่งถอดอุปกรณ์",
   "device.unlock.button": "ปลดล็อก",
   "device.unlock.cancel": "omarchy:shell.common.cancel",
@@ -313,6 +321,8 @@
   "dialogs.file.permissions.read_only": "%1 · อ่านอย่างเดียว",
   "dialogs.file.permissions.reading": "กำลังอ่านสิทธิ์…",
   "dialogs.file.permissions.requested": "โหมดที่ขอ %1",
+  "dialogs.file.permissions.no_changes": "ไม่มีการเปลี่ยนแปลงที่จะใช้",
+  "dialogs.file.permissions.current_mode": "โหมดปัจจุบัน %1",
   "dialogs.file.permissions.scope_folder": "ใช้กับโฟลเดอร์นี้เท่านั้น · ไม่เปลี่ยนรายการภายใน · ไม่เปลี่ยนเจ้าของ",
   "dialogs.file.permissions.scope_folder_note": "ขอบเขต: โฟลเดอร์นี้เท่านั้น รายการภายในจะคงสิทธิ์เดิมไว้",
   "dialogs.file.permissions.scope_item": "ใช้กับรายการนี้เท่านั้น · ไม่เปลี่ยนเจ้าของ",
@@ -594,6 +604,11 @@
   "feedback.os.connection_refused": "การเชื่อมต่อถูกปฏิเสธ",
   "feedback.os.connection_reset": "การเชื่อมต่อถูกรีเซ็ต",
   "feedback.os.could_not_finish": "ดำเนินการให้เสร็จไม่ได้",
+  "feedback.drive.char": "ไม่อนุญาตให้ใช้ “%1” ในชื่อบนไดรฟ์ %2 นี้",
+  "feedback.drive.control": "ชื่อบนไดรฟ์ %2 นี้ต้องไม่มีอักขระควบคุม %1",
+  "feedback.drive.end_dot": "ชื่อบนไดรฟ์ %1 นี้ต้องไม่ลงท้ายด้วยจุด",
+  "feedback.drive.end_space": "ชื่อบนไดรฟ์ %1 นี้ต้องไม่ลงท้ายด้วยช่องว่าง",
+  "feedback.drive.reserved": "“%1” เป็นชื่อที่สงวนไว้บนไดรฟ์ %2 นี้",
   "feedback.os.cross_device": "ต้นทางและปลายทางอยู่คนละไดรฟ์",
   "feedback.os.full": "ไดรฟ์เต็ม",
   "feedback.os.interrupted": "การดำเนินการถูกขัดจังหวะ",
@@ -756,6 +771,26 @@
   "jobs.failed.compress": "บีบอัดล้มเหลว",
   "jobs.failed.copy": "คัดลอกล้มเหลว",
   "jobs.failed.emptyTrash": "ล้างถังขยะล้มเหลว",
+  "jobs.head.send_waiting": "กำลังส่ง",
+  "jobs.head.copying": "กำลังคัดลอก %1 จาก %2 ไปยัง %3",
+  "jobs.head.moving": "กำลังย้าย %1 จาก %2 ไปยัง %3",
+  "jobs.head.sending": "กำลังส่ง %1 จาก %2 ไปยัง %3",
+  "jobs.head.action": "%1 · %2 จาก %3",
+  "jobs.head.checking": {
+    "other": "กำลังตรวจสอบ %1 รายการบน %2"
+  },
+  "jobs.head.copy_waiting": {
+    "other": "คัดลอก %1 รายการไปยัง %2"
+  },
+  "jobs.head.move_waiting": {
+    "other": "ย้าย %1 รายการไปยัง %2"
+  },
+  "jobs.head.compress_waiting": {
+    "other": "บีบอัด %1 รายการเป็น %2"
+  },
+  "jobs.head.compressing": {
+    "other": "กำลังบีบอัด %1 รายการ"
+  },
   "jobs.failed.extract": "แตกไฟล์ล้มเหลว",
   "jobs.failed.move": "ย้ายล้มเหลว",
   "jobs.failed.send": "ส่งล้มเหลว",
@@ -839,6 +874,7 @@
   "jobs.undone.link": "เลิกทำการสร้างลิงก์แล้ว",
   "jobs.undone.merge": "เลิกทำการผสานแล้ว",
   "jobs.undone.mkdir": "ลบโฟลเดอร์ที่สร้างใหม่แล้ว",
+  "jobs.undone.convert": "เลิกทำการแปลงแล้ว",
   "jobs.undone.move": "เลิกทำการย้ายแล้ว",
   "jobs.undone.newfile": "ลบไฟล์ที่สร้างใหม่แล้ว",
   "jobs.undone.other": "เลิกทำการทำงานล่าสุดแล้ว",
@@ -1027,6 +1063,7 @@
   "keys.label.bc99d765de7e": "แท็ก 5",
   "keys.label.bcf58eaeff52": "ย้อนกลับตามประวัติ หรือขึ้นไปโฟลเดอร์แม่หากไม่มีประวัติ",
   "keys.label.bd0b7be215ce": "ปิดตัวแก้ไข",
+  "keys.label.bc4dd3d76b73": "เก็บผลลัพธ์ไว้",
   "keys.label.bfa65befcad0": "ไปยังไฟล์ในไดเรกทอรีของไฟล์นั้นพร้อมเลือกไว้",
   "keys.label.704fb7f8818b": "ไม่มีการดำเนินการ",
   "keys.label.c2fc6e7bc3be": "ชีตถัดไป",
@@ -1036,6 +1073,7 @@
   "keys.label.cbb73e0f65c2": "เพิ่มแถวนี้ในการเลือก",
   "keys.label.cc5b682e634f": "เปิดไฟล์",
   "keys.label.e3a4d6eba0c6": "ชีตก่อนหน้า",
+  "keys.label.07c371255954": "พิมพ์…",
   "keys.label.e9619e148ed8": "Control+X ไม่ทำงาน",
   "keys.label.ecea0deb9e7f": "เปิดตำแหน่งในแท็บใหม่",
   "keys.label.ed077f3d8125": "เปิด",
@@ -1339,6 +1377,7 @@
   "pane.empty.beat_two": "ไม่เห็นไฟล์เลยสักไฟล์",
   "pane.empty.initial": "ยังไม่มีอะไรที่นี่",
   "pane.empty.rest": "ที่นี่เงียบดี",
+  "pane.empty.fixed": "โฟลเดอร์ว่าง",
   "pane.empty.hint_new_folder": "กด %1 เพื่อสร้างโฟลเดอร์ใหม่",
   "pane.locked": "คุณไม่มีสิทธิ์เปิดโฟลเดอร์นี้",
   "pane.permissions_other_owner": "%1 · คุณไม่ใช่เจ้าของ",
@@ -1839,6 +1878,7 @@
   "send.providers.airdrop_accept": "ยอมรับ",
   "send.providers.airdrop_decline": "ปฏิเสธ",
   "send.providers.airdrop_someone": "อุปกรณ์ใกล้เคียง",
+  "send.providers.airdrop_received": "ได้รับ %1 ด้วย AirDrop",
   "send.rclone.cancel": "omarchy:shell.common.cancel",
   "send.rclone.cancelling": "กำลังยกเลิก",
   "send.rclone.checked_checksum": "ตรวจสอบด้วยเช็กซัมแล้ว",
@@ -2000,6 +2040,7 @@
   "settings.hint.thumbs_kept": "ปิดแล้วยังแสดงภาพขนาดย่อที่สร้างไว้ก่อนหน้า",
   "settings.keys.move_cursor": "เลื่อนเคอร์เซอร์",
   "settings.keys.move_open_up": "เลื่อน เปิด ขึ้น",
+  "settings.keys.arrows": "ลูกศร",
   "settings.list.separator": ", ",
   "settings.menus.compress": "บีบอัด",
   "settings.menus.convert": "แปลง",
@@ -2080,6 +2121,10 @@
   "settings.row.group_by_kind": "จัดกลุ่มตามชนิด",
   "settings.row.hidden_last": "ไฟล์ที่ซ่อนอยู่ท้ายสุด",
   "settings.row.highlight_today": "เน้นวันที่วันนี้",
+  "settings.row.highlight_hover": "เน้นเมื่อชี้เมาส์",
+  "settings.row.tabs_as_icons": "แสดงแท็บเป็นไอคอน",
+  "settings.row.empty_omi": "แสดง Omi ในโฟลเดอร์ว่าง",
+  "settings.row.empty_rotate": "สลับข้อความในโฟลเดอร์ว่าง",
   "settings.row.hyprland_icons": "ไอคอนตาม Hyprland",
   "settings.row.lang_marks": "แสดงไอคอนโค้ด",
   "settings.row.load": "โหลด",
@@ -2135,8 +2180,10 @@
   "settings.update.note_failed": "ออฟไลน์ แต่ยังเปิดตัวอัปเดต Omarchy ได้",
   "settings.update.note_launched": "เริ่ม Flea ใหม่เมื่ออัปเดตเสร็จ",
   "settings.update.note_source": "บิลด์ใหม่จากซอร์สที่เช็กเอาต์ไว้เพื่ออัปเดต",
+  "settings.update.note_release": "ตัวอัปเดต Omarchy จะติดตั้งรุ่นที่ใหม่กว่า",
   "settings.update.opening": "กำลังเปิดตัวอัปเดต Omarchy · เริ่ม Flea ใหม่เมื่อเสร็จ",
   "settings.update.source": "บิลด์จากซอร์ส",
+  "settings.update.release": "บิลด์รุ่นเผยแพร่",
   "settings.words.dropbox_down": "ไม่ได้ทำงานอยู่",
   "settings.words.dropbox_signed_out": "ออกจากระบบแล้ว",
   "settings.words.localsend_folder": "เฉพาะไฟล์",
@@ -2165,6 +2212,7 @@
   "step.move": "ย้าย",
   "step.newfile": "ไฟล์ใหม่",
   "step.permissions": "สิทธิ์",
+  "step.convert": "แปลง",
   "step.rename": "เปลี่ยนชื่อ",
   "step.trash": "ย้ายไปถังขยะ",
   "tabs.close": "ปิดแท็บ",
@@ -2214,6 +2262,9 @@
     "other": "ลบแล้ว %2 จาก %1 รายการ"
   },
   "trash.done.failed": "%1 · ล้มเหลว %2",
+  "trash.done.leftover": {
+    "other": "%2 · ลบรายการที่เหลือไม่ได้ %1 รายการ"
+  },
   "trash.done.failure": "ล้มเหลว %1: %2",
   "trash.done.restored": {
     "other": "กู้คืนแล้ว %2 จาก %1 รายการ"
@@ -2371,6 +2422,7 @@
   "tui.cwd.the_output_needs_a_file_name": "ผลลัพธ์ต้องมีชื่อไฟล์",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "--tui-keymap รับค่า default, vim, mac, windows หรือ yazi",
   "tui.cwd.twice": "ระบุ %1 สองครั้ง",
+  "tui.cwd.folder_missing": "ไม่มีโฟลเดอร์สำหรับ %1: %2",
   "tui.cwd.write_error": "เขียน %1 ไม่ได้: %2",
   "tui.editor.enter_a_filename_before_the_extension": "ป้อนชื่อไฟล์ก่อนนามสกุล",
   "tui.editor.invalid_name": "ป้อนชื่อที่ไม่ว่าง ไม่ใช่ . หรือ .. และไม่มี / หรืออักขระ null",
@@ -2395,6 +2447,7 @@
   "tui.launch.could_not_finish": "%1 ทำงานไม่สำเร็จ (%2)",
   "tui.launch.could_not_observe": "ติดตาม %1 ไม่ได้: %2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "นั่นไม่ใช่โฟลเดอร์ จึงไม่ได้เปิดเทอร์มินัล",
+  "tui.launch.program_not_found": "ไม่พบโปรแกรม %1",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "ปรับหน้าต่างให้กว้างอย่างน้อย 12 คอลัมน์และสูง 5 แถว",
   "tui.model.bulk_done": {
     "other": "เปลี่ยนชื่อแล้ว %1 รายการ · เลิกทำจะย้อนคืนการเปลี่ยนชื่อหนึ่งรายการ"
@@ -2483,5 +2536,19 @@
   "settings.hint.key_reserved": "%1 ยังคงไม่ถูกผูก เพราะ Flea สงวนลำดับปุ่มนี้ไว้ใช้เอง",
   "settings.hint.key_taken": "%1 ยังคงไม่ถูกผูก เพราะ %2 ใช้ลำดับปุ่มนี้อยู่แล้วในชุดปุ่มลัดนี้",
   "settings.hint.key_unknown": "%1 ยังคงไม่ถูกผูก เพราะ Flea ไม่มีการกระทำชื่อ %2",
-  "mime.png": "ภาพ PNG"
+  "mime.png": "ภาพ PNG",
+  "mime.plain": "เอกสารข้อความธรรมดา",
+  "feedback.unheld.links": "ไดรฟ์นี้ไม่รองรับลิงก์",
+  "feedback.unheld.nodes": "ไดรฟ์นี้ไม่รองรับไฟล์พิเศษ",
+  "feedback.unheld.name": "ไดรฟ์นี้ไม่อนุญาตให้ใช้ชื่อนั้น",
+  "feedback.unheld.long": "ชื่อนั้นยาวเกินไปสำหรับไดรฟ์นี้",
+  "feedback.unheld.taken": "ไดรฟ์นี้ถือว่าชื่อนั้นเหมือนกับชื่ออื่นในโฟลเดอร์",
+  "feedback.unheld.copy_one": "คัดลอก %1 ไม่สำเร็จ: %2",
+  "feedback.unheld.move_one": "ย้าย %1 ไม่สำเร็จ: %2",
+  "feedback.unheld.copy_many": {
+    "other": "คัดลอก %1 รายการ ภายในไม่สำเร็จ รายการแรกคือ %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "other": "ย้าย %1 รายการ ภายในไม่สำเร็จ รายการแรกคือ %2: %3"
+  }
 }

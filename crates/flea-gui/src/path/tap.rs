@@ -20,6 +20,15 @@ pub fn within_threshold(origin: Option<Point<Pixels>>, position: Point<Pixels>) 
     })
 }
 
+/// The title bar's drag threshold, read on each axis from the press (ui/WindowDrag.qml).
+const CHROME_THRESHOLD: f32 = 4.;
+
+/// Equality on both axes is still a tap.
+pub(crate) fn within_chrome_threshold(origin: Point<Pixels>, position: Point<Pixels>) -> bool {
+    f32::from(position.x - origin.x).abs() <= CHROME_THRESHOLD
+        && f32::from(position.y - origin.y).abs() <= CHROME_THRESHOLD
+}
+
 /// Capture moves throughout the window so another hit box cannot hide a threshold crossing.
 pub fn observe(frame: Rc<RefCell<Frame>>, window: &mut Window) {
     window.on_mouse_event(move |event: &MouseMoveEvent, phase, window, cx| {

@@ -8,7 +8,7 @@ use crate::{
 use flea::{
     ipc::wire::{Reply, Request},
     protocol::{Reply as BackendReply, RowFacts},
-    ui_logic_fb1::status::Hint,
+    ui_logic_status_feedback::status::Hint,
 };
 use gpui::{px, size, AppContext, TestAppContext, WindowHandle};
 

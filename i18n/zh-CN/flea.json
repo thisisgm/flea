@@ -97,6 +97,9 @@
   "archive.compressing": "正在将 %1 压缩为 .%2",
   "archive.confirm": "确认",
   "archive.done.cancelled": "解压已取消。",
+  "archive.done.extracted": "已解压。",
+  "archive.done.name_refused": "无法将“%1”解压到此驱动器：%2。",
+  "archive.done.twins": "“%1”和“%2”在此驱动器上会使用同一个名称，因此未解压任何内容。",
   "archive.done.unverified": "已解压。由于无法读取压缩包索引，结果未经校验。",
   "archive.done.written": "压缩包已写入。",
   "archive.encrypt_names": "加密文件名",
@@ -265,6 +268,11 @@
   "feedback.os.stale": "文件已不可用。",
   "feedback.os.quota": "已超出存储配额。",
   "feedback.os.could_not_finish": "操作无法完成。",
+  "feedback.drive.char": "此 %2 驱动器上的名称不能包含“%1”。",
+  "feedback.drive.control": "此 %2 驱动器上的名称不能包含控制字符 %1。",
+  "feedback.drive.end_dot": "此 %1 驱动器上的名称不能以句点结尾。",
+  "feedback.drive.end_space": "此 %1 驱动器上的名称不能以空格结尾。",
+  "feedback.drive.reserved": "“%1”在此 %2 驱动器上是保留名称。",
   "feedback.refusal.archives": "压缩包一次只能打开一个。",
   "feedback.refusal.folder_with_files": "文件夹不能与文件一起打开。",
   "feedback.refusal.not_loaded": "部分已标记的文件尚未加载。",
@@ -293,8 +301,13 @@
   "device.no_disc": "%1 中没有光盘或存储卡。",
   "device.not_mountable": "无法在此计算机上挂载 %1。",
   "device.transfer_using": "无法卸载 %1。可能仍有传输任务在使用它。",
-  "device.system_drive": "%1 是系统驱动器，Flea 从不卸载它",
-  "device.system_volume": "此文件夹位于系统卷上，Flea 从不卸载系统卷",
+  "device.copy_running": "%1 上仍有复制正在进行。请在其完成后再试。",
+  "device.move_running": "%1 上仍有移动正在进行。请在其完成后再试。",
+  "device.archive_running": "%1 上仍有压缩包操作正在进行。请在其完成后再试。",
+  "device.send_running": "%1 上仍有发送正在进行。请在其完成后再试。",
+  "device.action_running": "%1 上仍有操作正在进行。请在其完成后再试。",
+  "device.system_drive": "%1 是系统驱动器，Flea 从不弹出它。",
+  "device.system_volume": "此文件夹不在 Flea 可以弹出的驱动器上。",
   "device.no_volume": "此文件夹不在 Flea 可以弹出的驱动器上。",
   "device.safe": "已弹出 %1。现在可以安全拔出。",
   "device.safe_image": "已弹出 %1。",
@@ -355,6 +368,7 @@
   "pane.empty.beat_one": "非常整洁的文件夹",
   "pane.empty.beat_two": "一个文件也看不到",
   "pane.empty.rest": "这里很安静",
+  "pane.empty.fixed": "空文件夹",
   "pane.empty.hint_new_folder": "按 %1 新建文件夹。",
   "pane.permissions_other_owner": "%1 · 不属于你",
   "pane.reply_window": "后端返回的行超出了请求的范围",
@@ -654,6 +668,10 @@
   "settings.row.columns_limit": "分栏视图栏数上限",
   "settings.row.show_git_status": "显示 Git 状态",
   "settings.row.highlight_today": "突出显示今天的日期",
+  "settings.row.highlight_hover": "悬停时突出显示",
+  "settings.row.tabs_as_icons": "以图标显示标签页",
+  "settings.row.empty_omi": "在空文件夹中显示 Omi",
+  "settings.row.empty_rotate": "轮换空文件夹提示语",
   "settings.row.open_while_dragging": "拖动时打开文件夹",
   "settings.row.sort_by": "排序方式",
   "settings.row.folders_first": "文件夹优先",
@@ -752,6 +770,7 @@
   "settings.display.not_reported": "未报告",
   "settings.keys.move_cursor": "移动光标",
   "settings.keys.move_open_up": "移动、打开、上一级",
+  "settings.keys.arrows": "方向键",
   "settings.places.add_folder": "添加此文件夹",
   "settings.places.home": "主文件夹",
   "settings.places.recent": "最近",
@@ -829,9 +848,11 @@
   "settings.update.failed": "无法检查",
   "settings.update.launched": "正在终端中更新",
   "settings.update.source": "从源码构建",
+  "settings.update.release": "发布版本",
   "settings.update.note_launched": "更新完成后请重新启动 Flea",
   "settings.update.note_failed": "离线：仍可打开 Omarchy 更新",
   "settings.update.note_source": "请从检出的源码重新构建以更新。",
+  "settings.update.note_release": "Omarchy 更新会安装较新的版本。",
   "settings.update.opening": "正在打开 Omarchy 更新 · 完成后请重新启动 Flea",
   "settings.update.launch_failed": "无法启动 Omarchy 的更新程序。",
   "settings.about.tagline": "为 Omarchy 打造的文件管理器",
@@ -1018,6 +1039,7 @@
   "jobs.undone.trash": "已从回收站放回原处。",
   "jobs.undone.settags": "已恢复之前的标签。",
   "jobs.undone.mkdir": "已移除新文件夹。",
+  "jobs.undone.convert": "已撤销转换",
   "jobs.undone.other": "已撤销上一个操作",
   "jobs.redone.copy": "已重做复制",
   "jobs.redone.move": "已重做移动",
@@ -1080,6 +1102,26 @@
   "jobs.failed.extract": "解压失败",
   "jobs.failed.send": "发送失败",
   "jobs.failed.emptyTrash": "清空回收站失败",
+  "jobs.head.send_waiting": "正在发送",
+  "jobs.head.copying": "正在复制到 %3：第 %1 项，共 %2 项",
+  "jobs.head.moving": "正在移动到 %3：第 %1 项，共 %2 项",
+  "jobs.head.sending": "正在发送到 %3：第 %1 项，共 %2 项",
+  "jobs.head.action": "%1 · 第 %2 项，共 %3 项",
+  "jobs.head.checking": {
+    "other": "正在检查 %2 上的 %1 个项目"
+  },
+  "jobs.head.copy_waiting": {
+    "other": "将 %1 个项目复制到 %2"
+  },
+  "jobs.head.move_waiting": {
+    "other": "将 %1 个项目移动到 %2"
+  },
+  "jobs.head.compress_waiting": {
+    "other": "将 %1 个项目压缩为 %2"
+  },
+  "jobs.head.compressing": {
+    "other": "正在压缩 %1 个项目"
+  },
   "jobs.error.retry": "只能重试失败的任务。",
   "jobs.error.dismiss": "只能关闭已完成或失败的任务。",
   "jobs.error.undo": "该任务已无法撤销。",
@@ -1318,6 +1360,9 @@
     "other": "已删除 %2 个，共 %1 个项目"
   },
   "trash.done.failed": "%1 · %2 项失败",
+  "trash.done.leftover": {
+    "other": "%2 · 有 %1 个残留条目无法移除"
+  },
   "trash.done.failure": "%1 失败：%2",
   "trash.arm.one": "再按一次 %1 将其移到回收站，或单独按下 %2。",
   "trash.arm.many": "再按一次 %1 将它们移到回收站，或单独按下 %2。",
@@ -1419,6 +1464,7 @@
   "send.providers.airdrop_accept": "接受",
   "send.providers.airdrop_decline": "拒绝",
   "send.providers.airdrop_someone": "附近的设备",
+  "send.providers.airdrop_received": "已通过 AirDrop 收到 %1",
   "send.rclone.row": "通过 rclone 发送",
   "send.rclone.title": {
     "other": "将 %1 个项目发送到 %2"
@@ -1488,6 +1534,8 @@
   "dialogs.file.permissions.gid": "gid %1",
   "dialogs.file.permissions.will_change": "将更改",
   "dialogs.file.permissions.requested": "请求的模式 %1",
+  "dialogs.file.permissions.no_changes": "没有要应用的更改",
+  "dialogs.file.permissions.current_mode": "当前模式 %1",
   "dialogs.file.permissions.path": "路径 %1",
   "dialogs.file.permissions.scope_item": "范围 仅此项目 · 所有权不变",
   "dialogs.file.permissions.scope_folder": "范围 仅此文件夹 · 其中的项目不变 · 所有权不变",
@@ -1740,6 +1788,7 @@
   "step.merge": "合并",
   "step.link": "创建链接",
   "step.permissions": "权限更改",
+  "step.convert": "转换",
   "paste.nothing": "没有可粘贴的内容",
   "paste.waiting": "已有传输任务在等待回答问题；请在回答后再试。",
   "collide.one": "%2 中已存在 %1。",
@@ -1999,6 +2048,7 @@
   "preview.expand": "展开",
   "preview.unpacked_size": "解压后 %1",
   "keys.label.bd0b7be215ce": "关闭编辑器",
+  "keys.label.bc4dd3d76b73": "保留结果",
   "keys.label.e9619e148ed8": "Control+X 不起作用",
   "keys.label.1426edd106ac": "复制文件 URI",
   "keys.label.a6064fd8c0b2": "复制文件夹路径",
@@ -2262,6 +2312,7 @@
   "keys.label.72a825fc6b84": "向下翻页",
   "keys.label.c2fc6e7bc3be": "下一个工作表",
   "keys.label.e3a4d6eba0c6": "上一个工作表",
+  "keys.label.07c371255954": "打印…",
   "menu.original.needs_link": "要显示原身，请将光标移到链接上",
   "menu.refusal.favourite_unread": "无法读取所选文件夹。",
   "menu.refusal.nocursor": "光标下没有项目，无法打开菜单",
@@ -2363,6 +2414,7 @@
   "tui.cwd.the_output_needs_a_file_name": "输出需要文件名",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "--tui-keymap 接受 default、vim、mac、windows 或 yazi",
   "tui.cwd.twice": "%1 被指定了两次",
+  "tui.cwd.folder_missing": "%1 的文件夹不存在：%2",
   "tui.cwd.write_error": "无法写入 %1：%2",
   "tui.editor.enter_a_filename_before_the_extension": "请在扩展名前输入文件名。",
   "tui.editor.invalid_name": "请输入非空名称，不能为 . 或 ..，且不能包含 / 或空字符。",
@@ -2387,6 +2439,7 @@
   "tui.launch.could_not_finish": "%1 无法完成（%2）",
   "tui.launch.could_not_observe": "无法监测 %1：%2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "这不是文件夹，因此未打开终端",
+  "tui.launch.program_not_found": "找不到程序 %1",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "请将窗口调整为至少 12 列宽、5 行高。",
   "tui.model.bulk_done": {
     "other": "已重命名 %1 个项目 · 撤销将还原一次重命名"
@@ -2475,5 +2528,19 @@
   "settings.hint.key_reserved": "%1 仍未绑定，因为 Flea 保留此按键序列供自身使用。",
   "settings.hint.key_taken": "%1 仍未绑定，因为 %2 在此预设中已使用此按键序列。",
   "settings.hint.key_unknown": "%1 仍未绑定，因为 Flea 没有名为 %2 的操作。",
-  "mime.png": "PNG 图像"
+  "mime.png": "PNG 图像",
+  "mime.plain": "纯文本文档",
+  "feedback.unheld.links": "此驱动器不支持链接。",
+  "feedback.unheld.nodes": "此驱动器不支持特殊文件。",
+  "feedback.unheld.name": "此驱动器不允许使用该名称。",
+  "feedback.unheld.long": "该名称对于此驱动器来说太长。",
+  "feedback.unheld.taken": "此驱动器将该名称视为与文件夹中的另一个名称相同。",
+  "feedback.unheld.copy_one": "无法复制 %1：%2",
+  "feedback.unheld.move_one": "无法移动 %1：%2",
+  "feedback.unheld.copy_many": {
+    "other": "内部有 %1 个项目无法复制；第一个是 %2：%3"
+  },
+  "feedback.unheld.move_many": {
+    "other": "内部有 %1 个项目无法移动；第一个是 %2：%3"
+  }
 }

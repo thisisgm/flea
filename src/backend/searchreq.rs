@@ -3,6 +3,7 @@ use crate::backend::proto::{searched_line, searching_line};
 use crate::backend::state::{Held, State};
 use crate::backend::timing::since;
 use crate::backend::undo::Journal;
+use flea::bytename::ExactText as _;
 use std::io::Write;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
@@ -172,6 +173,7 @@ pub fn emit_session_answer_cancelled(
     answer: &Answer,
     cancelled: bool,
 ) {
+    super::searchremap::landing(st, answer.gen, &answer.scope);
     st.base = answer.scope.clone();
     let names = answer.rows.iter().map(|(path, _)| path.len()).sum();
     st.listing = crate::backend::listing::Listing::with_reserve(names, answer.rows.len());
@@ -190,7 +192,7 @@ pub fn emit_session_answer_cancelled(
             0.0,
             answer.ms,
             answer.dev,
-            &answer.scope.to_string_lossy(),
+            &answer.scope.exact_text(),
             answer.writable,
             answer.gen
         )
@@ -226,7 +228,7 @@ pub fn op_write_paths(msg: &crate::backend::opsreq::OpMsg) -> Vec<PathBuf> {
         | OpMsg::Pasted { entry: Some(entry), .. } => paths.extend(Journal::touched_paths(&entry.steps)),
         // The landed steps count whether or not the batch finished.
         OpMsg::BulkRenameDone { result: Ok((steps, _)), .. } => paths.extend(Journal::touched_paths(steps)),
-        OpMsg::Duplicated { path, .. } => paths.push(PathBuf::from(path)),
+        OpMsg::Duplicated { path, .. } => paths.push(flea::bytename::exact(path)),
         OpMsg::RenameDone { result, .. } | OpMsg::MkdirDone { result, .. } => {
             if let Ok((path, steps)) = result {
                 paths.push(path.clone());

@@ -3,11 +3,11 @@ use super::preview_tests::{body, close, draw, file, opened};
 use super::quick_look_body_tests::{mounted, open_kind};
 use super::test_shell::{land, set_cursor};
 use crate::{
-    g2::pv1::{doc::View, Body},
+    g2::quick_look_overlay::{doc::View, Body},
     state::Shell,
     window::u07_tests::read,
 };
-use flea::{jsondoc, ui_logic_pv2::archive};
+use flea::{jsondoc, ui_logic_doc_preview::archive};
 use gpui::{Entity, TestAppContext, VisualTestContext};
 
 #[path = "quick_look_symlink_tests.rs"]

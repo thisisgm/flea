@@ -9,7 +9,7 @@ menus_guard() {
 
 # What a failed check leaves behind: the menu, the rename editor, the status slot, the focused window and one capture; it never changes the verdict.
 menus_evidence() {
-    local png="$evidence_dir/menus-failure-$$.png"
+    local png="$evidence_dir/menus-failure-${BASHPID:-$$}.png"
     printf 'MENUS_EVIDENCE menu=%s\n' "$(ipc menuState 2>&1 | jq -c '{opened, hasRow, snapshotReady, snapshotId}' 2>&1)"
     printf 'MENUS_EVIDENCE rename=%s error=%s primary=%q detail=%q last=%q path=%q\n' "$(ipc renameEditorLive 2>&1)" \
         "$(ipc statusError 2>&1)" "$(ipc statusPrimary 2>&1)" "$(ipc statusDetail 2>&1)" "$(ipc lastMessage 2>&1)" "$(ipc path 2>&1)"
@@ -203,7 +203,7 @@ menus_file_menu() {
 }
 
 menus_shot() {
-    local name="$1" png="$evidence_dir/menus-$1-$$.png" canonical
+    local name="$1" png="$evidence_dir/menus-$1-${BASHPID:-$$}.png" canonical
     [[ -f "$run_root/.flea-test-sandbox" && "$png" == /* && ! -e "$png" ]] || fail "menus: screenshot must be fresh and sandboxed"
     canonical=$(realpath -m -- "$png") || fail "menus: cannot resolve screenshot path"
     [[ "$canonical" == "$run_root/"* ]] || fail "menus: screenshot escaped evidence sandbox"
@@ -289,7 +289,7 @@ guard() {
 case "${1:-}" in
   info) exec "$FLEA_MENUS_GIO" "$@" ;;
   mime) [[ $# == 2 ]] || exit 91; exec "$FLEA_MENUS_GIO" "$@" ;;
-  mount) [[ $# == 2 && "$2" == -l ]] || exit 92; exec "$FLEA_MENUS_GIO" "$@" ;;
+  mount) [[ $# == 2 && ( "$2" == -l || "$2" == -li ) ]] || exit 92; exec "$FLEA_MENUS_GIO" "$@" ;;
   open)
     [[ $# == 2 ]] || exit 97
     guard "$2"
@@ -332,11 +332,11 @@ menus_open_with() {
     local state target cursor count step pid deadline
     menus_file_menu a.txt
     menus_open_with_dialog
-    menus_expect menuDialogState '.opened and (.busy | not) and any(.applications[]; .id == "flea-menu-fixture.desktop")' "Open With queries the real fixture registry"
+    menus_expect menuDialogState '.opened and (.busy | not) and any((.applications // [.rows[] | select(has("id"))])[]; .id == "flea-menu-fixture.desktop")' "Open With queries the real fixture registry"
     state=$(ipc menuDialogState)
     # The card draws a registered application twice, once per group, so the first seat is the target.
-    target=$(jq -r '[.applications | to_entries[] | select(.value.id == "flea-menu-fixture.desktop")][0].key' <<< "$state")
-    count=$(jq -r '.applications | length' <<< "$state")
+    target=$(jq -r '[(.applications // [.rows[] | select(has("id"))]) | to_entries[] | select(.value.id == "flea-menu-fixture.desktop")][0].key' <<< "$state")
+    count=$(jq -r '(.applications // [.rows[] | select(has("id"))]) | length' <<< "$state")
     for ((step = 0; step <= count; step++)); do
         cursor=$(ipc menuDialogState | jq -r .cursor)
         [[ "$cursor" == "$target" ]] && break
@@ -345,13 +345,14 @@ menus_open_with() {
     [[ "$cursor" == "$target" ]] || fail "menus: cannot focus the fixture viewer"
     key -k Return >/dev/null
     menus_expect menuDialogState '.opened and (.busy | not) and (.error | contains("23"))' "launcher failure reaches live dialog"
+    menus_shot openwith-exit23
     key -k Escape >/dev/null
     menus_guard "$menu_box/launcher.pid"
     rm -f -- "$menu_box/launcher.pid"
     printf 'block\n' > "$menu_box/launcher-mode"
     menus_file_menu a.txt
     menus_open_with_dialog
-    menus_expect menuDialogState '.opened and (.busy | not) and .applications[0].id == "flea-menu-fixture.desktop"' "fixture viewer retains registry priority"
+    menus_expect menuDialogState '.opened and (.busy | not) and (.applications // [.rows[] | select(has("id"))])[0].id == "flea-menu-fixture.desktop"' "fixture viewer retains registry priority"
     key -k Return >/dev/null
     menus_expect menuDialogState '.busy and .committing and any(.controls[]; .name == "Cancel" and .enabled)' "Cancel remains available while launcher waits"
     deadline=$((SECONDS + 15))
@@ -380,7 +381,11 @@ menus_dialog_keys() {
         fi
         menus_file_menu a.txt key
         if [[ "$action" == openWith ]]; then menus_open_with_dialog; else menus_choose "$action"; fi
-        menus_expect menuDialogState ".opened and (.busy | not) and .action == \"$action\"" "$preset $action opens"
+        if [[ "$action" == openWith ]]; then
+            menus_expect openWithState '.opened and (.busy | not)' "$preset $action opens"
+        else
+            menus_expect menuDialogState ".opened and (.busy | not) and .action == \"$action\"" "$preset $action opens"
+        fi
         menus_expect "$probe" "any(.controls[]; .name == \"$first\" and .focused)" "$preset $action initial focus"
         for name in "${forward[@]}" "$first"; do
             key -k Tab >/dev/null
@@ -496,14 +501,17 @@ menus_replace() {
     [[ "$(stat -c '%d:%i' "$original")" != "$inode" ]] || fail "menus: replacement reused the captured identity"
 }
 
-# The open menu holds the re-read back, so the identity it captured is still current at activation (routes in AGENTS.md).
+# Rename keeps the captured identity through editor commit, even while its listing is held back.
 menus_rename_after_replacement() {
-    local directory="$1"
+    local directory="$1" replacement
+    replacement=$(stat -c '%d:%i' "$directory/target.txt")
     menus_expect renameState '.index >= 0 and .index == .cursor and .cursorName == "target.txt" and .focused and (.pending | not)' 'rename opens the editor over target.txt at menu activation'
     menus_guard "$directory/renamed.txt"
     key -M ctrl -k a -m ctrl renamed.txt -k Return >/dev/null
     menus_expect renameState '.focused and (.pending | not) and .text == "renamed.txt" and (.error | contains("Selected item changed"))' 'rename refuses the replaced source at commit, in the editor'
     [[ ! -e "$directory/renamed.txt" ]] || fail "menus: rename committed the replacement"
+    menus_equal 'menu rename refusal leaves replacement identity untouched' "$replacement" "$(stat -c '%d:%i' "$directory/target.txt")"
+    menus_equal 'menu rename refusal leaves replacement bytes untouched' 'replacement' "$(cat "$directory/target.txt")"
     key -k Escape >/dev/null
     menus_expect renameEditorLive '. == false' 'Escape closes the editor that refused the replaced source'
 }
@@ -609,7 +617,7 @@ menus_stale_rename_commit() {
     menus_visit "$menu_dir" 4
 }
 
-# A hidden Copy as leaf still reaches wl-copy through the lone flyout.
+# A hidden Copy as leaf copies the path through the frontend's clipboard owner.
 menus_hidden_copy_as() {
     local directory="$menu_box/hidden-copyas"
     local log="$menu_box/wl-copy.log"
@@ -640,16 +648,22 @@ SH
     deadline=$((SECONDS + 15))
     while (( SECONDS < deadline ))
     do
-        observed=$(cat -- "$log") || fail "menus: cannot read wl-copy log"
-        if [[ "$observed" == *"$directory/a.txt"* ]]
+        # GPUI owns the Wayland clipboard directly; the pinned QML oracle keeps its wl-copy recorder.
+        if [[ "$test_frontend" == gpui ]]; then
+            observed=$(timeout 2 /usr/bin/wl-paste --no-newline --type text/plain 2>/dev/null) || observed=""
+        else
+            observed=$(cat -- "$log") || fail "menus: cannot read wl-copy log"
+        fi
+        if [[ "$test_frontend" == gpui && "$observed" == "$directory/a.txt" \
+            || "$test_frontend" != gpui && "$observed" == *"$directory/a.txt"* ]]
         then
             menus_checks=$((menus_checks + 1))
-            printf 'MENUS_CHECK %s %s\n' "$menus_checks" "hidden Copy as leaf reaches wl-copy"
+            printf 'MENUS_CHECK %s %s\n' "$menus_checks" "hidden Copy as leaf copies its exact path"
             return
         fi
         sleep 0.05
     done
-    fail "menus: hidden Copy as leaf never reached wl-copy: $observed"
+    fail "menus: hidden Copy as leaf never copied its path: $observed"
 }
 
 case_menuscoverage() (
@@ -680,8 +694,9 @@ case_menuscoverage() (
         wait_listing 4
         trash_guard_store "$menus_trashed"
         menus_file_menu a.txt menu-key
-        menus_expect menuState '.entries as $entries | ["open","cut","copy","paste","pasteAs","duplicate","rename","trash","deletePermanently","openWith","openTerminal","moveTo","copyTo","properties","permissions","copyAs","toggleHidden"] | all(.[]; . as $action | any($entries[]; .action == $action))' "full applicable plain-file inventory"
-        menus_expect menuState 'any(.entries[]; .action == "paste" and .disabled)' "Paste remains visible with empty clipboard"
+        # Show Hidden Files lives on the background menu since 0.4.1, and an empty clipboard hides Paste As while Paste stays dimmed (HIG CHANGES APL-MENU-30).
+        menus_expect menuState '.entries as $entries | ["open","cut","copy","paste","duplicate","rename","trash","deletePermanently","openWith","openTerminal","moveTo","copyTo","properties","permissions","copyAs"] | all(.[]; . as $action | any($entries[]; .action == $action))' "full applicable plain-file inventory"
+        menus_expect menuState 'any(.entries[]; .action == "paste" and .disabled) and all(.entries[]; .action != "pasteAs")' "Paste stays dimmed and Paste As hides with an empty clipboard"
         before=$(ipc listContentY)
         menus_seek properties
         menus_shot "$preset-file-menu"
@@ -689,7 +704,11 @@ case_menuscoverage() (
         menus_expect menuDialogState '.opened and .facts.ok and .facts.kind == "File"' "Properties consumes captured file identity"
         [[ "$(ipc listContentY)" == "$before" ]] || fail "menus: menu traversal scrolled the covered listing"
         key -k Tab >/dev/null
-        menus_expect menuDialogState 'any(.controls[]; .name == "Cancel" and .focused)' "Properties contains Tab focus"
+        if [[ "$test_frontend" == gpui ]]; then
+            menus_expect menuDialogState 'any(.controls[]; .name == "Close" and .focused)' "Properties contains Tab focus"
+        else
+            menus_expect menuDialogState 'any(.controls[]; .name == "Cancel" and .focused)' "Properties contains Tab focus"
+        fi
         key -k Escape >/dev/null
         menus_confirmation a.txt "$preset"
         menus_permissions a.txt "$preset"
@@ -709,9 +728,9 @@ case_menuscoverage() (
         menus_expect selectionCount '. == 2' "Ctrl-click creates two selected items before menu eligibility"
         menus_expect dualState ".panes[.focused].selected == [$first_index,$second_index]" "selected identities are a.txt and b.txt"
         click_row "$(row_index_of a.txt)" right
-        # Permissions (board Permissions040) and bulk rename take the whole selection, so two regular files enable both; the three single-item rows stay disabled.
-        menus_expect menuState '.opened and .hasRow and .snapshotReady and (.snapshotId > 0) and (.entries as $entries | ["duplicate","openWith","properties"] | all(.[]; . as $action | any($entries[]; .action == $action and .disabled)))' "multi-selection single-item rows stay disabled"
-        menus_expect menuState 'any(.entries[]; .action == "rename" and (.disabled == false) and .label == "Rename 2 items\u2026")' "two files offer bulk rename by count"
+        # Permissions (board permissions-several) and bulk rename take the whole selection; the several-item menu hides Duplicate and keeps Open With live (HIG actions-menu, APL-MENU-02).
+        menus_expect menuState '.opened and .hasRow and .snapshotReady and (.snapshotId > 0) and all(.entries[]; .action != "duplicate") and any(.entries[]; .action == "openWith" and (.disabled == false))' "the several-item menu hides Duplicate and keeps Open With live"
+        menus_expect menuState 'any(.entries[]; .action == "rename" and (.disabled == false) and .label == "Rename 2 Items\u2026")' "two files offer bulk rename by count"
         menus_expect menuState 'any(.entries[]; .action == "permissions" and (.disabled == false) and (.errored | not))' "two regular files keep Permissions enabled without error"
         key -k Escape >/dev/null
         # permissionsEntry refuses the whole selection for one row that is neither a regular file nor a directory.
@@ -725,7 +744,7 @@ case_menuscoverage() (
             menus_expect dualState "(.panes[.focused].selected | sort) == ([$first_index,$second_index] | sort)" "Permissions pair holds the a.txt and $target identities"
             click_row "$first_index" right
             if [[ "$target" == folder ]]; then
-                menus_expect menuState '.opened and .hasRow and .snapshotReady and (.snapshotId > 0) and (.entries as $entries | ["duplicate","openWith","properties"] | all(.[]; . as $action | any($entries[]; .action == $action and .disabled))) and any(.entries[]; .action == "rename" and (.disabled == false) and .label == "Rename 2 items\u2026") and any(.entries[]; .action == "permissions" and (.disabled == false) and (.errored | not))' "a file and a directory keep Permissions enabled without error in the several-items menu"
+                menus_expect menuState '.opened and .hasRow and .snapshotReady and (.snapshotId > 0) and all(.entries[]; .action != "duplicate") and (.entries as $entries | ["openWith","properties"] | all(.[]; . as $action | any($entries[]; .action == $action and .disabled))) and any(.entries[]; .action == "rename" and (.disabled == false) and .label == "Rename 2 Items\u2026") and any(.entries[]; .action == "permissions" and (.disabled == false) and (.errored | not))' "a file and a directory keep Permissions enabled without error in the several-items menu"
             else
                 menus_expect menuState '.opened and .hasRow and .snapshotReady and (.snapshotId > 0) and any(.entries[]; .action == "permissions" and .disabled and .errored and .hint == "symlink")' "one symlink disables and errors Permissions for the whole selection"
             fi
@@ -799,7 +818,8 @@ case_menurest() (
             "$attempt" "$(jq -r .opened <<< "$state")" "$cursor" "$first" "$flyout" "$rest_row" "$probe"
         [[ "$attempt" != 1 ]] || shot menurest-attempt1
         [[ "$(jq -r .opened <<< "$state")" == true ]] || fail "menurest: j, k and c opened no menu on attempt $attempt: $state"
-        [[ "$cursor" == "$first" && "$flyout" == true ]] || taken=$((taken + 1))
+        # c opens the lone Copy As flyout, which lights only its first leaf and no main row, as v0.3.12 did (g2/context_menus/menu.rs Submenu::Lone).
+        [[ "$cursor" == -1 && "$flyout" == true && "$(jq -r '.lone and .submenuCursor == 0' <<< "$state")" == true ]] || taken=$((taken + 1))
         [[ "$probe" != true* ]] || landed=$((landed + 1))
         for escape in 1 2 3; do
             [[ "$(ipc contextMenuVisible)" == "true" ]] || break

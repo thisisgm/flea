@@ -219,7 +219,7 @@ fn a_busy_pane_still_acts_on_the_answered_keys(cx: &mut TestAppContext) {
                     "Copied 1 item",
                     false,
                     "",
-                    flea::ui_logic_fb1::status::Hint::None,
+                    flea::ui_logic_status_feedback::status::Hint::None,
                     now,
                 )
             })

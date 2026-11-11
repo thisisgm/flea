@@ -1,6 +1,6 @@
 use super::{service, Host};
 use crate::state::Shell;
-use flea::ui_logic_st2::contributions;
+use flea::ui_logic_plugin_settings::contributions;
 use gpui::{Context, Entity, Subscription, Window};
 
 #[derive(Default)]

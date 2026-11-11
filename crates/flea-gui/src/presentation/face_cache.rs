@@ -68,7 +68,7 @@ pub(super) fn family(
     cache: &Path,
     command: impl FnOnce() -> Command,
 ) -> io::Result<String> {
-    family_within(inputs, cache, command, face::LAUNCH)
+    family_within(inputs, cache, command, face::PATIENT)
 }
 
 pub(super) fn family_within(

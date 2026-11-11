@@ -86,10 +86,10 @@ fn ey414_the_quiet_caption_and_mark_roles_are_muted_and_muted_frame() {
     );
 }
 
-/// EY-439: waits stay notices and failures stay errors; the Starting route is pinned in g2/pl2/bridge_line_tests.rs.
+/// EY-439: waits stay notices and failures stay errors; the Starting route is pinned in g2/network_shares/bridge_line_tests.rs.
 #[test]
 fn ey439_waits_stay_notices_and_failures_stay_errors() {
-    use crate::g2::pl2::result::{say_role, SayRole};
+    use crate::g2::network_shares::result::{say_role, SayRole};
     for key in ["network.another_opening", "network.unmounted"] {
         assert_eq!(say_role(key), SayRole::Notice, "{key}");
     }

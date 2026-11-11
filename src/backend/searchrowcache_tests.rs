@@ -1,7 +1,7 @@
 use super::*;
 use crate::backend::{aliases::Aliases, icons::Names, kind::Kinds, mime::Db, rows, tags, testdir::TestDir, thumbspec::Thumbnailers};
 use crate::backend::watch::{IN_IGNORED, IN_Q_OVERFLOW, IN_UNMOUNT};
-use std::os::unix::fs::{symlink, PermissionsExt};
+use std::os::unix::fs::{symlink, MetadataExt, PermissionsExt};
 
 fn listing(names: &[&str]) -> Listing {
     let mut listing = Listing::new();
@@ -35,6 +35,28 @@ fn search_row_cache_stats_each_row_and_reuses_only_fresh_intersecting_tags() {
     assert!(!cache.entries.contains_key(&d.join("a.txt")), "scrolled-past identity is discarded");
     render(&mut cache, d.path(), &l, 0, 3, "");
     assert_eq!(counts(), (4, 1), "returning to an evicted identity is a cold miss");
+}
+
+#[test]
+fn search_row_cache_keeps_a_raw_named_row_under_its_own_path() {
+    use flea::bytename::ExactText as _;
+    use std::os::unix::ffi::OsStrExt;
+    let d = TestDir::new("search-row-raw");
+    let raw = std::ffi::OsStr::from_bytes(b"caf\xe9.txt");
+    std::fs::write(d.path().join(raw), "raw").unwrap();
+    let mut cache = Cache::default();
+    render(
+        &mut cache,
+        d.path(),
+        &listing(&[&raw.exact_text()]),
+        0,
+        1,
+        "",
+    );
+    assert!(
+        cache.entries.contains_key(&d.path().join(raw)),
+        "the raw row is cached at the file it names"
+    );
 }
 
 #[test]
@@ -106,6 +128,22 @@ fn search_row_cache_bypasses_symlinks_unwatched_remotes_and_failed_watches() {
     assert!(cache.entries.is_empty());
     // A failed watch removes all active coverage and facts while retaining descriptors for the next request.
     super::test_support::assert_cleared(&cache);
+}
+
+// Sample input: the row's own device mounted as a host's virtiofs share, which no guest-side watch hears the host change.
+#[test]
+fn search_row_cache_never_keeps_a_row_on_a_vm_share() {
+    let d = TestDir::new("search-row-vmshare");
+    d.file("file.txt", "a");
+    let l = listing(&["file.txt"]);
+    let majmin = super::super::mountinfo::dev_majmin(std::fs::symlink_metadata(d.join("file.txt")).unwrap().dev());
+    let as_kind = |kind: &str| format!("1 0 {} / {} rw - {} share rw\n", majmin, d.path().display(), kind);
+    let mut cache = Cache::default();
+    for _ in 0..2 { cache.window(d.path(), &l, 0, 1, &as_kind("virtiofs")); }
+    assert!(cache.entries.is_empty(), "a row on a VM share reads cold on every ask");
+    // Negative control: the same row on a local disk is kept by its second ask.
+    for _ in 0..2 { cache.window(d.path(), &l, 0, 1, &as_kind("ext4")); }
+    assert_eq!(cache.entries.len(), 1, "a local row arms and is kept");
 }
 
 #[test]

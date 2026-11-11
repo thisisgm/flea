@@ -126,9 +126,11 @@ fn plugin_key_binding_runs_the_menu_action_with_its_validation_and_input_card(
             flea::uistate::from_file(r#"{"plugins":{"example.checksums":{"enabled":false}}}"#);
         shell.apply_settings(off, window, cx);
         assert!(shell.user_keys.facts.plugins.is_empty());
-        assert!(
-            flea::ui_logic_st1::pages::user_key_rows(&shell.user_keys.facts, "default").is_empty()
-        );
+        assert!(flea::ui_logic_settings_pages::pages::user_key_rows(
+            &shell.user_keys.facts,
+            "default"
+        )
+        .is_empty());
         let event = gpui::KeyDownEvent {
             keystroke: gpui::Keystroke::parse("ctrl-shift-k").unwrap(),
             is_held: false,

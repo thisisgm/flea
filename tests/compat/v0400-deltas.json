@@ -34,6 +34,26 @@
       "from": "      \"openAgent\"\n    ]",
       "to": "      \"openAgent\",\n      \"toggleHidden\",\n      \"toggleLangMarks\"\n    ]",
       "reason": "0.4.1 shows Properties and Permissions and moves Show Hidden Files and Hide Code Icons off the file menu (src/uimigrate.rs menuVersion 1)"
+    },
+    {
+      "from": "  \"highlightToday\": false,\n",
+      "to": "  \"highlightToday\": false,\n  \"tabsAsIcons\": false,\n",
+      "reason": "0401-settings-view-c (design-hig/CHANGES.md:3135) approves tabsAsIcons=false."
+    },
+    {
+      "from": "  \"highlightToday\": false,\n  \"tabsAsIcons\": false,\n",
+      "to": "  \"highlightToday\": false,\n  \"tabsAsIcons\": false,\n  \"emptyFolderOmi\": true,\n",
+      "reason": "0401-settings-view-c (design-hig/CHANGES.md:3135) approves emptyFolderOmi=true."
+    },
+    {
+      "from": "  \"highlightToday\": false,\n  \"tabsAsIcons\": false,\n  \"emptyFolderOmi\": true,\n",
+      "to": "  \"highlightToday\": false,\n  \"tabsAsIcons\": false,\n  \"emptyFolderOmi\": true,\n  \"emptyFolderRotate\": true,\n",
+      "reason": "0401-settings-view-c (design-hig/CHANGES.md:3135) approves emptyFolderRotate=true."
+    },
+    {
+      "from": "  \"highlightToday\": false,\n",
+      "to": "  \"highlightToday\": false,\n  \"highlightHover\": false,\n",
+      "reason": "651d3f115 adds the approved Highlight on hover setting with its fresh-install default off."
     }
   ],
   "cli:ui-state-write": [
@@ -71,6 +91,26 @@
       "from": "      \"openAgent\"\n    ]",
       "to": "      \"openAgent\",\n      \"toggleHidden\",\n      \"toggleLangMarks\"\n    ]",
       "reason": "0.4.1 shows Properties and Permissions and moves Show Hidden Files and Hide Code Icons off the file menu (src/uimigrate.rs menuVersion 1)"
+    },
+    {
+      "from": "  \"highlightToday\": false,\n",
+      "to": "  \"highlightToday\": false,\n  \"tabsAsIcons\": false,\n",
+      "reason": "0401-settings-view-c (design-hig/CHANGES.md:3135) approves tabsAsIcons=false."
+    },
+    {
+      "from": "  \"highlightToday\": false,\n  \"tabsAsIcons\": false,\n",
+      "to": "  \"highlightToday\": false,\n  \"tabsAsIcons\": false,\n  \"emptyFolderOmi\": true,\n",
+      "reason": "0401-settings-view-c (design-hig/CHANGES.md:3135) approves emptyFolderOmi=true."
+    },
+    {
+      "from": "  \"highlightToday\": false,\n  \"tabsAsIcons\": false,\n  \"emptyFolderOmi\": true,\n",
+      "to": "  \"highlightToday\": false,\n  \"tabsAsIcons\": false,\n  \"emptyFolderOmi\": true,\n  \"emptyFolderRotate\": true,\n",
+      "reason": "0401-settings-view-c (design-hig/CHANGES.md:3135) approves emptyFolderRotate=true."
+    },
+    {
+      "from": "  \"highlightToday\": false,\n",
+      "to": "  \"highlightToday\": false,\n  \"highlightHover\": false,\n",
+      "reason": "651d3f115 adds the approved Highlight on hover setting with its fresh-install default off."
     }
   ],
   "state:ui-state": [
@@ -108,6 +148,26 @@
       "from": "      \"actions\"\n    ]",
       "to": "      \"actions\",\n      \"toggleHidden\",\n      \"toggleLangMarks\"\n    ]",
       "reason": "0.4.1 shows Properties and Permissions and moves Show Hidden Files and Hide Code Icons off the file menu (src/uimigrate.rs menuVersion 1)"
+    },
+    {
+      "from": "  \"highlightToday\": false,\n",
+      "to": "  \"highlightToday\": false,\n  \"tabsAsIcons\": false,\n",
+      "reason": "0401-settings-view-c (design-hig/CHANGES.md:3135) approves tabsAsIcons=false."
+    },
+    {
+      "from": "  \"highlightToday\": false,\n  \"tabsAsIcons\": false,\n",
+      "to": "  \"highlightToday\": false,\n  \"tabsAsIcons\": false,\n  \"emptyFolderOmi\": true,\n",
+      "reason": "0401-settings-view-c (design-hig/CHANGES.md:3135) approves emptyFolderOmi=true."
+    },
+    {
+      "from": "  \"highlightToday\": false,\n  \"tabsAsIcons\": false,\n  \"emptyFolderOmi\": true,\n",
+      "to": "  \"highlightToday\": false,\n  \"tabsAsIcons\": false,\n  \"emptyFolderOmi\": true,\n  \"emptyFolderRotate\": true,\n",
+      "reason": "0401-settings-view-c (design-hig/CHANGES.md:3135) approves emptyFolderRotate=true."
+    },
+    {
+      "from": "  \"highlightToday\": false,\n",
+      "to": "  \"highlightToday\": false,\n  \"highlightHover\": false,\n",
+      "reason": "651d3f115 adds the approved Highlight on hover setting with its fresh-install default off."
     }
   ],
   "cli:gui-desktop": [
@@ -166,11 +226,23 @@
       "reason": "CTL2 ruling 141: the default and explicit GPUI routes launch flea-gui; the recorder names the actual child."
     }
   ],
+  "cli-stderr:shelf-bad": [
+    {
+      "from": "peers, paths, places, choose",
+      "to": "peers, paths, clip, places, choose",
+      "reason": "41a1b755b adds Shelf clipboard copy and lists the clip verb in its usage error."
+    }
+  ],
   "cli-usage:actions": [
     {
       "from": "       flea ipc [--pid N|--any] call",
       "to": "       flea --action <id> [--window <pid>] | --actions [--window <pid>]\n       flea ipc [--pid N|--any] call",
       "reason": "The existing 0.4.0 action CLI adds this usage row while preserving every 0.3.12 invocation."
+    },
+    {
+      "from": "       flea --version\n",
+      "to": "       flea --version | -V\n       flea --help | -h\n",
+      "reason": "0.4.2 adds -V beside --version and a --help or -h that prints this usage on stdout with status 0. In 0.3.12 --help was an unknown flag and any word with one leading dash, -h and -V included, opened as a start folder; 0.4.2 reads -h and -V as these flags and refuses every other dash-led word, so those answers change on purpose. Usage errors gain these two rows, and every other 0.3.12 row keeps its bytes."
     }
   ]
 }

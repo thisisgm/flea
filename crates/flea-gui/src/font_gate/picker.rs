@@ -1,5 +1,5 @@
 use super::*;
-use crate::g2::pk1::{
+use crate::g2::picker_portal::{
     process::{Line, PickerChild},
     Children, Picker,
 };
@@ -45,7 +45,7 @@ pub(super) fn check() -> Vec<String> {
         let home = std::env::var("HOME").unwrap();
         let handle = cx.add_window(|_, cx| {
             Picker::new(
-                flea::ui_logic_pk1::request(request),
+                flea::ui_logic_picker_portal::request(request),
                 std::path::PathBuf::from(&home).join("picker-reply"),
                 &home,
                 locale(),

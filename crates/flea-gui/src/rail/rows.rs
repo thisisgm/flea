@@ -1,5 +1,5 @@
 //! The rail's rows as one custom Element: headings, marks, labels, trailing slots and the rename field, with the painted boxes published for IPC.
-use crate::g2::pl4::content::{DrawnSection, RowMark};
+use crate::g2::rail_places::content::{DrawnSection, RowMark};
 use crate::rail::geometry::Rect;
 #[path = "glyph.rs"]
 pub(crate) mod glyph;
@@ -136,6 +136,7 @@ pub struct LaidRow {
     pub detail_width: f32,
     pub font_size: f32,
     pub glyph: &'static str,
+    pub owned: Option<(gpui::SharedString, std::sync::Arc<[u8]>)>,
     pub mark: RowMark,
     pub error: bool,
     pub mounted: Option<bool>,
@@ -214,6 +215,8 @@ pub struct RowsModel {
     pub drop_target: Option<(usize, gpui::SharedString)>,
     /// A Favorites row held by its reorder drag, SidebarRow.qml's DragHandler.
     pub reorder: Option<Reorder>,
+    /// The open Settings card, whose marks underneath are left undrawn.
+    pub cover: crate::g2::settings_pages::cover::Cover,
 }
 
 /// The held favourite: its rail row, its store index, the press and active heights, and where the bar lands.
@@ -245,7 +248,7 @@ pub struct RailElement {
     laid: Rc<RefCell<Laid>>,
     typeface: Typeface,
     detail_face: Typeface,
-    producer: gpui::Entity<crate::g2::pl4::producer::Producer>,
+    producer: gpui::Entity<crate::g2::rail_places::producer::Producer>,
 }
 
 impl RailElement {
@@ -253,7 +256,7 @@ impl RailElement {
         model: Rc<RefCell<RowsModel>>,
         laid: Rc<RefCell<Laid>>,
         typeface: Typeface,
-        producer: gpui::Entity<crate::g2::pl4::producer::Producer>,
+        producer: gpui::Entity<crate::g2::rail_places::producer::Producer>,
     ) -> Self {
         let detail_face = Typeface {
             font: gpui::Font {
@@ -360,10 +363,10 @@ pub struct Ready {
 
 // A row has a trailing caption slot when SidebarRow.showsDot is true for its group and kind.
 fn indicator_slot(
-    group: flea::ui_logic_pl4::rail::Group,
-    kind: flea::ui_logic_pl4::rail::Kind,
+    group: flea::ui_logic_rail_places::rail::Group,
+    kind: flea::ui_logic_rail_places::rail::Kind,
 ) -> bool {
-    use flea::ui_logic_pl4::rail::{Group, Kind};
+    use flea::ui_logic_rail_places::rail::{Group, Kind};
     (group == Group::Network && kind != Kind::PluginRow)
         || (group == Group::Device && matches!(kind, Kind::Volume | Kind::Phone))
 }

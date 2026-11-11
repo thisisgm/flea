@@ -1123,17 +1123,20 @@ chmod 0644 "$WT/alpha.txt"
 out=$(watch_run "$WT" append_to_alpha)
 check_changed "a writer closing a file it appended to answers a changed line" "$out" 1 3
 
-# The watched directory itself: a move keeps the watch, which IN_MOVE_SELF is what reports, and a
-# delete takes the watch with it, which the kernel reports as IN_IGNORED whatever the mask holds.
+# The watched directory itself moving or going answers its old path and nearest surviving parent once.
 SELFDIR="$WT_SB/self-move"
 mkdir -p "$SELFDIR"
 out=$(watch_run "$SELFDIR" mv "$SELFDIR" "$WT_SB/self-moved")
-check_changed "moving the watched directory itself answers a changed line" "$out" 1 3
+check "moving the watched directory names its path and surviving parent once" \
+  "{\"t\":\"gone\",\"path\":\"$SELFDIR\",\"parent\":\"$WT_SB\"}" \
+  "$(printf '%s\n' "$out" | grep -E '"t":"(gone|changed|unmounted)"')"
 
 SELFDEL="$WT_SB/self-delete"
 mkdir -p "$SELFDEL"
 out=$(watch_run "$SELFDEL" rmdir "$SELFDEL")
-check_changed "deleting the watched directory answers a changed line, from the watch's own removal" "$out" 1 3
+check "deleting the watched directory names its path and surviving parent once" \
+  "{\"t\":\"gone\",\"path\":\"$SELFDEL\",\"parent\":\"$WT_SB\"}" \
+  "$(printf '%s\n' "$out" | grep -E '"t":"(gone|changed|unmounted)"')"
 
 # A failed list answers its error and the directory still on screen keeps answering changed. Two changes
 # a burst apart, because a watch the failure took away answers the one line its own removal made.
@@ -1297,6 +1300,7 @@ udisks_out=$(python3 tests/flash-udisks.py "$PWD/tools/flea-udisks" 2>&1)
 check "the udisks helper's decisions all hold" "1" "$(printf '%s\n' "$udisks_out" | grep -c '^flash-udisks: all checks passed$')"
 printf '%s\n' "$udisks_out" | grep '^FAIL' || true
 
+python3 tests/search-remap.py "$BIN" || fail=1
 # No per-key cleanup: the cache is inside the sandbox, so it goes when the sandbox does.
 sandbox_remove "$SB"
 exit $fail

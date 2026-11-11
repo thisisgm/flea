@@ -33,7 +33,7 @@ impl Render for Root {
             }
             shell.menu_frame(window, cx);
         });
-        let menu = crate::g2::mn1::host_input::layer(&self.shell, window, cx);
+        let menu = crate::g2::context_menus::host_input::layer(&self.shell, window, cx);
         let typeface = self.shell.read(cx).active_typeface();
         let foreground = cx
             .try_global::<Theme>()
@@ -149,12 +149,8 @@ impl Render for Root {
             .capture_any_mouse_down(move |event, window, cx| {
                 if event.button == gpui::MouseButton::Right {
                     shell.update(cx, |shell, cx| {
-                        // The field takes its own right press before the pane menu captures it.
-                        if shell.rename.edit.as_ref().is_some_and(|edit| {
-                            edit.line
-                                .frame
-                                .is_some_and(|frame| frame.contains(&event.position))
-                        }) {
+                        // A typing line takes its own right press before the pane menu captures it.
+                        if shell.text_line_at(event.position) {
                             return;
                         }
                         if shell.shown_view() != crate::window::startup::View::Columns {
@@ -242,11 +238,11 @@ impl Element for Overlay {
             mark.prepare(!cx.reduce_motion(), None, window, cx);
             return;
         }
-        let empty_marks = cx.read_entity(&self.0, crate::g2::fb1::empty_omi::marks);
+        let empty_marks = cx.read_entity(&self.0, crate::g2::status_feedback::empty_omi::marks);
         for mark in empty_marks.into_iter().flatten() {
             mark.prepare(!cx.reduce_motion(), None, window, cx);
         }
-        let heroes = cx.read_entity(&self.0, crate::g2::fb1::empty_omi::heroes);
+        let heroes = cx.read_entity(&self.0, crate::g2::status_feedback::empty_omi::heroes);
         for hero in heroes.into_iter().flatten() {
             hero.update(cx, |hero, cx| hero.prepare_caption(window, cx));
         }
@@ -319,13 +315,13 @@ impl Overlay {
     // The pane marks and the frame feedback bookkeeping, inside whatever mask the caller set.
     fn paint_marks(&self, window: &mut Window, cx: &mut App) {
         cx.read_entity(&self.0, |shell, cx| {
-            for mark in crate::g2::fb1::empty_omi::marks(shell, cx)
+            for mark in crate::g2::status_feedback::empty_omi::marks(shell, cx)
                 .into_iter()
                 .flatten()
             {
                 mark.paint(window);
             }
-            for hero in crate::g2::fb1::empty_omi::heroes(shell, cx)
+            for hero in crate::g2::status_feedback::empty_omi::heroes(shell, cx)
                 .into_iter()
                 .flatten()
             {

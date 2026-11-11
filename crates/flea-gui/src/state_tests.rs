@@ -180,6 +180,17 @@ fn dual_is_constructed_on_first_demand_and_retained_without_hidden_rendering(
     cx: &mut TestAppContext,
 ) {
     let (backend, _) = Backend::test_channel();
+    // The second pane starts its own backend: a test channel, never a flea --backend from PATH.
+    cx.update(|cx| {
+        cx.set_global(constructor_fixture::Services {
+            backend: |_, cx| {
+                let (backend, requests) = Backend::test_channel();
+                cx.on_release(move |_, _| drop(requests)).detach();
+                Ok(backend)
+            },
+            monitor: None,
+        })
+    });
     let window = cx.add_empty_window();
     window.update(|window, cx| {
         let entity = cx.new(|cx| shell_with(backend, cx));

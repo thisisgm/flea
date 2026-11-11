@@ -120,7 +120,8 @@ fn every_strip_binding_runs_the_tab_model_on_the_production_shell(cx: &mut TestA
     ];
     for preset in keys::PRESETS {
         for action in actions {
-            let rail = matches!(action, "tabNew" | "tabClose" | "tabNext" | "tabPrevious");
+            // Focus.js windowAction: every strip key answers from the rail; openTab names the listing's cursor.
+            let rail = action != "openTab";
             for context in [Context::Listing, Context::Rail] {
                 if context == Context::Rail && !rail {
                     continue;
@@ -372,3 +373,6 @@ fn the_dual_view_draws_and_names_every_tab(cx: &mut TestAppContext) {
 
 #[path = "tab_view_tests.rs"]
 mod tab_view_tests;
+
+#[path = "tabs_rail_tests.rs"]
+mod rail;

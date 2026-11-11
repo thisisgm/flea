@@ -139,9 +139,11 @@ pub fn spawn_jailed(full: &[String], setup: impl FnOnce(&mut std::process::Comma
     let status_fd = crate::backend::sandbox::STATUS_FD;
     let mut cmd = crate::backend::locale::command(launcher);
     if let Some((at, path)) = nested {
-        cmd.args(&full[1..at]).arg(path).args(&full[at + 1..]);
+        cmd.args(flea::bytename::args(&full[1..at]))
+            .arg(path)
+            .args(flea::bytename::args(&full[at + 1..]));
     } else {
-        cmd.args(&full[1..]);
+        cmd.args(flea::bytename::args(&full[1..]));
     }
     setup(&mut cmd);
     unsafe {

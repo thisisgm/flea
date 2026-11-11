@@ -188,7 +188,8 @@ case_settings() {
         || fail "settings: a restart brought the panel back on a different stop"
     # The master row is derived from the stored set, so a restart must still draw five of six.
     settings_section menus
-    [[ "$(ipc settingsRows)" == *"group|Basic file actions|5 of 6"* ]] \
+    # The restarted GPUI page resolves the same catalog heading as the shared Menus helper.
+    [[ "$(ipc settingsRows)" == *"group|Basic File Actions|5 of 6"* ]] \
         || fail "settings: a restart did not derive the master back to five of six, got $(ipc settingsRows)"
     key -k Escape >/dev/null
     settle

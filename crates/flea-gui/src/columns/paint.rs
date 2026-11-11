@@ -105,6 +105,8 @@ pub struct Focus {
     /// Marked listing indices, sorted.
     pub selected: Rc<[usize]>,
     pub hover: Option<(Slot, usize)>,
+    /// Settings > View > Highlight on hover: the pointer's row washes and brightens; hover stays the pointer's.
+    pub hover_wash: bool,
     /// The listing row a rename edits, and the rename band's Grow on the active track.
     pub renaming: Option<usize>,
     pub rename_slot: Option<Slot>,
@@ -113,6 +115,11 @@ pub struct Focus {
 }
 
 impl Focus {
+    /// The pointer's row as drawn: lit only while Highlight on hover is ticked.
+    pub(super) fn hover_lit(&self, slot: Slot, index: usize) -> bool {
+        self.hover_wash && self.hover == Some((slot, index))
+    }
+
     pub(super) fn dropping(&self, slot: Slot, index: usize) -> bool {
         self.drop
             .as_ref()
@@ -135,9 +142,7 @@ impl Focus {
             _ if active && self.selected.binary_search(&index).is_ok() => {
                 Some(palette.foreground.opacity(MARKED))
             }
-            _ if lifted || self.hover == Some((slot, index)) => {
-                Some(palette.foreground.opacity(HOVER))
-            }
+            _ if lifted || self.hover_lit(slot, index) => Some(palette.foreground.opacity(HOVER)),
             _ => None,
         }
     }
@@ -177,8 +182,10 @@ impl FolderSizes for DirSizes {
 
 /// Paint state one track keeps across frames: its shaped rows, the face's advance and this frame's rows.
 pub struct TrackPaint {
+    pub(crate) language_paint: RefCell<Vec<crate::row::language_capture::Painted>>,
     pub(super) drop_line: Option<crate::list::painted_row::DropLine>,
     pub drawn: Option<Drawn>,
+    pub paint_serial: u64,
     pub typeface: Typeface,
     pub cache: TrackCache,
     advance: Option<Pixels>,
@@ -206,6 +213,8 @@ impl TrackPaint {
     pub fn new(typeface: Typeface) -> Self {
         Self {
             drawn: None,
+            language_paint: Default::default(),
+            paint_serial: 0,
             typeface,
             cache: TrackCache::default(),
             advance: None,
@@ -263,6 +272,7 @@ impl TrackPaint {
         self.drawn = None;
         self.visible.clear();
         self.pictures.clear();
+        self.language_paint.borrow_mut().clear();
     }
 
     /// One advance of "0" at the body size, Theme.bodyAdvance, which turns a name width into cells.

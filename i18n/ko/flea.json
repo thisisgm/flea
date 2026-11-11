@@ -142,6 +142,9 @@
   "archive.compressing": "%1을(를) .%2 형식으로 압축 중",
   "archive.confirm": "확인",
   "archive.done.cancelled": "압축 풀기를 취소했습니다.",
+  "archive.done.extracted": "압축을 풀었습니다.",
+  "archive.done.name_refused": "“%1”은(는) 이 드라이브에 압축을 풀 수 없습니다: %2.",
+  "archive.done.twins": "“%1”과(와) “%2”은(는) 이 드라이브에서 같은 이름이 되므로 아무것도 압축을 풀지 않았습니다.",
   "archive.done.unverified": "압축을 풀었습니다. 압축 파일 목록을 읽을 수 없어 검증하지 못했습니다.",
   "jobs.done.extract_unverified": "압축을 풀었습니다. 압축 파일 목록을 읽을 수 없어 검증하지 못했습니다.",
   "archive.done.written": "압축 파일을 저장했습니다.",
@@ -345,6 +348,11 @@
   "feedback.os.stale": "파일을 더 이상 사용할 수 없습니다.",
   "feedback.os.quota": "저장 공간 할당량을 초과했습니다.",
   "feedback.os.could_not_finish": "작업을 끝낼 수 없습니다.",
+  "feedback.drive.char": "이 %2 드라이브에서는 이름에 “%1”을(를) 사용할 수 없습니다.",
+  "feedback.drive.control": "이 %2 드라이브에서는 이름에 제어 문자 %1을(를) 포함할 수 없습니다.",
+  "feedback.drive.end_dot": "이 %1 드라이브에서는 이름이 마침표로 끝날 수 없습니다.",
+  "feedback.drive.end_space": "이 %1 드라이브에서는 이름이 공백으로 끝날 수 없습니다.",
+  "feedback.drive.reserved": "이 %2 드라이브에서 “%1”은(는) 예약된 이름입니다.",
   "feedback.refusal.archives": "압축 파일은 한 번에 하나씩 열 수 있습니다.",
   "feedback.refusal.folder_with_files": "폴더와 파일을 함께 열 수 없습니다.",
   "feedback.refusal.not_loaded": "선택한 파일 중 일부를 아직 불러오지 못했습니다.",
@@ -375,8 +383,13 @@
   "device.no_disc": "%1에 디스크나 카드가 없습니다.",
   "device.not_mountable": "이 컴퓨터에서는 %1을(를) 마운트할 수 없습니다.",
   "device.transfer_using": "%1의 마운트를 해제할 수 없습니다. 전송 작업이 아직 사용 중일 수 있습니다.",
-  "device.system_drive": "%1은(는) 시스템 드라이브이며 Flea는 시스템 드라이브의 마운트를 해제하지 않습니다",
-  "device.system_volume": "이 폴더는 시스템 볼륨에 있으며 Flea는 시스템 볼륨의 마운트를 해제하지 않습니다",
+  "device.copy_running": "%1에서 복사가 아직 진행 중입니다. 완료 후 다시 시도하세요.",
+  "device.move_running": "%1에서 이동이 아직 진행 중입니다. 완료 후 다시 시도하세요.",
+  "device.archive_running": "%1에서 압축 작업이 아직 진행 중입니다. 완료 후 다시 시도하세요.",
+  "device.send_running": "%1에서 보내기가 아직 진행 중입니다. 완료 후 다시 시도하세요.",
+  "device.action_running": "%1에서 동작이 아직 진행 중입니다. 완료 후 다시 시도하세요.",
+  "device.system_drive": "%1은(는) 시스템 드라이브이며 Flea는 이 드라이브를 절대 꺼내지 않습니다.",
+  "device.system_volume": "이 폴더는 Flea가 꺼낼 수 있는 드라이브에 있지 않습니다.",
   "device.no_volume": "이 폴더는 Flea가 꺼낼 수 있는 드라이브에 있지 않습니다.",
   "device.safe_image": "%1을(를) 꺼냈습니다.",
   "device.unconfirmed": "%1이(가) 꺼내졌는지 확인할 수 없습니다. 아직 분리하지 마세요.",
@@ -443,6 +456,7 @@
   "pane.empty.beat_one": "아주 깔끔한 폴더네요",
   "pane.empty.beat_two": "파일이 하나도 안 보이네요",
   "pane.empty.rest": "여기는 조용하네요",
+  "pane.empty.fixed": "빈 폴더",
   "pane.empty.hint_new_folder": "새 폴더를 만들려면 %1 키를 누르세요.",
   "pane.permissions_other_owner": "%1 · 소유자가 다름",
   "pane.reply_window": "백엔드가 요청한 창 범위 밖의 행을 반환했습니다",
@@ -824,6 +838,10 @@
   "settings.row.columns_limit": "열 보기 제한",
   "settings.row.show_git_status": "Git 상태 표시",
   "settings.row.highlight_today": "오늘 날짜 강조",
+  "settings.row.highlight_hover": "포인터를 올리면 강조",
+  "settings.row.tabs_as_icons": "탭을 아이콘으로 표시",
+  "settings.row.empty_omi": "빈 폴더에 Omi 표시",
+  "settings.row.empty_rotate": "빈 폴더 메시지 순환",
   "settings.row.open_while_dragging": "끌어놓는 동안 폴더 열기",
   "settings.row.sort_by": "정렬 기준",
   "settings.row.folders_first": "폴더 먼저",
@@ -925,6 +943,7 @@
   "settings.display.not_reported": "보고되지 않음",
   "settings.keys.move_cursor": "커서 이동",
   "settings.keys.move_open_up": "이동, 열기, 상위 폴더",
+  "settings.keys.arrows": "화살표",
   "settings.places.add_folder": "이 폴더 추가",
   "settings.places.network": "네트워크",
   "settings.sheet.where_network": "네트워크",
@@ -1056,9 +1075,11 @@
   "settings.update.available": "%1 사용 가능",
   "settings.update.launched": "터미널에서 업데이트 중",
   "settings.update.source": "소스에서 빌드됨",
+  "settings.update.release": "릴리스 빌드",
   "settings.update.note_launched": "업데이트가 끝나면 Flea를 다시 시작하세요",
   "settings.update.note_failed": "오프라인: Omarchy 업데이트는 열 수 있습니다",
   "settings.update.note_source": "업데이트하려면 체크아웃한 소스에서 다시 빌드하세요.",
+  "settings.update.note_release": "Omarchy 업데이트가 새 릴리스를 설치합니다.",
   "settings.update.opening": "Omarchy 업데이트 여는 중 · 끝나면 Flea를 다시 시작하세요",
   "settings.update.launch_failed": "Omarchy 업데이트 도구를 시작할 수 없습니다.",
   "settings.about.tagline": "Omarchy용 파일 관리자",
@@ -1263,6 +1284,7 @@
   "jobs.undone.trash": "휴지통에서 원래 위치로 되돌렸습니다.",
   "jobs.undone.settags": "이전 태그를 복원했습니다.",
   "jobs.undone.mkdir": "새 폴더를 제거했습니다.",
+  "jobs.undone.convert": "변환을 실행 취소했습니다",
   "jobs.undone.other": "마지막 작업을 실행 취소했습니다",
   "receipt.undidLast": "마지막 작업을 실행 취소했습니다",
   "jobs.redone.copy": "복사를 다시 실행했습니다",
@@ -1360,6 +1382,26 @@
   "jobs.failed.send": "보내기 실패",
   "send.rclone.failed": "보내기 실패",
   "jobs.failed.emptyTrash": "휴지통 비우기 실패",
+  "jobs.head.send_waiting": "보내는 중",
+  "jobs.head.copying": "%3(으)로 %2 중 %1 복사 중",
+  "jobs.head.moving": "%3(으)로 %2 중 %1 이동 중",
+  "jobs.head.sending": "%3에 %2 중 %1 보내는 중",
+  "jobs.head.action": "%1 · %3 중 %2",
+  "jobs.head.checking": {
+    "other": "%2에서 항목 %1개 확인 중"
+  },
+  "jobs.head.copy_waiting": {
+    "other": "항목 %1개를 %2(으)로 복사"
+  },
+  "jobs.head.move_waiting": {
+    "other": "항목 %1개를 %2(으)로 이동"
+  },
+  "jobs.head.compress_waiting": {
+    "other": "항목 %1개를 %2(으)로 압축"
+  },
+  "jobs.head.compressing": {
+    "other": "항목 %1개 압축 중"
+  },
   "jobs.error.retry": "실패한 작업만 다시 시도할 수 있습니다.",
   "jobs.error.dismiss": "완료되거나 실패한 작업만 닫을 수 있습니다.",
   "jobs.error.undo": "이 작업은 더 이상 실행 취소할 수 없습니다.",
@@ -1490,6 +1532,7 @@
   "dialogs.file.permissions.title": "권한",
   "dialogs.file.properties.permissions": "권한",
   "step.permissions": "권한",
+  "step.convert": "변환",
   "properties.owner": "소유자",
   "dialogs.file.permissions.owner": "소유자",
   "dialogs.file.properties.owner": "소유자",
@@ -1529,6 +1572,7 @@
   "send.providers.airdrop_accept": "수락",
   "send.providers.airdrop_decline": "거절",
   "send.providers.airdrop_someone": "근처 기기",
+  "send.providers.airdrop_received": "AirDrop으로 %1을(를) 받았습니다",
   "dialogs.file.permissions.unknown": "알 수 없음",
   "dialogs.file.properties.unknown": "알 수 없음",
   "trash.reading": "휴지통 읽는 중…",
@@ -1540,6 +1584,9 @@
     "other": "중단된 파일 작업 %1개 복구됨"
   },
   "trash.done.failed": "%1 · %2개 실패",
+  "trash.done.leftover": {
+    "other": "%2 · 남은 항목 %1개를 제거하지 못함"
+  },
   "trash.done.failure": "%1 실패: %2",
   "trash.arm.review": "영구 삭제를 검토하려면 %1 키를 다시 누르거나 %2 키만 누르세요.",
   "trash.confirm.empty_body": {
@@ -1653,6 +1700,8 @@
   "dialogs.file.permissions.uid": "uid %1",
   "dialogs.file.permissions.will_change": "변경 예정",
   "dialogs.file.permissions.requested": "요청한 모드 %1",
+  "dialogs.file.permissions.no_changes": "적용할 변경 사항 없음",
+  "dialogs.file.permissions.current_mode": "현재 모드 %1",
   "dialogs.file.permissions.path": "경로 %1",
   "dialogs.file.permissions.scope_item": "이 항목에만 적용 · 소유권 유지",
   "dialogs.file.permissions.scope_folder": "이 폴더에만 적용 · 내부 항목과 소유권 유지",
@@ -2034,6 +2083,7 @@
   "preview.embedded": "내장 미리보기 · %1 × %2",
   "preview.link_target": "→ %1",
   "keys.label.bd0b7be215ce": "편집기 닫기",
+  "keys.label.bc4dd3d76b73": "결과 유지",
   "keys.label.e9619e148ed8": "Control+X는 동작하지 않음",
   "keys.label.1426edd106ac": "파일 URI 복사",
   "keys.action.copyUri": "파일 URI 복사",
@@ -2262,6 +2312,7 @@
   "keys.label.72a825fc6b84": "한 페이지 아래로",
   "keys.label.c2fc6e7bc3be": "다음 시트",
   "keys.label.e3a4d6eba0c6": "이전 시트",
+  "keys.label.07c371255954": "인쇄…",
   "menu.original.needs_link": "원본을 보려면 커서를 링크에 놓으세요",
   "menu.refusal.favourite_unread": "선택한 폴더를 읽을 수 없습니다.",
   "menu.refusal.nocursor": "커서 아래에 항목이 없어 메뉴를 열 수 없습니다",
@@ -2363,6 +2414,7 @@
   "tui.cwd.the_output_needs_a_file_name": "출력에 파일 이름이 필요합니다",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "--tui-keymap에는 default, vim, mac, windows 또는 yazi를 지정할 수 있습니다",
   "tui.cwd.twice": "%1 옵션이 두 번 지정되었습니다",
+  "tui.cwd.folder_missing": "%1의 폴더가 없습니다: %2",
   "tui.cwd.write_error": "%1에 쓸 수 없습니다: %2",
   "tui.editor.enter_a_filename_before_the_extension": "확장자 앞에 파일 이름을 입력하세요.",
   "tui.editor.invalid_name": "비어 있지 않고 . 또는 ..가 아니며 / 또는 널 문자를 포함하지 않는 이름을 입력하세요.",
@@ -2387,6 +2439,7 @@
   "tui.launch.could_not_finish": "%1 작업을 완료할 수 없습니다 (%2)",
   "tui.launch.could_not_observe": "%1 작업을 관찰할 수 없습니다: %2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "폴더가 아니므로 터미널을 열지 않았습니다",
+  "tui.launch.program_not_found": "%1 프로그램을 찾을 수 없습니다",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "창 크기를 가로 12열, 세로 5행 이상으로 늘리세요.",
   "tui.model.bulk_done": {
     "other": "항목 %1개 이름 변경됨 · 실행 취소는 이름 변경 하나만 되돌립니다"
@@ -2475,5 +2528,19 @@
   "settings.hint.key_reserved": "Flea가 자체 용도로 예약했으므로 %1 키는 지정되지 않은 상태로 남습니다.",
   "settings.hint.key_taken": "이 프리셋에서 %2 동작이 이미 사용하므로 %1 키는 지정되지 않은 상태로 남습니다.",
   "settings.hint.key_unknown": "Flea에 이름이 %2인 동작이 없으므로 %1 키는 지정되지 않은 상태로 남습니다.",
-  "mime.png": "PNG 이미지"
+  "mime.png": "PNG 이미지",
+  "mime.plain": "일반 텍스트 문서",
+  "feedback.unheld.links": "이 드라이브는 링크를 저장할 수 없습니다.",
+  "feedback.unheld.nodes": "이 드라이브는 특수 파일을 저장할 수 없습니다.",
+  "feedback.unheld.name": "이 드라이브에서는 해당 이름을 사용할 수 없습니다.",
+  "feedback.unheld.long": "이 드라이브에 사용하기에는 이름이 너무 깁니다.",
+  "feedback.unheld.taken": "이 드라이브는 이 이름을 폴더의 다른 이름과 동일하게 취급합니다.",
+  "feedback.unheld.copy_one": "%1을(를) 복사하지 못했습니다: %2",
+  "feedback.unheld.move_one": "%1을(를) 이동하지 못했습니다: %2",
+  "feedback.unheld.copy_many": {
+    "other": "내부 항목 %1개를 복사하지 못했습니다. 첫 항목은 %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "other": "내부 항목 %1개를 이동하지 못했습니다. 첫 항목은 %2: %3"
+  }
 }

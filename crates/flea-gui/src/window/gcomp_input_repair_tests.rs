@@ -342,7 +342,7 @@ fn g70_grid_menu_wheel_and_escape_keep_their_owners(cx: &mut TestAppContext) {
         // Keep the helper's mouse move on row zero before the one-notch wheel.
         let at = point(
             px(card.frame.x + card.frame.w / 2.),
-            px(card.row_screen_top(0) + flea::ui_logic_mn1::fit::ROW as f32 / 2.),
+            px(card.row_screen_top(0) + flea::ui_logic_context_menus::fit::ROW as f32 / 2.),
         );
         assert_eq!(
             card.row_at(f32::from(at.x), f32::from(at.y)),

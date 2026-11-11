@@ -6,7 +6,10 @@ use super::{
     },
     test_shell::{land, set_cursor},
 };
-use crate::{backend::Event as BackendEvent, g2::pv1::Body, state::Shell, window::u07_tests::read};
+use crate::{
+    backend::Event as BackendEvent, g2::quick_look_overlay::Body, state::Shell,
+    window::u07_tests::read,
+};
 use flea::{jsondoc::Json, keys::Context};
 use gpui::{Entity, TestAppContext, VisualTestContext};
 use std::time::Duration;
@@ -38,7 +41,7 @@ fn meta_reply(token: u64) -> String {
 fn code(
     shell: &Entity<Shell>,
     cx: &mut VisualTestContext,
-) -> Entity<crate::g2::pv2::code::CodeView> {
+) -> Entity<crate::g2::doc_preview::code::CodeView> {
     shell.read_with(cx, |shell, cx| {
         let host = shell.quick_look.as_ref().expect("the card is open");
         let subject = host
@@ -49,7 +52,7 @@ fn code(
         let Body::Doc(doc) = &subject.body else {
             panic!("the card mounts a document")
         };
-        let crate::g2::pv1::doc::View::Code(code) = &doc.view else {
+        let crate::g2::quick_look_overlay::doc::View::Code(code) = &doc.view else {
             panic!("the card mounts CodeView")
         };
         code.clone()

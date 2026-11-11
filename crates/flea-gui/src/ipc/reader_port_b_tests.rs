@@ -1,7 +1,7 @@
 //! Exercise the assigned readers through the same adapter set a Root window mounts.
 use crate::{
     backend::Backend,
-    g2::pv1::doc::View as Document,
+    g2::quick_look_overlay::doc::View as Document,
     ipc::server::Event,
     state::{tests::shell_with, Shell},
     window::root::Root,
@@ -65,8 +65,8 @@ pub(super) fn document(
     handle: Handle,
     name: &str,
     icon: &str,
-) -> crate::g2::pv1::doc::Doc {
-    crate::g2::pv2::render::without_threads(|| {
+) -> crate::g2::quick_look_overlay::doc::Doc {
+    crate::g2::doc_preview::render::without_threads(|| {
         edit(cx, handle, |shell, window, cx| {
             let host = shell.panes[0].as_mut().unwrap();
             host.pane.cursor = 0;
@@ -97,7 +97,7 @@ pub(super) fn document(
     })
 }
 
-fn pdf(cx: &mut TestAppContext, handle: Handle) -> gpui::Entity<crate::g2::pv2::PdfView> {
+fn pdf(cx: &mut TestAppContext, handle: Handle) -> gpui::Entity<crate::g2::doc_preview::PdfView> {
     let doc = document(cx, handle, "book.pdf", "application-pdf");
     let Document::Pdf(pdf) = doc.view else {
         panic!("the preview action must mount the PDF view")
@@ -143,7 +143,7 @@ fn preview_pdf_zoom_reads_the_viewer_action(cx: &mut TestAppContext) {
     assert_eq!(value(cx, handle, "previewPdfZoom"), "");
     let pdf = pdf(cx, handle);
     pdf.update(cx, |pdf, cx| {
-        pdf.action(flea::ui_logic_pv2::viewer::Action::ZoomIn, cx);
+        pdf.action(flea::ui_logic_doc_preview::viewer::Action::ZoomIn, cx);
     });
     assert_eq!(value(cx, handle, "previewPdfZoom"), "1.25");
 }
@@ -154,7 +154,7 @@ fn preview_pdf_focus_reads_the_viewer_action(cx: &mut TestAppContext) {
     assert_eq!(value(cx, handle, "previewPdfFocus"), "-1");
     let pdf = pdf(cx, handle);
     pdf.update(cx, |pdf, cx| {
-        pdf.action(flea::ui_logic_pv2::viewer::Action::FocusNext, cx);
+        pdf.action(flea::ui_logic_doc_preview::viewer::Action::FocusNext, cx);
     });
     assert_eq!(value(cx, handle, "previewPdfFocus"), "1");
 }
@@ -166,7 +166,7 @@ fn preview_expanded_reads_the_viewer_action(cx: &mut TestAppContext) {
     let pdf = pdf(cx, handle);
     assert_eq!(value(cx, handle, "previewExpanded"), "false");
     pdf.update(cx, |pdf, cx| {
-        pdf.action(flea::ui_logic_pv2::viewer::Action::Expand, cx);
+        pdf.action(flea::ui_logic_doc_preview::viewer::Action::Expand, cx);
     });
     assert_eq!(value(cx, handle, "previewExpanded"), "true");
 }
@@ -275,9 +275,14 @@ fn preview_selection_metadata_token_clears_only_on_its_reply(cx: &mut TestAppCon
         token
     });
     let state = flea::jsondoc::parse(&value(cx, handle, "previewSelectionState")).unwrap();
+    // No Columns preview is drawn here, so the reader hides the subject's path and keeps its pending token.
+    assert_eq!(
+        state.get("inlineVisible"),
+        Some(&flea::jsondoc::Json::Bool(false))
+    );
     assert_eq!(
         state.get("path").and_then(flea::jsondoc::Json::as_str),
-        Some("/files/a\"b.bin")
+        Some("")
     );
     assert_eq!(
         state.get("pending").and_then(flea::jsondoc::Json::as_f64),

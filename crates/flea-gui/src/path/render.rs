@@ -3,10 +3,11 @@ use super::{
     field::FieldElement,
     menu::MenuElement,
     paint::{CrumbElement, Place},
+    strip_input::strip,
     suggestions::Popup,
     view::PathView,
 };
-use crate::window::input::{clean_paste, modifiers, paste_key};
+use crate::window::input::{clean_paste, paste_key};
 use gpui::{
     deferred, div, prelude::*, px, AnyElement, ClipboardItem, Context, Entity, KeyDownEvent,
     MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, ScrollWheelEvent, Window,
@@ -29,8 +30,14 @@ impl Render for PathView {
                 .track_focus(&self.focus)
                 .on_key_down(cx.listener(Self::key_down))
                 .on_mouse_down(MouseButton::Left, cx.listener(Self::field_press))
+                .on_mouse_down(MouseButton::Right, cx.listener(Self::field_menu))
                 .on_mouse_move(cx.listener(Self::field_drag))
-                .child(FieldElement::new(view.clone()));
+                .child(FieldElement::new(view.clone()))
+                .children(self.text_menu.overlay(
+                    &view,
+                    px(crate::compositor::corner(cx)),
+                    Self::text_menu_answer,
+                ));
             let root = root.child(field);
             if !self.jump.shown() {
                 self.paint.borrow_mut().drawn = 0;
@@ -103,47 +110,15 @@ pub fn pane_strip(view: &Entity<PathView>, side: usize, cx: &mut gpui::App) -> A
     })
 }
 
-fn strip(view: Entity<PathView>, place: Place, cx: &mut Context<PathView>) -> impl IntoElement {
-    let slot = place.slot();
-    let origin = move |view: &PathView, x: gpui::Pixels| {
-        let bounds = view.paint.borrow().strips[slot];
-        let pad = super::paint::strip_pad(place != Place::Chrome, &view.paint.borrow().scale());
-        bounds.map(|bounds| f32::from(x - bounds.origin.x) - pad)
-    };
-    div()
-        .id(("path-strip", slot))
-        .size_full()
-        .on_mouse_down(
-            MouseButton::Left,
-            cx.listener(move |view, event: &MouseDownEvent, window, cx| {
-                let Some(x) = origin(view, event.position.x) else {
-                    return;
-                };
-                view.press_strip(
-                    slot,
-                    x,
-                    event.click_count,
-                    modifiers(event.modifiers),
-                    window,
-                    cx,
-                );
-                cx.stop_propagation();
-            }),
-        )
-        .on_mouse_move(cx.listener(move |view, event: &MouseMoveEvent, _, cx| {
-            let x = origin(view, event.position.x);
-            view.hover_strip(slot, x, cx);
-        }))
-        .on_hover(cx.listener(move |view, hovered: &bool, _, cx| {
-            if !hovered {
-                view.hover_strip(slot, None, cx);
-            }
-        }))
-        .child(CrumbElement::new(view, place))
-}
-
 impl PathView {
     fn key_down(&mut self, event: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
+        // The field's text menu holds the keyboard while it is open.
+        if self.text_menu.opened() {
+            let outcome = self.text_menu.key(event, window);
+            self.text_menu_answer(outcome, window, cx);
+            cx.stop_propagation();
+            return;
+        }
         let key = event.keystroke.key.as_str();
         let held = event.keystroke.modifiers;
         if self.entry.ime_key(key) {
@@ -236,6 +211,10 @@ impl PathView {
     }
 
     fn field_press(&mut self, event: &MouseDownEvent, _: &mut Window, cx: &mut Context<Self>) {
+        // A double click's second tap lands in the field its first tap opened, and the whole path stays selected.
+        if std::mem::take(&mut self.tapped) && event.click_count == 2 {
+            return;
+        }
         let at = self.field_index(event.position.x);
         match event.click_count {
             1 if event.modifiers.shift => self.entry.select_to(at),
@@ -254,6 +233,34 @@ impl PathView {
             }
             _ => self.entry.select_all(),
         }
+        cx.notify();
+    }
+
+    // A right press in the field opens its text menu, the rename field's rows, over the line as it stands.
+    fn field_menu(&mut self, event: &MouseDownEvent, window: &mut Window, cx: &mut Context<Self>) {
+        if self.entry.marked.is_none() {
+            let catalog = self.catalog.clone();
+            self.text_menu
+                .open(&self.entry, &catalog, event.position, window, cx);
+        }
+        cx.stop_propagation();
+        cx.notify();
+    }
+
+    fn text_menu_answer(
+        &mut self,
+        outcome: crate::g2::context_menus::menu::Outcome,
+        _: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if let crate::g2::context_menus::menu::Outcome::Fire { action, .. } = &outcome {
+            if super::text_menu::apply(&mut self.entry, action, cx)
+                == super::text_menu::Applied::Edited
+            {
+                self.edited(cx);
+            }
+        }
+        self.text_menu.settle(&outcome);
         cx.notify();
     }
 

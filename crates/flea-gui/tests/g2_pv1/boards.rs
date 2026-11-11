@@ -235,7 +235,10 @@ fn compare_draws_the_title_copy_patch_and_the_rows(cx: &mut TestAppContext) {
     let subject = compare_diff(&i18n);
     assert!(matches!(&subject.body, Body::Diff { title, copy, .. }
         if title == "notes-a.md and notes-b.md \u{b7} 12 lines differ" && copy == "Copy Patch"));
-    assert_eq!(subject.mark(), flea_gui::g2::pv1::glyph::Glyph::Markdown);
+    assert_eq!(
+        subject.mark(),
+        flea_gui::g2::quick_look_overlay::glyph::Glyph::Markdown
+    );
     let (cx, _, _, _) = host(cx, subject, Arm::Fix);
     // the bar lies over the card's frame, edge to edge
     assert_eq!(rect(cx, "pv1-bar"), (99., 63., 902., 27.));
@@ -292,7 +295,7 @@ fn compare_large_names_the_limit(cx: &mut TestAppContext) {
 
 #[test]
 fn each_strip_mark_reads_its_accessible_name() {
-    use flea_gui::g2::pv1::glyph::Glyph;
+    use flea_gui::g2::quick_look_overlay::glyph::Glyph;
     let i18n = english();
     let named = [
         (Glyph::Close, "Close"),

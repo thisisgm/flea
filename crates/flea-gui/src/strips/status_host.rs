@@ -170,17 +170,29 @@ pub fn reloaded(i18n: &I18n, changed: usize) -> String {
     )
 }
 
-/// The trailing disk facts, StatusBar.qml fsText: a known name draws even while the next answer is out.
+/// The trailing disk facts, StatusBar.qml fsText: a known name draws even while the next answer is out, alone when its room is unknown.
 pub fn disk(i18n: &I18n, name: &str, free_size: Option<&str>, pending: bool) -> String {
     if !name.is_empty() {
-        if let Some(free) = free_size {
-            return i18n.tr_args("status.host.free", &[name, free]);
-        }
+        return match free_size {
+            Some(free) => i18n.tr_args("status.host.free", &[name, free]),
+            None => name.to_owned(),
+        };
     }
     if pending {
         String::new()
     } else {
         i18n.tr("status.host.unknown")
+    }
+}
+
+/// The disk zone's name: where the room is unknown, as on a gvfs share that reads fuse, a named place reads as its kind in the menu's class words; no name stays empty.
+pub fn place_name(i18n: &I18n, name: &str, class: &str, room_known: bool) -> String {
+    match class {
+        _ if room_known || name.is_empty() => name.to_owned(),
+        "network" => i18n.tr("menu.class.network"),
+        "phone" => i18n.tr("menu.class.phone"),
+        "usb" => i18n.tr("menu.class.usb"),
+        _ => name.to_owned(),
     }
 }
 

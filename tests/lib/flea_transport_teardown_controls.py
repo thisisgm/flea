@@ -11,9 +11,11 @@ from unittest import mock
 import flea_transport
 import flea_transport_lifecycle
 from flea_transport import MARKER, identity
+from flea_transport_lifecycle_tests import check_exit_races
 
 
 def check_teardown(root, check):
+    check_exit_races(check)
     # A process that exits between its stat read and its environ read gives ESRCH, not ENOENT: it is gone, not foreign.
     # Sample: [Errno 3] No such process: '/proc/16961/environ', from a native run whose window then never ended.
     group = os.getpgrp()

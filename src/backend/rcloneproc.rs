@@ -98,7 +98,7 @@ pub(super) fn run(
     }
     let mut command = Command::new("rclone");
     super::rcloneenv::sanitize(&mut command);
-    command.args(args);
+    command.args(flea::bytename::args(args));
     drive(command, cancel, limit, capture, line)
 }
 

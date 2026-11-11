@@ -1,5 +1,6 @@
 //! Tabs: one pane and one backend serve the whole strip, hidden tabs are snapshots, and a tab can move between windows.
 pub mod bar;
+pub mod gone;
 pub mod state;
 pub mod transfer;
 
@@ -21,6 +22,9 @@ pub(crate) mod catcher;
 mod geometry;
 pub(crate) mod held;
 pub(crate) mod host;
+pub(crate) mod icons;
+#[cfg(test)]
+mod icons_tests;
 #[cfg(test)]
 mod join_tests;
 mod landing;

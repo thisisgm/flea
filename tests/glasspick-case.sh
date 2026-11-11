@@ -76,6 +76,8 @@ capture_targeting() (
     local ipc_pid=sentinel flea_window_class=com.thisisgm.flea ipc_call_timeout=2s ipc_call_kill_after=1s
     local repo="$PWD" fixture_root="$replay/fixtures" evidence_dir="$replay/evidence" real_state_dir="$replay/current"
     local real_foreground='#dddddd' real_accent='#7799bb' caller_trap pid ownership expected
+    # Sample input: the line 'async_wait_ms=15000' in tests/ui.sh, which seek_row_named reads.
+    eval "$(sed -n '/^async_wait_ms=/p' tests/ui.sh)"
     for helper in ipc focused_class focused_pid window_addr_of_pid assert_focus key xw_ipc wait_listing seek_row_named; do
         # Sample input: a line 'ipc() {' through a line '}' in tests/ui.sh.
         eval "$(sed -n "/^$helper()/,/^}/p" tests/ui.sh)"
@@ -224,7 +226,7 @@ STUB
     }
     if case_cap_glasspick > "$replay/capture.log" 2>&1; then status=0; else status=$?; fi
     if [[ "$scenario" == interrupted ]]; then
-        [[ "$status" == "$interrupted_replay_status" ]] || fail "replay was not interrupted by SIGKILL: $status"
+        [[ "$status" == "$interrupted_replay_status" ]] || { cat "$replay/capture.log"; fail "replay was not interrupted by SIGKILL: $status"; }
         printf '%s\n' "$interrupted_foreign_pid" >> "$replay/pids"
         printf 'GLASSPICK_CASE interrupted-status=%s\n' "$status"
         return "$status"

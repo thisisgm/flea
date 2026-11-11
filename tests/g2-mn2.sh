@@ -22,9 +22,9 @@ run() {
 # A filter that matched nothing would pass with zero, so each count is required from cargo's summary line.
 count() { sed -n 's/^test result: ok\. \([0-9]*\) passed; 0 failed.*/\1/p' "$1" | head -1; }
 set +e
-run "$unit_root/core.log" -p flea --lib ui_logic_mn2
+run "$unit_root/core.log" -p flea --lib ui_logic_custom_actions
 core_rc=$?
-run "$unit_root/gui.log" -p flea-gui --lib g2::mn2
+run "$unit_root/gui.log" -p flea-gui --lib g2::custom_actions
 gui_rc=$?
 set -e
 [ "$core_rc" -eq 0 ] || { tail -40 "$unit_root/core.log" >&2; printf 'g2-mn2: FAIL core tests exited %s\n' "$core_rc"; exit 1; }

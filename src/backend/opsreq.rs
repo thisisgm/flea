@@ -4,6 +4,7 @@ use crate::backend::ops;
 use crate::backend::undo::{Entry, ItemIdentity, Step};
 use crate::error::{from_io, io_message, FleaError};
 use crate::json::escape;
+use flea::bytename::ExactText as _;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -81,6 +82,8 @@ pub fn transferprogress_line(id: usize, index: usize, name: &str, bytes: u64, to
 
 // err rides only on a failure, so a successful item's line carries no empty field to reason about.
 pub fn transferitem_line(id: usize, index: usize, name: &str, ok: bool, err: &str) -> String {
+    // The item name is the exact text the transfer acted on; the progress line shows its display spelling.
+    let name = &flea::bytename::display(name);
     if ok {
         return format!(
             r#"{{"t":"transferitem","id":{},"index":{},"name":"{}","ok":true}}"#,
@@ -96,7 +99,7 @@ pub fn transferitem_line(id: usize, index: usize, name: &str, ok: bool, err: &st
 // refused rides only when a drive refused an entry, so every other transfer's line is byte-identical to before.
 pub fn transferdone_line(id: usize, ok: usize, failed: usize, skipped: usize, cancelled: bool,
                          retry: &[(PathBuf, ItemIdentity)], durable: bool, note: &str, refused: &[(String, String)]) -> String {
-    let paths: Vec<_> = retry.iter().map(|(path, _)| format!("\"{}\"", escape(&path.to_string_lossy()))).collect();
+    let paths: Vec<_> = retry.iter().map(|(path, _)| format!("\"{}\"", escape(&path.exact_text()))).collect();
     format!(
         r#"{{"t":"transferdone","id":{},"ok":{},"failed":{},"skipped":{},"cancelled":{},"retryPaths":[{}],"durable":{},"note":"{}"{}}}"#,
         id, ok, failed, skipped, cancelled, paths.join(","), durable, escape(note), refused_field(refused)
@@ -112,8 +115,8 @@ pub(crate) fn refused_field(refused: &[(String, String)]) -> String {
 // Permission repair may change ctime; retry selects the original inode and link kind, never a replacement at its name.
 pub fn retain_retry(retry: &[(PathBuf, ItemIdentity)], matches: &mut Vec<(&str, usize)>) {
     let originals: HashMap<_, _> = retry.iter().map(|(path, identity)| (path.as_path(), identity)).collect();
-    matches.retain(|(path, _)| originals.get(Path::new(path)).is_some_and(|original|
-        ItemIdentity::inspect(Path::new(path)).is_ok_and(|current| original.same_item(&current))));
+    matches.retain(|(path, _)| originals.get(&*flea::bytename::view(path)).is_some_and(|original|
+        ItemIdentity::inspect(&flea::bytename::view(path)).is_ok_and(|current| original.same_item(&current))));
 }
 
 // The line names the request it answers and the paths that moved; err rides only on a failure.
@@ -151,7 +154,7 @@ pub(crate) fn directory_dest(dest: &str) -> Result<PathBuf, FleaError> {
 }
 
 fn checked_dest(dest: &str, require_writable: bool) -> Result<PathBuf, FleaError> {
-    let p = PathBuf::from(dest);
+    let p = flea::bytename::exact(dest);
     if !p.is_absolute() {
         return Err(op_err("transfer", dest, "a destination must be an absolute path"));
     }
@@ -172,7 +175,7 @@ pub fn op_err(where_: &str, path: &str, msg: &str) -> FleaError {
 }
 
 fn base_name(p: &Path) -> String {
-    p.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default()
+    p.file_name().map(|n| n.exact_text().to_string()).unwrap_or_default()
 }
 
 pub const INTO_ITSELF: &str = "cannot move or copy a folder into itself";
@@ -236,7 +239,7 @@ pub(crate) fn spawn_total(paths: &[String], dest: &Path, skipping: Option<Skippi
                 bytes += meta.len();
                 continue;
             }
-            let seen = crate::backend::dirsize::walk_while(Path::new(raw), &|| done(&flags));
+            let seen = crate::backend::dirsize::walk_while(&flea::bytename::view(raw), &|| done(&flags));
             if seen.partial {
                 return;
             }
@@ -251,8 +254,8 @@ pub(crate) fn spawn_total(paths: &[String], dest: &Path, skipping: Option<Skippi
 
 // A skipped item copies nothing, so counting its bytes would hold the time left above what the batch will ever move.
 fn counted(raw: &str, dest: &Path, skipping: Option<&Skipping>) -> bool {
-    let src = Path::new(raw);
-    !skipping.is_some_and(|skipping| skipping.leaves(src, &dest.join(base_name(src))))
+    let src = flea::bytename::view(raw); let src = &*src;
+    !skipping.is_some_and(|skipping| skipping.leaves(src, &dest.join(flea::bytename::view(&base_name(src)))))
 }
 
 pub(crate) fn run_transfer_checked(
@@ -310,9 +313,9 @@ pub(crate) fn run_transfer_checked(
         if cancel_at_fires(index) {
             cancel.store(true, Ordering::Relaxed);
         }
-        let src = PathBuf::from(raw);
+        let src = flea::bytename::exact(raw);
         let name = base_name(&src);
-        let dst = dest.join(&name);
+        let dst = dest.join(flea::bytename::view(&name));
         // Refuse relative sources so they cannot resolve against the backend's own working directory.
         if !src.is_absolute() {
             failed += 1;
@@ -368,7 +371,7 @@ pub(crate) fn run_transfer_checked(
         let (mut folded_top, mut kept_top) = (false, false);
         enum Landed { Now(Result<(), FleaError>), Later }
         let landed = if merging && !here && !src_is_link && metadata.is_dir() && super::merge::is_mergeable(&src, &dst) && policy.covers(&src, &dst) {
-            merged_names.push(name.clone());
+            merged_names.push(flea::bytename::display(&name).into_owned());
             if !batch.is_empty() { let closed = close_open(&mut batch, id, &tx, &mut steps, &mut durability, [&mut ok, &mut failed, &mut skipped], &mut retry); close_merged(&closed, merging, &mut merged_total, &mut kept_total); }
             let inner = policy.inner();
             let mut counts = super::mergeapply::Counts::default();
@@ -536,14 +539,14 @@ pub(crate) fn run_duplicate_checked(path: String, tx: Sender<OpMsg>, selection: 
 }
 
 pub(crate) fn run_duplicate_requested(path: String, tx: Sender<OpMsg>, selection: Option<Vec<super::menu_actions::Selected>>, request: usize) {
-    let (outcome, steps) = match super::menu_actions::validate_sources(selection.as_deref(), &[PathBuf::from(&path)]) {
-        Ok(()) => ops::duplicate(Path::new(&path)),
+    let (outcome, steps) = match super::menu_actions::validate_sources(selection.as_deref(), &[flea::bytename::exact(&path)]) {
+        Ok(()) => ops::duplicate(&flea::bytename::view(&path)),
         Err(error) => (Err(op_err("duplicate", &path, &error)), Vec::new()),
     };
     // Carried on a failure too: the steps then name the partial copy the failure left behind.
     let entry = Entry { op: "duplicate".to_string(), steps };
     let msg = match outcome {
-        Ok(dst) => OpMsg::Duplicated { ok: true, path: dst.to_string_lossy().to_string(), err: String::new(), entry },
+        Ok(dst) => OpMsg::Duplicated { ok: true, path: dst.exact_text().to_string(), err: String::new(), entry },
         Err(e) => OpMsg::Duplicated { ok: false, path: String::new(), err: e.msg, entry },
     };
     let _ = tx.send(super::opsdispatch::created_request::wrap(request, msg));

@@ -1,4 +1,5 @@
 // One retained execution worker owns the session during an answer; the loop alone publishes it.
+use flea::bytename::ExactText as _;
 use super::events::Event;
 use super::searchreq::{Answer, Cancelled};
 use super::searchsession::Session;
@@ -97,11 +98,23 @@ fn execute(mut session: Session, work: Work, events: &Sender<Event>) -> Done {
         Ok(answer) => (answer, None),
         Err(_) => {
             let error = super::iomount::internal_failure("search", &session.scope);
-            let (scope, folder, hidden) = (session.scope.clone(), session.folder.clone(), session.hidden);
-            session.probes.cancel.store(true, std::sync::atomic::Ordering::Relaxed);
+            let (scope, folder, hidden) = (
+                session.scope.clone(),
+                session.folder.clone(),
+                session.hidden,
+            );
+            session
+                .probes
+                .cancel
+                .store(true, std::sync::atomic::Ordering::Relaxed);
             // A poisoned watch can panic on drop too; none of the failed session's state is reused.
             let _ = catch_unwind(AssertUnwindSafe(|| drop(session)));
-            session = Session::open_async(&scope.to_string_lossy(), &folder.to_string_lossy(), hidden, events.clone());
+            session = Session::open_async(
+                &scope.exact_text(),
+                &folder.exact_text(),
+                hidden,
+                events.clone(),
+            );
             cancelled = None;
             empty = None;
             (None, Some(error))
@@ -182,6 +195,7 @@ impl Gate {
             }
         } else { None };
         if let Some(work) = work {
+            if !matches!(work, Work::Query(..)) { super::searchremap::freeze(st); }
             let mut session = st.search_session.take().unwrap();
             self.gen = match &work { Work::Query(_, gen, _, _) => *gen, _ => session.last_answered_gen };
             // Row ids move only with a patch or a compaction, and both advance the index epoch.

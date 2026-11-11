@@ -8,6 +8,9 @@ pub(crate) mod demand;
 mod faded_tests;
 #[path = "pictures/policy.rs"]
 pub(crate) mod policy;
+#[cfg(test)]
+#[path = "pictures/policy_readers_tests.rs"]
+mod policy_readers_tests;
 #[path = "pictures/quality.rs"]
 mod quality;
 #[cfg(test)]

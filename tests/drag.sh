@@ -28,6 +28,7 @@ case "$drag_case" in
     ;;
 esac
 . "$repo/tools/flea-sandbox-guard"
+. "$repo/tests/lib/flea-transport.sh"
 capture_root=""
 case "$drag_case" in
   all)
@@ -284,6 +285,9 @@ cleanup() {
   fi
   stop_receivers || { status=1; drained=false; }
   assert_receivers_gone || { status=1; drained=false; }
+  if [[ -n "${drag_windows_root:-}" ]]; then
+    flea_test_stop_all || { status=1; drained=false; }
+  fi
   stop_owned_processes || { status=1; drained=false; }
   # Teardown is bounded even when the owned application cannot drain; failed teardown retains its fixtures.
   if [ "$button_down" = true ]; then
@@ -528,11 +532,23 @@ r5_wait_feedback() {
   die "R5 floor feedback did not name bbb: observed $state"
 }
 
-# The product entry resolves the UI, renderer and backend identity before execing Quickshell.
-QSG_RHI_BACKEND="${QSG_RHI_BACKEND:-vulkan}" HOME="$HOMEDIR" FLEA_TEST_RUN_ROOT="$SB" \
-  WAYLAND_DEBUG=1 \
-  setsid "$FLEA_BIN" --gui "$HOMEDIR" >"$SB/flea.log" 2>&1 &
-FLEA_PID=$!
+# The owned transport keeps GPUI's endpoint separate from any parent ui.sh window.
+if [[ "$FLEA_IPC_KIND" == gpui ]]; then
+  drag_windows_root="$SB/windows"
+  mkdir -m 700 "$drag_windows_root" || die "owned-window directory creation failed"
+  : > "$drag_windows_root/$SANDBOX_MARKER"
+  export FLEA_TEST_WINDOWS_ROOT="$drag_windows_root" FLEA_TEST_FRONTEND=gpui
+  unset FLEA_TEST_WINDOW
+  # Only the launched window takes the fixture HOME and the trace, as the qml branch scopes them.
+  HOME="$HOMEDIR" FLEA_TEST_RUN_ROOT="$SB" WAYLAND_DEBUG=1 \
+    flea_test_launch "$HOMEDIR" "$SB/flea.log" --binary "$FLEA_BIN" || die "owned GPUI launch failed"
+  FLEA_PID=$FLEA_TEST_PID
+else
+  QSG_RHI_BACKEND="${QSG_RHI_BACKEND:-vulkan}" HOME="$HOMEDIR" FLEA_TEST_RUN_ROOT="$SB" \
+    WAYLAND_DEBUG=1 \
+    setsid "$FLEA_BIN" --gui "$HOMEDIR" >"$SB/flea.log" 2>&1 &
+  FLEA_PID=$!
+fi
 MYID=""
 MYPID=""
 for i in $(seq 1 60); do

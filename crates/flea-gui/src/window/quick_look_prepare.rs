@@ -2,9 +2,9 @@
 use super::*;
 use crate::{
     backend::Event,
-    g2::pv1::doc::{Doc, View},
+    g2::quick_look_overlay::doc::{Doc, View},
 };
-use flea::ui_logic_pv2::markdown::markdown_prepared as prepared;
+use flea::ui_logic_doc_preview::markdown::markdown_prepared as prepared;
 
 impl Shell {
     pub(crate) fn quick_prepare_storage(&mut self, side: usize, event: &Event) {
@@ -54,7 +54,8 @@ impl Shell {
             };
             let view = view.clone();
             let shown = &view.read(cx).doc;
-            let ready = shown.complete && shown.status == crate::g2::pv2::markdown::Status::Ready;
+            let ready =
+                shown.complete && shown.status == crate::g2::doc_preview::markdown::Status::Ready;
             (lent == *key && ready).then_some((view, doc))
         });
         if let Some((view, doc)) = adopted {
@@ -91,14 +92,17 @@ impl Shell {
                     f64::from(f32::from(viewport.width)),
                     f64::from(f32::from(viewport.height)),
                 );
-                let rect = flea::ui_logic_pv1::rect::surface(
+                let rect = flea::ui_logic_preview_core::rect::surface(
                     &Shape::unknown(State::Text),
                     width,
                     height,
                     false,
-                    flea::ui_logic_pv1::rect::TOKENS,
+                    flea::ui_logic_preview_core::rect::TOKENS,
                 );
-                let frame = (rect.w as f32, rect.h as f32 - crate::g2::pv1::look::BAR);
+                let frame = (
+                    rect.w as f32,
+                    rect.h as f32 - crate::g2::quick_look_overlay::look::BAR,
+                );
                 let view = cx.new(|cx| {
                     look.markdown(&path, None, &shell.locale.catalog, Some(frame), window, cx)
                 });
@@ -177,7 +181,8 @@ impl Shell {
             return None;
         };
         let view = view.read(cx);
-        if !view.doc.complete || view.doc.status != crate::g2::pv2::markdown::Status::Ready {
+        if !view.doc.complete || view.doc.status != crate::g2::doc_preview::markdown::Status::Ready
+        {
             return None;
         }
         warm.prepared_watch = None;

@@ -23,4 +23,6 @@ mod trash_font_tests;
 mod wake;
 pub use fonts::Fonts;
 pub use service::Service;
+#[cfg(test)]
+pub(crate) use service::RETRY_PUBLISH;
 pub use source::Snapshot;

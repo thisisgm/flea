@@ -26,7 +26,7 @@ fn ready_markdown(
 ) -> (
     gpui::Entity<crate::state::Shell>,
     &mut gpui::VisualTestContext,
-    gpui::Entity<crate::g2::pv2::markdown::MarkdownView>,
+    gpui::Entity<crate::g2::doc_preview::markdown::MarkdownView>,
 ) {
     let base = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .ancestors()
@@ -86,7 +86,7 @@ fn pb_columns1_markdown_view_reader_follows_ready_document_source_and_visibility
     let (shell, cx, markdown) = ready_markdown(cx);
     assert_eq!(read(&shell, cx, "columnMarkdownView", &[]), "rendered");
     markdown.update(cx, |markdown, cx| {
-        markdown.set_view(crate::g2::pv2::markdown::View::Source, cx)
+        markdown.set_view(crate::g2::doc_preview::markdown::View::Source, cx)
     });
     assert_eq!(read(&shell, cx, "columnMarkdownView", &[]), "source");
     markdown.update(cx, |markdown, cx| markdown.set_active(false, cx));

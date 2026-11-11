@@ -1,5 +1,5 @@
 use super::*;
-use flea::ui_logic_st2::wire;
+use flea::ui_logic_plugin_settings::wire;
 use std::time::Instant;
 
 #[path = "menu_notice_tests.rs"]
@@ -36,12 +36,7 @@ pub(super) fn attach(
 ) -> PathBuf {
     let folder = root.join("config/flea/plugins").join(&plugin.manifest.id);
     std::fs::create_dir_all(&folder).unwrap();
-    std::fs::copy(
-        root.join(example).join("plugin.py"),
-        folder.join("plugin.py"),
-    )
-    .unwrap();
-    let script = std::fs::read_to_string(folder.join("plugin.py")).unwrap().replace(
+    let script = std::fs::read_to_string(root.join(example).join("plugin.py")).unwrap().replace(
         "        operation = request.get(\"op\")",
         "        operation = request.get(\"op\")\n        if operation in ('run', 'send') and os.path.exists('malformed-response'):\n            print('not-json', flush=True)\n            continue",
     );
@@ -51,7 +46,7 @@ pub(super) fn attach(
     } else {
         script
     };
-    std::fs::write(folder.join("plugin.py"), script).unwrap();
+    flea::executable_file::write(&folder.join("plugin.py"), script.as_bytes(), 0o755).unwrap();
     let source = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../examples/plugins")
         .join(example)
@@ -290,6 +285,21 @@ fn plugin_menu_runtime_host_send_uses_real_target_discovery_and_failed_plugin_re
     drop(runtime);
     let mut fixture = open(cx, root.clone(), plugin.clone());
     let folder = attach(cx, &mut fixture, &root, "send-target", &plugin);
+    let completed = Rc::new(std::cell::Cell::new(false));
+    let sent = completed.clone();
+    let _response = update(cx, fixture.handle, |shell, _, cx| {
+        cx.subscribe(
+            shell.plugins.host.as_ref().unwrap(),
+            move |_, _, response: &Response, _| {
+                if response.request.get("op").and_then(Json::as_str) == Some("send")
+                    && response.message.get("op").and_then(Json::as_str) == Some("done")
+                    && response.ok
+                {
+                    sent.set(true);
+                }
+            },
+        )
+    });
     fixture.menu(cx, 1, vec![0]);
     wait(cx, |cx| {
         fixture
@@ -302,6 +312,8 @@ fn plugin_menu_runtime_host_send_uses_real_target_discovery_and_failed_plugin_re
         .unwrap();
     fixture.validated(cx, &validate, &[root.join("notes.txt")]);
     wait(cx, |_| !receipt(&folder, "send").is_empty());
+    // The receipt precedes the answer; only the terminal response proves the session can accept the next send.
+    wait(cx, |_| completed.get());
     assert_eq!(
         receipt(&folder, "send")[0].get("paths"),
         Some(&Json::Arr(vec![Json::Str(

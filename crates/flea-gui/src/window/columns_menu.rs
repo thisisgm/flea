@@ -1,6 +1,6 @@
 //! Neighbour menus retain their drawn directory and row without navigating the pane.
 use crate::{
-    columns::menu::menu_on_neighbour, g2::mn1::target::PathMenu, state::Shell,
+    columns::menu::menu_on_neighbour, g2::context_menus::target::PathMenu, state::Shell,
     window::navigate::Step,
 };
 use gpui::{Context, Window};

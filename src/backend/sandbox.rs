@@ -1,3 +1,4 @@
+use flea::bytename::ExactText as _;
 use std::path::Path;
 
 // bwrap costs a few ms over a bare exec here and systemd-run costs 23.8 ms; see AGENTS.md "Thumbnail sandbox".
@@ -110,12 +111,12 @@ pub(crate) fn wrap_with(
         a.push(flag.to_string());
     }
     a.push("--ro-bind".to_string());
-    a.push(input.to_string_lossy().to_string());
-    a.push(input.to_string_lossy().to_string());
+    a.push(input.exact_text().to_string());
+    a.push(input.exact_text().to_string());
     // The caller names the one writable path, and production binds the single pre-created temp file; see AGENTS.md "Thumbnail sandbox".
     a.push("--bind".to_string());
-    a.push(out.to_string_lossy().to_string());
-    a.push(out.to_string_lossy().to_string());
+    a.push(out.exact_text().to_string());
+    a.push(out.exact_text().to_string());
     a.extend_from_slice(inner);
     a
 }
@@ -138,8 +139,8 @@ pub fn wrap_worker(inner: &[String], exe: &Path) -> Vec<String> {
         a.push(flag.to_string());
     }
     a.push("--ro-bind".to_string());
-    a.push(exe.to_string_lossy().to_string());
-    a.push(exe.to_string_lossy().to_string());
+    a.push(exe.exact_text().to_string());
+    a.push(exe.exact_text().to_string());
     a.extend_from_slice(inner);
     a
 }
@@ -173,13 +174,13 @@ fn wrap_extra(inner: &[String], ro_binds: &[&Path], writable: Option<&Path>) -> 
     }
     for bind in ro_binds {
         a.push("--ro-bind".to_string());
-        a.push(bind.to_string_lossy().to_string());
-        a.push(bind.to_string_lossy().to_string());
+        a.push(bind.exact_text().to_string());
+        a.push(bind.exact_text().to_string());
     }
     if let Some(dir) = writable {
         a.push("--bind".to_string());
-        a.push(dir.to_string_lossy().to_string());
-        a.push(dir.to_string_lossy().to_string());
+        a.push(dir.exact_text().to_string());
+        a.push(dir.exact_text().to_string());
     }
     a.extend_from_slice(inner);
     a

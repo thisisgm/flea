@@ -1,9 +1,9 @@
 //! Tab choices use the shared menu and retain the tab's identity until activation.
 use crate::{
-    g2::mn1::menu::{Face, Outcome},
+    g2::context_menus::menu::{Face, Outcome},
     state::Shell,
 };
-use flea::ui_logic_mn1::{Entry, Text};
+use flea::ui_logic_context_menus::{Entry, Text};
 use gpui::{Context, Pixels, Point, Window};
 
 pub(crate) struct Target {
@@ -77,7 +77,7 @@ impl Shell {
             Face::Tab,
             rows,
             at,
-            flea::ui_logic_mn1::fit::Rect {
+            flea::ui_logic_context_menus::fit::Rect {
                 x: 0.,
                 y: 0.,
                 w: size.width.into(),
@@ -88,7 +88,7 @@ impl Shell {
             window,
         );
         if let Some(host) = self.panes[side].as_ref() {
-            self.menu.captured = Some(crate::g2::mn1::join::Captured {
+            self.menu.captured = Some(crate::g2::context_menus::join::Captured {
                 side,
                 listing: host.pane.held.listing,
                 rows: Vec::new(),

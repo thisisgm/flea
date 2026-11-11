@@ -15,6 +15,12 @@
   check: `text/markdown`'s own `/usr/share/mime/generic-icons` entry is `x-office-document`, not
   `text-x-generic`, so the row's icon name alone cannot carry it. It is a display-mode choice
   over an already-text-shaped file, not client-side content sniffing.
+- A settled folder size (`src/backend/dirsizewatch.rs`) is kept only when every hard-linked file
+  the walk counted has all its names inside the walked tree. A hard link made after that walk,
+  from a name outside the tree to a file inside it, raises no inotify event on the counted folders
+  (`link(2)` reports only to the new name's folder), so a later write through the new name leaves
+  the size stale until something inside the folder changes or its parent leaves every tab. Closing
+  it would take a time limit on settled sizes or a watch per file; neither is taken.
 
 ### Size formatting matches real GLib, not Finder, and not the design spec's assumed rounding
 
@@ -524,20 +530,19 @@ names have twins carrying the same MIME type.
   silently wrong order.
 - `prewarm.rs`: see Predictable path writes above; the pid in the temp file name and
   the unlink-both-on-failure contract both live there rather than being repeated here.
-- `scan.rs`: a non-UTF8 filename goes lossy in phase 1 and then cannot be stat'd, so
-  it reports zeroes. The fix is a byte arena and belongs to a later plan. **The thumbnail
-  path inherits it**: two names in one directory that differ only in their invalid bytes
-  collapse to the same lossy string, so `State::asked` sees one path where the client named
-  two rows, the dedupe swallows the second and that row is answered only when the listing is
-  replaced or the process drains. Not fixed here, because the fix is the same byte arena and
-  it is a whole plan's worth of change through `Listing`, `stat_range` and the wire.
-- `main.rs`: a non-UTF-8 argv byte is refused rather than carried, and that refusal is the corner.
-  `std::env::args_os()` is converted once above every mode, and a byte that is not valid UTF-8
-  answers `flea: <name> is not valid UTF-8, and Flea takes text paths` on stderr with status 2, so
-  `--open`, `--terminal` and a bare path all answer 2 where `std::env::args()` used to panic with
-  101. Only a shell or a `.desktop` file can produce such an argv and the window cannot, because
-  `scan.rs` goes lossy in phase 1 and `Pane`'s `join` only ever sees that lossy name. Opening such a
-  path at all needs the byte arena in the entry above, so this stays a refusal until that lands.
+- `scan.rs`: a name that is not UTF-8 is no longer lossy anywhere a file is reached. Since 0.4.2
+  the row carries its exact bytes in its text and every path built from it uses them, see "A name
+  that is not UTF-8 is carried exactly". Before that a row named the sibling with the U+FFFD
+  spelling, so trash, copy, move and permanent delete acted on that sibling. **The corner that
+  remains is display**: the name draws its lossy spelling, a text clipboard (Copy As path, name,
+  stem, folder or relative) holds that spelling, and a surface the conversion has not reached
+  draws the exact tail as it is and refuses its writes, which the kernel rejects for the NUL.
+- `main.rs`: `std::env::args_os()` is converted once above every mode, and since 0.4.2 an argument
+  that is not UTF-8 is carried as its exact text, the form the entry above describes, where it used
+  to be refused with status 2 (and `std::env::args()` before that panicked with 101). The window's
+  own `flea --open` passes a row's exact text, which the launcher turns back into the raw bytes, so
+  Open reaches such a file. A mode that does not decode the text fails on its NUL rather than
+  reaching the lossy twin.
 - `open.rs`: between `canonicalize`, `is_dir` and `spawn` a path that vanishes or is swapped
   for a directory changes the answer, which a concurrent `rm` in the user's own session on
   this single-user machine can produce and which is not exploitable, since no shell and no
@@ -2259,6 +2264,13 @@ The column's continuous PDF stack moves the first-frame `bytes` line in `tests/s
 The two lines together take the `bytes` line to 1598292.
 
 The tall Quick Look rect (`ui/js/QuickLookRect.js`) moves `ui/Preview.qml` from 740 to 773 lines for the card's `shape`, the next card's `shapeNext` and `panes` size, the size reply, the image meta ask for every row and the image pane built after that reply, and `ui/Theme.qml` from 443 to 445 for `preview.edge`, and takes the `bytes` line of `tests/startup-units.txt` to 1598459 over the same 170 units. The card draws `shape`, which takes `shapeNext` only while no swap holds a picture, so a held picture is never stretched, while `panes` already has the next card's size, so the preview built under the hold is whole when the card changes size in the swap's release frame; a reply that comes after the reveal cap leaves the card at today's 82% by 82%. A PDF followed from a PDF holds the old picture until the new document's first page lands, because `lookReady` reads `ui/PdfViewer.qml`'s `opened` against the shown path, so the page-size reply arrives while the swap still holds and the card never draws the unknown shape.
+
+### Case twins are matched by lower case, and a cifs share is not read as folding
+
+`src/backend/casefold.rs` decides which folders fold case from the filesystem type: the FAT family and exFAT always, ext4 and f2fs only inside a folder carrying the casefold flag (`FS_IOC_GETFLAGS`), every other type never. Where a folder folds, two names are twins when their lower cases match (`casefold::key`). The collisions question (`collide.rs` `ask`), the merge card and the extract refusal (`extractnames.rs`) all use that key.
+
+- The kernel folds more widely than lower case. exFAT reads its own up-case table and ext4 casefold compares Unicode-normalized folded names, so two names that differ only in Unicode normalization (NFC against NFD) or in a fold that lower case does not make are not seen as twins in advance. A copy or move of such a pair still never writes one over the other: the second name finds the first entry when it lands and is refused with `already exists`, since the collisions question never counted it. An extract of such a pair is not refused up front and lands as the extract tool writes it.
+- A cifs or smb3 mount reads as not folding. A Samba or Windows share folds case on the server, under a rule the client cannot read, so twins sent to a share are found only when they land, with the same `already exists` refusal, and the collisions question does not count them beforehand.
 
 ---
 

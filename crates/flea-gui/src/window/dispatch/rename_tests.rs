@@ -1,6 +1,12 @@
 //! F2, every preset's rename key, the editor's commit, refusals and replies, an outside click, and the bulk card, on the production Shell.
+#[path = "rename_hidden_tests.rs"]
+mod hidden;
+#[path = "rename_identity_tests.rs"]
+mod identity;
 #[path = "rename_mouse_tests.rs"]
 mod mouse;
+#[path = "uish_def3_tests.rs"]
+mod uish_def3_tests;
 use super::test_shell::{keystroke, land, lists, open, row, set_cursor};
 use crate::{
     backend::{Backend, Event as BackendEvent},
@@ -151,7 +157,9 @@ fn f2_opens_the_stem_typing_replaces_it_and_enter_sends_the_rename(cx: &mut Test
     );
     assert_eq!(
         sent(&mut lines),
-        [r#"{"c":"rename","path":"/files/notes.txt","to":"draft.txt","menuId":0}"#]
+        [
+            r#"{"c":"rename","path":"/files/notes.txt","to":"draft.txt","menuId":0,"source":"1:2:32768"}"#
+        ]
     );
     receive(
         &shell,
@@ -242,7 +250,9 @@ fn a_refused_write_shows_its_reason_under_the_draft(cx: &mut TestAppContext) {
     cx.simulate_keystrokes("enter");
     assert_eq!(
         sent(&mut lines),
-        [r#"{"c":"rename","path":"/files/notes.txt","to":"alpha2.txt","menuId":0}"#]
+        [
+            r#"{"c":"rename","path":"/files/notes.txt","to":"alpha2.txt","menuId":0,"source":"1:2:32768"}"#
+        ]
     );
     close(&shell, cx);
 }
@@ -257,7 +267,9 @@ fn a_press_on_another_row_commits_the_open_rename(cx: &mut TestAppContext) {
     press(cx, &centre, 1);
     assert_eq!(
         sent(&mut lines),
-        [r#"{"c":"rename","path":"/files/notes.txt","to":"memo.txt","menuId":0}"#]
+        [
+            r#"{"c":"rename","path":"/files/notes.txt","to":"memo.txt","menuId":0,"source":"1:2:32768"}"#
+        ]
     );
     close(&shell, cx);
 }

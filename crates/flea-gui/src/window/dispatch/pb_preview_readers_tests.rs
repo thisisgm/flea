@@ -50,7 +50,7 @@ fn pb_preview_pdf_state_overlay_absent(cx: &mut TestAppContext) {
 #[gpui::test]
 fn pb_preview_markdown_readers_follow_the_mounted_document_and_view_key(cx: &mut TestAppContext) {
     use super::previewtypes_tests::{file, local, meta, open, pump};
-    use crate::g2::pv1::doc::View;
+    use crate::g2::quick_look_overlay::doc::View;
     use std::time::{Duration, Instant};
     cx.executor().allow_parking();
     let root = super::previewtypes_kinds_tests::Root::new("pb-readers");

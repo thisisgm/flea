@@ -1,9 +1,10 @@
+use flea::bytename::ExactText as _;
 use super::{
     model::{Model, Row},
     wire::{count, text, Wire},
 };
 use crate::jsondoc::{self, Json};
-use flea::ui_logic_sr1::{parse_line, ContentsMatch, Line, Request, Scope, Session};
+use flea::ui_logic_file_search::{parse_line, ContentsMatch, Line, Request, Scope, Session};
 use std::{collections::BTreeMap, io, path::PathBuf};
 
 mod failure;
@@ -25,8 +26,10 @@ struct Block {
 #[derive(Default)]
 pub(super) struct State {
     pub mode: bool,
-    pub session: flea::ui_logic_sr1::Session,
-    next: usize,
+    pub session: flea::ui_logic_file_search::Session,
+    pub next: usize,
+    // The generation a committed line's Enter acts on once its rows land (enter_once.rs).
+    pub enter_after: Option<usize>,
     pub waiting: bool,
     pub cancelling: bool,
     asked: Option<Query>,
@@ -78,12 +81,11 @@ pub(super) fn start(
     wire: &mut Wire,
 ) -> io::Result<bool> {
     let home = std::env::var("HOME").unwrap_or_default();
-    let Some(root) = Session::scope_root(&folder.to_string_lossy(), &home, m.find.session.scope)
-    else {
+    let Some(root) = Session::scope_root(&folder.exact_text(), &home, m.find.session.scope) else {
         m.find.session.scope = m.find.active.as_ref().map_or(Scope::Folder, |q| q.scope);
         return Ok(false);
     };
-    let root = PathBuf::from(root);
+    let root = flea::bytename::exact(root);
     if m.find.previous.is_none() {
         m.find.previous = Some((
             m.search.clone(),
@@ -294,7 +296,7 @@ pub(super) fn receive(m: &mut Model, value: &Json, wire: &mut Wire) -> io::Resul
             _ => bad(m),
         }
     } else if kind == "listed" {
-        if text(value, "path") != ask.root.to_string_lossy() {
+        if text(value, "path") != ask.root.exact_text() {
             return Ok(true);
         }
         block(m, listing);
@@ -355,7 +357,7 @@ pub(super) fn receive(m: &mut Model, value: &Json, wire: &mut Wire) -> io::Resul
             m.cursor = m
                 .sort_anchor
                 .as_ref()
-                .filter(|p| p.to_string_lossy() == text(&listed, "anchor"))
+                .filter(|p| p.exact_text() == text(&listed, "anchor"))
                 .and_then(|_| listed.get("anchorIndex").and_then(Json::as_f64))
                 .filter(|index| *index >= 0.0 && *index < m.total as f64)
                 .map_or(0, |index| index as usize);

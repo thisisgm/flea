@@ -1,4 +1,5 @@
 use super::*;
+use std::os::fd::AsRawFd;
 use std::os::unix::fs::symlink;
 
 // A short root of its own: a socket path over SUN_LEN fails to bind, so it must not depend on where the source lives.
@@ -57,15 +58,23 @@ fn stale_requires_both_a_dead_pid_and_a_refused_connection() {
     assert!(!alive(dead));
     let stale = directory.join(format!("{dead}.sock"));
     let listener = UnixListener::bind(&stale).unwrap();
+    // Keep a descriptor alive like a concurrently forked child before exec.
+    let inherited = listener.try_clone().unwrap();
     fs::set_permissions(&stale, fs::Permissions::from_mode(0o600)).unwrap();
     prune(&directory).unwrap();
     assert!(
         stale.exists(),
         "a connectable endpoint is retained even under a dead pid"
     );
+    // Shutdown stops listening through every descriptor, including a fork-inherited one.
+    assert_eq!(
+        unsafe { libc::shutdown(listener.as_raw_fd(), libc::SHUT_RDWR) },
+        0
+    );
     drop(listener);
     prune(&directory).unwrap();
     assert!(!stale.exists());
+    drop(inherited);
     let live = directory.join(format!("{}.sock", std::process::id()));
     let listener = UnixListener::bind(&live).unwrap();
     fs::set_permissions(&live, fs::Permissions::from_mode(0o600)).unwrap();

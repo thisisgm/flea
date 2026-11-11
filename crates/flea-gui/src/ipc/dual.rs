@@ -149,6 +149,23 @@ fn pane_geometry(
 
 impl Adapter for DragGeometry<'_> {
     fn call(&self, function: &str, arguments: &[String]) -> Option<Reply> {
+        // One pane's list area, "x y width height", whether or not it lists a row; "" for a pane never built.
+        if function == "paneListAreaRect" {
+            let Some(side) = arguments
+                .first()
+                .and_then(|side| side.trim().parse::<usize>().ok())
+                .filter(|side| *side < self.shell.panes.len())
+            else {
+                return Some(Reply::error(
+                    2,
+                    format!("FLEA_IPC_ERROR flea.paneListAreaRect side must be 0 or 1, got {arguments:?}"),
+                ));
+            };
+            let host = self.shell.panes[side].as_ref();
+            return Some(Reply::value(
+                host.map_or_else(String::new, |host| pane_geometry(host, 0, 0).0),
+            ));
+        }
         if function != "dragPaneGeometry" {
             return None;
         }

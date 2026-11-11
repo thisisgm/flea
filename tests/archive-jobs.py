@@ -86,8 +86,10 @@ def waiting(backend, ident):
     assert job['done'] == 0 and job['bytes'] == 0, job
 
 
-def success(backend, ident, archive):
-    assert event(backend, 'archivedone', ident) == dict(t='archivedone', id=ident, ok=True, verified=True, err='')
+def success(backend, ident, archive, destination):
+    done = event(backend, 'archivedone', ident)
+    assert done == dict(t='archivedone', id=ident, ok=True, verified=True, err='',
+                        path=str(archive), dest=str(destination)), done
     rows = [e['job'] for e in backend.events if e['t'] == 'job' and e['job']['id'] == ident]
     source = archive.parent / (archive.stem + '-source')
     expected_bytes = sum(p.stat().st_size for p in source.rglob('*') if p.is_file())
@@ -151,19 +153,19 @@ def scenario(backend, root, temporary, archives):
     ready(backend, other, seven)
     assert all(backend.jobs[i]['state'] == 'running' for i in (one, seven))
     release(backend, other)
-    success(backend, seven, other)
+    success(backend, seven, other, temporary / 'other')
     contents(temporary / 'other', other.stem)
     assert backend.jobs[one]['state'] == 'running' and not (root / 'first').exists()
     print('PASS different tmpfs drive runs an extract and a copy beside the held extract')
 
     release(backend, first)
-    success(backend, one, first)
+    success(backend, one, first, root / 'first')
     contents(root / 'first', first.stem)
     ready(backend, second, three)
     assert all(backend.jobs[i]['state'] == 'waiting' for i in (four, five))
     assert not (local_copy / source.name).exists() and move_source.exists()
     release(backend, second)
-    success(backend, three, second)
+    success(backend, three, second, root / 'second')
     contents(root / 'second', second.stem)
     transfers_done(backend, four)
     transfers_done(backend, five)
@@ -182,7 +184,7 @@ def scenario(backend, root, temporary, archives):
     elapsed = time.monotonic() - started
     assert not (root / 'cancelled-running').exists()
     nine = extract(backend, later, root / 'later')
-    success(backend, nine, later)
+    success(backend, nine, later, root / 'later')
     contents(root / 'later', later.stem)
     assert not list(root.rglob('.flea-work-*')) and not list(temporary.rglob('.flea-work-*'))
     print(f'PASS running Cancel ({elapsed:.4f}s), no destination or work directory, later extraction succeeds')

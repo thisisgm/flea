@@ -1,6 +1,6 @@
 //! Query reads, prepared-row paint observations and the scenes that showed them; keyDeliveryState is in key_delivery.rs.
 use crate::{
-    g2::sr1::{
+    g2::file_search::{
         presented::{Scene, Shown},
         Search,
     },
@@ -9,14 +9,37 @@ use crate::{
     window::pane::PaneHost,
 };
 pub(crate) struct QueryReader<'a> {
-    pub search: &'a Search,
+    pub search: &'a super::Runtime,
     pub focused: bool,
+    pub filter_typing: bool,
+    pub no_match: Option<String>,
 }
 
 impl crate::ipc::Adapter for QueryReader<'_> {
     fn call(&self, function: &str, _: &[String]) -> Option<flea::ipc::wire::Reply> {
-        (function == "focusView" && self.focused && self.search.typing())
-            .then(|| flea::ipc::wire::Reply::value("search"))
+        use flea::{ipc::wire::Reply, ui_logic_file_search::Mode};
+        let owner: &Search = &self.search.owner;
+        let value = match function {
+            "focusView" if self.focused && self.filter_typing => "filter".into(),
+            "focusView" if self.focused && owner.typing() => "search".into(),
+            "searchMode" => match owner.session.mode {
+                Mode::Off => "",
+                Mode::Typing => "typing",
+                Mode::Results => "results",
+            }
+            .into(),
+            "searchQuery" => owner.session.query.clone(),
+            "noMatchHeadline" => self.no_match.clone().unwrap_or_default(),
+            // The strip's laid-out box while search holds the header slot, "x y width height".
+            "searchRect" => match self.search.strip.borrow().bounds {
+                Some(b) if owner.active() => [b.origin.x, b.origin.y, b.size.width, b.size.height]
+                    .map(|value| f32::from(value).round().to_string())
+                    .join(" "),
+                _ => String::new(),
+            },
+            _ => return None,
+        };
+        Some(Reply::value(value))
     }
 }
 

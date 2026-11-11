@@ -62,7 +62,7 @@ class Controls(unittest.TestCase):
     def test_inventory(self):
         result = inventory.check(self.repo)
         self.assertEqual((result["wanted"], result["inline"], result["sourced"], result["declared_overrides"]),
-                         (111, 84, 27, 84))
+                         (112, 85, 27, 86))
         self.assertGreaterEqual(result["installed_overrides"], 68)
         print("INVENTORY " + json.dumps(result, sort_keys=True))
 
@@ -141,7 +141,7 @@ class Controls(unittest.TestCase):
         self.assertNotIn("NATIVE_RUN", result.stdout + result.stderr)
         self.assertFalse(any(line.startswith("PASS ") for line in result.stdout.splitlines()))
 
-    def test_headless_default_forwards_all_111_in_order(self):
+    def test_headless_default_forwards_all_112_in_order(self):
         helper = self.repo / "tests/lib/flea_uish_headless.py"
         helper.write_text('import json,sys\nprint(json.dumps(sys.argv[sys.argv.index("--")+1:]))\n')
         result = self.ui(driver="headless")
@@ -224,6 +224,29 @@ class Controls(unittest.TestCase):
             self.assertEqual(getattr(foreign, "__notes__", []), [], "a clean host noted a foreign exception")
             self.assertEqual(stderr, "", "a clean host printed a log tail")
         self.assertEqual(set(parent.glob("host.*")), before, "clean: the marked root was kept")
+
+    def test_backend_defaults_to_the_drivers_profile(self):
+        import flea_uish_headless as headless
+        from unittest import mock
+        hello = 'UISH\t{"sequence": null, "result": {"ok": true, "value": {"protocol": "flea-uish-headless-v1"}}}'
+        target = self.root / "target"
+        driver = target / "release/deps/uish_driver-0"
+        driver.parent.mkdir(parents=True)
+        driver.write_text("#!/bin/sh\nprintf '%s\\n' '" + hello + "'\nread -r line\nexit 0\n")
+        driver.chmod(0o700)
+        backend = target / "release/flea"
+        backend.write_text("#!/bin/sh\n")
+        backend.chmod(0o700)
+        decoy = self.root / "decoy"
+        for profile in ("debug", "release"):
+            (decoy / profile).mkdir(parents=True)
+            (decoy / profile / "flea").write_text("#!/bin/sh\n")
+            (decoy / profile / "flea").chmod(0o700)
+        # A flea under CARGO_TARGET_DIR is never the backend; only the one beside the driver's profile is.
+        with mock.patch.dict(os.environ, {"CARGO_TARGET_DIR": str(decoy)}):
+            os.environ.pop("FLEA_BIN", None)
+            with headless.Host(driver, timeout=1) as host:
+                self.assertEqual(host.source["backend"], str(backend.resolve()))
 
     def host_run(self, headless, mock, name, script, body, kind):
         driver = self.root / (name + "-driver")
@@ -331,4 +354,6 @@ if result.result.testsRun == 0 or not result.result.wasSuccessful():
     raise SystemExit(1)
 print(f"PASS ui-uish-inventory {result.result.testsRun} controls")
 PY
+python3 -B "$repo/tests/lib/test_flea_gvfs_namespace.py" </dev/null
+python3 -B "$repo/tests/lib/test_flea_colhold_frames.py" </dev/null
 exec setsid -w env -i PATH="$PATH" python3 -B "$root/controls.py" "$repo" "$root" </dev/null

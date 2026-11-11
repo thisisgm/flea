@@ -119,8 +119,14 @@ phase_a() {
   check "the plain control compress wrote its archive" "1" "$([ -s "$D/plain.tar.zst" ] && answered '"ok":true')"
 
   compress dup.7z 7z "$CANARY" false a.txt
-  check "a password compress onto an existing name is refused" "1" "$(answered 'already exists')"
+  check "a password compress onto an existing name succeeds" "1" "$(answered '"ok":true')"
   check "and leaves that file as it was" "taken" "$(cat "$D/dup.7z")"
+  extract 'dup copy.7z' dup_none
+  check "the chosen copy name asks for its password, so it is encrypted" "1" "$(answered '"err":"encrypted"')"
+  check "and leaves no destination behind" "0" "$([ -e "$D/dup_none" ] && echo 1 || echo 0)"
+  extract 'dup copy.7z' dup_copy "$CANARY"
+  check "the chosen copy name extracts with its password" "1" "$(answered '"ok":true')"
+  check "and holds the selected bytes" "alpha" "$(cat "$D/dup_copy/a.txt" 2>/dev/null)"
 
   extract out.7z ex_none
   check "an archive with encrypted names asks for a password before any extract" "1" "$(answered '"err":"encrypted"')"
@@ -133,8 +139,13 @@ phase_a() {
   extract out.7z ex_ok "$CANARY"
   check "the right password extracts" "1" "$(answered '"ok":true')"
   check "and the files read back whole" "alpha|beta" "$(cat "$D/ex_ok/a.txt" 2>/dev/null)|$(cat "$D/ex_ok/b.txt" 2>/dev/null)"
+  printf 'original alpha' > "$D/ex_ok/a.txt"
+  printf 'original beta' > "$D/ex_ok/b.txt"
   extract out.7z ex_ok "$CANARY"
-  check "an extract onto an existing folder is refused, separately" "1" "$(answered 'already exists')"
+  check "a password extract onto an existing folder succeeds" "1" "$(answered '"ok":true')"
+  check "and names its archive and requested destination" "1" "$(answered "\"path\":\"$D/out.7z\",\"dest\":\"$D/ex_ok\"")"
+  check "the chosen folder copy holds the extracted bytes" "alpha|beta" "$(cat "$D/ex_ok copy/a.txt" 2>/dev/null)|$(cat "$D/ex_ok copy/b.txt" 2>/dev/null)"
+  check "and the original folder still holds its files" "original alpha|original beta" "$(cat "$D/ex_ok/a.txt" 2>/dev/null)|$(cat "$D/ex_ok/b.txt" 2>/dev/null)"
   # A zip is bsdtar's to extract plainly, so only the probe and the password path reach 7z for it.
   extract pw.zip zx_none
   check "a password zip asks for its password before any extract" "1" "$(answered '"err":"encrypted"')"

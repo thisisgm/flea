@@ -1,7 +1,8 @@
 //! The mounted rail follows the same locale snapshot that Settings and Omarchy publish.
 use super::*;
-use flea::ui_logic_pl4::{
+use flea::ui_logic_rail_places::{
     order::{Heading, RailSection},
+    plugin::PLUGINS_HEADING,
     rail::{Group, RailEntry},
 };
 use std::{fs, path::PathBuf, time::Duration};
@@ -70,7 +71,7 @@ fn runtime_language_switch_relabels_fixed_places(cx: &mut TestAppContext) {
     let (shell, cx) = open(false, "list", cx);
     shell.update(cx, |shell, cx| {
         let mut state = shell.launch.settings.data.clone();
-        crate::g2::st1::seams::merge(
+        crate::g2::settings_pages::seams::merge(
             &mut state,
             &flea::jsondoc::parse(r#"{"places":{"showRecent":true,"showTags":true,"favourites":[{"label":"Downloads","path":"/saved/Downloads"}]}}"#).unwrap(),
         );
@@ -108,6 +109,14 @@ fn runtime_language_switch_relabels_fixed_places(cx: &mut TestAppContext) {
                         group: Group::Device,
                         kind: Kind::Volume,
                         label: "Documents".into(),
+                        ..Default::default()
+                    }],
+                }, RailSection {
+                    heading: Heading::Plugin("Geräte".into()),
+                    rows: vec![RailEntry {
+                        group: Group::Plugin,
+                        kind: Kind::PluginRow,
+                        label: "Phone".into(),
                         ..Default::default()
                     }],
                 }],
@@ -177,10 +186,13 @@ fn runtime_language_switch_relabels_fixed_places(cx: &mut TestAppContext) {
             assert_eq!(labels[10].as_ref(), "My projects");
             assert_eq!(labels[11].as_ref(), catalog.tr("places.row.trash"));
             assert_eq!(labels[12].as_ref(), "Downloads", "user bookmark name");
-            for (index, name) in flea::ui_logic_pl4::tags::NAMES.into_iter().enumerate() {
+            for (index, name) in flea::ui_logic_rail_places::tags::NAMES
+                .into_iter()
+                .enumerate()
+            {
                 assert_eq!(
                     labels[index + 13].as_ref(),
-                    catalog.tr(flea::ui_logic_pl4::tags::label_key(name))
+                    catalog.tr(flea::ui_logic_rail_places::tags::label_key(name))
                 );
             }
             assert_eq!(labels[20].as_ref(), "NAS", "share name");
@@ -194,9 +206,21 @@ fn runtime_language_switch_relabels_fixed_places(cx: &mut TestAppContext) {
             ]) {
                 assert_eq!(
                     section.heading,
-                    crate::g2::pl4::content::heading_text(&catalog, &Heading::Key(key))
+                    crate::g2::rail_places::content::heading_text(&catalog, &Heading::Key(key))
                 );
             }
+            // The plugin's title is German's DEVICES word, so only German files its row under PLUGINS (PLUGINS.md, Rail headings).
+            let plugin = producer.provider.drawn.last().unwrap();
+            let heading = match language {
+                "de" => Heading::Key(PLUGINS_HEADING),
+                _ => Heading::Plugin("Geräte".into()),
+            };
+            assert_eq!(
+                plugin.heading,
+                crate::g2::rail_places::content::heading_text(&catalog, &heading),
+                "{language}: the plugin row's heading"
+            );
+            assert_eq!(plugin.rows[0].label.as_ref(), "Phone");
             let painted = producer.laid.borrow();
             assert!(painted.painted);
             for row in &painted.rows {

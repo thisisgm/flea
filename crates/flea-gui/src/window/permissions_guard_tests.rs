@@ -1,7 +1,7 @@
 //! Captures that no longer identify a live selected item never issue a Permissions inspect.
 use super::fixture::{edit, setup};
 use crate::{
-    g2::mn1::join::{Captured, Chosen},
+    g2::context_menus::join::{Captured, Chosen},
     window::dispatch::Order,
 };
 use gpui::TestAppContext;

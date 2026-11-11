@@ -2,7 +2,7 @@
 use super::*;
 use crate::{
     backend::{Backend, Event},
-    g2::mn1::menu::Outcome,
+    g2::context_menus::menu::Outcome,
     state::{tests::shell_with, Shell},
     window::{pane::PaneHost, root::Root},
 };
@@ -10,7 +10,7 @@ use flea::{
     jsondoc,
     plugin_runtime::{Config, Runtime},
     protocol::{Reply, RowFacts},
-    ui_logic_st2::{
+    ui_logic_plugin_settings::{
         manifest,
         wire::{Plugin, Source},
     },
@@ -18,7 +18,6 @@ use flea::{
 use gpui::{AppContext, Context, TestAppContext, Window, WindowHandle};
 use std::{
     cell::RefCell,
-    os::unix::fs::PermissionsExt,
     path::{Path, PathBuf},
     process::Command,
     rc::Rc,
@@ -102,21 +101,28 @@ fn plugin(example: &str, root: &Path) -> (Plugin, Runtime) {
     let script = std::fs::read_to_string(source.join("plugin.py")).unwrap();
     let script = script.replace("        request = json.loads(line)", &format!(
         "        request = json.loads(line)\n        with open('requests.jsonl', 'a') as receipt:\n            receipt.write(json.dumps(request) + '\\n')\n        os.environ['XDG_DATA_HOME'] = {0:?} + '/data'\n        os.environ['XDG_CONFIG_HOME'] = {0:?} + '/config'\n        os.environ['XDG_CACHE_HOME'] = {0:?} + '/cache'\n        os.environ['XDG_STATE_HOME'] = {0:?} + '/state'", root.to_string_lossy()));
-    std::fs::write(folder.join("plugin.py"), script).unwrap();
-    std::fs::set_permissions(
-        folder.join("plugin.py"),
-        std::fs::Permissions::from_mode(0o755),
-    )
-    .unwrap();
+    flea::executable_file::write(&folder.join("plugin.py"), script.as_bytes(), 0o755).unwrap();
+    let protocol = jsondoc::parse(flea::plugin_runtime::protocol::CONTRACT).unwrap();
     let runtime = Runtime::new(Config {
         folder,
         manifest: manifest.clone(),
         hello: jsondoc::parse(r#"{"op":"hello","protocolVersion":1,"settings":{}}"#).unwrap(),
-        ready_timeout: Duration::from_secs(2),
+        ready_timeout: Duration::from_secs_f64(
+            protocol
+                .get("readyTimeoutSeconds")
+                .and_then(Json::as_f64)
+                .expect("docs/plugin-protocol.json readyTimeoutSeconds is a number"),
+        ),
         request_timeout: Duration::from_secs(2),
         idle_timeout: Duration::from_secs(60),
     });
-    runtime.ensure_ready().unwrap();
+    let started = std::time::Instant::now();
+    let ready = runtime.ensure_ready();
+    eprintln!(
+        "plugin readiness {example}: {:.6}s {ready:?}",
+        started.elapsed().as_secs_f64()
+    );
+    ready.unwrap();
     (
         Plugin {
             manifest,
@@ -132,7 +138,7 @@ fn plugin(example: &str, root: &Path) -> (Plugin, Runtime) {
 }
 
 fn open(cx: &mut TestAppContext, root: PathBuf, plugin: Plugin) -> Fixture {
-    let mut plugins = flea::ui_logic_st2::builtin::manifests()
+    let mut plugins = flea::ui_logic_plugin_settings::builtin::manifests()
         .into_iter()
         .map(|(manifest, enabled)| Plugin {
             manifest,
@@ -225,7 +231,7 @@ impl Fixture {
         update(cx, self.handle, |shell, window, cx| {
             shell.receive(
                 0,
-                Event::Producer(flea::ui_logic_st2::wire::compact(&reply)),
+                Event::Producer(flea::ui_logic_plugin_settings::wire::compact(&reply)),
                 window,
                 cx,
             )

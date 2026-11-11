@@ -6,7 +6,7 @@ use crate::{
     backend::Backend,
     window::{startup::View, u07_tests::read},
 };
-use flea::{jsondoc::Json, ui_logic_pv1::kinds::State};
+use flea::{jsondoc::Json, ui_logic_preview_core::kinds::State};
 use gpui::{
     point, px, Modifiers, MouseButton, MouseDownEvent, ScrollDelta, ScrollWheelEvent,
     TestAppContext,
@@ -214,7 +214,7 @@ fn vf5_model_fact_labels_take_the_3mf_board_column(cx: &mut TestAppContext) {
         .expect("fact value is mounted");
     assert_eq!(
         f32::from(value.left() - fact.left()),
-        crate::g2::pv4::parts::LABEL_COLUMN,
+        crate::g2::model_preview::parts::LABEL_COLUMN,
         "cols-preview-3mf.html: values start after the Layer height column"
     );
     close(&shell, cx);

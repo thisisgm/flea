@@ -45,6 +45,46 @@ fn focused(state: &Json) -> Vec<&str> {
 }
 
 #[gpui::test]
+fn fxuish_def2_permissions_small_window_reveals_every_focused_control(cx: &mut TestAppContext) {
+    let (handle, mut requests) = setup(cx);
+    choose(cx, handle, &mut requests);
+    next(&mut requests, "permissions", "inspect");
+    inspect(cx, handle, 1, "notes.txt", "0644", "");
+    let view = edit(cx, handle, |shell, _, _| {
+        shell.permissions.view.clone().unwrap()
+    });
+    let mut visual = VisualTestContext::from_window(handle.into(), cx);
+    visual.simulate_resize(gpui::size(gpui::px(560.), gpui::px(400.)));
+    // The opening Apply focus, nine mode boxes, Octal and Cancel, then the wrap back to the first box.
+    let focus_ring_and_wrap = 1 + 9 + 2 + 1;
+    for _ in 0..focus_ring_and_wrap {
+        visual.run_until_parked();
+        let card = visual.debug_bounds("op3-card").unwrap();
+        assert!(
+            card.top() >= gpui::px(0.) && card.bottom() <= gpui::px(400.),
+            "card {card:?}"
+        );
+        visual.update(|_, cx| {
+            use crate::g2::open_with_properties::permissions::Stop;
+            let view = view.read(cx);
+            let id = match view.model.focus {
+                Stop::Box(at) => format!("check:{at}"),
+                Stop::Octal => "field".into(),
+                Stop::Cancel => "button:0".into(),
+                Stop::Apply => "button:1".into(),
+            };
+            let control = view.probe.probe.bounds(&id).unwrap();
+            let clip = view.probe.probe.bounds("scroll").unwrap();
+            assert!(
+                control.top() >= clip.top() && control.bottom() <= clip.bottom(),
+                "{id}: {control:?} in {clip:?}"
+            );
+        });
+        visual.simulate_keystrokes("tab");
+    }
+}
+
+#[gpui::test]
 fn m9_permissions_state_reads_the_open_card_and_where_tab_lands(cx: &mut TestAppContext) {
     let (handle, mut requests) = setup(cx);
     choose(cx, handle, &mut requests);

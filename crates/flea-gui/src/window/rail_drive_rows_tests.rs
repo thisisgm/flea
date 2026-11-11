@@ -1,6 +1,6 @@
 //! EY-337 and EY-338: the DEVICES rows of minipc's listing, a stick, the system disk and a locked NVMe partition.
 use super::*;
-use crate::g2::pl4::rows::LaidRow;
+use crate::g2::rail_places::rows::LaidRow;
 
 const MINIPC: &str = r#"{"blockdevices":[
 {"name":"nvme1n1","path":"/dev/nvme1n1","type":"disk","size":512110190592,"children":[{"name":"nvme1n1p1","type":"part","mountpoints":["/"],"fstype":"ext4"}]},
@@ -115,7 +115,7 @@ fn ey338_locked_drive_row_draws_its_lock_mark_in_the_icon_column(cx: &mut TestAp
         "DeviceMounts.qml: a locked container's row carries the lock glyph"
     );
     assert!(
-        crate::g2::pl4::rows::glyph::svg(locked.glyph).is_some(),
+        crate::g2::rail_places::rows::glyph::svg(locked.glyph).is_some(),
         "the rail has a mark to paint for the lock glyph, as Icons.js does"
     );
     let stick = named(&rows, STICK);

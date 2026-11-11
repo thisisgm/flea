@@ -1,7 +1,7 @@
 use super::plugins_tests::{ask, code, env, get, plugin};
 use super::testdir::TestDir;
 use flea::jsondoc::{self, Json};
-use flea::ui_logic_st2::wire;
+use flea::ui_logic_plugin_settings::wire;
 
 fn running(dir: &TestDir, name: &str) -> String {
     std::fs::read_to_string(dir.join(name))
@@ -139,7 +139,7 @@ fn plugin_runtime_backend_refuses_undeclared_kind_without_starting() {
 
 #[test]
 fn plugin_runtime_shelf_kind_switches_the_named_omarchy_plugin_and_draws_its_schema() {
-    use flea::ui_logic_st2::pages::{self, Row, Update};
+    use flea::ui_logic_plugin_settings::pages::{self, Row, Update};
     let dir = TestDir::new("plugin-runtime-shelf");
     let mut env = env(&dir);
     env.plugin_manager = dir.script(

@@ -66,7 +66,7 @@ pub(super) fn layout(
             let network = section
                 .rows
                 .first()
-                .is_some_and(|row| row.group == flea::ui_logic_pl4::rail::Group::Network);
+                .is_some_and(|row| row.group == flea::ui_logic_rail_places::rail::Group::Network);
             let add = network.then(|| {
                 Rect::new(
                     width - metrics.pad - metrics.slot,
@@ -102,20 +102,20 @@ pub(super) fn layout(
                 .as_ref()
                 .filter(|(target, _)| *target == index)
                 .map(|(_, label)| label.to_string());
-            let dropbox = row.kind == flea::ui_logic_pl4::rail::Kind::Dropbox;
-            let plugin_state =
-                row.kind == flea::ui_logic_pl4::rail::Kind::PluginRow && row.mounted.is_some();
+            let dropbox = row.kind == flea::ui_logic_rail_places::rail::Kind::Dropbox;
+            let plugin_state = row.kind == flea::ui_logic_rail_places::rail::Kind::PluginRow
+                && row.mounted.is_some();
             let dot =
                 cue.is_none() && !dropbox && (indicator_slot(row.group, row.kind) || plugin_state);
             // RailDetails: a drive size ends on one x for every device row, the slot kept after it with or without a square.
             let size = cue.is_none()
                 && model.drive_size_shown
-                && row.group == flea::ui_logic_pl4::rail::Group::Device
+                && row.group == flea::ui_logic_rail_places::rail::Group::Device
                 && !row.size.is_empty();
             let slot_width = if dot || size { metrics.slot } else { 0. };
             let detail = if let Some(cue) = cue {
                 cue
-            } else if row.kind == flea::ui_logic_pl4::rail::Kind::Trash
+            } else if row.kind == flea::ui_logic_rail_places::rail::Kind::Trash
                 && model.trash_count_shown
                 && model.trash_count > 0
             {
@@ -179,6 +179,7 @@ pub(super) fn layout(
                 detail_width,
                 font_size: f32::from(typeface.caption),
                 glyph: row.glyph,
+                owned: row.owned.clone(),
                 mark: row.mark,
                 error: row.error.is_some(),
                 mounted: row.mounted,

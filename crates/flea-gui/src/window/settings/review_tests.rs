@@ -1,6 +1,6 @@
 use crate::{
     backend::{Backend, Event},
-    g2::{st1::Side, st2::page::Card},
+    g2::{plugin_settings::page::Card, settings_pages::Side},
     state::Shell,
 };
 use gpui::{AppContext, TestAppContext};
@@ -20,7 +20,7 @@ fn s6_unreadable_settings_names_favourites_and_escape_clears_it(cx: &mut TestApp
         shell
     });
     entity.update_in(cx, |shell, window, cx| {
-        shell.receive_settings(super::store::Update::Unreadable, window, cx);
+        shell.receive_settings(super::store::Update::Notice("settings.error.favourites_unread"), window, cx);
         assert_eq!(
             shell.settings_message(cx).as_deref(),
             Some("Favorites could not be refreshed because ui.json could not be read. The old list stays.")
@@ -162,11 +162,13 @@ fn u11_moving_a_favourite_keeps_the_keyboard_on_that_place(cx: &mut TestAppConte
     });
     cx.simulate_keystrokes("x");
     entity.read_with(cx, |shell, _| {
-        let paths =
-            flea::ui_logic_st1::pages::at(&shell.launch.settings.data, &["places", "favourites"])
-                .unwrap()
-                .as_array()
-                .unwrap();
+        let paths = flea::ui_logic_settings_pages::pages::at(
+            &shell.launch.settings.data,
+            &["places", "favourites"],
+        )
+        .unwrap()
+        .as_array()
+        .unwrap();
         assert_eq!(paths.len(), 1);
         assert_eq!(
             paths[0].get("path").and_then(flea::jsondoc::Json::as_str),
@@ -258,8 +260,8 @@ fn u11_advreview_make_default_preserves_the_reader_contract(cx: &mut TestAppCont
         entity.update(cx, |shell, cx| {
             shell.open_settings(window, cx);
             shell.settings.about_open = true;
-            shell.settings.claim = crate::g2::st1::claim::Claim {
-                handler: crate::g2::st1::claim::DESKTOP.into(),
+            shell.settings.claim = crate::g2::settings_pages::claim::Claim {
+                handler: crate::g2::settings_pages::claim::DESKTOP.into(),
                 packaged: true,
                 probed: true,
                 ..Default::default()

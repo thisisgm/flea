@@ -1,8 +1,4 @@
-use super::{
-    icons,
-    model::Row,
-    theme::{Depth, Theme},
-};
+use super::{icons, model::Row, theme::Theme};
 
 pub use crate::cellwidth::width;
 #[cfg(test)]
@@ -305,17 +301,13 @@ pub fn row(
     };
     let reset = format!(
         "\x1b[0m{fill}{ink}{}",
-        if style.cursor && theme.depth == Depth::Sixteen {
-            "\x1b[7m"
-        } else {
-            ""
-        }
+        theme.depth.row_attribute(style.cursor, style.marked)
     );
     let mut out = reset.clone();
     if columns == 0 {
         return out;
     }
-    let edge = if style.cursor && style.focused && theme.depth != Depth::Sixteen {
+    let edge = if style.cursor && style.focused && !theme.depth.reverses() {
         format!("{}{}{}", theme.accent, "▎", ink)
     } else {
         " ".into()
@@ -331,7 +323,8 @@ pub fn row(
     let size = size.filter(|s| !s.is_empty() && text_width(s) + 6 <= columns);
     let name_width = columns - 3 - size.map_or(1, |s| text_width(s) + 3);
     // A search result's name is its path under the search; it prints its name, then its folder in the metadata ink.
-    let (folder, leaf) = entry.name.rsplit_once('/').unwrap_or(("", &entry.name));
+    let shown = entry.shown();
+    let (folder, leaf) = shown.rsplit_once('/').unwrap_or(("", &shown));
     let display_name = fit(leaf, text_width(leaf));
     let name = ellipsis(&display_name, text_width(&display_name).min(name_width));
     let target_width = name_width - text_width(&name);

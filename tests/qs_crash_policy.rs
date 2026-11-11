@@ -20,7 +20,7 @@ fn executable(path: &Path, contents: &[u8]) {
         .unwrap();
     writer.stdin.take().unwrap().write_all(contents).unwrap();
     assert!(writer.wait().unwrap().success());
-    fs::set_permissions(path, fs::Permissions::from_mode(0o755)).unwrap();
+    flea::executable_file::write(path, &std::fs::read(path).unwrap(), 0o755).unwrap();
 }
 
 impl Sandbox {

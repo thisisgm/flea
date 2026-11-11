@@ -133,8 +133,10 @@ case_runscript() {
     printf 'RUNSCRIPT args=%s cwd=%s\n' "$(head -1 "$dir/ran.log")" "$(tail -1 "$dir/ran.log")"
 
     echo "-- and a non-zero exit is its own last stderr line --"
+    wait_listing 3
     click_row "$(ipc cursor)" right
     settle
+    menus_expect menuState '.opened and .snapshotReady' 'the post-script menu snapshot settles after the listing watch'
     menu_seek "Actions"
     key -k Return >/dev/null
     settle
@@ -151,6 +153,7 @@ case_runscript() {
     settle
     click_row "$(ipc cursor)" right
     settle
+    menus_expect menuState '.opened and .snapshotReady' 'the script-removal menu snapshot settles'
     [[ "$(ipc contextMenuEntries)" != *"Actions"* ]] \
         || fail "runscript: an empty directory still offers $(ipc contextMenuEntries)"
     printf 'RUNSCRIPT empty=%s\n' "$(ipc contextMenuEntries)"
@@ -366,13 +369,14 @@ case_hidden() {
     [[ "$(ipc showHidden)" == "false" ]] || fail "hidden: showHidden did not default to false"
     [[ "$(ipc rowAt 0)" == "visible.txt|"* ]] || fail "hidden: the dotfile leaked into the default listing, row 0 is $(ipc rowAt 0)"
 
-    click_row 0 right
+    # Show Hidden Files is a background menu row since 0.4.1 (HIG background-menu), so the case opens the listing's own menu.
+    click_background
     settle
     # This case cares about one row, so it looks for that row rather than matching the whole menu:
     # which other entries are present depends on the box's live tailnet and on how many of the
     # operations design's own rows have shipped, and neither is this case's concern.
     [[ "$(ipc contextMenuEntries)" == *"Show Hidden Files"* ]] \
-        || fail "hidden: the menu did not offer Show hidden files, got $(ipc contextMenuEntries)"
+        || fail "hidden: the menu did not offer Show Hidden Files, got $(ipc contextMenuEntries)"
     shot hidden-menu-off
     key -k Escape >/dev/null
     settle
@@ -383,10 +387,10 @@ case_hidden() {
     [[ "$(ipc cursor)" == "0" ]] || fail "hidden: the toggle did not reset the cursor, it is $(ipc cursor)"
     shot hidden-shown
 
-    click_row 0 right
+    click_background
     settle
     [[ "$(ipc contextMenuEntries)" == *"Hide Hidden Files"* ]] \
-        || fail "hidden: the menu label did not flip to Hide hidden files, got $(ipc contextMenuEntries)"
+        || fail "hidden: the menu label did not flip to Hide Hidden Files, got $(ipc contextMenuEntries)"
     key -k Escape >/dev/null
     settle
 
@@ -513,15 +517,15 @@ case_columnsbackground() {
     columnsbg_fixture "$root"
     seed_ui_state "$state" "{\"menu\":{\"hidden\":$menu_shipped}}"
 
-    # Parent: empty space in P's column navigates to P, then New Folder lands in P alone.
+    # Parent: empty space in P's column opens P's menu while the window stays on A (Finder rule 5, EY-379), and New Folder lands in P alone.
     launch "$root/P/A"
     wait_listing 3
     columnsbg_to_columns
     seek_row_named "B"
     settle
     columnsbg_click_column "$(ipc columnParentRowCentre 0)"
-    columnsbg_wait_menu_on "$root/P"
-    [[ "$(ipc contextMenuEntries)" == *"New Folder"* ]] || fail "columnsbackground: parent menu lacks New folder in $(ipc contextMenuEntries)"
+    columnsbg_wait_menu_on "$root/P/A"
+    [[ "$(ipc contextMenuEntries)" == *"New Folder"* ]] || fail "columnsbackground: parent menu lacks New Folder in $(ipc contextMenuEntries)"
     columnsbg_choose_new_folder
     settle
     [[ -d "$root/P/New Folder" ]] || fail "columnsbackground: parent New Folder created nothing in $root/P"
@@ -550,7 +554,7 @@ case_columnsbackground() {
     settle
     kill_flea
 
-    # Child: empty space in B's column navigates to B, then New Folder lands in B alone.
+    # Child: empty space in B's column opens B's menu while the window stays on A (Finder rule 5, EY-379), and New Folder lands in B alone.
     columnsbg_fixture "$root"
     launch "$root/P/A"
     wait_listing 3
@@ -558,8 +562,8 @@ case_columnsbackground() {
     seek_row_named "B"
     settle
     columnsbg_click_column "$(ipc columnChildRowCentre 0)"
-    columnsbg_wait_menu_on "$root/P/A/B"
-    [[ "$(ipc contextMenuEntries)" == *"New Folder"* ]] || fail "columnsbackground: child menu lacks New folder in $(ipc contextMenuEntries)"
+    columnsbg_wait_menu_on "$root/P/A"
+    [[ "$(ipc contextMenuEntries)" == *"New Folder"* ]] || fail "columnsbackground: child menu lacks New Folder in $(ipc contextMenuEntries)"
     columnsbg_choose_new_folder
     settle
     [[ -d "$root/P/A/B/New Folder" ]] || fail "columnsbackground: child New Folder created nothing in $root/P/A/B"
@@ -600,8 +604,8 @@ case_columnsbackground() {
     active_cx=$(ipc rowCentre "$(ipc cursor)" | cut -d' ' -f1)
     [[ -n "$parent_cx" && -n "$active_cx" ]] || fail "columnsbackground: no column pitch to aim the empty child with"
     columnsbg_click_x "$((active_cx + active_cx - parent_cx))"
-    columnsbg_wait_menu_on "$root/P/A/E"
-    [[ "$(ipc contextMenuEntries)" == *"New Folder"* ]] || fail "columnsbackground: empty child menu lacks New folder in $(ipc contextMenuEntries)"
+    columnsbg_wait_menu_on "$root/P/A"
+    [[ "$(ipc contextMenuEntries)" == *"New Folder"* ]] || fail "columnsbackground: empty child menu lacks New Folder in $(ipc contextMenuEntries)"
     columnsbg_choose_new_folder
     settle
     [[ -d "$root/P/A/E/New Folder" ]] || fail "columnsbackground: empty child New Folder created nothing in $root/P/A/E"
@@ -626,4 +630,136 @@ menus_acknowledge() {
         key -k Escape >/dev/null
         menus_expect statusActivityState ".errors == $((before - 1))" "Escape acknowledges the current queued error"
     fi
+}
+
+# GPUI override for rows: the oracle body with the hint slot the HIG menu-past-fold board draws.
+case_rows() {
+    local dir="$fixture_root/rows"
+    sandbox_scratch "$dir"
+    mkdir -p "$dir/subdir"
+    printf 'abc' > "$dir/target.txt"
+    ln -s "$dir/subdir" "$dir/linkdir"
+    ln -s ../elsewhere "$dir/relative"
+    # The hint slot ships off and Open in Terminal ships hidden, so the case seeds both rather than read the operator's.
+    local real_state="${XDG_STATE_HOME-}"
+    seed_ui_state "$fixture_root/rows-state" \
+        "{\"keyHints\":true,\"menu\":{\"hidden\":$terminal_shown}}"
+    launch "$dir"
+    # subdir, linkdir, relative, target.txt.
+    wait_listing 4
+    settle
+    shot rows-presentation
+
+    # Found by name, never by a predicted sort position, the same rule seek_row_named carries.
+    local i dir_row=-1 link_row=-1 rel_row=-1 file_row=-1
+    for ((i = 0; i < 4; i++)); do
+        case "$(ipc rowAt "$i")" in
+            subdir\|*) dir_row=$i ;;
+            linkdir\|*) link_row=$i ;;
+            relative\|*) rel_row=$i ;;
+            target.txt\|*) file_row=$i ;;
+        esac
+    done
+    [[ "$dir_row" -ge 0 && "$link_row" -ge 0 && "$rel_row" -ge 0 && "$file_row" -ge 0 ]] \
+        || fail "rows: the fixture did not list all four rows"
+
+    printf 'ROWS dir=%q link=%q relative=%q file=%q\n' \
+        "$(ipc rowNameText "$dir_row")" "$(ipc rowNameText "$link_row")" \
+        "$(ipc rowNameText "$rel_row")" "$(ipc rowNameText "$file_row")"
+    printf 'ROWS sizes dir=%q link=%q file=%q glyphs dir=%q link=%q\n' \
+        "$(ipc rowSizeText "$dir_row")" "$(ipc rowSizeText "$link_row")" \
+        "$(ipc rowSizeText "$file_row")" \
+        "$(ipc rowGlyph "$dir_row")" "$(ipc rowGlyph "$link_row")"
+
+    [[ "$(ipc rowNameText "$dir_row")" == "subdir" ]] \
+        || fail "rows: the directory reads $(ipc rowNameText "$dir_row"), not subdir"
+    [[ "$(ipc rowNameText "$file_row")" == "target.txt" ]] \
+        || fail "rows: a plain file grew a suffix, it reads $(ipc rowNameText "$file_row")"
+    [[ "$(ipc rowNameText "$link_row")" == "linkdir -> $dir/subdir" ]] \
+        || fail "rows: the symlink reads $(ipc rowNameText "$link_row")"
+    [[ "$(ipc rowNameText "$rel_row")" == "relative -> ../elsewhere" ]] \
+        || fail "rows: a relative target was resolved, it reads $(ipc rowNameText "$rel_row")"
+    # A link's own st_size is the length of its target path, so the column says what the row is.
+    [[ "$(ipc rowSizeText "$link_row")" == "link" ]] \
+        || fail "rows: the symlink's size reads $(ipc rowSizeText "$link_row"), not link"
+    [[ "$(ipc rowSizeText "$file_row")" == "3 B" ]] \
+        || fail "rows: a plain file's size reads $(ipc rowSizeText "$file_row")"
+    # The backend resolves a link-to-directory's icon to folder, so only the mode can tell them apart.
+    [[ "$(ipc rowGlyph "$link_row")" == "symlink" ]] \
+        || fail "rows: the symlink draws $(ipc rowGlyph "$link_row"), not the link mark"
+    [[ "$(ipc rowGlyph "$dir_row")" == "folder" ]] \
+        || fail "rows: the real directory draws $(ipc rowGlyph "$dir_row"), not a folder"
+
+    # The HIG menu-past-fold board's hint slot: a key on every bound row, none on Open, Duplicate or Open in Terminal.
+    key -k y >/dev/null
+    settle
+    seek_row_named target.txt
+    key m >/dev/null
+    settle
+    [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "rows: m opened no menu"
+    shot rows-menu-hints
+    local labels hints
+    labels=$(ipc contextMenuEntries)
+    hints=$(ipc contextMenuHints)
+    printf 'ROWS menu labels=%q\n hints=%q\n' "$labels" "$hints"
+    hint_of() {
+        local want="$1" i=0 label
+        local IFS='|'
+        for label in $labels; do
+            if [[ "$label" == "$want" ]]; then
+                unset IFS
+                printf '%s' "$(printf '%s' "$hints" | cut -d'|' -f$((i + 1)))"
+                return 0
+            fi
+            i=$((i + 1))
+        done
+        unset IFS
+        fail "rows: no menu row labelled $want in $labels"
+    }
+    # hint_of fails only inside its own subshell, so every row an empty-hint check reads must be present first.
+    local present
+    for present in Open Duplicate 'Open in Terminal'; do
+        [[ "|$labels|" == *"|$present|"* ]] || fail "rows: no menu row labelled $present in $labels"
+    done
+    # The board draws Open with no hint, and Print… with ctrl-p where the box offers printing.
+    [[ -z "$(hint_of Open)" ]] || fail "rows: Open prints $(hint_of Open), and the menu-past-fold board draws none"
+    if [[ "|$labels|" == *"|Print…|"* ]]; then
+        [[ "$(hint_of 'Print…')" == "ctrl-p" ]] || fail "rows: Print… prints '$(hint_of 'Print…')', and the menu-past-fold board draws ctrl-p"
+    fi
+    [[ "$(hint_of Cut)" == "x" ]] || fail "rows: Cut prints $(hint_of Cut), not x"
+    [[ "$(hint_of Copy)" == "y" ]] || fail "rows: Copy prints $(hint_of Copy), not y"
+    [[ "$(hint_of Paste)" == "p" ]] || fail "rows: Paste prints $(hint_of Paste), not p"
+    [[ "$(hint_of Rename)" == "r" ]] || fail "rows: Rename prints $(hint_of Rename), not r"
+    # d, the key the operator presses: Menus.html and the OpenWith overseer board both draw it.
+    [[ "$(hint_of 'Move to Trash')" == "d" ]] \
+        || fail "rows: Move to Trash prints $(hint_of 'Move to Trash'), not d"
+    # Show Hidden Files left the file menu for the background menu in 0.4.1.
+    [[ "|$labels|" != *"|Show Hidden Files|"* ]] || fail "rows: the file menu still offers Show Hidden Files"
+    # The unbound row, and the whole point of the slot being derived rather than written by hand.
+    [[ -z "$(hint_of Duplicate)" ]] || fail "rows: Duplicate printed $(hint_of Duplicate), and nothing binds it"
+    [[ -z "$(hint_of 'Open in Terminal')" ]] \
+        || fail "rows: Open in Terminal printed a bare key, and only a chord reaches it"
+    key -k Escape >/dev/null
+    settle
+
+    # With hints off, as shipped, the slot draws nothing and the labels stay the same.
+    seed_ui_state "$fixture_root/rows-state" \
+        "{\"keyHints\":false,\"menu\":{\"hidden\":$terminal_shown}}"
+    launch "$dir"
+    wait_listing 4
+    seek_row_named target.txt
+    key m >/dev/null
+    settle
+    [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "rows: m opened no menu with hints off"
+    shot rows-menu-nohints
+    local off_labels off_hints
+    off_labels=$(ipc contextMenuEntries)
+    off_hints=$(ipc contextMenuHints)
+    printf 'ROWS hints-off labels=%q\n hints=%q\n' "$off_labels" "$off_hints"
+    [[ "$off_labels" == "$labels" ]] \
+        || fail "rows: switching the hints off changed the menu to $off_labels"
+    [[ -z "${off_hints//|/}" ]] || fail "rows: the hints row is off and the slot still prints $off_hints"
+    key -k Escape >/dev/null
+    settle
+    if [[ -n "$real_state" ]]; then export XDG_STATE_HOME="$real_state"; else unset XDG_STATE_HOME; fi
 }

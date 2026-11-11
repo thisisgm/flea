@@ -1,10 +1,10 @@
 //! Device service replies through the mounted rail, its readiness gate and its actual painted rows.
 use super::*;
-use crate::g2::pl1::{
+use crate::g2::device_rail::{
     process::{Event as ChildEvent, Handle, Job, KillProbe, Outcome},
     source::NetworkSnapshot,
 };
-use flea::ui_logic_pl4::{
+use flea::ui_logic_rail_places::{
     order::Heading,
     rail::{Group, Kind, RailEntry},
 };
@@ -63,7 +63,7 @@ fn open<'a>(
 // The same window over a launch lsblk answer, as main's startup worker hands it over.
 fn open_seeded<'a>(
     state: &str,
-    seed: Option<crate::g2::pl1::source::seed::Seed>,
+    seed: Option<crate::g2::device_rail::source::seed::Seed>,
     cx: &'a mut TestAppContext,
 ) -> (Entity<Shell>, Rc<FakeDevices>, &'a mut VisualTestContext) {
     let service = Rc::new(FakeDevices::default());

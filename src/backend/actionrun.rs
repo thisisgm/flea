@@ -1,4 +1,5 @@
 // An action has one process group per invocation and a bounded merged stdout and stderr tail.
+use flea::bytename::ExactText as _;
 use super::actions::Action;
 use super::opsreq::{OpMsg, PROGRESS_EVERY};
 use std::io::Read;
@@ -84,10 +85,10 @@ pub(crate) fn background(
         if cancel.load(Ordering::Relaxed) {
             break;
         }
-        let file = Path::new(path)
+        let file = flea::bytename::view(path)
             .file_name()
             .unwrap_or_default()
-            .to_string_lossy()
+            .exact_text()
             .to_string();
         let _ = tx.send(OpMsg::JobSample {
             id,
@@ -101,23 +102,25 @@ pub(crate) fn background(
                 .chain(paths.clone())
                 .collect()
         } else {
-            action.argv(Path::new(path))
+            action.argv(&flea::bytename::view(path))
         };
         let selected: Vec<_> = items
             .iter()
-            .filter(|item| action.script || item.path == Path::new(path))
+            .filter(|item| action.script || item.path == *flea::bytename::view(path))
             .cloned()
             .collect();
         let checked_paths = if action.script {
-            paths.iter().map(std::path::PathBuf::from).collect()
+            paths.iter().map(flea::bytename::exact).collect()
         } else {
-            vec![std::path::PathBuf::from(path)]
+            vec![flea::bytename::exact(path)]
         };
         let result = super::menu_actions::validate_sources(Some(&selected), &checked_paths)
             .and_then(|()| {
                 invoke(
                     &argv,
-                    Path::new(path).parent().unwrap_or(Path::new("/")),
+                    flea::bytename::view(path)
+                        .parent()
+                        .unwrap_or(Path::new("/")),
                     &cancel,
                     &mut tail,
                     |tail| {
@@ -170,9 +173,9 @@ fn invoke(
     let stdout: OwnedFd = writer.try_clone().map_err(|e| e.to_string())?.into();
     let stderr: OwnedFd = writer.into();
     reader.set_nonblocking(true).map_err(|e| e.to_string())?;
-    let mut command = Command::new(&argv[0]);
+    let mut command = Command::new(&*flea::bytename::text_name(&argv[0]));
     command
-        .args(&argv[1..])
+        .args(flea::bytename::args(&argv[1..]))
         .current_dir(directory)
         .stdin(Stdio::null())
         .stdout(Stdio::from(stdout))

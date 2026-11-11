@@ -265,6 +265,7 @@ function runInstalled(check) {
     // Sample input: const OPR_PACKAGE: &str = "flea";
     function named(constant) { return (update.match(new RegExp("const " + constant + ": &str = \"([^\"]*)\";")) || [])[1] }
     check("the OPR package name is src/update.rs's own", SettingsAbout.PACKAGES.opr, named("OPR_PACKAGE"))
+    check("the release package name is src/update.rs's own", SettingsAbout.PACKAGES.release, named("RELEASE_PACKAGE"))
     // Sample input: Kind::Opr => "opr",
     var words = (update.match(/Kind::[A-Za-z]+ => "[a-z]+"/g) || []).map(function (arm) { return arm.split("\"")[1] })
     check("one sentence for each kind word flea --update check prints, and no other",
@@ -273,13 +274,17 @@ function runInstalled(check) {
     var bin = SettingsAbout.packageFacts(LOCAL_QI)
     check("a local package -Qi reads as its package, its build date and no signature",
           [bin.package, bin.built, bin.signed].join("|"), "flea 0.3.4-1|Wed Sep 23 12:40:50 2026|false")
-    check("a former binary package reads as local", SettingsAbout.installedFrom("flea-bin", bin.signed), "Local package")
-    check("the kind the Update Flea row reads from the check line is the same one",
-          answered("unchecked local 0.3.4-1 -").kind + "|" + SettingsAbout.installKind("flea-bin", bin.signed), "local|local")
+    check("the release binary package reads as a local package", SettingsAbout.installedFrom("flea-bin", bin.signed), "Local package")
+    check("the kind the Update Flea row reads from the release check line is the same one",
+          answered("unchecked release 0.3.4-1 -").kind + "|" + SettingsAbout.installKind("flea-bin", bin.signed), "release|release")
+    check("a release owner stays release whether signed or unsigned",
+          SettingsAbout.installKind("flea-bin", true) + "|" + SettingsAbout.installKind("flea-bin", false), "release|release")
+    check("every other owner is the local kind, never release",
+          [SettingsAbout.installKind("flea-git", false), SettingsAbout.installKind("flea", false), SettingsAbout.installKind("flea-custom", true)].join("|"), "local|local|local")
     check("OPR's signed flea keeps the board's words", SettingsAbout.installedFrom("flea", true), "Omarchy Package Repository")
     check("the same name unsigned is a local makepkg build", SettingsAbout.installedFrom("flea", false), "Local package")
     check("a former git package reads as local", SettingsAbout.installedFrom("flea-git", false), "Local package")
-    check("a signed former binary package is local too", SettingsAbout.installedFrom("flea-bin", true), "Local package")
+    check("a signed release binary package reads as a local package too", SettingsAbout.installedFrom("flea-bin", true), "Local package")
     check("a signed former git package is local too", SettingsAbout.installedFrom("flea-git", true), "Local package")
     check("any other owner is somebody's own package, signed or not", SettingsAbout.installedFrom("flea-custom", true), "Local package")
     check("no owner is a cargo build", SettingsAbout.installedFrom("", false), "Not from a package")

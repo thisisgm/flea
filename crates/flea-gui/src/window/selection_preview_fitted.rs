@@ -1,9 +1,9 @@
 //! The column preview's poster or still, fitted inside the frame's border.
 use super::{render::FRAME_BORDER, Frame, Kind};
-use crate::g2::pv3::{player::MediaPlayer, surface, view::Picture};
+use crate::g2::media_preview::{player::MediaPlayer, surface, view::Picture};
 use flea::i18n::I18n;
-use flea::ui_logic_pv1::{pixels::is_vector_name, thumbs};
-use flea::ui_logic_pv3::player::{Media, Status};
+use flea::ui_logic_media_preview::player::{Media, Status};
+use flea::ui_logic_preview_core::{pixels::is_vector_name, thumbs};
 use gpui::{div, img, prelude::*, px, RenderImage};
 use std::sync::Arc;
 

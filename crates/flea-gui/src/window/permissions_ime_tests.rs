@@ -1,7 +1,7 @@
-//! The octal field keeps the input method off and takes digits only, and late callbacks miss.
+//! The octal field keeps invalid input visible for validation, and late callbacks miss.
 use super::fixture::{choose, click, edit, inspect, model, next, setup};
 use crate::{
-    g2::op3::permissions::{host::View, Stop},
+    g2::open_with_properties::permissions::{host::View, Stop},
     window::root::Root,
 };
 use gpui::{Context, EntityInputHandler, TestAppContext, VisualTestContext, Window, WindowHandle};
@@ -50,7 +50,9 @@ fn octal(cx: &mut TestAppContext) -> (WindowHandle<Root>, impl FnMut() -> Option
 }
 
 #[gpui::test]
-fn i50_permissions_octal_keeps_the_input_method_off_and_takes_digits_only(cx: &mut TestAppContext) {
+fn i50_permissions_octal_uses_text_input_and_keeps_validation_in_the_model(
+    cx: &mut TestAppContext,
+) {
     let (handle, mut requests) = octal(cx);
     keys(cx, handle, "ctrl-a");
     typed(cx, handle, "07");
@@ -61,20 +63,22 @@ fn i50_permissions_octal_keeps_the_input_method_off_and_takes_digits_only(cx: &m
     );
     ime(cx, handle, |view, window, cx| {
         assert!(
-            !view.accepts_text_input(window, cx),
-            "a number keeps the input method off"
+            view.accepts_text_input(window, cx),
+            "v0.3.12's Octal field uses normal text input"
         );
         view.replace_and_mark_text_in_range(None, "5", Some(1..1), window, cx);
-        assert_eq!(view.marked_text_range(window, cx), None);
+        assert!(view.marked_text_range(window, cx).is_some());
         view.replace_text_in_range(None, "日本語", window, cx);
         view.replace_text_in_range(None, "\u{7}", window, cx);
         assert_eq!(view.marked_text_range(window, cx), None);
     });
     assert_eq!(
         model(cx, handle).text,
-        "07",
-        "no composition and no CJK text"
+        "07日本語",
+        "non-octal text stays visible for validation"
     );
+    keys(cx, handle, "ctrl-a");
+    typed(cx, handle, "07");
     typed(cx, handle, "55");
     assert_eq!(model(cx, handle).text, "0755");
     assert!(!std::iter::from_fn(&mut requests).any(|line| line.contains(r#""op":"apply""#)));
@@ -143,4 +147,21 @@ fn i50_permissions_octal_late_callbacks_miss_once_the_field_or_card_goes(cx: &mu
         assert!(view.marked_text_range(window, cx).is_none());
     });
     assert_eq!(model(cx, handle).text, "0755");
+}
+
+#[gpui::test]
+fn fxuish_def2_octal_retains_invalid_whitespace_signs_and_text(cx: &mut TestAppContext) {
+    let (handle, mut requests) = octal(cx);
+    for invalid in [" 644", "0644 ", "-1", "+644", "日本語"] {
+        keys(cx, handle, "ctrl-a");
+        typed(cx, handle, invalid);
+        assert_eq!(model(cx, handle).text, invalid);
+        assert!(
+            !model(cx, handle)
+                .card(&crate::g2::open_with_properties::tests::english())
+                .buttons[1]
+                .enabled
+        );
+    }
+    assert!(!std::iter::from_fn(&mut requests).any(|line| line.contains(r#""op":"apply""#)));
 }

@@ -113,6 +113,8 @@ os.environ.update({k: args[args.index(f) + 1] for k, f in (("FLEA_PATH", "--"), 
     expected = {} if CAPTURE else json.loads(GOLDEN.read_text())
     for name, changes in ({} if CAPTURE else deltas.load("cli")).items():
         expected[name] = dict(expected[name], stdout=deltas.apply(name, expected[name]["stdout"], changes))
+    for name, changes in ({} if CAPTURE else deltas.load("cli-stderr")).items():
+        expected[name] = dict(expected[name], stderr=deltas.apply(name, expected[name]["stderr"], changes))
     usage_changes = [] if CAPTURE else deltas.load("cli-usage").get("actions", [])
     for name, record in expected.items():
         if b"usage: flea " in base64.b64decode(record["stderr"]):
@@ -131,6 +133,18 @@ os.environ.update({k: args[args.index(f) + 1] for k, f in (("FLEA_PATH", "--"), 
         result[name] = record
         if not CAPTURE and record != expected.get(name):
             mismatched.append(f"{name}: expected {expected.get(name)}, got {record}")
+    # --help and -h postdate the 0.3.12 golden, so the built binary is checked against its own usage error: the same lines, on stdout, exit 0.
+    if not CAPTURE and chosen is None:
+        # Sample stderr: b"flea: unknown flag --not-a-mode\nusage: flea [--tui|--gui] ...\n", exit 2.
+        unknown = subprocess.run([str(BINARY), "--not-a-mode"], cwd=root, env=env, capture_output=True, timeout=8)
+        lines = unknown.stderr.partition(b"\n")[2]
+        if unknown.returncode != 2 or not lines.startswith(b"usage: flea "):
+            mismatched.append(f"help: --not-a-mode gave code {unknown.returncode} and stderr {unknown.stderr!r}, no usage to compare")
+        for flag in (["--help"], ["-h"], ["--tui", "--help"]):
+            run = subprocess.run([str(BINARY), *flag], cwd=root, env=env, capture_output=True, timeout=8)
+            if (run.returncode, run.stdout, run.stderr) != (0, lines, b""):
+                mismatched.append(f"help {' '.join(flag)}: code {run.returncode}, stdout {run.stdout!r}, stderr {run.stderr!r}")
+        print("cli-contract: help rows checked")
     # Every differing row is named, so one run lists the whole break.
     assert not mismatched, "\n".join(mismatched)
     # A run that checked no row must fail, never print a vacuous pass.

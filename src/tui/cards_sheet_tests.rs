@@ -54,7 +54,9 @@ fn sheets_close_on_escape_enter_question_mark_close_and_outside_and_scroll_withi
     let mut m = model();
     m.sheet = true;
     m.height = 8;
-    for _ in 0..80 { sheet_key(&mut m, &Key::named("Down", ""), &map).unwrap(); }
+    for _ in 0..80 {
+        sheet_key(&mut m, &Key::named("Down", ""), &map, "").unwrap();
+    }
     assert_eq!(m.sheet_top, super::super::key_sheet::limit(&m, &map), "the keys sheet scrolls to its last row and stops");
     assert!(m.sheet_top > 0);
     wire::finish(w, reader);
@@ -113,5 +115,112 @@ fn corners_round_only_while_hyprland_rounds() {
     assert_eq!([at(&rows, 12, 35, 1), at(&rows, 12, 94, 1), at(&rows, 18, 35, 1), at(&rows, 18, 94, 1)], ["╭", "╮", "╰", "╯"]);
     for (answer, rounds) in [(r#"{"option":"decoration:rounding","int":8,"set":true}"#, true), (r#"{"int":0}"#, false), ("", false), (r#"{"int":"8"}"#, false)] {
         assert_eq!(rounding(answer), rounds, "{answer}");
+    }
+}
+
+// The sheet and the card page, jump and close with the listing's own keys in every preset, as the listing does.
+#[test]
+fn sheets_take_the_listing_page_jump_and_q_keys_in_every_preset() {
+    let map = Map::load();
+    let (mut w, reader) = wire::echo_wire();
+    for preset in ["default", "windows", "mac", "vim", "yazi"] {
+        for properties in [false, true] {
+            let fresh = || {
+                let mut m = model();
+                m.preset = preset.into();
+                m.sheet = true;
+                m.height = 8;
+                if properties {
+                    m.properties = Some(
+                        (0..40)
+                            .map(|i| (format!("Row {i}"), "value".into()))
+                            .collect(),
+                    );
+                }
+                m
+            };
+            let mut m = fresh();
+            let limit = if properties {
+                40 - properties_card(&m).shown
+            } else {
+                super::super::key_sheet::limit(&m, &map)
+            };
+            let page = if properties {
+                properties_card(&m).shown
+            } else {
+                super::super::key_sheet::card(&m, &map).shown
+            };
+            assert!(limit > page, "{preset}: the sheet is taller than the card");
+            press(&mut m, Key::named("PageDown", ""), &mut w);
+            assert_eq!(
+                m.sheet_top, page,
+                "{preset} {properties}: PageDown turns one card of rows"
+            );
+            press(&mut m, Key::named("PageUp", ""), &mut w);
+            assert_eq!(m.sheet_top, 0, "{preset} {properties}: PageUp turns back");
+            press(&mut m, Key::named("End", ""), &mut w);
+            assert_eq!(
+                m.sheet_top, limit,
+                "{preset} {properties}: End reaches the last row"
+            );
+            press(&mut m, Key::named("Home", ""), &mut w);
+            assert_eq!(
+                m.sheet_top, 0,
+                "{preset} {properties}: Home returns to the first row"
+            );
+            press(&mut m, Key::character('G', "shift"), &mut w);
+            assert_eq!(
+                m.sheet_top, limit,
+                "{preset} {properties}: G reaches the last row"
+            );
+            if preset != "default" && preset != "windows" && preset != "mac" {
+                press(&mut m, Key::character('g', ""), &mut w);
+                press(&mut m, Key::character('g', ""), &mut w);
+                assert_eq!(
+                    m.sheet_top, 0,
+                    "{preset} {properties}: g g returns to the first row"
+                );
+            }
+            assert!(
+                m.sheet,
+                "{preset} {properties}: motion keeps the sheet open"
+            );
+            press(&mut m, Key::character('q', ""), &mut w);
+            assert!(
+                !m.sheet && m.properties.is_none() && !m.quit,
+                "{preset} {properties}: q closes the sheet and keeps Flea running"
+            );
+        }
+    }
+    wire::finish(w, reader);
+}
+
+// An 8-row terminal leaves the keys sheet room for its title and rule only, so no row is drawn over the bottom border.
+#[test]
+fn a_keys_sheet_too_short_for_rows_keeps_its_bottom_border_whole() {
+    let theme = Theme::from_text(PALETTE);
+    let map = Map::load();
+    let mut m = model();
+    m.columns = 30;
+    m.height = crate::tui::layout::body_height(8);
+    m.sheet = true;
+    let card = super::super::key_sheet::card(&m, &map);
+    let (rows, _, _) = screen(&m, &theme);
+    let bottom = at(&rows, card.y + card.height + 1, card.x, card.width + 2);
+    assert!(
+        bottom.chars().all(|c| "└─┘╰╯".contains(c)),
+        "{bottom} {rows:#?}"
+    );
+    assert_eq!(card.shown, 0);
+    for height in 5..12 {
+        m.height = crate::tui::layout::body_height(height);
+        let card = super::super::key_sheet::card(&m, &map);
+        let (rows, _, _) = screen(&m, &theme);
+        assert!(
+            at(&rows, card.y + card.height + 1, card.x, card.width + 2)
+                .chars()
+                .all(|c| "└─┘╰╯".contains(c)),
+            "{height} rows: {rows:#?}"
+        );
     }
 }

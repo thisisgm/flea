@@ -25,6 +25,23 @@ pub(super) fn run(
             return true;
         }
         shell.adopt_menu_target(&chosen.captured);
+        if chosen.captured.rows.len() == 1 {
+            shell.keyboard.context = flea::keys::Context::Listing;
+            shell.rename_open(side, chosen.captured.id, window, cx);
+            shell.rename_sync_gate(window, cx);
+            let id = chosen.captured.id;
+            // An editor that did not open on this snapshot cannot close it later.
+            if !shell
+                .rename
+                .edit
+                .as_ref()
+                .is_some_and(|edit| edit.menu == id)
+            {
+                let close = format!("{{\"c\":\"menuaction\",\"op\":\"close\",\"id\":{id}}}");
+                shell.menu_send(side, close, cx);
+            }
+            return true;
+        }
         let close = format!(
             "{{\"c\":\"menuaction\",\"op\":\"close\",\"id\":{}}}",
             chosen.captured.id

@@ -1,14 +1,14 @@
-//! The rail's Trash row opens the shared menu without taking a listing selection; Places rows open theirs in g2/mn1/place_host.rs.
+//! The rail's Trash row opens the shared menu without taking a listing selection; Places rows open theirs in g2/context_menus/place_host.rs.
 use super::Order;
 use crate::{
-    g2::mn1::{
+    g2::context_menus::{
         join::Captured,
         menu::{Face, Outcome},
     },
     state::Shell,
 };
-use flea::ui_logic_mn1::{build, Entry};
-use flea::ui_logic_pl4::rail::Kind;
+use flea::ui_logic_context_menus::{build, Entry};
+use flea::ui_logic_rail_places::rail::Kind;
 use gpui::{Context, Window};
 
 pub(crate) struct Target {
@@ -31,7 +31,7 @@ pub(super) fn run(
     let Order::Place(request) = order else {
         return false;
     };
-    let crate::g2::pl4::producer::Event::Menu(entry) = &request.event else {
+    let crate::g2::rail_places::producer::Event::Menu(entry) = &request.event else {
         return false;
     };
     if entry.kind != Kind::Trash {
@@ -86,7 +86,7 @@ impl Shell {
             Face::Rail,
             rows,
             at,
-            flea::ui_logic_mn1::fit::Rect {
+            flea::ui_logic_context_menus::fit::Rect {
                 x: 0.,
                 y: 0.,
                 w: size.width.into(),
@@ -114,6 +114,7 @@ impl Shell {
         }
     }
 
+    /// Dispatch a Trash sidebar choice while keeping Empty Trash in the current folder.
     pub(crate) fn rail_menu_outcome(
         &mut self,
         outcome: &Outcome,
@@ -129,6 +130,10 @@ impl Shell {
         let target = self.menu.rail.take().expect("rail menu target");
         self.rail_menu_hold(false, cx);
         self.retire_menu(window, cx);
+        if action == "emptyTrash" {
+            self.empty_trash_from_rail(target.side, window, cx);
+            return true;
+        }
         self.focus_pane(target.side, cx);
         self.trash_action(
             if action == "open" {

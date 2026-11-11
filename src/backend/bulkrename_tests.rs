@@ -211,3 +211,28 @@ fn an_in_time_bulk_rename_answers_the_paths_it_landed_for_the_session_patch() {
         assert!(touched.contains(path), "{} is a landed path: {:?}", path.display(), touched);
     }
 }
+
+// A raw-named item renames by its own bytes and never touches its lossy twin.
+#[test]
+fn a_raw_named_item_renames_and_its_twin_stays() {
+    use std::os::unix::ffi::OsStrExt;
+    let directory = TestDir::new("bulk-raw");
+    let raw = directory
+        .path()
+        .join(std::ffi::OsStr::from_bytes(b"r\xff.txt"));
+    std::fs::write(&raw, "raw").unwrap();
+    let twin = directory.file("r\u{fffd}.txt", "twin");
+    let (items, _) = plan(
+        &[flea::bytename::path_text(&raw).into_owned()],
+        &names(&["kept.txt"]),
+    )
+    .unwrap();
+    let (_, result) = execute(items);
+    result.unwrap();
+    assert_eq!(
+        std::fs::read_to_string(directory.join("kept.txt")).unwrap(),
+        "raw"
+    );
+    assert_eq!(std::fs::read_to_string(&twin).unwrap(), "twin");
+    assert!(raw.symlink_metadata().is_err(), "the raw name moved");
+}

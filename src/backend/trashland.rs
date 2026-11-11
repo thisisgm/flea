@@ -3,33 +3,81 @@ use crate::backend::opsdispatch::Ops;
 use crate::backend::opsreq::{op_err, trashed_line, OpMsg};
 use crate::backend::trash;
 use crate::backend::undo::{Entry, Step};
+use flea::bytename::ExactText as _;
 use std::io::Write;
 use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 
 pub(crate) fn run_trash(id: usize, request: usize, paths: Vec<String>, tx: Sender<OpMsg>, selection: Option<Vec<super::menu_actions::Selected>>) {
-    let owned: Vec<PathBuf> = paths.iter().map(PathBuf::from).collect();
+    let owned: Vec<PathBuf> = paths.iter().map(flea::bytename::exact).collect();
     // Undo and redo name this path while the batch's entry is pending; a leading empty path is a drag marker, not an item.
     let first = paths.iter().find(|p| !p.is_empty()).cloned().unwrap_or_default();
     let mut announced = false;
     let early = tx.clone();
     let mut announce = |moved: &[PathBuf], failed: usize, reason: &str| {
-        let moved: Vec<String> = moved.iter().map(|path| path.to_string_lossy().into_owned()).collect();
+        let reason = read_only_reason(&owned, moved, failed, reason);
+        let moved: Vec<String> = moved
+            .iter()
+            .map(|path| path.exact_text().into_owned())
+            .collect();
         let ok = moved.len();
-        announced = early.send(OpMsg::TrashAnnounced { id, request, path: first.clone(), ok, failed, reason: reason.to_string(), moved }).is_ok();
+        announced = early
+            .send(OpMsg::TrashAnnounced {
+                id,
+                request,
+                path: first.clone(),
+                ok,
+                failed,
+                reason,
+                moved,
+            })
+            .is_ok();
     };
-    let (entries, failed, reason) = match trash::trash_announcing(&owned, selection.as_deref(), &mut announce) {
-        Ok(result) => result,
-        Err(error) => {
-            let line = super::proto::error_line(&op_err("trash", "", &error));
-            let _ = tx.send(OpMsg::Meta { line });
-            (Vec::new(), owned.len(), error)
-        }
-    };
+    let (entries, failed, reason) =
+        match trash::trash_announcing(&owned, selection.as_deref(), &mut announce) {
+            Ok(result) => result,
+            Err(error) => {
+                let line = super::proto::error_line(&op_err("trash", "", &error));
+                let _ = tx.send(OpMsg::Meta { line });
+                (Vec::new(), owned.len(), error)
+            }
+        };
     let ok = entries.len();
+    let gone: Vec<PathBuf> = entries.iter().map(|entry| entry.original.clone()).collect();
+    let reason = read_only_reason(&owned, &gone, failed, &reason);
     let steps = entries.into_iter().map(Step::Trashed).collect();
-    let entry = Entry { op: "trash".to_string(), steps };
-    let _ = tx.send(OpMsg::Trashed { id, request, ok, failed, entry, reason, announced });
+    let entry = Entry {
+        op: "trash".to_string(),
+        steps,
+    };
+    let _ = tx.send(OpMsg::Trashed {
+        id,
+        request,
+        ok,
+        failed,
+        entry,
+        reason,
+        announced,
+    });
+}
+
+// linux/errno.h's read-only filesystem, whose sentence src/error.rs already holds.
+const EROFS: i32 = 30;
+
+// A read-only drive has no Trash folder gio can make, so items left there say the drive is read-only, as every other write does.
+fn read_only_reason(paths: &[PathBuf], moved: &[PathBuf], failed: usize, reason: &str) -> String {
+    let body = super::iomount::mount_body();
+    let mut left = paths.iter().filter(|path| !path.as_os_str().is_empty() && !moved.contains(path) && path.symlink_metadata().is_ok()).peekable();
+    if failed > 0 && left.peek().is_some() && left.all(|path| read_only_in(path, &body)) {
+        return crate::error::from_io("trash", "", &std::io::Error::from_raw_os_error(EROFS)).msg;
+    }
+    reason.to_string()
+}
+
+// Sample input: "36 1 7:3 / /run/media/gm/S8RO ro,nosuid - ext4 /dev/loop3 ro" answers true for a path under that mount.
+fn read_only_in(path: &std::path::Path, body: &str) -> bool {
+    let ro = |options: Option<String>| options.is_some_and(|options| options.split(',').any(|option| option == "ro"));
+    ro(super::mountinfo::raw_mount_options_in(path, body)) || ro(super::mountinfo::mount_options_in(path, body))
 }
 
 // The first batch whose entry is still pending, which is the path undo and redo answer busy with.
@@ -44,13 +92,30 @@ pub(crate) fn land(out: &mut impl Write, ops: &mut Ops, msg: OpMsg) {
             ops.settling.push((id, path));
             ops.journal.reserve(id);
             ops.live.finished_if(id);
-            writeln!(out, "{}", trashed_line(request, ok, failed, &reason, &moved)).ok();
+            writeln!(
+                out,
+                "{}",
+                trashed_line(request, ok, failed, &reason, &moved)
+            )
+            .ok();
         }
-        OpMsg::Trashed { id, request, ok, failed, entry, reason, announced } => {
-            let moved: Vec<String> = entry.steps.iter().filter_map(|step| match step {
-                Step::Trashed(gone) => Some(gone.original.to_string_lossy().into_owned()),
-                _ => None,
-            }).collect();
+        OpMsg::Trashed {
+            id,
+            request,
+            ok,
+            failed,
+            entry,
+            reason,
+            announced,
+        } => {
+            let moved: Vec<String> = entry
+                .steps
+                .iter()
+                .filter_map(|step| match step {
+                    Step::Trashed(gone) => Some(gone.original.exact_text().into_owned()),
+                    _ => None,
+                })
+                .collect();
             super::renamework::publish(ops, super::renamework::Publication::Fill(id, entry));
             ops.settling.retain(|(held, _)| *held != id);
             ops.live.finished_if(id);
@@ -282,5 +347,21 @@ mod tests {
         o.settling.clear();
         assert!(undone(&mut o).contains(r#""t":"undone""#));
         assert!(x.exists() && !d.join("y.txt").exists(), "the filed entry is the rename");
+    }
+
+    #[test]
+    fn items_left_on_a_read_only_drive_say_so_instead_of_gios_words() {
+        let d = TestDir::new("trashland-read-only");
+        let (locked, other) = (d.file("locked.bin", "x"), d.file("other.bin", "y"));
+        let gio = "gio: file:///x: Unable to find or create trash directory";
+        let mount = |options: &str| format!("36 1 7:3 / {} {options} - ext4 /dev/loop3 {options}\n", d.path().display());
+        let paths = vec![locked.clone(), other.clone()];
+        let _held = crate::backend::iomount::test_hold_body(mount("ro,nosuid"));
+        assert_eq!(read_only_reason(&paths, &[], 2, gio), "the drive is read-only");
+        assert_eq!(read_only_reason(&paths, std::slice::from_ref(&other), 1, gio), "the drive is read-only", "only the item left behind is judged");
+        assert_eq!(read_only_reason(&paths, &paths, 0, ""), "", "nothing failed, so nothing is said");
+        drop(_held);
+        let _held = crate::backend::iomount::test_hold_body(mount("rw,nosuid"));
+        assert_eq!(read_only_reason(&paths, &[], 2, gio), gio, "a writable drive keeps gio's own reason");
     }
 }

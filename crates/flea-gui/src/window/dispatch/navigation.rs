@@ -30,11 +30,14 @@ pub(super) fn run(
         .pane
         .held
         .row(host.pane.cursor)
-        .map(|row| flea::ui_logic_pk1::directory(row.dir, row.mode, &row.icon));
+        .map(|row| flea::ui_logic_picker_portal::directory(row.dir, row.mode, &row.icon));
     if event.action == "open"
         && !busy
         && folder.is_some()
-        && !flea::ui_logic_sr2::cursor_shown(host.filter.shown.as_deref(), Some(host.pane.cursor))
+        && !flea::ui_logic_listing_filter::cursor_shown(
+            host.filter.shown.as_deref(),
+            Some(host.pane.cursor),
+        )
     {
         let text = shell.locale.catalog.tr("filter.row_hidden");
         shell.panes[side].as_mut().expect("focused pane").status = text.into();

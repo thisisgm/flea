@@ -4,7 +4,7 @@ use super::{
     test_shell::{land, open_root_with, row, sent},
 };
 use crate::{ipc::Adapter, state::Shell, tabs::bar::Hit, window::navigate::Step};
-use flea::{jsondoc::Json, ui_logic_pl4::recent::Visit};
+use flea::{jsondoc::Json, ui_logic_rail_places::recent::Visit};
 use gpui::{
     point, px, Context, Entity, Modifiers, MouseButton, TestAppContext, VisualTestContext, Window,
 };
@@ -55,7 +55,11 @@ fn setup<'a>(
         frame(cx);
     }
     assert_eq!(read(&shell, cx, "tabCount"), count.to_string());
-    rows(&shell, cx, vec![flea::ui_logic_pl4::order::recent_entry()]);
+    rows(
+        &shell,
+        cx,
+        vec![flea::ui_logic_rail_places::order::recent_entry()],
+    );
     (shell, cx)
 }
 

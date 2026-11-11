@@ -235,7 +235,13 @@ fn i50_rename_cancel_preserves_name(cx: &mut TestAppContext) {
                 "notes.txt"
             );
         });
-        assert_eq!(sent(&mut lines), [Vec::<String>::new(), Vec::new()]);
+        let mut expected = [Vec::<String>::new(), Vec::new()];
+        expected[side].push(r#"{"c":"menuaction","op":"close","id":9}"#.into());
+        assert_eq!(
+            sent(&mut lines),
+            expected,
+            "cancel closes only the owning snapshot"
+        );
         close(&shell, cx);
     }
 }
@@ -280,7 +286,13 @@ fn i50_rename_focus_and_session_reject_stale_preedit(cx: &mut TestAppContext) {
         shell.read_with(cx, |s, _| {
             assert_eq!(s.rename.edit.as_ref().unwrap().entry.text, "current.txt")
         });
-        assert_eq!(sent(&mut lines), [Vec::<String>::new(), Vec::new()]);
+        let mut expected = [Vec::<String>::new(), Vec::new()];
+        expected[side].push(r#"{"c":"menuaction","op":"close","id":9}"#.into());
+        assert_eq!(
+            sent(&mut lines),
+            expected,
+            "retired input closes only its old snapshot"
+        );
         close(&shell, cx);
     }
 }

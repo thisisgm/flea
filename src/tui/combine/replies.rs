@@ -39,7 +39,7 @@ pub fn receive(m: &mut Model, value: &Json, w: &mut Wire) -> io::Result<bool> {
                 let mut seen = std::collections::HashSet::new();
                 ps.iter().all(|p| {
                     Path::new(p).is_absolute()
-                        && !p.contains('\0')
+                        && !flea::bytename::is_refused(p)
                         && Path::new(p).parent() == first
                         && seen.insert(p)
                         && crate::backend::printconvert::classify(

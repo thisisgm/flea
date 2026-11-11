@@ -2,8 +2,8 @@
   "schema": 1,
   "upstream": {
     "repository": "https://github.com/omacom/omarchy.git",
-    "tag": "v4.5.0-rc2",
-    "commit": "5978d93ae7da0a325b7493501911e3f1266cadd3"
+    "tag": "v4.5.0",
+    "commit": "ac2690cd7be4f47e4a255f5e2e78d904d436b068"
   },
   "files": {
     "shell": {

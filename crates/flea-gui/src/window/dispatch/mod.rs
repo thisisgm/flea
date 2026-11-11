@@ -1,5 +1,7 @@
 //! The one place the window runs what a producer hands it: key and pointer actions, menu choices and rail requests.
 mod clipboard;
+#[cfg(test)]
+mod cohesion_owner_tests;
 mod deletion;
 #[cfg(test)]
 mod document_keys_fixture;
@@ -40,7 +42,7 @@ mod tags;
 mod window;
 
 use super::input::ActionEvent;
-use crate::{g2::mn1::join::Chosen, state::Shell};
+use crate::{g2::context_menus::join::Chosen, state::Shell};
 use gpui::{Context, Window};
 
 pub(crate) use fileops::Held as FileOps;

@@ -5,6 +5,8 @@ pub(super) fn paint_ground(
     row: &LaidRow,
     model: &RowsModel,
     palette: &Palette,
+    hairline: f32,
+    hover_wash: bool,
     window: &mut Window,
 ) {
     if is_cue(model, row.index) {
@@ -14,11 +16,14 @@ pub(super) fn paint_ground(
     if model.menu_open {
         return;
     }
-    if model.hovered == Some(row.index) {
-        window.paint_quad(fill(
-            box_of(row.rect),
-            palette.foreground.opacity(crate::list::HOVER),
-        ));
+    // 0402-rail-hover: every ground stops at the divider hair's snapped left edge, so the hair stays bare.
+    let mut ground = box_of(row.rect);
+    let scale = window.scale_factor();
+    let right = ((f32::from(ground.right()) - hairline) * scale).round() / scale;
+    ground.size.width = px((right - f32::from(ground.left())).max(0.));
+    // 0402-rail-hover: the pointer's row takes the list's 8% wash only while Highlight on hover is ticked.
+    if hover_wash && model.hovered == Some(row.index) {
+        window.paint_quad(fill(ground, palette.foreground.opacity(crate::list::HOVER)));
     }
     let keyboard = model.focused && !model.pointer_focus;
     let highlighted = if keyboard { model.cursor } else { model.lit };
@@ -30,7 +35,7 @@ pub(super) fn paint_ground(
         } else {
             palette.foreground.opacity(crate::list::GREY_CURSOR)
         };
-        window.paint_quad(fill(box_of(row.rect), plate));
+        window.paint_quad(fill(ground, plate));
         // HIG rail-favorites and SidebarRow.qml: the keyboard cursor keeps its accent edge, eject focus included.
         if keyboard {
             window.paint_quad(fill(
@@ -44,6 +49,22 @@ pub(super) fn paint_ground(
     }
 }
 
+/// The Dropbox mark's viewBox is 1.18 wide to 1 tall.
+const DROPBOX_ASPECT: f32 = 1.18;
+
+/// The box a row's mark draws inside: the icon slot at the row's padding, wider for Dropbox's own mark.
+pub(super) fn mark_slot(row: &LaidRow, metrics: &RailMetrics) -> Bounds<Pixels> {
+    let wide = row.glyph == "dropbox";
+    let width = metrics.icon * if wide { DROPBOX_ASPECT } else { 1. };
+    Bounds::new(
+        point(
+            px(row.rect.x + metrics.pad),
+            px(row.rect.y + (metrics.row - metrics.icon) / 2.),
+        ),
+        size(px(width), px(metrics.icon)),
+    )
+}
+
 pub(super) fn paint_mark(
     row: &LaidRow,
     palette: &Palette,
@@ -52,8 +73,8 @@ pub(super) fn paint_mark(
     window: &mut Window,
     cx: &mut App,
 ) {
-    let x = row.rect.x + metrics.pad;
-    let y = row.rect.y + (metrics.row - metrics.icon) / 2.;
+    let slot = mark_slot(row, metrics);
+    let (x, y) = (f32::from(slot.origin.x), f32::from(slot.origin.y));
     match &row.mark {
         RowMark::Tag(tag) => {
             let box_ = Bounds::new(
@@ -69,7 +90,7 @@ pub(super) fn paint_mark(
             window.paint_quad(fill(box_, colour));
         }
         RowMark::Square(square) => {
-            use flea::ui_logic_pl4::rail::Square;
+            use flea::ui_logic_rail_places::rail::Square;
             let colour = match square {
                 Square::On => palette.executable,
                 Square::Off => palette.muted_frame,
@@ -87,15 +108,22 @@ pub(super) fn paint_mark(
             ));
         }
         RowMark::None => {
-            if let Some((key, data)) = glyph::svg(row.glyph) {
+            // A plugin's own mark.svg fills the icon square as an alpha mask in the row's ink, as its Settings row does.
+            if let Some((key, data)) = &row.owned {
                 let _ = window.paint_svg(
                     Bounds::new(
                         point(px(x), px(y)),
-                        size(
-                            px(metrics.icon * if row.glyph == "dropbox" { 1.18 } else { 1. }),
-                            px(metrics.icon),
-                        ),
+                        size(px(metrics.icon), px(metrics.icon)),
                     ),
+                    key.clone(),
+                    Some(data),
+                    TransformationMatrix::unit(),
+                    palette.foreground,
+                    cx,
+                );
+            } else if let Some((key, data)) = glyph::svg(row.glyph) {
+                let _ = window.paint_svg(
+                    slot,
                     key,
                     Some(data),
                     TransformationMatrix::unit(),
@@ -190,7 +218,7 @@ pub(super) const ACCENT_EDGE: f32 = 3.;
 /// Buttons.js DISABLED_OPACITY over every ink a rail row draws.
 pub(super) fn ghost(palette: Palette) -> Palette {
     let fade = |mut ink: gpui::Hsla| {
-        ink.a *= crate::g2::pv1::look::DISABLED;
+        ink.a *= crate::g2::quick_look_overlay::look::DISABLED;
         ink
     };
     Palette {

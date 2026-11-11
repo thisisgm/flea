@@ -9,7 +9,7 @@ use crate::{
     state::Shell,
     window::{dispatch::Order, input::ActionEvent, navigate::Step, startup::View},
 };
-use flea::ui_logic_fb1::status::Hint;
+use flea::ui_logic_status_feedback::status::Hint;
 use gpui::{AppContext, Context, Entity, Subscription, Window};
 
 #[derive(Default)]
@@ -60,8 +60,8 @@ impl Shell {
             // Back and Up close Recent onto the folder it opened over, so both stand at full ink there, as v0.3.12 draws them.
             back: !host.nav.history.back.is_empty() || host.recent.on,
             up: host.nav.can_go_up(&host.pane) || host.recent.on,
-            filter: !host.pane.state.search,
-            sort: !host.pane.state.search,
+            filter: !host.search.owner.active() && !host.pane.state.search,
+            sort: !host.search.owner.active() && !host.pane.state.search,
             live: !self.card_holds_keyboard(cx)
                 && self.overlay.as_ref().is_none_or(|overlay| {
                     overlay.read_with(cx, |card, _| {
@@ -86,6 +86,7 @@ impl Shell {
                 |shell, _, out, window, cx| shell.path_out(out, window, cx),
             ));
             let view = cx.new(|cx| ChromeView::new(path, inputs, cx));
+            view.read(cx).frame.borrow_mut().cover = self.settings.cover.clone();
             self.chrome.subscriptions.push(cx.subscribe_in(
                 &view,
                 window,
@@ -95,7 +96,7 @@ impl Shell {
             self.chrome.view = Some(view);
         }
         let chrome = self.chrome.view.clone().expect("mounted chrome");
-        self.sync_chrome_stops(window);
+        self.sync_chrome_stops(window, cx);
         let path = chrome.read_with(cx, |view, _| view.path.clone());
         let host = self.panes[side].as_ref().expect("focused pane");
         let path_inputs = super::view::Inputs {
@@ -116,6 +117,7 @@ impl Shell {
                 .and_then(flea::jsondoc::Json::as_str)
                 == Some("path"),
             elide_start: false,
+            copy_mark: self.view != View::Dual,
             first: host.pane.first_count(),
         };
         let face = self.active_typeface();
@@ -167,6 +169,10 @@ impl Shell {
         if self.search_action(action, window, cx) {
             return;
         }
+        if action == "viewDual" {
+            self.choose_settings_view(View::Dual, window, cx);
+            return;
+        }
         if self.settings_action(action, window, cx) {
             return;
         }
@@ -177,6 +183,8 @@ impl Shell {
                 path.update(cx, |view, cx| view.open(window, cx));
             }
             return;
+        } else if action == "copyAddress" {
+            self.copy_address(cx);
         } else if let Some(step) = match action {
             "back" => Some(Step::Back),
             "up" => Some(Step::Up),
@@ -235,7 +243,8 @@ impl Shell {
             }
             Out::Closed => {
                 self.focus_pane(self.focus_side, cx);
-                window.focus(&self.focus, cx);
+                // Under a covering page (Trash) the keys go back to that page's list, never the hidden folder's.
+                window.focus(&self.overlay_return_focus(cx), cx);
                 self.check_history(cx);
             }
             Out::Send { side, line } => {

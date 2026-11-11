@@ -18,5 +18,7 @@ fn visual_geometry_column_code_keeps_17px_pitch_and_board_origin() {
         code.metrics.top, 9.,
         "frame top 41 plus padding 9 and glyph bearing 3 gives ink y53"
     );
-    assert_eq!(look.code(false).text_left(gpui::px(7.2)), 9.);
+    // S10V-6: plain text sits 23 px into the card as boards filter and rename-columns draw it; code keeps its gutter at 9.
+    assert_eq!(look.code(false).text_left(gpui::px(7.2)), 23.);
+    assert_eq!(code.metrics.inset, 9.);
 }

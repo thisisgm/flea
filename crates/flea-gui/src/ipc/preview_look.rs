@@ -2,19 +2,19 @@
 use super::Adapter;
 use crate::{
     g2::{
-        pv1::{doc::View, observations::Observations, Hit, QuickLook},
-        pv2::{
+        doc_preview::{
             code::CodeView,
             markdown::{MarkdownView, View as Shown},
             PdfView,
         },
-        pv3::sound::MediaSound,
+        media_preview::sound::MediaSound,
+        quick_look_overlay::{doc::View, observations::Observations, Hit, QuickLook},
     },
     window::selection_preview::readers::{centre, rect},
 };
 use flea::{
     ipc::wire::Reply,
-    ui_logic_pv2::markdown::{markdown_layout::FigureState, Block},
+    ui_logic_doc_preview::markdown::{markdown_layout::FigureState, Block},
 };
 use gpui::{App, Bounds, Entity, Pixels};
 
@@ -109,7 +109,7 @@ impl PreviewLook<'_> {
 
     /// IpcPreviewState pdfState(true): the card's page, zoom and scroll, and each strip control as it draws.
     fn pdf_state(&self) -> String {
-        use flea::{jsondoc::Json, ui_logic_pv2::viewer::CONTROLS};
+        use flea::{jsondoc::Json, ui_logic_doc_preview::viewer::CONTROLS};
         let (Some(look), Some(pdf)) = (self.look, self.pdf()) else {
             return "null".into();
         };
@@ -119,6 +119,9 @@ impl PreviewLook<'_> {
         let (page, count) = (pdf.surface.page, pdf.surface.page_count());
         let number = |n: f64| Json::Num(n.to_string());
         let painted = look.observations.borrow().strip;
+        let hovered = look.observations.borrow().strip_hovered;
+        let close = look.observations.borrow().close;
+        let close_hovered = look.observations.borrow().close_hovered;
         let i18n = &look.i18n;
         let controls = viewer
             .strip(page, count)
@@ -127,21 +130,37 @@ impl PreviewLook<'_> {
             .enumerate()
             .map(|(index, (item, control))| {
                 // The strip's close is the card's own close control; the rest are strip slots.
-                let hit = if control == flea::ui_logic_pv2::viewer::Control::Close {
+                let hit = if control == flea::ui_logic_doc_preview::viewer::Control::Close {
                     Hit::Close
                 } else {
                     Hit::Strip(index)
                 };
                 let ring = item.focused || look.focused() == Some(hit);
+                let bounds = if hit == Hit::Close {
+                    close
+                } else {
+                    painted[index]
+                };
                 Json::Obj(vec![
+                    ("kind".into(), Json::Str("ChromeButton".into())),
+                    ("rect".into(), Json::Str(rect(bounds))),
                     ("name".into(), Json::Str(i18n.tr(control.name_key()))),
                     ("enabled".into(), Json::Bool(item.enabled)),
                     ("visible".into(), Json::Bool(item.visible)),
                     (
                         "centre".into(),
-                        Json::Str(painted[index].map_or_else(String::new, centre)),
+                        Json::Str(bounds.map_or_else(String::new, centre)),
                     ),
-                    ("hovered".into(), Json::Bool(look.hovered() == Some(hit))),
+                    (
+                        "hovered".into(),
+                        Json::Bool(
+                            (if hit == Hit::Close {
+                                close_hovered
+                            } else {
+                                hovered[index]
+                            }) || look.hovered() == Some(hit),
+                        ),
+                    ),
                     ("pressed".into(), Json::Bool(look.pressed() == Some(hit))),
                     ("ring".into(), Json::Bool(ring)),
                 ])
@@ -223,6 +242,46 @@ fn figure_word(state: Option<FigureState>, busy: bool) -> &'static str {
 
 impl Adapter for PreviewLook<'_> {
     fn call(&self, function: &str, arguments: &[String]) -> Option<Reply> {
+        if function == "cohesionControls" {
+            let look = self.look.filter(|look| look.is_open())?;
+            let state = if self.pdf().is_some() {
+                let source = flea::jsondoc::parse(&self.pdf_state()).ok()?;
+                super::cohesion_controls::from_controls(&source, "Preview")
+            } else {
+                let drawn = look.observations.borrow();
+                let bounds = drawn.close?;
+                let source = crate::visual::object([
+                    (
+                        "name",
+                        flea::jsondoc::Json::Str(look.i18n.tr("preview.close")),
+                    ),
+                    ("rect", flea::jsondoc::Json::Str(rect(Some(bounds)))),
+                    ("centre", flea::jsondoc::Json::Str(centre(bounds))),
+                    ("visible", flea::jsondoc::Json::Bool(look.is_revealed())),
+                    ("enabled", flea::jsondoc::Json::Bool(true)),
+                    (
+                        "focused",
+                        flea::jsondoc::Json::Bool(look.focused() == Some(Hit::Close)),
+                    ),
+                    (
+                        "hovered",
+                        flea::jsondoc::Json::Bool(
+                            drawn.close_hovered || look.hovered() == Some(Hit::Close),
+                        ),
+                    ),
+                    (
+                        "pressed",
+                        flea::jsondoc::Json::Bool(look.pressed() == Some(Hit::Close)),
+                    ),
+                ]);
+                super::cohesion_controls::state(
+                    super::cohesion_controls::control(&source, "Preview", "ChromeButton")
+                        .into_iter()
+                        .collect(),
+                )
+            };
+            return Some(Reply::value(flea::jsondoc::render(&state).trim_end()));
+        }
         // pdfState(overlay) and previewBlockKinds(column) take one bool each.
         let flag = arguments.first().is_some_and(|flag| flag == "true");
         Some(match function {
@@ -258,7 +317,9 @@ impl Adapter for PreviewLook<'_> {
 #[cfg(test)]
 mod tests {
     use super::{figure_line, figure_word};
-    use flea::ui_logic_pv2::markdown::{markdown_layout::FigureState, Block, Figure, FigureKind};
+    use flea::ui_logic_doc_preview::markdown::{
+        markdown_layout::FigureState, Block, Figure, FigureKind,
+    };
 
     // EY-238: the figure entries name each top-level figure block by index, with the word figureInfo gives.
     #[test]

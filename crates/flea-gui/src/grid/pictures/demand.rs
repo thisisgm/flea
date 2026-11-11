@@ -6,7 +6,7 @@ use crate::{
     list::pane::Held,
 };
 use gpui::{Asset, Context, ImageAssetLoader, RenderImage, Resource, Window};
-use std::{path::Path, rc::Rc, sync::Arc, time::Duration};
+use std::{rc::Rc, sync::Arc, time::Duration};
 
 pub(crate) struct Demand<'a> {
     pub held: &'a Rc<Held>,
@@ -232,8 +232,10 @@ impl Pictures {
             cx.notify();
             return;
         }
-        let load =
-            <ImageAssetLoader as Asset>::load(Resource::Path(Arc::from(Path::new(file))), cx);
+        let load = <ImageAssetLoader as Asset>::load(
+            Resource::Path(Arc::from(&*flea::bytename::view(file))),
+            cx,
+        );
         let work = cx.background_executor().spawn(load);
         let (listing, answered) = (map.listing, file.to_owned());
         let pictures = Rc::downgrade(self);

@@ -35,6 +35,7 @@ pub(super) fn rows_needed(request: &Request) -> usize {
         Request::BulkRename { .. } => 0,
         // A path lookup can name any match, and a sort reorders the whole set.
         Request::Locate { .. }
+        | Request::SearchRemap { .. }
         | Request::LocateMany { .. }
         | Request::Sort { .. }
         | Request::Filter { .. } => usize::MAX,

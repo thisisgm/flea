@@ -122,6 +122,9 @@ impl Drop for Work {
 #[path = "archivefailure.rs"]
 mod failure;
 pub(crate) use failure::{before_trailer, failure_message, office_failure_message, tool_note};
+// Where a staged job's work folder goes: beside the destination, or on this computer for a copy-fallback mount.
+#[path = "workhome.rs"]
+pub(crate) mod workhome;
 
 // A writer past the kill can still hold stderr open; true means its EOF arrived in bound.
 fn drain_reader(reader: std::thread::JoinHandle<String>) -> bool {

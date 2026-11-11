@@ -105,7 +105,7 @@ fn spawn(program: &str, args: &[String], slave: &std::fs::File) -> Result<Child,
     let mut command = crate::backend::locale::command(program);
     // A pty is not a terminal until something says which one: the backend inherits no TERM, and
     // without one the CLI draws its frame and never refreshes the device list inside it.
-    command.args(args).env("TERM", "xterm-256color")
+    command.args(flea::bytename::args(args)).env("TERM", "xterm-256color")
         .stdin(Stdio::from(stdin)).stdout(Stdio::from(stdout)).stderr(Stdio::from(stderr));
     // Read before the fork, because a backend that died in between could never deliver the signal.
     let parent = std::process::id();
@@ -310,8 +310,8 @@ fn send_with_cancel(name: &str, paths: &[String], limit: Duration, cancel: &Atom
         return Err("LocalSend was given nothing to send.".into());
     }
     // localsend-cli takes files only and refuses a folder with "Not a file", so the folder is named here.
-    if let Some(folder) = paths.iter().find(|p| std::path::Path::new(p).is_dir()) {
-        let leaf = std::path::Path::new(folder).file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| folder.clone());
+    if let Some(folder) = paths.iter().find(|p| flea::bytename::view(p).is_dir()) {
+        let leaf = flea::bytename::view(folder).file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| folder.clone());
         return Err(format!("{} is a folder, and LocalSend sends only files.", leaf));
     }
     let mut args: Vec<String> = Vec::new();

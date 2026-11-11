@@ -7,7 +7,7 @@ use crate::{
 use flea::{
     jsondoc::{self, Json},
     plugin_runtime::{Config, Runtime},
-    ui_logic_st2::{
+    ui_logic_plugin_settings::{
         manifest,
         wire::{self, Plugin, Source},
     },
@@ -58,12 +58,17 @@ impl Fixture {
             request_timeout: Duration::from_secs(2),
             idle_timeout: Duration::from_secs(30),
         });
+        // As the backend lists it: the mark's absolute path, only when the file is there.
+        let mark_path = Some(folder.join(&manifest.mark))
+            .filter(|path| !manifest.mark.is_empty() && path.is_file())
+            .map(|path| path.to_string_lossy().into_owned())
+            .unwrap_or_default();
         let plugin = Plugin {
             manifest,
             source: Source::Folder(folder.to_string_lossy().into()),
             enabled: true,
             failure: None,
-            mark_path: String::new(),
+            mark_path,
             settings: Vec::new(),
             shelf: None,
         };

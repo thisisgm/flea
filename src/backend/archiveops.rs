@@ -9,14 +9,19 @@ use crate::backend::archivepass;
 use crate::backend::archivework::{
     is_empty_dir, run_boxed_cancellable, run_boxed_cancellable_capped, Work,
 };
+use crate::backend::archivework::workhome;
 use crate::backend::convert;
 use crate::backend::opsreq::op_err;
 use crate::error::{from_io, FleaError};
+use flea::bytename::ExactText as _;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 
 // The sentence both the request and the job refuse a disk image extract with.
 pub const DISK_IMAGE_REFUSAL: &str = "a disk image opens as a listing and is never extracted";
+
+// The sentence an extract refuses a member with when it would land outside the folder.
+pub const ESCAPE_REFUSAL: &str = "an entry in this archive would land outside its folder, so nothing was extracted";
 
 // A password compress is a 7z job whatever the format: bsdtar writes no encryption at all.
 pub struct Password<'a> {
@@ -27,9 +32,19 @@ pub struct Password<'a> {
 // One archive out of a selection that all shares a parent, which is what a listing selection is.
 pub fn compress(formats: &Formats, parent: &Path, names: &[String], format: &str,
                 dest: &Path, cancel: &AtomicBool, password: Option<Password>) -> Result<(), FleaError> {
-    if dest.symlink_metadata().is_ok() {
-        return Err(op_err("archive", &dest.to_string_lossy(), "that destination already exists"));
-    }
+    compress_leaving(formats, parent, names, format, dest, cancel, password).map(|_| ())
+}
+
+// The compress the wire runs: Some names a work folder the drive would not let go, see clear.
+pub(crate) fn compress_leaving(
+    formats: &Formats,
+    parent: &Path,
+    names: &[String],
+    format: &str,
+    dest: &Path,
+    cancel: &AtomicBool,
+    password: Option<Password>,
+) -> Result<Option<String>, FleaError> {
     // A quit landing between registration and this check never starts a child.
     if cancel.load(Ordering::Relaxed) {
         return Err(op_err("archive", &dest.to_string_lossy(), "cancelled"));
@@ -45,27 +60,42 @@ pub fn compress(formats: &Formats, parent: &Path, names: &[String], format: &str
             return Err(op_err("archive", format, "no installed tool can create that format"));
         }
     }
-    let mut work = Work::new(parent, "arc")?;
+    // A zip leaves pipes, sockets and devices out and refuses a backslash name, whichever tool writes it.
+    let plan = if format == "zip" {
+        Some(zipplan::plan(parent, names, cancel)?)
+    } else {
+        None
+    };
+    let (names, skipped) = plan
+        .as_ref()
+        .map_or((names, &[][..]), |p| (&p.names[..], &p.skipped[..]));
+    let leaf = dest.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+    let mut work = workhome::work_for(parent, "arc", "archive", &leaf, || workhome::tree_bytes(parent, names))?;
     let staged = work.dir.join(format!("archive.{}", format));
     // The password arm builds its own 7z argv and runs it in the archive jail beside every other archive job.
     if let Some(password) = password {
-        let inner = archivepass::compress_argv(format, &staged, parent, names, password.encrypt_names);
-        let leaf = dest.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+        let mut inner = archivepass::compress_argv(format, &staged, parent, names, password.encrypt_names);
+        zipplan::exclude(&mut inner, skipped);
         match archivepass::run_boxed_cancellable_password("archive", &leaf, inner, parent, &mut work, Some(password.secret), cancel)? {
             None => {}
             Some(f) => return Err(op_err("archive", format, &f.message)),
         }
     } else {
-        let inner = match formats.compress_argv(format, &staged, parent, names) {
+        let mut inner = match formats.compress_argv(format, &staged, parent, names) {
             Some(a) => a,
             None => return Err(op_err("archive", format, "no installed tool can create that format")),
         };
+        // bsdtar's zip writer skips a special file itself; 7z opens one to read it, so it is told to leave each out.
+        if formats.seven_writes(format) {
+            zipplan::exclude(&mut inner, skipped);
+        }
         run_boxed_cancellable("archive", inner, parent, &mut work, cancel)?;
     }
     if staged.symlink_metadata().is_err() {
         return Err(op_err("archive", format, "the archive tool wrote nothing"));
     }
-    publish(&staged, dest, cancel)
+    freename::publish(&staged, dest, Some(format), cancel, publish)?;
+    Ok(clear(work))
 }
 
 // Staged like compress and convert: the tool writes into a private work directory and the finished
@@ -82,9 +112,10 @@ pub fn extract(
     cancel: &AtomicBool,
     password: Option<&str>,
 ) -> Result<bool, FleaError> {
-    extract_reporting(formats, archive, dest, cancel, password, None)
+    extract_reporting(formats, archive, dest, cancel, password, None).map(|(verified, _)| verified)
 }
 
+// The second value names a work folder the drive would not let go, see clear.
 pub(crate) fn extract_reporting(
     formats: &Formats,
     archive: &Path,
@@ -92,10 +123,7 @@ pub(crate) fn extract_reporting(
     cancel: &AtomicBool,
     password: Option<&str>,
     report: Option<(usize, &std::sync::mpsc::Sender<super::opsreq::OpMsg>)>,
-) -> Result<bool, FleaError> {
-    if dest.symlink_metadata().is_ok() {
-        return Err(op_err("archive", &dest.to_string_lossy(), "that destination already exists"));
-    }
+) -> Result<(bool, Option<String>), FleaError> {
     // A disk image lists and is never extracted, so it is refused before any staging or probing.
     if Formats::is_list_only(archive) {
         return Err(op_err("archive", &archive.to_string_lossy(), DISK_IMAGE_REFUSAL));
@@ -124,12 +152,17 @@ pub(crate) fn extract_reporting(
         if let Some(sentence) = archivefree::check(&leaf, index.space, dest) {
             return Err(op_err("archive", &archive.to_string_lossy(), &sentence));
         }
+        // A name the drive refuses or a case twin it would fold onto another fails or loses data mid-extract, so it is refused here.
+        if let Some(sentence) = extractnames::refusal(index.members.keys(), &extractnames::Rules::of(dest.parent().unwrap_or(Path::new("/")))) {
+            return Err(op_err("archive", &leaf, &sentence));
+        }
     }
     if cancel.load(Ordering::Relaxed) {
         return Err(op_err("archive", &archive.to_string_lossy(), "cancelled"));
     }
     let parent = dest.parent().unwrap_or(Path::new("/"));
-    let mut work = Work::new(parent, "ext")?;
+    let need = if index.known { index.space } else { 0 };
+    let mut work = workhome::work_for(parent, "ext", "archive", &leaf, || need)?;
     let staged = work.dir.join("out");
     std::fs::create_dir(&staged).map_err(|e| from_io("archive", &staged.to_string_lossy(), &e))?;
     let argv = match password {
@@ -168,6 +201,7 @@ pub(crate) fn extract_reporting(
         if cancel.load(Ordering::Relaxed) {
             return Err(op_err("archive", &archive.to_string_lossy(), "cancelled"));
         }
+        let said = said.or_else(|| escape_refusal(&f.message));
         return Err(op_err("archive", &leaf, said.unwrap_or(&f.message)));
     }
     // compress and convert stat a path Flea never creates, so their existence check is a real test.
@@ -204,16 +238,55 @@ pub(crate) fn extract_reporting(
     if let Some((id, tx)) = report {
         progress.sample(&staged, id, tx, true);
     }
-    publish(&staged, dest, cancel)?;
-    Ok(verified)
+    freename::publish(&staged, dest, None, cancel, publish)?;
+    Ok((verified, clear(work)))
 }
 
-// Issue 370: fuse.rclone refuses a directory and fuse.megafs any RENAME_NOREPLACE, so those take the exclusive copy, which the cancel stops.
+// Sample: "../../escape-dotdot.txt: Path contains '..': Unknown error -1".
+// bsdtar's secure extract refuses a "../" member and one written through a link the archive made.
+fn escape_refusal(message: &str) -> Option<&'static str> {
+    (message.contains("Path contains '..'") || message.contains("Cannot extract through symlink"))
+        .then_some(ESCAPE_REFUSAL)
+}
+
+// Issue 370: a stage workhome kept off a copy-fallback mount crosses a filesystem, so it lands by the exclusive copy, which the cancel stops.
 fn publish(staged: &Path, dest: &Path, cancel: &AtomicBool) -> Result<(), FleaError> {
-    crate::backend::renamecompat::rename_cancellable(staged, dest, cancel)
+    match crate::backend::renamecompat::rename_cancellable(staged, dest, cancel) {
+        // The copy landed whole and flushed and only the stage would not go: that is clear's to retry, not a failed job.
+        Err(error) if error.where_ == crate::backend::renamecompat::KEPT => Ok(()),
+        outcome => outcome,
+    }
 }
 
+// rclone refuses a folder's rmdir while its upload is still pending, then allows it, so a busy work folder is tried again.
+const CLEAR_PAUSES_MS: [u64; 7] = [0, 50, 100, 200, 400, 800, 1600];
+
+// The work folder after a published result; Some is its path when the drive still would not let it go.
+fn clear(mut work: Work) -> Option<String> {
+    work.keep();
+    for pause in CLEAR_PAUSES_MS {
+        std::thread::sleep(std::time::Duration::from_millis(pause));
+        match std::fs::remove_dir_all(&work.dir) {
+            Ok(()) => return None,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return None,
+            Err(_) => {}
+        }
+    }
+    Some(work.dir.exact_text().into_owned())
+}
+
+#[cfg(test)]
 pub fn convert_one(input: &Path, dest: &Path, strip: bool, cancel: &AtomicBool) -> Result<(), FleaError> {
+    convert_leaving(input, dest, strip, cancel).map(|_| ())
+}
+
+// The convert the wire runs: Some names a work folder the drive would not let go, see clear.
+pub(crate) fn convert_leaving(
+    input: &Path,
+    dest: &Path,
+    strip: bool,
+    cancel: &AtomicBool,
+) -> Result<Option<String>, FleaError> {
     if dest.symlink_metadata().is_ok() {
         return Err(op_err("convert", &dest.to_string_lossy(), "that destination already exists"));
     }
@@ -226,32 +299,43 @@ pub fn convert_one(input: &Path, dest: &Path, strip: bool, cancel: &AtomicBool) 
         return Err(op_err("convert", &dest.to_string_lossy(), "cancelled"));
     }
     let parent = dest.parent().unwrap_or(Path::new("/"));
-    let mut work = Work::new(parent, "cvt")?;
     let name = dest.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
-    let staged = work.dir.join(&name);
+    let mut work = workhome::work_for(parent, "cvt", "convert", &name, || workhome::files_bytes(&[input.to_path_buf()]))?;
+    let staged = work.dir.join(dest.file_name().unwrap_or_default());
     run_boxed_cancellable_capped("convert", convert::argv(input, &staged, strip), input, &mut work, cancel)?;
     if staged.symlink_metadata().is_err() {
         return Err(op_err("convert", &name, "the converter wrote nothing"));
     }
-    publish(&staged, dest, cancel)
+    publish(&staged, dest, cancel)?;
+    Ok(clear(work))
 }
 
 // A compress names absolute paths, which all share a parent because a selection comes from one
 // listing; the parent and the relative names are derived here rather than sent twice on the wire.
 pub fn split_paths(paths: &[String]) -> Option<(PathBuf, Vec<String>)> {
-    let first = Path::new(paths.first()?);
+    let first = flea::bytename::view(paths.first()?);
+    let first = &*first;
     let parent = first.parent()?.to_path_buf();
     let mut names = Vec::with_capacity(paths.len());
     for p in paths {
-        let path = Path::new(p);
+        let path = flea::bytename::view(p);
+        let path = &*path;
         // A path from another directory would be stored under a name that is not its own, so it is refused.
         if path.parent() != Some(parent.as_path()) {
             return None;
         }
-        names.push(path.file_name()?.to_string_lossy().to_string());
+        names.push(path.file_name()?.exact_text().to_string());
     }
     Some((parent, names))
 }
+
+#[path = "archivezip.rs"]
+pub(crate) mod zipplan;
+#[path = "extractnames.rs"]
+mod extractnames;
+
+#[path = "archivename.rs"]
+pub(crate) mod freename;
 
 #[cfg(test)]
 #[path = "archiveops_tests.rs"]
@@ -268,3 +352,11 @@ mod rclone_tests;
 #[cfg(test)]
 #[path = "archivepassword_tests.rs"]
 mod password_tests;
+
+#[cfg(test)]
+#[path = "archiveleft_tests.rs"]
+mod left_tests;
+
+#[cfg(test)]
+#[path = "archivefreename_tests.rs"]
+mod free_name_tests;

@@ -310,44 +310,37 @@ fn m9_g2rows_01_raw_paths_and_remainder_keep_listing_identity() {
     assert_eq!(field_usize(&rows, "listing"), Some(generation as usize));
     assert!(rows.contains("raw-"));
     assert!(rows.contains('�'), "oracle retains lossy display text");
-    assert!(rows.contains(r#""operable":false"#));
+    assert!(
+        !rows.contains(r#""operable":false"#),
+        "a raw name is carried exactly: {rows}"
+    );
     eprintln!("CONTENTS-RAW-WINDOW {rows}");
     let held = f.st.contents.held.as_ref().unwrap();
+    let exact = flea::bytename::name_text(b"raw-\xff.txt").into_owned();
     assert!(held
         .matches
         .iter()
-        .any(|hit| hit.path_bytes == b"raw-\xff.txt" && !hit.operable));
+        .any(|hit| hit.path_bytes == b"raw-\xff.txt" && hit.path == exact && hit.operable));
     assert!(held
         .matches
         .iter()
-        .any(|hit| hit.path_bytes == "raw-�.txt".as_bytes() && !hit.operable));
-    for row in 0..f.st.listing.len() {
-        if f.st.listing.name(row) != "raw-�.txt" {
-            continue;
-        }
+        .any(|hit| hit.path_bytes == "raw-�.txt".as_bytes()
+            && hit.path == "raw-�.txt"
+            && hit.operable));
+    for name in [exact.as_str(), "raw-�.txt"] {
+        let row = (0..f.st.listing.len())
+            .find(|&row| f.st.listing.name(row) == name)
+            .unwrap();
         f.out.clear();
         f.request(&format!(
             r#"{{"c":"paths","rows":[{row}],"listing":{generation}}}"#
         ));
+        let own = escape(&flea::bytename::path_text(
+            &f.root.join(&*flea::bytename::text_path(name)),
+        ));
         assert!(
-            f.text().contains(r#""t":"error""#),
-            "unsafe row cannot resolve to operation paths"
-        );
-    }
-    let alias = escape(&f.root.join("raw-�.txt").to_string_lossy());
-    for line in [
-        format!(r#"{{"c":"rename","path":"{alias}","to":"changed.txt"}}"#),
-        format!(r#"{{"c":"trash","paths":["{alias}"]}}"#),
-        format!(r#"{{"c":"locate","path":"{alias}"}}"#),
-        format!(r#"{{"c":"open","path":"{alias}"}}"#),
-        format!(r#"{{"c":"reveal","path":"{alias}"}}"#),
-        format!(r#"{{"c":"compare","left":"{alias}","right":"safe.txt"}}"#),
-    ] {
-        f.out.clear();
-        f.request(&line);
-        assert!(
-            f.text().contains(r#""where":"contentsidentity""#),
-            "explicit display aliases must be refused: {}",
+            f.text().contains(r#""t":"paths""#) && f.text().contains(&format!(r#"["{own}"]"#)),
+            "each row resolves to its own file: {}",
             f.text()
         );
     }

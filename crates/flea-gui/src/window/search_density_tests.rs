@@ -2,7 +2,7 @@
 //! The private watched Update constructor is intentionally not bypassed or re-exported.
 use super::*;
 use crate::window::pane::PaneHost;
-use flea::{jsondoc, ui_logic_sr1::Scope};
+use flea::{jsondoc, ui_logic_file_search::Scope};
 
 #[path = "search_density_guards.rs"]
 mod guards;

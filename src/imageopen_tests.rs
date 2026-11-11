@@ -11,6 +11,23 @@ fn image_open_child() {
 }
 
 fn handoff(exec: &str, first_body: &str, mime: &str) -> (std::process::Output, String) {
+    let (out, receipt) = handoff_with(
+        exec,
+        first_body,
+        mime,
+        std::ffi::OsStr::new("unreadable companion.png"),
+    );
+    (out, String::from_utf8_lossy(&receipt).into_owned())
+}
+
+// The companion's name is any bytes, and the receipt is read as bytes so a raw name reads back exactly.
+fn handoff_with(
+    exec: &str,
+    first_body: &str,
+    mime: &str,
+    companion: &std::ffi::OsStr,
+) -> (std::process::Output, Vec<u8>) {
+    use flea::bytename::ExactText as _;
     let dir = TestDir::new("image-handoff");
     let apps = dir.path().join("applications");
     std::fs::create_dir(&apps).unwrap();
@@ -24,11 +41,7 @@ fn handoff(exec: &str, first_body: &str, mime: &str) -> (std::process::Output, S
     let paths = format!(
         r#"{{"paths":["{}","{}"]}}"#,
         crate::json::escape(&first.to_string_lossy()),
-        crate::json::escape(
-            &dir.path()
-                .join("unreadable companion.png")
-                .to_string_lossy()
-        )
+        crate::json::escape(&dir.path().join(companion).exact_text())
     );
     let out = std::process::Command::new("timeout")
         .arg("30")
@@ -50,8 +63,33 @@ fn handoff(exec: &str, first_body: &str, mime: &str) -> (std::process::Output, S
         .env("XDG_DATA_DIRS", dir.path())
         .output()
         .unwrap();
-    let receipt = std::fs::read_to_string(&log).unwrap_or_default();
+    let receipt = std::fs::read(&log).unwrap_or_default();
     (out, receipt)
+}
+
+#[test]
+fn a_raw_named_companion_reaches_the_viewer_by_its_own_bytes() {
+    use std::os::unix::ffi::OsStrExt;
+    let (out, receipt) = handoff_with(
+        "viewer %F",
+        "picture",
+        "image/png",
+        std::ffi::OsStr::from_bytes(b"r\xff.png"),
+    );
+    assert_eq!(out.status.code(), Some(0));
+    let lines: Vec<&[u8]> = receipt
+        .split(|&b| b == b'\n')
+        .filter(|line| !line.is_empty())
+        .collect();
+    assert_eq!(
+        lines.len(),
+        4,
+        "one launch with both images, never the single-open fallback"
+    );
+    assert!(
+        lines[3].ends_with(b"/r\xff.png"),
+        "the companion is the raw file"
+    );
 }
 
 #[test]

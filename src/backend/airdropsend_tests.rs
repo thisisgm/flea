@@ -175,18 +175,28 @@ fn owly_is_found_on_path_as_a_shell_finds_it_and_a_folder_named_owly_is_not() {
 
 #[test]
 fn the_windows_send_line_parses_as_an_airdrop_request_and_the_facts_carry_owly() {
-    let line = airdrop::send_line(3, "Jane's \"iPhone\"", &["/a/b c.png".to_string()]);
+    let line = airdrop::send_line(3, "3a9f", "Jane's \"iPhone\"", &["/a/b c.png".to_string()]);
     match crate::backend::proto::parse_request(&line) {
-        crate::backend::proto::Request::AirDrop { peer, paths, id } => {
+        crate::backend::proto::Request::AirDrop {
+            peer,
+            name,
+            paths,
+            id,
+        } => {
             assert_eq!(
-                (peer.as_str(), paths, id),
-                ("Jane's \"iPhone\"", vec!["/a/b c.png".to_string()], 3)
+                (peer.as_str(), name.as_str(), paths, id),
+                (
+                    "3a9f",
+                    "Jane's \"iPhone\"",
+                    vec!["/a/b c.png".to_string()],
+                    3
+                )
             );
         }
         _ => panic!("{line} did not parse as an AirDrop send"),
     }
     let facts = crate::backend::providers::facts();
-    let parsed = flea::ui_logic_sd1::providers::parse_facts(&facts).expect("facts parse");
+    let parsed = flea::ui_logic_send_share::providers::parse_facts(&facts).expect("facts parse");
     assert!(facts.contains(r#""owly":{"installed":"#), "{facts}");
     assert_eq!(
         parsed.owly_command.is_empty(),
@@ -204,4 +214,40 @@ fn a_failed_job_says_a_sentence_and_owlys_reason_wins() {
         "AirDrop could not finish the transfer."
     );
     assert_eq!(job_reason("failed", "timed out"), "timed out");
+}
+
+#[test]
+fn the_job_card_names_the_device_the_window_chose_not_its_service_id() {
+    let mut jobs = crate::backend::jobs::Jobs::default();
+    let (tx, _rx) = mpsc::channel();
+    let mut out = Vec::new();
+    for (job, name) in [(1, "Jane's iPhone"), (2, "")] {
+        let work = crate::backend::jobwork::Work::Send {
+            peer: "3a9f0c2be41d".into(),
+            name: name.into(),
+            paths: vec!["/nonexistent/flea-airdrop-head/a.png".into()],
+            request: job,
+            selection: Some(Vec::new()),
+            airdrop: true,
+        };
+        let spec = crate::backend::jobwork::Spec {
+            kind: "send",
+            label: "Sending",
+            target: None,
+        };
+        jobs.submit(
+            &mut out,
+            job,
+            spec,
+            work,
+            &crate::backend::opscancel::DetachedJobs::new(),
+            &tx,
+        );
+    }
+    let targets: Vec<&str> = jobs.rows.iter().map(|job| job.target.as_str()).collect();
+    assert_eq!(
+        targets,
+        ["Jane's iPhone", "3a9f0c2be41d"],
+        "an older window's send without a name keeps the ID"
+    );
 }

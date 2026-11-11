@@ -10,6 +10,8 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 pub const ID: &str = "io.github.thisisgm.flea-shelf";
+// A plugin manifest is a few hundred bytes, so a larger one is not the shelf's.
+const MAX_MANIFEST_BYTES: u64 = 64 * 1024;
 
 // An empty FLEA_SHELF would resolve manifest.json against the working directory, so it is no
 // candidate, the same rule paths.rs applies to FLEA_UI.
@@ -48,7 +50,9 @@ pub fn installed() -> Result<PathBuf, String> {
 // Sample manifest, the two keys read here being the only ones this file cares about:
 // {"schemaVersion": 1, "id": "io.github.thisisgm.flea-shelf", "version": "0.3.0", ...}
 fn version(dir: &Path) -> Option<String> {
-    json::field_str(&std::fs::read_to_string(dir.join("manifest.json")).ok()?, "version")
+    // Read before the window, so a fifo in its place must not block the launch.
+    let text = crate::backend::regfile::read_text(&dir.join("manifest.json"), MAX_MANIFEST_BYTES).ok()?;
+    json::field_str(&text, "version")
 }
 
 // Only the two manifests are read before the window; each PKGBUILD stamps $pkgver-$pkgrel, so every build replaces the copy.

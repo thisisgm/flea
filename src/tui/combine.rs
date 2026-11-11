@@ -10,7 +10,7 @@ use super::{
 };
 use crate::jsondoc::Json;
 pub use card::{draw, geometry};
-use flea::ui_logic_op4::{
+use flea::ui_logic_print_convert::{
     composition::{self, Background, Layout, Settings, Spacing},
     output,
 };
@@ -86,8 +86,8 @@ impl Form {
             self.settings.columns,
         )
     }
-    pub fn composition(&self) -> Option<flea::ui_logic_op4::geometry::Composition> {
-        flea::ui_logic_op4::geometry::Composition::new(&self.sizes, &self.settings).ok()
+    pub fn composition(&self) -> Option<flea::ui_logic_print_convert::geometry::Composition> {
+        flea::ui_logic_print_convert::geometry::Composition::new(&self.sizes, &self.settings).ok()
     }
     fn changed(&mut self) {
         self.revision = self.revision.wrapping_add(1);

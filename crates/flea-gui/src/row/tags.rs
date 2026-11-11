@@ -1,5 +1,5 @@
 //! Solid tag squares shared by listing, column and grid painters, with no text fallback.
-use flea::ui_logic_pl4::tags::{index_of, swatches_that_fit, SWATCH_GAP, SWATCH_SIZE};
+use flea::ui_logic_rail_places::tags::{index_of, swatches_that_fit, SWATCH_GAP, SWATCH_SIZE};
 use gpui::{fill, point, px, size, Bounds, Hsla, Pixels, Point, Window};
 
 /// The name a test recorder files each painted swatch under.

@@ -116,7 +116,7 @@ fn glass_visual_secondary_inks_hold_over_selected_dark_and_bright_backdrops() {
 
 #[gpui::test]
 fn glass_rail_highlight_fills_keep_the_original_palette(cx: &mut TestAppContext) {
-    use crate::g2::pl4::producer::Producer;
+    use crate::g2::rail_places::producer::Producer;
     use gpui::prelude::*;
     for (name, colors) in [
         (
@@ -172,9 +172,11 @@ fn glass_rail_highlight_fills_keep_the_original_palette(cx: &mut TestAppContext)
             cx.run_until_parked();
         };
         draw_rail(cx);
-        for hovered in [false, true] {
+        // 0402-rail-hover: the pointer's row washes only under Highlight on hover; unticked it draws nothing.
+        for (hovered, wash) in [(false, true), (true, true), (true, false)] {
             handle
                 .update(cx, |producer, _, cx| {
+                    cx.set_global(crate::list::hover_wash::HoverWash(wash));
                     let first = producer.laid.borrow().rows[0].index;
                     let mut model = producer.model.borrow_mut();
                     model.focused = false;
@@ -192,12 +194,18 @@ fn glass_rail_highlight_fills_keep_the_original_palette(cx: &mut TestAppContext)
                 assert_ne!(laid.palette.unwrap().foreground, theme.foreground, "glyph ink must remain strengthened");
                 let expected = theme.foreground.opacity(if hovered { crate::list::HOVER } else { crate::list::GREY_CURSOR });
                 let scale = window.scale_factor();
-                assert!(window.painted_quads().iter().any(|quad| {
+                // Rail grounds stop short of the divider hair.
+                let hairline = crate::list::Metrics::for_typeface(&crate::list::Typeface::omarchy_default()).hairline;
+                let plates: Vec<_> = window.painted_quads().iter().filter(|quad| {
                     (quad.bounds.origin.y.as_f32() - row.rect.y * scale).abs() < 0.01
-                        && (quad.bounds.size.width.as_f32() - row.rect.width * scale).abs() < 0.01
+                        && (quad.bounds.size.width.as_f32() - (row.rect.width - hairline) * scale).abs() < 0.01
                         && (quad.bounds.size.height.as_f32() - row.rect.height * scale).abs() < 0.01
-                        && quad.background.as_solid() == Some(expected)
-                }), "{name}: hovered={hovered}, actual rail fill must use original foreground {expected:?}");
+                }).map(|quad| quad.background.as_solid()).collect();
+                if wash {
+                    assert!(plates.contains(&Some(expected)), "{name}: hovered={hovered}, actual rail fill must use original foreground {expected:?}");
+                } else {
+                    assert_eq!(plates, Vec::new(), "{name}: unticked Highlight on hover draws nothing under the pointer");
+                }
             }).unwrap();
         }
         handle

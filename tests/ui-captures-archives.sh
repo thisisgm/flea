@@ -66,14 +66,14 @@ case_cap_archives() {
     key -k Right >/dev/null
     settle
     # The submenu is the probed table with With password last under its separator.
-    menus_expect menuState '.submenu and ([.submenuEntries[] | select(.label == "With password…")] | length) == 1' "the Compress flyout ends in With password"
+    menus_expect menuState '.submenu and ([.submenuEntries[] | select(.label == "With Password…")] | length) == 1' "the Compress flyout ends in With password"
     submenu=$(ipc menuState | jq -r '[.submenuEntries[] | .label // "-"] | join("|")')
-    [[ "$submenu" == *"|-|With password…" ]] \
+    [[ "$submenu" == *"|-|With Password…" ]] \
         || fail "cap_archives: With password is not last under its separator: $submenu"
     glyphs=$(ipc contextMenuSubmenuGlyphs)
     [[ "$glyphs" == *"|key" ]] || fail "cap_archives: With password wears no key mark: $glyphs"
     shot archives-compress-submenu
-    menu_seek_submenu "With password…"
+    menu_seek_submenu "With Password…"
     key -k Return >/dev/null
     # The dialog opens over the three resolved paths with 7z selected.
     menus_expect archiveCardsState '.compressOpened and .compressCount == 3 and .compressFormat == "7z"' "the password dialog opens for 3 items in 7z"
@@ -264,12 +264,12 @@ cap_archives_format_open() {
     menu_seek Compress
     key -k Right >/dev/null
     settle
-    menus_expect menuState '.submenu and ([.submenuEntries[] | select(.label == "With password…")] | length) == 1' "the Compress flyout ends in With password"
+    menus_expect menuState '.submenu and ([.submenuEntries[] | select(.label == "With Password…")] | length) == 1' "the Compress flyout ends in With password"
     submenu=$(ipc menuState | jq -r '[.submenuEntries[] | .label // "-"] | join("|")')
-    [[ "$submenu" == *"|-|With password…" ]] || fail "cap_archives_format: With password is not last under its separator: $submenu"
+    [[ "$submenu" == *"|-|With Password…" ]] || fail "cap_archives_format: With password is not last under its separator: $submenu"
     glyphs=$(ipc contextMenuSubmenuGlyphs)
     [[ "$glyphs" == *"|key" ]] || fail "cap_archives_format: With password wears no key mark: $glyphs"
-    menu_seek_submenu "With password…"
+    menu_seek_submenu "With Password…"
     key -k Return >/dev/null
     menus_expect archiveCardsState '.compressOpened and .compressCount == 3 and .compressFormat == "7z"' "the password dialog opens for 3 items in 7z"
     [[ "$(ipc contextMenuVisible)" == "false" ]] || fail "cap_archives_format: the menu stayed open behind the dialog"
@@ -311,18 +311,132 @@ case_cap_archives_format_kanagawa() {
     local real_foreground="" flea_bin="$flea_bin"
     sandbox_make "$sweep_root"
     fixture_home_make "$sweep_home"
+    local real_state_dir="$sweep_home/.local/state/omarchy/current"
     cp "$src" "$sweep_home/.local/state/omarchy/current/theme/colors.toml"
     printf 'kanagawa\n' > "$sweep_home/.local/state/omarchy/current/theme.name"
     # Sample input, one line of colors.toml: foreground = "#dcd7ba"
     real_foreground=$(python3 -c 'import pathlib,sys,tomllib; print(tomllib.loads(pathlib.Path(sys.argv[1]).read_text())["foreground"].lower())' "$sweep_home/.local/state/omarchy/current/theme/colors.toml")
-    flea_bin="$sweep_root/launcher"
-    { printf '#!/usr/bin/env bash\n'; printf 'exec env HOME=%q %q "$@"\n' "$sweep_home" "$sweep_real_bin"; } > "$flea_bin"
-    chmod +x "$flea_bin"
+    local -a flea_launch_wrap=()
+    if [[ "$test_frontend" == gpui ]]; then
+        flea_launch_wrap=(env "HOME=$sweep_home" "XDG_CONFIG_HOME=$sweep_home/.config")
+    else
+        flea_bin="$sweep_root/launcher"
+        { printf '#!/usr/bin/env bash\n'; printf 'exec env HOME=%q %q "$@"\n' "$sweep_home" "$sweep_real_bin"; } > "$flea_bin"
+        chmod +x "$flea_bin"
+    fi
     cap_archives_format_hue "$sweep_home/.local/state/omarchy/current/theme/colors.toml" refuse-hue
     cap_archives_format_open "$dir"
     cap_archives_format_walk
     settle
     assert_theme
     shot archives-format-focus-kanagawa
+    kill_flea
+}
+
+# Issue 397: two marked archives offer Extract, and choosing it extracts each into its own folder.
+case_cap_archives_several() {
+    local dir="$fixture_root/cap-archives-several" menus_checks=0 src="$fixture_root/cap-archives-several-src" i
+    command -v bsdtar >/dev/null || { printf 'CAP SKIP cap-archives-several: bsdtar is not installed\n'; return 0; }
+    sandbox_scratch "$dir"
+    sandbox_scratch "$src"
+    printf 'alpha\n' > "$src/alpha.txt"
+    printf 'beta\n' > "$src/beta.txt"
+    bsdtar -a -cf "$dir/first.zip" -C "$src" alpha.txt || fail "cap_archives_several: no zip fixture"
+    bsdtar -a -cf "$dir/second.tar.gz" -C "$src" beta.txt || fail "cap_archives_several: no tar.gz fixture"
+    printf 'notes\n' > "$dir/notes.txt"
+    seed_ui_state "$fixture_root/cap-archives-several-state" '{"keys":"default","view":"list"}'
+    launch "$dir"
+    wait_listing 3
+    cap_resize 1100 700
+    click_row "$(row_index_of first.zip)" left
+    settle
+    click_row "$(row_index_of second.tar.gz)" left --mods ctrl
+    settle
+    [[ "$(ipc selectionCount)" == "2" ]] || fail "cap_archives_several: two clicks selected $(ipc selectionCount), not 2"
+    click_row "$(row_index_of first.zip)" right
+    settle
+    menus_expect menuState '.opened and .hasRow' "the file menu opens over the two archives"
+    printf 'CAP several menu=%s\n' "$(ipc contextMenuEntries)"
+    shot archives-several-menu
+    menus_expect menuState '([.entries[] | select(.action == "extract" and .disabled != true)] | length) == 1' "two marked archives offer an enabled Extract"
+    menu_seek Extract
+    key -k Return >/dev/null
+    for i in $(seq 1 60); do
+        [[ -f "$dir/first/alpha.txt" && -f "$dir/second/beta.txt" ]] && break
+        sleep 0.25
+    done
+    [[ "$(cat "$dir/first/alpha.txt" 2>/dev/null)" == alpha && "$(cat "$dir/second/beta.txt" 2>/dev/null)" == beta ]] \
+        || fail "cap_archives_several: each archive did not land in its own folder: $(ls -A "$dir")"
+    printf 'CAP several landed=%s\n' "$(ls -A "$dir" | tr '\n' ' ')"
+    settle
+    shot archives-several-done
+    kill_flea
+}
+
+# Soak S1B-3, S1B-5, S1B-6: taken output names step to the next copy name, an extract says its own receipt, a climbing zip is refused.
+cap_archives_names_menu() {
+    local row="$1" action="$2"
+    seek_row_named "$row"
+    click_row "$(ipc cursor)" right
+    settle
+    menu_seek "$action"
+    key -k Return >/dev/null
+    settle
+}
+cap_archives_names_wait() {
+    local path="$1" i
+    for i in $(seq 1 60); do [[ -e "$path" ]] && break; sleep 0.25; done
+    settle
+    # The refused state is shot first, so a failing arm still leaves its picture.
+    [[ -e "$path" ]] || { shot "archives-names-refused-$(basename "$path" | tr ' .' '--')"
+        fail "cap_archives_names: $path never landed, bar says $(ipc lastMessage), folder holds $(ls -A "$(dirname "$path")" | tr '\n' ' ')"; }
+}
+case_cap_archives_names() {
+    local dir="$fixture_root/cap-archives-names" src="$fixture_root/cap-archives-names-src" said
+    command -v bsdtar >/dev/null || { printf 'CAP SKIP cap-archives-names: bsdtar is not installed\n'; return 0; }
+    sandbox_scratch "$dir"
+    sandbox_scratch "$src"
+    mkdir "$dir/pack"
+    printf 'alpha\n' > "$dir/pack/a.txt"
+    printf 'alpha\n' > "$src/alpha.txt"
+    printf 'beta\n' > "$src/beta.txt"
+    bsdtar -a -cf "$dir/proj.zip" -C "$src" alpha.txt || fail "cap_archives_names: no zip fixture"
+    bsdtar -a -cf "$dir/proj.tar.gz" -C "$src" beta.txt || fail "cap_archives_names: no tar.gz fixture"
+    python3 -c 'import sys, zipfile; z = zipfile.ZipFile(sys.argv[1], "w"); z.writestr("ok.txt", "ok"); z.writestr("../../escape-dotdot.txt", "out"); z.close()' "$dir/dotdot.zip" \
+        || fail "cap_archives_names: no dotdot fixture"
+    seed_ui_state "$fixture_root/cap-archives-names-state" '{"keys":"default","view":"list"}'
+    launch "$dir"
+    wait_listing 4
+    cap_resize 1100 700
+    # The first flyout row is the first format the table offered, zip on every box that has bsdtar.
+    cap_archives_names_menu pack Compress
+    key -k Return >/dev/null
+    cap_archives_names_wait "$dir/pack.zip"
+    cap_archives_names_menu pack Compress
+    key -k Return >/dev/null
+    cap_archives_names_wait "$dir/pack copy.zip"
+    said=$(ipc lastMessage)
+    printf 'CAP names compress-again=%s\n' "$said"
+    [[ "$said" == "Archive written." ]] || fail "cap_archives_names: the second compress said $said"
+    shot archives-names-compress-again
+    cap_archives_names_menu proj.zip Extract
+    cap_archives_names_wait "$dir/proj/alpha.txt"
+    cap_archives_names_menu proj.tar.gz Extract
+    cap_archives_names_wait "$dir/proj copy/beta.txt"
+    said=$(ipc lastMessage)
+    printf 'CAP names extract-same-stem=%s\n' "$said"
+    [[ "$said" == "Extracted." ]] || fail "cap_archives_names: the second extract said $said"
+    [[ "$(ls -A "$dir/proj")" == alpha.txt ]] || fail "cap_archives_names: the second extract merged into proj: $(ls -A "$dir/proj")"
+    shot archives-names-extract-same-stem
+    cap_archives_names_menu dotdot.zip Extract
+    for _ in $(seq 1 40); do [[ "$(ipc lastMessage)" == *outside* ]] && break; sleep 0.25; done
+    said=$(ipc lastMessage)
+    printf 'CAP names extract-dotdot=%s\n' "$said"
+    [[ "$said" == "An entry in this archive would land outside its folder, so nothing was extracted" ]] \
+        || fail "cap_archives_names: the climbing zip said $said"
+    [[ ! -e "$dir/dotdot" && ! -e "$fixture_root/escape-dotdot.txt" ]] || fail "cap_archives_names: the climbing zip wrote something"
+    settle
+    shot archives-names-extract-dotdot
+    printf 'CAP names landed=%s\n' "$(ls -A "$dir" | tr '\n' ' ')"
     kill_flea
 }

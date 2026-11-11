@@ -1,14 +1,14 @@
 //! The NETWORK row menu on mn1's shared card, the share browser over its own pane's listing and the card's layer.
 use super::Network;
 use crate::{
-    g2::mn1::{element::MenuElement, menu::Face, menu::Outcome},
-    g2::pl2::{bookmarks, menus},
+    g2::context_menus::{element::MenuElement, menu::Face, menu::Outcome},
+    g2::network_shares::{bookmarks, menus},
     state::Shell,
     window::{dispatch::Order, input::ActionEvent},
 };
 use flea::keys::{Context as KeyContext, Match};
-use flea::ui_logic_mn1::fit::Rect;
-use flea::ui_logic_pl4::rail;
+use flea::ui_logic_context_menus::fit::Rect;
+use flea::ui_logic_rail_places::rail;
 use gpui::{
     div, prelude::*, px, AnyElement, Context, KeyDownEvent, MouseButton, MouseDownEvent,
     MouseMoveEvent, Window,
@@ -372,7 +372,7 @@ impl Shell {
 }
 
 /// The rail-shaped key a join row is found by again.
-fn section_entry(row: &flea::ui_logic_pl1::RailEntry) -> rail::RailEntry {
+fn section_entry(row: &flea::ui_logic_device_rail::RailEntry) -> rail::RailEntry {
     rail::RailEntry {
         path: row.path.clone(),
         uri: row.uri.clone(),

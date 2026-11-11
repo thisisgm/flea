@@ -7,7 +7,7 @@ use crate::{
 use flea::{
     keys::{self, Frontend},
     protocol::Reply,
-    ui_logic_op1::{lines, trash},
+    ui_logic_file_ops::{lines, trash},
 };
 use gpui::{Entity, TestAppContext, VisualTestContext};
 use std::time::Duration;
@@ -77,7 +77,7 @@ pub(super) fn create_card(shell: &Entity<Shell>, cx: &mut VisualTestContext) {
         view.update(cx, |overlay, cx| {
             overlay
                 .model
-                .press(&catalog, crate::g2::op1::press::Press::NewFileConfirm);
+                .press(&catalog, crate::g2::file_ops::press::Press::NewFileConfirm);
             cx.notify();
         });
     });
@@ -103,7 +103,7 @@ pub(super) fn dismiss_card(shell: &Entity<Shell>, cx: &mut VisualTestContext) {
             view.update(cx, |overlay, cx| {
                 overlay
                     .model
-                    .press(&catalog, crate::g2::op1::press::Press::NewFileCancel);
+                    .press(&catalog, crate::g2::file_ops::press::Press::NewFileCancel);
                 cx.notify();
             });
         }
@@ -459,3 +459,6 @@ cx.simulate_keystrokes("ctrl-shift-n");
 
 #[path = "newfolder_tests.rs"]
 mod newfolder_tests;
+
+#[path = "band_filter_trash_tests.rs"]
+mod band_filter_trash_tests;

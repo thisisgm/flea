@@ -1,7 +1,7 @@
 {
   "fork": {
     "url": "https://github.com/thisisgm/gpui-omarchy",
-    "rev": "b9f9da0f681c87c6ae4d5b02037f9be23ea4ef32"
+    "rev": "c1643efcf27498cb516c0831fd15f66ff9b1c811"
   },
   "ui_callbacks": [
     "flea_gui::window::open",
@@ -12,7 +12,12 @@
   "blocking_helpers": [],
   "blocking_exceptions": [
     {
-      "caller": "flea_gui::g2::pl3::pane::TrashPane::pump",
+      "caller": "flea_gui::g2::print_convert::convert::Model::probe",
+      "symbol": "flea_gui::g2::print_convert::combine::Combine::output",
+      "reason": "Combine::output validates composition settings and builds an output path string without I/O"
+    },
+    {
+      "caller": "flea_gui::g2::trash_browser::pane::TrashPane::pump",
       "symbol": "status",
       "reason": "Outside::status queues a Trash message for the feedback service and performs no process or I/O call"
     },

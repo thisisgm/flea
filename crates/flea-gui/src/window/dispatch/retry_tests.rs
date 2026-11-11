@@ -64,7 +64,7 @@ fn failed_sources_are_marked_again_and_the_line_goes_when_the_cursor_moves(
     land(&shell, cx, "/files", home(), 2);
     let id = asked(&shell, cx).expect("the idle folder asks where the failed sources are");
     let line = shell.read_with(cx, |shell, _| {
-        flea::ui_logic_op1::lines::retry_selection_line(
+        flea::ui_logic_file_ops::lines::retry_selection_line(
             &shell.locale.catalog,
             &["/files/beta", "/files/notes.txt"],
         )

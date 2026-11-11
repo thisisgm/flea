@@ -1,4 +1,5 @@
 //! Source identities captured at Copy and checked again by the journaled link worker.
+use flea::bytename::ExactText as _;
 use super::{opsreq::OpMsg, undo::ItemIdentity};
 use crate::jsondoc::Json;
 use std::{path::PathBuf, sync::mpsc::Sender};
@@ -13,7 +14,7 @@ pub fn capture(paths: &[String]) -> Result<Vec<Identity>, String> {
     paths
         .iter()
         .map(|path| {
-            let path = PathBuf::from(path);
+            let path = flea::bytename::exact(path);
             if !path.is_absolute() {
                 return Err("link sources must be absolute paths".into());
             }
@@ -30,7 +31,7 @@ pub fn encode(held: &[Identity]) -> Json {
                 Json::Obj(vec![
                     (
                         "path".into(),
-                        Json::Str(held.path.to_string_lossy().into_owned()),
+                        Json::Str(held.path.exact_text().into_owned()),
                     ),
                     ("dev".into(), Json::Str(dev.to_string())),
                     ("ino".into(), Json::Str(ino.to_string())),
@@ -53,7 +54,8 @@ pub fn decode(value: &Json) -> Result<Vec<Identity>, String> {
         .ok_or_else(invalid)?
         .iter()
         .map(|v| {
-            let path = PathBuf::from(v.get("path").and_then(Json::as_str).ok_or_else(invalid)?);
+            let path =
+                flea::bytename::exact(v.get("path").and_then(Json::as_str).ok_or_else(invalid)?);
             let num = |key| {
                 v.get(key)
                     .and_then(Json::as_str)

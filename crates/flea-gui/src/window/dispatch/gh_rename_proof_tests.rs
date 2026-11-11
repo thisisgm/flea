@@ -130,7 +130,7 @@ fn gh305_enter_on_edit_in_terminal_hands_the_editor_the_shown_names(cx: &mut Tes
             .unwrap()
             .card
             .focus),
-        flea::ui_logic_op3::bulkrename::Stop::Edit
+        flea::ui_logic_open_with_properties::bulkrename::Stop::Edit
     );
     cx.simulate_keystrokes("enter");
     cx.run_until_parked();
@@ -149,7 +149,7 @@ fn gh305_enter_on_edit_in_terminal_hands_the_editor_the_shown_names(cx: &mut Tes
     // Edit, Cancel, Rename: Right twice reaches Rename, and Enter sends the editor's names for the marked paths.
     cx.simulate_keystrokes("right right enter");
     let out = sent(&mut lines);
-    let request = flea::ui_logic_op3::bulkrename::request(
+    let request = flea::ui_logic_open_with_properties::bulkrename::request(
         &paths,
         &["one.txt".into(), "two.txt".into(), "three.txt".into()],
     )
@@ -234,6 +234,43 @@ fn gh305_a_press_on_edit_in_terminal_hands_the_editor_the_shown_names(cx: &mut T
     close(&shell, cx);
 }
 
+// A press beside the card closes it as Delete, Properties, Run and Open With close, and renames nothing.
+#[gpui::test]
+fn a_press_on_the_scrim_cancels_the_bulk_card(cx: &mut TestAppContext) {
+    let _lane = Lane::new();
+    let (shell, cx) = rooted(cx);
+    let (shell, cx, mut lines, paths) = marks(shell, cx);
+    f2_card(&shell, cx, &mut lines, &paths);
+    cx.update(|window, _| window.refresh());
+    cx.run_until_parked();
+    let scrim = cx
+        .debug_bounds("op3-bulkrename-scrim")
+        .expect("the scrim is drawn");
+    let card = cx.debug_bounds("op3-card").expect("the card is drawn");
+    press_at(cx, card.origin + gpui::point(gpui::px(4.), gpui::px(4.)));
+    assert!(card_open(&shell, cx), "a press on the card keeps it");
+    // S12C-2's point, low on the left, where the listing's rows lie under the scrim.
+    let at = scrim.origin + gpui::point(scrim.size.width * 0.06, scrim.size.height * 0.9);
+    assert!(!card.contains(&at), "the press lands beside the card");
+    let before = cursor(&shell, cx);
+    press_at(cx, at);
+    assert!(!card_open(&shell, cx), "the scrim press cancels");
+    assert_eq!(card_names(&shell, cx), None, "the card is gone");
+    assert_eq!(sent(&mut lines), Vec::<String>::new(), "renames nothing");
+    assert_eq!(cursor(&shell, cx), before, "the press does nothing else");
+    cx.simulate_keystrokes("k");
+    cx.run_until_parked();
+    assert_ne!(cursor(&shell, cx), before, "keys go back to the listing");
+}
+
+fn press_at(cx: &mut VisualTestContext, at: gpui::Point<gpui::Pixels>) {
+    press(cx, &format!("{} {}", f32::from(at.x), f32::from(at.y)), 1);
+}
+
+fn cursor(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> usize {
+    shell.read_with(cx, |shell, _| shell.panes[0].as_ref().unwrap().pane.cursor)
+}
+
 // Rename is drawn disabled while no name has changed, so a click on it must leave the focus where it was.
 #[gpui::test]
 fn gh305_a_click_on_a_disabled_rename_leaves_the_focus_put(cx: &mut TestAppContext) {
@@ -248,7 +285,7 @@ fn gh305_a_click_on_a_disabled_rename_leaves_the_focus_put(cx: &mut TestAppConte
     };
     assert_eq!(
         focus(&shell, cx),
-        flea::ui_logic_op3::bulkrename::Stop::Find
+        flea::ui_logic_open_with_properties::bulkrename::Stop::Find
     );
     // A presented frame, which is the one debug_bounds reads.
     cx.update(|window, _| window.refresh());
@@ -265,7 +302,7 @@ fn gh305_a_click_on_a_disabled_rename_leaves_the_focus_put(cx: &mut TestAppConte
     cx.run_until_parked();
     assert_eq!(
         focus(&shell, cx),
-        flea::ui_logic_op3::bulkrename::Stop::Find,
+        flea::ui_logic_open_with_properties::bulkrename::Stop::Find,
         "a click on the disabled Rename moved the focus"
     );
     assert_eq!(
@@ -297,14 +334,18 @@ fn gh265_navigation_answers_around_a_delayed_rename(cx: &mut TestAppContext) {
         "GH265 OBSERVED cursor_after_up_while_pending={held} editing={:?}",
         editing(&shell, cx).is_some()
     );
-    // Escape hides the editor with the request out, and Up then moves at once.
+    // S2-4, v0.3.12 RenameField.qml: Escape cannot abandon the write that is out, so the editor stays and Up moves nothing.
     cx.simulate_keystrokes("escape");
     draw(cx);
+    assert!(
+        editing(&shell, cx).is_some(),
+        "Escape keeps the pending editor"
+    );
     cx.simulate_keystrokes("up");
     draw(cx);
     let moved = cursor(&shell, cx);
     eprintln!("GH265 OBSERVED cursor_after_escape_up_while_pending={moved}");
-    assert!(moved < 2, "navigation answers while the rename is out");
+    assert_eq!(moved, held, "the editor holds the keys until the reply");
     let before = lists(&shell, cx);
     receive(
         &shell,
@@ -334,13 +375,13 @@ fn gh265_navigation_answers_around_a_delayed_rename(cx: &mut TestAppContext) {
         queued(&shell, cx),
         "Down is held for the re-read, not dropped"
     );
-    land_on(&shell, cx, 0, "/files", reread(), 3, 2);
+    land_on(&shell, cx, 0, "/files", reread(), 4, 2);
     assert!(!queued(&shell, cx), "the landing spends the held key");
-    // The cursor Escape left on row `at` keeps that row through the re-read, and the held Down moves one row from it.
+    // The re-read keeps the renamed file on row 2 with a row below it, so the held Down shows it moved one row.
     assert_eq!(
-        cursor(&shell, cx),
-        at + 1,
-        "the held Down moves one row from the row the re-read keeps"
+        (at, cursor(&shell, cx)),
+        (2, 3),
+        "the held Down moves one row past the renamed file"
     );
     close(&shell, cx);
 }
@@ -350,5 +391,6 @@ fn reread() -> Vec<flea::protocol::RowFacts> {
         row("alpha", true),
         row("beta", true),
         row("draft.txt", false),
+        row("zeta.txt", false),
     ]
 }

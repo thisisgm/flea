@@ -1,5 +1,5 @@
 use super::readers3_tests::{open, read, update};
-use flea::{jsondoc, jsondoc::Json, ui_logic_st2::contributions::ActionInput};
+use flea::{jsondoc, jsondoc::Json, ui_logic_plugin_settings::contributions::ActionInput};
 use gpui::TestAppContext;
 
 #[gpui::test]

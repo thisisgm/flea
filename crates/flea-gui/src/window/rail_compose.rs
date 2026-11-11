@@ -5,13 +5,13 @@ use super::*;
 pub fn mount(catalog: Arc<I18n>, state: &Json, side: usize, cx: &mut Context<Shell>) -> Join {
     #[cfg(not(test))]
     let (runner, seed) = (
-        Rc::new(crate::g2::pl1::process::ThreadRunner),
-        crate::g2::pl1::source::seed::take(),
+        Rc::new(crate::g2::device_rail::process::ThreadRunner),
+        crate::g2::device_rail::source::seed::take(),
     );
     #[cfg(not(test))]
     let hostname = seed.as_ref().map(|seed| seed.hostname.clone());
     #[cfg(test)]
-    let ((runner, hostname), seed) = (crate::g2::pl1::source::fixture::services(cx), None);
+    let ((runner, hostname), seed) = (crate::g2::device_rail::source::fixture::services(cx), None);
     mount_with_source(catalog, state, side, runner, hostname, seed, cx)
 }
 
@@ -21,7 +21,7 @@ pub(crate) fn mount_with_source(
     side: usize,
     runner: Rc<dyn Runner>,
     hostname: Option<String>,
-    seed: Option<crate::g2::pl1::source::seed::Seed>,
+    seed: Option<crate::g2::device_rail::source::seed::Seed>,
     cx: &mut Context<Shell>,
 ) -> Join {
     let places = state.get("places").unwrap_or(&Json::Null);
@@ -72,12 +72,9 @@ pub(crate) fn mount_with_source(
     let owner = cx.entity();
     let trash_subscription = cx.subscribe(
         &owner,
-        |shell, _, event: &crate::g2::pl3::join::TrashEvent, cx| match event {
-            crate::g2::pl3::join::TrashEvent::Count(count) => {
+        |shell, _, event: &crate::g2::trash_browser::join::TrashEvent, cx| match event {
+            crate::g2::trash_browser::join::TrashEvent::Count(count) => {
                 shell.rail_trash_count(*count as u64, cx);
-            }
-            crate::g2::pl3::join::TrashEvent::FocusRail => {
-                shell.rail_focus(true, cx);
             }
         },
     );
@@ -119,6 +116,7 @@ impl Shell {
             self.focus_side,
             cx,
         );
+        join.places.read(cx).model.borrow_mut().cover = self.settings.cover.clone();
         self.slots.rail = Some(AnyView::from(join.host.clone()));
         self.rail = Some(join);
         self.receive_rail_drops(cx);
@@ -131,7 +129,7 @@ impl Shell {
         if join.host.read(cx).rail.mode() == Mode::Hidden {
             self.input.remove("rail");
             if self.dual_focus.rail.contains_focused(window, cx) {
-                window.focus(&self.focus, cx);
+                window.focus(&self.overlay_return_focus(cx), cx);
                 self.keyboard.context = flea::keys::Context::Listing;
             }
             return;

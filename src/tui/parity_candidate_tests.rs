@@ -534,10 +534,10 @@ fn tui_parity_contexts_do_not_hijack_listing() {
                     ),
                     cards
                 );
-                assert!(
-                    drain(&mut w).iter().all(|v| text(v, "c") == "filter"),
-                    "{preset} {context} {key}"
-                );
+                // The menu's own Copy As letter p asks for its targets, as the window's does; nothing else is sent.
+                let ok = |c: &str| c == "filter" || (context, key, c) == ("menu", "p", "paths");
+                let quiet = drain(&mut w).iter().all(|v| ok(text(v, "c")));
+                assert!(quiet, "{preset} {context} {key}");
                 wire::finish(w, reader);
             }
         }
@@ -635,7 +635,6 @@ fn tui_parity_terminal_route_child() {
 
 #[test]
 fn tui_parity_terminal_refusals_name_a_real_launch_route() {
-    use std::os::unix::fs::PermissionsExt;
     let map = Map::load();
     let rows: Vec<Vec<&str>> = include_str!("parity.tsv")
         .lines()
@@ -663,7 +662,7 @@ fn tui_parity_terminal_refusals_name_a_real_launch_route() {
     }
     let script = root.join("bin/xdg-terminal-exec");
     std::fs::write(&script, "#!/bin/sh\ncase ${FLEA_PARITY_ROUTE_ROOT:?} in /*) ;; *) exit 2 ;; esac\n[ -f \"$FLEA_PARITY_ROUTE_ROOT/.flea-test-sandbox\" ] || exit 2\nprintf '%s\\n' \"$@\" > \"$FLEA_PARITY_ROUTE_ROOT/terminal.args\"\n").unwrap();
-    std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o700)).unwrap();
+    flea::executable_file::write(&script, &std::fs::read(&script).unwrap(), 0o700).unwrap();
     let output = std::process::Command::new(std::env::current_exe().unwrap())
         .args([
             "--exact",

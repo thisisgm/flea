@@ -75,12 +75,17 @@ A crumb click answers on the first tap (decided 2026-09-22). `ui/Crumb.qml` used
 holding `singleTapped` until the double-click interval expires: measured on this box, 392 to 433 ms
 after the press against Qt's 400 ms interval, on every crumb click. Nobody double-clicks a
 breadcrumb, so a parent now opens at once, a double click on a parent is simply two taps, and the
-double click that types the path lives only where a single tap opens nothing: the leaf segment, the
-collapsed marker and the strip beside the crumbs, which `keys.toml` calls `inert`. Ctrl+L and `:` still
-open the bar anywhere. `tests/ui.sh` case `click` double clicks a parent with the backend stopped,
+tap that types the path lives only where a tap opens no folder: the leaf segment, the collapsed
+marker and the strip beside the crumbs, which `keys.toml` calls `inert`. Since 0.4.2 the GPUI window
+(`crates/flea-gui/src/path/strip.rs`) opens the bar on one tap there (issue 327), where it took a double
+click; the second tap lands in the field the first opened and keeps the whole path selected. The
+retained QML frontend keeps its double-tap handlers. Ctrl+L and `:` still open the bar anywhere.
+`tests/ui.sh` case `click` double clicks a parent with the backend stopped,
 because the path is written only when a listing answers: a listing landing between the two taps
-rebuilds the crumbs and hands the second tap to a fresh delegate, which would pass with the guard in
-`onDoubleTapped` deleted. The same case double clicks the collapsed marker, the guard's other arm.
+rebuilds the crumbs and hands the second tap to a fresh delegate, hiding an editor opened by the
+second press. Under GPUI the same case requires a single tap on the collapsed marker to open the
+field and closes it with Escape (under QML that tap must leave the bar closed), then checks on both
+frontends that a double click opens it without changing the path.
 
 Its effect field is `does` and not `action`, and that is load bearing. `tools/flea-acceptance`
 derives its whole key checklist with one `sed` for `^action = ` over this file, with no table

@@ -2,7 +2,7 @@ use super::preview_tests::{answer, body, close, draw, file, sent, token};
 use super::test_shell::{keystroke, land, set_cursor};
 use crate::{
     backend::Backend,
-    g2::pv1::{Body, QuickLook},
+    g2::quick_look_overlay::{Body, QuickLook},
     state::Shell,
     window::{
         locale::Snapshot,
@@ -103,6 +103,7 @@ pub(super) fn opened_at<'a>(
     };
     let (_sender, events) = async_channel::unbounded();
     cx.update(|cx| {
+        cx.set_global(crate::state::constructor_fixture::NoSettingsWorker);
         cx.set_global(crate::state::constructor_fixture::Services {
             backend: |_, cx| {
                 let (backend, requests) = Backend::test_channel();

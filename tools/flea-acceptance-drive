@@ -32,20 +32,6 @@ DRIVE_CONTEXT=listing
 DRIVE_ROW_ID=setup
 DRIVE_SHOTS=0
 
-# omarchy-drive env omits the Qt platform theme, without which no row icon resolves; the same
-# three-step recovery tests/ui.sh and tools/flea-showcase both use, ending at a live client's own
-# environment, which is the only authoritative answer.
-platform_theme() {
-  LC_ALL=C.UTF-8 LANGUAGE= systemctl --user show-environment | LC_ALL=C.UTF-8 LANGUAGE= grep '^QT_QPA_PLATFORMTHEME=' | cut -d= -f2-
-}
-
-platform_theme_from_a_live_client() {
-  local pid
-  pid=$(LC_ALL=C.UTF-8 LANGUAGE= pgrep -x quickshell | head -1)
-  [ -n "$pid" ] || return 0
-  LC_ALL=C.UTF-8 LANGUAGE= tr '\0' '\n' < "/proc/$pid/environ" | LC_ALL=C.UTF-8 LANGUAGE= grep '^QT_QPA_PLATFORMTHEME=' | cut -d= -f2-
-}
-
 drive_session_setup() {
   export PATH="$HOME/.local/bin:$PATH"
   command -v omarchy-drive >/dev/null || die "omarchy-drive is not on PATH, so no window can be driven"
@@ -71,9 +57,6 @@ drive_session_setup() {
     || die "omarchy-drive returned an unexpected session"
   exec {DRIVE_LOCK}>"$XDG_RUNTIME_DIR/flea-display.lock"
   flock -n "$DRIVE_LOCK" || die "another owner holds flea-display.lock"
-  [ -n "${QT_QPA_PLATFORMTHEME:-}" ] || export QT_QPA_PLATFORMTHEME="$(platform_theme)"
-  [ -n "$QT_QPA_PLATFORMTHEME" ] || export QT_QPA_PLATFORMTHEME="$(platform_theme_from_a_live_client)"
-  [ -n "$QT_QPA_PLATFORMTHEME" ] || die "nothing published QT_QPA_PLATFORMTHEME, so no row would draw an icon"
 }
 
 # ---- the seam into the running window --------------------------------------------------------------
@@ -152,13 +135,11 @@ window_geometry() {
   window_json | jq -r '"\(.at[0]) \(.at[1]) \(.size[0]) \(.size[1]) \(.address)"'
 }
 
+# The GPUI window is the flea-gui that `flea --gui` runs from beside the candidate, so its executable is the identity.
 flea_pids() {
   local pid
-  for pid in $(LC_ALL=C.UTF-8 LANGUAGE= pgrep -x qs || true); do
-    [ -r "/proc/$pid/cmdline" ] || continue
-    if LC_ALL=C.UTF-8 LANGUAGE= tr '\0' ' ' 2>/dev/null < "/proc/$pid/cmdline" | LC_ALL=C.UTF-8 LANGUAGE= grep -Fq "$REPO/ui"; then
-      printf '%s\n' "$pid"
-    fi
+  for pid in $(LC_ALL=C.UTF-8 LANGUAGE= pgrep -x flea-gui || true); do
+    [ "$(readlink -f "/proc/$pid/exe" 2>/dev/null)" = "${BIN%/*}/flea-gui" ] && printf '%s\n' "$pid"
   done
 }
 
@@ -507,8 +488,8 @@ environment = (process / 'environ').read_bytes().split(b'\0')
 required = ['FLEA_ACCEPTANCE_RUN=' + root, 'FLEA_UI=' + ui, 'FLEA_BIN=' + binary]
 if process.stat().st_uid != os.getuid() or any(os.fsencode(value) not in environment for value in required):
     raise SystemExit('Flea window environment does not belong to this candidate run')
-if os.fsencode(ui) not in (process / 'cmdline').read_bytes().split(b'\0'):
-    raise SystemExit('Flea window did not load the identified UI directory')
+if os.path.realpath(process / 'exe') != os.path.join(os.path.dirname(binary), 'flea-gui'):
+    raise SystemExit('Flea window is not the flea-gui beside the identified candidate')
 print(json.dumps(window, separators=(',', ':')))
 PY
 }

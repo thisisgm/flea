@@ -141,6 +141,8 @@ pub struct Bar {
     pub focused_index: usize,
     pub hover: Option<(usize, u64)>,
     pub close_hover: Option<usize>,
+    // Settings > View's Show tabs as icons: every tab narrows to its mark and has no close slot.
+    pub icons: bool,
     // The tab count close_hover was read against.
     hover_count: usize,
     serial: u64,
@@ -169,7 +171,11 @@ impl Bar {
     }
 
     pub fn tab_width(&self, count: usize) -> f32 {
-        tab_width(self.width, count, self.caption)
+        if self.icons {
+            super::icons::WIDTH
+        } else {
+            tab_width(self.width, count, self.caption)
+        }
     }
 
     pub fn drag_to(&self) -> Option<usize> {
@@ -256,7 +262,7 @@ impl Bar {
         if slot < count {
             let order = self.layout_order(count);
             let index = order[slot];
-            return if local >= (slot as f32 + 1.) * width - HIT_MIN {
+            return if !self.icons && local >= (slot as f32 + 1.) * width - HIT_MIN {
                 Hit::Close(index)
             } else {
                 Hit::Tab(index)
@@ -344,6 +350,7 @@ impl Bar {
             focus: self.stop_focused.then_some(self.focused_index),
             close_hover: self.close_hover,
             tab_width: self.tab_width(count),
+            icons: None,
         }
     }
 }
@@ -368,6 +375,8 @@ pub struct Frame {
     pub focus: Option<usize>,
     pub close_hover: Option<usize>,
     pub tab_width: f32,
+    // Each tab's mark and whole path while Show tabs as icons is on.
+    pub icons: Option<super::icons::Icons>,
 }
 
 // Shaped labels kept across frames, each already elided to its tab; nine tabs bound it.

@@ -4,7 +4,7 @@ use gpui::{Modifiers, MouseButton, VisualTestContext};
 
 #[test]
 fn frame_counters_credit_only_the_presented_stamp() {
-    use crate::g2::pv1::{
+    use crate::g2::quick_look_overlay::{
         observations::Shared,
         observed_frames::{Frames, Stamp},
     };
@@ -42,7 +42,7 @@ fn frame_counters_credit_only_the_presented_stamp() {
         },
         &observed,
     );
-    observed.borrow_mut().landed = true;
+    observed.borrow_mut().revealed(0, true, true, false);
     frames.receive(
         Event::Terminal(FrameTerminal {
             frame_id: 11,

@@ -2,7 +2,7 @@
 use super::search_open_tests::line;
 use super::test_shell::{land, open_root_at};
 use crate::{
-    g2::pv1::{doc::View, Body},
+    g2::quick_look_overlay::{doc::View, Body},
     state::Shell,
 };
 use gpui::{Entity, TestAppContext, VisualTestContext};
@@ -105,6 +105,30 @@ fn ready(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> gpui::EntityId {
             Instant::now() < until,
             "the rested local document never prepared: {prepared:?}"
         );
+        super::preview_tests::draw(cx);
+        std::thread::sleep(Duration::from_millis(5));
+    }
+}
+
+// Escape adopts the shown view only once its read and parse are complete, so a dismiss test waits for that first.
+fn shown_ready(shell: &Entity<Shell>, cx: &mut VisualTestContext) {
+    let until = Instant::now() + Duration::from_secs(10);
+    loop {
+        let done = shell.read_with(cx, |shell, cx| {
+            let host = shell.quick_look.as_ref().expect("Space opened Quick Look");
+            let subject = host.view.read(cx).subject().expect("the shown row");
+            let Body::Doc(doc) = &subject.body else {
+                return false;
+            };
+            let View::Markdown(view) = &doc.view else {
+                return false;
+            };
+            view.read(cx).doc.content_ready()
+        });
+        if done {
+            return;
+        }
+        assert!(Instant::now() < until, "the shown Markdown never completed");
         super::preview_tests::draw(cx);
         std::thread::sleep(Duration::from_millis(5));
     }
@@ -225,6 +249,7 @@ fn previewq_dismiss_does_not_prepare_the_unchanged_markdown_again(cx: &mut TestA
     let prepared = ready(&shell, cx);
     cx.simulate_keystrokes("space");
     super::menus_tests::settle(cx);
+    shown_ready(&shell, cx);
     let shown = shell.read_with(cx, |shell, cx| {
         assert!(shell.quick_look_open(cx), "Space opened Quick Look");
         let host = shell.quick_look.as_ref().unwrap();
@@ -273,6 +298,7 @@ fn previewq_dismiss_then_space_reopens_the_unchanged_markdown_warm(cx: &mut Test
     cx.simulate_keystrokes("space");
     super::menus_tests::settle(cx);
     assert!(shell.read_with(cx, |shell, cx| shell.quick_look_open(cx)));
+    shown_ready(&shell, cx);
     cx.simulate_keystrokes("escape");
     // No clock advance: a re-preparation could only land after its 120 ms timer.
     super::preview_tests::draw(cx);

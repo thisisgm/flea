@@ -7,7 +7,7 @@ use crate::{
 };
 use flea::{
     jsondoc::Json,
-    ui_logic_st1::{pages, Text},
+    ui_logic_settings_pages::{pages, Text},
 };
 use gpui::{Context, Window};
 
@@ -57,12 +57,12 @@ impl Shell {
         let revision = self.settings.revision;
         let mut saving = Json::Obj(Vec::new());
         for (_, failed) in &self.settings.failed {
-            crate::g2::st1::seams::merge(&mut saving, failed);
+            crate::g2::settings_pages::seams::merge(&mut saving, failed);
         }
         for (_, pending) in &self.settings.pending {
             store::overlay_retry(&mut saving, pending);
         }
-        crate::g2::st1::seams::merge(&mut saving, &patch);
+        crate::g2::settings_pages::seams::merge(&mut saving, &patch);
         if let Some(worker) = &self.settings.worker {
             if operation.is_none() {
                 let through = self
@@ -122,9 +122,7 @@ impl Shell {
                     cx,
                 );
             }
-            store::Update::Unreadable => {
-                self.settings_error("settings.error.favourites_unread", cx)
-            }
+            store::Update::Notice(key) => self.settings_error(key, cx),
             store::Update::Corner(corner) => self.apply_corner(corner, window, cx),
             store::Update::Failed { through, keep } => {
                 self.finish_network_favourite(through, Err(""), cx);
@@ -246,6 +244,8 @@ impl Shell {
                 .update(cx, |view, cx| view.set_languages(languages, cx));
         }
         self.rail_state(&data, cx);
+        crate::g2::status_feedback::hero::EmptyLook::apply(&data, cx);
+        crate::list::hover_wash::HoverWash::apply(&data, cx);
         if let Some(host) = self.panes.iter().flatten().next() {
             *host.nav.folders.borrow_mut() = Folders::from_settings(&data, newest);
         }
@@ -319,39 +319,6 @@ impl Shell {
         cx: &gpui::App,
     ) {
         configure_pane(host, &self.launch.settings.data, self.settings_typeface(cx));
-    }
-
-    pub(crate) fn choose_settings_view(
-        &mut self,
-        view: View,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) {
-        if self.lifecycle.phase() != crate::window::lifecycle::Phase::Open {
-            return;
-        }
-        self.set_view(view, window, cx);
-        self.remember_settings_view(view, window, cx);
-    }
-
-    fn remember_settings_view(&mut self, view: View, window: &mut Window, cx: &mut Context<Self>) {
-        if view == View::Dual {
-            return;
-        }
-        let name = view_name(view);
-        let data = &self.launch.settings.data;
-        let patch = if pages::is_true(data, &["rememberViewPerFolder"]) {
-            let Some(host) = &self.panes[self.focus_side] else {
-                return;
-            };
-            Json::Obj(vec![(
-                "folderViews".into(),
-                Json::Obj(vec![(host.path.clone(), Json::Str(name.into()))]),
-            )])
-        } else {
-            Json::Obj(vec![("view".into(), Json::Str(name.into()))])
-        };
-        self.change_settings(patch, window, cx);
     }
 
     pub(crate) fn settings_folder_arrived(&mut self, _window: &mut Window, cx: &mut Context<Self>) {

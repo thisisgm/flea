@@ -1,7 +1,7 @@
 //! Text preview readers project the mounted code viewport, including its held swap and focus.
 use super::Adapter;
 use crate::{
-    g2::{pv1::doc::View, pv2::code::CodeView},
+    g2::{doc_preview::code::CodeView, quick_look_overlay::doc::View},
     state::Shell,
     window::selection_preview::{docs::Doc, Mounted},
 };

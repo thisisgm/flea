@@ -193,7 +193,7 @@ def refused_paths(f):
             (['/'], 'rclone cannot send /, it has no file name.'),
             ([parent], 'rclone cannot send ' + parent + ', it has no file name.'),
             (['source/first.txt'], 'rclone requires an absolute selection path, not source/first.txt.'),
-            (['/a\0b'], 'rclone cannot send /a\0b, it contains a NUL byte.'),
+            (['/a\0b'], 'rclone cannot send /a, it contains a NUL byte.'),
             ([], 'Choose at least one item to send with rclone.')], 301):
         f.backend.send(c='rclone', op='send', id=request, remote='gdrive', folder='Uploads', paths=paths)
         reply = f.backend.wait(lambda e: e['t'] == 'rclonestarted' and e['requestId'] == request)

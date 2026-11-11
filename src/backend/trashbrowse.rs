@@ -3,6 +3,7 @@ use crate::backend::opsreq::OpMsg;
 use crate::backend::trashdelete::Reviewed;
 use crate::backend::trashmanifest::{Cancellation, Manifest, Op, Outcome, Refusal};
 use crate::json::{escape, field_bool, field_str, field_str_array, field_usize};
+use flea::bytename::ExactText as _;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::mpsc::{channel, Sender};
@@ -11,6 +12,9 @@ use std::time::{Duration, Instant};
 
 mod job;
 mod details;
+mod restore;
+mod sweep;
+mod topdir;
 #[cfg(test)]
 mod queue_tests;
 pub(crate) use job::request;
@@ -84,6 +88,7 @@ struct Confirmation {
     count: usize,
     nodes: usize,
     all: bool,
+    sweep: sweep::Sweep,
 }
 struct Selection {
     token: usize,
@@ -148,7 +153,7 @@ fn gio(args: &[&str]) -> Result<String, Refusal> {
     let prefix = super::trash::gio_prefix();
     answer(crate::backend::locale::command(&prefix[0])
         .args(&prefix[1..])
-        .args(args)
+        .args(flea::bytename::args(args))
         .output())
 }
 fn answer(output: std::io::Result<std::process::Output>) -> Result<String, Refusal> {
@@ -162,29 +167,79 @@ fn answer(output: std::io::Result<std::process::Output>) -> Result<String, Refus
     String::from_utf8(output.stdout).map_err(|_| unreadable("The Trash helper returned invalid text."))
 }
 
-// Sample input: "trash:///a.txt\t/home/gm/a.txt\n"; malformed framing must not silently lose an item.
-fn parse_list(text: &str) -> Result<Vec<Item>, Refusal> {
+// Sample input, gio list -u -h -a trash::orig-path trash:///: "trash:///a%0Ab.txt\t4\t(regular)\ttrash::orig-path=/tmp/a\\x0ab.txt\n".
+// gio escapes every control, non-ASCII and backslash byte, so one line is one item, and an item it cannot describe is left out, never the rest.
+fn parse_list(text: &str) -> Vec<Item> {
     let mut items = Vec::new();
+    let mut left_out = Vec::new();
+    let mut uris = Vec::new();
     for line in text.lines() {
-        let (uri, original) = line
-            .split_once('\t')
-            .ok_or_else(|| unreadable("The Trash helper returned an unreadable listing."))?;
-        if !uri.starts_with("trash:///")
-            || uri.len() <= "trash:///".len()
-            || !original.starts_with('/')
-        {
-            return Err(unreadable("The Trash helper returned an invalid item identity."));
+        let mut fields = line.split('\t');
+        let uri = fields.next().unwrap_or_default();
+        uris.push(uri);
+        let original = fields
+            .find_map(|field| field.strip_prefix("trash::orig-path="))
+            .and_then(unescape);
+        match original {
+            Some(original)
+                if uri.starts_with("trash:///")
+                    && uri.len() > "trash:///".len()
+                    && original.starts_with('/') =>
+            {
+                items.push(Item {
+                    uri: uri.into(),
+                    original,
+                })
+            }
+            _ => left_out.push(uri.to_string()),
         }
-        items.push(Item {
-            uri: uri.into(),
-            original: original.into(),
-        });
     }
     items.sort_by(|a, b| a.uri.cmp(&b.uri));
-    if items.windows(2).any(|pair| pair[0].uri == pair[1].uri) {
-        return Err(unreadable("The Trash helper returned duplicate item identities."));
+    uris.sort_unstable();
+    // Two lines under one uri, either one left out or not, leave no way to tell which entry an action would reach, so neither is offered.
+    let doubled: HashSet<String> = uris
+        .windows(2)
+        .filter(|pair| pair[0] == pair[1])
+        .map(|pair| pair[0].to_string())
+        .collect();
+    items.retain(|item| !doubled.contains(&item.uri));
+    left_out.retain(|uri| !doubled.contains(uri));
+    left_out.extend(doubled);
+    if !left_out.is_empty() {
+        crate::backend::trashmanifest::log(&format!(
+            "Trash left out what gio could not describe: {}",
+            left_out.join(", ")
+        ));
     }
-    Ok(items)
+    items
+}
+// Sample input: "/tmp/a\\x0ab.txt" is the original "/tmp/a\nb.txt"; "/tmp/caf\\xe9" is its exact text (docs/architecture/exact-names.md); None for a broken escape.
+fn unescape(value: &str) -> Option<String> {
+    let mut bytes = Vec::with_capacity(value.len());
+    let mut rest = value.as_bytes();
+    while let Some((&byte, tail)) = rest.split_first() {
+        rest = tail;
+        if byte == b'\\' {
+            let hex = rest.strip_prefix(b"x").and_then(|after| after.get(..2))?;
+            bytes.push(u8::from_str_radix(std::str::from_utf8(hex).ok()?, 16).ok()?);
+            rest = &rest[3..];
+        } else {
+            bytes.push(byte);
+        }
+    }
+    // No path holds a NUL, and a decoded one could spell another name's exact tail.
+    if bytes.contains(&0) { return None; }
+    Some(flea::bytename::path_text(std::path::Path::new(<std::ffi::OsStr as std::os::unix::ffi::OsStrExt>::from_bytes(&bytes))).into_owned())
+}
+// The gio list line for each "uri<TAB>original" pair, so a test names its items the way they read.
+#[cfg(test)]
+fn listed(pairs: &str) -> Vec<Item> {
+    parse_list(
+        &pairs
+            .lines()
+            .map(|line| line.replacen('\t', "\t1\t(regular)\ttrash::orig-path=", 1) + "\n")
+            .collect::<String>(),
+    )
 }
 fn list() -> Result<Vec<Item>, Refusal> {
     list_with(gio)
@@ -192,10 +247,15 @@ fn list() -> Result<Vec<Item>, Refusal> {
 
 // The listing over any reader of gio's text, so a test can feed the two outputs through the real join.
 fn list_with(read: impl Fn(&[&str]) -> Result<String, Refusal>) -> Result<Vec<Item>, Refusal> {
-    let mut items = parse_list(&read(&["trash", "--list"])?)?;
-    // One gio call dates every volume's items; a failed call leaves the order by uri.
-    let dates = parse_dates(&read(&["list", "-u", "-a", "trash::deletion-date", "trash:///"]).unwrap_or_default());
-    newest_first(&mut items, |item| dates.get(&item.uri).cloned().unwrap_or_default());
+    let text = read(&["list", "-u", "-h", "-a", "trash::orig-path", "trash:///"])?;
+    let mut items = parse_list(&text);
+    // Dates and encoded target URIs can share GIO's space-joined column; original paths cannot.
+    let metadata = topdir::metadata(&read)?;
+    let mut dates = parse_dates(&metadata);
+    topdir::merge(&mut items, &mut dates, &metadata);
+    newest_first(&mut items, |item| {
+        dates.get(&item.uri).cloned().unwrap_or_default()
+    });
     Ok(items)
 }
 // Two reads of one Trash hold the same items whatever order each came in: a dates call that failed in one read orders it by uri.
@@ -211,11 +271,11 @@ fn listed_uris(items: &[Item]) -> HashSet<&str> {
     items.iter().map(|item| item.uri.as_str()).collect()
 }
 
-// Sample input, gio list -u -a trash::deletion-date trash:///: "trash:///a.txt\t0\t(regular)\ttrash::deletion-date=2026-09-08T10:00:00\n"; local clock time with no offset, so the repeated fall-back hour can order two items wrongly, accepted because gio gives no offset.
+// Sample input, gio list -u -h -a standard::target-uri,trash::deletion-date trash:///: "trash:///a.txt\t0\t(regular)\tstandard::target-uri=file:///home/u/.local/share/Trash/files/a.txt trash::deletion-date=2026-09-08T10:00:00\n"; local clock time with no offset, so the repeated fall-back hour can order two items wrongly, accepted because gio gives no offset.
 fn parse_dates(text: &str) -> HashMap<String, String> {
     text.lines()
         .filter_map(|line| {
-            let mut fields = line.split('\t');
+            let mut fields = line.split_ascii_whitespace();
             let uri = fields.next()?;
             let date = fields.find_map(|field| field.strip_prefix("trash::deletion-date="))?;
             Some((uri.to_string(), date.to_string()))
@@ -238,6 +298,9 @@ fn attribute<'a>(text: &'a str, name: &str) -> Option<&'a str> {
     })
 }
 fn detail(item: &Item) -> Result<Detail, Refusal> {
+    if item.uri.starts_with(super::topdirtrash::PREFIX) {
+        return topdir::detail(item);
+    }
     let text = gio(&["info", "--nofollow-symlinks", "--attributes=standard::size,standard::type,trash::deletion-date,id::file,id::filesystem,standard::icon,standard::target-uri", &item.uri])?;
     detail_text(item, &text)
 }
@@ -256,7 +319,7 @@ fn detail_text(item: &Item, text: &str) -> Result<Detail, Refusal> {
         .and_then(|uri| uri.strip_prefix("file://"))
         .and_then(|path| {
             Reviewed::inspect(
-                PathBuf::from(crate::paths::percent_decode(path)),
+                PathBuf::from(<std::ffi::OsString as std::os::unix::ffi::OsStringExt>::from_vec(crate::paths::percent_decode_bytes(path))),
                 attribute(text, "id::file").unwrap_or(""),
             )
             .ok()
@@ -296,7 +359,7 @@ fn thumbnail(item: &Detail) -> String {
         if let Some(backing) = &item.backing {
             if let Some((path, mtime)) = backing.thumbnail() {
                 return format!(r#"{{"path":"{}","provider":"{}","identity":"{}","mtime":{}}}"#,
-                    escape(&path.to_string_lossy()), escape(&backing.provider_identity()),
+                    escape(&path.exact_text()), escape(&backing.provider_identity()),
                     escape(&backing.selection_identity()), mtime);
             }
         }
@@ -349,7 +412,7 @@ fn load_detail(text: &str, trees: &Manifest) -> Result<Detail, Refusal> {
 }
 fn failure(item: &Item, expected: &str, error: &str) -> String {
     format!(r#"{{"uri":"{}","name":"{}","identity":"{}","error":"{}"}}"#,
-        escape(&item.uri), escape(item.original.rsplit('/').next().unwrap_or(&item.original)), escape(expected), escape(error))
+        escape(&item.uri), escape(flea::bytename::display(&item.original).rsplit('/').next().unwrap_or("")), escape(expected), escape(error))
 }
 // Purge once on request exit, including a partial restore that stops on an unreadable target record.
 struct ThumbnailPurge(Vec<String>);
@@ -507,7 +570,7 @@ impl Session {
             let mut text = row(item);
             text.pop();
             let class = if self.body.is_empty() { "null".into() } else {
-                let class = item.backing.as_ref().and_then(Reviewed::thumbnail_path).and_then(|path| path.parent().map(PathBuf::from))
+                let class = item.backing.as_ref().and_then(Reviewed::thumbnail_path).and_then(|path| path.parent().map(flea::bytename::exact))
                     .map(|parent| *classes.entry(parent.clone()).or_insert_with(|| super::extclass::classify_in(&parent, &self.body))).unwrap_or("");
                 format!(r#""{}""#, class)
             };
@@ -616,7 +679,7 @@ impl Session {
         while let Some(bytes) = targets.records().next(&mut offset)? {
             self.cancellation.check()?;
             let item = record_item(&record_text(bytes)?)?;
-            let mount = crate::backend::iomount::mount_key(&PathBuf::from(&item.original), &self.body);
+            let mount = crate::backend::iomount::mount_key(&flea::bytename::exact(&item.original), &self.body);
             if self.pending.iter().any(|held| held == &mount) {
                 return Ok(true);
             }
@@ -675,8 +738,12 @@ impl Session {
                 count += 1;
             }
         }
+        // Empty Trash also reviews what the listing leaves out; the count and bytes stay the listed items'.
+        let sweep = if all && field_bool(line, "emptyTrash") {
+            sweep::Sweep::review(&self.items, &mut trees, &self.scratch, &self.cancellation, gio)?
+        } else { sweep::Sweep::default() };
         self.next_token += 1;
-        self.confirmation = Some(Confirmation { token: self.next_token, items, trees, listing: self.items.clone(), targets, count, nodes, all });
+        self.confirmation = Some(Confirmation { token: self.next_token, items, trees, listing: self.items.clone(), targets, count, nodes, all, sweep });
         if !self.valid(self.next_token)? {
             self.confirmation = None;
             return Err("Trash changed while reviewing its contents; try the action again.".into());
@@ -691,6 +758,7 @@ impl Session {
         };
         self.cancellation.check()?;
         if !same_items(&list()?, &confirmation.listing) { return Ok(false); }
+        if !confirmation.sweep.unchanged(&self.cancellation)? { return Ok(false); }
         let mut cursor = 0;
         let mut checked = 0;
         loop {
@@ -711,42 +779,6 @@ impl Session {
         }
         Ok(true)
     }
-    fn restore(&mut self, line: &str) -> Result<String, String> {
-        let mut thumbnails = ThumbnailPurge(Vec::new());
-        if field_bool(line, "all") { self.items = list()?; }
-        let targets = self.targets(line)?;
-        // A target whose original sits on a pending mount waits, so the late write lands first.
-        if self.targets_blocked(&targets)? {
-            return Err("an operation is already running".into());
-        }
-        let mut done = 0;
-        let mut failures = Vec::new();
-        let mut cursor = 0;
-        while let Some(bytes) = targets.records().next(&mut cursor)? {
-            let text = record_text(bytes)?;
-            let item = record_item(&text)?;
-            let mut retained = field_str(&text, "identity").unwrap_or_default();
-            let restored = detail(&item).map_err(String::from).and_then(|current| {
-                if !field_bool(line, "all") {
-                    require_selected_identity(&current, &field_str(&text, "identity").unwrap_or_default())?;
-                }
-                let backing = current.backing.as_ref().ok_or_else(|| unchecked(Op::Restore))?;
-                let result = backing.restore(&PathBuf::from(&item.original), &crate::backend::trashdelete::recovery_root()?);
-                thumbnails.record(backing, &result);
-                let result = result.map_err(String::from);
-                if result.is_err() { retained = surviving_identity(&current); }
-                result
-            });
-            match restored {
-                Ok(_) => done += 1,
-                Err(error) => failures.push(failure(&item, &retained, &error)),
-            }
-        }
-        self.confirmation = None;
-        self.selection = None;
-        Ok(format!(r#""done":{},"failed":{},"failures":[{}]"#, done, failures.len(), failures.join(",")))
-    }
-
 }
 
 #[cfg(test)]
@@ -755,296 +787,5 @@ mod refusal_tests;
 #[path = "trashbrowse/thumbnail_tests.rs"]
 mod thumbnail_tests;
 #[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn malformed_or_duplicate_listing_fails_closed() {
-        assert!(parse_list("").unwrap().is_empty());
-        for text in [
-            "bad",
-            "file:///x\t/x",
-            "trash:///\t/x",
-            "trash:///a\trelative",
-            "trash:///a\t/a\ntrash:///a\t/a",
-        ] {
-            assert!(parse_list(text).is_err());
-        }
-        assert_eq!(
-            parse_list("trash:///a\t/tmp/a b\n").unwrap()[0].original,
-            "/tmp/a b"
-        );
-    }
-    #[test]
-    fn listing_is_newest_deleted_first_and_ties_break_by_uri() {
-        let item = |name: &str| Item { uri: format!("trash:///{}", name), original: format!("/home/u/{}", name) };
-        let mut items = vec![item("b.txt"), item("a.txt"), item("c.txt")];
-        let date = |item: &Item| match item.uri.as_str() {
-            "trash:///a.txt" => "2026-10-05T09:00:00".to_string(),
-            _ => "2026-10-02T10:00:00".to_string(),
-        };
-        newest_first(&mut items, date);
-        let order: Vec<_> = items.iter().map(|item| item.uri.as_str()).collect();
-        assert_eq!(order, ["trash:///a.txt", "trash:///b.txt", "trash:///c.txt"]);
-        // A listing in the other uri order lands on the same sequence, so two reads of one Trash agree.
-        let mut reversed = vec![item("c.txt"), item("b.txt"), item("a.txt")];
-        newest_first(&mut reversed, date);
-        assert_eq!(reversed, items);
-    }
-    #[test]
-    fn deletion_dates_come_from_one_gio_list() {
-        let text = "trash:///a%20b.txt\t0\t(regular)\ttrash::deletion-date=2026-09-08T10:00:00\ntrash:///c\t4096\t(directory)\ntrash:///d\t1\t(regular)\ttrash::deletion-date=2026-09-09T11:30:00\n";
-        let dates = parse_dates(text);
-        assert_eq!(dates.get("trash:///a%20b.txt").map(String::as_str), Some("2026-09-08T10:00:00"));
-        assert_eq!(dates.get("trash:///d").map(String::as_str), Some("2026-09-09T11:30:00"));
-        assert_eq!(dates.get("trash:///c"), None);
-        assert!(parse_dates("").is_empty());
-    }
-    #[test]
-    fn an_item_without_a_date_sorts_last() {
-        let item = |name: &str| Item { uri: format!("trash:///{}", name), original: format!("/home/u/{}", name) };
-        let mut items = vec![item("a"), item("b"), item("c")];
-        newest_first(&mut items, |item| if item.uri.ends_with('b') { "2026-10-01T00:00:00".into() } else { String::new() });
-        let order: Vec<_> = items.iter().map(|item| item.uri.as_str()).collect();
-        assert_eq!(order, ["trash:///b", "trash:///a", "trash:///c"]);
-    }
-    // gio's two outputs for one Trash, one escaped name in both: the listing in uri order, the dates by uri.
-    const TRASH_LIST: &str = "trash:///a%20b.txt\t/home/u/a b.txt\ntrash:///c.txt\t/home/u/c.txt\ntrash:///z.txt\t/home/u/z.txt\n";
-    const TRASH_DATES: &str = "trash:///a%20b.txt\t0\t(regular)\ttrash::deletion-date=2026-10-05T09:00:00\ntrash:///c.txt\t0\t(regular)\ttrash::deletion-date=2026-10-01T09:00:00\ntrash:///z.txt\t0\t(regular)\ttrash::deletion-date=2026-10-03T09:00:00\n";
-    fn read_gio(dates: Result<&'static str, &'static str>) -> impl Fn(&[&str]) -> Result<String, Refusal> {
-        move |args: &[&str]| match args[0] {
-            "trash" => Ok(TRASH_LIST.to_string()),
-            _ => dates.map(String::from).map_err(unreadable),
-        }
-    }
-    fn uris(items: &[Item]) -> Vec<&str> {
-        items.iter().map(|item| item.uri.as_str()).collect()
-    }
-    #[test]
-    fn the_real_listing_joins_dates_to_uris_newest_first() {
-        let items = list_with(read_gio(Ok(TRASH_DATES))).unwrap();
-        assert_eq!(uris(&items), ["trash:///a%20b.txt", "trash:///z.txt", "trash:///c.txt"]);
-        assert_eq!(items[0].original, "/home/u/a b.txt");
-    }
-    #[test]
-    fn a_failed_dates_call_keeps_the_uri_order() {
-        let items = list_with(read_gio(Err("gio failed"))).unwrap();
-        assert_eq!(uris(&items), ["trash:///a%20b.txt", "trash:///c.txt", "trash:///z.txt"]);
-    }
-    #[test]
-    fn a_failed_trash_list_is_an_error() {
-        assert!(list_with(|_: &[&str]| Err(unreadable("gio failed"))).is_err());
-    }
-    #[test]
-    fn two_reads_of_one_trash_are_unchanged_whatever_their_order() {
-        let dated = list_with(read_gio(Ok(TRASH_DATES))).unwrap();
-        let by_uri = list_with(read_gio(Err("timed out"))).unwrap();
-        assert_ne!(dated, by_uri);
-        assert!(same_items(&dated, &by_uri));
-        assert!(same_items(&by_uri, &dated));
-        // A different item or a different original is a change.
-        let mut other = by_uri.clone();
-        other[1].original = "/home/u/elsewhere".into();
-        assert!(!same_items(&dated, &other));
-        assert!(!same_items(&dated, &by_uri[1..]));
-    }
-    #[test]
-    fn membership_finds_every_item_of_a_date_ordered_listing() {
-        let items = list_with(read_gio(Ok(TRASH_DATES))).unwrap();
-        assert_ne!(uris(&items), { let mut sorted = uris(&items); sorted.sort(); sorted });
-        let listed = listed_uris(&items);
-        for item in &items { assert!(listed.contains(item.uri.as_str()), "{} missed", item.uri); }
-        assert!(!listed.contains("trash:///absent"));
-    }
-    #[test]
-    fn selected_targets_require_known_paths_and_original_identities() {
-        let d = crate::backend::testdir::TestDir::new("trash-selected-targets");
-        let session = Session {
-            items: parse_list("trash:///a\t/tmp/a\n").unwrap(),
-            scratch: d.path().to_path_buf(),
-            ..Session::default()
-        };
-        for request in [r#"{"uris":["/tmp/a"],"identities":["saved"]}"#,
-            r#"{"uris":["trash:///a"],"identities":[]}"#,
-            r#"{"uris":["trash:///a"],"identities":[""]}"#,
-            r#"{"selectionToken":1}"#] {
-            assert!(session.targets(request).is_err());
-        }
-        let targets = session.targets(r#"{"uris":["trash:///a","trash:///a"],"identities":["saved","saved"]}"#).unwrap();
-        let mut offset = 0;
-        assert!(targets.records().next(&mut offset).unwrap().is_some());
-        assert!(targets.records().next(&mut offset).unwrap().is_none());
-    }
-    #[test]
-    fn bulk_targets_keep_the_saved_set_and_identity_when_listing_changes() {
-        let d = crate::backend::testdir::TestDir::new("trash-bulk-targets");
-        let mut selected = Manifest::new(d.path()).unwrap();
-        selected.append(br#"{"uri":"trash:///a","original":"/original/a","identity":"original-inode"}"#).unwrap();
-        let session = Session {
-            items: parse_list("trash:///a\t/replacement/a\ntrash:///new\t/new\n").unwrap(),
-            selection: Some(Selection { token: 7, items: selected }),
-            scratch: d.path().to_path_buf(),
-            ..Session::default()
-        };
-        let targets = session.targets(r#"{"selectionToken":7}"#).unwrap();
-        let mut offset = 0;
-        let record = record_text(targets.records().next(&mut offset).unwrap().unwrap()).unwrap();
-        assert_eq!(field_str(&record, "identity").unwrap(), "original-inode");
-        assert_eq!(record_item(&record).unwrap().original, "/original/a");
-        assert!(targets.records().next(&mut offset).unwrap().is_none());
-        assert!(session.targets(r#"{"selectionToken":7,"exclude":["trash:///a"]}"#).is_err());
-    }
-    #[test]
-    fn refreshed_confirmation_keeps_its_uri_set_without_rewriting_selection() {
-        let d = crate::backend::testdir::TestDir::new("trash-confirm-refresh");
-        let mut targets = Manifest::new(d.path()).unwrap();
-        targets.append(br#"{"uri":"trash:///a","original":"/old/a","identity":"old-inode"}"#).unwrap();
-        targets.append(br#"{"uri":"trash:///gone","original":"/old/gone","identity":"gone-inode"}"#).unwrap();
-        let confirmation = Confirmation { token: 3, items: Manifest::new(d.path()).unwrap(),
-            trees: Manifest::new(d.path()).unwrap(), listing: Vec::new(), targets, count: 0, nodes: 0, all: false };
-        let session = Session { items: parse_list("trash:///a\t/new/a\ntrash:///new\t/new\n").unwrap(),
-            scratch: d.path().to_path_buf(), ..Session::default() };
-        let refreshed = session.refreshed_targets(&confirmation).unwrap();
-        let mut offset = 0;
-        let text = record_text(refreshed.records().next(&mut offset).unwrap().unwrap()).unwrap();
-        assert_eq!(record_item(&text).unwrap().original, "/new/a");
-        assert_eq!(field_str(&text, "identity").unwrap(), "");
-        assert!(refreshed.records().next(&mut offset).unwrap().is_none());
-        let mut offset = 0;
-        let held = record_text(confirmation.targets.records().next(&mut offset).unwrap().unwrap()).unwrap();
-        assert_eq!(field_str(&held, "identity").unwrap(), "old-inode");
-    }
-    #[test]
-    fn named_failure_keeps_its_retry_identity() {
-        let item = Item { uri: "trash:///a".into(), original: "/original/a".into() };
-        let message = failure(&item, "held-identity", "Permission denied");
-        assert_eq!(field_str(&message, "identity").unwrap(), "held-identity");
-        assert_eq!(field_str(&message, "name").unwrap(), "a");
-        assert_eq!(field_str(&message, "error").unwrap(), "Permission denied");
-    }
-    #[test]
-    fn expired_confirmation_never_reaches_provider() {
-        assert!(!Session::default().valid(1).unwrap());
-    }
-    // The flag comes from the typed failure, so a sentence that reads the same on another op never sets it.
-    #[test]
-    fn a_stale_delete_sets_the_flag_and_says_confirm_again_with_its_detail_logged() {
-        let seen = crate::backend::trashmanifest::logged().len();
-        let stale = Session::default().handle(r#"{"c":"trashbrowse","op":"delete","id":4,"token":9}"#);
-        assert!(stale.contains(r#""ok":false,"stale":true,"error":"The Trash changed, so nothing was done; confirm again.""#), "{}", stale);
-        assert!(crate::backend::trashmanifest::logged().split_off(seen).iter().any(|line| line.contains("Trash changed; confirm again.")));
-        let unknown = Session::default().handle(r#"{"c":"trashbrowse","op":"nothing","id":4}"#);
-        assert!(unknown.contains(r#""stale":false,"error":"Unknown Trash request.""#), "{}", unknown);
-    }
-    #[test]
-    fn a_review_record_that_does_not_read_back_says_the_trash_changed_and_logs_which() {
-        let seen = crate::backend::trashmanifest::logged().len();
-        let refused = record_item(r#"{"original":"/o"}"#).unwrap_err();
-        assert_eq!(refused.shown(), "The Trash changed, so nothing was done. Try again.");
-        assert!(crate::backend::trashmanifest::logged().split_off(seen).iter().any(|line| line.contains("Missing reviewed Trash URI.")));
-        assert_eq!(String::from(record_text(vec![0xff]).unwrap_err()), "The Trash changed, so nothing was done. Try again.");
-    }
-    #[test]
-    fn attributes_require_exact_names() {
-        let text = "  standard::size: 12\n  id::file: abc\n";
-        assert_eq!(attribute(text, "standard::size"), Some("12"));
-        assert_eq!(attribute(text, "standard::siz"), None);
-    }
-    #[test]
-    fn restore_selection_rejects_a_reused_uri_or_changed_metadata() {
-        let original = Detail {
-            item: Item { uri: "trash:///same.txt".into(), original: "/original/same.txt".into() },
-            size: 8, deleted: "2026-09-08T10:00:00".into(), identity: "filesystem:inode-one".into(),
-            directory: false, icon: "text-plain".into(), backing: None,
-        };
-        let observed = selection_identity(&original);
-        assert!(require_selected_identity(&original, &observed).is_ok());
-        assert!(require_selected_identity(&original, "").is_err());
-        let mut replacement = original.clone();
-        replacement.identity = "filesystem:inode-two".into();
-        assert!(require_selected_identity(&replacement, &observed).is_err());
-        replacement = original.clone();
-        replacement.item.original = "/other/same.txt".into();
-        assert!(require_selected_identity(&replacement, &observed).is_err());
-        replacement = original.clone();
-        replacement.size += 1;
-        assert!(require_selected_identity(&replacement, &observed).is_err());
-    }
-    #[test]
-    fn restore_selection_rejects_a_replaced_backing_inode() {
-        use crate::backend::testdir::TestDir;
-        use std::os::unix::fs::MetadataExt;
-        let d = TestDir::new("trash-restore-identity");
-        d.dir("files");
-        d.dir("info");
-        let path = d.file("files/same.txt", "original");
-        d.file("info/same.txt.trashinfo", "[Trash Info]\nPath=/original/same.txt\n");
-        let backing = || {
-            let meta = path.symlink_metadata().unwrap();
-            Reviewed::inspect(path.clone(), &format!("l{}:{}", meta.dev(), meta.ino())).unwrap()
-        };
-        let mut item = Detail {
-            item: Item { uri: "trash:///same.txt".into(), original: "/original/same.txt".into() },
-            size: 8, deleted: "2026-09-08T10:00:00".into(), identity: "provider-identity".into(),
-            directory: false, icon: "text-plain".into(), backing: Some(backing()),
-        };
-        let observed = selection_identity(&item);
-        std::fs::rename(&path, d.join("files/old.txt")).unwrap();
-        std::fs::write(&path, "replaced").unwrap();
-        item.backing = Some(backing());
-        assert!(require_selected_identity(&item, &observed).is_err());
-        assert_eq!(std::fs::read_to_string(path).unwrap(), "replaced");
-    }
-
-    // Sample body: root ext4 beside one hung nfs mount, the same shape the slow tests map a sandbox onto.
-    fn stub_body(dir: &std::path::Path) -> String {
-        format!("1 0 8:1 / / rw - ext4 /dev/a rw\n30 1 0:45 / {} rw - nfs n:/s rw\n", dir.to_string_lossy())
-    }
-
-    // One sweep over restore and delete: each waits on a mount held slow and runs elsewhere.
-    #[test]
-    fn restore_and_delete_wait_on_a_pending_mount_and_run_elsewhere() {
-        let remote = crate::backend::testdir::TestDir::new("trashgate");
-        let body = stub_body(remote.path());
-        let listing = format!("trash:///a.txt\t{}/a.txt\n", remote.path().to_string_lossy());
-        let line = r#"{"c":"trashbrowse","op":"restore","id":9,"uris":["trash:///a.txt"],"identities":["held"]}"#;
-        // A restore whose original sits on the held mount waits before gio runs.
-        let mut held = Session {
-            items: parse_list(&listing).unwrap(),
-            scratch: remote.path().to_path_buf(),
-            pending: vec![remote.path().to_path_buf()],
-            body: body.clone(),
-            ..Session::default()
-        };
-        let busy = held.handle(line);
-        assert!(busy.contains(r#""ok":false"#) && busy.contains("already running"), "a restore onto a pending mount waits: {}", busy);
-        // The same restore elsewhere runs past the gate to gio's own answer.
-        let mut free = Session {
-            items: parse_list(&listing).unwrap(),
-            scratch: remote.path().to_path_buf(),
-            ..Session::default()
-        };
-        let past = free.handle(line);
-        assert!(!past.contains("already running"), "a restore elsewhere runs past the gate: {}", past);
-        // A delete whose original sits on the held mount waits, and keeps its confirmation for the retry.
-        let mut targets = Manifest::new(remote.path()).unwrap();
-        targets.append(format!(r#"{{"uri":"trash:///a.txt","original":"{}/a.txt","identity":""}}"#,
-            remote.path().to_string_lossy()).as_bytes()).unwrap();
-        let confirmation = Confirmation { token: 7, items: Manifest::new(remote.path()).unwrap(),
-            trees: Manifest::new(remote.path()).unwrap(), listing: Vec::new(), targets, count: 0, nodes: 0, all: false };
-        let delete = r#"{"c":"trashbrowse","op":"delete","id":9,"token":7}"#;
-        let mut held = Session { confirmation: Some(confirmation), scratch: remote.path().to_path_buf(),
-            pending: vec![remote.path().to_path_buf()], body, ..Session::default() };
-        let busy = held.handle(delete);
-        assert!(busy.contains(r#""ok":false"#) && busy.contains("already running"), "a delete onto a pending mount waits: {}", busy);
-        assert!(held.confirmation.is_some(), "the refused delete keeps its confirmation for the retry");
-        // The same delete elsewhere runs past the gate to the listing's own answer.
-        let mut targets = Manifest::new(remote.path()).unwrap();
-        targets.append(format!(r#"{{"uri":"trash:///a.txt","original":"{}/a.txt","identity":""}}"#,
-            remote.path().to_string_lossy()).as_bytes()).unwrap();
-        let confirmation = Confirmation { token: 7, items: Manifest::new(remote.path()).unwrap(),
-            trees: Manifest::new(remote.path()).unwrap(), listing: Vec::new(), targets, count: 0, nodes: 0, all: false };
-        let mut free = Session { confirmation: Some(confirmation), scratch: remote.path().to_path_buf(), ..Session::default() };
-        let past = free.handle(delete);
-        assert!(!past.contains("already running"), "a delete elsewhere runs past the gate: {}", past);
-    }
-}
+#[path = "trashbrowse/tests.rs"]
+mod tests;

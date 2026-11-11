@@ -7,8 +7,8 @@ use crate::{
     state::Shell,
 };
 use gpui::{
-    point, px, size, App, Bounds, Context, EntityInputHandler, Pixels, Point, UTF16Selection,
-    WeakEntity, Window,
+    point, px, size, App, Bounds, Context, DispatchPhase, Entity, EntityInputHandler, MouseButton,
+    MouseDownEvent, Pixels, Point, UTF16Selection, WeakEntity, Window,
 };
 use std::{
     cell::{Cell, RefCell},
@@ -100,6 +100,36 @@ impl<R: Route> QueryInput<R> {
             owner.update(cx, |shell, cx| R::redraw(shell, side, cx));
         }
     }
+
+    // A double-click selects the word under the pointer and a third click the whole line, as every text field does.
+    fn press(&mut self, event: &MouseDownEvent, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(band) = self.bounds.get().filter(|_| self.active(window, cx)) else {
+            return;
+        };
+        {
+            let line = self.line.borrow();
+            let mut entry = self.entry.borrow_mut();
+            if event.click_count == 2 {
+                entry.select_word_under(&line, event.position.x - band.left() + line.scroll);
+            } else {
+                entry.select_all();
+            }
+        }
+        self.redraw(cx);
+    }
+}
+
+/// Registers the drawn query's pointer words over `hit`, the rectangle the frame gave the platform input handler.
+pub fn on_press<R: Route>(input: Entity<QueryInput<R>>, hit: Bounds<Pixels>, window: &mut Window) {
+    window.on_mouse_event(move |event: &MouseDownEvent, phase, window, cx| {
+        if phase == DispatchPhase::Bubble
+            && event.button == MouseButton::Left
+            && event.click_count > 1
+            && hit.contains(&event.position)
+        {
+            input.update(cx, |input, cx| input.press(event, window, cx));
+        }
+    });
 }
 
 impl<R: Route> EntityInputHandler for QueryInput<R> {
@@ -193,6 +223,29 @@ impl<R: Route> EntityInputHandler for QueryInput<R> {
             })
             .flatten()
     }
+}
+
+/// A right press on the typing line opens its text menu; once it opens, the strip under it never sees the press.
+pub fn menu_press(
+    owner: WeakEntity<Shell>,
+    side: usize,
+    session: u64,
+    bounds: Bounds<Pixels>,
+    window: &mut Window,
+) {
+    window.on_mouse_event(move |event: &gpui::MouseDownEvent, phase, window, cx| {
+        if phase == gpui::DispatchPhase::Bubble
+            && event.button == gpui::MouseButton::Right
+            && bounds.contains(&event.position)
+        {
+            let opened = owner.update(cx, |shell, cx| {
+                shell.query_menu_open(side, session, event, window, cx)
+            });
+            if opened.unwrap_or(false) {
+                cx.stop_propagation();
+            }
+        }
+    });
 }
 
 /// Opens the line on `text` with the caret after it.

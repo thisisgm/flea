@@ -10,6 +10,19 @@ pub(super) const BODY: usize = 3 * 256 * 1024 + 17;
 const EOPNOTSUPP: i32 = 95;
 // A made-up filesystem magic, so a refusal this file caches never reaches the real test filesystem's entry.
 const SIBLING_MAGIC: i64 = 0x51B1;
+
+// Whether this folder's real filesystem takes O_TMPFILE, asked past the seams and the refusal memory, as a builder's /tmp may not.
+fn takes_unnamed(parent: &Path) -> bool {
+    use std::os::unix::fs::OpenOptionsExt;
+    let mut options = std::fs::OpenOptions::new();
+    options.write(true).mode(0o600).custom_flags(copystage::O_TMPFILE);
+    match options.open(parent) {
+        Ok(_) => true,
+        Err(e) if copystage::NO_TMPFILE.contains(&e.raw_os_error().unwrap_or(0)) => false,
+        Err(e) => panic!("O_TMPFILE probe of {}: {e}", parent.display()),
+    }
+}
+
 const CACHE_MAGIC: i64 = 0xCAC4E;
 
 pub(super) fn quiet<'a>(flag: &'a AtomicBool, sink: &'a mut dyn FnMut(u64, u64)) -> Progress<'a> {
@@ -60,20 +73,24 @@ pub(super) fn in_place() -> Seams {
     Seams
 }
 
-// Mid-copy the folder shows nothing at all: the bytes are in an inode with no name until linkat names it whole.
+// Mid-copy the name never shows: the bytes sit in an unnamed inode, or in one hidden sibling where O_TMPFILE is refused.
 #[test]
 fn a_copy_is_unnamed_until_its_bytes_are_whole() {
     let d = TestDir::new("stage-whole");
     let src = source(&d);
     let to = d.dir("dest");
     let dst = to.join("VID_big.mp4");
+    let unnamed = takes_unnamed(&to);
     let flag = AtomicBool::new(false);
-    let mut seen: Vec<(bool, usize)> = Vec::new();
-    let mut sink = |_: u64, _: u64| seen.push((dst.exists(), std::fs::read_dir(&to).unwrap().count()));
+    let mut seen: Vec<(bool, usize, usize)> = Vec::new();
+    let mut sink = |_: u64, _: u64| seen.push((dst.exists(), std::fs::read_dir(&to).unwrap().count(), parts(&to).len()));
     copy_any(&src, &dst, &mut quiet(&flag, &mut sink)).expect("the copy lands");
     assert!(seen.len() >= 3, "progress came mid-copy: {seen:?}");
-    assert!(seen.iter().all(|&(named, entries)| !named && entries == 0), "the folder stayed empty while the copy filled: {seen:?}");
+    let staged = usize::from(!unnamed);
+    assert!(seen.iter().all(|&(named, entries, parts)| !named && entries == staged && parts == staged),
+        "the folder held {staged} hidden entries while the copy filled, unnamed={unnamed}: {seen:?}");
     assert_eq!(std::fs::read(&dst).unwrap(), body());
+    assert!(parts(&to).is_empty(), "no sibling outlived the copy");
 }
 
 // Where O_TMPFILE is refused, one hidden sibling holds the bytes mid-copy and becomes the name at the end.
@@ -111,7 +128,15 @@ fn a_filesystem_that_refuses_unnamed_files_is_probed_once() {
     assert_eq!(copystage::test_take_unnamed_tries(), 1, "the second file on that filesystem did not ask again");
     test_set_precheck(None, None, None);
     copy_any(&src, &to.join("three.mp4"), &mut quiet(&flag, &mut sink)).expect("the real filesystem lands");
-    assert_eq!(copystage::test_take_unnamed_tries(), 1, "another filesystem is probed on its own");
+    if takes_unnamed(&to) {
+        assert_eq!(copystage::test_take_unnamed_tries(), 1, "another filesystem is probed on its own");
+    } else {
+        // A real refusal is remembered process-wide, so an earlier test may have spent this filesystem's probe already.
+        assert!(copystage::test_take_unnamed_tries() <= 1, "the refusing test filesystem was probed at most once");
+        copy_any(&src, &to.join("four.mp4"), &mut quiet(&flag, &mut sink)).expect("the refusing filesystem lands");
+        assert_eq!(copystage::test_take_unnamed_tries(), 0, "the refusing test filesystem is not asked again");
+        assert_eq!(std::fs::read(to.join("four.mp4")).unwrap(), body());
+    }
     for name in ["one.mp4", "two.mp4", "three.mp4"] {
         assert_eq!(std::fs::read(to.join(name)).unwrap(), body());
     }

@@ -3,7 +3,7 @@ use super::test_shell::*;
 use crate::{ipc::server, navigation::folder_state::Order, state::Shell, window::navigate::Step};
 use flea::{
     ipc::wire,
-    ui_logic_pl4::{
+    ui_logic_rail_places::{
         order::{Heading, RailSection},
         rail::RailEntry,
     },
@@ -13,7 +13,7 @@ use gpui::{point, px, Entity, Modifiers, MouseButton, TestAppContext, VisualTest
 const RECENT_REFUSAL: &str = "Recent cannot take a paste. Open a folder first";
 const HISTORY: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/src/g2/pl4/recent-fixture.xbel"
+    "/src/g2/rail_places/recent-fixture.xbel"
 );
 
 pub(super) fn frame(cx: &mut VisualTestContext) {
@@ -97,7 +97,11 @@ fn step(shell: &Entity<Shell>, cx: &mut VisualTestContext, step: Step) {
 fn railrecent_click_opens_history_and_live_readers(cx: &mut TestAppContext) {
     let (shell, cx) = open_root(cx, "default");
     land(&shell, cx, "/files", vec![row("A", true)], 1);
-    rows(&shell, cx, vec![flea::ui_logic_pl4::order::recent_entry()]);
+    rows(
+        &shell,
+        cx,
+        vec![flea::ui_logic_rail_places::order::recent_entry()],
+    );
     sent();
     click(&shell, cx, MouseButton::Left);
     assert_eq!(read(&shell, cx, "recentMode"), "results");
@@ -123,7 +127,11 @@ fn railrecent_return_opens_history_and_back_restores_the_folder_and_its_sort(
 ) {
     let (shell, cx) = open_root(cx, "default");
     land(&shell, cx, "/files", vec![row("A", true)], 1);
-    rows(&shell, cx, vec![flea::ui_logic_pl4::order::recent_entry()]);
+    rows(
+        &shell,
+        cx,
+        vec![flea::ui_logic_rail_places::order::recent_entry()],
+    );
     shell.update(cx, |shell, _| {
         shell.panes[0].as_mut().unwrap().nav.order = Order {
             key: "size",
@@ -191,7 +199,11 @@ fn railrecent_listpaths_carries_the_history_newest_first_without_its_refused_lin
 fn railrecent_paste_verbs_are_refused_with_the_v0312_sentence(cx: &mut TestAppContext) {
     let (shell, cx) = open_root(cx, "default");
     land(&shell, cx, "/files", vec![row("A", true)], 1);
-    rows(&shell, cx, vec![flea::ui_logic_pl4::order::recent_entry()]);
+    rows(
+        &shell,
+        cx,
+        vec![flea::ui_logic_rail_places::order::recent_entry()],
+    );
     cx.simulate_keystrokes("tab enter");
     frame(cx);
     land(&shell, cx, "/", vec![row("tmp/alpha.txt", false)], 2);
@@ -218,7 +230,11 @@ fn railrecent_paste_verbs_are_refused_with_the_v0312_sentence(cx: &mut TestAppCo
 fn railrecent_a_late_reply_after_navigating_away_is_dropped(cx: &mut TestAppContext) {
     let (shell, cx) = open_root(cx, "default");
     land(&shell, cx, "/files", vec![row("A", true)], 1);
-    rows(&shell, cx, vec![flea::ui_logic_pl4::order::recent_entry()]);
+    rows(
+        &shell,
+        cx,
+        vec![flea::ui_logic_rail_places::order::recent_entry()],
+    );
     shell.update(cx, |shell, cx| {
         shell
             .rail
@@ -245,7 +261,11 @@ fn railrecent_a_late_reply_after_navigating_away_is_dropped(cx: &mut TestAppCont
 fn railrecent_enter_on_a_folder_row_leaves_recent_for_it(cx: &mut TestAppContext) {
     let (shell, cx) = open_root(cx, "default");
     land(&shell, cx, "/files", vec![row("A", true)], 1);
-    rows(&shell, cx, vec![flea::ui_logic_pl4::order::recent_entry()]);
+    rows(
+        &shell,
+        cx,
+        vec![flea::ui_logic_rail_places::order::recent_entry()],
+    );
     cx.simulate_keystrokes("tab enter");
     frame(cx);
     land(&shell, cx, "/", vec![row("tmp", true)], 2);
@@ -260,7 +280,11 @@ fn railrecent_enter_on_a_folder_row_leaves_recent_for_it(cx: &mut TestAppContext
 fn railrecent_reveal_opens_the_rows_folder_with_it_selected(cx: &mut TestAppContext) {
     let (shell, cx) = open_root(cx, "default");
     land(&shell, cx, "/files", vec![row("A", true)], 1);
-    rows(&shell, cx, vec![flea::ui_logic_pl4::order::recent_entry()]);
+    rows(
+        &shell,
+        cx,
+        vec![flea::ui_logic_rail_places::order::recent_entry()],
+    );
     cx.simulate_keystrokes("tab enter");
     frame(cx);
     land(&shell, cx, "/", vec![row("tmp/alpha.txt", false)], 2);

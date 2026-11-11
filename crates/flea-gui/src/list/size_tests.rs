@@ -7,8 +7,8 @@ use std::path::PathBuf;
 
 /// German words: a decimal comma from the language file, and a translated link word.
 pub(crate) fn german_words() -> Words {
-    let fixtures =
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../src/ui_logic_op3/fixtures");
+    let fixtures = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../src/ui_logic_open_with_properties/fixtures");
     let catalog = I18n::load(Paths {
         omarchy: fixtures.clone(),
         language_file: fixtures.join("language-de"),

@@ -1,10 +1,13 @@
 // Claim the exact reviewed payload and metadata before deletion; later arrivals keep their original names.
 mod recovery;
 mod cancel;
+mod parents;
+use parents::parent_at;
 use cancel::remove_tree_cancellable;
+use flea::bytename::ExactText as _;
 #[cfg(test)]
 mod cancel_tests;
-pub use recovery::{recover, recovery_root, RecoveryReport};
+pub use recovery::{recover, recovery_root, FolderSyncs, RecoveryReport};
 use recovery::Recovery;
 
 use crate::backend::trashmanifest::{Cancellation, Manifest, Op, Outcome, Records, Refusal, Refuse};
@@ -162,19 +165,6 @@ pub struct Reviewed {
     bytes: u64,
 }
 
-// Open one ancestor at a time; neither deep paths nor substituted symlinks need recursive traversal.
-fn parent_at(base: &File, root: &OsStr, relative: &Path) -> Result<(File, OsString), Refusal> {
-    if relative.as_os_str().is_empty() {
-        return Ok((base.try_clone().changed("Could not duplicate a Trash handle")?, root.to_os_string()));
-    }
-    let mut directory = open_dir(&fd_path(base, root))?;
-    let parent = relative.parent().changed("Missing Trash review parent.")?;
-    for component in parent.components() {
-        let std::path::Component::Normal(name) = component else { return Err(Refusal::changed("Invalid Trash review parent.")); };
-        directory = open_dir(&fd_path(&directory, name))?;
-    }
-    Ok((directory, relative.file_name().changed("Missing Trash review name.")?.to_os_string()))
-}
 fn matches(tree: &Records, base: &File, root: &OsStr, cancel: &Cancellation) -> Result<bool, Refusal> {
     #[cfg(test)]
     MATCH_WALKS.with(|walks| walks.set(walks.get() + 1));
@@ -303,7 +293,7 @@ fn remove_tree(tree: &Records, quarantine: &File, refused: Refusal) -> Result<()
 
 // Sample .trashinfo: "[Trash Info]\nPath=/original/photo%20one.jpg\nDeletionDate=2026-09-08T10:00:00\n".
 // Every refusal here is a damaged record, since a metadata file that parses badly was never the user's change.
-fn original_path(metadata: &File, trash_root: &Path) -> Result<PathBuf, Refusal> {
+pub(crate) fn original_path(metadata: &File, trash_root: &Path) -> Result<PathBuf, Refusal> {
     // Linux absolute paths passed to the restore syscall cannot exceed PATH_MAX bytes.
     const PATH_MAX: u64 = 4096;
     const MAX_ENCODED_PATH: u64 = PATH_MAX * 3;
@@ -324,7 +314,7 @@ fn original_path(metadata: &File, trash_root: &Path) -> Result<PathBuf, Refusal>
         if !section { continue; }
         if let Some(value) = line.strip_prefix("Path=") {
             if original.is_some() { return Err(Refusal::new(Outcome::Damaged, "Trash metadata contains duplicate original paths.")); }
-            let decoded = PathBuf::from(crate::paths::percent_decode(value));
+            let decoded = PathBuf::from(OsString::from_vec(crate::paths::percent_decode_bytes(value)));
             if decoded.as_os_str().is_empty() || decoded.components().any(|part| matches!(part, std::path::Component::ParentDir)) {
                 return Err(Refusal::new(Outcome::Damaged, "Trash metadata contains an invalid original path."));
             }
@@ -368,17 +358,16 @@ impl Reviewed {
                 .and_then(|s| s.to_str())
                 != Some("files")
         {
-            return Err(Refusal::changed("Trash provider did not supply a supported backing path."));
+            return Err(Refusal::changed(
+                "Trash provider did not supply a supported backing path.",
+            ));
         }
-        let name = path
-            .file_name()
-            .and_then(|s| s.to_str())
-            .changed("Trash filename is not valid text.")?;
+        let name = path.file_name().changed("Trash filename is missing.")?;
         let root = path
             .parent()
             .and_then(Path::parent)
             .changed("Trash root is missing.")?;
-        let info = root.join("info").join(format!("{}.trashinfo", name));
+        let info = root.join("info").join(crate::backend::hometrash::info_name(name));
         let payload = identity(&path).changed("Trash item unreadable")?;
         if gio_identity != format!("l{}:{}", payload.dev, payload.ino) {
             return Err(Refusal::changed("Trash identity changed while reading it."));
@@ -408,18 +397,17 @@ impl Reviewed {
     }
     pub fn saved(&self) -> Result<String, Refusal> {
         let tree = self.tree.as_ref().changed("Trash contents have not been reviewed.").map_err(Refusal::logged)?;
-        let (path, info) = self.path.to_str().zip(self.info.to_str())
-            .changed("Trash path is not valid text.").map_err(Refusal::logged)?;
+        let (path, info) = (self.path.exact_text(), self.info.exact_text());
         Ok(format!(r#"{{"path":"{}","info":"{}","payload":"{}","metadata":"{}","start":{},"end":{},"nodes":{},"bytes":{}}}"#,
-            escape(path), escape(info), self.payload.saved(), self.metadata.saved(), tree.start(), tree.end(), self.nodes, self.bytes))
+            escape(&path), escape(&info), self.payload.saved(), self.metadata.saved(), tree.start(), tree.end(), self.nodes, self.bytes))
     }
     pub fn from_saved(text: &str, manifest: &Manifest) -> Result<Self, Refusal> {
         Self::read_saved(text, manifest).map_err(Refusal::logged)
     }
     fn read_saved(text: &str, manifest: &Manifest) -> Result<Self, Refusal> {
         Ok(Self {
-            path: PathBuf::from(field_str(text, "path").changed("Missing Trash review path.")?),
-            info: PathBuf::from(field_str(text, "info").changed("Missing Trash review metadata path.")?),
+            path: flea::bytename::exact(field_str(text, "path").changed("Missing Trash review path.")?),
+            info: flea::bytename::exact(field_str(text, "info").changed("Missing Trash review metadata path.")?),
             payload: Identity::from_saved(&field_str(text, "payload").changed("Missing Trash review identity.")?)?,
             metadata: Identity::from_saved(&field_str(text, "metadata").changed("Missing Trash metadata identity.")?)?,
             nodes: field_usize(text, "nodes").changed("Missing Trash review file total.")?,
@@ -505,7 +493,9 @@ impl Reviewed {
             if destination != original || Identity::of(&metadata.metadata().changed("Claimed Trash metadata unreadable")?) != self.metadata {
                 return Err(Refusal::new(Outcome::OriginalChanged, "The Trash item's original location changed; refresh the selection."));
             }
-            let destination_parent = destination.parent().changed("Original parent is missing.")?.canonicalize()
+            let parent = destination.parent().changed("Original parent is missing.")?;
+            // A gone original folder is recreated first, as undo and gio restore do.
+            let destination_parent = std::fs::create_dir_all(parent).and_then(|()| parent.canonicalize())
                 .map_err(|e| Refusal::os(Outcome::Blocked, &format!("Could not open original location {}", destination.display()), &e))?;
             let destination_directory = open_dir(&destination_parent).map_err(|refusal| refusal.wrap(Outcome::Blocked))?;
             rename(quarantine, OsStr::new("payload"), &destination_directory,
@@ -696,312 +686,5 @@ mod refusal_tests;
 mod deletetest;
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::backend::testdir::TestDir;
-    fn fixture(d: &TestDir) -> (PathBuf, Reviewed) {
-        d.dir("files");
-        d.dir("info");
-        let path = d.file("files/item", "payload");
-        d.file("info/item.trashinfo", "[Trash Info]\nPath=/original\n");
-        let meta = path.symlink_metadata().unwrap();
-        let mut reviewed =
-            Reviewed::inspect(path.clone(), &format!("l{}:{}", meta.dev(), meta.ino())).unwrap();
-        reviewed.snapshot(&mut Manifest::new(d.path()).unwrap(), d.path(), &Cancellation::default()).unwrap();
-        (path, reviewed)
-    }
-    fn guard(d: &TestDir, path: &Path) {
-        assert!(
-            path.is_absolute()
-                && !path.as_os_str().is_empty()
-                && path.starts_with(d.path())
-                && path != d.path()
-        );
-    }
-    fn restore_fixture(d: &TestDir, original: &Path) -> (PathBuf, Reviewed) {
-        let (path, _) = fixture(d);
-        std::fs::write(d.join("info/item.trashinfo"), format!("[Trash Info]\nPath={}\n", original.display())).unwrap();
-        let meta = path.symlink_metadata().unwrap();
-        let reviewed = Reviewed::inspect(path.clone(), &format!("l{}:{}", meta.dev(), meta.ino())).unwrap();
-        (path, reviewed)
-    }
-    #[test]
-    fn restore_claims_both_identities_and_never_overwrites() {
-        let d = TestDir::new("trash-restore-claim");
-        let original = d.file("restored", "keep");
-        let (path, reviewed) = restore_fixture(&d, &original);
-        guard(&d, &path);
-        guard(&d, &original);
-        assert!(reviewed.restore(&original, d.path()).is_err());
-        assert_eq!(std::fs::read_to_string(&original).unwrap(), "keep");
-        assert_eq!(std::fs::read_to_string(&path).unwrap(), "payload");
-        assert!(d.join("info/item.trashinfo").exists());
-        std::fs::rename(&original, d.join("existing-saved")).unwrap();
-        reviewed.restore(&original, d.path()).unwrap();
-        assert_eq!(std::fs::read_to_string(original).unwrap(), "payload");
-        assert!(!path.exists());
-        assert!(!d.join("info/item.trashinfo").exists());
-    }
-    #[test]
-    fn restore_replacement_between_check_and_claim_is_preserved() {
-        let d = TestDir::new("trash-restore-race");
-        let original = d.join("restored");
-        let (path, reviewed) = restore_fixture(&d, &original);
-        guard(&d, &path);
-        guard(&d, &original);
-        assert!(reviewed.restore_after(&original, d.path(), || {
-            std::fs::rename(&path, d.join("files/old-reviewed")).unwrap();
-            std::fs::write(&path, "replacement").unwrap();
-        }).is_err());
-        assert!(!original.exists());
-        assert_eq!(std::fs::read_to_string(path).unwrap(), "replacement");
-        assert_eq!(std::fs::read_to_string(d.join("files/old-reviewed")).unwrap(), "payload");
-        assert!(d.join("info/item.trashinfo").exists());
-    }
-    #[test]
-    fn restore_missing_parent_and_mismatched_original_preserve_trash() {
-        let d = TestDir::new("trash-restore-path");
-        let original = d.join("missing/restored");
-        let (path, reviewed) = restore_fixture(&d, &original);
-        guard(&d, &path);
-        guard(&d, &original);
-        assert!(reviewed.restore(&original, d.path()).is_err());
-        let wrong = d.join("wrong");
-        guard(&d, &wrong);
-        assert!(reviewed.restore(&wrong, d.path()).is_err());
-        assert!(!wrong.exists());
-        assert_eq!(std::fs::read_to_string(path).unwrap(), "payload");
-        assert!(d.join("info/item.trashinfo").exists());
-    }
-    #[test]
-    fn original_paths_decode_escaping_and_volume_relative_metadata() {
-        let d = TestDir::new("trash-restore-metadata");
-        let encoded = d.file("metadata", "[Trash Info]\nPath=folder/photo%20one+two.jpg\n");
-        let root = d.join(".Trash-1000");
-        assert_eq!(original_path(&File::open(&encoded).unwrap(), &root).unwrap(), d.join("folder/photo one+two.jpg"));
-        let root = d.join(".Trash/1000");
-        assert_eq!(original_path(&File::open(&encoded).unwrap(), &root).unwrap(), d.join("folder/photo one+two.jpg"));
-        std::fs::write(&encoded, "[Trash Info]\nPath=../escape\n").unwrap();
-        assert!(original_path(&File::open(&encoded).unwrap(), &root).is_err());
-        std::fs::write(&encoded, "[Trash Info]\nPath=/one\nPath=/two\n").unwrap();
-        assert!(original_path(&File::open(&encoded).unwrap(), &root).is_err());
-    }
-    #[test]
-    fn deletes_only_reviewed_item_and_preserves_later_arrival() {
-        let d = TestDir::new("trash-delete");
-        let (path, reviewed) = fixture(&d);
-        let later = d.file("files/later", "keep");
-        guard(&d, &path);
-        reviewed.delete(d.path()).unwrap();
-        assert!(!path.exists());
-        assert!(later.exists());
-        assert!(!d.join("info/item.trashinfo").exists());
-    }
-    // corner: runs as a plain user, where a directory without its write bit refuses the claim.
-    #[test]
-    fn a_locked_directory_fails_with_the_reason_spelled_by_io_message() {
-        use std::os::unix::fs::PermissionsExt;
-        let d = TestDir::new("trash-delete-locked");
-        d.dir("files");
-        d.dir("info");
-        let path = d.dir("files/locked");
-        d.file("files/locked/child.txt", "survive");
-        d.file("info/locked.trashinfo", "[Trash Info]\nPath=/original/locked\n");
-        guard(&d, &path);
-        // Locked before the review, as the ui case locks the backing before it opens the confirmation, because the mode is part of the identity.
-        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o555)).unwrap();
-        let meta = path.symlink_metadata().unwrap();
-        let mut reviewed = Reviewed::inspect(path.clone(), &format!("l{}:{}", meta.dev(), meta.ino())).unwrap();
-        reviewed.snapshot(&mut Manifest::new(d.path()).unwrap(), d.path(), &Cancellation::default()).unwrap();
-        let refused = reviewed.delete(d.path());
-        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
-        // ui/TrashView.qml puts "<name> failed: " before this, so the name is the view's and the reason is io_message's for EACCES.
-        assert_eq!(refused.map_err(|error| error.shown()),
-            Err("Could not prepare the deletion, so nothing was deleted: permission denied.".to_string()));
-        assert_eq!(std::fs::read_to_string(path.join("child.txt")).unwrap(), "survive");
-    }
-    #[test]
-    fn changed_identity_or_size_is_never_deleted() {
-        let d = TestDir::new("trash-delete-change");
-        let (path, reviewed) = fixture(&d);
-        std::fs::rename(&path, d.join("files/old")).unwrap();
-        std::fs::write(&path, "replacement").unwrap();
-        guard(&d, &path);
-        assert!(reviewed.delete(d.path()).is_err());
-        assert_eq!(std::fs::read_to_string(path).unwrap(), "replacement");
-    }
-    #[test]
-    fn unreviewed_contents_are_never_deleted() {
-        let d = TestDir::new("trash-delete-unreviewed");
-        let (path, _) = fixture(&d);
-        let meta = path.symlink_metadata().unwrap();
-        let unreviewed = Reviewed::inspect(path.clone(), &format!("l{}:{}", meta.dev(), meta.ino())).unwrap();
-        guard(&d, &path);
-        assert!(unreviewed.delete(d.path()).is_err());
-        assert_eq!(std::fs::read_to_string(path).unwrap(), "payload");
-    }
-    #[test]
-    fn changed_metadata_is_never_deleted() {
-        let d = TestDir::new("trash-delete-metadata");
-        let (path, reviewed) = fixture(&d);
-        let info = d.join("info/item.trashinfo");
-        std::fs::rename(&info, d.join("info/old.trashinfo")).unwrap();
-        std::fs::write(&info, "[Trash Info]\nPath=/new-original\n").unwrap();
-        guard(&d, &path);
-        assert!(reviewed.delete(d.path()).is_err());
-        assert_eq!(std::fs::read_to_string(path).unwrap(), "payload");
-        assert!(std::fs::read_to_string(info).unwrap().contains("/new-original"));
-    }
-    #[test]
-    fn backing_paths_must_name_a_trash_payload() {
-        assert!(Reviewed::inspect(PathBuf::from("relative/files/item"), "").is_err());
-        assert!(Reviewed::inspect(PathBuf::from("/tmp/item"), "").is_err());
-    }
-    #[test]
-    fn replacement_between_check_and_claim_is_restored_without_deletion() {
-        let d = TestDir::new("trash-delete-race");
-        let (path, reviewed) = fixture(&d);
-        guard(&d, &path);
-        let result = reviewed.delete_after(d.path(), || {
-            std::fs::rename(&path, d.join("files/reviewed-old")).unwrap();
-            std::fs::write(&path, "new arrival").unwrap();
-        });
-        assert!(result.is_err());
-        assert_eq!(std::fs::read_to_string(&path).unwrap(), "new arrival");
-        assert_eq!(
-            std::fs::read_to_string(d.join("files/reviewed-old")).unwrap(),
-            "payload"
-        );
-        assert!(d.join("info/item.trashinfo").exists());
-    }
-    #[test]
-    fn directory_contents_are_removed_but_symlinks_never_followed() {
-        let d = TestDir::new("trash-delete-directory");
-        let (path, _) = fixture(&d);
-        std::fs::rename(&path, d.join("files/saved-file")).unwrap();
-        std::fs::create_dir(&path).unwrap();
-        let target = d.file("target", "keep");
-        std::os::unix::fs::symlink(&target, path.join("link")).unwrap();
-        std::fs::write(path.join("child"), "delete").unwrap();
-        let meta = path.symlink_metadata().unwrap();
-        let mut reviewed =
-            Reviewed::inspect(path.clone(), &format!("l{}:{}", meta.dev(), meta.ino())).unwrap();
-        reviewed.snapshot(&mut Manifest::new(d.path()).unwrap(), d.path(), &Cancellation::default()).unwrap();
-        guard(&d, &path);
-        reviewed.delete(d.path()).unwrap();
-        assert!(!path.exists());
-        assert_eq!(std::fs::read_to_string(target).unwrap(), "keep");
-    }
-    #[test]
-    fn directory_child_changes_invalidate_review() {
-        let d = TestDir::new("trash-delete-child-change");
-        d.dir("files/item");
-        d.dir("info");
-        d.file("info/item.trashinfo", "[Trash Info]\nPath=/original\n");
-        let child = d.file("files/item/child", "reviewed");
-        let path = d.join("files/item");
-        let meta = path.symlink_metadata().unwrap();
-        let mut reviewed = Reviewed::inspect(path.clone(), &format!("l{}:{}", meta.dev(), meta.ino())).unwrap();
-        assert_eq!(reviewed.snapshot(&mut Manifest::new(d.path()).unwrap(), d.path(), &Cancellation::default()).unwrap(), 8);
-        std::fs::write(&child, "changed size").unwrap();
-        assert!(!reviewed.contents_unchanged(&Cancellation::default()).unwrap());
-        guard(&d, &path);
-        assert!(reviewed.delete(d.path()).is_err());
-        assert_eq!(std::fs::read_to_string(child).unwrap(), "changed size");
-    }
-    #[test]
-    fn directory_arrival_after_claim_survives() {
-        let d = TestDir::new("trash-delete-child-arrival");
-        d.dir("files/item");
-        d.dir("info");
-        d.file("info/item.trashinfo", "[Trash Info]\nPath=/original\n");
-        d.file("files/item/child", "reviewed");
-        let path = d.join("files/item");
-        let meta = path.symlink_metadata().unwrap();
-        let mut reviewed = Reviewed::inspect(path.clone(), &format!("l{}:{}", meta.dev(), meta.ino())).unwrap();
-        reviewed.snapshot(&mut Manifest::new(d.path()).unwrap(), d.path(), &Cancellation::default()).unwrap();
-        guard(&d, &path);
-        let walks = match_walks();
-        let result = reviewed.delete_with(d.path(), || {}, |claimed| {
-            std::fs::write(claimed.join("new-arrival"), "keep").unwrap();
-        });
-        assert_eq!(match_walks() - walks, 1, "one delete runs exactly one matches() walk");
-        assert!(result.is_err());
-        assert_eq!(std::fs::read_to_string(path.join("new-arrival")).unwrap(), "keep");
-        assert_eq!(std::fs::read_to_string(path.join("child")).unwrap(), "reviewed");
-    }
-    #[test]
-    fn deleting_a_reviewed_child_does_not_remove_unreviewed_siblings() {
-        let d = TestDir::new("trash-delete-member-set");
-        let directory = d.dir("directory");
-        let path = d.file("directory/reviewed", "delete");
-        let node = Node { relative: PathBuf::new(), identity: identity(&path).unwrap(), children: 0 };
-        let later = d.file("directory/later", "keep");
-        let quarantine = d.dir("quarantine");
-        guard(&d, &path);
-        node.claim_remove(&open_dir(&directory).unwrap(), OsStr::new("reviewed"), &open_dir(&quarantine).unwrap(), 0).unwrap();
-        assert!(!path.exists());
-        assert_eq!(std::fs::read_to_string(later).unwrap(), "keep");
-    }
-    #[test]
-    fn cancelled_snapshot_never_leaves_an_actionable_review() {
-        let d = TestDir::new("trash-review-cancel");
-        let (path, mut reviewed) = fixture(&d);
-        let cancellation = Cancellation::default();
-        let old = cancellation.next();
-        cancellation.next();
-        assert!(reviewed.snapshot(&mut Manifest::new(d.path()).unwrap(), d.path(), &old).is_err());
-        guard(&d, &path);
-        assert!(reviewed.delete(d.path()).is_err());
-        assert_eq!(std::fs::read_to_string(path).unwrap(), "payload");
-    }
-    #[test]
-    fn saved_reviews_keep_original_identities_and_manifest_ranges() {
-        let d = TestDir::new("trash-review-record");
-        let (path, mut reviewed) = fixture(&d);
-        let mut manifest = Manifest::new(d.path()).unwrap();
-        reviewed.snapshot(&mut manifest, d.path(), &Cancellation::default()).unwrap();
-        let restored = Reviewed::from_saved(&reviewed.saved().unwrap(), &manifest).unwrap();
-        assert!(restored.contents_unchanged(&Cancellation::default()).unwrap());
-        std::fs::write(&path, "different").unwrap();
-        assert!(!restored.contents_unchanged(&Cancellation::default()).unwrap());
-        guard(&d, &path);
-        assert!(restored.delete(d.path()).is_err());
-        assert_eq!(std::fs::read_to_string(path).unwrap(), "different");
-    }
-    #[test]
-    fn ordinary_path_review_refuses_a_replacement_during_claim() {
-        let d = TestDir::new("path-delete-race");
-        let path = d.file("selected", "reviewed");
-        let mut manifest = Manifest::new(d.path()).unwrap();
-        let (reviewed, bytes) = PathReview::prepare(path.clone(), &mut manifest, d.path(), &Cancellation::default()).unwrap();
-        assert_eq!(bytes, 8);
-        guard(&d, &path);
-        assert!(reviewed.delete_after(d.path(), || {
-            std::fs::rename(&path, d.join("old-selected")).unwrap();
-            std::fs::write(&path, "replacement").unwrap();
-        }).is_err());
-        assert_eq!(std::fs::read_to_string(path).unwrap(), "replacement");
-        assert_eq!(std::fs::read_to_string(d.join("old-selected")).unwrap(), "reviewed");
-    }
-    #[test]
-    fn iterative_review_deletes_deep_trees_without_following_symlinks() {
-        let d = TestDir::new("path-delete-deep");
-        let root = d.dir("selected");
-        let mut deepest = root.clone();
-        for _ in 0..300 {
-            deepest = deepest.join("d");
-            std::fs::create_dir(&deepest).unwrap();
-        }
-        std::fs::write(deepest.join("payload"), "reviewed").unwrap();
-        let outside = d.file("outside", "keep");
-        std::os::unix::fs::symlink(&outside, deepest.join("link")).unwrap();
-        let mut manifest = Manifest::new(d.path()).unwrap();
-        let (reviewed, _) = PathReview::prepare(root.clone(), &mut manifest, d.path(), &Cancellation::default()).unwrap();
-        assert!(reviewed.unchanged(&Cancellation::default()).unwrap());
-        guard(&d, &root);
-        reviewed.delete(d.path()).unwrap();
-        assert!(!root.exists());
-        assert_eq!(std::fs::read_to_string(outside).unwrap(), "keep");
-    }
-}
+#[path = "trashdelete/tests.rs"]
+mod tests;

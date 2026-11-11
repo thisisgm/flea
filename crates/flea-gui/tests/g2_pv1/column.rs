@@ -1,8 +1,8 @@
 //! The preview column boards: preview-column, multi-facts, cols-preview-image and cols-preview-raw.
 use super::boards::rect;
 use super::*;
-use flea::ui_logic_pv1::facts::Fact;
-use flea_gui::g2::pv1::{
+use flea::ui_logic_preview_core::facts::Fact;
+use flea_gui::g2::quick_look_overlay::{
     column::{column, Column, Facts, Frame},
     glyph::Glyph,
     Look, RasterState,

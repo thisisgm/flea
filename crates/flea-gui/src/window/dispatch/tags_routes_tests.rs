@@ -2,7 +2,7 @@
 use super::menus_tests::{home, settle, validated};
 use super::tags_tests::{complete, request, status};
 use super::test_shell::{land, open_root, sent, set_cursor};
-use crate::{backend::Backend, g2::mn1::join::Chosen, window::u07_tests::read};
+use crate::{backend::Backend, g2::context_menus::join::Chosen, window::u07_tests::read};
 use flea::jsondoc::Json;
 use gpui::TestAppContext;
 use std::{cell::Cell, rc::Rc};
@@ -183,6 +183,7 @@ fn pb_tag_non_tag_choice_waits_for_the_outstanding_tag_validation(cx: &mut TestA
             .count(),
         1
     );
+    assert_eq!(read(&shell, cx, "renameEditorLive", &[]), "false");
     validated(&shell, cx, "tags:tag1", &["/files/notes.txt"]);
     let requests = sent()
         .into_iter()
@@ -195,12 +196,13 @@ fn pb_tag_non_tag_choice_waits_for_the_outstanding_tag_validation(cx: &mut TestA
         ),
         "the tag choice is delivered first"
     );
-    assert!(
-        requests.iter().any(
-            |line| line.get("op").and_then(Json::as_str) == Some("validate")
-                && line.get("action").and_then(Json::as_str) == Some("rename")
-        ),
-        "Rename validates next"
+    assert!(requests
+        .iter()
+        .all(|line| line.get("op").and_then(Json::as_str) != Some("validate")));
+    assert_eq!(
+        read(&shell, cx, "renameEditorLive", &[]),
+        "true",
+        "Rename opens after the tag choice is delivered"
     );
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }

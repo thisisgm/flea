@@ -282,14 +282,29 @@ class LayoutTests(unittest.TestCase):
         relative = [r for r in common if r["action"] == "copyRelative"]
         self.assertEqual([(r["table"], r["layer"], r["key"], r["mods"], r["action"], r["contexts"], r["frontend"])
                           for r in relative], [("preset", "all", "r", "text", "copyRelative", ["menu"], "all")])
+        # S2-1: the window's Ctrl+P Print moves from code into the table, so the menu hint reads the key it answers.
+        printing = [r for r in common if r["action"] == "print"]
+        self.assertEqual([(r["table"], r["layer"], r["key"], r["mods"], r["action"], r["contexts"], r["frontend"])
+                          for r in printing], [("preset", "all", "P", "ctrl", "print", ["listing"], "gui")])
+        # F3 toggles the dual pane in the GUI listing of every preset.
+        dual = [r for r in common if r["action"] == "viewDual" and r["layer"] == "all"]
+        self.assertEqual([(r["table"], r["layer"], r["key"], r["mods"], r["action"], r["contexts"], r["frontend"])
+                          for r in dual], [("preset", "all", "F3", "none", "viewDual", ["listing"], "gui")])
         frozen = [{k: v for k, v in r.items() if k != "id"} for r in baseline]
         widened = [r for r in frozen if r["action"] in ("previewPageForward", "previewPageBack")]
+        # The terminal player draws no mute state, so m mutes only in the window's media context.
+        mute = [r for r in common if r["action"] == "mute" and r["contexts"] == ["media"]]
+        unmuted = [r for r in frozen if r["action"] == "mute" and r["contexts"] == ["media"]]
+        self.assertEqual([(r["table"], r["layer"], r["key"], r["mods"], r["frontend"]) for r in unmuted],
+                         [("preset", "all", "m", "text", "all")])
+        self.assertEqual(mute, [dict(r, frontend="gui") for r in unmuted])
         self.assertEqual([(r["key"], r["contexts"]) for r in widened], [("F", ["listing"]), ("B", ["listing"])])
         self.assertEqual([r for r in common if r["action"] in ("previewPageForward", "previewPageBack")],
                          [dict(r, contexts=["listing", "preview", "pdf"]) for r in widened])
         self.assertEqual([r for r in common if r["action"] not in ("openAgent", "carry", "searchContents") and r not in text_size
-                          and r not in sheets and r not in paging and r not in in_place and r not in relative],
-                         [r for r in frozen if r not in widened])
+                          and r not in sheets and r not in paging and r not in in_place and r not in relative
+                          and r not in mute and r not in printing and r not in dual],
+                         [r for r in frozen if r not in widened and r not in unmuted])
 
     def test_i50_layout_unreachable_fails(self):
         matrix = self.valid_matrix()

@@ -1,6 +1,9 @@
 use super::*;
 use crate::backend::testdir::TestDir;
 
+#[path = "rename_identity_tests.rs"]
+mod identity;
+
 #[test]
 fn publisher_keeps_its_history_after_a_diagnostic_write_failure() {
     use std::io::{Read, Write};

@@ -249,3 +249,104 @@ fn sequence_checker_rejects_inert_navigation() {
         assert!(result.is_err(), "the sequence check accepted {action} instead of first-row navigation");
     }
 }
+
+// A symlink the backend resolved to a folder (d false, lstat mode a link, the folder icon) browses in like a folder.
+#[test]
+fn enter_right_and_l_on_a_link_to_a_folder_browse_into_it() {
+    let link = r#"{"t":"rows","start":0,"rows":[{"n":"todir","d":false,"p":41471,"i":"folder","l":"../one"},{"n":"tofile","d":false,"p":41471,"i":"text-x-generic","l":"note.txt"}]}"#;
+    for (preset, key) in [("default", Key::named("Return", "")), ("default", Key::named("Right", "")), ("vim", Key::character('l', "")), ("yazi", Key::character('l', ""))] {
+        let (mut wire, reader) = wire::echo_wire();
+        let mut m = listing(&mut wire, preset);
+        m.receive(jsondoc::parse(link).unwrap(), &mut wire).unwrap();
+        drain(&mut wire);
+        m.cursor = 0;
+        assert!(m.rows[&0].folder() && !m.rows[&1].folder(), "only the link to a folder is one");
+        actions::key(&mut m, &key, &Map::load(), &mut wire).unwrap();
+        assert_eq!(m.pending.as_deref(), Some(std::path::Path::new("/listing/todir")), "{preset} {}: the link path is listed", key.name);
+        assert_eq!(requests(&drain(&mut wire), "list").len(), 1);
+        assert!(m.error.is_empty(), "{preset}: {}", m.error);
+        wire::finish(wire, reader);
+    }
+    // Its preview is a folder's: the children peek, never a file read that fails.
+    let (mut wire, reader) = wire::echo_wire();
+    let mut m = listing(&mut wire, "default");
+    m.receive(jsondoc::parse(link).unwrap(), &mut wire).unwrap();
+    drain(&mut wire);
+    m.cursor = 0;
+    m.preview_visible = true;
+    super::preview::load(&mut m, true);
+    super::preview::request(&mut m, &mut wire).unwrap();
+    let sent = drain(&mut wire);
+    assert_eq!(requests(&sent, "peek").len(), 1, "the link's preview peeks its folder");
+    assert!(requests(&sent, "meta").is_empty());
+    assert_eq!(super::pane_state::kind(&m.rows[&0]), super::pane_state::Kind::Folder);
+    // Its facts say Folder and link, as the window's size column does, never the link's own bytes.
+    let facts = super::pane::preview(&m, 1, 60, 20, &super::theme::Theme::with_depth("", super::theme::Depth::Mono));
+    assert!(facts.contains("Folder · link") && !facts.contains(" B"), "{facts:?}");
+    wire::finish(wire, reader);
+}
+
+// A plain click makes the cursor row the selection, so Ctrl+click adds to it; a second Ctrl+click takes that row back out.
+#[test]
+fn ctrl_click_after_a_plain_click_keeps_the_first_row() {
+    let (mut wire, reader) = wire::echo_wire();
+    let mut m = super::render::frame_tests::model();
+    m.cursor = 0;
+    let (left, _, _) = super::render::panes(m.columns, m.preview_visible);
+    let click = |row: usize, mods: &str| {
+        let mut key = Key::named("", mods);
+        key.pointer = Some(super::input::Pointer {
+            button: 0,
+            x: left + 3,
+            y: super::render::BODY_ROW + row,
+            released: false,
+            motion: false,
+        });
+        key
+    };
+    press(&mut m, &mut wire, click(7, ""));
+    assert_eq!(m.cursor, 7);
+    assert!(m.selected.is_empty());
+    press(&mut m, &mut wire, click(8, "ctrl"));
+    assert_eq!(
+        m.selected.iter().copied().collect::<Vec<_>>(),
+        [7, 8],
+        "both clicked rows are selected"
+    );
+    press(&mut m, &mut wire, click(8, "ctrl"));
+    assert_eq!(m.selected.iter().copied().collect::<Vec<_>>(), [7]);
+    press(&mut m, &mut wire, click(7, "ctrl"));
+    assert!(m.selected.is_empty());
+    press(&mut m, &mut wire, click(6, "ctrl"));
+    assert_eq!(
+        m.selected.iter().copied().collect::<Vec<_>>(),
+        [6],
+        "a row Ctrl+click took out stays out"
+    );
+    // A cursor keys moved off the clicked row never joins the selection.
+    press(&mut m, &mut wire, click(3, ""));
+    press(&mut m, &mut wire, Key::named("Down", ""));
+    assert_eq!(m.cursor, 4);
+    press(&mut m, &mut wire, click(6, "ctrl"));
+    assert_eq!(m.selected.iter().copied().collect::<Vec<_>>(), [6]);
+    // A clicked row the filter now hides never joins the selection either.
+    press(&mut m, &mut wire, click(7, ""));
+    m.filter = "m".into();
+    press(&mut m, &mut wire, click(0, "ctrl"));
+    assert_eq!(m.cursor, 3, "Empty is the first row matching m");
+    assert_eq!(m.selected.iter().copied().collect::<Vec<_>>(), [3]);
+    wire::finish(wire, reader);
+}
+
+// Go to .. opens the parent itself, so Parent from there goes further up, never back down.
+#[test]
+fn go_to_dot_dot_opens_the_parent_by_its_own_name() {
+    let (mut wire, reader) = wire::echo_wire();
+    let mut m = listing(&mut wire, "default");
+    let mut editor = super::editor::Editor::new("path", String::new(), m.path.clone());
+    editor.value = "folder/..".into();
+    m.editor = Some(editor);
+    press(&mut m, &mut wire, Key::named("Return", ""));
+    assert_eq!(m.pending.as_deref(), Some(std::path::Path::new("/listing")));
+    wire::finish(wire, reader);
+}

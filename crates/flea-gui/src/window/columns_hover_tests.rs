@@ -71,8 +71,14 @@ fn pb_columns1_hover_tracks_rows_and_clears_on_background_and_lane() {
                     );
                     if expected.is_some() {
                         let palette = paint.painted.as_ref().unwrap();
+                        // 0401-list-nohover: the fresh install washes nothing; Highlight on hover ticked brings the 8% back.
+                        assert_eq!(focus.plate(palette, slot, row, false), None);
+                        let ticked = crate::columns::paint::Focus {
+                            hover_wash: true,
+                            ..(**focus).clone()
+                        };
                         assert_eq!(
-                            focus.plate(palette, slot, row, false),
+                            ticked.plate(palette, slot, row, false),
                             Some(palette.foreground.opacity(crate::columns::paint::HOVER))
                         );
                     }

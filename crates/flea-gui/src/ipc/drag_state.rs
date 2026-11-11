@@ -32,7 +32,7 @@ impl DragState<'_> {
             };
             Some((
                 side,
-                crate::g2::dg2::join::pane_spot(host, pointer, carried),
+                crate::g2::drag_drop::join::pane_spot(host, pointer, carried),
             ))
         });
         let paths = lift.paths.as_ref().map_or(Json::Null, |paths| {

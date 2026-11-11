@@ -1,7 +1,7 @@
 //! The pane state surfaces mount on their state and draw in the window; a window with no such state builds none.
 use crate::{
     backend::{Backend, Event as BackendEvent, Failure},
-    g2::fb1::state::Facts,
+    g2::status_feedback::state::Facts,
     pane::states::Kind,
     state::{tests::shell_with, Shell},
     window::{
@@ -10,7 +10,7 @@ use crate::{
         startup::{Arguments, Launch, Settings},
     },
 };
-use flea::ui_logic_fb1::errors::sentence;
+use flea::ui_logic_status_feedback::errors::sentence;
 use gpui::{AppContext, Bounds, Pixels, Quad, TestAppContext, VisualTestContext, WindowHandle};
 use std::sync::Arc;
 
@@ -160,12 +160,12 @@ fn a_refused_reply_draws_the_directory_mode_from_the_backend(cx: &mut TestAppCon
                     0,
                 );
                 shell.receive(0, BackendEvent::Reply(reply), window, cx);
-                flea::ui_logic_fb1::errors::locked_line(mode, &shell.locale.catalog)
+                flea::ui_logic_status_feedback::errors::locked_line(mode, &shell.locale.catalog)
             })
             .expect("the shell window is open");
         frame(cx, handle);
         let drawn = facts(cx, handle).expect("the refused reply mounts the Locked message");
-        assert_eq!(drawn.kind, crate::g2::fb1::state::Kind::Locked);
+        assert_eq!(drawn.kind, crate::g2::status_feedback::state::Kind::Locked);
         assert!(expected.contains(permissions));
         assert_eq!(drawn.detail.as_ref(), expected);
         let detail = marks(cx, handle, "fb1-state-detail")

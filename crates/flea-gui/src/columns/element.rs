@@ -295,5 +295,7 @@ impl Element for TrackElement {
         cx: &mut App,
     ) {
         self.paint_track(bounds, *palette, window, cx);
+        let mut paint = self.paint.borrow_mut();
+        paint.paint_serial = paint.paint_serial.wrapping_add(1);
     }
 }

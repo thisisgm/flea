@@ -102,7 +102,7 @@ fn uish_misc_native12_transfer_receipt_has_a_real_transient_undo_target(cx: &mut
             );
         }
         cx.executor().advance_clock(Duration::from_millis(
-            flea::ui_logic_fb1::messages::MESSAGE_MS + 1,
+            flea::ui_logic_status_feedback::messages::MESSAGE_MS + 1,
         ));
         cx.run_until_parked();
         frame(cx);
@@ -178,7 +178,11 @@ fn uish_misc_native12_card_closed_refocuses_past_other_pane_shares(cx: &mut Test
             shell.network_remember_focus();
             // The dismissed card held the keyboard, so nothing in the window is focused when Closed lands.
             window.blur(cx);
-            shell.network_card(&crate::g2::pl2::dialog::Effect::Closed, window, cx);
+            shell.network_card(
+                &crate::g2::network_shares::dialog::Effect::Closed,
+                window,
+                cx,
+            );
         })
     });
     frame(cx);
@@ -200,7 +204,11 @@ fn uish_misc_native12_card_closed_leaves_same_pane_shares_the_keyboard(cx: &mut 
             shell.focus_pane(1, cx);
             shell.network_remember_focus();
             window.blur(cx);
-            shell.network_card(&crate::g2::pl2::dialog::Effect::Closed, window, cx);
+            shell.network_card(
+                &crate::g2::network_shares::dialog::Effect::Closed,
+                window,
+                cx,
+            );
         })
     });
     frame(cx);

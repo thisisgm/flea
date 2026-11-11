@@ -4,14 +4,13 @@ use super::plugins::{self, Env, Installed};
 use super::{mime, sandbox};
 use flea::jsondoc::Json;
 use flea::plugin_runtime::{protocol, Reply};
-use flea::ui_logic_mn2::plugins::mime_match;
-use flea::ui_logic_st2::manifest::{Invalid, Manifest};
+use flea::ui_logic_custom_actions::plugins::mime_match;
+use flea::ui_logic_plugin_settings::manifest::{Invalid, Manifest};
 use std::io::{BufRead, Read, Write};
 use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
-use std::os::unix::fs::DirBuilderExt;
 use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::AtomicU64;
 use std::sync::{mpsc, Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
@@ -76,36 +75,9 @@ fn root() -> PathBuf {
 mod sandbox_args;
 pub(super) use sandbox_args::argv;
 
-struct Work(PathBuf);
-
-impl Work {
-    fn new(root: &Path) -> Result<Self, String> {
-        let mut builder = std::fs::DirBuilder::new();
-        builder.recursive(true).mode(0o700);
-        builder
-            .create(root.join("shown"))
-            .map_err(|e| e.to_string())?;
-        let n = NEXT.fetch_add(1, Ordering::Relaxed);
-        let path = root.join(format!("work-{}-{n}", std::process::id()));
-        builder.recursive(false);
-        builder.create(&path).map_err(|e| e.to_string())?;
-        Ok(Self(path))
-    }
-}
-
-impl Drop for Work {
-    fn drop(&mut self) {
-        // Only this request's own folder under the preview root, never an empty or relative path.
-        if self.0.is_absolute()
-            && self
-                .0
-                .file_name()
-                .is_some_and(|n| n.to_string_lossy().starts_with("work-"))
-        {
-            let _ = std::fs::remove_dir_all(&self.0);
-        }
-    }
-}
+#[path = "pluginpreview_work.rs"]
+mod work;
+use work::Work;
 
 fn read_line(output: &mut impl BufRead) -> Result<Json, String> {
     let mut line = Vec::new();
@@ -236,7 +208,11 @@ fn run(
     let work = Work::new(&limits.root)?;
     let mut jailed = spawn(&folder, &entry, input, &work.0, &[])?;
     let mut lines = vec![plugins::hello(env, manifest)];
-    lines.extend(request.as_ref().map(flea::ui_logic_st2::wire::compact));
+    lines.extend(
+        request
+            .as_ref()
+            .map(flea::ui_logic_plugin_settings::wire::compact),
+    );
     let answers = exchange(
         &mut jailed,
         lines,
@@ -257,7 +233,7 @@ pub(super) fn check(env: &Env, found: &Installed) -> Result<(), Invalid> {
 fn selected(manifest: &Manifest, request: &Json) -> Result<std::fs::File, Invalid> {
     let refuse = |why: &str| Invalid::new("request", why);
     let path = match request.get("paths").and_then(Json::as_array) {
-        Some([Json::Str(path)]) => Path::new(path),
+        Some([Json::Str(path)]) => flea::bytename::view(path),
         _ => return Err(refuse("preview takes exactly one selected file")),
     };
     let name = path
@@ -280,7 +256,8 @@ fn selected(manifest: &Manifest, request: &Json) -> Result<std::fs::File, Invali
     {
         return Err(refuse("previewer does not handle this type"));
     }
-    super::regfile::open_regular(path).ok_or_else(|| refuse("preview input must be a regular file"))
+    super::regfile::open_regular(&path)
+        .ok_or_else(|| refuse("preview input must be a regular file"))
 }
 
 // Plain text only: no control characters but newline and tab, and a bounded line count.

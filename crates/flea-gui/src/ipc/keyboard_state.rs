@@ -4,7 +4,7 @@ use crate::{state::Shell, window::startup::View};
 use flea::{
     ipc::wire::Reply,
     jsondoc::{self, Json},
-    ui_logic_sr1::Mode,
+    ui_logic_file_search::Mode,
 };
 use gpui::{App, Window};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -61,7 +61,7 @@ impl KeyboardState<'_> {
                 .focus_handle()
                 .is_some_and(|focus| focus.is_focused(self.window))
             {
-                use crate::g2::op1::model::{CopyFocus, Dialog};
+                use crate::g2::file_ops::model::{CopyFocus, Dialog};
                 return match overlay.model.dialog {
                     Some(
                         Dialog::CopyTo {
@@ -99,7 +99,9 @@ impl KeyboardState<'_> {
             if look
                 .subject()
                 .and_then(|subject| subject.body.doc())
-                .is_some_and(|doc| matches!(doc.view, crate::g2::pv1::doc::View::Pdf(_)))
+                .is_some_and(|doc| {
+                    matches!(doc.view, crate::g2::quick_look_overlay::doc::View::Pdf(_))
+                })
             {
                 return "PdfViewer";
             }

@@ -52,9 +52,12 @@ fn pb_network_2_quick_look_rises_and_keeps_its_close_frame(cx: &mut TestAppConte
     let subscription = cx.update(|_, cx| {
         shell.update(cx, |shell, cx| {
             let view = shell.quick_look.as_ref().unwrap().view.clone();
-            cx.subscribe(&view, move |_, _, event: &crate::g2::pv1::Event, _| {
-                seen.borrow_mut().push(*event)
-            })
+            cx.subscribe(
+                &view,
+                move |_, _, event: &crate::g2::quick_look_overlay::Event, _| {
+                    seen.borrow_mut().push(*event)
+                },
+            )
         })
     });
     cx.simulate_keystrokes("escape");
@@ -65,7 +68,9 @@ fn pb_network_2_quick_look_rises_and_keeps_its_close_frame(cx: &mut TestAppConte
         .expect("the retained card still draws its button");
     cx.simulate_click(button.center(), gpui::Modifiers::none());
     assert!(
-        !events.borrow().contains(&crate::g2::pv1::Event::OpenWith),
+        !events
+            .borrow()
+            .contains(&crate::g2::quick_look_overlay::Event::OpenWith),
         "a closing card accepts no control action"
     );
     cx.executor()

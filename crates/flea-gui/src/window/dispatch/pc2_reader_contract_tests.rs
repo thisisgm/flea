@@ -1,7 +1,7 @@
 //! The owning HTML frame and active viewport are independent IPC observations.
 use super::*;
 use crate::ipc::rows::rect_of;
-use flea::ui_logic_pv2::html::View;
+use flea::ui_logic_doc_preview::html::View;
 
 fn mounted(shell: &Entity<Shell>, cx: &VisualTestContext, column: bool) -> Entity<HtmlView> {
     shell.read_with(cx, |shell, cx| {

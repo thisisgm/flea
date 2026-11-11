@@ -1,8 +1,11 @@
 // Actions and legacy scripts are discovered only for an explicit selection request, off the loop.
+use flea::bytename::ExactText as _;
 use super::actionmanifest::{self, Manifest, MAX_MANIFEST};
 use super::opsreq::OpMsg;
 use crate::json::{escape, field_str, field_str_array, field_usize};
+use std::ffi::OsStr;
 use std::io::{Read, Write};
+use std::os::unix::ffi::OsStrExt;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::Sender;
@@ -22,7 +25,7 @@ pub(crate) struct Action {
 fn config() -> PathBuf {
     std::env::var_os("XDG_CONFIG_HOME")
         .filter(|p| !p.is_empty())
-        .map(PathBuf::from)
+        .map(flea::bytename::exact)
         .unwrap_or_else(|| {
             PathBuf::from(std::env::var_os("HOME").unwrap_or_default()).join(".config")
         })
@@ -49,7 +52,7 @@ fn load_from(root: &Path) -> (Vec<Action>, Vec<(String, String)>) {
             if path.extension().map_or(true, |s| s != "toml") {
                 continue;
             }
-            let name = entry.file_name().to_string_lossy().to_string();
+            let name = entry.file_name().exact_text().to_string();
             let parsed = super::regfile::open_regular(&path)
                 .ok_or_else(|| "not a regular readable manifest".to_string())
                 .and_then(|f| {
@@ -82,11 +85,11 @@ fn load_from(root: &Path) -> (Vec<Action>, Vec<(String, String)>) {
             if !meta.is_file() || meta.permissions().mode() & 0o111 == 0 {
                 continue;
             }
-            let name = entry.file_name().to_string_lossy().to_string();
-            let label = Path::new(&name)
+            let name = entry.file_name().exact_text().to_string();
+            let label = flea::bytename::view(&name)
                 .file_stem()
                 .unwrap_or_default()
-                .to_string_lossy()
+                .exact_text()
                 .to_string();
             actions.push(Action {
                 id: format!("script:{name}"),
@@ -96,7 +99,7 @@ fn load_from(root: &Path) -> (Vec<Action>, Vec<(String, String)>) {
                     mime: vec!["*/*".into()],
                     selection: "many".into(),
                     mode: "background".into(),
-                    run: vec![entry.path().to_string_lossy().into()],
+                    run: vec![entry.path().exact_text().into()],
                 },
             });
         }
@@ -128,57 +131,40 @@ impl Action {
     }
 
     pub fn argv(&self, path: &Path) -> Vec<String> {
-        let values = [
-            ("{path}", path.to_string_lossy().to_string()),
+        let values: [(&str, &[u8]); 5] = [
+            ("{path}", path.as_os_str().as_bytes()),
             (
                 "{dir}",
                 path.parent()
                     .unwrap_or(Path::new("/"))
-                    .to_string_lossy()
-                    .to_string(),
+                    .as_os_str()
+                    .as_bytes(),
             ),
-            (
-                "{name}",
-                path.file_name()
-                    .unwrap_or_default()
-                    .to_string_lossy()
-                    .to_string(),
-            ),
-            (
-                "{stem}",
-                path.file_stem()
-                    .unwrap_or_default()
-                    .to_string_lossy()
-                    .to_string(),
-            ),
-            (
-                "{ext}",
-                path.extension()
-                    .unwrap_or_default()
-                    .to_string_lossy()
-                    .to_string(),
-            ),
+            ("{name}", path.file_name().unwrap_or_default().as_bytes()),
+            ("{stem}", path.file_stem().unwrap_or_default().as_bytes()),
+            ("{ext}", path.extension().unwrap_or_default().as_bytes()),
         ];
         self.manifest
             .run
             .iter()
             .map(|template| {
-                let mut output = String::new();
+                // Values splice as raw bytes, so a raw name inside a longer argument still encodes as one exact text.
+                let mut output: Vec<u8> = Vec::new();
                 let mut rest = template.as_str();
                 while let Some(at) = rest.find('{') {
-                    output.push_str(&rest[..at]);
+                    output.extend_from_slice(&rest.as_bytes()[..at]);
                     let end = rest[at..].find('}').unwrap() + at;
                     if let Some((_, value)) = values.iter().find(|(key, _)| *key == &rest[at..=end])
                     {
-                        output.push_str(value);
+                        output.extend_from_slice(value);
                     }
                     rest = &rest[end + 1..];
                 }
-                output.push_str(rest);
-                if template.starts_with('{') && output.starts_with('-') {
-                    output.insert_str(0, "./");
+                output.extend_from_slice(rest.as_bytes());
+                if template.starts_with('{') && output.starts_with(b"-") {
+                    output.splice(0..0, *b"./");
                 }
-                output
+                flea::bytename::path_text(Path::new(OsStr::from_bytes(&output))).into_owned()
             })
             .collect()
     }
@@ -194,7 +180,7 @@ pub(crate) fn request(line: String, mime: Arc<super::mime::Db>, tx: Sender<OpMsg
         let valid = paths.len() <= MAX_SELECTION
             && paths
                 .iter()
-                .all(|p| Path::new(p).is_absolute() && !p.contains('\0'));
+                .all(|p| flea::bytename::view(p).is_absolute() && !flea::bytename::is_refused(p));
         let (actions, errors) = load();
         let matching: Vec<_> = actions
             .into_iter()
@@ -304,9 +290,11 @@ pub(crate) fn ready(
                 move || {
                     let mut error = String::new();
                     for path in &paths {
-                        let argv = action.argv(Path::new(path));
+                        let argv = action.argv(&flea::bytename::view(path));
                         if let Err(e) = crate::terminal::open_argv(
-                            Path::new(path).parent().unwrap_or(Path::new("/")),
+                            flea::bytename::view(path)
+                                .parent()
+                                .unwrap_or(Path::new("/")),
                             &argv,
                         ) {
                             error = e.to_string();

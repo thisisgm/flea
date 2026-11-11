@@ -193,8 +193,8 @@ fn ctrl_equal_and_ctrl_zero_step_the_listing_text_size(cx: &mut TestAppContext) 
     land(&shell, cx, "/files", home(), 1);
     let stored = |shell: &Entity<Shell>, cx: &mut VisualTestContext| {
         shell.read_with(cx, |shell, _| {
-            flea::ui_logic_st1::textsize::parse(
-                flea::ui_logic_st1::pages::at(
+            flea::ui_logic_settings_pages::textsize::parse(
+                flea::ui_logic_settings_pages::pages::at(
                     &shell.launch.settings.data,
                     &["display", "textSize"],
                 )
@@ -202,7 +202,7 @@ fn ctrl_equal_and_ctrl_zero_step_the_listing_text_size(cx: &mut TestAppContext) 
             )
         })
     };
-    let follow = flea::ui_logic_st1::textsize::Stored::Follow;
+    let follow = flea::ui_logic_settings_pages::textsize::Stored::Follow;
     assert_eq!(stored(&shell, cx), follow);
     // A text size change re-reads the folder, and a busy pane swallows the next chord, so each re-read is answered.
     let mut listing = 1;

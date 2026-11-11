@@ -108,3 +108,55 @@ fn lang_polish_all_fifty_catalogs_supply_a_localized_png_fallback() {
         }
     }
 }
+
+#[test]
+fn fxi18n3_plain_text_uses_the_shared_catalog_in_every_language() {
+    let root = TestDir::new("plain-text-catalogs");
+    let roster = crate::jsondoc::parse(include_str!("../i18n/fixtures/locales.json")).unwrap();
+    for (code, _) in roster.as_object().unwrap() {
+        let mut kinds = localized(&root, code, "");
+        kinds.comments.insert(
+            "text/plain".into(),
+            Comments::parse("<comment>Plain text document</comment>"),
+        );
+        let word = kinds.comment("text/plain").unwrap();
+        if code == "en" {
+            assert_eq!(word, "Plain text document");
+        } else {
+            assert_ne!(word, "Plain text document", "{code}");
+        }
+        assert_eq!(kinds.reads(), 0);
+    }
+}
+
+#[test]
+fn fxi18n3_plain_text_preserves_provider_precedence_and_live_switching() {
+    let root = TestDir::new("plain-text-switch");
+    let mut kinds = localized(&root, "de", "");
+    kinds.comments.insert(
+        "text/plain".into(),
+        Comments::parse(
+            "<comment>Plain text document</comment><comment xml:lang='de'>Provider text</comment>",
+        ),
+    );
+    for (code, expected) in [
+        ("de", "Provider text"),
+        ("zh-CN", "纯文本文档"),
+        ("ar", "مستند نص عادي"),
+        ("el", "Έγγραφο απλού κειμένου"),
+        ("en", "Plain text document"),
+    ] {
+        root.file("language", code);
+        kinds.refresh();
+        assert_eq!(
+            kinds.comment("text/plain").as_deref(),
+            Some(expected),
+            "{code}"
+        );
+    }
+    assert_eq!(
+        kinds.reads(),
+        0,
+        "language switching reuses the cached MIME data"
+    );
+}

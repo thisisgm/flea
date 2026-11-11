@@ -1,7 +1,7 @@
 //! One Grid pane's element: the tile Element under the pane's pointer routing and swap overlay.
 use crate::{
     feedback::spinner,
-    g2::dg2::join::{flock, Seed},
+    g2::drag_drop::join::{flock, Seed},
     list::Palette,
     state::Shell,
     window::{locale::Snapshot, pane::PaneHost},

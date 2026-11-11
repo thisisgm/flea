@@ -7,7 +7,7 @@ mod guards;
 mod ime;
 #[path = "permissions_reader_tests.rs"]
 mod reader;
-use crate::g2::op3::permissions::Stop;
+use crate::g2::open_with_properties::permissions::Stop;
 use fixture::*;
 use gpui::{TestAppContext, VisualTestContext};
 
@@ -247,7 +247,7 @@ fn m9_permissions_dual_routes_only_the_captured_panes_requests_and_replies(
 
 #[test]
 fn m9_permissions_button_space_and_octal_return_keep_the_shipped_control_contract() {
-    use crate::g2::op3::{
+    use crate::g2::open_with_properties::{
         keys::Key,
         permissions::{Permissions, Stop},
         Effect,

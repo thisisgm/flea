@@ -208,6 +208,10 @@ fn usb_for(majmin: Option<&str>) -> bool {
     is_usb(target.as_deref(), removable.as_deref())
 }
 
+// The wider removable-disk read durable copies take; it never changes the class this file answers.
+#[path = "removable.rs"]
+pub mod removable;
+
 #[cfg(test)]
 #[path = "extclass_tests.rs"]
 mod link_tests;

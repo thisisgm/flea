@@ -2,8 +2,8 @@
 use crate::{
     backend::{Backend, Event},
     g2::{
-        mn1::join::{Captured, Chosen},
-        op4::model::Card,
+        context_menus::join::{Captured, Chosen},
+        print_convert::model::Card,
     },
     state::{tests::shell_with, Shell},
     window::root::Root,
@@ -230,7 +230,7 @@ fn m9_integ_output_effects_use_real_pages_thumbnails_and_origin(cx: &mut TestApp
 
 #[gpui::test]
 fn menu_context_reads_output_kinds_from_held_rows(cx: &mut TestAppContext) {
-    use flea::ui_logic_op4::output::Kind;
+    use flea::ui_logic_print_convert::output::Kind;
     assert_eq!(
         super::output::kind(&row("a.png", "image-x-generic")),
         Kind::Image
@@ -288,7 +288,7 @@ fn a_pdf_or_office_row_offers_convert(cx: &mut TestAppContext) {
             shell.open_menu(0, Some(index), (10., 10.), window, cx);
             assert_eq!(shell.menu.context.row_name, name);
             assert!(shell.menu.context.row_is_document);
-            let entries = flea::ui_logic_mn1::build::listing_entries(&shell.menu.context);
+            let entries = flea::ui_logic_context_menus::build::listing_entries(&shell.menu.context);
             assert!(
                 entries.iter().any(|e| e.action == "convert"),
                 "row {index} offers Convert"

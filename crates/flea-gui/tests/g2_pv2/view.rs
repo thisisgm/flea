@@ -1,9 +1,9 @@
 //! The PDF view as a real GPUI entity in a test window, rendering real documents through its own thread.
 use super::fixture::{Page, LANDSCAPE, LETTER, TURNED};
 use super::{document, reaper_lock, root};
-use flea::ui_logic_pv2::{pdf, viewer};
-use flea_gui::g2::pv2::render::{reap, reaper_len};
-use flea_gui::g2::pv2::{Metrics, Palette, PdfView};
+use flea::ui_logic_doc_preview::{pdf, viewer};
+use flea_gui::g2::doc_preview::render::{reap, reaper_len};
+use flea_gui::g2::doc_preview::{Metrics, Palette, PdfView};
 use gpui::{AppContext as _, TestAppContext, WindowHandle};
 use std::time::{Duration, Instant};
 

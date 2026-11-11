@@ -1,5 +1,45 @@
 # Source after the shared flea-ci-visual lane cases to register the plugin SOURCE regression and the AirDrop plugin.
+. "$(dirname "${BASH_SOURCE[0]}")/trash.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/state_pairs.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/search_root.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/search_chrome.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/tight_window.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/grid_filter.sh"
 CASES+=("settings-plugin-source-row 1100x700 surface:SettingsPanel")
+# Print and print-no-printer boards: Ctrl+P opens the real card with fixture CUPS replies.
+CASES+=("print-card 1100x700 key:print"
+        "print-no-printer 1100x700 key:print")
+
+print_card() {
+    local mode=$1 bin=$C/print/bin attempt
+    mkdir -p "$bin" || return 1
+    export VISUAL_PRINT_MODE=$mode VISUAL_PRINT_QUERY_DONE=$C/print/query-done
+    printf '%s\n' '#!/bin/sh' 'case "$1" in' \
+        '-e) [ "$VISUAL_PRINT_MODE" = none ] || echo Brother ;;' \
+        '-d) if [ "$VISUAL_PRINT_MODE" = none ]; then : > "$VISUAL_PRINT_QUERY_DONE"; else echo "system default destination: Brother"; fi ;;' \
+        '-l) printf "printer Brother is idle.\\n\\tDescription: Brother HL-L3270CDW\\n"; : > "$VISUAL_PRINT_QUERY_DONE" ;;' \
+        '*) exit 1 ;;' 'esac' > "$bin/lpstat" || return 1
+    printf '%s\n' '#!/bin/sh' \
+        'printf "%s\\n" "Duplex/Two-sided: *None DuplexNoTumble" "ColorModel/Color: *RGB Gray"' \
+        > "$bin/lpoptions" || return 1
+    chmod +x "$bin/lpstat" "$bin/lpoptions" || return 1
+    export PATH="$bin:$PATH"
+    launch list "$W/Docs" || return 1
+    cursor_to report.pdf || return 1
+    key -M ctrl p -m ctrl || return 1
+    for attempt in $(seq 1 60); do
+        [ -f "$VISUAL_PRINT_QUERY_DONE" ] && break
+        sleep 0.1
+    done
+    [ -f "$VISUAL_PRINT_QUERY_DONE" ] || { state_failure "Ctrl+P never queried printer options"; return 1; }
+    # The last CUPS reply travels back to the card before its entrance settles.
+    sleep 0.3
+    snap
+}
+
+case_print_card() ( [ "$VISUAL_FRONTEND" = gpui ] || return 77; print_card ready )
+case_print_no_printer() ( [ "$VISUAL_FRONTEND" = gpui ] || return 77; print_card none )
+
 # F16 (0.4.1): boards 0401-airdrop-menu and 0401-airdrop-page, with a stand-in owly on PATH; the page's two refusals.
 CASES+=("airdrop-menu-off 1100x700 surface:IpcMenuState"
         "airdrop-menu-devices 1100x700 surface:IpcMenuState"
@@ -156,4 +196,447 @@ case_airdrop_page_missing() (
     [ "$VISUAL_FRONTEND" = gpui ] || return 77
     airdrop_owly none || return 1
     airdrop_page 'Needs the owly package'
+)
+
+# FX-PREVIEW (0.4.2): heads of untyped names (#377), Latin-1, UTF-16 and a UTF-8 byte order mark (S1A-7, S1A-8).
+CASES+=("ql-sniff-script 1100x700 ql:code"
+        "cols-sniff-notes 1100x700 surface:PreviewColumn"
+        "ql-text-latin1 1100x700 ql:text"
+        "ql-text-utf16 1100x700 ql:text"
+        "ql-markdown-bom 1100x700 surface:IpcPreviewState")
+
+fxpreview_files() {
+    local d=$C/FxPreview
+    mkdir -p "$d" || return 1
+    printf '#!/bin/bash\necho hello from myscript\n' > "$d/myscript" && chmod 755 "$d/myscript" || return 1
+    printf 'plain notes with no extension\nsecond line\n' > "$d/notes" || return 1
+    printf 'caf\351 na\357ve\n' > "$d/latin1.txt" || return 1
+    printf '\377\376h\000e\000l\000l\000o\000 \000u\000t\000f\0001\0006\000\n\000' > "$d/utf16.txt" || return 1
+    printf '\357\273\277# bom markdown\n\nbody text\n' > "$d/bom.md" || return 1
+    touch -d "$STAMP" "$d"/* || return 1
+}
+
+case_ql_sniff_script() ( fxpreview_files && quick_look "$C/FxPreview" myscript )
+case_ql_text_latin1() ( fxpreview_files && quick_look "$C/FxPreview" latin1.txt )
+case_ql_text_utf16() (
+    fxpreview_files && quick_look_open "$C/FxPreview" utf16.txt || return 1
+    wait_code_state false '.total == 1' || return 1
+    snap
+)
+
+case_cols_sniff_notes() (
+    fxpreview_files || return 1
+    launch columns "$C/FxPreview" || return 1
+    cursor_to notes || return 1
+    wait_code_state true '.total == 2' || return 1
+    snap
+)
+
+case_ql_markdown_bom() (
+    fxpreview_files || return 1
+    quick_look_open "$C/FxPreview" bom.md || return 1
+    wait_ipc previewMarkdownView rendered || return 1
+    sleep 0.5
+    snap
+)
+
+# S7B-1 (0.4.2): Columns asks thumbnails at Row density's pitch, so the rows at the end of a long picture folder draw theirs.
+CASES+=("cols-density-pictures-end $S view:columns")
+
+case_cols_density_pictures_end() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    local root=$C/pictures last=119 decode_limit=100 poll_seconds=0.1 i attempt
+    mkdir -p "$root" || return 1
+    : > "$root/.flea-test-sandbox" || return 1
+    for i in $(seq -f %03g 0 "$last"); do ln "$W/Media/photo.png" "$root/picture-$i.png" || return 1; done
+    LAUNCH_STATE=',"density":"comfortable","display":{"textSize":{"mode":14}}' launch columns "$root" || return 1
+    wait_ipc bodyPx 14 || return 1
+    key G
+    wait_ipc cursor "$last" || return 1
+    # Status 1 is a decoded picture; the end row is where an ask at the fixed ROW_HEIGHT falls furthest short.
+    for attempt in $(seq 1 "$decode_limit"); do
+        [ "$(ipc rowIconStatus "$last")" = 1 ] && break
+        sleep "$poll_seconds"
+    done
+    [ "$(ipc rowIconStatus "$last")" = 1 ] || { state_failure "Columns row $last drew no picture"; return 1; }
+    snap
+)
+
+# Boards 0401-empty-omi-off, -fixed and -both-off, and 0401-tabs-icons-a: Settings > View's three rows, each off its default.
+CASES+=("empty-omi-off 1100x700 state:empty surface:EmptyState"
+        "empty-fixed 1100x700 state:empty surface:EmptyState"
+        "empty-both-off 1100x700 state:empty surface:EmptyState"
+        "tabs-icons 1100x700 surface:TabBar key:tabNew")
+case_empty_omi_off() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    LAUNCH_STATE=',"emptyFolderOmi":false' launch list "$W/Empty" || return 1
+    snap
+)
+case_empty_fixed() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    LAUNCH_STATE=',"emptyFolderRotate":false' launch list "$W/Empty" || return 1
+    snap
+)
+case_empty_both_off() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    LAUNCH_STATE=',"emptyFolderOmi":false,"emptyFolderRotate":false' launch list "$W/Empty" || return 1
+    snap
+)
+case_tabs_icons() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    LAUNCH_STATE=',"tabsAsIcons":true' launch list "$W" || return 1
+    key t; wait_ipc tabCount 2 || return 1
+    key t; wait_ipc tabCount 3 || return 1
+    snap
+)
+# Empty Trash… from the rail's Trash menu reviews over the folder it was chosen from (board delete, PR #419).
+CASES+=("rail-empty-trash 1100x700 surface:TrashConfirm")
+case_rail_empty_trash() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    launch list "$W" || return 1
+    rail_cursor_to Trash || return 1
+    key m
+    wait_ipc contextMenuVisible true || return 1
+    menu_choose "Empty Trash" || return 1
+    wait_ipc_has trashState 'Empty Trash?' || return 1
+    sleep 0.5
+    snap
+)
+
+# FX-TRASH3 (0.4.2, soak TR2-b): board trash-strip-focus, Empty Trash… reached by Tab presses from the Trash list.
+CASES+=("trash-strip-tab-focus 1100x700")
+case_trash_strip_tab_focus() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    local presses ring_limit=6 poll_seconds=0.1
+    open_trash || return 1
+    wait_ipc_has trashState '"total":1' || return 1
+    # trashEmptyState answers "hovered|focused|pressed|available"; the ring holds at most ring_limit stops, Empty Trash… just before the list.
+    for presses in $(seq 1 "$ring_limit"); do
+        key -k Tab
+        sleep "$poll_seconds"
+        [[ "$(ipc trashEmptyState)" == *'|true|false|true' ]] && break
+    done
+    wait_ipc_has trashEmptyState '|true|false|true' || { state_failure "Tab never reached Empty Trash in $presses presses"; return 1; }
+    printf 'trash-strip-tab-focus: %s Tab presses\n' "$presses" >> "$case_notes"
+    sleep 0.3
+    snap
+)
+
+# FX-KEYS (0.4.2, soak S2-6): board 0402-columns-menu-target, the cols-cursorfull state with beta.md right clicked.
+CASES+=("cols-menu-target 1100x700 view:columns menu:row")
+
+case_cols_menu_target() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    local total i target=
+    launch columns "$W/A" || return 1
+    key j
+    wait_ipc cursor 1 || return 1
+    wait_parent_column || return 1
+    total=$(ipc total) && [[ $total =~ ^[0-9]+$ ]] || { state_failure "ipc total answered '$total'"; return 1; }
+    for i in $(seq 0 $((total - 1))); do
+        [[ "$(ipc visibleRowName "$i")" == beta.md ]] && { target=$i; break; }
+    done
+    [ -n "$target" ] || { state_failure "no beta.md row in $W/A"; return 1; }
+    # Sample input: "412.5 118", the row's window-relative centre.
+    click_at "$(ipc rowCentre "$target")" right || return 1
+    wait_ipc contextMenuVisible true || return 1
+    # The cursor stays on full: Finder rule 5 moves nothing on a right click.
+    wait_ipc cursor 1 || return 1
+    snap
+)
+
+# FX-POINTER (0.4.2): a right press in the path field opens the rename field's text menu, its rows and card (board rename).
+CASES+=("text-menu-path 1100x700")
+
+case_text_menu_path() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    launch list "$W" || return 1
+    key :
+    wait_ipc pathBarOpen true || return 1
+    click_at "$(ipc pathCentre)" right || return 1
+    snap
+)
+
+# FX-F3: boards dual and keymap; keys toggle Dual, a toolbar Dual choice in Dual keeps it selected.
+CASES+=("f3-dual-list 1100x700 view:dual"
+        "f3-dual-columns 1100x700 view:dual"
+        "f3-dual-grid 1100x700 view:dual")
+
+f3_wait_dual() {
+    local active=$1 view=${2:-} attempt dual_limit=100 poll_seconds=0.1
+    for attempt in $(seq 1 "$dual_limit"); do
+        # Sample input: {"active":true,"focused":0,"panes":[{"path":"/home/p"},null]}
+        if ipc dualState | jq -e --argjson active "$active" '.active == $active' >/dev/null; then
+            [ -n "$view" ] || return 0
+            # Sample input: {"side":0,"active":false,"focused":0,"path":"/home/p","view":"grid","loading":false,"total":3}
+            ipc dragPaneGeometry 0 0 | jq -e --arg view "$view" '.view == $view' >/dev/null && return 0
+        fi
+        sleep "$poll_seconds"
+    done
+    state_failure "F3 did not reach dual active=$active"
+    return 1
+}
+
+f3_roundtrip() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    local view=$1
+    launch "$view" "$W" || return 1
+    key -k F3
+    f3_wait_dual true || return 1
+    key -k F3
+    f3_wait_dual false "$view" || return 1
+    key -k F3
+    f3_wait_dual true || return 1
+    click_at "$(ipc chromeButtonCentre dual)" left || return 1
+    snap || return 1
+    # A toggling Dual button would have left Dual by the time the shot settled.
+    f3_wait_dual true
+)
+
+case_f3_dual_list() ( f3_roundtrip list )
+case_f3_dual_columns() ( f3_roundtrip columns )
+case_f3_dual_grid() ( f3_roundtrip grid )
+
+# FX-POLISH uses the existing Permissions, Jobs, keymap and Trash recipes.
+CASES+=("permissions-readonly 1100x700 surface:PermissionsDialog"
+        "permissions-invalid-octal 1100x700 surface:PermissionsDialog"
+        "permissions-small-focus 560x400 surface:PermissionsDialog"
+        "archive-failed-reason 1100x700 surface:TransferCard"
+        "keymap-keep-results 1100x700 surface:KeymapSheet key:keepResults"
+        "trash-cursor-rest 1100x700 surface:TrashView"
+        "trash-cursor-hover 1100x700 surface:TrashView"
+        "trash-cursor-keyboard 1100x700 surface:TrashView"
+        "trash-cursor-unfocused 1100x700 surface:TrashView")
+
+fxpolish_files() {
+    python3 /src/ci/visual/polish_fixture.py "$C/FxPolish"
+}
+
+case_permissions_readonly() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    fxpolish_files || return 1
+    menu_dialog_open "$C/FxPolish" special.txt 'Permissions…' || return 1
+    wait_ipc_has permissionsState 'No changes to apply' || return 1
+    wait_ipc_has permissionsState 'Current mode 4644' || return 1
+    ipc permissionsState | jq -e '.displayedError | contains("setuid")' >/dev/null || return 1
+    snap
+)
+
+case_permissions_invalid_octal() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    fxpolish_files || return 1
+    chmod 0644 "$C/FxPolish/special.txt" || return 1
+    menu_dialog_open "$C/FxPolish" special.txt 'Permissions…' || return 1
+    key -M shift -k Tab -k Tab -m shift
+    key -M ctrl -k a -m ctrl
+    key -- ' 644'
+    wait_ipc_has permissionsState 'Enter three octal digits' || return 1
+    ipc permissionsState | jq -e '.mode == " 644"' >/dev/null || return 1
+    snap
+)
+
+case_permissions_small_focus() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    local attempt paint_limit=50 poll_seconds=0.1
+    fxpolish_files || return 1
+    chmod 0644 "$C/FxPolish/special.txt" || return 1
+    menu_dialog_open "$C/FxPolish" special.txt 'Permissions…' || return 1
+    key -M shift -k Tab -m shift
+    # permissionsState reports painted focus, so the Shift+Tab and its reveal land a frame or two after key returns.
+    for attempt in $(seq 1 "$paint_limit"); do
+        # Sample input: {"controls":[{"name":"Cancel","focused":true,"visible":true}]}
+        if ipc permissionsState | jq -e 'any(.controls[]; .name == "Cancel" and .focused and .visible)' >/dev/null; then
+            snap || return 1
+            return 0
+        fi
+        sleep "$poll_seconds"
+    done
+    state_failure "Permissions did not paint Cancel focused and visible"
+    return 1
+)
+
+case_archive_failed_reason() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    fxpolish_files || return 1
+    menu_dialog_open "$C/FxPolish" unsafe.zip Extract || return 1
+    wait_ipc_has statusActivityState 'An entry in this archive would land outside its folder, so nothing was extracted.' || return 1
+    snap
+)
+
+case_keymap_keep_results() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    launch list "$W" || return 1
+    key '?'
+    wait_ipc keymapSheetOpen true || return 1
+    key keep
+    wait_ipc_has keymapSheetResults 'Keep results' || return 1
+    snap
+)
+
+# Escape would leave Trash, so Tab walks the focus ring to the wanted stop instead.
+fxpolish_tab_to() {
+    local stop=$1 presses ring_limit=6
+    for presses in $(seq 1 "$ring_limit"); do
+        [ "$(ipc focusStop)" = "$stop" ] && return 0
+        key -k Tab
+        sleep 0.1
+    done
+    wait_ipc focusStop "$stop"
+}
+
+fxpolish_trash() {
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    open_trash "${1:-1}" || return 1
+    wait_ipc_has trashState "\"total\":${1:-1}," || return 1
+    fxpolish_tab_to list || return 1
+    park_pointer
+}
+
+case_trash_cursor_keyboard() ( trash_keyboard_shot )
+case_trash_cursor_rest() (
+    fxpolish_trash || return $?
+    fxpolish_tab_to rail || return 1
+    snap
+)
+case_trash_cursor_unfocused() ( case_trash_cursor_rest )
+case_trash_cursor_hover() (
+    local x y ax ay
+    fxpolish_trash || return $?
+    fxpolish_tab_to rail || return 1
+    read -r x y <<< "$(ipc trashRowCentre 0)"
+    [ -n "$x" ] && [ -n "$y" ] || return 1
+    read -r ax ay <<< "$(win_json | jq -r '.at | "\(.[0]) \(.[1])"')"
+    omarchy-drive move "$(awk -v a="$ax" -v b="$x" 'BEGIN {printf "%.0f", a+b}')" "$(awk -v a="$ay" -v b="$y" 'BEGIN {printf "%.0f", a+b}')" > /dev/null || return 1
+    nudge_pointer 3 || return 1
+    snap
+)
+
+# FX-PLACES418 (0.4.2, #418): board 0402-plugin-rail-mark, Syncthing under its own title, Example Files under PLUGINS.
+CASES+=("plugin-rail-mark 1100x700")
+
+case_plugin_rail_mark() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    local root=$C/plugin-rail rows_limit=200 poll_seconds=0.1 settle_seconds=0.3 attempt id
+    local ready='any(.[]; .label == "Photos") and any(.[]; .label == "Example Files" and has("mark"))'
+    mkdir -p "$root/sync/Photos" "$root/sync/Notes" "$root/sync/Music" || return 1
+    : > "$root/.flea-test-sandbox" || return 1
+    # The installed copies leave with the case, so no later Settings shot gains a plugin row.
+    trap '"$flea_bin" plugin remove example.syncthing >> "$case_notes" 2>&1; "$flea_bin" plugin remove example.virtual-place >> "$case_notes" 2>&1' EXIT
+    for id in syncthing virtual-place; do
+        "$flea_bin" plugin add "/src/examples/plugins/$id" >> "$case_notes" 2>&1 || return 1
+    done
+    export FLEA_EXAMPLE_FOLDERS=$root/sync XDG_STATE_HOME="/tmp/vstate/$case_name"
+    export LAUNCH_STATE=',"plugins":{"example.syncthing":{"enabled":true},"example.virtual-place":{"enabled":true}}'
+    launch list "$W" || return 1
+    # Both runtimes start and Syncthing answers its first section before the rail holds every row.
+    for attempt in $(seq 1 "$rows_limit"); do
+        ipc railEntries | jq -e "$ready" > /dev/null 2>&1 && break
+        sleep "$poll_seconds"
+    done
+    ipc railEntries | jq -e "$ready" > /dev/null 2>&1 || { state_failure "plugin rail rows never arrived"; return 1; }
+    sleep "$settle_seconds"
+    snap
+)
+
+# Board 0401-settings-wide-b-900: the 760px card at a 900px window; a chrome or rail mark under it is whole or absent.
+CASES+=("settings-card-900 900x700 surface:SettingsPanel")
+case_settings_card_900() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    launch list "$W" || return 1
+    key ,
+    wait_ipc settingsOpen true || return 1
+    sleep 0.5
+    snap
+)
+
+# Boards 0402-rail-hover, 0401-list-nohover and 0401-settings-hover: all five surfaces with both settings.
+CASES+=("rail-hover 1100x700"
+        "rail-hover-off 1100x700"
+        "list-hover 1100x700" "list-hover-off 1100x700"
+        "columns-hover 1100x700" "columns-hover-off 1100x700"
+        "grid-hover 1100x700" "grid-hover-off 1100x700"
+        "crumb-hover 1100x700" "crumb-hover-off 1100x700"
+        "tab-hover 1100x700" "tab-hover-off 1100x700")
+hover_rest_shot() {
+    local tries
+    kdcap_point "$1" || return 1
+    sleep 0.5
+    tries=$(stable_shot "$shots/$case_name-1100x700.png") || return 1
+    echo "SHOT $case_name-1100x700 tries=$tries" >> "$results"
+}
+hover_surface() (
+    local view=$1 target=$2 on=$3 i row= at
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    LAUNCH_STATE=",\"highlightHover\":$on" launch "$view" "$W" || return 1
+    size_window 1100 700 || return 1
+    case $target in
+        rail) at=$(ipc railRowCentre "$(kdcap_rail_index Trash)") ;;
+        crumb) at=$(ipc crumbCentre 1) ;;
+        tab)
+            key t; wait_ipc tabCount 2 || return 1
+            at=$(ipc tabCentre 0) ;;
+        row)
+            for i in $(seq 0 $(($(ipc visibleRows) - 1))); do
+                [[ "$(ipc visibleRowName "$i")" == Docs ]] && { row=$i; break; }
+            done
+            [ -n "$row" ] || { state_failure "no visible Docs row"; return 1; }
+            at=$(ipc rowCentre "$row") ;;
+        *) return 1 ;;
+    esac
+    hover_rest_shot "$at"
+)
+case_rail_hover() { hover_surface list rail true; }
+case_rail_hover_off() { hover_surface list rail false; }
+case_list_hover() { hover_surface list row true; }
+case_list_hover_off() { hover_surface list row false; }
+case_columns_hover() { hover_surface columns row true; }
+case_columns_hover_off() { hover_surface columns row false; }
+case_grid_hover() { hover_surface grid row true; }
+case_grid_hover_off() { hover_surface grid row false; }
+case_crumb_hover() { hover_surface list crumb true; }
+case_crumb_hover_off() { hover_surface list crumb false; }
+case_tab_hover() { tab_pointer_shot close true; }
+case_tab_hover_off() { tab_pointer_shot body false; }
+
+# FX-ADDRCOPY: board 0401-address-copy-a; hover and keyboard focus show the mark, list-populated covers rest.
+CASES+=("address-copy-hover 1100x700 surface:ChromeBar"
+        "address-copy-focus 1100x700 surface:ChromeBar")
+
+case_address_copy_hover() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    local count centre origin ax ay x y copy_state attempt hover_limit=100 hover_poll_seconds=0.1
+    launch list "$W" || return 1
+    size_window 1100 700 || return 1
+    count=$(ipc crumbCount) && [[ $count =~ ^[0-9]+$ ]] && [ "$count" -gt 0 ] || { state_failure "ipc crumbCount answered '$count'"; return 1; }
+    # Sample input: "118 13", the leaf crumb's window-relative centre, and "730 370", the window's origin.
+    centre=$(ipc crumbCentre $((count - 1)))
+    origin=$(win_json | jq -r '.at | "\(.[0]) \(.[1])"')
+    [[ $centre =~ ^-?[0-9]+([.][0-9]+)?\ -?[0-9]+([.][0-9]+)?$ && $origin =~ ^-?[0-9]+\ -?[0-9]+$ ]] \
+        || { state_failure "ipc crumbCentre answered '$centre'; window origin answered '$origin'"; return 1; }
+    read -r x y <<< "$centre"
+    read -r ax ay <<< "$origin"
+    omarchy-drive move $((ax + ${x%.*})) $((ay + ${y%.*})) > /dev/null || { state_failure "pointer move to the leaf failed"; return 1; }
+    # Hyprland's cursor move sends no pointer frame, so the window hears nothing; a seat nudge there and back makes it hover.
+    nudge_pointer 3 && nudge_pointer -3 || return 1
+    for attempt in $(seq 1 "$hover_limit"); do
+        copy_state=$(ipc chromeButtonState copy)
+        jq -e '.visible == true and (.rect | length > 0)' <<< "$copy_state" > /dev/null && break
+        sleep "$hover_poll_seconds"
+    done
+    jq -e '.visible == true and (.rect | length > 0)' <<< "$copy_state" > /dev/null \
+        || { state_failure "the copy mark is hidden under the pointer: ipc chromeButtonState copy answered '$copy_state'"; return 1; }
+    stable_shot "$shots/$case_name-1100x700.png" > /tmp/vtries || return 1
+    echo "SHOT $case_name-1100x700 tries=$(cat /tmp/vtries)" >> "$results"
+)
+
+case_address_copy_focus() (
+    [ "$VISUAL_FRONTEND" = gpui ] || return 77
+    launch list "$W" || return 1
+    # Tab walks list, rail, then the toolbar's first live glyph, Up while Back has no history; Right steps onto the mark.
+    key -k Tab
+    key -k Tab
+    wait_ipc focusStop chrome:arrow-up || return 1
+    key -k Right
+    wait_ipc focusStop chrome:copy || return 1
+    snap
 )

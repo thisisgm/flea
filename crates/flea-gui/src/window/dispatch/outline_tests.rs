@@ -189,7 +189,7 @@ fn tree_outline_nested_rename_edits_the_leaf_and_sends_the_real_source(cx: &mut 
     cx.simulate_input("renamed");
     key(cx, "enter");
     assert!(sent().iter().any(|line| line
-        == r#"{"c":"rename","path":"/files/A/child.txt","to":"renamed.txt","menuId":0}"#));
+        == r#"{"c":"rename","path":"/files/A/child.txt","to":"renamed.txt","menuId":0,"source":"1:2:32768"}"#));
     super::fileops_tests::reply(
         &shell,
         cx,

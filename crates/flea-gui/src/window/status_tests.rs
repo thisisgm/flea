@@ -131,7 +131,7 @@ fn u05_backend_failure_stays_in_footer_after_notice_deadline(cx: &mut TestAppCon
         frame(cx, window);
     }
     assert_eq!(read(cx, window, "statusError"), Reply::value("true"));
-    let error = crate::g2::st1::Ink::inherited(
+    let error = crate::g2::settings_pages::Ink::inherited(
         &gpui::TextStyle::default(),
         crate::palette::Theme::default(),
     )
@@ -162,19 +162,23 @@ fn u05_backend_failure_stays_in_footer_after_notice_deadline(cx: &mut TestAppCon
 }
 
 #[gpui::test]
-fn u05_notices_wait_behind_errors_and_escape_acknowledges_one_at_a_time(cx: &mut TestAppContext) {
-    use flea::ui_logic_fb1::status::Hint;
+fn u05_errors_queue_escape_acknowledges_one_at_a_time_and_a_newer_notice_replaces_them(
+    cx: &mut TestAppContext,
+) {
+    use flea::ui_logic_status_feedback::status::Hint;
     let handle = open(cx);
     frame(cx, handle);
-    handle
-        .update(cx, |shell, _, cx| {
-            shell.status_messages(cx, |messages, now| {
-                messages.say("first failure", true, "disk\nfailed", Hint::None, now);
-                messages.say("second failure", true, "", Hint::None, now);
-                messages.say("done", false, "", Hint::None, now);
-            });
-        })
-        .unwrap();
+    let say = |cx: &mut TestAppContext, text: &'static str, error: bool, detail: &'static str| {
+        handle
+            .update(cx, |shell, _, cx| {
+                shell.status_messages(cx, |messages, now| {
+                    messages.say(text, error, detail, Hint::None, now)
+                });
+            })
+            .unwrap();
+    };
+    say(cx, "first failure", true, "disk\nfailed");
+    say(cx, "second failure", true, "");
     for _ in 0..320 {
         frame(cx, handle);
     }
@@ -212,7 +216,8 @@ fn u05_notices_wait_behind_errors_and_escape_acknowledges_one_at_a_time(cx: &mut
         read(cx, handle, "lastMessage"),
         Reply::value("second failure")
     );
-    escape(cx, handle);
+    // S1B-2: a newer notice replaces the error still standing, and keeps its own whole time.
+    say(cx, "done", false, "");
     assert_eq!(read(cx, handle, "statusError"), Reply::value("false"));
     assert_eq!(read(cx, handle, "statusPrimary"), Reply::value("done"));
     for _ in 0..240 {
@@ -244,7 +249,7 @@ fn u05_footer_reports_painted_counts_filesystem_and_real_activity_owner(cx: &mut
                     tagable: None,
                     path: "/files".into(),
                     name: "btrfs".into(),
-                    free: 442_000_000_000,
+                    free: Some(442_000_000_000),
                 }),
                 window,
                 cx,
@@ -284,7 +289,7 @@ fn u05_footer_reports_painted_counts_filesystem_and_real_activity_owner(cx: &mut
                     tagable: None,
                     path: "/old".into(),
                     name: "cifs".into(),
-                    free: 0,
+                    free: Some(0),
                 }),
                 window,
                 cx,

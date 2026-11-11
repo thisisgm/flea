@@ -2,7 +2,7 @@
 use super::plugins::{handle, Env};
 use super::testdir::TestDir;
 use crate::uistore::Store;
-use flea::ui_logic_st2::wire::{self, Listing, Outcome, Plugin, Reply, Source};
+use flea::ui_logic_plugin_settings::wire::{self, Listing, Outcome, Plugin, Reply, Source};
 use std::cell::RefCell;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -208,7 +208,7 @@ fn st2_backend_a_setting_is_clamped_before_it_is_stored_and_remove_forgets_it() 
     ask(&env, &format!(r#"{{"c":"plugins","op":"add","id":1,"source":"{}"}}"#, source.display()));
     let (done, listing) = ask(&env, r#"{"c":"plugins","op":"set","id":2,"plugin":"me.set","key":"n","value":99}"#);
     assert_eq!(code(done), "");
-    assert_eq!(get(&listing, "me.set").settings, [("n".into(), flea::ui_logic_st2::schema::Value::Int(10))]);
+    assert_eq!(get(&listing, "me.set").settings, [("n".into(), flea::ui_logic_plugin_settings::schema::Value::Int(10))]);
     assert!(stored(&env).contains(r#""me.set":{"enabled":false,"settings":{"n":10}}"#), "{}", stored(&env));
     assert_eq!(code(ask(&env, r#"{"c":"plugins","op":"set","id":3,"plugin":"me.set","key":"missing","value":1}"#).0), "setting");
     assert_eq!(code(ask(&env, r#"{"c":"plugins","op":"set","id":3,"plugin":"me.nobody","key":"n","value":1}"#).0), "unknown");
@@ -262,4 +262,16 @@ fn plugin_runtime_builtin_shelf_requests_move_the_bar_each_way() {
         assert!(reply[0].contains(r#""ok":true"#), "{action}: {reply:?}");
     }
     assert_eq!(SYNCED.with(|s| s.borrow().clone()), [true, false], "the Shelf's own requests switch the bar");
+}
+
+#[test]
+fn plugin_ready_deadline_matches_the_published_contract() {
+    let contract = flea::jsondoc::parse(flea::plugin_runtime::protocol::CONTRACT).unwrap();
+    assert_eq!(
+        crate::backend::plugins::READY_DEADLINE.as_secs_f64(),
+        contract
+            .get("readyTimeoutSeconds")
+            .and_then(flea::jsondoc::Json::as_f64)
+            .unwrap(),
+    );
 }

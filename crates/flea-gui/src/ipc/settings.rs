@@ -1,22 +1,25 @@
 //! Read-only settings and keyboard-sheet observations from the mounted producers.
 use super::Adapter;
 use crate::{
-    g2::st1::{panel::Side, sheet::Sheet},
+    g2::settings_pages::{panel::Side, sheet::Sheet},
     window::settings::Host,
 };
 use flea::{
     ipc::wire::Reply,
     jsondoc::{self, Json},
-    ui_logic_st1::{
+    ui_logic_settings_pages::{
         pages::SECTIONS,
-        rows::{Kind, Master, Role, Row},
+        rows::{Kind, Role},
     },
 };
 use gpui::App;
 #[path = "settings_cohesion.rs"]
-mod cohesion;
+pub(super) mod cohesion;
 #[path = "settings_plugins.rs"]
 mod plugins;
+#[path = "settings_rows.rs"]
+mod rows;
+use rows::row_model;
 
 pub(crate) struct SettingsAdapter<'a> {
     pub host: &'a Host,
@@ -59,72 +62,6 @@ fn role(role: Role) -> &'static str {
         Role::Error => "error",
         Role::Foreground => "foreground",
     }
-}
-
-fn row_model(row: &Row, catalog: &flea::i18n::I18n) -> Json {
-    object([
-        ("id", word(&row.id)),
-        ("kind", word(kind(row.kind))),
-        ("label", word(row.label.resolve(catalog))),
-        ("value", word(row.value.resolve(catalog))),
-        (
-            "caption",
-            if row.caption == flea::ui_logic_st1::Text::Empty {
-                Json::Null
-            } else {
-                word(row.caption.resolve(catalog))
-            },
-        ),
-        (
-            "elide",
-            if row.elide_head {
-                word("head")
-            } else if row.elide_right {
-                word("right")
-            } else {
-                Json::Null
-            },
-        ),
-        ("on", Json::Bool(row.on)),
-        ("inert", Json::Bool(row.inert)),
-        ("available", Json::Bool(row.available)),
-        ("role", word(role(row.role))),
-        ("master", Json::Bool(row.master)),
-        (
-            "state",
-            word(match row.state {
-                Master::All => "all",
-                Master::Some => "some",
-                Master::None => "none",
-                Master::Absent => "",
-            }),
-        ),
-        ("selected", word(&row.selected)),
-        ("values", Json::Arr(row.values.iter().map(word).collect())),
-        (
-            "labels",
-            Json::Arr(
-                row.labels
-                    .iter()
-                    .map(|v| word(v.resolve(catalog)))
-                    .collect(),
-            ),
-        ),
-        (
-            "items",
-            Json::Arr(
-                row.items
-                    .iter()
-                    .map(|item| {
-                        object([
-                            ("keys", word(&item.keys)),
-                            ("label", word(item.label.resolve(catalog))),
-                        ])
-                    })
-                    .collect(),
-            ),
-        ),
-    ])
 }
 
 fn results(sheet: &Sheet) -> Json {
@@ -176,7 +113,7 @@ pub(crate) fn sheet_rows(sheet: &Sheet) -> String {
 }
 
 // The pane's scrolled content: a standing search's results, otherwise the section's rows.
-fn pane_content(panel: &crate::g2::st1::Panel) -> f32 {
+fn pane_content(panel: &crate::g2::settings_pages::Panel) -> f32 {
     if panel
         .query
         .as_deref()
@@ -258,6 +195,7 @@ impl Adapter for SettingsAdapter<'_> {
         }
         let value = match function {
             "settingsOpen" => self.host.opened.to_string(),
+            "settingsRailWidth" => cohesion::rail_width(view, self.host.opened),
             "settingsSection" => panel.map_or("", |p| p.section).into(),
             "settingsSide" => panel
                 .map_or("", |p| match p.side {
@@ -374,7 +312,7 @@ impl Adapter for SettingsAdapter<'_> {
             }
             "uiSettings" => json(self.document.clone()),
             "showHidden" => self.hidden.to_string(),
-            "keymapPreset" => flea::keys::preset(flea::ui_logic_st1::pages::word(
+            "keymapPreset" => flea::keys::preset(flea::ui_logic_settings_pages::pages::word(
                 self.document,
                 &["keys"],
                 "default",

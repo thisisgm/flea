@@ -1,6 +1,6 @@
 //! AirDrop's page gets the window's facts every time Settings opens on Plugins, however Settings was closed.
-use crate::{backend::Backend, g2::st1::Request, state::tests::shell_with};
-use flea::ui_logic_st2::airdrop::Page;
+use crate::{backend::Backend, g2::settings_pages::Request, state::tests::shell_with};
+use flea::ui_logic_plugin_settings::airdrop::Page;
 use gpui::TestAppContext;
 
 #[gpui::test]

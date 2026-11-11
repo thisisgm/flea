@@ -8,10 +8,9 @@ use flea::{
     i18n::I18n,
     jsondoc::Json,
     keys::Context as Keys,
-    ui_logic_pv1::{keys::Command, kinds::State, meta::Meta},
+    ui_logic_preview_core::{keys::Command, kinds::State, meta::Meta},
 };
 use gpui::{Context, KeyDownEvent, Window};
-use std::path::PathBuf;
 
 /// Focus.js lookup: the open card's kind picks the pdf, media or preview context.
 pub(super) fn context(subject: &Subject) -> Keys {
@@ -47,7 +46,7 @@ pub(super) fn picture(meta: &Meta, path: String, link: Option<&str>, catalog: &I
             &[&raw.w.to_string(), &raw.h.to_string()],
         );
         return Body::Raw {
-            path: PathBuf::from(&raw.file),
+            path: flea::bytename::exact(&raw.file),
             w,
             h,
             caption,
@@ -92,6 +91,22 @@ impl Shell {
     ) -> bool {
         if !self.quick_look_open(cx) {
             return false;
+        }
+        let stroke = &event.keystroke;
+        let held = stroke.modifiers;
+        if stroke.key == "end" && !held.shift && !held.alt && !held.platform {
+            let code = self.quick_look.as_ref().and_then(|host| {
+                let doc = host.view.read(cx).subject()?.body.doc()?;
+                match &doc.view {
+                    crate::g2::quick_look_overlay::doc::View::Code(code) => Some(code.clone()),
+                    _ => None,
+                }
+            });
+            if code.is_some() {
+                self.quick_look_action(&ActionEvent::bare("cursorLast", Keys::Preview), window, cx);
+                self.keyboard.disarm();
+                return true;
+            }
         }
         let Some(pane) = self.panes[self.focus_side].as_ref() else {
             return true;

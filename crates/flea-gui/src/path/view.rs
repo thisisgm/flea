@@ -30,6 +30,8 @@ pub struct Inputs {
     pub address_path: bool,
     /// The picker's strip elides its parents from the left and keeps the leaf whole.
     pub elide_start: bool,
+    /// The main window's chrome strip keeps room for the copy mark that follows the path.
+    pub copy_mark: bool,
     /// The focused pane's window size, which the peek behind Tab asks for.
     pub first: usize,
 }
@@ -63,13 +65,18 @@ pub struct PathView {
     pub(crate) probe: Option<crate::visual::Probe>,
     pub(crate) pointer: Pointer,
     pub(super) pressed_row: Option<(usize, String)>,
+    /// A tap on the strip opened the field, so that gesture's second tap keeps the whole path selected.
+    pub(super) tapped: bool,
+    pub(super) strip_press: Option<super::strip_input::Press>,
     ranker: Box<dyn Ranker>,
     favourites: Vec<String>,
     recent: Vec<String>,
-    catalog: Arc<I18n>,
+    pub(super) catalog: Arc<I18n>,
     asks: Vec<Ask>,
     hold: Option<Task<()>>,
     _blur: Option<Subscription>,
+    /// The field's Undo, Cut, Copy, Paste and Select All card while a right press holds it open.
+    pub(crate) text_menu: super::text_menu::TextMenu,
 }
 
 impl EventEmitter<Out> for PathView {}
@@ -93,6 +100,8 @@ impl PathView {
             probe: None,
             pointer: Pointer::default(),
             pressed_row: None,
+            tapped: false,
+            strip_press: None,
             ranker,
             favourites: Vec::new(),
             recent: Vec::new(),
@@ -100,6 +109,7 @@ impl PathView {
             asks: Vec::new(),
             hold: None,
             _blur: None,
+            text_menu: Default::default(),
         }
     }
 
@@ -114,6 +124,7 @@ impl PathView {
         if self.inputs == inputs {
             return false;
         }
+        self.strip_press = None;
         if !inputs.dual {
             self.strips[1].clear();
             self.strips[2].clear();
@@ -171,9 +182,11 @@ impl PathView {
         self.inputs.side == side
     }
 
-    /// keys.toml's pathBar action, and the pointer's double click on inert ground.
+    /// keys.toml's pathBar action, and the pointer's tap on inert ground.
     pub fn open(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.strip_press = None;
         let path = self.path().to_owned();
+        self.tapped = false;
         if !self.entry.start(&path) {
             return;
         }
@@ -196,6 +209,7 @@ impl PathView {
             return;
         }
         self.jump.close();
+        self.text_menu.close();
         self.pressed_row = None;
         self.hold = None;
         cx.emit(Out::Closed);

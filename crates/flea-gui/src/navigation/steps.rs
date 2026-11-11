@@ -156,7 +156,7 @@ impl Navigator {
         }
         let row = pane.held.row(pane.cursor).ok_or(Refusal::NotLoaded)?;
         let path = super::history::join(pane.path(), &row.name);
-        let dir = flea::ui_logic_pk1::directory(row.dir, row.mode, &row.icon);
+        let dir = flea::ui_logic_picker_portal::directory(row.dir, row.mode, &row.icon);
         if dir {
             self.open(pane, &path)?;
             return Ok(None);

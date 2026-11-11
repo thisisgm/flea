@@ -37,9 +37,36 @@ const STEM_ALPHA_MAX: f64 = 0.24;
 const STEM_ALPHA_MIN: f64 = 0.06;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub enum Depth { Sixteen, Indexed, #[default] Truecolor }
+pub enum Depth { Mono, Sixteen, Indexed, #[default] Truecolor }
 impl Depth {
+    // NO_COLOR, set and not empty, asks for no colour at all, so it is read before any probe and before the first frame.
+    pub fn initial() -> Self {
+        if no_color(std::env::var_os("NO_COLOR")) { Self::Mono } else { Self::Sixteen }
+    }
+    // Without a fill to tell it apart, the cursor row reads as reverse video.
+    pub fn reverses(self) -> bool { matches!(self, Self::Mono | Self::Sixteen) }
+    // The row attribute that stands in for a missing fill: reverse video on the cursor, underline on a NO_COLOR mark.
+    pub fn row_attribute(self, cursor: bool, marked: bool) -> &'static str {
+        if cursor && self.reverses() { "\x1b[7m" } else if marked && self == Self::Mono { "\x1b[4m" } else { "" }
+    }
+    // Overlays keep their colour recipes; only NO_COLOR needs the listing's attribute fallback.
+    pub fn overlay_attribute(self, cursor: bool, marked: bool) -> &'static str {
+        if self == Self::Mono {
+            self.row_attribute(cursor, marked)
+        } else {
+            ""
+        }
+    }
+    // Without colour a disabled control dims and drops its selection mark, but keeps its focus cue.
+    pub fn control_attribute(self, enabled: bool, cursor: bool, marked: bool) -> &'static str {
+        match (self, enabled, cursor) {
+            (Self::Mono, false, true) => "\x1b[2;7m",
+            (Self::Mono, false, false) => "\x1b[2m",
+            _ => self.overlay_attribute(cursor, marked),
+        }
+    }
     pub fn detect(cancel: &AtomicBool) -> Self {
+        if Self::initial() == Self::Mono { return Self::Mono; }
         let output = |name: &str, arguments: &[&str]| {
             let mut command = std::process::Command::new(name);
             command.args(arguments);
@@ -246,7 +273,9 @@ fn ansi(hex: &str, bg: bool) -> String {
     )
 }
 
+pub(super) fn no_color(value: Option<std::ffi::OsString>) -> bool { value.is_some_and(|value| !value.is_empty()) }
 fn color(hex: &str, background: bool, depth: Depth) -> String {
+    if depth == Depth::Mono { return String::new(); }
     if depth == Depth::Truecolor { return ansi(hex, background); }
     let target = rgb(hex).map(|v| (v * 255.0).round() as i32);
     let range = if depth == Depth::Indexed { 16..256 } else { 0..16 };
@@ -272,3 +301,6 @@ mod tests;
 #[cfg(test)]
 #[path = "ground_tests.rs"]
 mod ground_tests;
+#[cfg(test)]
+#[path = "mono_tests.rs"]
+mod mono_tests;

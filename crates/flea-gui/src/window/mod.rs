@@ -13,6 +13,7 @@ mod events;
 pub(crate) mod external_action;
 pub(crate) mod external_action_ipc;
 pub(crate) mod filter;
+mod folder_follow;
 pub(crate) mod frame_feedback;
 mod frame_style;
 pub(crate) mod glass;
@@ -54,11 +55,15 @@ pub(crate) mod search;
 pub mod selection_preview;
 pub mod settings;
 pub(crate) mod sidebar_edge;
+mod sniff;
 pub mod startup;
 pub(crate) mod status;
+mod status_undo;
 pub(crate) mod surfaces;
 #[path = "../state/text_input.rs"]
 pub(crate) mod text_input;
+#[cfg(test)]
+mod tight_window_tests;
 mod transitions;
 mod unlock;
 pub(crate) mod user_keys;
@@ -77,6 +82,8 @@ mod u07_chrome_tests;
 mod u07_motion_tests;
 #[cfg(test)]
 mod u07_tests;
+#[cfg(test)]
+mod uish2a_capture_tests;
 
 use crate::{ipc::server::Event, state::Shell};
 use gpui::{px, size, App, AppContext, TitlebarOptions, WindowBounds, WindowHandle, WindowOptions};
@@ -93,6 +100,9 @@ pub fn open(
     cx: &mut App,
 ) -> Result<WindowHandle<Root>, String> {
     let title = locale.catalog.tr("app.name");
+    // Every empty hero reads Settings > View's two empty folder rows, and every row Highlight on hover, from the first frame.
+    crate::g2::status_feedback::hero::EmptyLook::apply(&launch.settings.data, cx);
+    crate::list::hover_wash::HoverWash::apply(&launch.settings.data, cx);
     let appearance = cx
         .try_global::<crate::palette::Theme>()
         .copied()
@@ -126,7 +136,7 @@ pub fn open(
         }
         window.set_rem_size(crate::list::Typeface::omarchy_default().body);
         // Every menu's key hints draw the active keyboard group from the first frame.
-        crate::g2::mn1::keycaps::watch(cx);
+        crate::g2::context_menus::keycaps::watch(cx);
         let shell = cx.new(|cx| Shell::new(launch, locale, events, window, cx));
         shell.update(cx, |shell, cx| {
             shell.follow_settings(window, cx);

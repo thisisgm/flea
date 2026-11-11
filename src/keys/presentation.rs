@@ -1,7 +1,7 @@
 //! Resolve translated labels outside input dispatch and paint/cache-hit paths.
 use super::{
     action_group, binding_rows, preset, Binding, Frontend, BASE_SHEET, PRESET_KEYS, SHARED_KEYS,
-    SHEET_CAP_BUDGET, SHEET_GROUPS, SHEET_MIRRORS, SHEET_TIE_PRIORITY,
+    SHEET_CAP_BUDGET, SHEET_EXTRA, SHEET_GROUPS, SHEET_MIRRORS, SHEET_TIE_PRIORITY,
 };
 use crate::i18n::I18n;
 
@@ -14,11 +14,16 @@ pub struct SheetRow {
     pub group: &'static str,
 }
 
+// The menu boards draw a Ctrl chord beside these rows alone; every other row shows a bare key or nothing.
+const CHORD_HINTS: &[&str] = &["print"];
+
 pub fn hint_for(name: &str, action: &str) -> &'static str {
     let name = preset(name);
     binding_rows(name, Frontend::Gui)
         .filter(|row| {
-            action_group(row.action) == action && matches!(row.mods, "text" | "none" | "shift")
+            action_group(row.action) == action
+                && (matches!(row.mods, "text" | "none" | "shift")
+                    || (row.mods == "ctrl" && CHORD_HINTS.contains(&action)))
         })
         .min_by_key(|row| {
             (if row.preset == name { 0 } else { 2 })
@@ -138,6 +143,12 @@ pub fn sheet(name: &str, frontend: Frontend, catalog: &I18n) -> Vec<SheetRow> {
             .any(|group| group.actions.contains(&row.action))
             && !listing_action(action_group(row.action))
             && !row.context.split(',').any(|context| context == "listing")
+            && (row.frontend == "all" || row.frontend == frontend.name())
+    }));
+    // Strip-owned keys are documented without entering the dispatch tables.
+    rows.extend(SHEET_EXTRA.iter().filter(|row| {
+        (row.preset == "all" || row.preset == name)
+            && (row.frontend == "all" || row.frontend == frontend.name())
     }));
     rows.retain(|row| row.sheet);
     let mut result: Vec<SheetRow> = Vec::new();
@@ -167,12 +178,22 @@ pub fn sheet(name: &str, frontend: Frontend, catalog: &I18n) -> Vec<SheetRow> {
                 secondary,
             )
         });
-        let first = spellings[0].keys;
+        let mut first = spellings[0].keys;
         let mut keys = first.to_owned();
         for candidate in spellings.iter().skip(1) {
             let length = first.encode_utf16().count() + 3 + candidate.keys.encode_utf16().count();
             if candidate.keys != first && length <= SHEET_CAP_BUDGET {
                 keys = format!("{first} / {}", candidate.keys);
+                break;
+            }
+            // Keep a short function key visible when the preset chord leaves no room for both.
+            let function_key = candidate
+                .key
+                .strip_prefix('F')
+                .is_some_and(|suffix| suffix.parse::<u8>().is_ok());
+            if candidate.mods == "none" && function_key && candidate.keys.len() < first.len() {
+                first = candidate.keys;
+                keys = first.to_owned();
                 break;
             }
         }
@@ -209,3 +230,7 @@ pub fn sheet(name: &str, frontend: Frontend, catalog: &I18n) -> Vec<SheetRow> {
 #[cfg(test)]
 #[path = "presentation_keycap_tests.rs"]
 pub(crate) mod keycap_tests;
+
+#[cfg(test)]
+#[path = "presentation_chord_tests.rs"]
+mod chord_tests;

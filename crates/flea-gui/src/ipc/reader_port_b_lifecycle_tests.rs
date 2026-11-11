@@ -3,12 +3,12 @@ use super::*;
 
 #[test]
 fn loading_interval_restarts_after_a_hidden_replacement() {
-    let mut observed = crate::g2::pv1::observations::Observations::default();
+    let mut observed = crate::g2::quick_look_overlay::observations::Observations::default();
     observed.opened(0, false);
-    observed.revealed(100, false, true);
+    observed.revealed(100, false, false, true);
     observed.opened(200, false);
-    observed.revealed(250, false, true);
-    observed.revealed(300, true, false);
+    observed.revealed(250, false, false, true);
+    observed.revealed(300, true, true, false);
     assert_eq!(observed.swap.shown_ms, 50);
 }
 
@@ -158,7 +158,7 @@ fn focus_owner_rename_blur_has_no_pane_keyboard_focus(cx: &mut TestAppContext) {
 
 #[gpui::test]
 fn focus_owner_pdf_controls_keep_focus_until_close(cx: &mut TestAppContext) {
-    crate::g2::pv2::render::without_threads(|| {
+    crate::g2::doc_preview::render::without_threads(|| {
         let (handle, _read) = open(cx);
         edit(cx, handle, |shell, window, cx| {
             shell.view = crate::window::startup::View::Columns;
@@ -253,7 +253,7 @@ fn focus_owner_pdf_controls_keep_focus_until_close(cx: &mut TestAppContext) {
 // EY-438: PdfViewer.qml at v0.3.12 keeps the cursor keys from the listing and closes on focusPreview.
 #[gpui::test]
 fn quick_look_pdf_takes_cursor_keys_and_closes_on_focus_preview(cx: &mut TestAppContext) {
-    crate::g2::pv2::render::without_threads(|| {
+    crate::g2::doc_preview::render::without_threads(|| {
         let (handle, _read) = open(cx);
         edit(cx, handle, |shell, window, cx| {
             shell.view = crate::window::startup::View::Columns;
@@ -329,10 +329,19 @@ fn focus_owner_hidden_pending_rename_returns_to_listing(cx: &mut TestAppContext)
     edit(cx, handle, |shell, _, _| {
         assert!(shell.rename.edit.as_ref().unwrap().pending.is_some())
     });
+    // S2-4: Escape cannot abandon the write, so the editor keeps the keys.
     press(cx, handle, "escape", false);
+    assert_eq!(
+        keyboard(cx, handle)
+            .get("activeFocusItem")
+            .and_then(flea::jsondoc::Json::as_str),
+        Some("QQuickTextInput")
+    );
+    // A row that leaves the drawn listing hides the editor the way rename.rs does, with the request still out.
     edit(cx, handle, |shell, _, _| {
-        let edit = shell.rename.edit.as_ref().unwrap();
-        assert!(!edit.entry.editing);
+        let edit = shell.rename.edit.as_mut().unwrap();
+        assert!(edit.entry.editing, "Escape keeps the pending editor");
+        edit.entry.close();
         assert!(
             edit.pending.is_some(),
             "the reply still has its original owner"

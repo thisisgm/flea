@@ -1,8 +1,8 @@
 //! The Print, Convert and Combine card slot: op4's OutputView over the panes, fed by its owner pane's backend.
 use crate::{
     g2::{
-        op1::palette::CardPalette,
-        op4::{
+        file_ops::palette::CardPalette,
+        print_convert::{
             host::{OutputEvent, OutputView},
             model::Action,
             seam::{Effect, Ticket},
@@ -13,7 +13,7 @@ use crate::{
 };
 use flea::{
     protocol::RowFacts,
-    ui_logic_op4::{
+    ui_logic_print_convert::{
         output::{self, Kind},
         selection::{Selection, Source},
     },
@@ -42,7 +42,7 @@ pub(crate) struct Join {
     /// Each pane's backend's archive formats, None until a formats reply says; Compress offers only these.
     pub(crate) archive: [Option<Vec<String>>; 2],
     /// Each pane's backend's extract tools, which Extract reads per archive tail.
-    pub(crate) extract: [flea::ui_logic_mn1::archive::Extraction; 2],
+    pub(crate) extract: [flea::ui_logic_context_menus::archive::Extraction; 2],
     generation: u64,
     origin: Option<FocusHandle>,
     events: Option<Subscription>,
@@ -138,7 +138,7 @@ impl Shell {
                         &error,
                         true,
                         "",
-                        flea::ui_logic_fb1::status::Hint::None,
+                        flea::ui_logic_status_feedback::status::Hint::None,
                         now,
                     )
                 });
@@ -192,7 +192,7 @@ impl Shell {
         self.output.chosen = Some(cx.subscribe_in(
             &entity,
             window,
-            |shell, _, chosen: &crate::g2::mn1::join::Chosen, window, cx| {
+            |shell, _, chosen: &crate::g2::context_menus::join::Chosen, window, cx| {
                 let action = match chosen.action.as_str() {
                     "print" => Action::Print,
                     "convert" => Action::Convert,
@@ -254,7 +254,7 @@ impl Shell {
                 .and_then(flea::jsondoc::Json::as_bool)
                 == Some(true)
         };
-        self.output.extract[side] = flea::ui_logic_mn1::archive::Extraction {
+        self.output.extract[side] = flea::ui_logic_context_menus::archive::Extraction {
             archive: tool("archive"),
             seven_zip: tool("sevenZip"),
             zip: tool("zip"),

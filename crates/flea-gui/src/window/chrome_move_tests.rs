@@ -100,6 +100,13 @@ fn pb_drag4_chrome_starts_one_system_move_after_four_pixels() {
     let mut vcx = VisualTestContext::from_window(handle.into(), &cx);
     travel(&mut vcx, at, 4., 0.);
     assert_eq!(count(&mut vcx), 0, "a click stays a click at the threshold");
+    // One click on the address ground opens the editor; closing it leaves the chrome movable again.
+    assert!(edit(&mut cx, handle, |shell, _, cx| {
+        let chrome = shell.chrome.view.as_ref().unwrap().read(cx);
+        chrome.path.read(cx).editing()
+    }));
+    vcx.simulate_keystrokes("escape");
+    frame(&mut cx, handle);
     vcx.simulate_mouse_down(at, MouseButton::Left, Modifiers::default());
     for dx in [5., 8., 100.] {
         vcx.simulate_mouse_move(
@@ -110,8 +117,51 @@ fn pb_drag4_chrome_starts_one_system_move_after_four_pixels() {
     }
     assert_eq!(count(&mut vcx), 1, "one compositor request per gesture");
     vcx.simulate_mouse_up(at, MouseButton::Left, Modifiers::default());
+    assert!(!edit(&mut cx, handle, |shell, _, cx| {
+        let chrome = shell.chrome.view.as_ref().unwrap().read(cx);
+        chrome.path.read(cx).editing()
+    }));
     travel(&mut vcx, at, 0., 5.);
     assert_eq!(count(&mut vcx), 2, "vertical travel also moves the window");
+}
+
+#[test]
+fn pb_drag4_inert_address_waits_for_release_and_discards_a_drag() {
+    let mut cx = crate::list::bench::real_cx();
+    let handle = open(&mut cx);
+    let at = chrome_at(&mut cx, handle);
+    let mut vcx = VisualTestContext::from_window(handle.into(), &cx);
+    vcx.simulate_mouse_down(at, MouseButton::Left, Modifiers::default());
+    assert!(
+        !edit(&mut cx, handle, |shell, _, cx| {
+            let chrome = shell.chrome.view.as_ref().unwrap().read(cx);
+            chrome.path.read(cx).editing()
+        }),
+        "a press alone must not open the editor"
+    );
+    vcx.simulate_mouse_move(
+        at + point(px(5.), px(0.)),
+        Some(MouseButton::Left),
+        Modifiers::default(),
+    );
+    // Returning inside the threshold must not revive the tap the move took.
+    vcx.simulate_mouse_move(at, Some(MouseButton::Left), Modifiers::default());
+    vcx.simulate_mouse_up(at, MouseButton::Left, Modifiers::default());
+    assert_eq!(count(&mut vcx), 1);
+    assert!(!edit(&mut cx, handle, |shell, _, cx| {
+        let chrome = shell.chrome.view.as_ref().unwrap().read(cx);
+        chrome.path.read(cx).editing()
+    }));
+    travel(&mut vcx, at, 3., 3.);
+    assert_eq!(
+        count(&mut vcx),
+        1,
+        "a tap stays inside four pixels on both axes"
+    );
+    assert!(edit(&mut cx, handle, |shell, _, cx| {
+        let chrome = shell.chrome.view.as_ref().unwrap().read(cx);
+        chrome.path.read(cx).editing()
+    }));
 }
 
 #[test]

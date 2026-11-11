@@ -7,7 +7,6 @@ use crate::grid::{
     tile::{self, Shaping},
     Shown,
 };
-use crate::palette::Theme;
 use gpui::{
     fill, outline, point, px, relative, size, App, BorderStyle, Bounds, ContentMask, Corners,
     Element, ElementId, GlobalElementId, InspectorElementId, LayoutId, Pixels, Style,
@@ -239,14 +238,35 @@ impl GridElement {
             } else {
                 ink.muted_frame
             };
-            let _ = window.paint_svg(
-                bounds_of(origin, layout.mark(drawn.slot)),
-                key,
-                Some(data),
-                TransformationMatrix::unit(),
-                mark_ink.opacity(dim),
-                cx,
-            );
+            let slot = bounds_of(origin, layout.mark(drawn.slot));
+            if window
+                .paint_svg(
+                    slot,
+                    key.clone(),
+                    Some(data),
+                    TransformationMatrix::unit(),
+                    mark_ink.opacity(dim),
+                    cx,
+                )
+                .is_ok()
+                && self.held.row(drawn.listing).is_some()
+            {
+                state
+                    .language_paint
+                    .borrow_mut()
+                    .push(crate::row::language_capture::Painted {
+                        index: drawn.listing,
+                        key,
+                        data,
+                        ink: mark_ink.opacity(dim),
+                        slot,
+                        label_x: f32::from(origin.x) + drawn.caption.x,
+                        cursor: drawn.cursor,
+                        hovered: drawn.hovered,
+                        cut,
+                        opacity: dim,
+                    });
+            }
         }
         let Some(tile) = drawn.tile.as_ref().filter(|_| !drawn.editing) else {
             return;
@@ -323,7 +343,6 @@ impl Element for GridElement {
         window: &mut Window,
         cx: &mut App,
     ) -> Ink {
-        let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
         let mut state = self.state.borrow_mut();
         self.prepare(&mut state, bounds, window);
         if state.shaped_labels.is_none() && state.drawn.iter().any(|drawn| drawn.drop.is_some()) {
@@ -336,7 +355,7 @@ impl Element for GridElement {
             state.shaped_labels = Some([move_, copy, link]);
         }
         state.frame_held = Some(Rc::clone(&self.held));
-        state.record_frame(bounds, Ink::inherited(&window.text_style(), theme))
+        state.record_frame(bounds, Ink::for_window(window, cx))
     }
 
     fn paint(
@@ -351,6 +370,7 @@ impl Element for GridElement {
     ) {
         let ink = *ink;
         let mut state = self.state.borrow_mut();
+        state.language_paint.borrow_mut().clear();
         state.frames += 1;
         let state = &*state;
         let origin = bounds.origin;

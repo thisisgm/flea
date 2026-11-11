@@ -3,7 +3,7 @@ use super::*;
 use crate::{backend::Backend, backend::Event as BackendEvent, list::Typeface};
 use flea::{
     jsondoc,
-    ui_logic_st2::{
+    ui_logic_plugin_settings::{
         manifest,
         wire::{self, Listing, Plugin, Source},
     },

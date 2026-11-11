@@ -69,6 +69,9 @@ case_cap_heldcolumns() {
     denied_sentence=$(sed -n 's/^    denied: "\([^"\\]*\)",$/\1/p' "$repo/ui/js/Errors.js")
     [[ "$(grep -c '^    denied: ' "$repo/ui/js/Errors.js")" -eq 1 ]] || fail "heldcolumns: Errors.WORDS.denied must name one string"
     [[ -n "$denied_sentence" ]] || fail "heldcolumns: Errors.WORDS.denied is empty"
+    if [[ "$test_frontend" == gpui ]]; then
+        denied_sentence='You don’t have permission to open this folder.'
+    fi
     dir="$fixture_root/cap-heldcolumns"
     listing="$dir/listing"
     markers="$dir/markers"
@@ -85,6 +88,7 @@ case_cap_heldcolumns() {
         flea_bin="$dir/flea-proxy"
         heldcolumns_launch "$listing"
         flea_bin="$real_bin"
+        [[ "$test_frontend" != gpui ]] || cap_resize 2560 1400
         wait_marker "$markers/held-$n" "heldcolumns: limit $n never held its listing"
         # Past the 150 ms hold-off, before the 10 s deadline.
         sleep 1
@@ -96,6 +100,8 @@ case_cap_heldcolumns() {
         # The seam exists only now, so the theme of this launch, reading shot included, is checked here.
         assert_theme
         [[ "$(ipc viewMode)" == "columns" ]] || fail "heldcolumns: limit $n opened in $(ipc viewMode), not columns"
+        [[ "$test_frontend" != gpui || "$(ipc columnCount)" == "$n" ]] \
+            || fail "heldcolumns: limit $n drew $(ipc columnCount) columns"
         [[ "$(ipc stateMessage)" == "That folder is not responding." ]] || fail "heldcolumns: limit $n spoke $(ipc stateMessage)"
         heldcolumns_fade_wait
         shot "heldcolumns-$n-waiting"
@@ -108,6 +114,7 @@ case_cap_heldcolumns() {
         chmod 000 "$denied" || fail "heldcolumns: limit $n denied setup failed"
         seed_ui_state "$fixture_root/cap-heldcolumns-denied-$n" '{"view":"columns","columnsLimit":'"$n"'}'
         launch "$denied"
+        [[ "$test_frontend" != gpui ]] || cap_resize 2560 1400
         estate=""
         err_by=$(( $(date +%s%3N) + 15000 ))
         while (( $(date +%s%3N) < err_by )); do
@@ -230,8 +237,8 @@ case_cap_columnsrename() {
     key -k Return >/dev/null
     wait_marker "$menu_dir/a-renamed.md" "columnsrename: the rename never wrote a-renamed.md"
     menus_expect renameState '.index == -1 and (.pending | not) and (.loading | not) and .cursorName == "a-renamed.md"' "columnsrename lands on the renamed file"
-    # The columns area takes focus back on editor close: QML names it ColumnsArea_QMLTYPE_n(0x...), GPUI names its focus stop "list"; // keeps a null focus a named failure.
-    menus_expect keyDeliveryState '.listFocus and ((.activeFocusItem // "") | test("^(ColumnsArea_QML|list$)"))' "columnsrename hands focus back to the active column"
+    # The columns area takes focus back on editor close: QML names it ColumnsArea_QMLTYPE_n(0x...), GPUI names its focus stop "list" or "ColumnsArea"; // keeps a null focus a named failure.
+    menus_expect keyDeliveryState '.listFocus and ((.activeFocusItem // "") | test("^(ColumnsArea_QML|ColumnsArea$|list$)"))' "columnsrename hands focus back to the active column"
     [[ -n "$(ipc columnActiveRect)" ]] || fail "columnsrename: the active column has no rectangle"
     shot columnsrename-ended
     printf 'COLUMNSRENAME landed=ok focus=ok\n'

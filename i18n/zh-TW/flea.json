@@ -48,6 +48,9 @@
   "archive.compressing": "正在將 %1 壓縮為 .%2",
   "archive.confirm": "確認",
   "archive.done.cancelled": "已取消解壓縮。",
+  "archive.done.extracted": "已解壓縮。",
+  "archive.done.name_refused": "無法將「%1」解壓縮到此磁碟機：%2。",
+  "archive.done.twins": "「%1」和「%2」在此磁碟機上會使用同一個名稱，因此未解壓縮任何內容。",
   "archive.done.unverified": "已解壓縮。無法讀取封存檔索引，因此未經驗證。",
   "archive.done.written": "封存檔已寫入。",
   "archive.encrypt_names": "加密檔名",
@@ -213,9 +216,14 @@
   "device.still_mounted": "%1 仍處於掛載狀態；請關閉使用它的程式。",
   "device.still_unmounting": "仍在卸載 %1；請等候結果",
   "device.still_unmounting_try_again": "%1 仍在卸載中。請在完成後再試",
-  "device.system_drive": "%1 是系統磁碟機，Flea 不會將其卸載",
-  "device.system_volume": "此資料夾位於系統磁碟區上，Flea 不會將其卸載",
+  "device.system_drive": "%1 是系統磁碟機，Flea 絕不將其退出。",
+  "device.system_volume": "此資料夾不在 Flea 可退出的磁碟機上。",
   "device.transfer_using": "無法卸載 %1。可能仍有傳輸作業正在使用它。",
+  "device.copy_running": "%1 上仍有複製正在進行。請在完成後再試。",
+  "device.move_running": "%1 上仍有移動正在進行。請在完成後再試。",
+  "device.archive_running": "%1 上仍有封存檔作業正在進行。請在完成後再試。",
+  "device.send_running": "%1 上仍有傳送正在進行。請在完成後再試。",
+  "device.action_running": "%1 上仍有動作正在進行。請在完成後再試。",
   "device.unconfirmed": "無法確認 %1 是否已退出；請先不要拔除。",
   "device.unlock.button": "解鎖",
   "device.unlock.cancel": "omarchy:shell.common.cancel",
@@ -313,6 +321,8 @@
   "dialogs.file.permissions.read_only": "%1 · 唯讀",
   "dialogs.file.permissions.reading": "正在讀取權限…",
   "dialogs.file.permissions.requested": "要求的權限碼 %1",
+  "dialogs.file.permissions.no_changes": "沒有要套用的變更",
+  "dialogs.file.permissions.current_mode": "目前的權限碼 %1",
   "dialogs.file.permissions.scope_folder": "僅套用至此資料夾 · 內含項目不變 · 擁有權不變",
   "dialogs.file.permissions.scope_folder_note": "僅套用至此資料夾。內含項目的權限維持不變。",
   "dialogs.file.permissions.scope_item": "僅套用至此項目 · 擁有權不變",
@@ -594,6 +604,11 @@
   "feedback.os.connection_refused": "連線遭拒。",
   "feedback.os.connection_reset": "連線已重設。",
   "feedback.os.could_not_finish": "無法完成作業。",
+  "feedback.drive.char": "此 %2 磁碟機上的名稱不能包含「%1」。",
+  "feedback.drive.control": "此 %2 磁碟機上的名稱不能包含控制字元 %1。",
+  "feedback.drive.end_dot": "此 %1 磁碟機上的名稱不能以句點結尾。",
+  "feedback.drive.end_space": "此 %1 磁碟機上的名稱不能以空格結尾。",
+  "feedback.drive.reserved": "「%1」在此 %2 磁碟機上是保留名稱。",
   "feedback.os.cross_device": "來源與目的地位於不同的磁碟機。",
   "feedback.os.full": "磁碟機已滿。",
   "feedback.os.interrupted": "作業已中斷。",
@@ -756,6 +771,26 @@
   "jobs.failed.compress": "壓縮失敗",
   "jobs.failed.copy": "複製失敗",
   "jobs.failed.emptyTrash": "清空垃圾桶失敗",
+  "jobs.head.send_waiting": "正在傳送",
+  "jobs.head.copying": "正在複製到 %3：第 %1 個，共 %2 個",
+  "jobs.head.moving": "正在移動到 %3：第 %1 個，共 %2 個",
+  "jobs.head.sending": "正在傳送至 %3：第 %1 個，共 %2 個",
+  "jobs.head.action": "%1 · 第 %2 個，共 %3 個",
+  "jobs.head.checking": {
+    "other": "正在檢查 %2 上的 %1 個項目"
+  },
+  "jobs.head.copy_waiting": {
+    "other": "將 %1 個項目複製到 %2"
+  },
+  "jobs.head.move_waiting": {
+    "other": "將 %1 個項目移動到 %2"
+  },
+  "jobs.head.compress_waiting": {
+    "other": "將 %1 個項目壓縮為 %2"
+  },
+  "jobs.head.compressing": {
+    "other": "正在壓縮 %1 個項目"
+  },
   "jobs.failed.extract": "解壓縮失敗",
   "jobs.failed.move": "移動失敗",
   "jobs.failed.send": "傳送失敗",
@@ -839,6 +874,7 @@
   "jobs.undone.link": "已復原建立連結",
   "jobs.undone.merge": "已復原合併",
   "jobs.undone.mkdir": "已移除新增的資料夾。",
+  "jobs.undone.convert": "已復原轉換",
   "jobs.undone.move": "已復原移動",
   "jobs.undone.newfile": "已移除新增的檔案",
   "jobs.undone.other": "已復原上次動作",
@@ -1027,6 +1063,7 @@
   "keys.label.bc99d765de7e": "標籤 5",
   "keys.label.bcf58eaeff52": "返回瀏覽紀錄的上一處；無紀錄時前往上層資料夾",
   "keys.label.bd0b7be215ce": "關閉編輯器",
+  "keys.label.bc4dd3d76b73": "保留結果",
   "keys.label.bfa65befcad0": "前往檔案所在的資料夾並選取檔案",
   "keys.label.704fb7f8818b": "無操作",
   "keys.label.c2fc6e7bc3be": "下一個工作表",
@@ -1036,6 +1073,7 @@
   "keys.label.cbb73e0f65c2": "將該列加入選取範圍",
   "keys.label.cc5b682e634f": "開啟檔案",
   "keys.label.e3a4d6eba0c6": "上一個工作表",
+  "keys.label.07c371255954": "列印…",
   "keys.label.e9619e148ed8": "Control+X 不執行動作",
   "keys.label.ecea0deb9e7f": "在新分頁中開啟該位置",
   "keys.label.ed077f3d8125": "開啟",
@@ -1339,6 +1377,7 @@
   "pane.empty.beat_two": "一個檔案也沒有",
   "pane.empty.initial": "這裡還沒有項目",
   "pane.empty.rest": "這裡很安靜",
+  "pane.empty.fixed": "空資料夾",
   "pane.empty.hint_new_folder": "按 %1 建立新資料夾。",
   "pane.locked": "您沒有開啟此資料夾的權限。",
   "pane.permissions_other_owner": "%1 · 非您所有",
@@ -1839,6 +1878,7 @@
   "send.providers.airdrop_accept": "接受",
   "send.providers.airdrop_decline": "拒絕",
   "send.providers.airdrop_someone": "附近的裝置",
+  "send.providers.airdrop_received": "已使用 AirDrop 收到 %1",
   "send.rclone.cancel": "omarchy:shell.common.cancel",
   "send.rclone.cancelling": "正在取消",
   "send.rclone.checked_checksum": "已透過總和檢查碼驗證",
@@ -2000,6 +2040,7 @@
   "settings.hint.thumbs_kept": "關閉後仍會顯示已產生的縮圖。",
   "settings.keys.move_cursor": "移動游標",
   "settings.keys.move_open_up": "移動、開啟、前往上層",
+  "settings.keys.arrows": "方向鍵",
   "settings.list.separator": "、",
   "settings.menus.compress": "壓縮",
   "settings.menus.convert": "轉換",
@@ -2080,6 +2121,10 @@
   "settings.row.group_by_kind": "依類型分組",
   "settings.row.hidden_last": "隱藏檔案置後",
   "settings.row.highlight_today": "突顯今天的日期",
+  "settings.row.highlight_hover": "游標停留時突顯",
+  "settings.row.tabs_as_icons": "以圖示顯示分頁",
+  "settings.row.empty_omi": "在空資料夾中顯示 Omi",
+  "settings.row.empty_rotate": "輪換空資料夾提示語",
   "settings.row.hyprland_icons": "圖示跟隨 Hyprland 設定",
   "settings.row.lang_marks": "顯示程式碼圖示",
   "settings.row.load": "載入",
@@ -2135,8 +2180,10 @@
   "settings.update.note_failed": "離線：仍可開啟 Omarchy 更新",
   "settings.update.note_launched": "更新完成後請重新啟動 Flea",
   "settings.update.note_source": "請從原始碼工作目錄重新建置以更新。",
+  "settings.update.note_release": "Omarchy 更新會安裝較新的版本。",
   "settings.update.opening": "正在開啟 Omarchy 更新 · 完成後請重新啟動 Flea",
   "settings.update.source": "由原始碼建置",
+  "settings.update.release": "發行版本",
   "settings.words.dropbox_down": "未執行",
   "settings.words.dropbox_signed_out": "已登出",
   "settings.words.localsend_folder": "僅限檔案",
@@ -2165,6 +2212,7 @@
   "step.move": "移動",
   "step.newfile": "新增檔案",
   "step.permissions": "權限",
+  "step.convert": "轉換",
   "step.rename": "重新命名",
   "step.trash": "移至垃圾桶",
   "tabs.close": "關閉分頁",
@@ -2214,6 +2262,9 @@
     "other": "已刪除 %2 / %1 個項目"
   },
   "trash.done.failed": "%1 · %2 個失敗",
+  "trash.done.leftover": {
+    "other": "%2 · 有 %1 個殘留項目無法移除"
+  },
   "trash.done.failure": "%1 失敗：%2",
   "trash.done.restored": {
     "other": "已還原 %2 / %1 個項目"
@@ -2371,6 +2422,7 @@
   "tui.cwd.the_output_needs_a_file_name": "輸出需要檔案名稱",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "--tui-keymap 接受 default、vim、mac、windows 或 yazi",
   "tui.cwd.twice": "%1 被指定了兩次",
+  "tui.cwd.folder_missing": "%1 的資料夾不存在：%2",
   "tui.cwd.write_error": "無法寫入 %1：%2",
   "tui.editor.enter_a_filename_before_the_extension": "請在副檔名前輸入檔案名稱。",
   "tui.editor.invalid_name": "請輸入非空白名稱，不能是 . 或 ..，且不能包含 / 或空字元。",
@@ -2395,6 +2447,7 @@
   "tui.launch.could_not_finish": "%1 無法完成（%2）",
   "tui.launch.could_not_observe": "無法監測 %1：%2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "這不是資料夾，因此未開啟終端機",
+  "tui.launch.program_not_found": "找不到程式 %1",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "請將視窗調整為至少 12 欄寬、5 列高。",
   "tui.model.bulk_done": {
     "other": "已重新命名 %1 個項目 · 復原會還原一次重新命名"
@@ -2483,5 +2536,19 @@
   "settings.hint.key_reserved": "%1 仍未綁定，因為 Flea 保留此按鍵序列供自身使用。",
   "settings.hint.key_taken": "%1 仍未綁定，因為 %2 在此預設組合中已使用此按鍵序列。",
   "settings.hint.key_unknown": "%1 仍未綁定，因為 Flea 沒有名為 %2 的動作。",
-  "mime.png": "PNG 影像"
+  "mime.png": "PNG 影像",
+  "mime.plain": "純文字文件",
+  "feedback.unheld.links": "此磁碟機不支援連結。",
+  "feedback.unheld.nodes": "此磁碟機不支援特殊檔案。",
+  "feedback.unheld.name": "此磁碟機不允許使用該名稱。",
+  "feedback.unheld.long": "該名稱對此磁碟機來說太長。",
+  "feedback.unheld.taken": "此磁碟機將該名稱視為與資料夾中的另一個名稱相同。",
+  "feedback.unheld.copy_one": "無法複製 %1：%2",
+  "feedback.unheld.move_one": "無法移動 %1：%2",
+  "feedback.unheld.copy_many": {
+    "other": "內部有 %1 個項目無法複製；第一個是 %2：%3"
+  },
+  "feedback.unheld.move_many": {
+    "other": "內部有 %1 個項目無法移動；第一個是 %2：%3"
+  }
 }

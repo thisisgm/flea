@@ -1,6 +1,6 @@
 use super::listing::Listing;
 use crate::json::escape;
-use flea::ui_logic_sr2::narrow;
+use flea::ui_logic_listing_filter::narrow;
 use std::fmt::Write;
 use std::time::Instant;
 

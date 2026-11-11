@@ -154,10 +154,17 @@ function run(check) {
     var rust = Source.source("src/backend/trashbrowse.rs")
     check("wire pin: the listing sorts by deletion date, newest first, before the uri tie",
         rust.indexOf("dated.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.uri.cmp(&b.1.uri)))") >= 0, true)
-    check("wire pin: one gio list dates every volume's items, no per-item call",
-        rust.indexOf('read(&["list", "-u", "-a", "trash::deletion-date", "trash:///"])') >= 0 && rust.indexOf("fn deletion_date(") < 0, true)
+    var metadataRust = Source.source("src/backend/trashbrowse/topdir.rs")
+    check("wire pin: bulk gio lists keep original paths separate from dates and targets, no per-item call",
+        rust.indexOf('read(&["list", "-u", "-h", "-a", "trash::orig-path", "trash:///"])') >= 0
+            && rust.indexOf("topdir::metadata(&read)?") >= 0
+            && /"standard::target-uri,trash::deletion-date",\s*"trash:\/\/\/",?\s*\]/.test(metadataRust)
+            && metadataRust.indexOf('"info"') < 0
+            && rust.indexOf("fn deletion_date(") < 0
+            && !/read\s*\(\s*&\[\s*"info"/.test(rust + metadataRust), true)
     check("wire pin: the backend orders every listing it reads, through the one reader the tests feed",
-        rust.indexOf("newest_first(&mut items, |item| dates.get(&item.uri)") >= 0 && rust.indexOf("fn list() -> Result<Vec<Item>, Refusal> {\n    list_with(gio)\n}") >= 0, true)
+        /newest_first\(&mut items,\s*\|item\|\s*\{?\s*dates\.get\(&item\.uri\)/.test(rust)
+            && rust.indexOf("fn list() -> Result<Vec<Item>, Refusal> {\n    list_with(gio)\n}") >= 0, true)
     check("wire pin: item membership is by uri set, never a uri search of the date-ordered listing",
         rust.indexOf("let listed = listed_uris(&self.items);") >= 0 && rust.indexOf("if !listed.contains(item.uri.as_str()) { continue; }") >= 0 && rust.indexOf("binary_search") < 0, true)
     check("wire pin: both staleness comparisons ignore the order of the two reads",

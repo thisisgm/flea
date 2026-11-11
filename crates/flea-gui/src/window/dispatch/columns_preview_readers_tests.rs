@@ -9,7 +9,7 @@ use gpui::{Entity, TestAppContext, VisualTestContext};
 fn markdown(
     shell: &Entity<crate::state::Shell>,
     cx: &VisualTestContext,
-) -> Option<Entity<crate::g2::pv2::markdown::MarkdownView>> {
+) -> Option<Entity<crate::g2::doc_preview::markdown::MarkdownView>> {
     shell.read_with(cx, |shell, cx| {
         match &shell.selection_preview(0)?.read(cx).drawn.as_ref()?.mounted {
             Mounted::Doc(Doc::Markdown(markdown)) => Some(markdown.clone()),
@@ -34,10 +34,80 @@ fn columns_text_reader_preserves_the_native_too_large_sentinel(cx: &mut TestAppC
         };
         assert_eq!(
             code.read(cx).refusal(),
-            Some(flea::ui_logic_pv2::refusal::Refusal::TooLarge)
+            Some(flea::ui_logic_doc_preview::refusal::Refusal::TooLarge)
         );
     });
     assert_eq!(read(&shell, cx, "columnTextLines", &[]), "too large");
+}
+
+#[gpui::test]
+fn a_drawn_preview_subject_path_with_a_quote_reads_back_escaped(cx: &mut TestAppContext) {
+    use flea::jsondoc::{parse, Json};
+    let (shell, cx) = host::open(cx, "/files");
+    super::test_shell::land(
+        &shell,
+        cx,
+        "/files",
+        vec![host::file("a\"b.txt", "text-plain", "Text", 0o100644)],
+        1,
+    );
+    let lines = host::local(&shell, cx, "/files");
+    host::meta(&shell, cx, &lines, r#","lines":1"#);
+    host::pump(cx);
+    let state = parse(&read(&shell, cx, "previewSelectionState", &[])).unwrap();
+    assert_eq!(state.get("inlineVisible"), Some(&Json::Bool(true)));
+    assert_eq!(
+        state.get("path").and_then(Json::as_str),
+        Some("/files/a\"b.txt")
+    );
+}
+
+#[gpui::test]
+fn fx_uish_empty_search_hides_the_retained_preview_subject(cx: &mut TestAppContext) {
+    use flea::jsondoc::{parse, Json};
+    let (shell, cx) = host::open(cx, "/files");
+    super::test_shell::land(
+        &shell,
+        cx,
+        "/files",
+        vec![host::file("notes.txt", "text-plain", "Text", 0o100644)],
+        1,
+    );
+    let lines = host::local(&shell, cx, "/files");
+    host::meta(&shell, cx, &lines, r#","lines":1"#);
+    host::pump(cx);
+    let before = parse(&read(&shell, cx, "previewSelectionState", &[])).unwrap();
+    assert_eq!(before.get("inlineVisible"), Some(&Json::Bool(true)));
+    assert_eq!(
+        before.get("path").and_then(Json::as_str),
+        Some("/files/notes.txt")
+    );
+    cx.update(|_, cx| {
+        shell.update(cx, |shell, cx| {
+            let host = shell.panes[0].as_mut().unwrap();
+            let session = &mut host.search.owner.session;
+            session.mode = flea::ui_logic_file_search::Mode::Typing;
+            session.query = "missing".into();
+            session.gen = 1;
+            session.running = false;
+            host.pane.state.search = true;
+            host.pane.state.query = "missing".into();
+            host.pane.held = std::rc::Rc::new(crate::list::pane::Held {
+                listing: host.pane.held.listing,
+                ..Default::default()
+            });
+            assert!(host.preview.as_ref().unwrap().read(cx).visible);
+            assert!(shell.no_match_headline(0).is_some());
+            cx.notify();
+        });
+    });
+    host::pump(cx);
+    let after = parse(&read(&shell, cx, "previewSelectionState", &[])).unwrap();
+    assert_eq!(after.get("inlineVisible"), Some(&Json::Bool(false)));
+    assert_eq!(after.get("index").and_then(Json::as_f64), Some(-1.));
+    assert_eq!(after.get("path").and_then(Json::as_str), Some(""));
+    assert_eq!(after.get("pending").and_then(Json::as_f64), Some(0.));
+    assert_eq!(after.get("focused"), Some(&Json::Bool(false)));
 }
 
 #[gpui::test]
@@ -89,7 +159,7 @@ fn pb_columns2_markdown_reader_reads_the_mounted_document_and_source(cx: &mut Te
     assert_eq!(read(&shell, cx, "columnMarkdownView", &[]), "rendered");
     let view = markdown(&shell, cx).unwrap();
     view.update(cx, |view, cx| {
-        view.set_view(crate::g2::pv2::markdown::View::Source, cx)
+        view.set_view(crate::g2::doc_preview::markdown::View::Source, cx)
     });
     assert_eq!(read(&shell, cx, "columnMarkdownView", &[]), "source");
     assert_eq!(
@@ -218,7 +288,7 @@ fn columns_play_button_keeps_listing_keys_and_selection_retires_the_player(
     cx: &mut TestAppContext,
 ) {
     use super::quick_look_body_tests::{Fake, Script};
-    use flea::ui_logic_pv3::frame::Event;
+    use flea::ui_logic_media_preview::frame::Event;
     use std::rc::Rc;
 
     let (shell, cx) = host::open(cx, "/files");

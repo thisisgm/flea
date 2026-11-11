@@ -1,5 +1,7 @@
 # Flea catalogs
 
+`mime.plain` supplies the shared GUI and TUI fallback for `text/plain` when shared-mime-info lacks the selected language. Provider translations still take precedence, and English keeps its original provider wording. All 50 catalogs supply this key.
+
 `en/flea.json` defines flat keys, `%1` through `%N` arguments, and cardinal plural objects with an `other` form. Other catalogs use the same keys and arguments; their plural category names can differ. Empty or missing translations fall back to English per string. The English plural rule applies when the English string supplies that fallback.
 
 MIME descriptions normally come from shared-mime-info in the selected language. Norwegian `no` also accepts its `nb` provider entry. `mime.png` supplies a localized fallback when the provider lacks a translation and is registered in every catalog. Provider translations take precedence over that fallback. `mime.markdown` is a narrow optional override: English declares its source and Japanese supplies the HIG correction `Markdown 文書` (CHANGES.md:2800). Other catalogs omit it and keep their MIME description or its untranslated fallback. `I18n::mime_comment` reads only an explicitly present translation; it never substitutes the English catalog value. Manifest and quality checks require the Markdown key in English and Japanese and allow its absence elsewhere.

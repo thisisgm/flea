@@ -212,7 +212,7 @@ impl Adapter for Thumbnails<'_> {
                 .map_or_else(String::new, |facts| {
                     format!(
                         "{}?m={}",
-                        flea::ui_logic_mn1::copyas::file_uri(&file),
+                        flea::ui_logic_context_menus::copyas::file_uri(&file),
                         facts.mtime
                     )
                 }),

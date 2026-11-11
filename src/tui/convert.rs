@@ -9,7 +9,7 @@ use super::{
 };
 use crate::jsondoc::Json;
 pub use card::draw;
-use flea::ui_logic_op4::{
+use flea::ui_logic_print_convert::{
     output::{self, Kind},
     pages::Pages,
 };
@@ -235,7 +235,7 @@ pub fn poll(m: &mut Model) {
                     .and_then(|s| s.trim().parse::<u32>().ok())
             })
         })
-        .filter(|n| (1..=flea::ui_logic_op4::pages::MAX_PAGES).contains(n));
+        .filter(|n| (1..=flea::ui_logic_print_convert::pages::MAX_PAGES).contains(n));
     if f.count.is_none() {
         Held::set(
             &mut f.error,
@@ -251,4 +251,12 @@ pub fn refresh_locale(m: &mut Model) {
     if let Some(f) = &mut m.converting.card {
         Held::refresh(&mut f.error, &mut f.error_words, &m.i18n);
     }
+}
+
+// The range's last file goes by its name alone, under the first path, as the convert-pdf board prints it.
+fn last_name(path: &str) -> String {
+    std::path::Path::new(path).file_name().map_or_else(
+        || path.to_owned(),
+        |name| flea::bytename::display(&name.to_string_lossy()).into_owned(),
+    )
 }

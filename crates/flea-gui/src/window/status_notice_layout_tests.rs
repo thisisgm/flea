@@ -77,7 +77,7 @@ fn notice_layout_long_counts_and_utf8_errors_keep_their_own_space(cx: &mut TestA
                     &sentence,
                     true,
                     "",
-                    flea::ui_logic_fb1::status::Hint::None,
+                    flea::ui_logic_status_feedback::status::Hint::None,
                     now,
                 );
             });
@@ -126,7 +126,11 @@ fn notice_layout_localized_explanation_preserves_text_and_roles(cx: &mut TestApp
     handle
         .update(cx, |shell, _, cx| {
             shell.status_messages(cx, |messages, now| {
-                messages.explain(sentence, flea::ui_logic_fb1::status::Hint::Dismiss, now);
+                messages.explain(
+                    sentence,
+                    flea::ui_logic_status_feedback::status::Hint::Dismiss,
+                    now,
+                );
             });
         })
         .unwrap();

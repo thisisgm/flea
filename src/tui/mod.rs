@@ -19,6 +19,8 @@ mod contents_process_tests;
 #[cfg(test)]
 mod contents_state_tests;
 #[cfg(test)]
+mod contents_exact_tests;
+#[cfg(test)]
 mod contents_fix_tests;
 #[cfg(test)]
 mod contents_fix2_tests;
@@ -26,6 +28,8 @@ pub(crate) mod cells;
 mod filter;
 mod finder;
 mod parity17;
+mod gone;
+mod claims;
 mod layout;
 mod look;
 mod pane;
@@ -76,6 +80,8 @@ mod jobstatus;
 mod keycaps;
 mod keymap;
 mod media;
+#[cfg(test)]
+mod media_key_tests;
 mod model;
 mod footer_errors;
 mod office;
@@ -84,6 +90,7 @@ mod mpv;
 mod mounts;
 mod pdf;
 mod preview;
+mod preview_keys;
 mod render;
 mod taildrop;
 mod terminal;
@@ -131,11 +138,16 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
         } else {
             std::env::current_dir()?.join(path)
         };
+        // A start folder spelled with .. or a trailing slash opens under its own name, as Go to does.
+        let path = completion::lexical(&path);
         // The gvfs head start, before the state settle: gio runs beside settle, spawn and the UI build.
         let gvfs = warm::start(&path.to_string_lossy());
         let store = crate::uistore::Store::user().map_err(io::Error::other)?;
-        store.settle().map_err(io::Error::other)?;
-        let settings = store.read();
+        // A refused settle (a lock another process keeps, a linked file) opens on what the file reads as and says why.
+        let settled = store.settle();
+        let (settings, unreadable) = store.read_checked();
+        // Only after a settle that did not need the lock, so a stuck holder costs one LOCK_WAIT, not two.
+        let held = settled.is_ok() && !unreadable && store.held_elsewhere();
         let mut wire = wire::Wire::start(gvfs.as_ref())?;
         // The keyboard group readback runs beside the listing and terminal setup.
         let mut keycaps = keycaps::Keycaps::start();
@@ -143,6 +155,9 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
         if let Some(preset) = &options.keymap { model.preset = preset.clone(); }
         model.choosing = options.chooser_file.is_some();
         model.store = Some(store);
+        if let Some(notice) = launch_notice(settled, unreadable, held) {
+            model.fail_text(notice);
+        }
         let mut size = terminal::size();
         model.resize_body(render::body_height(size.1));
         model.columns = size.0;
@@ -340,8 +355,23 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
     }
 }
 
+// The one footer sentence the state file earns at launch; a refused settle names its own reason first.
+fn launch_notice(settled: Result<(), String>, unreadable: bool, held: bool) -> Option<words::Text> {
+    match settled {
+        Err(why) => Some(words::args("tui.actions.save_settings", vec![why.into()])),
+        Ok(()) if unreadable => Some(words::Text::Key("settings.error.unreadable")),
+        Ok(()) if held => Some(words::Text::Key("settings.error.save_session")),
+        Ok(()) => None,
+    }
+}
+
+#[cfg(test)]
+mod launch_notice_tests;
+
 #[cfg(test)]
 mod parity17_tests;
+#[cfg(test)]
+mod gone_tests;
 
 #[cfg(test)]
 mod cells_hig_tests;

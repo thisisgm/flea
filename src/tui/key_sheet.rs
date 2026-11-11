@@ -222,7 +222,12 @@ struct Sheet { columns: Vec<Vec<Line>>, rows: usize, height: usize }
 fn sheet(m: &Model, map: &Map) -> Sheet {
     let groups = groups(m, map);
     let height = m.height.saturating_sub(2).max(1);
-    let rows = if height > 4 { height - 3 } else { height.saturating_sub(2) }.max(1);
+    // A card with room only for its title and rule shows no rows, never one drawn over its bottom border.
+    let rows = if height > 4 {
+        height - 3
+    } else {
+        height.saturating_sub(2)
+    };
     let room = cards::room(m.columns);
     for count in (1..=COLUMNS).rev() {
         let mut capacity = rows;

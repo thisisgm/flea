@@ -1,7 +1,7 @@
 //! Mounted sidebar navigation must replace both the pane and the painted rows.
 use super::test_shell::{open_root_at, row, sent};
 use crate::{state::Shell, window::navigate::Step};
-use flea::ui_logic_pl4::rail::{Group, Kind, RailEntry};
+use flea::ui_logic_rail_places::rail::{Group, Kind, RailEntry};
 use gpui::{point, px, Entity, Modifiers, MouseButton, TestAppContext, VisualTestContext};
 
 const HOME: &str = "/fixture/home";
@@ -82,12 +82,12 @@ fn click(shell: &Entity<Shell>, cx: &mut VisualTestContext, entry: RailEntry) {
     if entry.group == Group::Network {
         shell.update(cx, |shell, cx| {
             shell.network_publish(
-                Some(vec![flea::ui_logic_pl1::RailEntry {
+                Some(vec![flea::ui_logic_device_rail::RailEntry {
                     path: entry.path.clone(),
                     uri: entry.uri.clone(),
                     label: entry.label.clone(),
-                    group: flea::ui_logic_pl1::Group::Network,
-                    kind: flea::ui_logic_pl1::Kind::Share,
+                    group: flea::ui_logic_device_rail::Group::Network,
+                    kind: flea::ui_logic_device_rail::Kind::Share,
                     mounted: true,
                     ..Default::default()
                 }]),

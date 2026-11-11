@@ -5,6 +5,9 @@ use std::path::{Path, PathBuf};
 /// When the history file last changed, its modification time and length; None while it is absent.
 pub type Stamp = Option<(std::time::SystemTime, u64)>;
 
+/// Far past any history Flea keeps, so a larger file is read as one that could not be read.
+const MAX_HISTORY_BYTES: u64 = 4 << 20;
+
 /// The history file's stamp, read on a worker so the next open rereads only a changed file.
 pub fn stamp(file: &Path) -> Stamp {
     let meta = std::fs::metadata(file).ok()?;
@@ -14,7 +17,8 @@ pub fn stamp(file: &Path) -> Stamp {
 /// One read for a worker: the stamp first, so a change landing during the read is seen by the next check.
 pub fn load(file: &Path) -> (Stamp, Vec<String>) {
     let stamp = stamp(file);
-    match std::fs::read_to_string(file) {
+    // Bounded and non-blocking, so a fifo or an endless file in its place never holds the worker.
+    match flea::userfile::read_text(file, MAX_HISTORY_BYTES) {
         Ok(text) => (stamp, history::read(&text)),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => (stamp, Vec::new()),
         // A failed read keeps no stamp, so the next open retries, as PickerRecent.qml warns on it.

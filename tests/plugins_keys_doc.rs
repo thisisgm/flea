@@ -1,6 +1,6 @@
 use flea::keys::user::{self, Verdict};
 use flea::keys::PRESETS;
-use flea::ui_logic_st2::{contributions, manifest};
+use flea::ui_logic_plugin_settings::{contributions, manifest};
 
 const GUIDE: &str = include_str!("../PLUGINS.md");
 const CHECKSUMS: &str = include_str!("../examples/plugins/checksums/manifest.json");
@@ -23,7 +23,7 @@ fn the_guide_binding_names_the_example_plugin_action_and_is_live_in_every_preset
     let declared: Vec<String> = contributions::menu_actions(&checksums)
         .unwrap()
         .iter()
-        .map(flea::ui_logic_mn2::plugins::leaf)
+        .map(flea::ui_logic_custom_actions::plugins::leaf)
         .collect();
     assert!(declared.contains(&keys.bindings[0].action), "{declared:?}");
     let projection = user::Projection {

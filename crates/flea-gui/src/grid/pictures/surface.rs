@@ -1,6 +1,5 @@
 //! Which surface draws a pane's rows, the Grid, the List or the active Columns track, and the rows its last frame drew.
 use crate::columns::{geometry::Slot as Track, TrackRows};
-use crate::list::pane::ROW_HEIGHT;
 use crate::{state::Shell, window::pane::PaneHost, window::startup::View};
 use std::rc::Rc;
 
@@ -48,7 +47,7 @@ pub(super) fn drawn_rows(host: &PaneHost, surface: Surface) -> Option<Want> {
 
 // Before a List or Columns frame has drawn, the pane's own viewport stands in so the settle starts; it asks only drawn rows.
 pub(super) fn estimated_rows(host: &PaneHost) -> Want {
-    let first = (host.pane.scroll_y.max(0.) / ROW_HEIGHT).floor() as usize;
+    let first = (host.pane.scroll_y.max(0.) / host.pane.row_height()).floor() as usize;
     Want {
         span: (first, first + host.pane.visible_rows() - 1),
         only: None,
@@ -104,13 +103,17 @@ fn columns_rows(host: &PaneHost) -> Option<Want> {
     if !matches!(drawn.view().rows, TrackRows::Listing) {
         return None;
     }
-    let height = f32::from(drawn.bounds.size.height);
+    // The track's pitch follows Row density and the text size, never the fixed ROW_HEIGHT (#388).
+    let (height, row) = (f32::from(drawn.bounds.size.height), drawn.row_height);
+    if row <= 0. {
+        return None;
+    }
     let scroll = host.pane.scroll_y.max(0.);
-    let first = (scroll / ROW_HEIGHT).floor() as usize;
+    let first = (scroll / row).floor() as usize;
     // The track draws a standing filter's rows, so its pictures are asked for those rows, as the List's are (SW-14).
     let shown = drawn.shown.as_ref();
     let total = shown.map_or(host.pane.held.total, |rows| rows.len());
-    let end = (((scroll + height) / ROW_HEIGHT).ceil() as usize).min(total);
+    let end = (((scroll + height) / row).ceil() as usize).min(total);
     drawn_want(first, end, shown)
 }
 

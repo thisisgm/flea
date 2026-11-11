@@ -25,7 +25,7 @@ fn ey477_invalidated_journal_is_not_revived_by_the_old_receipt(cx: &mut TestAppC
                                 "Copied 1 item",
                                 false,
                                 "",
-                                flea::ui_logic_fb1::status::Hint::TransientUndo,
+                                flea::ui_logic_status_feedback::status::Hint::TransientUndo,
                                 now,
                             );
                         });
@@ -84,7 +84,7 @@ fn ey477_invalidated_journal_is_not_revived_by_the_old_receipt(cx: &mut TestAppC
             Some(false)
         );
         cx.executor().advance_clock(Duration::from_millis(
-            flea::ui_logic_fb1::messages::MESSAGE_MS - 1000,
+            flea::ui_logic_status_feedback::messages::MESSAGE_MS - 1000,
         ));
         cx.run_until_parked();
         draw(cx, handle);

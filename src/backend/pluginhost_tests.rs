@@ -1,5 +1,5 @@
 use flea::jsondoc::{self, Json};
-use flea::ui_logic_st2::wire::{self, Reply};
+use flea::ui_logic_plugin_settings::wire::{self, Reply};
 use std::io::{BufReader, Write};
 use std::os::unix::net::UnixStream;
 use std::sync::{mpsc, Arc, Condvar, Mutex};

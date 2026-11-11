@@ -18,9 +18,9 @@ lane() {
 # A failing run still prints its tail and a FAIL line, so the rc is captured with errexit off.
 count() { sed -n 's/^test result: ok\. \([0-9]*\) passed.*/\1/p' "$1" | head -1; }
 set +e
-lane cargo test --locked -p flea --lib -- ui_logic_op2 > "$unit_root/core.log" 2>&1
+lane cargo test --locked -p flea --lib -- ui_logic_archive_flash > "$unit_root/core.log" 2>&1
 core_rc=$?
-lane cargo test --locked -p flea-gui --lib -- g2::op2 > "$unit_root/gui.log" 2>&1
+lane cargo test --locked -p flea-gui --lib -- g2::archive_flash > "$unit_root/gui.log" 2>&1
 gui_rc=$?
 set -e
 tail -3 "$unit_root/core.log"

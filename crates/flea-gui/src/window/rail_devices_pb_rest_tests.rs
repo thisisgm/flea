@@ -53,3 +53,6 @@ fn pb_rest_stale_or_cleared_system_facts_keep_the_current_folder_refusal(cx: &mu
         assert_eq!(status(&shell, cx), expected);
     }
 }
+
+#[path = "rail_devices_eject_retry_tests.rs"]
+mod eject_retry;

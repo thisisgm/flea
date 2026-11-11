@@ -150,7 +150,7 @@ pub struct Language(u8);
 impl Language {
     /// LangMarks.slugForFile(): a known basename first, then the extension after the last dot; a leading dot is no extension.
     pub fn for_file(name: &str) -> Option<Self> {
-        let lower = name.to_lowercase();
+        let lower = flea::bytename::display(name).to_lowercase();
         let base = lower.rsplit('/').next().unwrap_or(&lower);
         let slug = FILES
             .iter()

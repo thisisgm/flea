@@ -112,7 +112,7 @@ var INVENTORY = [
     ["emptyTrash", "Empty Trash", "trash", "T", "empty"]
 ]
 
-// src/ui_logic_mn1/build.rs BACKGROUND_KEEPS: the background offers these whatever Settings > Menus says.
+// src/ui_logic_context_menus/build.rs BACKGROUND_KEEPS: the background offers these whatever Settings > Menus says.
 var BACKGROUND_KEEPS = ["openTerminal", "toggleHidden", "toggleLangMarks"]
 
 function listingEntries(p) { return buildEntries(p.hasRow ? "F" : "B", p) }

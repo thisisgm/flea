@@ -1,4 +1,5 @@
 // Recorded, identity-checked recovery of interrupted claims; only inactive journals may be replayed.
+use flea::bytename::ExactText as _;
 use super::{fd_path, identity, open_dir, rename, Identity, Node};
 use crate::backend::trashmanifest::{Manifest, Op, Outcome, Records, Refusal, Refuse};
 use crate::json::{escape, field_str, field_usize};
@@ -6,6 +7,9 @@ use std::ffi::{OsStr, OsString};
 use std::fs::File;
 use std::os::unix::fs::DirBuilderExt;
 use std::path::{Path, PathBuf};
+#[path = "syncs.rs"]
+mod syncs;
+pub use syncs::FolderSyncs;
 
 const FINISHED: &[u8] = b"flea recovery complete 1";
 
@@ -45,16 +49,16 @@ impl Recovery {
         let path = root.join(format!("{}.review", name));
         let mut record = written(Manifest::create(&path), "Could not start the recovery record")?;
         let (info, metadata, info_parent) = match paired {
-            Some((path, identity, parent)) => (path.to_string_lossy().into_owned(), identity.saved(),
+            Some((path, identity, parent)) => (path.exact_text().into_owned(), identity.saved(),
                 Identity::of(&parent.metadata().refuse(Outcome::NoRecord(Op::Delete), "Trash metadata folder unreadable")?).saved()),
             None => Default::default(),
         };
         let text = format!(r#"{{"version":1,"source":"{}","parent":"{}","payload":"{}","info":"{}","metadata":"{}","infoParent":"{}","quarantine":"{}","quarantineIdentity":"{}","destination":"{}"}}"#,
-            escape(source.to_str().ok_or_else(|| unkept("Recovery source path is not valid text."))?),
+            escape(&source.exact_text()),
             Identity::of(&parent.metadata().refuse(Outcome::NoRecord(Op::Delete), "Trash folder unreadable")?).saved(), payload.saved(),
-            escape(&info), metadata, info_parent, escape(quarantine_path.to_str().ok_or_else(|| unkept("Recovery path is not valid text."))?),
+            escape(&info), metadata, info_parent, escape(&quarantine_path.exact_text()),
             Identity::of(&quarantine.metadata().refuse(Outcome::NoRecord(Op::Delete), "Quarantine unreadable")?).saved(),
-            escape(destination.map(|path| path.to_string_lossy().into_owned()).unwrap_or_default().as_str()));
+            escape(destination.map(|path| path.exact_text().into_owned()).unwrap_or_default().as_str()));
         written(record.append(text.as_bytes()), "Could not write the recovery record")?;
         if let Some(tree) = tree {
             let mut offset = tree.start();
@@ -73,7 +77,10 @@ impl Recovery {
         }
         std::fs::remove_file(&self.path)
             .map_err(|e| Refusal::os(Outcome::RecordLeft(None), &format!("Could not finish recovery record {}", self.path.display()), &e))?;
-        open_dir(self.path.parent().refuse(Outcome::RecordUnconfirmed(None), "Missing recovery folder.")?)
+        let folder = self.path.parent().refuse(Outcome::RecordUnconfirmed(None), "Missing recovery folder.")?;
+        // An open restore batch syncs the folder once at its close; the record's removal is only cleanup.
+        if syncs::held(folder) { return Ok(()); }
+        open_dir(folder)
             .map_err(|refusal| refusal.wrap(Outcome::RecordUnconfirmed(None)))?.sync_all()
             .map_err(|e| Refusal::os(Outcome::RecordUnconfirmed(None), "Could not sync completed recovery record", &e))
     }
@@ -91,6 +98,7 @@ impl Recovery {
         quarantine.sync_all().map_err(|e| cleanup("Could not sync empty recovery quarantine", &e))?;
         self.record.append(FINISHED).and_then(|_| self.record.sync()).map_err(|e| left(&e, "the recovery record could not be written"))?;
         std::fs::remove_dir(path).map_err(|e| cleanup(&format!("Could not remove empty recovery quarantine {}", path.display()), &e))?;
+        if syncs::held_open(parent) { return Ok(()); }
         parent.sync_all().map_err(|e| cleanup("Could not sync recovery quarantine removal", &e))
     }
     // Where the quarantine opened, its items stay recoverable at that path; before that, nothing was moved.
@@ -104,13 +112,30 @@ impl Recovery {
     fn replay_into(&mut self, opened: &mut Option<PathBuf>) -> Result<(), Refusal> {
         let records = self.record.records();
         let mut tree_start = 0;
-        let header = records.next(&mut tree_start).changed("Recovery record unreadable")?.changed("Recovery record has no header.")?;
-        let header = String::from_utf8(header).ok().changed("Recovery header is not valid text.")?;
-        if field_usize(&header, "version") != Some(1) { return Err(Refusal::changed("Unsupported recovery record version.")); }
+        let header = records
+            .next(&mut tree_start)
+            .changed("Recovery record unreadable")?
+            .changed("Recovery record has no header.")?;
+        let header = String::from_utf8(header)
+            .ok()
+            .changed("Recovery header is not valid text.")?;
+        if field_usize(&header, "version") != Some(1) {
+            return Err(Refusal::changed("Unsupported recovery record version."));
+        }
         let path = |key: &str| -> Result<PathBuf, Refusal> {
-            let value = PathBuf::from(field_str(&header, key).changed(&format!("Recovery record has no {}.", key))?);
-            if !value.is_absolute() || value.file_name().is_none() || value.components().any(|part| matches!(part, std::path::Component::ParentDir)) {
-                return Err(Refusal::changed(format!("Recovery record has an invalid {} path.", key)));
+            let value = flea::bytename::exact(
+                field_str(&header, key).changed(&format!("Recovery record has no {}.", key))?,
+            );
+            if !value.is_absolute()
+                || value.file_name().is_none()
+                || value
+                    .components()
+                    .any(|part| matches!(part, std::path::Component::ParentDir))
+            {
+                return Err(Refusal::changed(format!(
+                    "Recovery record has an invalid {} path.",
+                    key
+                )));
             }
             Ok(value)
         };
@@ -204,24 +229,61 @@ impl Recovery {
         let metadata = match metadata_path.symlink_metadata() {
             Ok(metadata) => Some(metadata),
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
-            Err(error) => return Err(Refusal::changed(format!("Could not inspect interrupted Trash metadata: {}", error))),
+            Err(error) => {
+                return Err(Refusal::changed(format!(
+                    "Could not inspect interrupted Trash metadata: {}",
+                    error
+                )))
+            }
         };
         if let Some(metadata) = metadata {
-            if Identity::of(&metadata) != expected("metadata")? { return Err(Refusal::changed("Recovery Trash metadata changed.")); }
-            if had_payload || identity(&fd_path(&parent, name)).map(|current| payload.matches_survivor(&current)).unwrap_or(false) {
+            if Identity::of(&metadata) != expected("metadata")? {
+                return Err(Refusal::changed("Recovery Trash metadata changed."));
+            }
+            if had_payload
+                || identity(&fd_path(&parent, name))
+                    .map(|current| payload.matches_survivor(&current))
+                    .unwrap_or(false)
+            {
                 let info = path("info")?;
                 let infos = open_dir(info.parent().changed("Missing Trash metadata parent.")?)?;
-                if !same_node(&Identity::of(&infos.metadata().changed("Trash metadata folder unreadable")?), &expected("infoParent")?) {
-                    return Err(Refusal::changed("Recovery Trash metadata folder changed; metadata was preserved."));
+                if !same_node(
+                    &Identity::of(
+                        &infos
+                            .metadata()
+                            .changed("Trash metadata folder unreadable")?,
+                    ),
+                    &expected("infoParent")?,
+                ) {
+                    return Err(Refusal::changed(
+                        "Recovery Trash metadata folder changed; metadata was preserved.",
+                    ));
                 }
-                rename(&quarantine, OsStr::new("metadata"), &infos, info.file_name().changed("Missing Trash metadata name.")?)
-                    .map_err(|e| Refusal::changed(format!("Could not return interrupted Trash metadata without overwriting: {}", e)))?;
+                rename(
+                    &quarantine,
+                    OsStr::new("metadata"),
+                    &infos,
+                    info.file_name().changed("Missing Trash metadata name.")?,
+                )
+                .map_err(|e| {
+                    Refusal::changed(format!(
+                        "Could not return interrupted Trash metadata without overwriting: {}",
+                        e
+                    ))
+                })?;
             } else {
                 let destination = field_str(&header, "destination").unwrap_or_default();
-                if !destination.is_empty() && !identity(Path::new(&destination)).map(|current| same_node(&current, &payload)).unwrap_or(false) {
-                    return Err(Refusal::changed("Interrupted restore has no verified destination; metadata was preserved."));
+                if !destination.is_empty()
+                    && !identity(&flea::bytename::view(&destination))
+                        .map(|current| same_node(&current, &payload))
+                        .unwrap_or(false)
+                {
+                    return Err(Refusal::changed(
+                        "Interrupted restore has no verified destination; metadata was preserved.",
+                    ));
                 }
-                std::fs::remove_file(&metadata_path).changed("Could not clean completed Trash metadata")?;
+                std::fs::remove_file(&metadata_path)
+                    .changed("Could not clean completed Trash metadata")?;
             }
         }
         self.remove_empty(&quarantine_path, &quarantine, &parent)?;

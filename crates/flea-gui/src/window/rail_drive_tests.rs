@@ -50,7 +50,7 @@ fn root_devices<'a>(
             },
             monitor: None,
         });
-        cx.set_global(crate::g2::pl1::source::fixture::Services {
+        cx.set_global(crate::g2::device_rail::source::fixture::Services {
             runner,
             hostname: "minipc\n".into(),
         });
@@ -106,7 +106,7 @@ fn native_frames(cx: &mut VisualTestContext) {
 fn walk_to_stick(
     shell: &Entity<Shell>,
     cx: &mut VisualTestContext,
-) -> crate::g2::pl4::rows::LaidRow {
+) -> crate::g2::rail_places::rows::LaidRow {
     walk_to(shell, "128GB", cx)
 }
 
@@ -115,7 +115,7 @@ fn walk_to(
     shell: &Entity<Shell>,
     label: &str,
     cx: &mut VisualTestContext,
-) -> crate::g2::pl4::rows::LaidRow {
+) -> crate::g2::rail_places::rows::LaidRow {
     cx.simulate_keystrokes("tab");
     frame(cx);
     let producer = producer(shell, cx);
@@ -188,7 +188,7 @@ fn raildrive_menu_key_on_a_mounted_stick_paints_the_device_menu(cx: &mut TestApp
     cx.update(|cx| cx.set_reduce_motion(true));
     let (shell, _service, cx) = root_at(cx);
     let stick = walk_to_stick(&shell, cx);
-    crate::g2::mn1::element::PAINTED.with(|painted| painted.borrow_mut().clear());
+    crate::g2::context_menus::element::PAINTED.with(|painted| painted.borrow_mut().clear());
     cx.simulate_keystrokes("m");
     native_frames(cx);
     assert_eq!(
@@ -196,7 +196,8 @@ fn raildrive_menu_key_on_a_mounted_stick_paints_the_device_menu(cx: &mut TestApp
         ["open", "unmountVolume", "eject", "flashImage"],
         "rail-menu-device rows"
     );
-    let painted = crate::g2::mn1::element::PAINTED.with(|painted| painted.borrow().clone());
+    let painted =
+        crate::g2::context_menus::element::PAINTED.with(|painted| painted.borrow().clone());
     let frame = painted
         .last()
         .expect("the device menu is painted in a native frame");

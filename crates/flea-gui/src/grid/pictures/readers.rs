@@ -1,7 +1,7 @@
 //! The shared lender's raw source and decoder state, guarded by the current listing, facts and policy.
 use super::{Map, Pictures, Slot};
 use crate::list::pane::Held;
-use flea::ui_logic_pv1::{pixels::is_vector_name, thumbs::CACHE_SIZE};
+use flea::ui_logic_preview_core::{pixels::is_vector_name, thumbs::CACHE_SIZE};
 
 #[derive(Clone, Copy)]
 #[repr(i32)]
@@ -119,8 +119,14 @@ impl Pictures {
         map.order
             .iter()
             .filter_map(|&row| {
-                let facts = held.row(row).filter(|facts| policy.allowed(facts))?;
+                let facts = held.row(row)?;
                 let slot = map.slots.get(&row)?;
+                let retained = matches!(slot, Slot::Ready { .. })
+                    && map.listing == held.listing
+                    && slot.identity().is_some_and(|identity| identity.is(facts));
+                if !policy.allowed(facts) && !retained {
+                    return None;
+                }
                 let terminal = match slot {
                     Slot::Refused { observed } | Slot::Missed { observed } => Some(observed),
                     _ => None,
@@ -132,7 +138,7 @@ impl Pictures {
                     {
                         return None;
                     }
-                } else {
+                } else if !retained {
                     map.current(held, row)?;
                 }
                 let value = match slot {

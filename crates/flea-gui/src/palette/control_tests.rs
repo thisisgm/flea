@@ -30,9 +30,10 @@ fn assert_accent_roles(case: &str, text: &str, foreground: u32, accent: u32, sur
         gpui::rgb(surface).into(),
         "surface precedence: {case}"
     );
-    let rgb =
-        |color| flea::ui_logic_pl4::tagtheme::parse(&crate::ipc::rows::colour(color)).unwrap();
-    let ratio = flea::ui_logic_pl4::tagtheme::ratio_of;
+    let rgb = |color| {
+        flea::ui_logic_rail_places::tagtheme::parse(&crate::ipc::rows::colour(color)).unwrap()
+    };
+    let ratio = flea::ui_logic_rail_places::tagtheme::ratio_of;
     assert!(
         ratio(rgb(theme.accent_frame), rgb(theme.surface)) >= 3.,
         "frame contrast on surface: {case}"

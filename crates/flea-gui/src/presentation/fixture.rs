@@ -1,7 +1,6 @@
 use std::{
     fs::{self, OpenOptions},
     io::{self, Write},
-    os::unix::fs::PermissionsExt,
     path::{Component, Path, PathBuf},
     process::{Command, Stdio},
 };
@@ -125,13 +124,32 @@ impl Fixture {
 
     pub(crate) fn executable(&self, path: &Path) {
         self.check(path).unwrap();
-        fs::set_permissions(path, fs::Permissions::from_mode(0o755)).unwrap();
+        flea::executable_file::write(path, &fs::read(path).unwrap(), 0o755).unwrap();
     }
 
     pub(crate) fn cleanup(self) {
         self.check(self.path()).unwrap();
         fs::remove_dir_all(self.path()).unwrap();
     }
+}
+
+pub(crate) const PROBE_OPEN: &str = "late-probe-open";
+// The probe's own kill ends a blocked stub; this bound ends one whose test process died first.
+const BLOCKED_STUB_SECONDS: u32 = 30;
+
+pub(crate) fn service_after(
+    before_watch: impl FnOnce() + Send + 'static,
+) -> (super::Service, super::Snapshot) {
+    super::Service::start_with(
+        super::source::Sources::current(),
+        super::service::TICK,
+        before_watch,
+    )
+}
+
+pub(crate) fn gated_probe(script: &str) -> String {
+    let body = script.strip_prefix("#!/bin/sh\n").unwrap();
+    format!("#!/bin/sh\nroot=\"${{0%/bin/fc-match}}\"\n[ \"$(cat \"$root/.flea-test-sandbox\")\" = flea-u01-owned-fixture ] || exit 91\nif [ ! -f \"$root/{PROBE_OPEN}\" ]; then\nmkfifo \"$root/launch-block\" || exit 92\nexec timeout {BLOCKED_STUB_SECONDS} cat \"$root/launch-block\"\nfi\n{body}")
 }
 
 pub(crate) const SHELL_GUARD: &str = r#"guard() {

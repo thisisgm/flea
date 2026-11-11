@@ -5,11 +5,12 @@ mod test_catalogs;
 // test_catalogs reaches the catalog types through super.
 use flea::i18n::{I18n, Paths};
 use flea::json::{escape, field_str, field_usize};
-use flea::ui_logic_pv2::csv::{self, records};
-use flea::ui_logic_pv2::office::State;
-use flea_gui::g2::pv2::csv::{CodeHost, CsvView, TableFace, TablePalette};
-use flea_gui::g2::pv2::office::{OfficeHost, OfficeView};
-use flea_gui::g2::pv2::{Metrics, Palette};
+use flea::ui_logic_doc_preview::csv::{self, records};
+use flea::ui_logic_doc_preview::csv_feed::WIDEN_CELLS;
+use flea::ui_logic_doc_preview::office::State;
+use flea_gui::g2::doc_preview::csv::{CodeHost, CsvView, TableFace, TablePalette};
+use flea_gui::g2::doc_preview::office::{OfficeHost, OfficeView};
+use flea_gui::g2::doc_preview::{Metrics, Palette};
 use gpui::{font, px, size, TestAppContext, WindowHandle};
 use std::{cell::RefCell, path::PathBuf, process::Command, rc::Rc};
 
@@ -63,7 +64,9 @@ impl OfficeHost for Backend {
         let id = self.0.borrow().len() as u64 + 1;
         self.0
             .borrow_mut()
-            .push(flea::ui_logic_pv2::office::request_line(id, path, sheets));
+            .push(flea::ui_logic_doc_preview::office::request_line(
+                id, path, sheets,
+            ));
         id
     }
 }
@@ -156,6 +159,17 @@ fn table(
 fn draw<V: 'static>(cx: &mut TestAppContext, view: WindowHandle<V>) {
     view.update(cx, |_, window, _| window.refresh()).unwrap();
     cx.run_until_parked();
+}
+
+// Draws until no held cell is left to widen by, as the view's own next-frame requests would.
+fn widen(cx: &mut TestAppContext, view: WindowHandle<CsvView>) {
+    for _ in 0..10_000 {
+        if !read(cx, view, |v| v.feed.widening()) {
+            return;
+        }
+        draw(cx, view);
+    }
+    panic!("the widening did not end");
 }
 
 // Draws, answers every ask the frame sent from `text`, and draws again until the frame asks nothing more.
@@ -270,3 +284,5 @@ mod review;
 mod review_r2;
 #[path = "g2_pv2_office/review_r3.rs"]
 mod review_r3;
+#[path = "g2_pv2_office/s9g8_widen.rs"]
+mod s9g8_widen;

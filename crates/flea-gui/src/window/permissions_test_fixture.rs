@@ -1,7 +1,7 @@
 //! Shared setup drives the production Root, menu validation and native control geometry.
 use crate::{
     backend::Backend,
-    g2::mn1::menu::Outcome,
+    g2::context_menus::menu::Outcome,
     state::{tests::shell_with, Shell},
     window::root::Root,
 };
@@ -24,7 +24,7 @@ pub(super) fn edit<R>(
 pub(super) fn model(
     cx: &mut TestAppContext,
     handle: WindowHandle<Root>,
-) -> crate::g2::op3::permissions::Permissions {
+) -> crate::g2::open_with_properties::permissions::Permissions {
     edit(cx, handle, |shell, _, cx| {
         shell
             .permissions

@@ -1,9 +1,9 @@
 //! Device readers use the published DEVICES rows and the live release machine, without starting I/O.
 use super::Adapter;
-use crate::g2::pl1::source::Source;
+use crate::g2::device_rail::source::Source;
 use flea::{
     ipc::wire::Reply,
-    ui_logic_pl1::{Group, Kind},
+    ui_logic_device_rail::{Group, Kind},
 };
 
 pub struct DeviceAdapter<'a> {

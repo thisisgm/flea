@@ -148,7 +148,11 @@ pub fn buttons(out: &mut String, theme: &Theme, card: &Card, buttons: &[Button])
         let bracket = if button.focused { &theme.foreground } else if button.default { &theme.accent } else { &theme.frame };
         let fill = if button.default { theme.wash.as_str() } else { "" };
         let label = if button.enabled { &theme.foreground } else { &theme.muted };
-        out.push_str(&format!("\x1b[{};{}H{}{}[{}{} {} {}{}]{}", y + 1, x + 1, base, bracket, fill, label, fit(&button.label, w.saturating_sub(4)), base, bracket, base));
+        let attribute =
+            theme
+                .depth
+                .control_attribute(button.enabled, button.focused, button.default);
+        out.push_str(&format!("\x1b[{};{}H{}{attribute}{}[{}{} {} {}{attribute}{}]{}", y + 1, x + 1, base, bracket, fill, label, fit(&button.label, w.saturating_sub(4)), base, bracket, base));
     }
 }
 fn button_width(label: &str) -> usize { text_width(label) + 4 }
@@ -229,11 +233,21 @@ pub fn delete_key(m: &mut Model, key: &Key, wire: &mut Wire) -> io::Result<()> {
 
 // Properties: the window's facts as a muted label column beside each value, closed by its default Close button.
 pub fn properties_reply(m: &mut Model, value: &Json) {
-    let mime_kind = m.rows.values().chain(m.selected_rows.values()).find(|row| m.path.join(&row.name) == std::path::Path::new(text(value, "path")))
-        .map(|row| row.kind.clone()).unwrap_or_default();
+    let mime_kind = m
+        .rows
+        .values()
+        .chain(m.selected_rows.values())
+        .find(|row| {
+            m.path.join(flea::bytename::text_path(&row.name)).as_path()
+                == &*flea::bytename::text_path(text(value, "path"))
+        })
+        .map(|row| row.kind.clone())
+        .unwrap_or_default();
     let mut value = value.clone();
     if value.get("mimeKind").is_none() && !mime_kind.is_empty() {
-        if let Json::Obj(fields) = &mut value { fields.push(("mimeKind".into(), word(&mime_kind))); }
+        if let Json::Obj(fields) = &mut value {
+            fields.push(("mimeKind".into(), word(&mime_kind)));
+        }
     }
     m.menu_view.properties_source = Some((m.action_id, value.clone()));
     m.properties = Some(properties(&value, &m.i18n));
@@ -242,8 +256,8 @@ pub fn properties(value: &Json, i18n: &I18n) -> Vec<(String, String)> {
     let fact = |key: &str, value: String| (i18n.tr(key), value);
     let bytes = count(value, "bytes");
     let kind = match text(value, "kind") {
-        "File" | "Directory" | "Symbolic link" | "Special file" => flea::ui_logic_op3::properties::kind_word(
-            i18n, &flea::ui_logic_op3::properties::Facts {
+        "File" | "Directory" | "Symbolic link" | "Special file" => flea::ui_logic_open_with_properties::properties::kind_word(
+            i18n, &flea::ui_logic_open_with_properties::properties::Facts {
                 kind: text(value, "kind").into(), directory: flag(value, "directory"), ..Default::default()
             }, text(value, "mimeKind")),
         description => description.into(),
@@ -300,8 +314,8 @@ pub fn draw_properties(out: &mut String, m: &Model, theme: &Theme) {
     }
     buttons(out, theme, &card, &[Button { label: m.i18n.tr("card.close"), default: true, focused: true, enabled: true }]);
 }
-// Keys for the Properties card and the keys sheet: Escape, Enter and ? close, the arrows scroll, a click outside closes.
-pub fn sheet_key(m: &mut Model, key: &Key, map: &Map) -> io::Result<()> {
+// Keys for the Properties card and the keys sheet: Escape, Enter, ? and q close, the listing's motion keys scroll, a click outside closes.
+pub fn sheet_key(m: &mut Model, key: &Key, map: &Map, armed: &str) -> io::Result<()> {
     let card = if m.properties.is_some() { properties_card(m) } else { super::key_sheet::card(m, map) };
     let limit = if m.properties.is_some() { property_rows(m).1.len().saturating_sub(card.shown) } else { super::key_sheet::limit(m, map) };
     let mut close = false;
@@ -310,10 +324,31 @@ pub fn sheet_key(m: &mut Model, key: &Key, map: &Map) -> io::Result<()> {
         if matches!(pointer.button, WHEEL_UP | WHEEL_DOWN) { m.sheet_top = if pointer.button == WHEEL_UP { m.sheet_top.saturating_sub(1) } else { (m.sheet_top + 1).min(limit) }; }
         else if pointer.button == 0 && !pointer.motion { close = !card.contains(pointer.x, pointer.y) || card.button(pointer.x, pointer.y).is_some(); }
     } else {
-        let action = map.in_context(key, &m.preset, "panel");
-        if matches!(action.as_str(), "escape" | "open") || (key.mods.is_empty() && key.text == "?") { close = true; }
-        else if action == "cursorDown" { m.sheet_top = (m.sheet_top + 1).min(limit); }
-        else if action == "cursorUp" { m.sheet_top = m.sheet_top.saturating_sub(1); }
+        let panel = map.in_context(key, &m.preset, "panel");
+        let action = crate::tui::preview_keys::listing_action(m, key, map, armed, &panel);
+        let page = card.shown.max(1);
+        // The panel's own Escape and Enter close it, and so does the listing's quit key; a listing key that opens or moves elsewhere is consumed.
+        if matches!(panel.as_str(), "escape" | "open")
+            || matches!(action.as_str(), "quit" | "quitNoCwd")
+            || (key.mods.is_empty() && key.text == "?")
+        {
+            close = true;
+        } else if action == "prefix:g" || action == "cursorFirstArm" && armed != action {
+            m.key_arm = action;
+        } else {
+            m.sheet_top = match action.as_str() {
+                "cursorDown" => m.sheet_top + 1,
+                "cursorUp" => m.sheet_top.saturating_sub(1),
+                "pageDown" => m.sheet_top + page,
+                "pageUp" => m.sheet_top.saturating_sub(page),
+                "halfPageDown" => m.sheet_top + (page / 2).max(1),
+                "halfPageUp" => m.sheet_top.saturating_sub((page / 2).max(1)),
+                "first" | "cursorFirst" | "cursorFirstArm" => 0,
+                "last" | "cursorLast" => limit,
+                _ => m.sheet_top,
+            }
+            .min(limit);
+        }
     }
     if close {
         m.sheet = false;
@@ -335,7 +370,7 @@ mod corner_tests;
 impl Model {
     /// A catalog string as a heading in capitals, cased the way the active language writes them (Turkish dotted I).
     pub fn heading(&self, key: &str) -> String {
-        flea::ui_logic_st1::caps::heading(&self.i18n.tr(key), self.i18n.language())
+        flea::ui_logic_settings_pages::caps::heading(&self.i18n.tr(key), self.i18n.language())
     }
 }
 #[cfg(test)]

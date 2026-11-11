@@ -1,5 +1,6 @@
 // gio trash is the freedesktop trash this box already shares with every GTK app; nothing about the spec is written here, only an argv and a result.
 use crate::error::FleaError;
+use flea::bytename::ExactText as _;
 use std::os::unix::process::ExitStatusExt;
 use std::path::{Path, PathBuf};
 
@@ -54,7 +55,7 @@ pub(crate) fn gio(args: &[&str]) -> Option<std::process::Output> {
     } else {
         std::process::Command::new(&argv[0])
     };
-    command.args(&argv[1..]).output().ok()
+    command.args(flea::bytename::args(&argv[1..])).output().ok()
 }
 
 // The argv gio runs under, so the suite pins the bound without spawning a subprocess.
@@ -155,15 +156,24 @@ pub(crate) fn trash_announcing(paths: &[PathBuf], selection: Option<&[super::men
         let reason = if quiet_gone || missing.is_empty() { String::new() } else { "those items are already gone".to_string() };
         return Ok((Vec::new(), if quiet_gone { 0 } else { missing.len() }, reason));
     }
-    // An item on the home Trash's own filesystem is renamed in and names its own entry, so only the rest need gio and its lists.
-    let (home, mut rest): (Vec<usize>, Vec<usize>) = (0..present.len()).partition(|&i| super::hometrash::renames_to_home(present[i]));
+    // Home renames win; subvolume and bind mounts gio refuses use their own topdir Trash.
+    let mut topdir = super::topdirtrash::Batch::read();
+    let (direct, mut rest): (Vec<usize>, Vec<usize>) = (0..present.len()).partition(|&i| {
+        super::hometrash::renames_to_home(present[i])
+            || super::topdirtrash::renames_to_topdir(&mut topdir, present[i])
+    });
     let mut before = if rest.is_empty() { None } else { Some(list()) };
     super::menu_actions::validate_sources(selection, paths)?;
     let mut entries: Vec<Option<Entry>> = vec![None; present.len()];
     let mut failed = if quiet_gone { 0 } else { missing.len() };
     let (mut unsynced, mut durable) = (std::collections::BTreeSet::new(), None);
-    for i in home {
-        match super::hometrash::rename_to_home(present[i], &mut unsynced, &mut durable) {
+    for i in direct {
+        // Equal st_dev does not make a rename cross a bind mount, so EXDEV from home still tries topdir.
+        let moved = super::hometrash::rename_to_home(present[i], &mut unsynced, &mut durable)
+            .or_else(|| {
+                super::topdirtrash::rename_to_topdir(&mut topdir, present[i], &mut unsynced)
+            });
+        match moved {
             Some(Ok(entry)) => entries[i] = Some(entry),
             // Gone before its move, the Issue 88 refusal; the rename left no info file behind.
             Some(Err(_)) => failed += 1,
@@ -184,7 +194,7 @@ pub(crate) fn trash_announcing(paths: &[PathBuf], selection: Option<&[super::men
         for chunk in rest.chunks(TRASH_CHUNK) {
             let mut argv: Vec<String> = vec!["trash".to_string(), "--".to_string()];
             for &i in chunk {
-                argv.push(present[i].to_string_lossy().to_string());
+                argv.push(present[i].exact_text().to_string());
             }
             let refs: Vec<&str> = argv.iter().map(|s| s.as_str()).collect();
             stamps.push(super::hometrash::deletion_date_local());
@@ -256,6 +266,10 @@ pub fn restore(entry: &Entry) -> Result<(), FleaError> {
     if !entry.uri.is_empty() {
         // A home Trash entry whose own record names this path goes back in-process, so undo spawns no gio for it.
         if let Some(done) = super::homerestore::restore_from_home(entry) {
+            return done.map_err(|msg| err(&msg));
+        }
+        // A topdir Trash entry on a mount gio refuses to name restores in-process the same way, on its own record's proof.
+        if let Some(done) = super::topdirtrash::restore_from_topdir(entry) {
             return done.map_err(|msg| err(&msg));
         }
         return restore_uri(entry);
@@ -367,7 +381,7 @@ fn err(msg: &str) -> FleaError {
 // The journal's "t" record: an ordinary entry encodes as before, an unattributed settle adds its resolution data.
 pub(crate) fn encode_step(entry: &Entry) -> crate::jsondoc::Json {
     use super::undocodec::{arr, obj, s};
-    let mut fields = vec![("k", s("t")), ("path", s(&entry.original.to_string_lossy())), ("uri", s(&entry.uri))];
+    let mut fields = vec![("k", s("t")), ("path", s(&entry.original.exact_text())), ("uri", s(&entry.uri))];
     if !entry.before.is_empty() {
         fields.push(("before", arr(entry.before.iter().map(|uri| s(uri)).collect())));
     }

@@ -100,8 +100,12 @@ pub(super) fn pointer_key(
     if pointer.x <= left {
         if pointer.button == 0 && !pointer.motion {
             if let Some(row) = m.parents.get(pointer.y - super::super::render::BODY_ROW) {
-                let path = m.path.parent().unwrap_or(&m.path).join(&row.name);
-                if row.directory {
+                let path = m
+                    .path
+                    .parent()
+                    .unwrap_or(&m.path)
+                    .join(flea::bytename::text_path(&row.name));
+                if row.folder() {
                     navigate(m, path, w)?;
                 }
             }
@@ -152,6 +156,15 @@ pub(super) fn pointer_key(
     let old = m.cursor;
     m.cursor = index;
     if key.mods == "ctrl" || key.mods == "super" {
+        // Only a row the last plain click chose joins Ctrl+click's selection; a cursor left by keys or a reload, or a row Ctrl+click took out, does not.
+        let clicked = m
+            .last_click
+            .take()
+            .is_some_and(|(path, _)| m.rows.get(&old).is_some_and(|row| m.row_path(row) == path));
+        let drawn = m.filter.is_empty() || m.shown().contains(&old);
+        if m.selected.is_empty() && old != index && clicked && drawn {
+            m.selected.insert(old);
+        }
         if !m.selected.remove(&index) {
             m.selected.insert(index);
         }

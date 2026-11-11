@@ -6,8 +6,8 @@ use gpui::{AppContext, TestAppContext};
 #[gpui::test]
 fn pb_scroll_preview_reader_reads_rendered_and_source_positions(cx: &mut TestAppContext) {
     use crate::g2::{
-        pv1::{doc::View, Body},
-        pv2::markdown,
+        doc_preview::markdown,
+        quick_look_overlay::{doc::View, Body},
     };
     use std::sync::Arc;
     cx.executor().allow_parking();

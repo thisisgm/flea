@@ -270,3 +270,63 @@ fn ey172_sheet_search_lists_its_own_question_mark_binding(cx: &mut TestAppContex
         Reply::value("? Keyboard Shortcuts")
     );
 }
+
+// S9G-2: Return on the toolbar's Dual glyph keeps the keys on that glyph, as List, Columns and Grid do.
+#[gpui::test]
+fn s9g2_return_on_the_dual_glyph_keeps_the_glyph_focused(cx: &mut TestAppContext) {
+    let handle = listing(cx);
+    key(cx, handle, "tab tab");
+    for _ in 0..12 {
+        if call(cx, handle, "focusStop") == Reply::value("chrome:dual") {
+            break;
+        }
+        key(cx, handle, "right");
+    }
+    assert_eq!(call(cx, handle, "focusStop"), Reply::value("chrome:dual"));
+    key(cx, handle, "enter");
+    assert_eq!(call(cx, handle, "focusStop"), Reply::value("chrome:dual"));
+    edit(cx, handle, |shell, _, _| {
+        assert_eq!(shell.view, View::Dual, "Enter on the glyph switched")
+    });
+    edit(cx, handle, |shell, window, cx| {
+        // The secondary's listing usually lands after the key: rewind to the pending single view and let it land.
+        shell.view = View::List;
+        shell.dual_pending = true;
+        shell.panes[1].as_mut().expect("the secondary pane").stopped = true;
+        shell.settle_dual(window, cx);
+        assert!(!shell.dual_pending, "the late answer settled the switch");
+        assert_eq!(shell.view, View::Dual, "the late answer switched the view");
+    });
+    frame(cx, handle);
+    edit(cx, handle, |shell, _, _| assert_eq!(shell.view, View::Dual));
+    assert_eq!(call(cx, handle, "focusStop"), Reply::value("chrome:dual"));
+}
+
+// S11J-3: a tab strip that stops drawing while it holds the keys hands them to the list stop.
+#[gpui::test]
+fn s11j3_closing_the_second_tab_from_the_focused_strip_hands_the_keys_to_the_list(
+    cx: &mut TestAppContext,
+) {
+    let handle = listing(cx);
+    key(cx, handle, "t");
+    key(cx, handle, "tab tab tab");
+    assert_eq!(call(cx, handle, "focusView"), Reply::value("strip"));
+    edit(cx, handle, |shell, window, cx| {
+        shell.tab_tap_hit(crate::tabs::bar::Hit::Close(1), false, window, cx);
+        // The close leaves the keys on the strip; only the next frame's stop sync may move them.
+        assert!(shell.dual_focus.strip.contains_focused(window, cx));
+    });
+    frame(cx, handle);
+    edit(cx, handle, |shell, window, cx| {
+        assert!(
+            shell.slots.tabs.is_none(),
+            "one tab is left, so the strip is gone"
+        );
+        assert!(!shell.dual_focus.strip.contains_focused(window, cx));
+        assert!(
+            shell.focus.is_focused(window),
+            "the list stop holds the keys"
+        );
+    });
+    assert_eq!(call(cx, handle, "focusView"), Reply::value("list"));
+}

@@ -4,6 +4,7 @@ use crate::backend::regfile::open_regular;
 use crate::backend::sgr::{self, Line};
 use crate::backend::{jail, sandbox};
 use crate::json::{escape, field_bool, field_str, field_usize};
+use flea::bytename::ExactText as _;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::io::{Read, Write};
@@ -205,8 +206,8 @@ fn bat_in(path: &str) -> Option<String> {
 }
 
 fn bat_under(path: &str, root: &Path) -> Option<String> {
-    let found = path.split(':').filter(|d| !d.is_empty()).map(|d| Path::new(d).join("bat")).find(|p| p.is_file())?.canonicalize().ok()?;
-    found.starts_with(root.canonicalize().ok()?).then(|| found.to_string_lossy().into_owned())
+    let found = path.split(':').filter(|d| !d.is_empty()).map(|d| flea::bytename::view(d).join("bat")).find(|p| p.is_file())?.canonicalize().ok()?;
+    found.starts_with(root.canonicalize().ok()?).then(|| found.exact_text().into_owned())
 }
 
 // None means a newer request took the slot while this one ran.
@@ -251,14 +252,14 @@ fn judge(data: &[u8], formatted: bool) -> Verdict {
     }
 }
 
-// At most one byte past the large mark of a file is read; a file that cannot be read has no answer.
+// At most one byte past the large mark of a file is read, as its characters (Latin-1, UTF-16, no byte order mark) unless past the mark, so a decode that shrinks it never hides a large file; a file that cannot be read has no answer.
 fn load(source: &Source) -> Option<Cow<'_, [u8]>> {
     match source {
         Source::Text { text, .. } => Some(Cow::Borrowed(text.as_bytes())),
-        Source::File(path) if Path::new(path).is_absolute() => {
+        Source::File(path) if flea::bytename::view(path).is_absolute() => {
             let mut data = Vec::new();
-            open_regular(Path::new(path))?.take(LARGE_BYTES as u64 + 1).read_to_end(&mut data).ok()?;
-            Some(Cow::Owned(data))
+            open_regular(&flea::bytename::view(path))?.take(LARGE_BYTES as u64 + 1).read_to_end(&mut data).ok()?;
+            Some(Cow::Owned(if data.len() > LARGE_BYTES { data } else { flea::textdecode::into_utf8(data) }))
         }
         Source::File(_) => None,
     }
@@ -275,7 +276,8 @@ fn takes_jq(source: &Source, data: &[u8]) -> bool {
 }
 
 fn is_json(path: &str) -> bool {
-    let bytes = path.as_bytes();
+    let shown = flea::bytename::display(path);
+    let bytes = shown.as_bytes();
     bytes.len() >= 5 && bytes[bytes.len() - 5..].eq_ignore_ascii_case(b".json")
 }
 

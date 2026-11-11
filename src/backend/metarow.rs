@@ -1,5 +1,6 @@
 #[derive(Clone)]
 pub struct Meta {
+    pub ino: Option<u64>,
     pub size: u64,
     pub mtime: i64,
     pub birth: Option<i64>,

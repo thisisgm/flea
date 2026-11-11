@@ -55,6 +55,12 @@ def check_records(records):
             raise ValueError(f'Omi moved between captions: {records}')
         if record['line'] != first['line']:
             raise ValueError(f'caption line moved between captions: {records}')
+        top, height = record['line']
+        ink_top, ink_height = record['ink']
+        if (not all(math.isfinite(value) for value in (top, height, ink_top, ink_height))
+                or height <= 0 or ink_height <= 0 or ink_top < math.floor(top)
+                or ink_top + ink_height > math.ceil(top + height)):
+            raise ValueError(f'caption ink escapes its painted line: {record}')
 
 
 def caption_case(window, call, grab, output):
@@ -68,14 +74,20 @@ def caption_case(window, call, grab, output):
         if (caption and caption not in seen and state.get('settled')
                 and state.get('captionOpacity') == 1):
             path = output / f'omi-caption-{len(records)}.png'
-            grab(window, path)
-            after = json.loads(call(window, 'emptyHeroState'))
+            after = {}
+            # Bracket the screenshot before pixel validation can span the next caption fade.
+            grab(window, path, lambda: after.update(json.loads(call(window, 'emptyHeroState'))))
             if after.get('caption') != caption or after.get('captionOpacity') != 1:
                 continue
             slot = [float(value) for value in state['omi']['slot'].split()]
             box = ink_box(path, slot, state['markColor'], 'Omi')
-            line = caption_line(path, slot, state['captionColor'])
-            records.append(dict(caption=caption, slot=slot, pixels=box, line=line, png=str(path)))
+            # Sample input: captionRect "580 394 130 14" is x y width height in window pixels.
+            rect = [float(value) for value in state['captionRect'].split()]
+            if len(rect) != 4 or after.get('captionRect') != state['captionRect']:
+                raise ValueError('caption layout changed during capture')
+            line = [rect[1], rect[3]]
+            ink = caption_line(path, slot, state['captionColor'])
+            records.append(dict(caption=caption, slot=slot, pixels=box, line=line, ink=ink, png=str(path)))
             seen.add(caption)
         time.sleep(.05)
     (output / 'omi-caption-geometry.json').write_text(json.dumps(records, indent=2))

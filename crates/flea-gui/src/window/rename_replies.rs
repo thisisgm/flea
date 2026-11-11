@@ -1,7 +1,7 @@
 //! The rename replies: PaneWire.qml onRenamed, the refused write's reason, and the bulk card's paths, refusal and end.
 use super::{leaf, parent, Shell};
 use crate::{backend::Event as BackendEvent, window::navigate::Step};
-use flea::ui_logic_fb1::errors;
+use flea::ui_logic_status_feedback::errors;
 use gpui::{Context, Window};
 
 impl Shell {
@@ -13,6 +13,9 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> bool {
+        if self.rename_capture_event(side, event, window, cx) {
+            return true;
+        }
         if self.opener_event(side, event, window, cx) {
             return true;
         }
@@ -70,6 +73,17 @@ impl Shell {
                 if path.is_some_and(|path| path != destination) {
                     return false;
                 }
+                // A dot name leaves the listing while hidden files are off, so the footer says where the row went.
+                let hidden = self.panes[side]
+                    .as_ref()
+                    .is_some_and(|host| !host.nav.folders.borrow().hidden);
+                if hidden && leaf(&destination).starts_with('.') {
+                    let said = self
+                        .locale
+                        .catalog
+                        .tr_args("path.filtered", &[leaf(&destination)]);
+                    self.rename_say(said, false, cx);
+                }
                 self.rename_landed(side, Some(destination), window, cx);
                 true
             }
@@ -104,6 +118,9 @@ impl Shell {
                         self.locale
                             .catalog
                             .tr_args("jobs.rename.exists", &[leaf(&destination)])
+                    } else if let Some(refusal) = errors::drive_refusal(message) {
+                        // A drive's name refusal reads in the window's language, as the status line says it.
+                        refusal.render(&self.locale.catalog)
                     } else {
                         errors::capitalised(message)
                     };
@@ -132,14 +149,14 @@ impl Shell {
         let Some(edit) = self.rename.edit.take() else {
             return;
         };
+        if edit.menu != 0 {
+            self.menu_send(
+                side,
+                format!(r#"{{"c":"menuaction","op":"close","id":{}}}"#, edit.menu),
+                cx,
+            );
+        }
         if self.rename.neighbour.take().is_some() {
-            if edit.menu != 0 {
-                self.menu_send(
-                    side,
-                    format!(r#"{{"c":"menuaction","op":"close","id":{}}}"#, edit.menu),
-                    cx,
-                );
-            }
             self.rename_neighbour_landed(side, &edit.source, destination.as_deref(), window, cx);
             return;
         }

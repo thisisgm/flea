@@ -1,6 +1,6 @@
 //! Addressed acknowledgments and the fork's native private-MIME drag transport.
 use super::transfer;
-use crate::g2::dg2::router::{Client, Native as Landing, Offered};
+use crate::g2::drag_drop::router::{Client, Native as Landing, Offered};
 use crate::{ipc::server::Answer, state::Shell};
 use flea::ipc::{registry, wire::Request};
 use gpui::{point, px, Context, NativeDragAction, NativeDragActions, NativeDragPhase, Window};
@@ -176,7 +176,7 @@ impl Shell {
             strip: self.strip.bounds.clone(),
             catchers: self.strip.catchers.clone(),
         });
-        self.strip.router = Some(crate::g2::dg2::router::shared(cx).register(client));
+        self.strip.router = Some(crate::g2::drag_drop::router::shared(cx).register(client));
         self.strip.native = Some(cx.spawn_in(window, async move |this, cx| {
             while let Ok(event) = receive.recv().await {
                 let _ = cx.update(|window, cx| {

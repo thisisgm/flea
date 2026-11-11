@@ -5,6 +5,8 @@ use std::process::Command;
 
 pub const LISTING_WAIT_MS: u64 = 10_000;
 pub const INSPECT_WAIT_MS: u64 = 10_000;
+// user-dirs.dirs is about a dozen lines, so a larger file is not one xdg-user-dirs wrote.
+const MAX_USER_DIRS_BYTES: u64 = 64 * 1024;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Arguments {
@@ -200,7 +202,9 @@ pub fn load_settings() -> Result<Settings, String> {
         .filter(|v| !v.is_empty())
         .map(PathBuf::from)
         .unwrap_or_else(|| home.join(".config"));
-    let body = std::fs::read_to_string(config.join("user-dirs.dirs")).unwrap_or_default();
+    // Before the window, so a fifo or an endless file in its place reads as no file rather than a launch that never opens.
+    let body = flea::userfile::read_text(&config.join("user-dirs.dirs"), MAX_USER_DIRS_BYTES)
+        .unwrap_or_default();
     settings.newest = crate::navigation::folder_state::newest_paths(&body, &home.to_string_lossy());
     Ok(settings)
 }

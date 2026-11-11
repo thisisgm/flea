@@ -37,6 +37,40 @@ impl Shell {
         true
     }
 
+    /// One Tab or Shift+Tab along the window's ring from `current`, the stop the keyboard is on.
+    pub(crate) fn ring_step(
+        &mut self,
+        current: &str,
+        forward: bool,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let dual = self.view == crate::window::startup::View::Dual;
+        if dual
+            && current == "list"
+            && ((forward && self.focus_side == 0) || (!forward && self.focus_side == 1))
+        {
+            self.focus_side = 1 - self.focus_side;
+            self.enter_list_stop(forward, window, cx);
+        } else if let Some(stop) = self.input.step(current, forward) {
+            window.focus(&stop.handle, cx);
+            self.keyboard.context = stop.context;
+            if stop.name == "rail" {
+                self.focus_side = 0;
+            } else if stop.name == "chrome" {
+                self.enter_chrome(forward, window, cx);
+            } else if stop.name == "strip" {
+                self.enter_strip(forward);
+            }
+        } else {
+            self.focus_side = usize::from(dual && !forward);
+            self.enter_list_stop(forward, window, cx);
+            self.keyboard.context = flea::keys::Context::Listing;
+        }
+        self.keyboard.disarm();
+        cx.notify();
+    }
+
     pub(crate) fn input_action(
         &mut self,
         action: &str,
@@ -56,36 +90,12 @@ impl Shell {
             }
         }
         if action == "focusNext" || action == "focusPrevious" {
-            let forward = action == "focusNext";
             let current = self.focus_view(window, cx);
-            let dual = self.view == crate::window::startup::View::Dual;
-            if dual
-                && current == "list"
-                && ((forward && self.focus_side == 0) || (!forward && self.focus_side == 1))
-            {
-                self.focus_side = 1 - self.focus_side;
-                window.focus(&self.focus, cx);
-            } else if let Some(stop) = self.input.step(current, forward) {
-                window.focus(&stop.handle, cx);
-                self.keyboard.context = stop.context;
-                if stop.name == "rail" {
-                    self.focus_side = 0;
-                } else if stop.name == "chrome" {
-                    self.enter_chrome(forward, window, cx);
-                } else if stop.name == "strip" {
-                    self.enter_strip(forward);
-                }
-            } else {
-                self.focus_side = usize::from(dual && !forward);
-                window.focus(&self.focus, cx);
-                self.keyboard.context = flea::keys::Context::Listing;
-            }
-            self.keyboard.disarm();
-            cx.notify();
+            self.ring_step(current, action == "focusNext", window, cx);
             return true;
         }
         if action == "escape" && !matches!(self.focus_view(window, cx), "" | "list") {
-            window.focus(&self.focus, cx);
+            window.focus(&self.overlay_return_focus(cx), cx);
             self.keyboard.context = flea::keys::Context::Listing;
             cx.notify();
             return true;
@@ -185,6 +195,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> bool {
+        let following = self.quick_look_open(cx);
         let Some(host) = &mut self.panes[side] else {
             return false;
         };
@@ -198,7 +209,10 @@ impl Shell {
         }
         let from = host.pane.cursor;
         let before_scroll = host.pane.scroll_y;
-        let wrap = flea::ui_logic_st1::pages::is_true(&self.launch.settings.data, &["wrapAtEnds"]);
+        let wrap = flea::ui_logic_settings_pages::pages::is_true(
+            &self.launch.settings.data,
+            &["wrapAtEnds"],
+        );
         let frame = if self.view == crate::window::startup::View::Columns {
             host.columns_key_frame(self.grows[side])
         } else {
@@ -209,7 +223,8 @@ impl Shell {
                 return true;
             }
             let at = host.input.view_index(from);
-            let columns = frame.columns.max(1);
+            // Quick Look follows adjacent files, regardless of the grid behind it.
+            let columns = if following { 1 } else { frame.columns.max(1) };
             let page = page_items((frame.viewport() / frame.row).ceil() as usize) * columns;
             let to = match step {
                 Move::Up => at.saturating_sub(columns),

@@ -10,6 +10,8 @@ pub enum Text {
     Count(usize),
     Size(usize),
     Joined(Vec<Text>),
+    // A backend cause set inside another sentence: a fixed one reads in the current language, anything else as the backend said it.
+    Cause(String),
 }
 impl Text {
     pub fn render(&self, i18n: &I18n) -> String {
@@ -30,6 +32,7 @@ impl Text {
                 .format_count((*count).min(i64::MAX as usize) as i64),
             Self::Size(bytes) => i18n.locale().format_size(*bytes as u64),
             Self::Joined(parts) => parts.iter().map(|part| part.render(i18n)).collect(),
+            Self::Cause(words) => flea::ui_logic_status_feedback::errors::clause(words, i18n),
         }
     }
 }
@@ -178,6 +181,30 @@ pub fn error(key: &'static str) -> std::io::Error {
 }
 pub fn args(key: &'static str, args: Vec<Text>) -> Text {
     Text::Args(key, args)
+}
+// A backend sentence read back into its key; its cause argument stays a cause, so it re-renders in a new language too.
+pub fn sentence(sentence: flea::ui_logic_status_feedback::errors::Sentence) -> Text {
+    let cause = sentence.cause;
+    let args = sentence
+        .args
+        .into_iter()
+        .enumerate()
+        .map(|(at, arg)| {
+            if cause == Some(at) {
+                Text::Cause(arg)
+            } else {
+                Text::Data(arg)
+            }
+        })
+        .collect();
+    Text::Args(sentence.key, args)
+}
+// A backend message as the footer says it: a drive's name refusal in the current language, anything else as sent.
+pub fn said(message: &str) -> Text {
+    match flea::ui_logic_status_feedback::errors::drive_refusal(message) {
+        Some(refusal) => sentence(refusal),
+        None => Text::Data(message.into()),
+    }
 }
 pub fn items(i18n: &I18n, count: usize) -> String {
     Text::Plural("items.count", count, vec![]).render(i18n)

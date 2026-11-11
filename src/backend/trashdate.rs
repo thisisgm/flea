@@ -21,21 +21,47 @@ extern "C" {
 
 // Shared by localized dates so both callers use the same libc declaration and struct tm layout.
 pub fn local_time(timestamp: i64) -> Option<WallClock> {
-    let mut out = WallClock { sec: 0, min: 0, hour: 0, mday: 0, mon: 0, year: 0, wday: 0, yday: 0, isdst: 0, gmtoff: 0, zone: std::ptr::null() };
-    if unsafe { localtime_r(&timestamp, &mut out) }.is_null() { None } else { Some(out) }
+    let mut out = std::mem::MaybeUninit::<WallClock>::uninit();
+    // SAFETY: both pointers are valid, and libc initializes the whole tm on a non-null return.
+    if unsafe { localtime_r(&timestamp, out.as_mut_ptr()) }.is_null() {
+        None
+    } else {
+        Some(unsafe { out.assume_init() })
+    }
 }
 
 // Properties uses the same local wall clock as the rest of the desktop, with minute precision.
 pub fn modified_local(seconds: i64) -> Result<String, String> {
-    let out = local_time(seconds).ok_or_else(|| "Could not format the selected items' modification dates.".to_string())?;
-    Ok(format!("{:04}-{:02}-{:02} {:02}:{:02}", out.year + 1900, out.mon + 1, out.mday, out.hour, out.min))
+    let out = local_time(seconds)
+        .ok_or_else(|| "Could not format the selected items' modification dates.".to_string())?;
+    Ok(format!(
+        "{:04}-{:02}-{:02} {:02}:{:02}",
+        out.year + 1900,
+        out.mon + 1,
+        out.mday,
+        out.hour,
+        out.min
+    ))
 }
 
 // Stamps a .trashinfo DeletionDate in local time, the way the desktop's own trash names it.
 pub fn deletion_date_local() -> String {
     let now = unsafe { time(std::ptr::null_mut()) };
-    let Some(out) = local_time(now) else {
+    deletion_date_at(now)
+}
+
+// Keep the formatter independent of the clock so timezone and second boundaries have fixed oracles.
+pub(crate) fn deletion_date_at(timestamp: i64) -> String {
+    let Some(out) = local_time(timestamp) else {
         return "1970-01-01T00:00:00".to_string();
     };
-    format!("{:04}-{:02}-{:02}T{:02}:{:02}:{:02}", out.year + 1900, out.mon + 1, out.mday, out.hour, out.min, out.sec)
+    format!(
+        "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}",
+        out.year + 1900,
+        out.mon + 1,
+        out.mday,
+        out.hour,
+        out.min,
+        out.sec
+    )
 }

@@ -1,6 +1,6 @@
 //! The run card in the window: flea --open's run ask opens it, its keys and clicks press its buttons, and a launch's exit is read on the asking pane.
 use crate::{
-    g2::op3::{
+    g2::open_with_properties::{
         keys::{key_of, Key},
         lane,
         runcard::RunCard,
@@ -10,7 +10,7 @@ use crate::{
     state::Shell,
     window::navigate::Step,
 };
-use flea::ui_logic_op3::runfile::{exit_outcome, Action, Button, Exit};
+use flea::ui_logic_open_with_properties::runfile::{exit_outcome, Action, Button, Exit};
 use gpui::{
     div, prelude::*, AnyElement, Context, KeyDownEvent, ModifiersChangedEvent, MouseButton, Window,
 };
@@ -251,7 +251,7 @@ impl Shell {
                 .occlude()
                 .bg(palette
                     .background
-                    .opacity(flea::ui_logic_op1::card::scrim_alpha(0)))
+                    .opacity(flea::ui_logic_file_ops::card::scrim_alpha(0)))
                 .on_mouse_down(MouseButton::Left, scrim)
                 .child(drawn)
                 .into_any_element(),

@@ -198,8 +198,8 @@ permissions_apply() {
 
 permissions_file() {
     local bit name value wanted invalid before grid row_count=0
-    permissions_wait '.facts.ok and (.facts.directory == false) and .editable and .mode == "0644" and any(.controls[]; .name == "Cancel" and .focused)' 'owned file opens with Cancel focused'
-    permissions_wait '(.controls | length) == 13 and ([.controls[].name] | unique | length) == 13' 'file exposes exactly thirteen distinct controls'
+    permissions_wait '.facts.ok and (.facts.directory == false) and .editable and .mode == "0644" and any(.controls[]; .name == "Apply" and .focused)' 'owned file opens with Apply focused (HIG permissions, APL-CTRL-15)'
+    permissions_wait '(.controls | length) == 12 and ([.controls[].name] | unique | length) == 12' 'file exposes exactly twelve distinct controls, the close mark retired (APL-DIALOG-33)'
     permissions_wait '.displayedSummary | contains("Requested mode 0644") and contains("Scope this item only") and contains("ownership unchanged")' 'file summary states exact effect'
     permissions_mode 0644
     before=$(stat -c '%u:%g:%a' "$permissions_listing/notes.md")
@@ -292,14 +292,11 @@ permissions_readonly_controls() {
         || fail "permissions: read-only controls changed the item"
     permissions_wait ".displayedSummary | contains(\"Current mode $mode\") and contains(\"No changes to apply\")" 'read-only summary reports the retained current mode'
     permissions_wait 'any(.controls[]; .name == "Cancel" and .focused)' 'disabled controls do not steal initial Cancel focus'
-    key -k Tab >/dev/null
-    permissions_wait 'any(.controls[]; .name == "Close" and .focused)' 'read-only Tab reaches Close'
+    # With the close mark retired (HIG permissions-close, APL-DIALOG-33) Cancel is the read-only card's one stop.
     key -k Tab >/dev/null
     permissions_wait 'any(.controls[]; .name == "Cancel" and .focused)' 'read-only Tab skips every disabled mutation control'
     key -M shift -k Tab -m shift >/dev/null
-    permissions_wait 'any(.controls[]; .name == "Close" and .focused)' 'read-only reverse traversal reaches Close'
-    key -M shift -k Tab -m shift >/dev/null
-    permissions_wait 'any(.controls[]; .name == "Cancel" and .focused)' 'read-only reverse traversal wraps to Cancel'
+    permissions_wait 'any(.controls[]; .name == "Cancel" and .focused)' 'read-only reverse traversal stays on Cancel'
     permissions_control Cancel
     permissions_wait '(.opened == false) and .inputReady'
 }
@@ -378,8 +375,9 @@ permissions_stale() {
 
 permissions_keys() {
     local preset name quoted before wanted current row focus
-    local -a cycle=(Apply Close 'Owner read' 'Owner write' 'Owner execute' 'Group read' 'Group write' 'Group execute' 'Everyone read' 'Everyone write' 'Everyone execute' Octal Cancel)
-    local -a reverse=(Octal 'Everyone execute' 'Everyone write' 'Everyone read' 'Group execute' 'Group write' 'Group read' 'Owner execute' 'Owner write' 'Owner read' Close Apply Cancel)
+    # The card opens on Apply (APL-CTRL-15) and Tab reads the grid, Octal, Cancel and Apply; the close mark is retired (APL-DIALOG-33).
+    local -a cycle=('Owner read' 'Owner write' 'Owner execute' 'Group read' 'Group write' 'Group execute' 'Everyone read' 'Everyone write' 'Everyone execute' Octal Cancel Apply)
+    local -a reverse=(Cancel Octal 'Everyone execute' 'Everyone write' 'Everyone read' 'Group execute' 'Group write' 'Group read' 'Owner execute' 'Owner write' 'Owner read' Apply Cancel)
     for preset in default vim mac windows; do
         kill_flea
         seed_ui_state "$permissions_box/state" "{\"view\":\"list\",\"keys\":\"$preset\",\"preview\":{\"column\":false,\"thumbnails\":\"off\"},\"menu\":{\"hidden\":[]}}"
@@ -388,8 +386,8 @@ permissions_keys() {
         permissions_viewport
         permissions_expect keymapPreset "$preset"
         permissions_open notes.md keyboard
-        permissions_wait 'any(.controls[]; .name == "Cancel" and .focused)' "$preset Cancel receives initial focus"
-        permissions_wait '(.controls | length) == 13 and ([.controls[].name] | unique | length) == 13' "$preset has thirteen distinct native controls"
+        permissions_wait 'any(.controls[]; .name == "Apply" and .focused)' "$preset Apply receives initial focus"
+        permissions_wait '(.controls | length) == 12 and ([.controls[].name] | unique | length) == 12' "$preset has twelve distinct native controls"
         before=$(stat -c '%d:%i:%u:%g:%a:%s' "$permissions_listing/notes.md")
         for name in "${cycle[@]}"; do
             key -k Tab >/dev/null
@@ -418,20 +416,17 @@ permissions_keys() {
         permissions_wait 'any(.controls[]; .name == "Apply" and .focused)' "$preset Octal Return focuses Apply"
         shot "permissions-$permissions_group-$preset-keyboard"
         permissions_apply "$permissions_listing/notes.md" "${wanted#0}" space
-        for name in Escape Close Cancel CloseReturn CloseSpace CancelSpace; do
+        for name in Escape Cancel CancelReturn CancelSpace; do
             permissions_open notes.md keyboard
             row=$(ipc cursor)
             permissions_octal 0777
             case "$name" in
                 Escape) key -k Escape >/dev/null ;;
-                Close|Cancel) permissions_control "$name" ;;
-                CloseReturn|CloseSpace)
-                    for focus in Cancel Apply Close; do
-                        key -k Tab >/dev/null
-                        permissions_wait "any(.controls[]; .name == \"$focus\" and .focused)" "$preset dismissal focuses $focus"
-                    done
-                    if [[ "$name" == CloseReturn ]]; then key -k Return >/dev/null
-                    else key -k space >/dev/null; fi
+                Cancel) permissions_control "$name" ;;
+                CancelReturn)
+                    key -k Tab >/dev/null
+                    permissions_wait 'any(.controls[]; .name == "Cancel" and .focused)' "$preset Return dismissal focuses Cancel"
+                    key -k Return >/dev/null
                     ;;
                 CancelSpace)
                     key -k Tab >/dev/null
@@ -512,8 +507,8 @@ permissions_eligibility() {
         index=$(menu_row_index Permissions) || fail "permissions: no batch Permissions row"
         if [[ "$dismissal" == Escape ]]; then menu_seek Permissions; key -k Return >/dev/null
         else permissions_menu_point "$index"; fi
-        permissions_wait ".opened and (.busy == false) and .editable and .title == \"Permissions for $batch_count items\" and (.paths | sort) == $quoted_paths" 'batch card reviews both files with the exact title'
-        permissions_wait 'any(.controls[]; .name == "Cancel" and .focused and .enabled)' 'batch opens with keyboard on Cancel'
+        permissions_wait ".opened and (.busy == false) and .editable and .title == \"Permissions for $batch_count Items\" and (.paths | sort) == $quoted_paths" 'batch card reviews both files with the exact title'
+        permissions_wait 'any(.controls[]; .name == "Apply" and .focused and .enabled)' 'batch opens with keyboard on Apply (HIG permissions-several, APL-CTRL-15)'
         permissions_wait '[.controls[] | select(.bit != null) | .value] == ["on","on","some","on","off","some","on","off","some"]' 'batch grid shows all uniform and mixed boxes for 0644 and 0755'
         permissions_wait '.displayedSummary | endswith("Mixed boxes keep each item\u0027s setting unless you change them.")' 'batch displays the exact mixed-box note'
         permissions_wait 'all(.controls[] | select(.name == "Octal"); .visible == false) and any(.controls[]; .name == "Apply" and .visible and .enabled)' 'batch shows the grid without Octal and offers Apply'
@@ -607,7 +602,7 @@ permissions_search() {
     permissions_expect contextMenuVisible true
     index=$(menu_row_index Permissions) || fail "permissions: no Permissions row on the Search results"
     permissions_menu_point "$index"
-    permissions_wait ".opened and (.busy == false) and .editable and .title == \"Permissions for $batch_count items\" and (.paths | sort) == $quoted_paths" 'Search results open the batch card with both marked files'
+    permissions_wait ".opened and (.busy == false) and .editable and .title == \"Permissions for $batch_count Items\" and (.paths | sort) == $quoted_paths" 'Search results open the batch card with both marked files'
     cursor=$(ipc cursor)
     scroll=$(ipc listContentY)
     permissions_expect selectedIndices "$marks"
@@ -668,7 +663,7 @@ permissions_overlay() {
     permissions_wait '.opened' 'outside-card wheel leaves Permissions open'
     for name in j k f r m; do
         key "$name" >/dev/null
-        permissions_wait '.opened and any(.controls[]; .name == "Cancel" and .focused)' "listing key $name remains contained"
+        permissions_wait '.opened and any(.controls[]; .name == "Apply" and .focused)' "listing key $name remains contained"
         permissions_expect cursor "$parked"
         permissions_expect contextMenuVisible false
         permissions_expect path "$permissions_listing"
@@ -689,14 +684,10 @@ permissions_overlay() {
     permissions_viewport 560 400
     permissions_open notes.md keyboard
     shot "permissions-$permissions_group-small-initial"
-    for name in Apply Close 'Owner read' 'Owner write' 'Owner execute' 'Group read' 'Group write' 'Group execute' 'Everyone read' 'Everyone write' 'Everyone execute' Octal Cancel; do
+    for name in 'Owner read' 'Owner write' 'Owner execute' 'Group read' 'Group write' 'Group execute' 'Everyone read' 'Everyone write' 'Everyone execute' Octal Cancel Apply; do
         key -k Tab >/dev/null
         permissions_wait "any(.controls[]; .name == $(jq -cn --arg name "$name" '$name') and .focused)" "small viewport focuses $name"
-        if [[ "$name" == Close ]]; then
-            read -r rx ry rw rh <<< "$(ipc permissionsState | jq -r '.rect')"
-        else
-            read -r rx ry rw rh <<< "$(ipc permissionsState | jq -er '.bodyRect')"
-        fi
+        read -r rx ry rw rh <<< "$(ipc permissionsState | jq -er '.bodyRect')"
         read -r left top width height <<< "$(ipc permissionsState | jq -r '.controls[] | select(.focused) | .rect')"
         [[ "$left $top $width $height" =~ ^-?[0-9]+\ -?[0-9]+\ [0-9]+\ [0-9]+$ ]] || fail "permissions: focused control has no rectangle"
         (( left >= rx && top >= ry && left + width <= rx + rw && top + height <= ry + rh )) \
@@ -838,14 +829,13 @@ permissions_backenddeath() {
             done
             [[ "$status" == T* ]] || fail "permissions: owned backend did not stop"
             permissions_control Apply
-            permissions_wait '.opened and .busy and (.editable == false) and (.displayedError | startswith("Applying permissions"))' 'real Apply waits for the paused backend'
+            permissions_wait '.opened and .busy and (.editable == false) and (.displayedNote | startswith("Applying permissions"))' 'real Apply waits for the paused backend, its muted Applying note shown'
             for wanted_key in Escape Return space; do
                 key -k "$wanted_key" >/dev/null
                 permissions_wait '.opened and .busy' "pending Apply survives $wanted_key until its result arrives"
             done
             permissions_control Cancel
-            permissions_control Close
-            permissions_wait '.opened and .busy and all(.controls[] | select(.name == "Close" or .name == "Cancel"); .enabled == false)' 'pending Apply cannot discard its result through dismissal'
+            permissions_wait '.opened and .busy and all(.controls[] | select(.name == "Cancel"); .enabled == false)' 'pending Apply cannot discard its result through dismissal'
         fi
         if [[ "$phase" == completing ]]; then
             permissions_resume_stopped "$pid"
@@ -858,6 +848,7 @@ permissions_backenddeath() {
             continue
         fi
         permissions_backend_owned "$pid" || fail "permissions: backend identity changed before the failure signal"
+        [[ "$test_frontend" != gpui ]] || printf '%s\n' 'flea-gui: The backend closed its reply stream' >> "$expected_warnings"
         kill -KILL "$pid" || fail "permissions: could not terminate the owned backend"
         permissions_stopped=""
         trap - EXIT
@@ -975,3 +966,31 @@ case_permissions() {
     printf 'PERMISSIONS_NATIVE group=%s checks=%s root=%s; screenshots require separate inspection.\n' "$permissions_group" "$permissions_checks" "$permissions_box"
     kill_flea
 }
+
+case_fxdef2openwith() (
+    local menu_box="$fixture_root/menus" menu_dir="$fixture_root/menus/list" menus_checks=0
+    local trash_box="$fixture_root/menus" trash_checks=0 menus_trashed=0
+    local trash_parent_bus_id="" trash_private_bus_id="" trash_bus_address="" trash_bus_pid="" trash_provider_pid=""
+    local target
+    sandbox_scratch "$menu_box"
+    : > "$menu_box/.flea-test-sandbox"
+    for target in list state config cache data bin data/applications; do
+        menus_guard "$menu_box/$target"
+        mkdir -p "$menu_box/$target" || fail "menus: cannot create $target fixture"
+    done
+    printf 'alpha\n' > "$menu_dir/a.txt"
+    printf 'beta\n' > "$menu_dir/b.txt"
+    mkdir "$menu_dir/folder"
+    printf 'child\n' > "$menu_dir/folder/child.txt"
+    ln -s a.txt "$menu_dir/link"
+    export XDG_STATE_HOME="$menu_box/state" XDG_CONFIG_HOME="$menu_box/config" XDG_DATA_HOME="$menu_box/data" XDG_CACHE_HOME="$menu_box/cache"
+    [[ "$(realpath -e "$(command -v gio)")" == /usr/bin/gio ]] || fail "menus: GIO already resolves to a stub"
+    trash_start_bus
+    menus_launcher_fixture
+    "$flea_bin" --ui-state '{"view":"list","keys":"default","menu":{"hidden":[]}}' >/dev/null || fail "menus: fixture settings failed"
+    launch "$menu_dir"
+    wait_listing 4
+    trash_guard_store "$menus_trashed"
+    menus_open_with
+    kill_flea
+)

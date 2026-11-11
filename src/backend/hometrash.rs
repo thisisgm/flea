@@ -135,7 +135,7 @@ fn sync_tree(root: &Path) -> std::io::Result<()> {
 }
 
 // Makes the home Trash's two folders owner-only, the way gio does on first use.
-fn trash_dirs(root: &Path) -> std::io::Result<(PathBuf, PathBuf)> {
+pub(crate) fn trash_dirs(root: &Path) -> std::io::Result<(PathBuf, PathBuf)> {
     let (files, info) = (root.join("files"), root.join("info"));
     for dir in [&files, &info] {
         std::fs::DirBuilder::new().mode(0o700).recursive(true).create(dir)?;
@@ -144,7 +144,13 @@ fn trash_dirs(root: &Path) -> std::io::Result<(PathBuf, PathBuf)> {
 }
 
 // Reserves the first free Trash name: its info file created exclusively and written, synced when asked, and no files entry of that name.
-fn reserve(files: &Path, info: &Path, original: &Path, name: &OsStr, sync: bool) -> std::io::Result<(OsString, PathBuf)> {
+pub(crate) fn reserve(
+    files: &Path,
+    info: &Path,
+    original: &Path,
+    name: &OsStr,
+    sync: bool,
+) -> std::io::Result<(OsString, PathBuf)> {
     for candidate in candidate_names(name) {
         let info_path = info.join(info_name(&candidate));
         let mut info_file = match std::fs::OpenOptions::new().write(true).create_new(true).mode(0o600).open(&info_path) {

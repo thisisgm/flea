@@ -318,3 +318,46 @@ fn associated_text_has_its_own_budget_and_excess_is_not_typing() {
     let mut decoder = Decoder::default();
     assert_eq!(decoder.feed(b"\x1b[3;2~", false), [Key::named("Delete", "shift")]);
 }
+
+// Every function key arrives in its legacy CSI form, so F5 reaches Reload in every preset; CSI R stays a cursor report.
+#[test]
+fn function_keys_decode_from_their_legacy_codes() {
+    let mut decoder = Decoder::default();
+    let names = [
+        "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12",
+    ];
+    for (code, name) in [11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 23, 24]
+        .into_iter()
+        .zip(names)
+    {
+        assert_eq!(
+            decoder.feed(format!("\x1b[{code}~").as_bytes(), false),
+            [Key::named(name, "")],
+            "{code}"
+        );
+        assert_eq!(
+            decoder.feed(format!("\x1b[{code};5~").as_bytes(), false),
+            [Key::named(name, "ctrl")],
+            "{code}"
+        );
+    }
+    for (last, name) in [('P', "F1"), ('Q', "F2"), ('S', "F4")] {
+        assert_eq!(
+            decoder.feed(format!("\x1b[{last}").as_bytes(), false),
+            [Key::named(name, "")]
+        );
+        assert_eq!(
+            decoder.feed(format!("\x1b[1;2{last}").as_bytes(), false),
+            [Key::named(name, "shift")]
+        );
+    }
+    assert!(decoder.feed(b"\x1b[24;80R", false).is_empty());
+    let f5 = decoder.feed(b"\x1b[15~", false);
+    for preset in ["default", "windows", "mac", "vim", "yazi"] {
+        assert_eq!(
+            crate::tui::keymap::Map::load().action(&f5[0], preset),
+            "reload",
+            "{preset}"
+        );
+    }
+}

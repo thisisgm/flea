@@ -53,16 +53,21 @@ impl Shell {
         };
         match doc.get("t").and_then(Json::as_str) {
             Some("linktarget") => self.original_reply(side, &doc, window, cx),
-            Some("unmounted") => self.disconnected(side, &doc, window, cx),
+            Some("unmounted") => {
+                self.left_folder(side, &doc, "dialogs.file.disconnected", window, cx)
+            }
+            Some("gone") => self.left_folder(side, &doc, "tabs.folder_gone", window, cx),
             _ => return false,
         }
         true
     }
 
-    fn disconnected(
+    // The open folder's volume went, or the folder or one above it was deleted or moved: the pane and every hidden tab inside it land on the nearest folder still there.
+    fn left_folder(
         &mut self,
         side: usize,
         doc: &Json,
+        said: &'static str,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
@@ -73,11 +78,23 @@ impl Shell {
         if !path.starts_with('/') || !parent.starts_with('/') || parent.is_empty() {
             return;
         }
+        let root = crate::tabs::gone::vanished_root(path, parent);
+        if let Some(root) = &root {
+            let mut moved = false;
+            for tabs in &mut self.strip.tabs {
+                moved |= tabs.land_gone(root, parent);
+            }
+            if moved {
+                cx.notify();
+            }
+        }
+        // A list still out inside the folder that went, an ancestor of path included, would fail too, so it gives way to parent.
+        let scope = root.as_deref().unwrap_or(path);
         let affected = self.panes[side].as_ref().is_some_and(|host| {
             let place = host.pane.place();
-            place == path
+            place == scope
                 || place
-                    .strip_prefix(path)
+                    .strip_prefix(scope)
                     .is_some_and(|tail| tail.starts_with('/'))
         });
         if !affected {
@@ -104,7 +121,7 @@ impl Shell {
             .nav
             .open_without_history(&mut host.pane, parent, options, None, false);
         self.run_navigation(side, window, cx);
-        let said = self.locale.catalog.tr("dialogs.file.disconnected");
+        let said = self.locale.catalog.tr(said);
         self.opener_say(side, said, false, cx);
     }
 }

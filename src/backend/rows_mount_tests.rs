@@ -30,7 +30,7 @@ fn an_extensionless_program_draws_the_program_mark_only_where_its_mode_is_its_ow
     let dev = device(d.path());
     let mut l = Listing::new();
     l.push("PinyonShiftLauncher", false);
-    let metas = vec![Meta { birth: None, size: 1, mtime: 2, mode: 0o100755, target_is_dir: false, target: String::new(), dev }];
+    let metas = vec![Meta { ino: None, birth: None, size: 1, mtime: 2, mode: 0o100755, target_is_dir: false, target: String::new(), dev }];
     let exfat = format!("36 25 {} / /mnt/usb rw,relatime - exfat /dev/sdb1 rw\n", mountinfo::dev_majmin(dev));
     let btrfs = exfat.replace("exfat", "btrfs");
     let (mime, icons, aliases, thumbs, mut kinds) = dbs();
@@ -47,7 +47,7 @@ fn modeless_rows_mark_execute_bits_without_changing_modes_or_plain_window_bytes(
     let dev = device(d.path());
     let mut l = Listing::new();
     l.push("Launcher", false);
-    let metas = [Meta { birth: None, size: 1, mtime: 2, mode: 0o100755, target_is_dir: false, target: String::new(), dev }];
+    let metas = [Meta { ino: None, birth: None, size: 1, mtime: 2, mode: 0o100755, target_is_dir: false, target: String::new(), dev }];
     let plain = r#"{"t":"rows","start":0,"rows":[{"n":"Launcher","d":false,"s":1,"m":2,"b":null,"p":33261,"i":"application-x-executable","t":false,"k":0}],"kinds":["Data"],"ms":0.000}"#;
     for fstype in ["vfat", "exfat", "ext4"] {
         let body = format!("1 0 {} / / rw - {fstype} /dev/a rw\n", mountinfo::dev_majmin(dev));
@@ -70,7 +70,7 @@ fn a_row_window_reads_the_mount_table_once() {
     let mut l = Listing::new();
     l.push("mnt/usb/Launcher", false);
     l.push("home/programs/Launcher", false);
-    let metas = (0..2).map(|_| Meta { birth: None, size: 1, mtime: 2, mode: 0o100755, target_is_dir: false, target: String::new(), dev: 0 }).collect::<Vec<_>>();
+    let metas = (0..2).map(|_| Meta { ino: None, birth: None, size: 1, mtime: 2, mode: 0o100755, target_is_dir: false, target: String::new(), dev: 0 }).collect::<Vec<_>>();
     let (mime, icons, aliases, thumbs, mut kinds) = dbs();
     crate::backend::mountinfo::test_reset();
     rows_line(Path::new("/"), &l, &metas, 0, 0.0, &mime, &icons, &aliases, &thumbs, &mut kinds);
@@ -85,7 +85,7 @@ fn listpaths_rows_use_their_own_mount_modes() {
     let mut l = Listing::new();
     l.push("mnt/usb/Launcher", false);
     l.push("home/programs/Launcher", false);
-    let metas = [usb_dev, native_dev].into_iter().map(|dev| Meta { birth: None, size: 1, mtime: 2, mode: 0o100755, target_is_dir: false, target: String::new(), dev }).collect::<Vec<_>>();
+    let metas = [usb_dev, native_dev].into_iter().map(|dev| Meta { ino: None, birth: None, size: 1, mtime: 2, mode: 0o100755, target_is_dir: false, target: String::new(), dev }).collect::<Vec<_>>();
     let body = format!("1 0 {} / / rw - ext4 /dev/a rw\n2 1 {} / /mnt/usb rw - exfat /dev/sdb1 rw\n",
         mountinfo::dev_majmin(native_dev), mountinfo::dev_majmin(usb_dev));
     let (mime, icons, aliases, thumbs, mut kinds) = dbs();
@@ -106,7 +106,7 @@ fn search_rows_on_an_ext4_mount_keep_modes_under_an_exfat_base() {
     let mut l = Listing::new();
     l.push("before", false);
     l.push("native/Launcher", false);
-    let metas = vec![Meta { birth: None, size: 1, mtime: 2, mode: 0o100755, target_is_dir: false, target: String::new(), dev }];
+    let metas = vec![Meta { ino: None, birth: None, size: 1, mtime: 2, mode: 0o100755, target_is_dir: false, target: String::new(), dev }];
     let body = format!("1 0 0:0 / /mnt/usb rw - exfat /dev/sdb1 rw\n2 1 {} / /mnt/usb/native rw - ext4 /dev/a rw\n", mountinfo::dev_majmin(dev));
     let (mime, icons, aliases, thumbs, mut kinds) = dbs();
     let line = rows_line_in(Path::new("/mnt/usb"), &body, &l, &metas, 1, 0.0, &mime, &icons, &aliases, &thumbs, &mut kinds);
@@ -119,7 +119,7 @@ fn a_gvfs_row_window_never_reads_the_mount_table() {
     let dev = device(d.path());
     let mut l = Listing::new();
     l.push("sub/Launcher", false);
-    let metas = vec![Meta { birth: None, size: 1, mtime: 2, mode: 0o100755, target_is_dir: false, target: String::new(), dev }];
+    let metas = vec![Meta { ino: None, birth: None, size: 1, mtime: 2, mode: 0o100755, target_is_dir: false, target: String::new(), dev }];
     let (mime, icons, aliases, thumbs, mut kinds) = dbs();
     mountinfo::test_reset();
     rows_line(Path::new("/run/user/1000/gvfs/smb-share:server=nas,share=files"), &l, &metas, 0, 0.0, &mime, &icons, &aliases, &thumbs, &mut kinds);
@@ -132,7 +132,7 @@ fn smb_rows_keep_real_modes_only_with_mode_preserving_super_options() {
     let dev = device(d.path());
     let mut l = Listing::new();
     l.push("Launcher", false);
-    let metas = vec![Meta { birth: None, size: 1, mtime: 2, mode: 0o100755, target_is_dir: false, target: String::new(), dev }];
+    let metas = vec![Meta { ino: None, birth: None, size: 1, mtime: 2, mode: 0o100755, target_is_dir: false, target: String::new(), dev }];
     for fstype in ["cifs", "smb3"] {
         for (options, icon) in [
             ("rw,posix", "application-x-executable"),
@@ -160,7 +160,7 @@ fn assert_program_icon(base: &Path, body: &str, names: &[&str], devs: &[u64], ex
     for name in names {
         l.push(name, false);
     }
-    let metas = devs.iter().map(|&dev| Meta { birth: None, size: 1, mtime: 2, mode: 0o100755, target_is_dir: false, target: String::new(), dev }).collect::<Vec<_>>();
+    let metas = devs.iter().map(|&dev| Meta { ino: None, birth: None, size: 1, mtime: 2, mode: 0o100755, target_is_dir: false, target: String::new(), dev }).collect::<Vec<_>>();
     let (mime, icons, aliases, thumbs, mut kinds) = dbs();
     let line = rows_line_in(base, body, &l, &metas, 0, 0.0, &mime, &icons, &aliases, &thumbs, &mut kinds);
     let parsed = crate::jsondoc::parse(&line).unwrap();

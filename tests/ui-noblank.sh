@@ -289,8 +289,13 @@ SH
         [[ "$(ipc total)" == 0 ]] \
             || fail "searchnoblank: $view zzq matched total $(ipc total), not the honest zero"
         # The hero's caption string is pinned in tests/empty-state.sh; here only its state is read.
-        [[ "$(ipc emptyHeroState 2>/dev/null | jq -r '.visible and .captionOpacity == 1')" == true ]] \
-            || fail "searchnoblank: $view zzq drew no honest empty hero: $(ipc emptyHeroState 2>/dev/null)"
+        if [[ "$test_frontend" == gpui ]]; then
+            [[ "$(ipc searchQuery)" == norzzq && "$(ipc noMatchHeadline)" == *norzzq* ]] \
+                || fail "searchnoblank: $view norzzq drew no search-empty headline: $(ipc noMatchHeadline)"
+        else
+            [[ "$(ipc emptyHeroState 2>/dev/null | jq -r '.visible and .captionOpacity == 1')" == true ]] \
+                || fail "searchnoblank: $view zzq drew no honest empty hero: $(ipc emptyHeroState 2>/dev/null)"
+        fi
         searchnoblank_key "$view" search-7 $((base + 7)) -k BackSpace
         searchnoblank_key "$view" search-8 $((base + 8)) -k BackSpace
         searchnoblank_key "$view" search-9 $((base + 9)) -k BackSpace
@@ -307,7 +312,7 @@ SH
             '$a.blankFrames == $b.blankFrames and $a.fallbacks == $b.fallbacks'
         printf 'SEARCHNOBLANK %s search=ok\n' "$view"
 
-        # "/" narrows the held rows with no request: three matches, a no-match character, backspace, escape.
+        # "/" narrows held rows without a request; the empty query tail excludes close matches too.
         key / >/dev/null
         settle
         [[ "$(ipc keyDeliveryState 2>/dev/null | jq -r '.filterTyping')" == true ]] \
@@ -315,10 +320,10 @@ SH
         searchnoblank_filter_key "$view" filter-1 n n
         searchnoblank_filter_key "$view" filter-2 no o
         searchnoblank_filter_key "$view" filter-3 nor r
-        searchnoblank_filter_key "$view" filter-4 norz z
+        searchnoblank_filter_key "$view" filter-4 norzqqqq zqqqq
         [[ "$(ipc listingWindowState 2>/dev/null | jq -r '.shownTotal')" == 0 ]] \
-            || fail "searchnoblank: $view norz still shows $(ipc listingWindowState 2>/dev/null | jq -r '.shownTotal') rows, not the honest none"
-        searchnoblank_filter_key "$view" filter-5 nor -k BackSpace
+            || fail "searchnoblank: $view norzqqqq still shows $(ipc listingWindowState 2>/dev/null | jq -r '.shownTotal') rows, not the honest none"
+        searchnoblank_filter_key "$view" filter-5 nor -k BackSpace -k BackSpace -k BackSpace -k BackSpace -k BackSpace
         before=$(noblank_state)
         key -k Escape >/dev/null
         settle

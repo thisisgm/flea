@@ -77,7 +77,11 @@ fn footer_feedback_copy_expiry_clears_its_paste_hint(cx: &mut TestAppContext) {
     });
     copied(cx, handle);
     assert_eq!(secondary(cx, handle), " · p pastes");
-    advance(cx, handle, flea::ui_logic_fb1::messages::MESSAGE_MS);
+    advance(
+        cx,
+        handle,
+        flea::ui_logic_status_feedback::messages::MESSAGE_MS,
+    );
     assert_eq!(call(cx, handle, "statusPrimary"), Reply::value(""));
     assert_eq!(secondary(cx, handle), "");
 }
@@ -105,7 +109,11 @@ fn footer_feedback_link_receipt_replaces_copy_and_expires_with_undo(cx: &mut Tes
     );
     assert_eq!(secondary(cx, handle), "");
     assert_eq!(undo(cx, handle), "z undoes");
-    advance(cx, handle, flea::ui_logic_fb1::messages::MESSAGE_MS);
+    advance(
+        cx,
+        handle,
+        flea::ui_logic_status_feedback::messages::MESSAGE_MS,
+    );
     assert_eq!(call(cx, handle, "lastMessage"), Reply::value(""));
     assert_eq!(call(cx, handle, "statusPrimary"), Reply::value(""));
     assert_eq!(secondary(cx, handle), "");
@@ -146,7 +154,11 @@ fn footer_feedback_link_counts_and_errors_survive_the_notice_timer(cx: &mut Test
             Reply::value(if error { "true" } else { "false" })
         );
         assert_eq!(undo(cx, handle), undo_text);
-        advance(cx, handle, flea::ui_logic_fb1::messages::MESSAGE_MS);
+        advance(
+            cx,
+            handle,
+            flea::ui_logic_status_feedback::messages::MESSAGE_MS,
+        );
         assert_eq!(
             call(cx, handle, "statusPrimary"),
             Reply::value(if error { expected } else { "" })
@@ -168,7 +180,11 @@ fn footer_feedback_f4_explains_non_list_views_then_clears(cx: &mut TestAppContex
             Reply::value("Autofit needs the list view.")
         );
         assert_eq!(call(cx, handle, "statusError"), Reply::value("false"));
-        advance(cx, handle, flea::ui_logic_fb1::messages::MESSAGE_MS - 1);
+        advance(
+            cx,
+            handle,
+            flea::ui_logic_status_feedback::messages::MESSAGE_MS - 1,
+        );
         assert_eq!(
             call(cx, handle, "statusPrimary"),
             Reply::value("Autofit needs the list view.")

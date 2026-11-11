@@ -1,7 +1,7 @@
 //! The List Element: one custom Element for the whole pane, fixed-height rows painted as quads, marks and pre-shaped lines.
 pub use super::painted_row::{DropLine, Shown};
-pub use super::row_text::drawn_name;
 use super::row_text::{bold_name, prepare};
+pub use super::row_text::{drawn_letters, drawn_name};
 use super::{
     columns::{Column, Layout},
     pane::Held,
@@ -126,18 +126,20 @@ pub(super) fn paint_mark(
     ink: Hsla,
     window: &mut Window,
     cx: &mut App,
-) {
+) -> bool {
     let bounds = Bounds::new(at, size(px(side), px(side)));
     #[cfg(test)]
     crate::bfx_cols_tests::record_mark(&key, bounds);
-    let _ = window.paint_svg(
-        bounds,
-        key,
-        Some(data),
-        TransformationMatrix::unit(),
-        ink,
-        cx,
-    );
+    window
+        .paint_svg(
+            bounds,
+            key,
+            Some(data),
+            TransformationMatrix::unit(),
+            ink,
+            cx,
+        )
+        .is_ok()
 }
 
 impl IntoElement for ListElement {
@@ -382,6 +384,7 @@ impl Element for ListElement {
         let text = palette.text_inks(window, cx);
         let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
         let state = self.state.borrow();
+        state.language_paint.borrow_mut().clear();
         let view = &state.view;
         let left = bounds.origin.x;
         let row = metrics.row;
@@ -421,7 +424,7 @@ impl Element for ListElement {
                         } else {
                             palette.marked
                         })
-                    } else if s.hovered {
+                    } else if s.hover_lit {
                         Some(palette.foreground.opacity(HOVER))
                     } else {
                         None
@@ -442,11 +445,10 @@ impl Element for ListElement {
                         ));
                         continue;
                     };
-                    // At rest a match run sits on the accent wash; the cursor row draws it bold instead.
-                    let (Some((start, end)), true) = (prepared.run, s.washes_run(view.searching))
-                    else {
+                    // At rest each matched stretch sits on the accent wash; the cursor row draws it bold instead.
+                    if prepared.letters.is_empty() || !s.washes_run(view.searching) {
                         continue;
-                    };
+                    }
                     let line = prepared.name.line();
                     let step = self
                         .held
@@ -456,17 +458,19 @@ impl Element for ListElement {
                     let limit = left + px(layout.name.x + layout.name.width);
                     let height = line.ascent + line.descent;
                     let y = top + (px(row) - height) / 2.;
-                    let Some((run_start, run_end)) =
-                        crate::g2::sr1::run::wash_span(line, Some((start, end)), false)
-                    else {
-                        continue;
-                    };
-                    let from = (x + run_start).min(limit);
-                    let to = (x + run_end).min(limit);
-                    window.paint_quad(fill(
-                        Bounds::from_corners(point(from, y), point(to, y + height)),
-                        palette.accent.opacity(MATCH_WASH),
-                    ));
+                    for &letters in &prepared.letters {
+                        let Some((run_start, run_end)) =
+                            crate::g2::file_search::run::wash_span(line, Some(letters), false)
+                        else {
+                            continue;
+                        };
+                        let from = (x + run_start).min(limit);
+                        let to = (x + run_end).min(limit);
+                        window.paint_quad(fill(
+                            Bounds::from_corners(point(from, y), point(to, y + height)),
+                            palette.accent.opacity(MATCH_WASH),
+                        ));
+                    }
                 }
                 // One layer for every mark and glyph, so the scene orders the whole list once rather than once a line.
                 let (
@@ -485,7 +489,13 @@ impl Element for ListElement {
                         );
                         let ink = super::picker::mark_ink(shown, view, palette, &self.states);
                         let (marks, pictures) = super::picker::paint_icon(
-                            shown, view, metrics, ink, origin, window, cx,
+                            shown,
+                            (view, metrics),
+                            ink,
+                            origin,
+                            (&state.language_paint, f32::from(left) + layout.name.x),
+                            window,
+                            cx,
                         );
                         marks_painted += marks;
                         pictures_painted += pictures;

@@ -8,13 +8,13 @@ use crate::{
 };
 use flea::{
     jsondoc::{self, Json},
-    ui_logic_fb1::status::Hint,
-    ui_logic_op1::{
+    ui_logic_file_ops::{
         confirm::Source,
         lines,
         trash::{Review, Scope},
         Event, Reply,
     },
+    ui_logic_status_feedback::status::Hint,
 };
 use gpui::{Context, Window};
 
@@ -22,8 +22,12 @@ use gpui::{Context, Window};
 #[path = "fileops_created_tests.rs"]
 mod tests;
 
+#[cfg(test)]
+#[path = "relist_undo_tests.rs"]
+mod relist_undo_tests;
+
 impl Shell {
-    // Sample input: {"t":"made","ok":true,"path":"/home/gm/New Folder"}; duplicated and the trash and delete replies share the same t field.
+    // Sample input: {"t":"made","ok":true,"path":"/home/gm/New Folder"} or {"t":"undone","op":"trash","ok":true}; duplicated and the trash and delete replies share the same t field.
     /// A backend line this family answers; true when nobody else needs it.
     pub(crate) fn fileops_line(
         &mut self,
@@ -37,6 +41,13 @@ impl Shell {
         };
         let text = |key| document.get(key).and_then(Json::as_str).unwrap_or("");
         match text("t") {
+            "undone" | "redone" => {
+                if document.get("ok").and_then(Json::as_bool) == Some(true) {
+                    let _ = self.step(side, Step::Refresh(None), window, cx);
+                    self.trash_journal_finished(window, cx);
+                }
+                false
+            }
             "linked" => {
                 let count = |key| match document.get(key) {
                     Some(Json::Num(value)) => value.parse::<u64>().unwrap_or(0),
@@ -81,7 +92,7 @@ impl Shell {
                 let said = if kind == "made" {
                     lines::made(&catalog, &preset, &path)
                 } else {
-                    let leaf = flea::ui_logic_op1::leaf(&path);
+                    let leaf = flea::ui_logic_file_ops::leaf(&path);
                     let line = catalog.tr_args("jobs.done.duplicated", &[leaf]);
                     lines::with_undo(&catalog, &preset, line)
                 };
@@ -204,7 +215,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> bool {
-        let Some(Event::MenuAction(reply)) = flea::ui_logic_op1::parse(line) else {
+        let Some(Event::MenuAction(reply)) = flea::ui_logic_file_ops::parse(line) else {
             return false;
         };
         if self

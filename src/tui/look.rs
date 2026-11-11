@@ -68,7 +68,8 @@ fn bar(m: &Model, width: usize, theme: &Theme) -> String {
     let close = if m.marks() { "\u{ea76}" } else { "×" };
     let room = width.saturating_sub(3);
     let mark = if m.marks() { format!("{} ", super::icons::row(row, true)) } else { String::new() };
-    let leaf = row.name.rsplit('/').next().unwrap_or(&row.name);
+    let shown = row.shown();
+    let leaf = shown.rsplit('/').next().unwrap_or(&shown);
     let plates = if pane_state::kind(row) == Kind::Model3d { plate_words(m, room / 2, theme) } else { (String::new(), 0) };
     let room = room.saturating_sub(plates.1);
     let head = (text_width(&mark) + text_width(leaf)).min(room);
@@ -106,7 +107,9 @@ fn plate_words(m: &Model, width: usize, theme: &Theme) -> (String, usize) {
         let gap = length.min(2);
         let label = super::pane::direction(&word, length - gap, &m.preview_state.i18n, false);
         let ink = if plate == active { &theme.foreground } else { &theme.muted };
-        pieces.push(format!("{ink}{label}{}", " ".repeat(gap)));
+        let attribute = theme.depth.overlay_attribute(plate == active, false);
+        let reset = if attribute.is_empty() { String::new() } else { theme.base() };
+        pieces.push(format!("{attribute}{ink}{label}{}{reset}", " ".repeat(gap)));
         used += length;
     }
     (pieces.concat(), used)

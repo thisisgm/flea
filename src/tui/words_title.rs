@@ -22,6 +22,7 @@ impl Text {
             Self::Plural(key, count, args) => template(self, i18n, key, Some(*count), args, out),
             Self::Count(_) | Self::Size(_) => out.push((Some(Run::Number), self.render(i18n))),
             Self::Joined(parts) => parts.iter().for_each(|part| part.push_spans(i18n, out)),
+            Self::Cause(_) => out.push((Some(Run::Name), self.render(i18n))),
         }
     }
 }

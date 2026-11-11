@@ -1,9 +1,12 @@
 // Undo puts a home Trash entry back in-process, the way gvfsd-trash restores it, when the entry's own record proves it.
-use crate::backend::hometrash::{home_trash_root, info_name, sync_dir};
+use crate::backend::hometrash::{home_trash_root, info_name, sync_folders};
 use crate::backend::trash::Entry;
 use crate::paths::percent_decode_bytes;
+use std::cell::RefCell;
+use std::collections::BTreeSet;
 use std::ffi::OsStr;
 use std::os::unix::ffi::OsStrExt;
+use std::path::PathBuf;
 
 // The whole sentence undo refuses with when an item already has the trashed item's name.
 pub(crate) const RESTORE_TAKEN: &str = "an item with that name is already there, so undo left it in the Trash";
@@ -33,16 +36,57 @@ pub(crate) fn restore_from_home(entry: &Entry) -> Option<Result<(), String>> {
         Err(_) => return None,
     }
     let _ = std::fs::remove_file(&record);
-    // The item is back already, so a folder that will not sync is not a failure.
-    for dir in [parent, files.as_path(), info.as_path()] {
-        let _ = sync_dir(dir);
-    }
+    let mut dirs = BTreeSet::from([parent.to_path_buf(), files, info]);
+    // An open batch takes the three folders for its one sync at close; a lone restore syncs them now.
+    BATCH.with(|open| match open.borrow_mut().as_mut() {
+        Some(batch) => batch.append(&mut dirs),
+        None => sync_folders(&mut dirs),
+    });
     Some(Ok(()))
+}
+
+thread_local! {
+    // The folders restores in the open batch moved items into or out of; None while no batch is open.
+    static BATCH: RefCell<Option<BTreeSet<PathBuf>>> = const { RefCell::new(None) };
+}
+
+// Holds every home restore's folder syncs to its close, once per folder; close it before the journal records the undo.
+pub(crate) struct SyncBatch {
+    opened: bool,
+}
+
+impl SyncBatch {
+    // Only the outermost batch syncs; one opened inside another leaves the folders to it.
+    pub(crate) fn open() -> Self {
+        let opened = BATCH.with(|open| {
+            let mut open = open.borrow_mut();
+            let outermost = open.is_none();
+            if outermost {
+                *open = Some(BTreeSet::new());
+            }
+            outermost
+        });
+        Self { opened }
+    }
+
+    // Closes the batch at the point the next step needs its folders synced; the drop does the syncing.
+    pub(crate) fn close(self) {}
+}
+
+impl Drop for SyncBatch {
+    // The items are back already, so a folder that will not sync is not a failure.
+    fn drop(&mut self) {
+        if self.opened {
+            if let Some(mut dirs) = BATCH.with(|open| open.borrow_mut().take()) {
+                sync_folders(&mut dirs);
+            }
+        }
+    }
 }
 
 // The raw bytes a .trashinfo record's Path= names; its value is ASCII once encoded.
 // Sample input: "[Trash Info]\nPath=/home/u/caf%E9.txt\nDeletionDate=2026-10-09T22:41:03\n"
-fn recorded_path(body: &[u8]) -> Option<Vec<u8>> {
+pub(crate) fn recorded_path(body: &[u8]) -> Option<Vec<u8>> {
     let text = std::str::from_utf8(body).ok()?;
     text.lines().find_map(|line| line.strip_prefix("Path=")).map(percent_decode_bytes)
 }

@@ -1,7 +1,7 @@
 //! A Places or Favorites right click uses the same menu primitive as the listing.
 use super::Order;
-use crate::{g2::pl4::producer::Event, state::Shell};
-use flea::ui_logic_pl4::rail::{Group, Kind};
+use crate::{g2::rail_places::producer::Event, state::Shell};
+use flea::ui_logic_rail_places::rail::{Group, Kind};
 use gpui::{Context, Window};
 
 pub(super) fn run(

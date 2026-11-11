@@ -173,3 +173,64 @@ fn print_real_office_leg_converts_through_the_office_service() {
     assert!(std::fs::read(&pdf).unwrap().starts_with(b"%PDF"), "the office service returned no PDF");
     assert_eq!(std::fs::read_to_string(&source).unwrap(), fixture, "conversion changed its source");
 }
+
+// magick expands %d anywhere in an output path, so a folder named scan%d sent a convert or a combine into scan0.
+#[test]
+fn print_real_a_percent_folder_keeps_every_magick_output_where_it_was_asked() {
+    if !ready(&["magick", "montage"]) {
+        return;
+    }
+    let d = TestDir::new("print-real-percent");
+    std::fs::create_dir_all(d.join("scan%d")).unwrap();
+    std::fs::create_dir_all(d.join("scan0")).unwrap();
+    let a = ppm(&d, "a.ppm", 4, 2, "255 0 0\n");
+    // Upstream ImageMagick 7.1.1 keeps %% literally and names the doubled path in its refusal; 7.1.2 unescapes it.
+    let probe = d.join("scan%d/probe%d.png");
+    let done = std::process::Command::new("magick")
+        .arg(&a)
+        .arg(format!("png:{}", crate::backend::printconvert::magick_output(&probe)))
+        .output()
+        .unwrap_or_else(|e| panic!("magick percent probe could not start: {e}"));
+    let refusal = String::from_utf8_lossy(&done.stderr);
+    if !done.status.success() && refusal.contains("scan%%d/probe%%d.png") {
+        writeln!(std::io::stderr(), "SKIP print-convert percent paths: this magick does not unescape %%").ok();
+        return;
+    }
+    assert!(done.status.success() && probe.is_file(), "magick percent probe missed {probe:?}: {refusal}");
+    std::fs::remove_file(&probe).unwrap();
+    let run = |argv: Vec<String>| {
+        printtool::run(&argv, &AtomicBool::new(false), printtool::TOOL_WAIT)
+            .unwrap_or_else(|e| panic!("{argv:?}: {}", e.message));
+    };
+    let converted = d.join("scan%d/c%d.png");
+    run(convertbatch::image_argv(
+        std::slice::from_ref(&a),
+        &converted,
+        false,
+    ));
+    let settings = Settings {
+        layout: Layout::Grid,
+        spacing: Spacing::Small,
+        background: Background::White,
+        columns: 2,
+    };
+    let scaled = d.join("scan%d/s%d.png");
+    run(combine::scale_argv(&a, &scaled, (4, 2), &settings, true));
+    let joined = d.join("scan%d/j%d.png");
+    for command in combine::join_commands(
+        &[scaled.clone(), scaled.clone()],
+        &joined,
+        (4, 2),
+        &settings,
+    ) {
+        run(command);
+    }
+    for path in [&converted, &scaled, &joined] {
+        assert!(path.is_file(), "{path:?} was not written");
+    }
+    assert_eq!(
+        std::fs::read_dir(d.join("scan0")).unwrap().count(),
+        0,
+        "nothing lands in scan0"
+    );
+}

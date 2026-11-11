@@ -32,6 +32,20 @@ impl Shell {
         }
     }
 
+    /// The Trash count the rail holds and the detail text its Trash row draws, empty while the count is hidden.
+    pub(crate) fn rail_trash_badge(&self, cx: &gpui::App) -> (u64, String) {
+        let Some(join) = &self.rail else {
+            return (0, String::new());
+        };
+        let model = join.places.read(cx).model.borrow();
+        let text = if model.trash_count_shown && model.trash_count > 0 {
+            model.trash_count.to_string()
+        } else {
+            String::new()
+        };
+        (model.trash_count, text)
+    }
+
     /// U11's accepted document updates both placement and content atomically.
     pub fn rail_state(&mut self, state: &Json, cx: &mut Context<Self>) {
         self.launch.settings.data = state.clone();

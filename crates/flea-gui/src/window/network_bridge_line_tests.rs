@@ -1,7 +1,7 @@
 //! The GVFS bridge's Starting line stands with the busy mark, then gives way to its timeout line.
 use super::native11_tests::feedback_read;
 use super::*;
-use flea::ui_logic_pl1::Note;
+use flea::ui_logic_device_rail::Note;
 use gpui::VisualContext;
 
 fn effect(shell: &Entity<Shell>, cx: &mut VisualTestContext, effect: Effect) {

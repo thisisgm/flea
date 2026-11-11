@@ -33,7 +33,10 @@ fn another_application_on_the_row_menu_opens_the_open_with_card(cx: &mut TestApp
     validated(
         &shell,
         cx,
-        &format!("openWith:{}", flea::ui_logic_mn1::rows::OPEN_WITH_OTHER),
+        &format!(
+            "openWith:{}",
+            flea::ui_logic_context_menus::rows::OPEN_WITH_OTHER
+        ),
         &["/files/notes.txt"],
     );
     let lines = sent();
@@ -70,7 +73,7 @@ fn another_application_on_the_row_menu_opens_the_open_with_card(cx: &mut TestApp
         )]
     );
     let title = shell.read_with(cx, |shell, _| {
-        let catalog = crate::g2::op3::tests::english();
+        let catalog = crate::g2::open_with_properties::tests::english();
         shell
             .open_with
             .as_ref()

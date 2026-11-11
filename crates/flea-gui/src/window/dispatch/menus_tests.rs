@@ -1,7 +1,10 @@
 //! Menu rows reach their handler through Shell::dispatch on the production Shell, by keys and a right click.
+#[path = "menus_uish2b_tests.rs"]
+mod uish2b;
 use super::test_shell::{land, open_root as open, status};
 use crate::{
-    backend::Event as BackendEvent, g2::mn1::join::Chosen, state::Shell, window::u07_tests::read,
+    backend::Event as BackendEvent, g2::context_menus::join::Chosen, state::Shell,
+    window::u07_tests::read,
 };
 use flea::{
     jsondoc::{self, Json},
@@ -17,6 +20,7 @@ const FILE: u32 = 0o100644;
 
 pub(super) fn entry(name: &str, mode: u32) -> RowFacts {
     RowFacts {
+        source: Some(format!("1:2:{}", mode & 0o170000)),
         name: name.into(),
         dir: mode & 0o170000 == 0o040000,
         mode,
@@ -96,7 +100,7 @@ pub(super) fn tags_answer(shell: &Entity<Shell>, cx: &mut VisualTestContext, kin
                     .map(|facts| facts.tags.clone().unwrap_or_default())
             })
             .collect::<Option<Vec<_>>>()?;
-        use flea::ui_logic_pl4::tags::{self, State};
+        use flea::ui_logic_rail_places::tags::{self, State};
         let states = tags::states_for(&files);
         let names = |state| {
             tags::NAMES
@@ -152,13 +156,21 @@ pub(super) fn choose(shell: &Entity<Shell>, cx: &mut VisualTestContext, action: 
     panic!("the keyboard must reach {action}");
 }
 
-/// The backend's validate answer for the walked row, naming the paths its snapshot holds.
+/// Answer validation, or check the single-item Rename editor that retains its snapshot for commit.
 pub(super) fn validated(
     shell: &Entity<Shell>,
     cx: &mut VisualTestContext,
     action: &str,
     paths: &[&str],
 ) {
+    if action == "rename" && paths.len() == 1 {
+        assert!(
+            shell.read_with(cx, |shell, _| shell.rename.edit.as_ref().is_some_and(
+                |edit| { edit.source == paths[0] && edit.menu != 0 && edit.pending.is_none() }
+            ))
+        );
+        return;
+    }
     let id = captured(shell, cx);
     let paths = paths
         .iter()

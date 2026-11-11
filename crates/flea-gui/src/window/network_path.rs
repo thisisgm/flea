@@ -1,6 +1,6 @@
 //! Typed network locations enter the window's existing single-flight share opener.
 use super::*;
-use crate::g2::pl2::routing::{address, AddressRoute};
+use crate::g2::network_shares::routing::{address, AddressRoute};
 
 impl Shell {
     /// A successful connect retires its own earlier failures, leaving other producers' errors alone.
@@ -82,7 +82,7 @@ impl Shell {
                         &text,
                         error,
                         "",
-                        flea::ui_logic_fb1::status::Hint::None,
+                        flea::ui_logic_status_feedback::status::Hint::None,
                         now,
                     );
                 });

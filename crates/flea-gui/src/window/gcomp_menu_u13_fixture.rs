@@ -17,7 +17,7 @@ fn settle(shell: &mut crate::state::Shell) {
             tagable: None,
             path: host.path.clone(),
             name: "testfs".into(),
-            free: 1_073_741_824,
+            free: Some(1_073_741_824),
         };
         shell.surfaces[side].filesystem =
             crate::window::status::Filesystem::settled_fixture(facts, host.pane.held.listing);
@@ -44,11 +44,12 @@ fn settle(shell: &mut crate::state::Shell) {
         .and_then(|shelf| shelf.get("enabled"))
         .and_then(Json::as_bool)
         .unwrap_or(false);
-    let hidden = flea::ui_logic_mn1::inventory::effective_hidden(stored.as_deref(), shelf)
-        .into_iter()
-        .filter(|id| id != "copyto" && id != "moveto")
-        .map(Json::Str)
-        .collect();
+    let hidden =
+        flea::ui_logic_context_menus::inventory::effective_hidden(stored.as_deref(), shelf)
+            .into_iter()
+            .filter(|id| id != "copyto" && id != "moveto")
+            .map(Json::Str)
+            .collect();
     let Json::Obj(settings) = &mut shell.launch.settings.data else {
         panic!("settings object")
     };
@@ -136,7 +137,7 @@ fn u13_join_real_u06_copy_move_choice_keeps_enqueue_origin_and_claims_once() {
         receive(&mut cx, handle, &answer);
         frame(&mut cx, handle);
         view.read_with(&cx, |view, _| {
-            assert!(matches!(&view.model.dialog, Some(crate::g2::op1::model::Dialog::CopyTo {menu, moving, path, ..})
+            assert!(matches!(&view.model.dialog, Some(crate::g2::file_ops::model::Dialog::CopyTo {menu, moving, path, ..})
                 if *menu == captured.id && *moving == (action == "moveTo") && path == "/chosen-destination"));
         });
         VisualTestContext::from_window(handle.into(), &cx).simulate_keystrokes("enter");

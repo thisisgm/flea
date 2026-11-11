@@ -15,6 +15,7 @@ struct Rig {
     st: State,
     pool: Pool,
     watch: Watch,
+    poller: crate::backend::watchpoll::Poller,
     gate: Gate,
     rx: Receiver<Event>,
     _thumbs_rx: Receiver<crate::backend::thumbs::Done>,
@@ -28,8 +29,8 @@ fn rig(tag: &str) -> Rig {
     let (thumbs_tx, _thumbs_rx) = channel();
     let pool = Pool::new(1, thumbs_tx, dir.join("thumbs"), Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));
     let watch = Watch::start(tx.clone());
-    let gate = Gate::new(tx.clone());
-    Rig { dir, tb, st, pool, watch, gate, rx, _thumbs_rx }
+    let (gate, poller) = (Gate::new(tx.clone()), crate::backend::watchpoll::Poller::new(tx.clone()));
+    Rig { dir, tb, st, pool, watch, poller, gate, rx, _thumbs_rx }
 }
 
 impl Rig {
@@ -110,7 +111,7 @@ fn a_failed_scan_answers_the_mode_the_worker_read_not_a_fresh_stat() {
         },
     };
     let mut out = Vec::new();
-    assert!(!finish(&mut out, &mut r.st, &r.tb, &r.pool, &mut r.watch, landed), "a failed scan lands false");
+    assert!(!finish(&mut out, &mut r.st, &r.tb, &r.pool, &mut r.watch, &r.poller, landed), "a failed scan lands false");
     let text = String::from_utf8(out).expect("the error line is UTF-8");
     assert!(text.contains(r#""t":"error""#), "the failure is still an error line: {text}");
     // A fresh stat of the missing path would answer 0 and drop the field.
@@ -130,7 +131,7 @@ fn a_local_list_runs_inline_and_a_remote_list_reaches_the_scan_thread() {
             assert!(r.gate.scanner.is_none(), "no scan thread started for a local list");
             assert!(!r.gate.holds(), "the gate holds nothing after an inline list");
             assert!(r.rx.try_recv().is_err(), "no Event::List follows an inline list");
-            assert!(finish(&mut out, &mut r.st, &r.tb, &r.pool, &mut r.watch, *landed), "the inline answer lands through finish");
+            assert!(finish(&mut out, &mut r.st, &r.tb, &r.pool, &mut r.watch, &r.poller, *landed), "the inline answer lands through finish");
             let text = String::from_utf8(out).expect("the listing is UTF-8");
             assert!(text.contains(r#""t":"listed""#) && text.contains(r#""t":"rows""#), "finish wrote the listing: {text}");
         }
@@ -151,7 +152,7 @@ fn a_local_list_runs_inline_and_a_remote_list_reaches_the_scan_thread() {
     }
     let done = r.the_scan_lands();
     let job = r.gate.take().expect("the answer closes the job");
-    assert!(finish(&mut Vec::new(), &mut r.st, &r.tb, &r.pool, &mut r.watch, Landed { job, done }), "the remote answer lands through finish");
+    assert!(finish(&mut Vec::new(), &mut r.st, &r.tb, &r.pool, &mut r.watch, &r.poller, Landed { job, done }), "the remote answer lands through finish");
 }
 
 // A scan thread that dies must still answer, or the gate holds forever and every later request waits.
@@ -169,7 +170,7 @@ fn a_scan_that_panics_answers_an_error_and_leaves_the_gate_free() {
     let job = r.gate.take().expect("the answer closes the job");
     assert!(!r.gate.holds(), "the gate is free once the answer lands");
     let mut out = Vec::new();
-    assert!(!finish(&mut out, &mut r.st, &r.tb, &r.pool, &mut r.watch, Landed { job, done }), "a dead scan lands false");
+    assert!(!finish(&mut out, &mut r.st, &r.tb, &r.pool, &mut r.watch, &r.poller, Landed { job, done }), "a dead scan lands false");
     let text = String::from_utf8(out).expect("the error line is UTF-8");
     let said = crate::backend::iomount::internal_failure("scan", Path::new("/dead")).msg;
     assert!(text.contains(&said), "the line is iomount's own dead-worker sentence: {text}");

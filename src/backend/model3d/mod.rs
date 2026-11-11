@@ -21,7 +21,7 @@ mod zip;
 
 use std::collections::BTreeMap;
 
-#[path = "../../ui_logic_pv4/model_wire_types.rs"]
+#[path = "../../ui_logic_model_preview/model_wire_types.rs"]
 mod cache_types;
 pub use cache_types::*;
 pub const MAX_INPUT: usize = 128 * 1024 * 1024;
@@ -40,7 +40,12 @@ pub struct Facts {
 }
 
 pub fn supported(name: &str) -> Option<&'static str> {
-    match name.rsplit_once('.')?.1.to_ascii_lowercase().as_str() {
+    match flea::bytename::display(name)
+        .rsplit_once('.')?
+        .1
+        .to_ascii_lowercase()
+        .as_str()
+    {
         "stl" => Some("stl"),
         "3mf" => Some("3mf"),
         "obj" => Some("obj"),

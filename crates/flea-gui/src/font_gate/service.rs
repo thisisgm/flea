@@ -2,10 +2,10 @@ use super::*;
 use std::time::{Duration, Instant};
 
 const RETRY_WINDOW: Duration = Duration::from_millis(1200);
-// Longer than the service's 250 ms launch probe deadline, so the first frame still draws the fallback.
-const LATE_PROBE_SECONDS: &str = "0.35";
 
-fn mounted() -> (
+fn mounted(
+    before_watch: impl FnOnce() + Send + 'static,
+) -> (
     TestAppContext,
     Arc<receipt::Recorder>,
     crate::presentation::Service,
@@ -14,7 +14,7 @@ fn mounted() -> (
     let recorder = receipt::Recorder::new();
     let mut cx =
         TestAppContext::build_with_text_system(TestDispatcher::new(0), None, recorder.clone());
-    let (service, initial) = crate::presentation::Service::start();
+    let (service, initial) = crate::presentation::fixture::service_after(before_watch);
     cx.update(|cx| initial.install(cx));
     let handle = open(&mut cx);
     edit(&mut cx, handle, |shell, window, cx| {
@@ -26,7 +26,8 @@ fn mounted() -> (
 }
 
 fn wait(cx: &mut TestAppContext, handle: Handle, family: &str) {
-    let until = Instant::now() + Duration::from_secs(6);
+    // A probe that misses its 250 ms deadline is answered by the worker's patient retry, so wait out that whole window.
+    let until = Instant::now() + crate::presentation::RETRY_PUBLISH + Duration::from_secs(5);
     while edit(cx, handle, |shell, _, _| {
         shell.active_typeface().font.family != family
     }) {
@@ -42,11 +43,14 @@ fn wait(cx: &mut TestAppContext, handle: Handle, family: &str) {
 fn font_gate_late_probe_restyles_already_shaped_filter_and_find() {
     if isolation::enter(
         "font_gate::service::font_gate_late_probe_restyles_already_shaped_filter_and_find",
-        &format!("#!/bin/sh\nsleep {LATE_PROBE_SECONDS}\nprintf '%s' '{FAMILY}'\n"),
+        &crate::presentation::fixture::gated_probe(&format!("#!/bin/sh\nprintf '%s' '{FAMILY}'\n")),
     ) {
         return;
     }
-    let (mut cx, recorder, _service, handle) = mounted();
+    let (release, ready) = std::sync::mpsc::channel();
+    let (mut cx, recorder, _service, handle) = mounted(move || {
+        let _ = ready.recv();
+    });
     assert_eq!(
         edit(&mut cx, handle, |shell, _, _| shell
             .active_typeface()
@@ -55,7 +59,16 @@ fn font_gate_late_probe_restyles_already_shaped_filter_and_find() {
             .to_string()),
         FALLBACK
     );
+    let root = crate::presentation::fixture::Fixture::open(
+        std::env::var_os("FONT_GATE_ROOT").unwrap().into(),
+    )
+    .unwrap();
     recorder.begin();
+    root.write(
+        &root.path().join(crate::presentation::fixture::PROBE_OPEN),
+        "",
+    );
+    release.send(()).unwrap();
     wait(&mut cx, handle, FAMILY);
     assert!(assert_runs(
         "late-probe-filter",
@@ -69,7 +82,7 @@ fn font_gate_late_probe_restyles_already_shaped_filter_and_find() {
             None,
             |search, host| {
                 for ch in "Late probe search".chars() {
-                    search.key(crate::g2::sr1::StripKey::Text(ch.to_string()), host);
+                    search.key(crate::g2::file_search::StripKey::Text(ch.to_string()), host);
                 }
             },
             window,
@@ -77,10 +90,6 @@ fn font_gate_late_probe_restyles_already_shaped_filter_and_find() {
         );
     });
     draw(&mut cx, handle);
-    let root = crate::presentation::fixture::Fixture::open(
-        std::env::var_os("FONT_GATE_ROOT").unwrap().into(),
-    )
-    .unwrap();
     let helper = root.path().join("bin/fc-match");
     root.write(&helper, format!("#!/bin/sh\nprintf '%s' '{SECOND}'\n"));
     root.executable(&helper);
@@ -106,7 +115,7 @@ fn font_gate_failed_probe_draws_named_fallback() {
     ) {
         return;
     }
-    let (mut cx, recorder, _service, handle) = mounted();
+    let (mut cx, recorder, _service, handle) = mounted(|| {});
     assert_eq!(
         edit(&mut cx, handle, |shell, _, _| shell
             .active_typeface()

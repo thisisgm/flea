@@ -11,7 +11,7 @@ flea_uish_module() {
 flea_uish_module tests/ui-uish/common-observers.sh scroll colour lifted settings
 flea_uish_module tests/ui-uish/launch.sh select renderer
 flea_uish_module tests/ui-uish/state.sh xwsettings xwwatch makedefault
-flea_uish_module tests/ui-uish/sizes.sh dirsortstale nosweep hiddenlast
+flea_uish_module tests/ui-uish/sizes.sh dirsortstale nosweep hiddenlast hanginspect
 flea_uish_module tests/ui-uish/inline-rename.sh clickedge renamefirst renamelife renamefar
 flea_uish_module tests/ui-uish/modal-routing.sh collide menu clickthrough wheelunder
 flea_uish_module tests/ui-uish/places.sh editplace placemenu rename recent
@@ -28,7 +28,7 @@ flea_uish_module tests/ui-uish/tabs.sh tabs tabdrag middleclick opentab foldervi
 flea_uish_module tests/ui-uish/operations.sh dd ddclick operations transferlive xwundo
 flea_uish_module tests/ui-uish/open-with.sh openterminal makeexec openwithdesign
 flea_uish_module tests/ui-uish/drag.sh griddrop railpointer dualautohidereveal dualdivider
-flea_uish_module tests/ui-uish/menus.sh querypaste runscript background hidden reload focus columnsbackground
+flea_uish_module tests/ui-uish/menus.sh querypaste runscript background hidden reload focus columnsbackground rows
 flea_uish_module tests/ui-uish/backend.sh terminal
 
 flea_uish_module tests/ui-uish/autofit.sh columnautofit

@@ -1,5 +1,6 @@
 // Menu snapshots own selected identities; registry work runs only after an explicit menu action.
 use crate::backend::opsreq::OpMsg;
+use flea::bytename::ExactText as _;
 use super::menu_registry::{self, Registry};
 use super::menu_slot::{CloseOnExit, MenuSlot, Sent};
 use super::trashmanifest::Cancellation;
@@ -38,7 +39,7 @@ impl MenuActions {
         let restoration = self.restoration.lock().map_err(|_| MENU_STOPPED)?;
         if id == 0 || restoration.0 != id { return Err("The items changed; select them again.".into()); }
         let originals: HashMap<_, _> = restoration.1.iter().map(|item| (item.path.as_path(), item)).collect();
-        matches.retain(|(path, _)| originals.get(Path::new(path)).is_some_and(|item| item.current().is_ok()));
+        matches.retain(|(path, _)| originals.get(&*flea::bytename::view(path)).is_some_and(|item| item.current().is_ok()));
         Ok(())
     }
     pub(crate) fn provider_destination(&self, id: usize, dest: &Path) -> Result<Option<Selected>, String> {
@@ -130,7 +131,7 @@ pub(crate) struct Selected {
 }
 impl Selected {
     pub(crate) fn inspect(path: &str) -> Result<Self, String> {
-        let path = PathBuf::from(path);
+        let path = flea::bytename::exact(path);
         if !path.is_absolute() || path.file_name().is_none() {
             return Err("Menu selection requires an absolute item path.".into());
         }
@@ -217,7 +218,7 @@ impl Snapshot {
             for item in &self.items {
                 cancel.check()?;
                 match item.path.symlink_metadata() {
-                    Ok(_) => current.push(Selected::inspect(&item.path.to_string_lossy())?),
+                    Ok(_) => current.push(Selected::inspect(&item.path.exact_text())?),
                     Err(error) if error.kind() == std::io::ErrorKind::NotFound => (),
                     Err(error) => return Err(format!("Could not inspect {}: {}.", item.path.display(), error)),
                 }
@@ -242,21 +243,34 @@ impl Snapshot {
         if op == "validate" || op == "activate" {
             let action = field_str(line, "action").unwrap_or_default();
             if action == "dropbox" || action == "sharelink" {
-                self.check_provider_destination(Path::new(&field_str(line, "dest").unwrap_or_default()))?;
+                self.check_provider_destination(&flea::bytename::view(&field_str(line, "dest").unwrap_or_default()))?;
             }
             if op == "activate" { self.provider_transfer = action == "dropbox"; }
+            // Issue 397: a selection of several archives names each one, and each runs its own extract.
+            if action == "extract" && self.items.len() > 1 {
+                let mut paths = Vec::with_capacity(self.items.len());
+                for item in &self.items {
+                    item.current()?;
+                    paths.push(format!(r#""{}""#, escape(&item.path.exact_text())));
+                }
+                return Ok(format!(
+                    r#""action":"{}","paths":[{}]"#,
+                    escape(&action),
+                    paths.join(",")
+                ));
+            }
             if action == "extract" {
                 let cursor = self.extract_item()?;
                 cursor.current()?;
-                return Ok(format!(r#""action":"{}","paths":["{}"]"#, escape(&action), escape(&cursor.path.to_string_lossy())));
+                return Ok(format!(r#""action":"{}","paths":["{}"]"#, escape(&action), escape(&cursor.path.exact_text())));
             }
             if action.starts_with("taildrop:") || action == "sharelink" {
                 let cursor = self.cursor.as_ref().ok_or("The item under the cursor changed; reopen the menu.")?;
                 cursor.current()?;
-                return Ok(format!(r#""action":"{}","paths":["{}"]"#, escape(&action), escape(&cursor.path.to_string_lossy())));
+                return Ok(format!(r#""action":"{}","paths":["{}"]"#, escape(&action), escape(&cursor.path.exact_text())));
             }
             let needs_paths = op == "validate" || matches!(action.as_str(), "copy" | "cut" | "compare" | "copypath" | "copyAs" | "copyPath" | "copyRelative" | "copyName" | "copyStem" | "copydirpath" | "copyUri" | "copyQuoted" | "showOriginal" | "makeExecutable" | "pasteAs" | "pasteLink" | "pasteAbsoluteLink" | "pasteHardLink" | "addFavourite" | "localsend") || action.starts_with("compress:") || action.starts_with("runScript:") || action.starts_with("localsend:") || action.starts_with("copyAs:") || action.starts_with("pasteAs:");
-            let paths: Vec<String> = if needs_paths { self.items.iter().map(|i| format!(r#""{}""#, escape(&i.path.to_string_lossy()))).collect() } else { Vec::new() };
+            let paths: Vec<String> = if needs_paths { self.items.iter().map(|i| format!(r#""{}""#, escape(&i.path.exact_text()))).collect() } else { Vec::new() };
             return Ok(format!(r#""action":"{}","paths":[{}],"dest":"{}""#,
                 escape(&action), paths.join(","),
                 escape(&field_str(line, "dest").unwrap_or_default())));
@@ -271,7 +285,7 @@ impl Snapshot {
                 let found = menu_registry::catalogue(registry, &item.path, field_bool(line, "installed"), cancel)?;
                 Ok(format!(r#""applications":[{}],"installed":[{}],"mime":"{}","kind":"{}","path":"{}""#,
                     application_entries(&found.handlers), application_entries(&found.installed),
-                    escape(&found.mime), escape(&found.kind), escape(&item.path.to_string_lossy())))
+                    escape(&found.mime), escape(&found.kind), escape(&item.path.exact_text())))
             }
             "openWith" => {
                 let app = menu_registry::resolve(&field_str(line, "application").unwrap_or_default(), cancel)?;
@@ -291,7 +305,7 @@ impl Snapshot {
                         return Err(format!("Opened it, but the default was not saved: {}.", error.trim_end_matches('.')));
                     }
                 }
-                Ok(format!(r#""path":"{}""#, escape(&item.path.to_string_lossy())))
+                Ok(format!(r#""path":"{}""#, escape(&item.path.exact_text())))
             }
             _ => Err("Unknown menu operation.".into()),
         }

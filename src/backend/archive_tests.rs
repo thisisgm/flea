@@ -57,12 +57,12 @@ fn the_table_is_what_is_installed_and_never_a_fixed_list() {
                                 &["a.txt".to_string(), "b".to_string()]).unwrap();
         assert_eq!(a[0], "bsdtar");
         assert!(a.contains(&"-a".to_string()), "-a is what reads the extension");
-        assert_eq!(a.last().unwrap(), "b");
+        assert_eq!(a.last().unwrap(), "./b");
         // The names are relative, so the archive holds "a.txt" and not "/src/a.txt".
         assert!(!a.iter().any(|s| s.starts_with("/src/")));
         // -C is positional: after the names it applies to nothing and the archive comes out empty.
         let dash_c = a.iter().position(|s| s == "-C").expect("a working directory");
-        let first_name = a.iter().position(|s| s == "a.txt").expect("the first name");
+        let first_name = a.iter().position(|s| s == "./a.txt").expect("the first name");
         assert!(dash_c < first_name, "-C must precede the names it applies to");
     }
 
@@ -74,8 +74,14 @@ fn the_table_is_what_is_installed_and_never_a_fixed_list() {
                            &["--use-compress-program=sh".to_string(), "ok.txt".to_string()])
             .unwrap();
         let term = a.iter().position(|s| s == "--").expect("a -- terminator before the names");
-        let bad = a.iter().position(|s| s == "--use-compress-program=sh").unwrap();
+        let bad = a.iter().position(|s| s == "./--use-compress-program=sh").unwrap();
         assert!(term < bad, "a dash-leading member must sit after the -- terminator");
+        // S4-2: bsdtar reads an @ operand as an archive to copy in even after --, so no member operand starts with @.
+        let at = f.compress_argv("tar.gz", Path::new("/x/o.tar.gz"), Path::new("/src"), &["@other.tar".to_string()]).unwrap();
+        assert_eq!(at.last().unwrap(), "./@other.tar", "{at:?}");
+        let strip = at.iter().position(|s| s == "-s").expect("a prefix strip");
+        assert_eq!(at[strip + 1], ",^\\./,,S", "the stored name drops ./ and links keep their targets: {at:?}");
+        assert!(strip < at.iter().position(|s| s == "--").unwrap(), "the strip is an option, so it precedes the terminator: {at:?}");
         // 7z stores absolute paths, so its members can never be read as options and it needs no --.
         let seven = f
             .compress_argv("7z", Path::new("/x/out.7z"), Path::new("/src"), &["--evil".to_string()])
@@ -227,4 +233,22 @@ fn a_zip_is_probed_and_unlocked_by_7z_while_its_plain_extract_stays_with_bsdtar(
     assert_eq!(both.extract_argv(zip, Path::new("/out")).expect("a plain zip extracts")[0], "bsdtar");
     let tar_only = Formats::from_tools(true, false);
     assert!(tar_only.technical_list_argv(zip).is_none() && !reads_password(&tar_only, zip), "no 7z, no password route");
+}
+
+#[test]
+fn a_raw_named_archive_is_read_by_its_shown_suffix() {
+    use std::os::unix::ffi::OsStrExt;
+    let both = Formats::from_tools(true, true);
+    let seven = Path::new(std::ffi::OsStr::from_bytes(b"/d/a\xff.7z"));
+    assert_eq!(both.reader_for(seven), Some(Reader::SevenZip));
+    let tar = Path::new(std::ffi::OsStr::from_bytes(b"/d/b\xfe.tar.gz"));
+    assert_eq!(both.reader_for(tar), Some(Reader::Bsdtar));
+    let argv = both
+        .extract_argv(tar, Path::new("/out"))
+        .expect("a raw-named tar extracts");
+    assert!(
+        argv.iter()
+            .any(|arg| flea::bytename::text_path(arg).as_os_str().as_bytes() == b"/d/b\xfe.tar.gz"),
+        "{argv:?}"
+    );
 }

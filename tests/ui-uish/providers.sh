@@ -249,11 +249,11 @@ EOS
     wait_listing 3
     providers_open adir pointer
     providers_disabled taildrop 'Taildrop sends files only' 'files only'
-    menus_expect menuState 'any(.entries[]; .action == "taildrop" and .disabled and .submenu == [])' 'directory keeps its installed provider but offers no file targets'
+    menus_expect menuState 'any(.entries[]; .action == "plugin-send:flea.tailscale" and .disabled and .submenu == [])' 'directory keeps its installed provider but offers no file targets'
     providers_close
 
     providers_open b-cursor.txt pointer
-    menus_expect menuState 'any(.entries[]; .action == "taildrop" and (.disabled | not) and .mark == "tailscale")' 'file menu uses the Tailscale brand mark'
+    menus_expect menuState 'any(.entries[]; .action == "plugin-send:flea.tailscale" and (.disabled | not) and .mark == "tailscale")' 'file menu uses the Tailscale brand mark'
     menus_shot taildrop-menu
     providers_seek taildrop
     key -k Return >/dev/null || fail 'taildrop: submenu Enter failed'
@@ -274,13 +274,13 @@ EOS
     providers_mode tailscale ready '{"BackendState":"NeedsLogin","Peer":{}}'
     providers_open b-cursor.txt pointer
     providers_disabled taildrop 'signed out' 'signed out'
-    menus_expect menuState 'any(.entries[]; .action == "taildrop" and .disabled and .submenu == [])' 'signed-out installation offers no cached peer'
+    menus_expect menuState 'any(.entries[]; .action == "plugin-send:flea.tailscale" and .disabled and .submenu == [])' 'signed-out installation offers no cached peer'
     menus_shot taildrop-signed-out
     providers_close
     providers_install tailscale no
     before=$(providers_calls tailscale)
     providers_open b-cursor.txt pointer
-    menus_expect menuState 'all(.entries[]; .action != "taildrop")' 'missing installation removes the provider row'
+    menus_expect menuState 'all(.entries[]; .action != "plugin-send:flea.tailscale")' 'missing installation removes the provider row'
     providers_expect '.facts.taildrop.installed == false and (.taildrop.checking | not)' 'private PATH proves the provider is absent'
     menus_equal 'absence does not attempt a missing status helper' "$before" "$(providers_calls tailscale)"
     menus_shot taildrop-absent
@@ -303,7 +303,7 @@ case_providers() (
     wait_listing 2
     menus_expect listInFlight '. == false' 'provider fixture initial listing settles'
     providers_open
-    menus_expect menuState 'all(.entries[]; .action != "taildrop" and .action != "dropbox" and .action != "sharelink" and .action != "localsend")' 'absent providers are not built'
+    menus_expect menuState 'all(.entries[]; .action != "plugin-send:flea.tailscale" and .action != "dropbox" and .action != "sharelink" and .action != "localsend")' 'absent providers are not built'
     menus_equal 'absent providers spawn no helper' 0 "$(jq -s length "$menu_box/calls.jsonl")"
     providers_close
 
@@ -377,7 +377,7 @@ STATES
 
     providers_install tailscale no
     providers_open
-    menus_expect menuState 'all(.entries[]; .action != "taildrop")' 'fresh menu removes uninstalled Tailscale'
+    menus_expect menuState 'all(.entries[]; .action != "plugin-send:flea.tailscale")' 'fresh menu removes uninstalled Tailscale'
     providers_close
     providers_install tailscale yes
     providers_mode tailscale gate "$provider_ready"
@@ -387,7 +387,7 @@ STATES
     before=$(ipc listContentY)
     providers_release tailscale
     providers_expect '(.refreshing | not) and .menuFocus' 'late provider insertion finishes with keyboard focus'
-    menus_expect menuState '.entries[.cursor].action == "properties" and any(.entries[]; .action == "taildrop" and (.disabled | not))' 'inserted provider preserves current action'
+    menus_expect menuState '.entries[.cursor].action == "properties" and any(.entries[]; .action == "plugin-send:flea.tailscale" and (.disabled | not))' 'inserted provider preserves current action'
     providers_geometry
     menus_equal 'provider insertion leaves covered listing scroll unchanged' "$before" "$(ipc listContentY)"
     menus_shot providers-inserted
@@ -438,7 +438,8 @@ STATES
         mv -- "$path/b-cursor.txt" "$saved" || fail 'providers: cannot retain cursor original'
         providers_write "${path#"$menu_box/"}/b-cursor.txt" replacement
         providers_release "$name"
-        menus_error 'Selected items changed' "$action refuses an asynchronously replaced unmarked cursor"
+        # Validation retains the backend's identity refusal; DEF2 also preserves this detail in the status line.
+        menus_error 'Selected item changed; reopen the menu.' "$action refuses an asynchronously replaced unmarked cursor"
         providers_expect '(.refreshing | not) and (.pendingActivation | not)' 'refused activation has no pending provider work'
         if [[ "$action" == taildrop ]]; then menus_equal 'stale Taildrop never reaches sender' "$before" "$(providers_calls omarchy-tailscale-send)"
         else menus_equal 'stale Share Link makes only its fresh status query' "$((before + 1))" "$(providers_calls dropbox-cli)"; fi
@@ -462,6 +463,7 @@ STATES
     menus_guard "$menu_box/Dropbox"
     mkdir "$menu_box/Dropbox" || fail 'providers: cannot replace fixture destination'
     providers_release dropbox-cli
+    # The destination must name Dropbox as v0.3.12 did; the cargo regression also pins its complete backend sentence.
     menus_error 'Dropbox account folder changed' 'Move to Dropbox refuses a replaced account directory'
     providers_expect '(.refreshing | not) and (.pendingActivation | not)' 'destination refusal clears pending activation'
     menus_equal 'refused destination remains empty' 0 "$(find "$menu_box/Dropbox" -mindepth 1 -maxdepth 1 | wc -l | tr -d ' ')"

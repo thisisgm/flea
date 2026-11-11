@@ -1,10 +1,10 @@
 //! Issue 232 drive fixtures, with no device operations and every mount point under a marked mktemp root.
 use super::*;
-use crate::g2::pl1::{
+use crate::g2::device_rail::{
     devices::{Devices, Effect, Proc},
     process::Outcome,
 };
-use flea::ui_logic_pl1::{devices::parse_devices, menu::RailAction, mounts::rail_key};
+use flea::ui_logic_device_rail::{devices::parse_devices, menu::RailAction, mounts::rail_key};
 use std::path::PathBuf;
 
 struct Fixture(PathBuf);

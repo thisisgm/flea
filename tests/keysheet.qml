@@ -21,11 +21,15 @@ QtObject {
                 check(row("textSizeDown").keys, "ctrl-shift-minus", preset + " " + frontend + " smaller")
                 check(row("textSizeReset").keys, "ctrl-shift-0", preset + " " + frontend + " reset")
                 if (frontend === "gui") {
+                    check(row("viewDual").keys.split(" / ").indexOf("f3") >= 0, true, preset + " dual F3 alias")
+                    check(Keymap.lookupFor(preset, Qt.Key_F3, "", Qt.NoModifier, "listing", frontend), "viewDual", preset + " F3 listing")
+                    check(Keymap.lookupFor(preset, Qt.Key_F3, "", Qt.NoModifier, "editor", frontend), "", preset + " F3 editor")
                     check(row("carry").keys, "X", preset + " carry key")
                     check(row("carry").label, "Carry to another app", preset + " carry label")
                     check(Keymap.SHEET_GROUPS.move.indexOf("carry") >= 0, true, "carry stays in MOVE")
                     check(Keymap.SHEET_GROUPS.change.indexOf("carry"), -1, "carry is not in CHANGE")
                 } else {
+                    check(Keymap.lookupFor(preset, Qt.Key_F3, "", Qt.NoModifier, "listing", frontend), "", preset + " terminal F3")
                     check(row("carry"), undefined, "terminal has no carry action")
                 }
                 for (var i = 0; i < Keymap.SHARED_KEYS.length; i++) {

@@ -186,6 +186,9 @@ fn the_actions_list_travels_through_execute_as_a_list() {
     );
 }
 
+#[path = "action_disconnect_tests.rs"]
+mod disconnect;
+
 // The request travels the same socket `flea ipc` uses, and the window's own refusal reaches the caller unchanged.
 #[test]
 fn the_window_socket_carries_the_request_and_its_refusal() {

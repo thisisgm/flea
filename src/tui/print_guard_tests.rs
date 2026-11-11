@@ -8,7 +8,7 @@ use super::{
     render::frame_tests::model,
     wire::{self, count, text, Wire},
 };
-use flea::ui_logic_sr1::{ContentsMatch, ContentsMatches};
+use flea::ui_logic_file_search::{ContentsMatch, ContentsMatches};
 
 fn press(m: &mut Model, w: &mut Wire, key: Key) {
     actions::key(m, &key, &Map::load(), w).unwrap();
@@ -48,7 +48,7 @@ fn settle(m: &mut Model, w: &mut Wire, operable: bool) {
     } else {
         b"raw-\xff.pdf".as_slice()
     };
-    let name = String::from_utf8_lossy(bytes).into_owned();
+    let name = flea::bytename::name_text(bytes).into_owned();
     let metadata = ContentsMatches {
         gen: gen as u64,
         listing: 40,

@@ -93,8 +93,11 @@ impl Shell {
         // Every modal key belongs to the card; a cardless Escape still reaches the window.
         if let Some(overlay) = self.overlay.clone() {
             let modal = overlay.read_with(cx, |card, cx| card.modal(cx));
+            let menu = self.menu_opened() || self.menu.presentation.at.is_some();
             if modal
-                || (event.keystroke.key == "escape" && modifiers(event.keystroke.modifiers) == 0)
+                || (!menu
+                    && event.keystroke.key == "escape"
+                    && modifiers(event.keystroke.modifiers) == 0)
             {
                 let taken = overlay.update(cx, |card, cx| card.dispatch_key(event, window, cx));
                 let still = overlay.read_with(cx, |card, cx| card.showing(cx));
@@ -145,15 +148,15 @@ impl Shell {
         if self.settings_dismiss(event, cx) {
             return;
         }
+        if self.menu_key(event, window, cx) {
+            return;
+        }
         if self.trash_key(event, window, cx) {
             cx.stop_propagation();
             return;
         }
         if self.network_key(event, window, cx) {
             cx.stop_propagation();
-            return;
-        }
-        if self.menu_key(event, window, cx) {
             return;
         }
         if self.path_holds_keyboard(window, cx) {
@@ -206,18 +209,6 @@ impl Shell {
             return;
         }
         if self.wheel_blocked(cx) {
-            cx.stop_propagation();
-            return;
-        }
-        // Ctrl+P is the listing's Print; the keymap leaves it unbound, so it is read here like Ctrl+Q.
-        if self.keyboard.context == flea::keys::Context::Listing
-            && event.keystroke.key == "p"
-            && event.keystroke.modifiers.control
-            && !event.keystroke.modifiers.shift
-            && !event.keystroke.modifiers.alt
-            && !event.keystroke.modifiers.platform
-            && self.output_print_key(window, cx)
-        {
             cx.stop_propagation();
             return;
         }
@@ -357,7 +348,10 @@ impl Shell {
             self.new_window();
         } else if action == "eject" {
             self.release_device(false, cx);
-        } else if action == flea::ui_logic_mn2::agent::ID {
+        } else if action == "print" {
+            // keys.toml's ctrl-p row (the menu's Print… hint); Print claims a refusal as well as an opened card.
+            self.output_print_key(window, cx);
+        } else if action == flea::ui_logic_custom_actions::agent::ID {
             self.agent_key(cx);
         } else if let Some(view) = match action {
             "viewList" => Some(startup::View::List),

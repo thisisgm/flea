@@ -58,7 +58,7 @@ fn u05_scan_failure_names_only_a_different_folders_leaf(cx: &mut TestAppContext)
 }
 
 #[gpui::test]
-fn u05_refused_sort_is_a_notice_that_expires_without_dismissing_errors(cx: &mut TestAppContext) {
+fn u05_refused_sort_is_a_notice_that_expires_and_replaces_an_older_error(cx: &mut TestAppContext) {
     let handle = open(cx);
     frame(cx, handle);
     refuse(cx, handle, "sort", "/files");
@@ -80,24 +80,14 @@ fn u05_refused_sort_is_a_notice_that_expires_without_dismissing_errors(cx: &mut 
             .as_f64()
     };
     assert_eq!(errors(cx), Some(1.));
+    // S1B-2: the newer refusal replaces the standing error and keeps its own whole time.
     refuse(cx, handle, "sort", "/files");
-    assert_eq!(read(cx, handle, "lastMessage"), error);
-    assert_eq!(read(cx, handle, "statusError"), Reply::value("true"));
-    assert_eq!(errors(cx), Some(1.));
-    for _ in 0..260 {
-        frame(cx, handle);
-    }
-    assert_eq!(read(cx, handle, "lastMessage"), error);
-    assert_eq!(read(cx, handle, "statusError"), Reply::value("true"));
-    assert_eq!(errors(cx), Some(1.));
-
-    escape(cx, handle);
     assert_eq!(errors(cx), Some(0.));
     assert_eq!(read(cx, handle, "statusError"), Reply::value("false"));
     assert_eq!(read(cx, handle, "lastMessage"), notice);
     cx.run_until_parked();
     cx.executor().advance_clock(Duration::from_millis(
-        flea::ui_logic_fb1::messages::MESSAGE_MS - 1,
+        flea::ui_logic_status_feedback::messages::MESSAGE_MS - 1,
     ));
     cx.run_until_parked();
     assert_eq!(read(cx, handle, "lastMessage"), notice);
@@ -253,8 +243,22 @@ fn u05_status_escape_leaves_other_keyboard_contexts_their_own_cancel(cx: &mut Te
                 assert_eq!(shell.keyboard.context, KeyContext::Listing);
             })
             .unwrap();
-        assert_eq!(read(cx, handle, "statusError"), Reply::value("true"));
-        assert_eq!(read(cx, handle, "lastMessage"), error);
+        // S1B-2: a hosted context cancels and keeps the error; an unhosted one refuses, and that newer notice replaces it.
+        let refused = UNHOSTED.contains(&context);
+        assert_eq!(
+            read(cx, handle, "lastMessage"),
+            if refused {
+                Reply::value("That action is not available yet")
+            } else {
+                error
+            },
+            "{context:?}"
+        );
+        assert_eq!(
+            read(cx, handle, "statusError"),
+            Reply::value(if refused { "false" } else { "true" }),
+            "{context:?}"
+        );
         escape(cx, handle);
         assert_eq!(read(cx, handle, "statusError"), Reply::value("false"));
     }
@@ -262,7 +266,7 @@ fn u05_status_escape_leaves_other_keyboard_contexts_their_own_cancel(cx: &mut Te
 
 #[gpui::test]
 fn u05_a_committed_folder_change_reports_the_lost_arm_once(cx: &mut TestAppContext) {
-    use crate::g2::fb1::line::ArmLost;
+    use crate::g2::status_feedback::line::ArmLost;
     use std::{cell::RefCell, rc::Rc};
     let handle = open(cx);
     frame(cx, handle);
@@ -311,7 +315,7 @@ fn u05_a_committed_folder_change_reports_the_lost_arm_once(cx: &mut TestAppConte
 }
 
 #[gpui::test]
-fn u05_filter_and_search_escape_reaches_its_owner_without_acknowledging_an_error(
+fn u05_an_owned_escape_is_left_by_the_status_line_and_falls_to_the_dispatch_fallback(
     cx: &mut TestAppContext,
 ) {
     use std::{cell::RefCell, rc::Rc};
@@ -342,16 +346,31 @@ fn u05_filter_and_search_escape_reaches_its_owner_without_acknowledging_an_error
                 };
             })
             .unwrap();
+        assert_eq!(
+            read(cx, handle, "statusError"),
+            Reply::value("true"),
+            "owner {owner} before escape"
+        );
         escape(cx, handle);
         cx.run_until_parked();
-        assert_eq!(read(cx, handle, "statusError"), Reply::value("true"));
+        // No owner is hosted here, so the key the status line left falls to the dispatch fallback; its refusal and the emitted action are red if the status line takes the key.
+        assert_eq!(
+            read(cx, handle, "lastMessage"),
+            Reply::value("That action is not available yet"),
+            "owner {owner} after escape"
+        );
+        assert_eq!(
+            read(cx, handle, "statusError"),
+            Reply::value("false"),
+            "owner {owner} after escape"
+        );
         assert_eq!(*actions.borrow(), ["escape"]);
     }
 }
 
 #[gpui::test]
 fn u05_long_errors_reserve_the_entire_dismiss_hint_in_a_narrow_lane(cx: &mut TestAppContext) {
-    use flea::ui_logic_fb1::status::Hint;
+    use flea::ui_logic_status_feedback::status::Hint;
     let handle = open(cx);
     cx.simulate_window_resize(handle.into(), gpui::size(gpui::px(600.), gpui::px(400.)));
     frame(cx, handle);

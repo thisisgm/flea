@@ -1,12 +1,12 @@
 //! The table reader reports the mounted Markdown table and follows the real horizontal wheel route.
 use super::readers3_tests::{open, read};
 use crate::g2::{
-    pv1::doc::View,
-    pv2::markdown::{Laid, Status},
+    doc_preview::markdown::{Laid, Status},
+    quick_look_overlay::doc::View,
 };
 use flea::{
     jsondoc::{self, Json},
-    ui_logic_pv2::markdown::{
+    ui_logic_doc_preview::markdown::{
         markdown_layout::{FigureState, Geometry, Item},
         Block, Figure, FigureKind, Table,
     },
@@ -25,7 +25,7 @@ fn table(cx: &mut TestAppContext, handle: gpui::WindowHandle<crate::window::root
 #[gpui::test]
 fn vf_readers_table_reports_painted_geometry_and_wheel_position(cx: &mut TestAppContext) {
     let handle = open(cx);
-    let doc = crate::g2::pv2::render::without_markdown_threads(|| {
+    let doc = crate::g2::doc_preview::render::without_markdown_threads(|| {
         super::reader_port_b_tests::document(cx, handle, "wide.md", "text-markdown")
     });
     let View::Markdown(view) = doc.view else {

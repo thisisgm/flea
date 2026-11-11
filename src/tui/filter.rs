@@ -14,6 +14,8 @@ pub struct Matches {
     pub waiting: bool,
     // The position in rows of the first drawn match.
     pub top: usize,
+    // A committed line's Enter that acts on the highlighted row once the answer lands (enter_once.rs).
+    pub enter_after: bool,
 }
 impl Matches {
     // A renumbered listing or a cleared query leaves no answer standing.
@@ -22,6 +24,7 @@ impl Matches {
         self.asked.clear();
         self.waiting = false;
         self.top = 0;
+        self.enter_after = false;
     }
 }
 // Until the answer to the current query arrives, the query narrows the held rows, the same substring the backend matches.

@@ -2,7 +2,7 @@
 use super::boards::rect;
 use super::scenes::*;
 use super::*;
-use flea::ui_logic_pv1::compare;
+use flea::ui_logic_preview_core::compare;
 
 fn english() -> flea::i18n::I18n {
     crate::test_catalogs::english()

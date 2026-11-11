@@ -5,6 +5,7 @@ use std::path::Path;
 
 mod cache;
 pub mod render;
+pub mod sample;
 
 #[derive(Debug, Default, PartialEq, Eq, Clone)]
 pub struct Facts {
@@ -49,20 +50,8 @@ fn bytes_at<R: Read + Seek>(r: &mut R, len: u64, off: u64, n: u64) -> Option<Vec
 
 // Sample input: bytes 00 01 00 00 | 00 02 ... (sfnt version, table count), then 16 bytes per table, then the tables; every offset is checked against len.
 pub fn parse<R: Read + Seek>(r: &mut R, len: u64) -> Facts {
-    let face = match bytes_at(r, len, 0, 16).and_then(|h| (be32(&h, 0) == Some(TTC_TAG) && be32(&h, 8)? > 0).then(|| be32(&h, 12))) {
-        Some(first) => u64::from(first.unwrap_or(0)),
-        None => 0,
-    };
-    let Some(head) = bytes_at(r, len, face, 12) else { return Facts::default() };
-    let count = usize::from(be16(&head, 4).unwrap_or(0));
-    if !SFNT_VERSIONS.contains(&be32(&head, 0).unwrap_or(0)) || count == 0 {
-        return Facts::default();
-    }
-    let Some(dir) = bytes_at(r, len, face + 12, 16 * count as u64) else { return Facts::default() };
-    let table = |tag: &[u8; 4]| {
-        let rec = dir.chunks_exact(16).find(|rec| rec[..4] == tag[..])?;
-        Some((u64::from(be32(rec, 8)?), u64::from(be32(rec, 12)?)))
-    };
+    let Some(dir) = directory(r, len) else { return Facts::default() };
+    let table = |tag: &[u8; 4]| table_in(&dir, tag);
     let glyphs = table(b"maxp")
         .and_then(|(off, size)| if size >= 6 { bytes_at(r, len, off, 6) } else { None })
         .and_then(|b| be16(&b, 4))
@@ -71,6 +60,26 @@ pub fn parse<R: Read + Seek>(r: &mut R, len: u64) -> Facts {
     let names = table(b"name").filter(|(_, size)| *size <= NAME_CAP).and_then(|(off, size)| bytes_at(r, len, off, size));
     let pick = |ids: [u16; 2]| names.as_deref().and_then(|t| ids.iter().find_map(|id| name_for(t, *id)));
     Facts { family: pick([16, 1]), style: pick([17, 2]), glyphs }
+}
+
+// The table directory of the file's first face, a collection's included; None when the file holds no sfnt.
+fn directory<R: Read + Seek>(r: &mut R, len: u64) -> Option<Vec<u8>> {
+    let face = match bytes_at(r, len, 0, 16).and_then(|h| (be32(&h, 0) == Some(TTC_TAG) && be32(&h, 8)? > 0).then(|| be32(&h, 12))) {
+        Some(first) => u64::from(first.unwrap_or(0)),
+        None => 0,
+    };
+    let head = bytes_at(r, len, face, 12)?;
+    let count = usize::from(be16(&head, 4).unwrap_or(0));
+    if !SFNT_VERSIONS.contains(&be32(&head, 0).unwrap_or(0)) || count == 0 {
+        return None;
+    }
+    bytes_at(r, len, face + 12, 16 * count as u64)
+}
+
+// One table's offset and size from the directory.
+fn table_in(dir: &[u8], tag: &[u8; 4]) -> Option<(u64, u64)> {
+    let rec = dir.chunks_exact(16).find(|rec| rec[..4] == tag[..])?;
+    Some((u64::from(be32(rec, 8)?), u64::from(be32(rec, 12)?)))
 }
 
 // Sample input: a name table, 00 00 | 00 01 | 00 12 (format, count, storage), then 12 bytes per record: 00 03 00 01 04 09 00 01 00 0A 00 00, and the UTF-16BE text "Inter".

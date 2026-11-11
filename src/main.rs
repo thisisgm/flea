@@ -99,14 +99,10 @@ pub(crate) fn flash_picker(args: &[String]) -> bool {
 mod copysrc_tests;
 
 fn main() {
-    // args() panics on a non-UTF-8 argument and a Linux filename is any bytes, so refuse instead.
-    let args: Vec<String> = match std::env::args_os().map(|a| a.into_string()).collect() {
-        Ok(v) => v,
-        Err(bad) => {
-            eprintln!("flea: {} is not valid UTF-8, and Flea takes text paths", bad.to_string_lossy());
-            exit(2);
-        }
-    };
+    // args() panics on a non-UTF-8 argument and a Linux filename is any bytes, so each argument is carried as its exact text.
+    let args: Vec<String> = std::env::args_os()
+        .map(|a| flea::bytename::path_text(std::path::Path::new(&a)).into_owned())
+        .collect();
     if args.get(1).map(String::as_str) == Some("--plugin-host") {
         exit(backend::pluginhost::run());
     }
@@ -122,7 +118,7 @@ fn main() {
     }
 
     // A bare version query needs no display or path parsing.
-    if args.len() == 2 && args[1] == "--version" {
+    if args.len() == 2 && matches!(args[1].as_str(), "--version" | "-V") {
         println!("{}", env!("CARGO_PKG_VERSION"));
         exit(0);
     }
@@ -285,8 +281,11 @@ fn main() {
         Some("flash") if flash_picker(&args) => exit(shelfplaces::flash_command(&args)),
         _ => {}
     }
-    let launchargs::Options { want_tui, print_target, tui_options, select_raw, start } =
+    let launchargs::Options { want_tui, print_target, tui_options, select_raw, start, help } =
         launchargs::Options::parse(&args).unwrap_or_else(|error| usage(&error));
+    if help {
+        usage::help();
+    }
     // A relative start or reveal is resolved here, because the window has no launch directory to read it against.
     let start = start.map(|s| paths::commandline_path(&s));
     let select_raw = select_raw.map(|s| paths::commandline_path(&s));
@@ -315,6 +314,10 @@ fn main() {
             eprintln!("flea: the terminal interface needs a terminal on stdin and stdout");
             exit(2);
         }
+        if dumb_terminal(std::env::var_os("TERM").as_deref()) {
+            eprintln!("flea: the terminal interface cannot draw on a dumb terminal (TERM=dumb)");
+            exit(2);
+        }
         exit(tui::run(open_path.as_deref(), select_path.as_deref(), &tui_options));
     }
 
@@ -329,9 +332,22 @@ fn main() {
     exit(gui::exec_gpui(open_path.as_deref(), select_path.as_deref()));
 }
 
+// TERM=dumb names a terminal that cannot move its cursor, so a drawn interface would only print escape codes.
+fn dumb_terminal(term: Option<&std::ffi::OsStr>) -> bool {
+    term.is_some_and(|term| term == "dumb")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_a_dumb_terminal_is_refused() {
+        assert!(dumb_terminal(Some("dumb".as_ref())));
+        for term in [Some("xterm-256color"), Some("linux"), Some("vt100"), Some(""), None] {
+            assert!(!dumb_terminal(term.map(std::ffi::OsStr::new)), "{term:?}");
+        }
+    }
 
     #[test]
     fn a_path_named_flash_still_opens() {

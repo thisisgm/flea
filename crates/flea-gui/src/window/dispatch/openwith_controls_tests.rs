@@ -2,7 +2,7 @@
 use super::menudeliver_tests::{open, wire, REG};
 use super::menus_tests::{home, reply, settle};
 use super::test_shell::land;
-use crate::{g2::op3::openwith::Stop, state::Shell};
+use crate::{g2::open_with_properties::openwith::Stop, state::Shell};
 use gpui::{Entity, Modifiers, MouseButton, TestAppContext, VisualTestContext};
 
 const APPS: &str = r#"{"id":"a.desktop","label":"A","icon":"","default":true},{"id":"b.desktop","label":"B","icon":"","default":false}"#;
@@ -141,7 +141,7 @@ fn openwith_pointer_always_is_used_by_the_launch(cx: &mut TestAppContext) {
 
 #[gpui::test]
 fn openwith_fidelity_waiting_row_stays_grey_while_the_footer_holds_focus(cx: &mut TestAppContext) {
-    use crate::g2::op3::shell::{AppRow, Block, Cursor};
+    use crate::g2::open_with_properties::shell::{AppRow, Block, Cursor};
     let (shell, cx, _sent) = prepared(cx, APPS);
     let at = shell.read_with(cx, |shell, _| {
         let rule = shell

@@ -10,6 +10,10 @@ impl Shell {
         cx: &mut Context<Self>,
     ) -> bool {
         let kind = flea::json::field_str(line, "t");
+        if kind.as_deref() == Some("searchremap") {
+            self.search_remapped(side, line, window, cx);
+            return true;
+        }
         if kind.as_deref() == Some("error")
             && flea::json::field_str(line, "where").as_deref() == Some("searchcontents")
         {

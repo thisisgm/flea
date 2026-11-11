@@ -10,6 +10,11 @@ const RAW_FILE: &[u8] = b"caf\xe9.txt";
 const RAW_DIR: &[u8] = b"d\xe9";
 const LOSSY_FILE: &str = "caf\u{fffd}.txt";
 
+// The exact text a row carries for raw bytes, see docs/architecture/exact-names.md.
+fn exact(raw: &[u8]) -> String {
+    flea::bytename::path_text(Path::new(OsStr::from_bytes(raw))).into_owned()
+}
+
 fn raw(d: &TestDir, name: &[u8]) -> PathBuf {
     d.path().join(OsStr::from_bytes(name))
 }
@@ -52,32 +57,51 @@ fn every_row_of_the_index_names_a_file_the_walk_found() {
     let d = fixture("rawrows");
     let s = open(&d);
     let rows = on_disk(d.path(), &s.index.lock().unwrap());
-    let mut names: Vec<&str> = rows.iter().map(|(name, _)| name.as_str()).collect();
+    let mut names: Vec<String> = rows.iter().map(|(name, _)| name.clone()).collect();
     names.sort();
-    assert_eq!(names, ["caf\u{fffd}.txt", "d\u{fffd}", "d\u{fffd}/needle.txt", "notes.txt"], "4 rows over 2 directories walked");
-    assert!(rows.iter().all(|(_, exists)| *exists), "a row that names no file on disk: {:?}", rows);
+    let mut expected = vec![
+        exact(RAW_FILE),
+        exact(RAW_DIR),
+        exact(b"d\xe9/needle.txt"),
+        "notes.txt".to_string(),
+    ];
+    expected.sort();
+    assert_eq!(names, expected, "4 rows over 2 directories walked");
+    assert!(
+        rows.iter().all(|(_, exists)| *exists),
+        "a row that names no file on disk: {:?}",
+        rows
+    );
 }
 
 #[test]
 fn a_tag_term_finds_a_tagged_file_whose_name_is_not_utf8() {
     let d = fixture("rawtag");
     let mut s = open(&d);
-    assert_eq!(tag_hits(&mut s, 1, "tag:Red"), [LOSSY_FILE], "the tag is read at the file's own path");
+    assert_eq!(
+        tag_hits(&mut s, 1, "tag:Red"),
+        [exact(RAW_FILE)],
+        "the tag is read at the file's own path"
+    );
 }
 
 #[test]
 fn a_directory_whose_name_is_not_utf8_is_walked_in() {
     let d = fixture("rawdir");
     let mut s = open(&d);
-    assert_eq!(hits(&mut s, 1, "needle"), ["d\u{fffd}/needle.txt"]);
+    assert_eq!(hits(&mut s, 1, "needle"), [exact(b"d\xe9/needle.txt")]);
 }
 
 #[test]
 fn a_tag_term_reaches_a_file_under_a_directory_that_is_not_utf8() {
     let d = fixture("rawdirtag");
-    crate::backend::tags::write_names(&raw(&d, RAW_DIR).join("needle.txt"), &["Blue".to_string()]).unwrap();
+    crate::backend::tags::write_names(&raw(&d, RAW_DIR).join("needle.txt"), &["Blue".to_string()])
+        .unwrap();
     let mut s = open(&d);
-    assert_eq!(tag_hits(&mut s, 1, "tag:Blue"), ["d\u{fffd}/needle.txt"]);
+    assert_eq!(
+        tag_hits(&mut s, 1, "tag:Blue"),
+        [exact(b"d\xe9/needle.txt")]
+    );
 }
 
 #[test]
@@ -88,7 +112,7 @@ fn a_patch_after_a_write_indexes_a_new_name_that_is_not_utf8() {
     std::fs::write(&added, "").unwrap();
     crate::backend::tags::write_names(&added, &["Green".to_string()]).unwrap();
     assert!(s.patch_after_write(&added), "the own write under the scope patches the index");
-    assert_eq!(tag_hits(&mut s, 1, "tag:Green"), ["new\u{fffd}.jpg"]);
+    assert_eq!(tag_hits(&mut s, 1, "tag:Green"), [exact(b"new\xe9.jpg")]);
 }
 
 #[test]
@@ -96,10 +120,21 @@ fn a_patch_replaces_a_row_renamed_to_a_name_with_the_same_lossy_text() {
     let d = fixture("rawrename");
     let mut s = open(&d);
     std::fs::rename(raw(&d, RAW_FILE), raw(&d, b"caf\xe8.txt")).unwrap();
-    assert!(s.patch_open_dir(d.path()), "the scope itself is under the scope");
+    assert!(
+        s.patch_open_dir(d.path()),
+        "the scope itself is under the scope"
+    );
     let rows = on_disk(d.path(), &s.index.lock().unwrap());
-    assert!(rows.iter().all(|(_, exists)| *exists), "a stale row names no file on disk: {:?}", rows);
-    assert_eq!(hits(&mut s, 1, "caf"), [LOSSY_FILE], "one row for the one file left");
+    assert!(
+        rows.iter().all(|(_, exists)| *exists),
+        "a stale row names no file on disk: {:?}",
+        rows
+    );
+    assert_eq!(
+        hits(&mut s, 1, "caf"),
+        [exact(b"caf\xe8.txt")],
+        "one row for the one file left"
+    );
 }
 
 #[test]
@@ -111,20 +146,63 @@ fn a_patch_drops_a_row_whose_name_is_not_utf8_once_the_file_is_gone() {
     assert!(hits(&mut s, 1, "caf").is_empty(), "the removed file leaves no row");
 }
 
-// The listing, the walk route and the session all name the file the same way: the wire has no byte escape.
+// The listing, the walk route and the session all name the file by the same exact text.
 #[test]
 fn the_session_names_the_file_as_the_listing_and_the_walk_route_do() {
     let d = fixture("rawwire");
     let root = d.path().to_str().expect("utf-8");
     let (listing, _) = crate::backend::scan::scan(root, false).expect("scan");
-    let listed: Vec<String> = (0..listing.len()).map(|i| listing.name(i).to_string()).collect();
-    assert!(listed.contains(&LOSSY_FILE.to_string()), "the listing row is lossy: {:?}", listed);
+    let listed: Vec<String> = (0..listing.len())
+        .map(|i| listing.name(i).to_string())
+        .collect();
+    assert!(
+        listed.contains(&exact(RAW_FILE)),
+        "the listing row is exact: {:?}",
+        listed
+    );
+    assert!(
+        !listed.contains(&LOSSY_FILE.to_string()),
+        "the listing row is never the lossy twin: {:?}",
+        listed
+    );
     let mut search = crate::backend::search::Search::new(root, "caf", false);
     let mut walked = crate::backend::listing::Listing::new();
     while !search.step(&mut walked) {}
-    assert_eq!(walked.name(0), LOSSY_FILE, "the walk route hit is lossy");
+    assert_eq!(
+        walked.name(0),
+        exact(RAW_FILE),
+        "the walk route hit is exact"
+    );
     let mut s = open(&d);
-    assert_eq!(hits(&mut s, 1, "caf"), [LOSSY_FILE], "the session hit is lossy the same way");
+    assert_eq!(
+        hits(&mut s, 1, "caf"),
+        [exact(RAW_FILE)],
+        "the session hit is exact the same way"
+    );
+}
+
+// The hex tail adds letters a to f (e9 holds an e), so a walk scored on it takes "cafe" for caf\xe9.txt; a session folds raw bytes.
+#[test]
+fn a_walk_query_meets_only_the_shown_name_and_never_its_hex_tail() {
+    let d = fixture("rawtail");
+    let root = d.path().to_str().expect("utf-8");
+    let walk = |query: &str| {
+        let mut search = crate::backend::search::Search::new(root, query, false);
+        let mut walked = crate::backend::listing::Listing::new();
+        while !search.step(&mut walked) {}
+        (0..walked.len())
+            .map(|i| walked.name(i).to_string())
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(
+        walk("caf"),
+        [exact(RAW_FILE)],
+        "the same walk reaches the raw file by its shown letters"
+    );
+    assert!(
+        walk("cafe").is_empty(),
+        "the walk route scores the lossy spelling"
+    );
 }
 
 // Diagnostic only: the bytes a 40,000-name UTF-8 tree costs, so the raw bytes can be shown to add none.

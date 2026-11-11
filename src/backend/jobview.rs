@@ -2,6 +2,81 @@
 use super::jobs::{Job, State};
 use crate::json::escape;
 
+// A job or a shelf drop names every path it reads or writes once, and its kind, so an eject can wait for it and say what it waits for.
+pub(crate) fn roots_line(
+    id: usize,
+    job: bool,
+    kind: &str,
+    request: Option<usize>,
+    paths: &[String],
+) -> String {
+    let paths: Vec<_> = paths
+        .iter()
+        .map(|path| format!("\"{}\"", escape(path)))
+        .collect();
+    let request = request
+        .map(|request| format!(r#","requestId":{request}"#))
+        .unwrap_or_default();
+    format!(
+        r#"{{"t":"roots","id":{id},"job":{job},"kind":"{}"{request},"paths":[{}]}}"#,
+        escape(kind),
+        paths.join(",")
+    )
+}
+
+impl super::jobwork::Work {
+    // The id of the send request that started this work, which its client holds the paths under until the roots line lands.
+    pub(crate) fn request(&self) -> Option<usize> {
+        match self {
+            Self::Send { request, .. } => Some(*request),
+            Self::Rclone(send) => Some(send.request),
+            _ => None,
+        }
+    }
+
+    // Every path the work reads or writes, which a client checks before it releases a volume.
+    pub(crate) fn roots(&self) -> Vec<String> {
+        let (paths, selection, written) = match self {
+            Self::Rclone(send) => (&send.paths, &send.selection, Vec::new()),
+            Self::Transfer {
+                paths,
+                dest,
+                selection,
+                destination,
+                ..
+            } => {
+                let mut written = vec![dest.clone()];
+                written.extend(destination.as_ref().map(|held| held.path.clone()));
+                (paths, selection, written)
+            }
+            Self::Archive {
+                paths,
+                archive,
+                dest,
+                selection,
+                ..
+            } => (paths, selection, vec![archive.clone(), dest.clone()]),
+            Self::Action {
+                paths, selection, ..
+            }
+            | Self::Send {
+                paths, selection, ..
+            } => (paths, selection, Vec::new()),
+        };
+        let mut roots = paths.clone();
+        let named = selection
+            .iter()
+            .flatten()
+            .map(|item| &item.path)
+            .chain(&written);
+        roots.extend(named.map(|path| path.to_string_lossy().into_owned()));
+        roots.retain(|path| !path.is_empty());
+        roots.sort();
+        roots.dedup();
+        roots
+    }
+}
+
 impl Job {
     pub(super) fn wait_name(&self) -> &str {
         match self.kind.as_str() {
@@ -49,14 +124,7 @@ impl Job {
                 _ => self.label.clone(),
             };
         }
-        let at = if self.state == State::Done {
-            self.done
-        } else {
-            self.index
-                .map(|i| i + 1)
-                .unwrap_or(self.done)
-                .min(self.total)
-        };
+        let at = self.at();
         match self.kind.as_str() {
             "copy" => format!("Copying {} of {} to {}", at, self.total, self.target),
             "move" => format!("Moving {} of {} to {}", at, self.total, self.target),
@@ -67,6 +135,19 @@ impl Job {
         }
     }
 
+    // The item a running head counts to, one-based; a done job counts what it finished.
+    fn at(&self) -> usize {
+        if self.state == State::Done {
+            self.done
+        } else {
+            self.index
+                .map(|i| i + 1)
+                .unwrap_or(self.done)
+                .min(self.total)
+        }
+    }
+
+    // The head stays for readers without a catalog; target, at and label let a front end build it in its own language.
     pub fn json(&self) -> String {
         let state = match self.state {
             State::Waiting => "waiting",
@@ -81,7 +162,7 @@ impl Job {
             .collect();
         let bytes = !matches!(self.kind.as_str(), "action" | "emptyTrash");
         format!(
-            r#"{{"id":{},"kind":"{}","head":"{}","file":"{}","done":{},"total":{},"bytes":{},"totalBytes":{},"itemBytes":{},"rate":{},"left":{},"state":"{}","reason":"{}","output":[{}],"undo":{},"cancelled":{},"phase":"{}","check":"{}","receipt":"{}","note":"{}"}}"#,
+            r#"{{"id":{},"kind":"{}","head":"{}","file":"{}","done":{},"total":{},"bytes":{},"totalBytes":{},"itemBytes":{},"rate":{},"left":{},"state":"{}","reason":"{}","output":[{}],"undo":{},"cancelled":{},"phase":"{}","check":"{}","receipt":"{}","note":"{}","target":"{}","at":{},"label":"{}"}}"#,
             self.id,
             escape(&self.kind),
             escape(&self.head()),
@@ -115,7 +196,14 @@ impl Job {
                 "not checked"
             } else {
                 ""
-            }
+            },
+            escape(&self.target),
+            self.at(),
+            escape(&self.label)
         )
     }
 }
+
+#[cfg(test)]
+#[path = "jobview_tests.rs"]
+mod tests;

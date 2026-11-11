@@ -1,9 +1,9 @@
 // Add from a Git URL or a local folder, and Update from Git; both land a whole folder or nothing.
 use super::plugins::{self, Env};
 use super::{pluginfs, plugingit};
-use flea::ui_logic_st2::manifest::{self, Invalid, Manifest};
-use flea::ui_logic_st2::wire::Source;
-use flea::ui_logic_st2::{builtin, store};
+use flea::ui_logic_plugin_settings::manifest::{self, Invalid, Manifest};
+use flea::ui_logic_plugin_settings::wire::Source;
+use flea::ui_logic_plugin_settings::{builtin, store};
 use std::fs;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -23,8 +23,10 @@ fn classify(source: &str) -> Result<From, Invalid> {
         return Ok(From::Git(source.to_string()));
     }
     let path = match source.strip_prefix("~/") {
-        Some(rest) => crate::userfile::home().map_err(|_| missing())?.join(rest),
-        None => PathBuf::from(source),
+        Some(rest) => crate::userfile::home()
+            .map_err(|_| missing())?
+            .join(flea::bytename::view(rest)),
+        None => flea::bytename::exact(source),
     };
     if !path.is_absolute() || !path.is_dir() {
         return Err(missing());

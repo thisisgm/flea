@@ -93,7 +93,15 @@ impl Shell {
                     && host.input.band.is_none()
                     && !cx.has_active_drag()
                     && !self.input_blocked(cx)
+                    // PaneRail.qml: a revealed overlay rail holds the pointer, so the rows left of its edge light nothing.
+                    && !self.rail.as_ref().is_some_and(|join| {
+                        join.host
+                            .read(cx)
+                            .cover()
+                            .is_some_and(|cover| window.mouse_position().x < cover.right())
+                    })
             }),
+            hover_wash: crate::list::hover_wash::HoverWash::on(cx),
             renaming: self.renaming_row(side),
             grow: self.grows[side],
             ..self
@@ -297,7 +305,11 @@ impl Shell {
         if self.view != View::List {
             let text = self.locale.catalog.tr("feedback.autofit.list_required");
             self.status_messages(cx, |messages, now| {
-                messages.explain(&text, flea::ui_logic_fb1::status::Hint::None, now);
+                messages.explain(
+                    &text,
+                    flea::ui_logic_status_feedback::status::Hint::None,
+                    now,
+                );
             });
             return;
         }

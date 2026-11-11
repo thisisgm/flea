@@ -18,6 +18,7 @@ impl ChromeView {
         {
             let mut frame = frame.borrow_mut();
             frame.controls[index].visible = true;
+            frame.controls[index].reachable = true;
             frame.controls[index].enabled = enabled;
         }
         let focused = self.frame.borrow().controls[index].focused && enabled;
@@ -39,7 +40,7 @@ impl ChromeView {
                 let mut frame = view.frame.borrow_mut();
                 let control = &mut frame.controls[index];
                 control.pointer_over = *hovered;
-                control.hovered = control.pointer_over && view.inputs.live;
+                control.hovered = control.pointer_over && control.enabled && view.inputs.live;
                 let down = control.pointer_down && control.hovered && control.enabled;
                 if control.pressed != down {
                     control.set_pressed(down, cx.background_executor().now(), cx.reduce_motion());

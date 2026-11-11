@@ -48,6 +48,9 @@
   "archive.compressing": "%1 を .%2 に圧縮中",
   "archive.confirm": "確認",
   "archive.done.cancelled": "展開をキャンセルしました。",
+  "archive.done.extracted": "展開しました。",
+  "archive.done.name_refused": "「%1」はこのドライブに展開できません: %2。",
+  "archive.done.twins": "「%1」と「%2」はこのドライブで同じ名前になるため、何も展開しませんでした。",
   "archive.done.unverified": "展開しました。アーカイブの索引を読み取れなかったため、検証は行われていません。",
   "archive.done.written": "アーカイブを書き込みました。",
   "archive.encrypt_names": "ファイル名を暗号化",
@@ -207,9 +210,14 @@
   "device.still_mounted": "%1 はまだマウントされています。使用中のアプリを閉じてください。",
   "device.still_unmounting": "%1 をアンマウント中です。結果をお待ちください",
   "device.still_unmounting_try_again": "%1 をアンマウント中です。完了後に再試行してください",
-  "device.system_drive": "%1 はシステムドライブのため、Flea はアンマウントしません",
-  "device.system_volume": "このフォルダーはシステムボリューム上にあるため、Flea はアンマウントしません",
+  "device.system_drive": "%1 はシステムドライブのため、Flea は決して取り出しません。",
+  "device.system_volume": "このフォルダーは Flea が取り出せるドライブ上にありません。",
   "device.transfer_using": "%1 をアンマウントできませんでした。転送処理がまだ使用している可能性があります。",
+  "device.copy_running": "%1 でコピーを実行中です。完了後に再試行してください。",
+  "device.move_running": "%1 で移動を実行中です。完了後に再試行してください。",
+  "device.archive_running": "%1 でアーカイブ処理を実行中です。完了後に再試行してください。",
+  "device.send_running": "%1 で送信を実行中です。完了後に再試行してください。",
+  "device.action_running": "%1 でアクションを実行中です。完了後に再試行してください。",
   "device.unconfirmed": "%1 の取り出しを確認できませんでした。まだ取り外さないでください。",
   "device.unlock.button": "ロック解除",
   "device.unlock.cancel": "omarchy:shell.common.cancel",
@@ -304,6 +312,8 @@
   "dialogs.file.permissions.read_only": "%1 · 読み取り専用",
   "dialogs.file.permissions.reading": "アクセス権を読み取り中…",
   "dialogs.file.permissions.requested": "指定モード %1",
+  "dialogs.file.permissions.no_changes": "適用する変更はありません",
+  "dialogs.file.permissions.current_mode": "現在のモード %1",
   "dialogs.file.permissions.scope_folder": "このフォルダーのみ · 内部の項目と所有者は変更しません",
   "dialogs.file.permissions.scope_folder_note": "適用範囲はこのフォルダーのみです。内部の項目のアクセス権は変更されません。",
   "dialogs.file.permissions.scope_item": "この項目のみ · 所有者は変更しません",
@@ -568,6 +578,11 @@
   "feedback.os.connection_refused": "接続が拒否されました。",
   "feedback.os.connection_reset": "接続がリセットされました。",
   "feedback.os.could_not_finish": "操作を完了できませんでした。",
+  "feedback.drive.char": "この %2 ドライブでは、名前に「%1」を使用できません。",
+  "feedback.drive.control": "この %2 ドライブでは、名前に制御文字 %1 を含めることはできません。",
+  "feedback.drive.end_dot": "この %1 ドライブでは、名前の末尾にピリオドを使用できません。",
+  "feedback.drive.end_space": "この %1 ドライブでは、名前の末尾にスペースを使用できません。",
+  "feedback.drive.reserved": "この %2 ドライブでは「%1」は予約された名前です。",
   "feedback.os.cross_device": "コピー元とコピー先が異なるドライブにあります。",
   "feedback.os.full": "ドライブの空き容量がありません。",
   "feedback.os.interrupted": "操作が中断されました。",
@@ -728,6 +743,26 @@
   "jobs.failed.compress": "圧縮に失敗",
   "jobs.failed.copy": "コピーに失敗",
   "jobs.failed.emptyTrash": "ゴミ箱を空にできませんでした",
+  "jobs.head.send_waiting": "送信中",
+  "jobs.head.copying": "%3 にコピー中: %1 / %2",
+  "jobs.head.moving": "%3 に移動中: %1 / %2",
+  "jobs.head.sending": "%3 に送信中: %1 / %2",
+  "jobs.head.action": "%1 · %2 / %3",
+  "jobs.head.checking": {
+    "other": "%2 の %1 項目を確認中"
+  },
+  "jobs.head.copy_waiting": {
+    "other": "%1 項目を %2 にコピー"
+  },
+  "jobs.head.move_waiting": {
+    "other": "%1 項目を %2 に移動"
+  },
+  "jobs.head.compress_waiting": {
+    "other": "%1 項目を %2 に圧縮"
+  },
+  "jobs.head.compressing": {
+    "other": "%1 項目を圧縮中"
+  },
   "jobs.failed.extract": "展開に失敗",
   "jobs.failed.move": "移動に失敗",
   "jobs.failed.send": "送信に失敗",
@@ -802,6 +837,7 @@
   "jobs.undone.link": "リンクの作成を元に戻しました",
   "jobs.undone.merge": "統合を元に戻しました",
   "jobs.undone.mkdir": "新しいフォルダーを削除しました。",
+  "jobs.undone.convert": "変換を元に戻しました",
   "jobs.undone.move": "移動を元に戻しました",
   "jobs.undone.newfile": "新しいファイルを削除しました",
   "jobs.undone.other": "最後の操作を元に戻しました",
@@ -984,6 +1020,7 @@
   "keys.label.bc99d765de7e": "タグ 5",
   "keys.label.bcf58eaeff52": "履歴を戻るか、履歴がなければ親ディレクトリへ移動",
   "keys.label.bd0b7be215ce": "エディターを閉じる",
+  "keys.label.bc4dd3d76b73": "結果を保持",
   "keys.label.bfa65befcad0": "ファイルのあるディレクトリに移動し、そのファイルを選択",
   "keys.label.704fb7f8818b": "操作なし",
   "keys.label.c5f15f85156b": "隣の項目と同様に、1 回のタップでそのディレクトリに移動",
@@ -1286,6 +1323,7 @@
   "pane.empty.beat_two": "ファイルは見当たりません",
   "pane.empty.initial": "まだ何もありません",
   "pane.empty.rest": "静かな場所です",
+  "pane.empty.fixed": "空のフォルダー",
   "pane.empty.hint_new_folder": "新しいフォルダーを作成するには %1 を押してください。",
   "pane.locked": "このフォルダーを開く権限がありません。",
   "pane.permissions_other_owner": "%1 · 所有者が異なります",
@@ -1770,6 +1808,7 @@
   "send.providers.airdrop_accept": "受け入れる",
   "send.providers.airdrop_decline": "拒否",
   "send.providers.airdrop_someone": "近くのデバイス",
+  "send.providers.airdrop_received": "AirDrop で %1 を受信しました",
   "send.rclone.cancel": "omarchy:shell.common.cancel",
   "send.rclone.cancelling": "キャンセル中",
   "send.rclone.checked_checksum": "チェックサムで確認済み",
@@ -1931,6 +1970,7 @@
   "settings.hint.thumbs_kept": "オフでも、作成済みのサムネイルは表示されます。",
   "settings.keys.move_cursor": "カーソル移動",
   "settings.keys.move_open_up": "移動、開く、親へ",
+  "settings.keys.arrows": "矢印",
   "settings.list.separator": "、",
   "settings.menus.compress": "圧縮",
   "settings.menus.convert": "変換",
@@ -2011,6 +2051,10 @@
   "settings.row.group_by_kind": "種類別にグループ化",
   "settings.row.hidden_last": "隠しファイルを末尾に表示",
   "settings.row.highlight_today": "今日の日付を強調",
+  "settings.row.highlight_hover": "ポインタ下を強調",
+  "settings.row.tabs_as_icons": "タブをアイコンで表示",
+  "settings.row.empty_omi": "空のフォルダーに Omi を表示",
+  "settings.row.empty_rotate": "空のフォルダーのメッセージを切り替え",
   "settings.row.hyprland_icons": "Hyprland に合わせたアイコン",
   "settings.row.lang_marks": "コードアイコンを表示",
   "settings.row.load": "読み込み",
@@ -2066,8 +2110,10 @@
   "settings.update.note_failed": "オフラインでも Omarchy の更新画面は開けます",
   "settings.update.note_launched": "更新が完了したら Flea を再起動してください",
   "settings.update.note_source": "更新するにはチェックアウトから再ビルドしてください。",
+  "settings.update.note_release": "Omarchy の更新で新しいリリースがインストールされます。",
   "settings.update.opening": "Omarchy の更新画面を開いています · 完了したら Flea を再起動してください",
   "settings.update.source": "ソースからビルド",
+  "settings.update.release": "リリースビルド",
   "settings.words.dropbox_down": "停止中",
   "settings.words.dropbox_signed_out": "未ログイン",
   "settings.words.localsend_folder": "ファイルのみ",
@@ -2096,6 +2142,7 @@
   "step.move": "移動",
   "step.newfile": "新しいファイル",
   "step.permissions": "アクセス権",
+  "step.convert": "変換",
   "step.rename": "名前を変更",
   "step.trash": "ゴミ箱に移動",
   "tabs.close": "タブを閉じる",
@@ -2145,6 +2192,9 @@
     "other": "%1 項目中 %2 を削除しました"
   },
   "trash.done.failed": "%1 · %2 項目が失敗",
+  "trash.done.leftover": {
+    "other": "%2 · 残りの %1 項目を削除できませんでした"
+  },
   "trash.done.failure": "%1 が失敗: %2",
   "trash.done.restored": {
     "other": "%1 項目中 %2 を復元しました"
@@ -2262,6 +2312,7 @@
   "keys.label.72a825fc6b84": "1 ページ下へ",
   "keys.label.c2fc6e7bc3be": "次のシート",
   "keys.label.e3a4d6eba0c6": "前のシート",
+  "keys.label.07c371255954": "印刷…",
   "menu.original.needs_link": "元の項目を表示するにはリンクにカーソルを合わせてください",
   "menu.refusal.favourite_unread": "選択したフォルダーを読み取れませんでした。",
   "menu.refusal.nocursor": "カーソル位置に項目がないため、メニューを開けません",
@@ -2363,6 +2414,7 @@
   "tui.cwd.the_output_needs_a_file_name": "出力先にはファイル名が必要です",
   "tui.cwd.tui_keymap_accepts_default_vim_mac_windows_or_yazi": "--tui-keymap には default、vim、mac、windows、yazi を指定できます",
   "tui.cwd.twice": "%1 が 2 回指定されました",
+  "tui.cwd.folder_missing": "%1 のフォルダーが存在しません: %2",
   "tui.cwd.write_error": "%1 に書き込めませんでした: %2",
   "tui.editor.enter_a_filename_before_the_extension": "拡張子の前にファイル名を入力してください。",
   "tui.editor.invalid_name": "空でなく、.や..ではなく、/やヌル文字を含まない名前を入力してください。",
@@ -2387,6 +2439,7 @@
   "tui.launch.could_not_finish": "%1 が正常に終了しませんでした (%2)",
   "tui.launch.could_not_observe": "%1 を監視できませんでした: %2",
   "tui.launch.that_is_not_a_folder_so_no_terminal_was_opened": "フォルダーではないため、ターミナルを開きませんでした",
+  "tui.launch.program_not_found": "プログラム %1 が見つかりませんでした",
   "tui.layout.make_the_window_at_least_12_columns_wide_and_5_rows_tall": "ウィンドウを幅 12 列以上、高さ 5 行以上にしてください。",
   "tui.model.bulk_done": {
     "other": "%1 個の名前を変更しました · 元に戻す操作は 1 件ずつです"
@@ -2476,5 +2529,19 @@
   "settings.hint.key_taken": "このプリセットでは %2 がすでに使用しているため、%1 は未割り当てのままです。",
   "settings.hint.key_unknown": "Flea に %2 というアクションがないため、%1 は未割り当てのままです。",
   "mime.markdown": "Markdown 文書",
-  "mime.png": "PNG 画像"
+  "mime.png": "PNG 画像",
+  "mime.plain": "プレーンテキスト文書",
+  "feedback.unheld.links": "このドライブにはリンクを保存できません。",
+  "feedback.unheld.nodes": "このドライブには特殊ファイルを保存できません。",
+  "feedback.unheld.name": "このドライブではその名前を使用できません。",
+  "feedback.unheld.long": "このドライブにはその名前が長すぎます。",
+  "feedback.unheld.taken": "このドライブでは、その名前はフォルダー内の別の名前と同一とみなされます。",
+  "feedback.unheld.copy_one": "%1 をコピーできませんでした: %2",
+  "feedback.unheld.move_one": "%1 を移動できませんでした: %2",
+  "feedback.unheld.copy_many": {
+    "other": "内部の %1 項目をコピーできませんでした。最初の項目は %2: %3"
+  },
+  "feedback.unheld.move_many": {
+    "other": "内部の %1 項目を移動できませんでした。最初の項目は %2: %3"
+  }
 }

@@ -2,7 +2,7 @@
 use super::boards::rect;
 use super::svg::{gpui_loaded, raster_of, wait_for_raster, wait_for_selector, watchdog};
 use super::*;
-use flea_gui::g2::pv1::{decode, Rasterizer};
+use flea_gui::g2::quick_look_overlay::{decode, Rasterizer};
 use gpui::{size, DevicePixels, RenderImage, TestAppContext, VisualTestContext};
 use std::{
     path::PathBuf,
@@ -26,7 +26,7 @@ fn picture(name: &str, w: f64, h: f64) -> Subject {
         w,
         h,
     };
-    subject.shape = flea::ui_logic_pv1::rect::Shape {
+    subject.shape = flea::ui_logic_preview_core::rect::Shape {
         kind: State::Image,
         known: true,
         w,

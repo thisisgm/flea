@@ -1,4 +1,5 @@
 //! Optional creation correlation leaves each original operation, journal and wire reply intact.
+use flea::bytename::ExactText as _;
 use super::{busy, land_mkdir, menu_sources, pending_busy_for, report_op, Ops, SlowClaim};
 use crate::backend::{
     iomount::{
@@ -11,7 +12,7 @@ use crate::backend::{
 use crate::{error::FleaError, json::escape};
 use std::{
     io::Write,
-    path::{Path, PathBuf},
+    path::PathBuf,
     thread,
     time::Duration,
 };
@@ -93,7 +94,7 @@ pub(crate) fn duplicate(
             return;
         }
     };
-    let mut sources = vec![PathBuf::from(path)];
+    let mut sources = vec![flea::bytename::exact(path)];
     if let Some(items) = &selection {
         sources.extend(items.iter().map(|item| item.path.clone()));
     }
@@ -118,7 +119,7 @@ pub(super) fn mkdir_with<F>(
 where
     F: FnOnce() -> Result<(PathBuf, Vec<Step>), FleaError> + Send + 'static,
 {
-    let key = PathBuf::from(parent);
+    let key = flea::bytename::exact(parent);
     let mut legacy = Vec::new();
     if pending_busy_for(&mut legacy, ops, "mkdir", std::slice::from_ref(&key), &[]) {
         refused(out, request, "made", legacy);
@@ -128,7 +129,7 @@ where
         SlowWrite::Ready(result) => {
             let receipt = result
                 .as_ref()
-                .map(|(path, _)| path.to_string_lossy().into_owned())
+                .map(|(path, _)| path.exact_text().into_owned())
                 .map_err(|error| error.msg.clone());
             let touched = land_mkdir(&mut legacy, ops, result);
             publish(out, request, "made", receipt, legacy);
@@ -149,7 +150,7 @@ where
                 mount,
             });
             let tx = ops.tx.clone();
-            let failed = internal_failure("mkdir", Path::new(parent));
+            let failed = internal_failure("mkdir", &flea::bytename::view(parent));
             thread::spawn(move || {
                 let result = rx.recv().unwrap_or(Err(failed));
                 let _ = tx.send(wrap(request, OpMsg::MkdirDone { id, result }));
@@ -173,7 +174,7 @@ pub(super) fn report(out: &mut impl Write, ops: &mut Ops, request: usize, inner:
             "made",
             result
                 .as_ref()
-                .map(|(path, _)| path.to_string_lossy().into_owned())
+                .map(|(path, _)| path.exact_text().into_owned())
                 .map_err(|error| error.msg.clone()),
         ),
         _ => unreachable!("only creation results carry creation receipts"),

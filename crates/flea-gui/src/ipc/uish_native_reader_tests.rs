@@ -2,7 +2,7 @@
 use super::*;
 use flea::{
     jsondoc::{parse, Json},
-    ui_logic_op1::{confirm, trash},
+    ui_logic_file_ops::{confirm, trash},
 };
 
 fn frame(cx: &mut TestAppContext, handle: WindowHandle<Root>) {
@@ -22,7 +22,7 @@ fn state(cx: &mut TestAppContext, handle: WindowHandle<Root>, name: &str) -> Jso
 
 #[gpui::test]
 fn uish_misc_native_delete_reader_names_the_drawn_card_and_buttons(cx: &mut TestAppContext) {
-    use crate::g2::op1::{host::Overlay, palette::CardPalette};
+    use crate::g2::file_ops::{host::Overlay, palette::CardPalette};
     let (handle, _backend) = open(cx);
     update(cx, handle, |shell, window, cx| {
         let palette = CardPalette::from_theme(&window.text_style(), Default::default(), 8.);
@@ -104,7 +104,8 @@ fn uish_misc_native_delete_reader_empty_token_has_the_qt_zero_sentinel(cx: &mut 
             cx,
         );
         shell.overlay.as_ref().unwrap().clone().update(cx, |o, cx| {
-            let Some(crate::g2::op1::model::Dialog::Delete { busy, .. }) = o.model.dialog.as_mut()
+            let Some(crate::g2::file_ops::model::Dialog::Delete { busy, .. }) =
+                o.model.dialog.as_mut()
             else {
                 panic!("Delete is open")
             };
@@ -127,7 +128,7 @@ fn uish_misc_native_delete_reader_empty_token_has_the_qt_zero_sentinel(cx: &mut 
 
 #[gpui::test]
 fn uish_misc_native_extract_reader_observes_the_drawn_source_line(cx: &mut TestAppContext) {
-    use crate::g2::op1::{host::Overlay, palette::CardPalette};
+    use crate::g2::file_ops::{host::Overlay, palette::CardPalette};
     let (handle, _backend) = open(cx);
     update(cx, handle, |shell, window, cx| {
         let palette = CardPalette::from_theme(&window.text_style(), Default::default(), 8.);

@@ -1,23 +1,24 @@
 //! Effect staging keeps the real session published before navigation consumes it.
 use crate::{
-    g2::sr1::{self, Host, HostPane, Search},
+    g2::file_search::{self, Host, HostPane, Search},
     pane::swap::Session as PaneSession,
 };
-use flea::ui_logic_sr1::Wire;
+use flea::ui_logic_file_search::Wire;
 use std::{cell::RefCell, rc::Rc};
 pub(crate) struct Runtime {
+    pub(crate) kept: Option<super::Kept>,
     pub owner: Search,
-    pub input: Option<gpui::Entity<sr1::input::QueryInput>>,
+    pub input: Option<gpui::Entity<file_search::input::QueryInput>>,
     pub rows_generation: usize,
     /// The generation an Enter committed before its rows landed; the row acts when they do.
     pub(crate) enter_after: Option<u64>,
-    pub strip: Rc<RefCell<sr1::strip::StripState>>,
+    pub strip: Rc<RefCell<file_search::strip::StripState>>,
     pub(super) origin: Option<crate::window::startup::View>,
     pub(super) scroll: f32,
     /// The contents blocks' shaped state, made again when the list's words or face change.
     pub(super) contents: Option<(
         Rc<crate::row::format::Words>,
-        Rc<RefCell<sr1::contents::ContentsState>>,
+        Rc<RefCell<file_search::contents::ContentsState>>,
     )>,
 }
 
@@ -32,6 +33,7 @@ impl Runtime {
 
     pub fn new(face: crate::list::Typeface) -> Self {
         Self {
+            kept: None,
             // The GUI wires the contents producer, so Ctrl+G switches the strip to contents instead of doing nothing.
             owner: Search::new(Wire {
                 contents: true,
@@ -40,7 +42,7 @@ impl Runtime {
             input: None,
             rows_generation: 0,
             enter_after: None,
-            strip: Rc::new(RefCell::new(sr1::strip::StripState::new(face))),
+            strip: Rc::new(RefCell::new(file_search::strip::StripState::new(face))),
             origin: None,
             scroll: 0.,
             contents: None,
@@ -101,7 +103,7 @@ impl crate::state::Shell {
         &mut self,
         side: usize,
         cx: &mut gpui::Context<Self>,
-    ) -> Option<gpui::Entity<sr1::input::QueryInput>> {
+    ) -> Option<gpui::Entity<file_search::input::QueryInput>> {
         use gpui::AppContext;
         let host = self.panes[side].as_mut()?;
         let generation = host.search.owner.entry.borrow().session()?;
@@ -112,7 +114,7 @@ impl crate::state::Shell {
             .is_none_or(|input| input.read(cx).generation != generation)
         {
             let strip = host.search.strip.borrow();
-            let input = sr1::input::QueryInput::new(
+            let input = file_search::input::QueryInput::new(
                 cx.weak_entity(),
                 side,
                 generation,

@@ -1,4 +1,4 @@
-//! Review probes for uish-u26 round 1; each asserts the v0.3.12 QML behaviour it cites.
+//! Dual focus review probes, including the address bar's single-click editor contract.
 use crate::{
     backend::Backend,
     rail::{host::Host, Mode},
@@ -134,7 +134,16 @@ fn review_dual_activation_hands_the_keys_to_the_focused_list(cx: &mut TestAppCon
         shell
     });
     cx.run_until_parked();
-    let at = point(px(300.), px(10.));
+    let at = cx.update(|_, cx| {
+        let shell = entity.read(cx);
+        let chrome = shell.chrome.view.as_ref().unwrap().read(cx);
+        let dual = crate::path::chrome::GLYPHS
+            .iter()
+            .position(|glyph| *glyph == "dual")
+            .unwrap();
+        let frame = chrome.frame.borrow();
+        frame.controls[dual].bounds.unwrap().center()
+    });
     cx.simulate_mouse_move(at, None, Modifiers::none());
     cx.simulate_mouse_down(at, MouseButton::Left, Modifiers::none());
     cx.simulate_mouse_up(at, MouseButton::Left, Modifiers::none());
@@ -157,13 +166,14 @@ fn review_dual_activation_hands_the_keys_to_the_focused_list(cx: &mut TestAppCon
     });
 }
 
-/// PaneRail.qml's overlay owns only its edge strip and its body; a press on a pane's path row or header leaves the list focused.
+/// The auto-hidden rail ignores a pane address-bar tap; Escape returns its editor's keys to that pane.
 #[gpui::test]
 fn review_an_auto_hidden_rail_never_takes_a_pane_header_press(cx: &mut TestAppContext) {
     let (backend, _requests) = Backend::test_channel();
     let (entity, cx) = cx.add_window_view(|window, cx| {
         let mut shell = shell_with(backend, cx);
         shell.panes[1] = Some(right(&shell));
+        shell.path_labels[1] = "/right".into();
         shell.view = View::Dual;
         shell.focus_side = 1;
         shell.dual_focus.last_side = 1;
@@ -208,12 +218,51 @@ fn review_an_auto_hidden_rail_never_takes_a_pane_header_press(cx: &mut TestAppCo
                 .rail
                 .wants()
                 .focus;
-            key(shell, "down", window, cx);
+            let chrome = shell.chrome.view.as_ref().unwrap().read(cx);
+            let path = chrome.path.read(cx);
+            assert_eq!(
+                (stop, revealed, shell.focus_side),
+                ("chrome", false, 1),
+                "the right address-bar tap opens its editor without revealing the rail"
+            );
+            assert!(path.editing());
+            assert_eq!(path.entry.text, "/right/");
+            assert_eq!(shell.panes[1].as_ref().unwrap().pane.cursor, 5);
+        })
+    });
+    cx.simulate_keystrokes("escape");
+    cx.run_until_parked();
+    cx.update(|window, cx| {
+        entity.update(cx, |shell, cx| {
+            let chrome = shell.chrome.view.as_ref().unwrap().read(cx);
+            assert!(!chrome.path.read(cx).editing());
+            assert_eq!(
+                (shell.focus_side, shell.focus_view(window, cx)),
+                (1, "list")
+            );
+        })
+    });
+    cx.simulate_keystrokes("down");
+    cx.run_until_parked();
+    cx.update(|window, cx| {
+        entity.update(cx, |shell, cx| {
+            let stop = shell.focus_view(window, cx);
+            let revealed = shell
+                .slots
+                .rail
+                .clone()
+                .unwrap()
+                .downcast::<Host>()
+                .unwrap()
+                .read(cx)
+                .rail
+                .wants()
+                .focus;
             let cursor = shell.panes[1].as_ref().unwrap().pane.cursor;
             assert_eq!(
                 (stop, revealed, cursor),
                 ("list", false, 6),
-                "a press on the right path row put the keyboard on {stop:?} (rail asked to reveal: {revealed}) and Down left the cursor at {cursor}"
+                "Escape after the right path-row tap put the keyboard on {stop:?} (rail asked to reveal: {revealed}) and Down left the cursor at {cursor}"
             );
         })
     });

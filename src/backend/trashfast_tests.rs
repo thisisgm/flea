@@ -220,3 +220,59 @@ fn an_item_that_is_its_own_mount_is_left_to_gio_though_its_parent_shares_the_tra
     assert!(renames_to_home(fd), "an item on the parent's device is renameable");
     assert!(!renames_to_home(shm), "a mount point under the same parent is left to gio");
 }
+
+// Trashes five files in-process and journals them as one trash step each, as a trash request does.
+fn trashed_five(d: &TestDir) -> (Vec<PathBuf>, crate::backend::undo::Entry) {
+    use crate::backend::undo::Step;
+    d.dir("home");
+    let make = |i: usize| d.file(&format!("home/f{i}.txt"), &format!("body {i}"));
+    let paths: Vec<PathBuf> = (0..5).map(make).collect();
+    let (ok, failed, _) = trash_checked(&paths, None).unwrap();
+    assert_eq!((ok.len(), failed), (5, 0));
+    test_take_folder_syncs();
+    let steps = ok.into_iter().map(Step::Trashed).collect();
+    let op = "trash".to_string();
+    (paths, crate::backend::undo::Entry { op, steps })
+}
+
+#[test]
+fn undo_of_a_trash_batch_syncs_each_folder_once_and_not_three_per_item() {
+    let d = TestDir::new("trash-fast-undo-syncs");
+    let xdg = d.dir("xdg");
+    let (_sandbox, calls) = counted_gio(&d, &xdg);
+    for shared in [false, true] {
+        let (paths, entry) = trashed_five(&d);
+        let mut journal = crate::backend::undo::Journal::new();
+        if shared {
+            journal.attach_test_shared(d.dir("runtime"));
+        }
+        journal.push(entry);
+        assert_eq!(journal.undo().unwrap(), "trash");
+        for (i, path) in paths.iter().enumerate() {
+            assert_eq!(std::fs::read_to_string(path).unwrap(), format!("body {i}"));
+        }
+        // One pass over the parent, files/ and info/, with the shared journal and without.
+        assert_eq!(test_take_folder_syncs(), (1, 3), "shared journal: {shared}");
+        let records = std::fs::read_dir(xdg.join("Trash/info")).unwrap().count();
+        assert_eq!(records, 0);
+    }
+    assert_eq!(count(&calls), 0, "{:?}", calls.borrow());
+}
+
+#[test]
+fn an_undo_that_stops_on_a_taken_name_still_syncs_what_it_restored() {
+    let d = TestDir::new("trash-fast-undo-taken");
+    let xdg = d.dir("xdg");
+    let (_sandbox, _calls) = counted_gio(&d, &xdg);
+    let (paths, entry) = trashed_five(&d);
+    // Undo walks the steps newest first, so f4..f2 come back before the taken f1 stops it.
+    d.file("home/f1.txt", "someone else");
+    let mut journal = crate::backend::undo::Journal::new();
+    journal.push(entry);
+    let refused = journal.undo().unwrap_err();
+    assert_eq!(refused.msg, crate::backend::homerestore::RESTORE_TAKEN);
+    assert!(paths[2..].iter().all(|p| p.is_file()) && !paths[0].exists());
+    assert_eq!(std::fs::read_to_string(&paths[1]).unwrap(), "someone else");
+    // The restores before the refusal were still synced, once, on the way out.
+    assert_eq!(test_take_folder_syncs(), (1, 3));
+}

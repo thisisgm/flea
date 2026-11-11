@@ -85,7 +85,7 @@ convert_backend_death() {
 }
 
 case_convertdesign() (
-    local menu_box menus_checks=0 permissions_listing convert_stopped="" path source jpeg webp contents state pid ui_pid request format cx cy wx wy ww wh row_width before_motion after_motion
+    local menu_box menus_checks=0 permissions_listing convert_stopped="" path source jpeg webp contents state pid request format cx cy wx wy ww wh row_width before_motion after_motion
     local -a pids
     sandbox_require "$fixture_root"
     menu_box=$(mktemp -d "$fixture_root/convert-design.XXXXXXXX") || fail "convert: fixture creation failed"
@@ -109,12 +109,12 @@ case_convertdesign() (
     menus_file_menu photo.png key
     menus_choose convert
     menus_expect convertState '.opened and (.checking | not) and .collision and (.canConvert | not) and .source.menuId > 0' 'initial output collision disables Convert with a captured menu identity'
+    shot convert-existing-output
     state=$(ipc convertState)
-    [[ "$(jq -r .source.path <<< "$state")" == "$source" && "$(jq -r .outputText <<< "$state")" == "Output: $jpeg" ]] \
+    [[ "$(jq -r .source.path <<< "$state")" == "$source" && "$(jq -r .outputText <<< "$state")" == "Output $jpeg" ]] \
         || fail "convert: source or full output path differs from the captured item"
     menus_expect convertState '.error == "photo (converted).jpg already exists" and .outputLines > 1' 'collision names the output and its full path wraps'
-    menus_expect convertState "all(.formats[]; .labelColor == \"$(ipc themeForeground)\") and any(.formats[]; .selected and .markColor == \"$(ipc palette | cut -d' ' -f5)\")" 'format labels retain foreground while the chosen glyph takes the accent role'
-    shot convert-existing-output
+    menus_expect convertState "all(.formats[]; .labelColor == \"$(ipc themeForeground)\") and any(.formats[]; .selected and .markColor == \"$(ipc themeForeground)\")" 'the chosen format glyph follows its foreground text'
     menus_control convertState Convert
     menus_expect convertState '.opened and .collision and (.busy | not)' 'disabled Convert cannot activate'
     request=$(ipc convertState | jq -er .requestId)
@@ -161,18 +161,18 @@ case_convertdesign() (
     menus_expect convertState 'any(.controls[]; .name == "Convert" and .focused)' 'reverse Tab remains within the dialog'
     shot convert-ready
 
-    ui_pid=$(flea_pid)
-    mapfile -t pids < <(pgrep -P "$ui_pid" -x flea)
-    [[ "${#pids[@]}" == 1 ]] || fail "convert: pending test needs one owned backend child"
+    mapfile -t pids < <(backend_pids)
+    [[ "${#pids[@]}" == 1 ]] || fail "convert: pending test needs one owned backend, got ${#pids[@]}"
     pid="${pids[0]}"
     convert_stopped="$pid"
     trap 'permissions_resume_stopped "$convert_stopped"' EXIT
     convert_pause_backend "$pid"
     key -k Return >/dev/null
-    menus_expect convertState '.opened and .busy and .strip and .format == "webp" and (.canConvert | not) and all(.controls[]; .enabled | not)' 'activation retains draft and disables controls while backend waits'
-    key -k Escape >/dev/null
-    menus_control convertState Cancel
-    menus_expect convertState '.opened and .busy and .strip and .format == "webp"' 'pending Escape and disabled Cancel cannot discard the draft'
+    menus_expect convertState '.opened and .busy and .strip and .format == "webp" and (.canConvert | not) and any(.controls[]; .name == "Cancel" and .enabled) and all(.controls[] | select(.name != "Cancel"); .enabled | not) and all(.formats[]; .enabled | not)' 'activation retains draft with Cancel enabled and every other control disabled while backend waits'
+    key -k Return >/dev/null
+    menus_control convertState Convert
+    menus_control convertState 'Remove metadata'
+    menus_expect convertState '.opened and .busy and .strip and .format == "webp"' 'pending Return and disabled controls preserve the draft'
     menus_guard "$webp"
     printf 'late WebP collision\n' > "$webp"
     shot convert-pending

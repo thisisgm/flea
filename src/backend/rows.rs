@@ -119,7 +119,9 @@ fn rows_line_body(
             s.push(',');
         }
         let name = l.name(start + i);
-        if let Some((row, kind)) = cache.as_deref().and_then(|cache| cache.rendered(&base.join(name))) {
+        // Files are reached by the exact path; the kind is read off the lossy spelling, where the extension is.
+        let (path, shown) = (l.path(base, start + i), flea::bytename::display(name));
+        if let Some((row, kind)) = cache.as_deref().and_then(|cache| cache.rendered(&path)) {
             let k = match kind_index.get(kind) {
                 Some(&idx) => idx,
                 None => {
@@ -137,29 +139,45 @@ fn rows_line_body(
             s.push_str(&row[end..]);
             continue;
         }
-        let gvfs_modes = if name.contains('/') { crate::backend::gvfsroot::gvfs_modes_are_real(&base.join(name)) } else { gvfs_modes };
+        let gvfs_modes = if name.contains('/') {
+            crate::backend::gvfsroot::gvfs_modes_are_real(&path)
+        } else {
+            gvfs_modes
+        };
         // The stat's dev names the filesystem through symlinks; unlisted devices cache lexical decisions by device and parent without another stat.
         let real_modes = gvfs_modes.unwrap_or_else(|| {
-            device_modes.entry(m.dev).or_insert_with(|| mountinfo::modes_are_real_for_dev(m.dev, body))
+            device_modes
+                .entry(m.dev)
+                .or_insert_with(|| mountinfo::modes_are_real_for_dev(m.dev, body))
                 .unwrap_or_else(|| {
                     let parent = name.rfind('/').map_or("", |at| &name[..at.max(1)]);
                     *lexical_modes.entry((m.dev, parent)).or_insert_with(|| {
                         #[cfg(test)]
                         mount_tests::MODE_PATH_BUILDS.with(|builds| builds.set(builds.get() + 1));
-                        mountinfo::modes_are_real(&base.join(name), body)
+                        mountinfo::modes_are_real(&path, body)
                     })
                 })
         });
         let is_dir = l.is_dir(start + i);
         // Looked up once and shared with the icon and the Kind text, because it is the only per-row allocation here.
-        let mime_name = mime.lookup(name);
+        let mime_name = mime.lookup(&shown);
         // A directory or a special file is never thumbnailed, so the spec lookup is skipped for one; see AGENTS.md "Thumbnail requests".
-        let can_thumb = thumbnailable(m.mode) && (mime_name.is_some_and(|m| thumbs.for_mime(m, aliases).is_some()) || super::model3d::embedded_thumbnail_supported(name));
+        let can_thumb = thumbnailable(m.mode)
+            && (mime_name.is_some_and(|m| thumbs.for_mime(m, aliases).is_some())
+                || super::model3d::embedded_thumbnail_supported(&shown));
         // Only a thumbnailable AppImage carries a, so Images mode can draw its own icon without admitting every executable.
-        let appimage = if can_thumb && mime_name.is_some_and(|m| appicon::is_appimage(m, aliases)) { r#","a":true"# } else { "" };
+        let appimage = if can_thumb && mime_name.is_some_and(|m| appicon::is_appimage(m, aliases)) {
+            r#","a":true"#
+        } else {
+            ""
+        };
         // A symlink to a directory carries d:false by contract, so only the ICON follows the target.
         let folder_icon = is_dir || m.target_is_dir;
-        let icon_mode = if real_modes { m.mode } else { m.mode & !ANY_EXECUTE_BIT };
+        let icon_mode = if real_modes {
+            m.mode
+        } else {
+            m.mode & !ANY_EXECUTE_BIT
+        };
         let icon = icons.icon_for(mime_name, folder_icon, icon_mode);
         let kind = kind_for(folder_icon, mime_name, icon, aliases, kinds);
         let k = match kind_index.get(&kind) {
@@ -179,7 +197,7 @@ fn rows_line_body(
         let link = if m.target.is_empty() { String::new() } else { format!(r#","l":"{}""#, escape(&m.target)) };
         // Only a tagged row carries tg, its names in stored order and canonical case, the same conditional shape v and l use.
         let tg = if tag_ok {
-            let names = tags::read(&base.join(name)).unwrap_or_default();
+            let names = tags::read(&path).unwrap_or_default();
             let mut seen = Vec::with_capacity(names.len());
             for tag in &names {
                 if let Some(known) = tags::known(tag) {
@@ -200,8 +218,9 @@ fn rows_line_body(
         let row_at = s.len();
         let outline = super::outline::row_fields(l, start + i);
         let born = m.birth.map_or_else(|| "null".to_string(), |time| time.to_string());
+        let source = m.ino.map_or_else(String::new, |ino| format!(r#","source":"{}:{ino}:{}""#, m.dev, m.mode & super::meta::S_IFMT));
         s.push_str(&format!(
-            r#"{{"n":"{}","d":{},"s":{},"m":{},"b":{},"p":{},"i":"{}","t":{},"k":{}{}{}{}{}{}{}}}"#,
+            r#"{{"n":"{}","d":{},"s":{},"m":{},"b":{},"p":{},"i":"{}","t":{},"k":{}{}{}{}{}{}{}{}}}"#,
             escape(name),
             is_dir,
             m.size,
@@ -211,6 +230,7 @@ fn rows_line_body(
             escape(icon),
             can_thumb,
             k,
+            source,
             link,
             dev,
             tg,
@@ -219,7 +239,7 @@ fn rows_line_body(
             if real_modes { "" } else { r#","x":false"# }
         ));
         if let Some(cache) = cache.as_deref_mut() {
-            cache.remember(&base.join(name), &s[row_at..], &kind);
+            cache.remember(&path, &s[row_at..], &kind);
         }
     }
     let kinds_json: String = kind_list.iter().map(|k| format!(r#""{}""#, escape(k))).collect::<Vec<_>>().join(",");

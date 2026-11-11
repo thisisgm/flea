@@ -190,7 +190,7 @@ fn vf_more_actions_default_on_preserves_saved_off_and_run_script_off() {
             .iter()
             .filter_map(|value| value.as_str().map(str::to_owned))
             .collect::<Vec<_>>();
-        let rows = flea::ui_logic_st1::menus::rows(&hidden_ids, false);
+        let rows = flea::ui_logic_settings_pages::menus::rows(&hidden_ids, false);
         let action = rows
             .iter()
             .find(|row| row.id == "actions")

@@ -1,7 +1,7 @@
 //! EY-598: the shared op4 receipt names the outer frame that the production Root paints.
 use super::readers3_tests::{open, read, update};
-use crate::g2::op4::model::Action;
-use flea::ui_logic_op4::{output::Kind, selection::Source};
+use crate::g2::print_convert::model::Action;
+use flea::ui_logic_print_convert::{output::Kind, selection::Source};
 use gpui::{px, size, AppContext, TestAppContext, VisualTestContext};
 
 fn card(cx: &mut TestAppContext, action: Action) {

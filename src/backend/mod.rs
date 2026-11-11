@@ -137,6 +137,7 @@ mod searchwalkread;
 #[cfg(test)]
 pub(crate) mod searchwalkhold;
 pub mod searchreq;
+mod searchremap;
 pub mod searchhold;
 pub mod searchpatch;
 pub(crate) mod searchwatch;
@@ -279,6 +280,7 @@ pub mod trash;
 pub mod hometrash;
 pub(crate) mod trashdate;
 pub(crate) mod homerestore;
+pub(crate) mod topdirtrash;
 pub mod undo;
 pub mod undoshare;
 pub mod undocodec;

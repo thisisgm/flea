@@ -3,6 +3,7 @@ import re
 from .lex import pairs, path_at
 from .rust import calls, resolve
 from .bindings import environments
+from .fields import struct_fields
 
 COLOR_HEX = re.compile(r"0x(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{8})")
 COLOR_TYPES = {"Hsla", "Hsla32", "Rgba", "Rgb", "Color", "Srgb", "Srgba"}
@@ -58,7 +59,7 @@ def blocking(symbol, args, method, helpers):
     if parts[-1] in ("block_on", "spawn_blocking"):
         return True
     # gpui's Entity::read(cx) borrows entity state; an I/O read takes a buffer, never the app context.
-    if method and parts[-1] == "read" and [t.value for t in args] == ["cx"]:
+    if method and parts[-1] == "read" and [t.value for t in args] in (["cx"], ["self", ".", "cx"]):
         return False
     if method and parts[-1] in ("wait", "wait_with_output", "output", "status", "exec", "read", "read_exact", "read_line",
                                "read_to_end", "read_to_string", "write_all", "accept", "connect",
@@ -118,6 +119,7 @@ def source_checks(units, policy):
                if any(t.value == "self" and function.signature[j + 1].value != "::"
                       for j, t in enumerate(function.signature[:-1]))}
     exceptions = {(e["caller"], e["symbol"]): e["reason"] for e in policy["blocking_exceptions"]}
+    fields, receivers = struct_fields(units), methods | helpers
     pending, seen = list(roots), set()
     while pending:
         name = pending.pop()
@@ -125,15 +127,17 @@ def source_checks(units, policy):
             continue
         seen.add(name)
         function = known[name]
-        for symbol, line, args, method in calls(function, known):
+        for symbol, line, args, method in calls(function, known, fields, receivers):
             target = resolve(symbol, function, (methods if method else set(known)) | helpers)
             # Another target is reached only through a package's library; a test, example, bench, build script or binary is not.
             if target in known:
                 callee, library = compilation_target(known[target].path)
                 if not library and callee != compilation_target(function.path)[0]:
                     target = symbol
+            # A method's exception names it as written, before its receiver's type qualified it.
+            written = symbol.rsplit("::", 1)[-1] if method else symbol
             if (blocking(target, args, method, helpers) and (name, target) not in exceptions
-                    and (name, symbol) not in exceptions):
+                    and (name, symbol) not in exceptions and (name, written) not in exceptions):
                 errors.append(f"{function.path}:{line}: UI blocking call {target} in {name}")
             if target in known:
                 pending.append(target)

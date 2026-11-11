@@ -28,7 +28,10 @@ pub fn formats(root: &Path, w: &mut Wire) {
         String::from_utf8_lossy(&tool(&["magick", "-version"]))
     );
     let mut codec_errors = Vec::new();
-    for (choice, format) in flea::ui_logic_op4::output::IMAGE_FORMATS.iter().enumerate() {
+    for (choice, format) in flea::ui_logic_print_convert::output::IMAGE_FORMATS
+        .iter()
+        .enumerate()
+    {
         let mut m = open(&files, w, &["photo.png"]);
         for _ in 0..choice {
             press(&mut m, w, Key::character('j', ""));
@@ -41,7 +44,9 @@ pub fn formats(root: &Path, w: &mut Wire) {
         }
         submit(&mut m, w);
         assert!(m.error.is_empty(), "{format}: {}", m.error);
-        let output = files.join(flea::ui_logic_op4::output::converted_name(&source, format));
+        let output = files.join(flea::ui_logic_print_convert::output::converted_name(
+            &source, format,
+        ));
         let bytes = std::fs::read(&output).unwrap();
         assert_ne!(
             bytes, original,
@@ -83,7 +88,10 @@ pub fn pages(root: &Path, w: &mut Wire) {
     let files = root.join("files");
     let source = pdf(&files, "report.pdf");
     let original = std::fs::read(&source).unwrap();
-    for (choice, format) in flea::ui_logic_op4::output::PDF_FORMATS.iter().enumerate() {
+    for (choice, format) in flea::ui_logic_print_convert::output::PDF_FORMATS
+        .iter()
+        .enumerate()
+    {
         let mut m = open(&files, w, &["report.pdf"]);
         until(&mut m, w, |m| {
             m.converting
@@ -201,8 +209,13 @@ pub fn safe(root: &Path, w: &mut Wire) {
     std::fs::write(&collision, b"keep collision").unwrap();
     let mut m = open(&files, w, &["photo.png"]);
     submit(&mut m, w);
-    assert!(m.error.contains("already exists"));
+    assert!(m.error.is_empty(), "{}", m.error);
     assert_eq!(std::fs::read(collision).unwrap(), b"keep collision");
+    let landed = std::fs::read(files.join("photo (converted) copy.jpg")).unwrap();
+    assert!(
+        landed.starts_with(&[0xff, 0xd8]),
+        "a taken output lands as a JPEG under the copy name"
+    );
     controlled_converter(root);
     let mut m = open(&files, w, &["photo.png"]);
     press(&mut m, w, Key::named("Down", ""));
@@ -236,7 +249,6 @@ pub fn safe(root: &Path, w: &mut Wire) {
     assert_eq!(std::fs::read(source).unwrap(), original);
 }
 fn controlled_converter(root: &Path) {
-    use std::os::unix::fs::PermissionsExt;
     assert!(root.is_absolute() && root.join(".flea-test-sandbox").is_file());
     let bwrap = root.join("bin/bwrap");
     let script = r#"#!/bin/sh
@@ -252,7 +264,7 @@ done
 exit 99
 "#;
     std::fs::write(&bwrap, script).unwrap();
-    std::fs::set_permissions(&bwrap, std::fs::Permissions::from_mode(0o755)).unwrap();
+    flea::executable_file::write(&bwrap, &std::fs::read(&bwrap).unwrap(), 0o755).unwrap();
     let magick = root.join("bin/magick");
     let script = r#"#!/bin/sh
 set -eu
@@ -263,5 +275,5 @@ printf '%s\n' "$$" > "$root/held"
 exec /bin/sleep 300
 "#;
     std::fs::write(&magick, script).unwrap();
-    std::fs::set_permissions(&magick, std::fs::Permissions::from_mode(0o755)).unwrap();
+    flea::executable_file::write(&magick, &std::fs::read(&magick).unwrap(), 0o755).unwrap();
 }

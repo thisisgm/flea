@@ -54,7 +54,7 @@ fn close_resets_the_overlay_and_hands_the_pointer_back(cx: &mut TestAppContext) 
     let (cx, seen, look, events) = host(cx, json(), Arm::Fix);
     assert_eq!(
         look.update(cx, |look, cx| look.action("expand", cx)),
-        flea::ui_logic_pv1::keys::Command::ToggleExpand
+        flea::ui_logic_preview_core::keys::Command::ToggleExpand
     );
     let full = cx.update(|window, _| window.viewport_size());
     assert_eq!(look.read_with(cx, |look, _| look.card(full).size), full);

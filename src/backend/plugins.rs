@@ -1,9 +1,9 @@
 // The plugins request: list, enable, disable, set, add, update, remove and validate; see docs/protocol.md "plugins".
 use super::{pluginfs, plugingit, pluginops};
 use flea::jsondoc::{self, Json};
-use flea::ui_logic_st2::manifest::{self, Invalid, Manifest};
-use flea::ui_logic_st2::wire::{self, Listing, Outcome, Plugin, Source};
-use flea::ui_logic_st2::{builtin, schema, shelf, store};
+use flea::ui_logic_plugin_settings::manifest::{self, Invalid, Manifest};
+use flea::ui_logic_plugin_settings::wire::{self, Listing, Outcome, Plugin, Source};
+use flea::ui_logic_plugin_settings::{builtin, schema, shelf, store};
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -12,6 +12,8 @@ use std::time::Duration;
 
 // The protocol's own deadline for an answer to hello.
 pub const READY_DEADLINE: Duration = Duration::from_secs(5);
+// Far past any pile the bar plugin writes, so a larger file reads as an empty pile.
+const MAX_PILE_BYTES: u64 = 4 << 20;
 
 pub struct Env {
     pub dir: PathBuf,
@@ -163,7 +165,8 @@ pub struct Installed {
 }
 
 fn shelf_input(state: &Json, env: &Env) -> shelf::Input {
-    let pile = fs::read_to_string(&env.pile).unwrap_or_default();
+    // The bar plugin owns this file, so a fifo or an endless file in its place reads as an empty pile.
+    let pile = super::regfile::read_text(&env.pile, MAX_PILE_BYTES).unwrap_or_default();
     shelf::input(state, shelf::pinned(&pile))
 }
 
@@ -336,7 +339,7 @@ pub(super) fn handle_stream(
         "add" => super::pluginadd::add(env, &text("source")).map(|m| (m.id, m.version)),
         "update" => super::pluginadd::update(env, &plugin),
         "remove" => pluginops::remove(env, &plugin),
-        _ => pluginops::validate(Path::new(&text("source"))),
+        _ => pluginops::validate(&flea::bytename::view(&text("source"))),
     };
     let (named, error, version) = match result {
         Ok((named, version)) => (named, None, version),

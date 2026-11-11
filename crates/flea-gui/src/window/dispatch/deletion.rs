@@ -34,6 +34,9 @@ impl Shell {
         }) {
             return;
         }
+        if host.pane.state.search {
+            return;
+        }
         host.selected.clear();
         let Some(anchor) = anchor.filter(|anchor| {
             anchor.path == host.pane.path()

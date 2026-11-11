@@ -234,8 +234,8 @@ fn render(
         .map(|path| sources.iter().find(|s| &s.path == path).unwrap())
         .collect::<Vec<_>>();
     let sizes = ordered.iter().map(|s| s.size).collect::<Vec<_>>();
-    let composition =
-        flea::ui_logic_op4::geometry::Composition::new(&sizes, &settings).map_err(Text::Key)?;
+    let composition = flea::ui_logic_print_convert::geometry::Composition::new(&sizes, &settings)
+        .map_err(Text::Key)?;
     if !native {
         return Ok(Reply {
             sizes,

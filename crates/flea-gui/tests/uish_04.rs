@@ -145,9 +145,9 @@ fn uish_04_real_window(cx: &mut TestAppContext) {
             assert_eq!(value("baseSize"), base.to_string());
             assert_eq!(value("body"), base.to_string());
             let expected = match base {
-                12 => ["11", "10", "6", "32", "20", "15.95"],
-                14 => ["13", "12", "7", "37", "23", "18.849999999999998"],
-                16 => ["15", "13", "8", "43", "27", "21.75"],
+                12 => ["11", "10", "6", "32", "20"],
+                14 => ["13", "12", "7", "37", "23"],
+                16 => ["15", "13", "8", "43", "27"],
                 _ => unreachable!(),
             };
             for (key, expected) in [
@@ -156,13 +156,20 @@ fn uish_04_real_window(cx: &mut TestAppContext) {
                 "rowPaddingY",
                 "rowHeight",
                 "iconSize",
-                "markSize",
             ]
             .into_iter()
             .zip(expected)
             {
                 assert_eq!(value(key), expected, "{base} {key}");
             }
+            let mark = value("markSize").parse::<f32>().unwrap();
+            let painted_mark = flea_gui::list::Metrics::for_typeface(&state.typeface).mark;
+            assert_eq!(
+                mark, painted_mark,
+                "the observer reports the painted f32 metric"
+            );
+            let qml_mark = value("bodySmall").parse::<f64>().unwrap() * 1.45;
+            assert!((f64::from(mark) - qml_mark).abs() < 0.00001);
             assert_eq!(
                 call(&state, window, theme, parsed, "wheelLines"),
                 Reply::value("3")

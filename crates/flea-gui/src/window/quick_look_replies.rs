@@ -2,12 +2,12 @@
 use super::{code_line, keys, Ask};
 use crate::{
     backend::Event as BackendEvent,
-    g2::pv1::{Body, Subject},
+    g2::quick_look_overlay::{Body, Subject},
     state::Shell,
 };
 use flea::{
     jsondoc::{self, Json},
-    ui_logic_pv1::{
+    ui_logic_preview_core::{
         compare,
         kinds::{self, State},
         meta::{self, CompareReply, CompareState, Meta},

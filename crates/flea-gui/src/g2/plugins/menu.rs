@@ -3,9 +3,9 @@ use super::Response;
 use crate::state::Shell;
 use flea::{
     jsondoc::Json,
-    ui_logic_mn1::Entry,
-    ui_logic_mn2::{plugins, rows},
-    ui_logic_st2::{contributions, store, wire::Plugin},
+    ui_logic_context_menus::Entry,
+    ui_logic_custom_actions::{plugins, rows},
+    ui_logic_plugin_settings::{contributions, store, wire::Plugin},
 };
 use gpui::{Context, Subscription, Task, Window};
 use std::{
@@ -29,7 +29,7 @@ mod selection;
 mod send;
 #[path = "menu_verdict.rs"]
 mod verdict;
-pub(crate) use send::send_role;
+pub(crate) use send::{send_role, send_validation_verb, validation_choice};
 #[cfg(test)]
 #[path = "menu_tests.rs"]
 mod tests;
@@ -177,8 +177,8 @@ impl Shell {
                 window,
                 |shell, host, line: &super::WireLine, _, cx| {
                     if matches!(
-                        flea::ui_logic_st2::wire::parse(&line.0),
-                        Ok(flea::ui_logic_st2::wire::Reply::Listing(_))
+                        flea::ui_logic_plugin_settings::wire::parse(&line.0),
+                        Ok(flea::ui_logic_plugin_settings::wire::Reply::Listing(_))
                     ) && shell.menu.captured.is_some()
                         && !shell.menu.header
                     {

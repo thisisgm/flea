@@ -3,8 +3,9 @@
 use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
 #[cfg(test)]
-use std::sync::{Arc, Condvar, Mutex};
+use std::sync::Condvar;
 
 // Test builds only: forced-durable paths, injected mountinfo text, fsync fault flags, flush counts; a release build has none of it.
 #[cfg(test)]
@@ -104,7 +105,7 @@ pub fn dest_is_rclone(dest: &Path) -> bool {
     })
 }
 
-// True when the destination needs its bytes confirmed: usb, phone, network, or vfat/exfat/ntfs.
+// True when the destination needs its bytes confirmed: usb, phone, network, a removable disk, or vfat/exfat/ntfs.
 pub fn dest_is_durable(dest: &Path) -> bool {
     if forced(dest) {
         return true;
@@ -114,7 +115,7 @@ pub fn dest_is_durable(dest: &Path) -> bool {
     }
     if let Ok(body) = std::fs::read_to_string("/proc/self/mountinfo") {
         if let Some(e) = crate::backend::mountinfo::mount_entry_in(dest, &body) {
-            if fat_name_is_durable(&e.fstype) {
+            if entry_is_durable_under(Path::new("/sys"), Path::new("/dev"), &e) {
                 return true;
             }
         }
@@ -126,6 +127,11 @@ pub fn dest_is_durable(dest: &Path) -> bool {
         return true;
     }
     false
+}
+
+// A FAT name or a pull-out disk under these sysfs and dev roots; tests pass their own sample roots.
+pub(crate) fn entry_is_durable_under(sys: &Path, dev: &Path, e: &crate::backend::mountinfo::MountEntry) -> bool {
+    fat_name_is_durable(&e.fstype) || crate::backend::extclass::removable::removable_under(sys, dev, e)
 }
 
 // Sample input: "/dev/sda1" trues, "remote:" falses.
@@ -153,6 +159,8 @@ pub const DIR_UNCONFIRMED: &str = "copied, but the drive did not confirm the fol
 
 // 64 held files bound one unconfirmed batch, the same bound movebatch closes on.
 pub(crate) const HELD_CAP: usize = 64;
+// One confirm slice of held bytes closes a batch early, so files just under a slice never count far ahead of the drive.
+pub(crate) const HELD_BYTES: u64 = crate::backend::copyfile::CONFIRM_BYTES;
 
 // One batch being copied and confirmed plus the wave still closing behind it, the most descriptors a move holds open.
 #[cfg(test)]
@@ -164,7 +172,9 @@ pub const RCLONE_NOTE: &str = "rclone uploads them in the background";
 // The closes of one confirmed batch, running behind the next batch; joined before the next wave and before the result.
 #[derive(Default)]
 struct Wave {
-    closers: Vec<std::thread::JoinHandle<()>>,
+    closers: Vec<std::thread::JoinHandle<std::io::Result<()>>>,
+    // A file this wave closed inline answered its close with an error.
+    failed: bool,
     // Test builds only: the gate holding this wave's closes open until its join opens it, so a test never hangs on it.
     #[cfg(test)]
     gate: Option<Arc<Gate>>,
@@ -196,12 +206,17 @@ impl Gate {
 }
 
 impl Wave {
-    // One thread per file, so a 100 ms vfat close never waits on another; a spawn that fails drops its closure and closes that file inline.
+    // One thread per file, so a 100 ms vfat close never waits on another; a spawn that fails leaves its file to a checked close inline.
     fn start(files: Vec<std::fs::File>) -> Wave {
         #[cfg(test)]
         let gate = HOLD_WAVES.with(|v| v.get()).then(|| Arc::new(Gate::new()));
+        let checked = super::copyfile::landed::closer();
         let mut closers = Vec::with_capacity(files.len());
+        let mut failed = false;
         for file in files {
+            let slot = Arc::new(Mutex::new(Some(file)));
+            let held = Arc::clone(&slot);
+            let close_one = checked.clone();
             #[cfg(test)]
             let behind = gate.clone();
             let close = move || {
@@ -209,13 +224,14 @@ impl Wave {
                 if let Some(gate) = &behind {
                     gate.wait();
                 }
-                drop(file);
+                held.lock().unwrap_or_else(|e| e.into_inner()).take().map_or(Ok(()), close_one)
             };
-            if let Ok(closer) = std::thread::Builder::new().spawn(close) {
-                closers.push(closer);
+            match std::thread::Builder::new().spawn(close) {
+                Ok(closer) => closers.push(closer),
+                Err(_) => failed |= slot.lock().unwrap_or_else(|e| e.into_inner()).take().is_some_and(|file| checked(file).is_err()),
             }
         }
-        Wave { closers, #[cfg(test)] gate }
+        Wave { closers, failed, #[cfg(test)] gate }
     }
 }
 
@@ -229,7 +245,10 @@ pub struct Durability {
     pub rename_fat: bool,
     // A failed settle stays failed, so later confirms keep every source.
     unsettled: bool,
+    // A held file answered its close with an error, so the done line says the drive did not confirm a file.
+    closes_failed: bool,
     held: Vec<std::fs::File>,
+    held_bytes: u64,
     wave: Wave,
     touched: HashSet<PathBuf>,
     last: Option<PathBuf>,
@@ -255,14 +274,15 @@ impl Durability {
             Some(body) => batch_syncfs_for(dest, body, durable, rclone) || batch_syncfs_for(&real, body, durable, rclone),
             None => false,
         };
-        Durability { durable, rclone, file_failed: false, batch_syncfs, rename_fat: false, unsettled: false, held: Vec::new(),
-            wave: Wave::default(), touched: HashSet::new(), last: None }
+        Durability { durable, rclone, file_failed: false, batch_syncfs, rename_fat: false, unsettled: false, closes_failed: false, held: Vec::new(),
+            held_bytes: 0, wave: Wave::default(), touched: HashSet::new(), last: None }
     }
 
-    // A landed file stays open until its batch confirms, so 64 closes land with one syncfs.
-    pub fn hold(&mut self, file: std::fs::File) {
+    // A landed file stays open until its batch confirms; 64 closes or one slice of still unconfirmed bytes land with one syncfs.
+    pub fn hold(&mut self, file: std::fs::File, unconfirmed: u64) {
+        self.held_bytes += unconfirmed;
         self.held.push(file);
-        if self.held.len() >= HELD_CAP {
+        if self.held.len() >= HELD_CAP || self.held_bytes >= HELD_BYTES {
             // Never more than one batch ahead of the drive; a failed settle stays sticky inside settle_held.
             let _ = self.settle_held();
         }
@@ -321,6 +341,7 @@ impl Durability {
         }
         self.join_wave();
         let files: Vec<std::fs::File> = std::mem::take(&mut self.held);
+        self.held_bytes = 0;
         #[cfg(test)]
         {
             RELEASES.with(|v| v.set(v.get() + files.len()));
@@ -329,8 +350,11 @@ impl Durability {
         self.wave = Wave::start(files);
     }
 
-    // A closer that panicked has nothing left to close, so its join result is dropped.
+    // A close that failed, or a closer that panicked, fails every later confirm and the done line; its batch's syncfs already confirmed its bytes.
     fn join_wave(&mut self) {
+        if std::mem::take(&mut self.wave.failed) {
+            self.close_failed();
+        }
         if self.wave.closers.is_empty() {
             return;
         }
@@ -341,9 +365,18 @@ impl Durability {
                 gate.release();
             }
         }
+        let mut closed = true;
         for closer in self.wave.closers.drain(..) {
-            let _ = closer.join();
+            closed &= matches!(closer.join(), Ok(Ok(())));
         }
+        if !closed {
+            self.close_failed();
+        }
+    }
+
+    fn close_failed(&mut self) {
+        self.unsettled = true;
+        self.closes_failed = true;
     }
 
     // Everything this operation holds is closed and joined, so an eject right after is never refused.
@@ -533,7 +566,8 @@ pub fn fsync_dir(path: &Path) -> std::io::Result<()> {
     // Logged after the counting seam, so a failed flush never reads as confirmed.
     #[cfg(test)]
     ORDER_LOG.with(|v| v.borrow_mut().push("dir".to_string()));
-    std::fs::File::open(path)?.sync_all()
+    // A folder deep in a copied tree can have a path past PATH_MAX; it is opened a stretch at a time.
+    crate::backend::copyfile::deep::open_long(path)?.sync_all()
 }
 
 // One filesystem-wide confirm on the pre-write fd, before vfat's final writable closes.
@@ -619,6 +653,10 @@ pub fn finish(id: usize, tx: &std::sync::mpsc::Sender<crate::backend::opsreq::Op
     let finished = confirm_finish(id, tx, durability, dest, landed);
     // The done line goes out after this returns, so no descriptor may stay open on the drive past it.
     durability.drain();
+    // A held file whose close failed after its batch confirmed leaves the whole result unconfirmed.
+    if durability.closes_failed {
+        return Finish { ok: false, note: super::copyfile::landed::FILE_UNCONFIRMED.to_string() };
+    }
     finished
 }
 
@@ -807,3 +845,7 @@ pub fn test_mark_durable(path: &Path) {
 #[cfg(test)]
 #[path = "durable_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "durable_bytes_tests.rs"]
+mod bytes_tests;

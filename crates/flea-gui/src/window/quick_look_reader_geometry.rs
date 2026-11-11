@@ -1,6 +1,6 @@
 //! Card IPC geometry follows the laid-out views, including an ended media surface's content bounds.
 use super::Reader;
-use crate::g2::pv1::Hit;
+use crate::g2::quick_look_overlay::Hit;
 use flea::json::escape;
 
 impl Reader<'_> {
@@ -14,17 +14,18 @@ impl Reader<'_> {
                 let bounds = observed.surface?;
                 let player = media.player.read(self.cx);
                 if player.state.has_video
-                    && player.state.media == flea::ui_logic_pv3::player::Media::Ended
+                    && player.state.media == flea::ui_logic_media_preview::player::Media::Ended
                 {
                     return Some(bounds);
                 }
                 let frame = player.frame.as_ref()?;
                 let size = frame.size(0);
-                let [x, y, width, height] = flea::ui_logic_pv3::picture::fit(
+                let [x, y, width, height] = flea::ui_logic_media_preview::picture::fit(
                     size.width.0 as f32,
                     size.height.0 as f32,
                     f32::from(bounds.size.width),
-                    (f32::from(bounds.size.height) - crate::g2::pv3::ink::size::STRIP).max(0.),
+                    (f32::from(bounds.size.height) - crate::g2::media_preview::ink::size::STRIP)
+                        .max(0.),
                 );
                 return Some(gpui::Bounds::new(
                     bounds.origin + gpui::point(gpui::px(x), gpui::px(y)),

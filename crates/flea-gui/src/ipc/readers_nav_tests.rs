@@ -5,7 +5,7 @@ use flea::{
     ipc::wire::{Reply, Request},
     jsondoc::{self, Json},
     protocol::RowFacts,
-    ui_logic_op1::{
+    ui_logic_file_ops::{
         confirm::Source,
         trash::{Review, Scope},
     },
@@ -244,3 +244,6 @@ fn readers_nav_drag_state_answers_the_drag_in_flight(cx: &mut TestAppContext) {
     );
     cx.simulate_mouse_up(from, gpui::MouseButton::Left, gpui::Modifiers::default());
 }
+
+#[path = "readers_nav_field_tests.rs"]
+mod field;

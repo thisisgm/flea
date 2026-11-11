@@ -1,7 +1,7 @@
 // Add and Update from Git, and the plugins request on a real backend's own stdin and stdout.
 use super::plugins_tests::{ask, code, env, get, plugin, READY};
 use super::testdir::TestDir;
-use flea::ui_logic_st2::wire::{self, Reply, Source};
+use flea::ui_logic_plugin_settings::wire::{self, Reply, Source};
 use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
 use std::process::{Command, Stdio};

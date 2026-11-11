@@ -2,11 +2,11 @@ use super::{place_model::*, rail_place_fixture::*};
 use crate::{state::Shell, window::navigate::Step};
 use flea::{
     jsondoc::{self, Json},
-    ui_logic_pl4::{
+    ui_logic_plugin_settings::manifest::Invalid,
+    ui_logic_rail_places::{
         order::{Heading, RailSection},
         rail::{Group, Kind, RailEntry, Square},
     },
-    ui_logic_st2::manifest::Invalid,
 };
 use gpui::{Entity, TestAppContext, VisualTestContext};
 use std::time::Duration;
@@ -188,7 +188,7 @@ fn plugin_runtime_local_place_opens_the_local_folder_without_list_runtime(cx: &m
 fn plugin_runtime_place_operation_cards_route_copy_move_and_confirmed_delete(
     cx: &mut TestAppContext,
 ) {
-    use flea::ui_logic_op1::collide::{text as encoded, texts, Request};
+    use flea::ui_logic_file_ops::collide::{text as encoded, texts, Request};
     let (mut fixture, shell, cx) = Fixture::open("virtual-place", cx);
     navigate(
         &shell,

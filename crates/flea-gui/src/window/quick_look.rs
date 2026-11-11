@@ -1,13 +1,13 @@
 //! Quick Look over the window: pv1's card, built on first open, its subject read through the pane's backend.
 use crate::{
-    g2::pv1::{Body, Event, QuickLook, Subject},
+    g2::quick_look_overlay::{Body, Event, QuickLook, Subject},
     state::Shell,
 };
 use flea::keys::Context as Keys;
 use flea::{
     json::escape,
     protocol::RowFacts,
-    ui_logic_pv1::{
+    ui_logic_preview_core::{
         kinds::{self, State},
         rect::Shape,
     },
@@ -83,9 +83,9 @@ pub(crate) struct Host {
     pub wire: wire::Wire,
     pub meta: u64,
     /// The decoder media plays through; None uses the sandboxed helper.
-    pub backend: Option<std::rc::Rc<dyn crate::g2::pv3::engine::Backend>>,
+    pub backend: Option<std::rc::Rc<dyn crate::g2::media_preview::engine::Backend>>,
     /// Preview.qml markdownSource lasts until the card closes, including moves through other kinds.
-    markdown_view: crate::g2::pv2::markdown::View,
+    markdown_view: crate::g2::doc_preview::markdown::View,
     cap: Option<Task<()>>,
     _events: Subscription,
     _drain: Task<()>,
@@ -99,7 +99,7 @@ impl Shell {
     }
 
     /// Builds the card on the first open; later opens reuse it.
-    fn quick_look_host(
+    pub(super) fn quick_look_host(
         &mut self,
         side: usize,
         window: &mut Window,
@@ -187,7 +187,7 @@ impl Shell {
     }
 
     /// One row's subject by its kind, held back until the backend answers what it still needs.
-    fn show_row(
+    pub(super) fn show_row(
         &mut self,
         side: usize,
         index: usize,
@@ -205,7 +205,13 @@ impl Shell {
             shape: Shape::unknown(state),
             body,
         };
-        if let Some(mount) = mount::Mount::of(row) {
+        // A name with no known type opens by its head (.bash_aliases, .jc141rc): as text, or as code after #!.
+        let sniff =
+            crate::window::sniff::lookup(row, &path).filter(|_| state == State::Unsupported);
+        let text = sniff.as_ref().and_then(|(_, head)| *head);
+        let mount =
+            mount::Mount::of(row).or_else(|| text?.pick(mount::Mount::Text, mount::Mount::Code));
+        if let Some(mount) = mount {
             if self.show_doc(side, index, row, &path, mount, window, cx) {
                 return;
             }
@@ -241,6 +247,10 @@ impl Shell {
         host.ask = ask;
         self.show(subject, revealed, line, window, cx);
         self.quick_look_header(token, early, cx);
+        // Unread yet, the card opens as it is and reopens by its head once read.
+        if let Some((key, None)) = sniff {
+            self.quick_look_sniff(key, token, (side, index), row.clone(), window, cx);
+        }
     }
 
     /// Opens or replaces the card's subject and sends its one ask; the card takes the keyboard.

@@ -1,6 +1,6 @@
 //! Protocol 1 is also published as data for the plugin guide's executable checks.
 use crate::jsondoc::{self, Json};
-use crate::ui_logic_st2::manifest::Manifest;
+use crate::ui_logic_plugin_settings::manifest::Manifest;
 
 pub const VERSION: u64 = 1;
 pub const MAX_MESSAGE: usize = 64 * 1024;
@@ -17,7 +17,7 @@ pub const MAX_PLACE_PATH_BYTES: usize = 4096;
 // Sample input: plugin://example.virtual-place/Photos yields ("example.virtual-place", "/Photos").
 pub fn place_path(uri: &str) -> Option<(&str, &str)> {
     let (id, tail) = uri.strip_prefix("plugin://")?.split_once('/')?;
-    if !crate::ui_logic_st2::manifest::is_id(id)
+    if !crate::ui_logic_plugin_settings::manifest::is_id(id)
         || tail.len() > MAX_PLACE_PATH_BYTES
         || tail.chars().any(char::is_control)
         || tail.split('/').any(|p| p == "." || p == "..")
@@ -96,8 +96,9 @@ pub fn operation(manifest: &Manifest, request: &Json) -> Result<&'static str, St
         {
             return Err("plugin did not declare this action".into());
         }
-        let descriptor = crate::ui_logic_st2::contributions::action_input(manifest, action)
-            .map_err(|e| e.detail)?;
+        let descriptor =
+            crate::ui_logic_plugin_settings::contributions::action_input(manifest, action)
+                .map_err(|e| e.detail)?;
         match (descriptor, request.get("input")) {
             (Some(input), Some(Json::Obj(values)))
                 if values.len() == 1 && values[0].0 == input.key =>

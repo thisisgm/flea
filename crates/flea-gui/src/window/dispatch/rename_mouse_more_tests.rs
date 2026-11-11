@@ -119,26 +119,37 @@ fn rename_double_click_takes_a_word_and_triple_click_the_name(cx: &mut TestAppCo
     }
 }
 
-/// A double-click on the right half of a word's last letter still takes that word, not the separator after it.
+/// A double-click takes the word of the glyph under the pointer on either half of it, a separator included.
 #[gpui::test]
 fn rename_double_click_on_a_last_letter_takes_its_word(cx: &mut TestAppContext) {
     let (shell, cx, _) = opened(cx, View::List);
     cx.simulate_input("my old notes");
     draw(cx);
-    let (left, right) = points(&shell, cx, 1, 2);
-    let at = gpui::point(left.x + (right.x - left.x) * 0.75, left.y);
-    for count in [1, 2] {
-        cx.simulate_event(MouseDownEvent {
-            position: at,
-            button: MouseButton::Left,
-            click_count: count,
-            ..Default::default()
-        });
-        draw(cx);
-        cx.simulate_mouse_up(at, MouseButton::Left, Modifiers::default());
-        draw(cx);
+    for (glyph, across, word) in [
+        (1, 0.75, "my"),
+        (2, 0.25, " "),
+        (2, 0.75, " "),
+        (3, 0.25, "old"),
+    ] {
+        let (left, right) = points(&shell, cx, glyph, glyph + 1);
+        let at = gpui::point(left.x + (right.x - left.x) * across, left.y);
+        for count in [1, 2] {
+            cx.simulate_event(MouseDownEvent {
+                position: at,
+                button: MouseButton::Left,
+                click_count: count,
+                ..Default::default()
+            });
+            draw(cx);
+            cx.simulate_mouse_up(at, MouseButton::Left, Modifiers::default());
+            draw(cx);
+        }
+        assert_eq!(
+            editing(&shell, cx).unwrap().2,
+            word,
+            "glyph {glyph} at {across}"
+        );
     }
-    assert_eq!(editing(&shell, cx).unwrap().2, "my");
     close(&shell, cx);
 }
 

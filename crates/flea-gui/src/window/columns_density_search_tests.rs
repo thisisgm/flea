@@ -2,9 +2,9 @@
 use super::density::{open, render, DENSITIES};
 use super::host;
 use crate::columns::geometry::Slot;
-use crate::g2::sr1::contents::{BLOCK_H, ROW_H};
+use crate::g2::file_search::contents::{BLOCK_H, ROW_H};
 use crate::row::tags::SWATCH_MARK;
-use flea::ui_logic_sr1::{ContentsMatch, ContentsMatches, Mode};
+use flea::ui_logic_file_search::{ContentsMatch, ContentsMatches, Mode};
 use gpui::px;
 
 #[test]

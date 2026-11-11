@@ -9,7 +9,7 @@ use crate::{backend::Event as BackendEvent, state::Shell, window::input::ActionE
 use flea::{
     keys::Context as Keys,
     protocol::{Reply, RowFacts},
-    ui_logic_pl4::order::recent_entry,
+    ui_logic_rail_places::order::recent_entry,
 };
 use gpui::{Entity, TestAppContext, VisualTestContext};
 
@@ -187,7 +187,7 @@ fn railrecent_o_on_a_search_result_reveals_that_result_and_leaves_recent(cx: &mu
             shell.search_update(
                 0,
                 None,
-                |search, host| search.key(crate::g2::sr1::StripKey::Enter, host),
+                |search, host| search.key(crate::g2::file_search::StripKey::Enter, host),
                 window,
                 cx,
             )

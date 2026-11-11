@@ -2,8 +2,8 @@
 use super::*;
 use flea::{
     jsondoc::{parse, Json},
-    ui_logic_fb1::status::Hint,
-    ui_logic_op4::{output::Kind, selection::Source},
+    ui_logic_print_convert::{output::Kind, selection::Source},
+    ui_logic_status_feedback::status::Hint,
 };
 
 pub(super) fn network(cx: &mut TestAppContext, handle: WindowHandle<Root>) {
@@ -22,7 +22,7 @@ fn convert(cx: &mut TestAppContext, handle: WindowHandle<Root>) {
     update(cx, handle, |shell, window, cx| {
         assert!(shell.open_output(
             0,
-            crate::g2::op4::model::Action::Convert,
+            crate::g2::print_convert::model::Action::Convert,
             0,
             vec![Source {
                 path: "/files/photo.png".into(),
@@ -150,10 +150,30 @@ fn ipc_convert_capability_reads_the_backend_reply(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
-fn ipc_convert_state_refuses_unmeasured_painted_fields(cx: &mut TestAppContext) {
+fn ipc_convert_state_reports_the_live_draft(cx: &mut TestAppContext) {
     let (handle, _backend) = open(cx);
     convert(cx, handle);
-    blocked(cx, handle, "convertState");
+    let reply = read(cx, handle, "convertState");
+    assert_eq!(reply.code, 0, "{reply:?}");
+    let state = parse(reply.stdout.trim()).unwrap();
+    assert_eq!(state.get("opened").and_then(Json::as_bool), Some(true));
+    assert_eq!(state.get("strip").and_then(Json::as_bool), Some(false));
+    assert_eq!(
+        state
+            .get("source")
+            .unwrap()
+            .get("path")
+            .and_then(Json::as_str),
+        Some("/files/photo.png")
+    );
+    assert_eq!(
+        state.get("outputText").and_then(Json::as_str),
+        Some("Output /files/photo (converted).jpg")
+    );
+    assert!(state
+        .get("formats")
+        .and_then(Json::as_array)
+        .is_some_and(|formats| !formats.is_empty()));
 }
 
 #[gpui::test]
@@ -262,7 +282,10 @@ fn ipc_status_secondary_includes_the_split_undo_link_before_extras(cx: &mut Test
                 "Done",
                 false,
                 "",
-                Hint::Note(flea::ui_logic_fb1::status::Note::Background, true),
+                Hint::Note(
+                    flea::ui_logic_status_feedback::status::Note::Background,
+                    true,
+                ),
                 now,
             );
         });

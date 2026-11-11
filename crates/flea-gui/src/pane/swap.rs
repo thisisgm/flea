@@ -121,6 +121,8 @@ pub struct Swap {
     pub(crate) unheld_own: Own,
     // The first-window count the committed listing asked for.
     pub(crate) listing_first: usize,
+    // The search generation and first-window count its query sent, including walking reanswers.
+    pub(crate) search_first: Option<(usize, usize)>,
     // The first-window count each sort still out asked for, oldest first.
     pub(crate) sorts_out: VecDeque<usize>,
     pub session: Session,
@@ -137,6 +139,13 @@ pub struct Swap {
 }
 
 impl Swap {
+    pub(crate) fn publish_search(&mut self, session: Session, first: usize) {
+        if session.generation != self.session.generation {
+            self.search_first = Some((session.generation, first));
+        }
+        self.session = session;
+    }
+
     /// inputToRows' second half: stamped once, and only after an input, as v0.3.12's PaneSwap.qml does; the launch listing is no input.
     pub(crate) fn stamp_rows(&mut self, now: u64) {
         if self.rows_at == 0 && self.input_at > 0 {
@@ -280,10 +289,13 @@ impl Swap {
         self.pending = None;
         self.unheld_total = None;
         self.sorts_out.clear();
+        // The trace measures the hold, which already ended when its cap expired.
+        if !self.fell_back {
+            self.counters.last_ms = now.saturating_sub(self.since);
+            self.counters.last_end = reason;
+        }
         self.holding = false;
         self.fell_back = false;
-        self.counters.last_ms = now.saturating_sub(self.since);
-        self.counters.last_end = reason;
         self.mark_shown(false, now);
     }
 }
@@ -310,7 +322,7 @@ impl super::Pane {
             && self.path() == pending.path
             && self.state.query == pending.options.kept_query;
         let kept = reanswer.then(|| self.held.row(self.cursor)).flatten();
-        flea::ui_logic_sr1::Session::kept_index(
+        flea::ui_logic_file_search::Session::kept_index(
             kept.map(|row| row.name.as_str()),
             held.rows.iter().map(|row| row.name.as_str()),
             held.start,
@@ -337,7 +349,11 @@ impl super::Pane {
             self.swap.pending = Some(Pending {
                 path: path.clone(),
                 total: Some(*total),
-                first: self.first_count(),
+                first: self
+                    .swap
+                    .search_first
+                    .filter(|(sent, _)| *sent == generation)
+                    .map_or_else(|| self.first_count(), |(_, first)| first),
                 ready: None,
                 following: None,
                 parked_until: None,

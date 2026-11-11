@@ -1,6 +1,6 @@
 // The copy primitives every transfer is built from: streaming, symlink-preserving, and refusing to overwrite.
 use crate::error::{from_io, FleaError};
-use std::io::Write;
+use std::io::{Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -14,6 +14,8 @@ const VFAT_MAGIC: i64 = 0x4D44;
 const FOUR_GIB: u64 = 4 * 1024 * 1024 * 1024;
 // rename(2) sets EXDEV when the two paths are on different filesystems, which is the one failure that means "copy instead".
 const EXDEV: i32 = 18;
+// st_blocks counts 512-byte units whatever the filesystem block size.
+const BLOCK_BYTES: u64 = 512;
 use crate::oflags::{O_DIRECTORY, O_NOFOLLOW};
 use super::archivefree::format_size;
 use super::unheld::Kind;
@@ -109,6 +111,11 @@ fn copy_file_at(src: At, dst: At, total: u64, p: &mut Progress, inside: bool) ->
     let mut slicing = durable;
     // Offset of the slice whose writeback started but whose wait is still owed, with its length.
     let mut inflight: Option<(u64, u64)> = None;
+    // A file with fewer blocks than its length has holes, which the copy seeks over; a FUSE daemon, or a drive statfs cannot name, may refuse a write past its end, so it takes zeros.
+    let holes_kept = dest_magic.is_some_and(|m| m != super::copyread::FUSE_MAGIC);
+    let sparse = holes_kept && std::os::unix::fs::MetadataExt::blocks(&src_meta).saturating_mul(BLOCK_BYTES) < src_meta.len();
+    // The end of the data extent the copy is in; a dense file is one extent and never asks.
+    let mut extent_end = if sparse { 0 } else { u64::MAX };
     loop {
         if cancelled(p) {
             // The partial file goes with the cancel: a half-written destination is not a result anyone asked for.
@@ -116,7 +123,22 @@ fn copy_file_at(src: At, dst: At, total: u64, p: &mut Progress, inside: bool) ->
             let _ = stage.discard();
             return Err(cancel_err(dst.named));
         }
-        let read = r.read(p.cancel);
+        if done >= extent_end {
+            match r.extent(done) {
+                Ok(Some((start, end))) => {
+                    if start > done {
+                        if let Err(e) = w.seek(SeekFrom::Start(start)) {
+                            return Err(left_half_written(p, dst, &stage, &w, from_io("copy", &dst.named.to_string_lossy(), &e)));
+                        }
+                        done = start;
+                    }
+                    extent_end = end;
+                }
+                Ok(None) => break,
+                Err(e) => return Err(left_half_written(p, dst, &stage, &w, from_io("copy", &src.named.to_string_lossy(), &e))),
+            }
+        }
+        let read = r.read_upto(p.cancel, extent_end - done);
         if cancelled(p) {
             continue;
         }
@@ -185,8 +207,22 @@ fn copy_file_at(src: At, dst: At, total: u64, p: &mut Progress, inside: bool) ->
             }
         }
     }
+    // A hole at the end has no data to write, so the copy takes the source's length instead.
+    if sparse && done < src_meta.len() {
+        if let Err(e) = w.set_len(src_meta.len()) {
+            return Err(left_half_written(p, dst, &stage, &w, from_io("copy", &dst.named.to_string_lossy(), &e)));
+        }
+        done = src_meta.len();
+        if !durable {
+            report_landed(p, dst, done, total);
+        }
+    }
     if let Err(e) = w.flush() {
         return Err(left_half_written(p, dst, &stage, &w, from_io("copy", &dst.named.to_string_lossy(), &e)));
+    }
+    // A source another program cut short or rewrote while it was read gives a torn copy, so the copy goes and the item fails.
+    if r.changed(&src_meta, src.at) {
+        return Err(torn(p, dst, &stage, w));
     }
     // The copy carries the source mtime, best effort, so a copied tree still sorts by its own history.
     keep_mtime(&w, &src_meta);
@@ -206,6 +242,14 @@ fn copy_file_at(src: At, dst: At, total: u64, p: &mut Progress, inside: bool) ->
                 }
             }
             publish(p, src, dst, &stage)?;
+            // A held file closes in a wave after its batch's syncfs, so only its fresh size is checked here.
+            if let Err(e) = landed::await_landed(dst.at, src_meta.len(), p.cancel) {
+                if let Some(durability) = p.durability.as_mut() {
+                    durability.note_file_failed();
+                }
+                record_open(p, dst.named, &w);
+                return Err(left_partial(p, dst.named, e.error("copy", dst.named)));
+            }
             // The bytes count when written, at most one batch ahead of the drive's own syncfs.
             report_landed(p, dst, done, total);
             if let Some(carried) = p.tree.as_mut() {
@@ -213,7 +257,7 @@ fn copy_file_at(src: At, dst: At, total: u64, p: &mut Progress, inside: bool) ->
             }
             record_open(p, dst.named, &w);
             if let Some(durability) = p.durability.as_mut() {
-                durability.hold(w);
+                durability.hold(w, if inflight.is_some() { 0 } else { done });
             }
             return Ok(());
         }
@@ -227,11 +271,18 @@ fn copy_file_at(src: At, dst: At, total: u64, p: &mut Progress, inside: bool) ->
         publish(p, src, dst, &stage)?;
         report_landed(p, dst, done, total);
     }
+    record_open(p, dst.named, &w);
+    land(p, src_meta.len(), dst, w)?;
     if let Some(carried) = p.tree.as_mut() {
         *carried += done;
     }
-    record_open(p, dst.named, &w);
     Ok(())
+}
+
+// gvfs answers fsync and close before a WebDAV upload ends, so the file counts once close succeeds and a fresh stat shows all of it.
+fn land(p: &mut Progress, len: u64, dst: At, w: std::fs::File) -> Result<(), FleaError> {
+    let landed = landed::close_file(w).map_err(landed::Unlanded::Failed).and_then(|()| landed::await_landed(dst.at, len, p.cancel));
+    landed.map_err(|e| left_partial(p, dst.named, e.error("copy", dst.named)))
 }
 
 // A tree copy reports its running total and no file size, so the bar tracks the whole tree.
@@ -339,7 +390,7 @@ fn refuse_for_size(name: &str, magic: Option<i64>, free: u64, blocks: u64, size:
         return None;
     }
     if size > free {
-        return Some(format!("{name} needs {}, and the drive has {} free", format_size(size), format_size(free)));
+        return Some(format!("{name} needs {}, and the drive has {} free.", format_size(size), format_size(free)));
     }
     None
 }
@@ -424,12 +475,12 @@ fn left_half_written(p: &mut Progress, dst: At, stage: &Stage, w: &std::fs::File
 }
 
 // A staged folder that failed goes whole, so its name never holds part of a tree; one that will not go is journaled.
-fn drop_folder(p: &mut Progress, dst: At, folder: &Folder, into: &std::fs::File, e: FleaError) -> FleaError {
+fn drop_folder(p: &mut Progress, dst: At, folder: &Folder, e: FleaError) -> FleaError {
     let leaf = folder.at().file_name().map(|leaf| dst.named.with_file_name(leaf));
     #[cfg(test)]
-    let removed = if STUCK_FOLDER.with(|v| v.replace(false)) { Err(()) } else { remove_tree(folder.at(), into) };
+    let removed = if STUCK_FOLDER.with(|v| v.replace(false)) { Err(()) } else { remove_tree(folder.at()) };
     #[cfg(not(test))]
-    let removed = remove_tree(folder.at(), into);
+    let removed = remove_tree(folder.at());
     p.partial = removed.err().and(leaf);
     // This folder's own manifest names paths that never existed, so undo judges the sibling whole; a merge keeps its records.
     if p.partial.is_some() && p.manifest.as_ref().is_some_and(|m| m.root() == dst.named) { p.manifest = None; }
@@ -437,6 +488,15 @@ fn drop_folder(p: &mut Progress, dst: At, folder: &Folder, into: &std::fs::File,
         durability.forget_tree(dst.named);
     }
     e
+}
+
+// Inside a tree the torn file is named and skipped like a refusal; at the top it is the item's own failure.
+fn torn(p: &mut Progress, dst: At, stage: &Stage, w: std::fs::File) -> FleaError {
+    let e = super::unheld::marked(dst.named, if p.for_move { "changed during the move" } else { "changed during the copy" }.to_string());
+    if stage.discard().is_ok() {
+        return e;
+    }
+    left_half_written(p, dst, stage, &w, e)
 }
 
 // The whole file takes its name; a name taken meanwhile, or one the drive refuses, answers as the create would have.
@@ -476,6 +536,10 @@ fn copy_symlink_at(src: At, dst: At, p: &mut Progress) -> Result<(), FleaError> 
 // Copies a file, a symlink, a whole directory tree, or any other node by recreating it. The
 // destination must not already exist.
 pub fn copy_any(src: &Path, dst: &Path, p: &mut Progress) -> Result<(), FleaError> {
+    // A move whose source its folder will not give up fails before the first byte, with the source whole.
+    if p.for_move {
+        movable(src)?;
+    }
     super::unheld::begin(p.durability.as_ref().is_some_and(|d| d.rename_fat));
     if let Err(e) = copy_at(here(src), here(dst), p, false) {
         // An item that ends on its own error counts none of its refusals, so none of them reaches the done line.
@@ -501,7 +565,7 @@ fn copy_at(src: At, dst: At, p: &mut Progress, inside: bool) -> Result<(), FleaE
         return copy_symlink_at(src, dst, p);
     }
     if meta.is_dir() {
-        return copy_dir_at(src, dst, p, inside);
+        return tree::copy_dir_at(src, dst, p, inside);
     }
     if meta.is_file() {
         return copy_file_at(src, dst, meta.len(), p, inside);
@@ -518,154 +582,9 @@ fn copy_at(src: At, dst: At, p: &mut Progress, inside: bool) -> Result<(), FleaE
     Ok(())
 }
 
-fn copy_dir_at(src: At, dst: At, p: &mut Progress, inside: bool) -> Result<(), FleaError> {
-    // Issue 110: both ends are held open and every child is reached through those descriptors, because
-    // resolving a child from its path again lets a parent renamed aside mid-copy redirect the rest of
-    // the tree through a symlink. corner: three descriptors a level, the two ends and the read_dir on
-    // the source, so a deep enough tree meets this process's open-file limit where it used to recurse.
-    let from = open_dir(src.at).map_err(|e| from_io("copy", &src.named.to_string_lossy(), &e))?;
-    // Issue 109 again, one level up: a 0700 directory landed 0755 and its contents were readable by
-    // anyone while the copy ran. It is created with nothing the source does not grant and with the
-    // owner's own three bits, which this run needs to write into it, and takes its exact mode at the end.
-    let source_magic = crate::backend::fsinfo::magic_of(src.at);
-    let keep = from.metadata().ok().map(|m| mode_for_source(source_magic, m.permissions().mode(), true));
-    // A new folder is built under a hidden sibling and takes its name in one rename; see copystage.rs.
-    let folder = super::unheld::fault(dst.named, Kind::Entry)
-        .and_then(|()| Folder::create(dst.at, keep.unwrap_or(0o700) | 0o700, inside))
-        .map_err(|e| super::unheld::refused(Kind::Entry, &e, dst, p.tree.is_some().then_some(src.at)))?;
-    // A staged folder is still empty here, so it goes at once rather than wait for a sweep after this backend.
-    let into = open_dir(folder.at()).inspect_err(|_| if folder.staged() { let _ = std::fs::remove_dir(folder.at()); })
-        .map_err(|e| from_io("copy", &dst.named.to_string_lossy(), &e))?;
-    super::tags::copy_tags(src.at, folder.at());
-    if let Some(writer) = p.manifest.as_mut() {
-        match into.metadata() {
-            Ok(meta) => writer.record(dst.named, &meta),
-            Err(_) => writer.overflow(),
-        }
-    }
-    let (from_held, into_held) = (held_path(&from), held_path(&into));
-    // Set once at the top of the tree, so a directory inside it goes on counting rather than starting again.
-    if p.tree.is_none() {
-        p.tree = Some(0);
-    }
-    let r = copy_dir_entries(
-        At { at: &from_held, named: src.named },
-        At { at: &into_held, named: dst.named },
-        p,
-        inside || folder.staged(),
-    );
-    let r = match r {
-        Err(e) if folder.staged() => return Err(drop_folder(p, dst, &folder, &into, e)),
-        r => r,
-    };
-    if r.is_err() {
-        if cancelled(p) {
-            // A half-copied tree goes with the cancel, gated on the flag not the message.
-            p.partial = match remove_tree(dst.at, &into) {
-                Ok(()) => None,
-                // Still there, so the journal is told where it is rather than that nothing was left.
-                Err(()) => Some(dst.named.to_path_buf()),
-            };
-            if p.partial.is_none() {
-                if let Some(durability) = p.durability.as_mut() {
-                    durability.forget_tree(dst.named);
-                }
-            }
-        } else {
-            // Any other failure leaves what was copied, since removing it would destroy data on a
-            // transient error, and reports the whole tree as the one partial the journal records.
-            p.partial = Some(dst.named.to_path_buf());
-        }
-        return r;
-    }
-    // Last, so a directory this run still has to write into is not made unwritable halfway through.
-    // corner: a destination with no mode bits of its own refuses this and keeps the source's bits
-    // widened by the owner's three, because a copy that carried every byte is not a failure.
-    if let Some(mode) = keep {
-        let _ = std::fs::set_permissions(&into_held, std::fs::Permissions::from_mode(mode));
-    }
-    // The directory carries the source mtime too, after its children landed inside it.
-    if let Ok(meta) = from.metadata() {
-        keep_mtime(&into, &meta);
-    }
-    if let Err(e) = folder.publish(dst.at) {
-        let refused = super::unheld::refused(Kind::Entry, &e, dst, p.tree.is_some().then_some(src.at));
-        return Err(drop_folder(p, dst, &folder, &into, refused));
-    }
-    touch(p, dst.named);
-    if let Some(parent) = dst.named.parent() {
-        touch(p, parent);
-    }
-    r
-}
-
-fn copy_dir_entries(src: At, dst: At, p: &mut Progress, inside: bool) -> Result<(), FleaError> {
-    let entries = std::fs::read_dir(src.at).map_err(|e| from_io("copy", &src.named.to_string_lossy(), &e))?;
-    let rename_fat = p.durability.as_ref().is_some_and(|d| d.rename_fat);
-    for entry in entries {
-        if cancelled(p) {
-            return Err(cancel_err(dst.named));
-        }
-        let entry = entry.map_err(|e| from_io("copy", &src.named.to_string_lossy(), &e))?;
-        let name = entry.file_name();
-        // The card's Rename answer reaches every level, so a name the drive refuses lands under the name it gives a top-level one.
-        let landed = super::fatnames::inside_leaf(&name, rename_fat);
-        let (from_at, from_named) = (src.at.join(&name), src.named.join(&name));
-        let (into_at, into_named) = (dst.at.join(&landed), dst.named.join(&landed));
-        let outcome = if entry.file_type().map(|t| t.is_file()).unwrap_or(false) {
-            // The total is unused inside a tree: p.tree is Some here.
-            copy_file_at(
-                At { at: &from_at, named: &from_named },
-                At { at: &into_at, named: &into_named },
-                0,
-                p,
-                inside,
-            )
-        } else {
-            copy_at(
-                At { at: &from_at, named: &from_named },
-                At { at: &into_at, named: &into_named },
-                p,
-                inside,
-            )
-        };
-        // An item the drive cannot hold is named and skipped, so one link or one FAT name never ends a tree.
-        match outcome {
-            Err(e) if e.where_ == super::unheld::UNHELD => super::unheld::note(e),
-            Err(e) => return Err(e),
-            Ok(()) => {}
-        }
-    }
-    Ok(())
-}
-
-// A copy of a 0500 source is itself 0500, and nothing can be removed from one. The owner's bits go
-// back on only after a removal has actually failed, so a tree without such a directory pays nothing.
-pub(super) fn remove_tree(at: &Path, held: &std::fs::File) -> Result<(), ()> {
-    if std::fs::remove_dir_all(at).is_ok() {
-        return Ok(());
-    }
-    owner_can_write(held);
-    std::fs::remove_dir_all(at).map_err(|_| ())
-}
-
-// Issue 110's discipline again: every child is opened O_NOFOLLOW and reached through this process's
-// own descriptor, so a directory swapped for a symlink cannot take the owner's bits somewhere else.
-fn owner_can_write(dir: &std::fs::File) {
-    let held = held_path(dir);
-    let _ = std::fs::set_permissions(&held, std::fs::Permissions::from_mode(0o700));
-    let entries = match std::fs::read_dir(&held) {
-        Ok(entries) => entries,
-        Err(_) => return,
-    };
-    for entry in entries.flatten() {
-        if !entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
-            continue;
-        }
-        if let Ok(child) = open_dir(&entry.path()) {
-            owner_can_write(&child);
-        }
-    }
+// A 0500 copy refuses removal, so a folder this run made takes the owner's bits where its mode refuses; see deeptree.rs.
+pub(super) fn remove_tree(at: &Path) -> Result<(), ()> {
+    deep::remove_deep(at, true).map_err(|_| ())
 }
 
 // The path that reaches a held directory through this process's own descriptor table, so no rename of
@@ -737,11 +656,71 @@ pub(crate) fn move_cross_device(src: &Path, dst: &Path, p: &mut Progress) -> Res
         p.partial = Some(dst.to_path_buf());
         return Err(e);
     }
-    remove_any(src)?;
+    if let Err(e) = finish_move(src, dst, p.durability.as_deref_mut()) {
+        if e.copy_to_undo {
+            p.partial = Some(dst.to_path_buf());
+        }
+        return Err(e.error);
+    }
     if let Some(parent) = src.parent() {
         touch(p, parent);
     }
     Ok(())
+}
+
+// Where a move's removal of its source stopped: before anything went, or partway through a folder.
+pub(crate) enum Unremoved {
+    Whole(FleaError),
+    Part(FleaError),
+}
+
+// A move whose source would not go; copy_to_undo marks a whole source whose copy would not go back either.
+pub(crate) struct Unmoved {
+    pub error: FleaError,
+    pub copy_to_undo: bool,
+}
+
+// A source wholly kept takes its copy back; one removed partway leaves the copy as the only whole one.
+pub(crate) fn finish_move(src: &Path, dst: &Path, durability: Option<&mut super::durable::Durability>) -> Result<(), Unmoved> {
+    // The source goes only while the destination shows the same kind and, for a file, every byte.
+    if let Err(e) = landed::same_as_source(src, dst) {
+        return Err(Unmoved { error: e.error("move", dst), copy_to_undo: true });
+    }
+    match remove_moved(src) {
+        Ok(()) => Ok(()),
+        Err(Unremoved::Part(error)) => Err(Unmoved { error, copy_to_undo: false }),
+        Err(Unremoved::Whole(error)) => {
+            let copy_to_undo = deep::remove_deep(dst, true).is_err();
+            if let (false, Some(durability)) = (copy_to_undo, durability) {
+                durability.forget_tree(dst);
+            }
+            Err(Unmoved { error, copy_to_undo })
+        }
+    }
+}
+
+// The folder must let this process take the item out; a sticky folder only lets the item's owner or its own.
+pub(crate) fn movable(src: &Path) -> Result<(), FleaError> {
+    let meta = src.symlink_metadata().map_err(|e| from_io("move", &src.to_string_lossy(), &e))?;
+    match src.parent().filter(|parent| !parent.as_os_str().is_empty()) {
+        Some(parent) => deep::removable_from(parent, &meta).map_err(|e| from_io("move", &src.to_string_lossy(), &e)),
+        None => Ok(()),
+    }
+}
+
+// Whole only when the source is still there and nothing of it went; one already gone leaves its copy the whole one.
+pub(crate) fn remove_moved(src: &Path) -> Result<(), Unremoved> {
+    let mut gone = 0;
+    let removed = movable(src).and_then(|()| {
+        let meta = src.symlink_metadata().map_err(|e| from_io("move", &src.to_string_lossy(), &e))?;
+        let r = if meta.is_dir() { deep::remove_counting(src, false, &mut gone) } else { std::fs::remove_file(src) };
+        r.map_err(|e| from_io("move", &src.to_string_lossy(), &e))
+    });
+    removed.map_err(|e| match (gone, src.symlink_metadata().is_ok()) {
+        (0, true) => Unremoved::Whole(e),
+        (0, false) => Unremoved::Part(e),
+        _ => Unremoved::Part(FleaError { msg: format!("{}; part of it was removed, and the copy holds all of it", e.msg), ..e }),
+    })
 }
 
 // The folders copy_any touched; held files settle first so the source goes only after the bytes.
@@ -769,18 +748,6 @@ fn unconfirmed(dst: &Path) -> FleaError {
     }
 }
 
-pub fn remove_any(path: &Path) -> Result<(), FleaError> {
-    let meta = path
-        .symlink_metadata()
-        .map_err(|e| from_io("move", &path.to_string_lossy(), &e))?;
-    let r = if meta.is_dir() && !meta.file_type().is_symlink() {
-        std::fs::remove_dir_all(path)
-    } else {
-        std::fs::remove_file(path)
-    };
-    r.map_err(|e| from_io("move", &path.to_string_lossy(), &e))
-}
-
 fn cancel_err(path: &Path) -> FleaError {
     FleaError {
         where_: "copy".to_string(),
@@ -789,9 +756,28 @@ fn cancel_err(path: &Path) -> FleaError {
     }
 }
 
+#[path = "copytree.rs"]
+mod tree;
+#[path = "landed.rs"]
+pub(crate) mod landed;
+#[path = "deeptree.rs"]
+pub(crate) mod deep;
+
 #[cfg(test)]
 #[path = "copyfile_tests.rs"]
 mod tests;
 #[cfg(test)]
 #[path = "copyfile_read_tests.rs"]
 mod read_tests;
+#[cfg(test)]
+#[path = "copydeep_tests.rs"]
+mod deep_tests;
+#[cfg(test)]
+#[path = "copymove_tests.rs"]
+mod move_tests;
+#[cfg(test)]
+#[path = "landed_tests.rs"]
+mod landed_tests;
+#[cfg(test)]
+#[path = "copywire_tests.rs"]
+mod wire_tests;

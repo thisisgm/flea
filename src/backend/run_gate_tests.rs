@@ -346,6 +346,8 @@ fn a_query_burst_behind_a_held_scan_answers_only_its_newest_query() {
     assert_eq!(lines[paths[2]], paths_line(&[text(&shared[2])]), "the last sibling reads the session's folder rows: {said}");
 }
 
+#[path = "run_gate_gone_tests.rs"]
+mod gone;
 #[path = "run_gate_unmount_tests.rs"]
 mod unmount;
 #[path = "run_gate_newest_tests.rs"]
@@ -389,6 +391,8 @@ fn search_listing_gate_replays_enter_the_worker_and_keep_ordinary_request_order(
 
 #[path = "run_newfolder_tests.rs"]
 mod newfolder_tests;
+#[path = "run_undo_journal_tests.rs"]
+mod undo_journal_tests;
 
 #[path = "run_thumb_identity_tests.rs"]
 mod thumb_identity_tests;

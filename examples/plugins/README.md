@@ -70,7 +70,8 @@ Syncthing or synchronize files.
 
 ## virtual-place
 
-The **Example Files** rail row opens an in-memory place containing a **Photos**
+The **Example Files** rail row stands under PLUGINS, since its place names no title,
+and draws the example's own `mark.svg`. It opens an in-memory place containing a **Photos**
 folder and **notes.txt**. Photos initially contains **lake.png**. The example
 handles listing, rename, delete, and copying or moving files between folders
 inside its own place. It refuses transfers to or from local folders. Operations

@@ -56,7 +56,7 @@ fn quick_look_picture_metadata_keeps_the_card_held_until_raster_completion(
 #[gpui::test]
 fn quick_look_ended_video_picture_rect_uses_the_empty_surface_layout(cx: &mut TestAppContext) {
     use super::super::quick_look_body_tests::{mounted, open_kind};
-    use flea::ui_logic_pv3::frame::Event;
+    use flea::ui_logic_media_preview::frame::Event;
     use std::sync::Arc;
 
     let (shell, cx, _requests, script) = mounted(cx);
@@ -165,8 +165,8 @@ fn quick_look_pdf_cursor_keys_pan_the_zoomed_page_and_keep_the_listing_cursor(
         quick_look_body_tests::{mounted, open_kind},
     };
     use crate::g2::{
-        pv1::{doc::View, Body},
-        pv2::render,
+        doc_preview::render,
+        quick_look_overlay::{doc::View, Body},
     };
 
     render::without_threads(|| {
@@ -221,7 +221,7 @@ fn quick_look_column_pdf_expands_collapses_and_returns_keys_to_the_listing(
     cx: &mut TestAppContext,
 ) {
     use super::super::previewtypes_tests as host;
-    use crate::{g2::pv2::render, window::selection_preview::Mounted};
+    use crate::{g2::doc_preview::render, window::selection_preview::Mounted};
     render::without_threads(|| {
         let (shell, cx) = host::open(cx, "/files");
         land(

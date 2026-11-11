@@ -1,8 +1,10 @@
 // The shelf's own file actions, Actions rule 1: every one is a `flea shelf` call, and they run the
 // same Rust transfer engine, conflict handling, undo and trash the pane runs. Rule 2: no new file
 // operation exists here, because one the pane cannot do would be a feature in the wrong place.
-use crate::backend::opsreq::{run_transfer_checked, transferdone_line, transferitem_line,
-                             transferprogress_line, transferstarted_line, usable_dest, OpMsg};
+use crate::backend::opsreq::{
+    run_transfer_checked, transferdone_line, transferitem_line, transferprogress_line,
+    transferstarted_line, usable_dest, OpMsg,
+};
 use crate::backend::proto::error_line;
 use crate::backend::undo::Step;
 use crate::error::io_message;
@@ -64,7 +66,19 @@ pub fn transfer(moving: bool, rest: &[String]) -> i32 {
     let watched = paths.clone();
     let engine = {
         let cancel = Arc::clone(&cancel);
-        thread::spawn(move || run_transfer_checked(0, moving, paths, dest, cancel, tx, None, None, crate::backend::collide::Policy::default()))
+        thread::spawn(move || {
+            run_transfer_checked(
+                0,
+                moving,
+                paths,
+                dest,
+                cancel,
+                tx,
+                None,
+                None,
+                crate::backend::collide::Policy::default(),
+            )
+        })
     };
     let (moved, mut failed, steps) = report(rx, &watched, moving);
     // A panicking engine reports no item at all, so joining it is the only thing that can tell a
@@ -127,17 +141,37 @@ fn record_undo(steps: &[Step]) -> Result<(), String> {
 
 // Every line the pane's own transfer prints, in the same vocabulary, so the card reads one protocol.
 // The engine's own steps come back with them, because they carry where each item actually landed.
-fn report(rx: std::sync::mpsc::Receiver<OpMsg>, paths: &[String], moving: bool) -> (Vec<String>, usize, Vec<Step>) {
+fn report(
+    rx: std::sync::mpsc::Receiver<OpMsg>,
+    paths: &[String],
+    moving: bool,
+) -> (Vec<String>, usize, Vec<Step>) {
     let mut moved = Vec::new();
     let mut steps = Vec::new();
     let mut failed = 0;
     for msg in rx {
         match msg {
             OpMsg::Meta { line } => println!("{}", line),
-            OpMsg::Progress { id, index, name, bytes, total, scanned } => {
-                println!("{}", transferprogress_line(id, index, &name, bytes, total, scanned));
+            OpMsg::Progress {
+                id,
+                index,
+                name,
+                bytes,
+                total,
+                scanned,
+            } => {
+                println!(
+                    "{}",
+                    transferprogress_line(id, index, &name, bytes, total, scanned)
+                );
             }
-            OpMsg::Item { id, index, name, ok, err } => {
+            OpMsg::Item {
+                id,
+                index,
+                name,
+                ok,
+                err,
+            } => {
                 println!("{}", transferitem_line(id, index, &name, ok, &err));
                 if !ok {
                     failed += 1;
@@ -147,8 +181,24 @@ fn report(rx: std::sync::mpsc::Receiver<OpMsg>, paths: &[String], moving: bool) 
                     }
                 }
             }
-            OpMsg::TransferDone { id, ok, failed: bad, skipped, cancelled, retry, entry, durable, note, refused } => {
-                println!("{}", transferdone_line(id, ok, bad, skipped, cancelled, &retry, durable, &note, &refused));
+            OpMsg::TransferDone {
+                id,
+                ok,
+                failed: bad,
+                skipped,
+                cancelled,
+                retry,
+                entry,
+                durable,
+                note,
+                refused,
+            } => {
+                println!(
+                    "{}",
+                    transferdone_line(
+                        id, ok, bad, skipped, cancelled, &retry, durable, &note, &refused
+                    )
+                );
                 steps = entry.steps;
             }
             _ => {}
@@ -164,6 +214,22 @@ pub fn paths(rest: &[String]) -> i32 {
     0
 }
 
+// The window's clipboard owner offers files to rich targets and paths to text targets.
+pub fn clip(rest: &[String]) -> i32 {
+    match clip_owner(rest) {
+        Ok(_) => 0,
+        Err(e) => {
+            eprintln!("flea: {}", e);
+            2
+        }
+    }
+}
+
+// Apart from the exit code, so a refused selection reads differently from an owner that never started.
+fn clip_owner(rest: &[String]) -> Result<String, String> {
+    crate::clip::own::spawn_owner("copy", rest)
+}
+
 // flea shelf send <peer> <path>...: Taildrop already ships in Flea, and a pile gathered from five
 // folders is the best payload it will ever get. Rule 4: a send leaves the pile exactly as it was,
 // because a send reports only by notification and nobody here knows whether it landed.
@@ -177,7 +243,7 @@ pub fn send(rest: &[String]) -> i32 {
     };
     let finished = std::process::Command::new("omarchy-tailscale-send")
         .arg(peer)
-        .args(&paths)
+        .args(flea::bytename::args(&paths))
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
@@ -219,13 +285,27 @@ pub fn peers() -> i32 {
 }
 
 pub fn peer_names(status: &str) -> Vec<String> {
-    let Ok(doc) = crate::jsondoc::parse(status) else { return Vec::new() };
-    let Some(crate::jsondoc::Json::Obj(peers)) = doc.get("Peer") else { return Vec::new() };
+    let Ok(doc) = crate::jsondoc::parse(status) else {
+        return Vec::new();
+    };
+    let Some(crate::jsondoc::Json::Obj(peers)) = doc.get("Peer") else {
+        return Vec::new();
+    };
     let mut out = Vec::new();
     for (_, peer) in peers {
-        let dns = peer.get("DNSName").and_then(crate::jsondoc::Json::as_str).unwrap_or_default();
-        let host = peer.get("HostName").and_then(crate::jsondoc::Json::as_str).unwrap_or_default();
-        let name = if dns.is_empty() { host.to_string() } else { dns.trim_end_matches('.').to_string() };
+        let dns = peer
+            .get("DNSName")
+            .and_then(crate::jsondoc::Json::as_str)
+            .unwrap_or_default();
+        let host = peer
+            .get("HostName")
+            .and_then(crate::jsondoc::Json::as_str)
+            .unwrap_or_default();
+        let name = if dns.is_empty() {
+            host.to_string()
+        } else {
+            dns.trim_end_matches('.').to_string()
+        };
         // An exit-node relay is never a send target, the same rule the OEM's own isMullvadPeer applies.
         if name.is_empty() || name.contains(".mullvad.ts.net") {
             continue;

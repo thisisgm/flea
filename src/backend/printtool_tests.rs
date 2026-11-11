@@ -47,14 +47,26 @@ fn publication_never_overwrites_a_source_or_a_new_collision() {
     d.assert_contains(&output);
     stage(&source, &output).unwrap();
     assert_eq!(std::fs::read_to_string(&output).unwrap(), "original");
-    assert!(publish(&output, &source).is_err());
+    assert!(publish(&output, &source, &AtomicBool::new(false)).is_err());
     assert_eq!(std::fs::read_to_string(&source).unwrap(), "original");
     let dest = d.join("result.png");
     d.assert_contains(&dest);
-    publish(&output, &dest).unwrap();
+    publish(&output, &dest, &AtomicBool::new(false)).unwrap();
     assert!(!output.exists());
     assert_eq!(std::fs::read_to_string(dest).unwrap(), "original");
     assert!(inputs(&[PathBuf::from("relative.png")]).is_err());
     assert!(inputs(&[source.clone(), source]).is_err());
     assert!(inputs(&[d.dir("directory")]).is_err());
+}
+
+// A print tool the system lacks says it is not installed; a missing sandbox launcher keeps its own sentence.
+#[test]
+fn a_missing_print_tool_is_named_as_not_installed() {
+    let cancel = AtomicBool::new(false);
+    let missing = run(&["/nonexistent/flea-lpstat".into(), "-e".into()], &cancel, Duration::from_secs(1)).unwrap_err();
+    assert_eq!(missing.message, "/nonexistent/flea-lpstat is not installed");
+    let gone = std::io::Error::from(std::io::ErrorKind::NotFound);
+    assert_eq!(spawn_message(&["lpstat".into()], &gone), "lpstat is not installed");
+    assert_eq!(spawn_message(&["bwrap".into()], &gone), "bwrap: item not found");
+    assert_eq!(spawn_message(&["/usr/bin/prlimit".into()], &gone), "/usr/bin/prlimit: item not found");
 }

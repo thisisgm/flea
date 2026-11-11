@@ -1,4 +1,5 @@
 //! The preview jail's existing fixed binds and resource limits, assembled in one place.
+use flea::bytename::ExactText as _;
 use super::super::sandbox;
 use super::{ADDRESS_SPACE_BYTES, CPU_SECONDS, FILE_BYTES, INPUT, OPEN_FILES, OUTPUT};
 use std::path::Path;
@@ -20,18 +21,18 @@ pub(in crate::backend) fn argv(
     ];
     a.extend(sandbox::BWRAP_FLAGS.iter().map(|f| f.to_string()));
     a.extend(["--setenv", "PATH", "/usr/bin", "--setenv", "HOME", "/tmp"].map(String::from));
-    let folder = folder.to_string_lossy().into_owned();
+    let folder = folder.exact_text().into_owned();
     a.extend(["--ro-bind".into(), folder.clone(), folder.clone()]);
     if let Some(input) = input {
         a.extend(["--ro-bind-fd".into(), input.to_string(), INPUT.into()]);
     }
     a.extend([
         "--bind".into(),
-        out.to_string_lossy().into_owned(),
+        out.exact_text().into_owned(),
         OUTPUT.into(),
     ]);
     a.extend(["--chdir".into(), folder]);
-    a.push(entry.to_string_lossy().into_owned());
+    a.push(entry.exact_text().into_owned());
     sandbox::add_status(&mut a, 1);
     a
 }

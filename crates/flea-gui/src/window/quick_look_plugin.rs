@@ -1,13 +1,13 @@
 //! Quick Look asks a previewer plugin for a file it cannot show itself; the answer replaces the refusal card.
 use super::super::docs::Look;
 use crate::{
-    g2::pv1::{
+    g2::quick_look_overlay::{
         doc::{Doc, View},
         Body, Subject,
     },
     state::Shell,
 };
-use flea::{jsondoc::Json, protocol::RowFacts, ui_logic_pv1::kinds::State};
+use flea::{jsondoc::Json, protocol::RowFacts, ui_logic_preview_core::kinds::State};
 use gpui::{AppContext, Context, Window};
 
 impl Shell {
@@ -120,7 +120,7 @@ impl Shell {
             icon: row.icon.clone(),
             mode: row.mode,
             state,
-            shape: flea::ui_logic_pv1::rect::Shape::unknown(state),
+            shape: flea::ui_logic_preview_core::rect::Shape::unknown(state),
             body,
         };
         let subject = if let Some(text) = answer.get("text").and_then(Json::as_str) {

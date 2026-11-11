@@ -8,7 +8,7 @@ fn going_up_keeps_the_watch_an_expanded_child_still_uses() {
     let child = parent.dir("child");
     let fd = unsafe { inotify_init1(IN_CLOEXEC | IN_NONBLOCK) };
     assert!(fd >= 0, "this box has no inotify to test with");
-    let mut w = Watch { outline: Vec::new(), fd: fd.into(), events: crate::backend::events::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
+    let mut w = Watch { outline: Vec::new(), fd: fd.into(), events: crate::backend::events::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new(), ancestry: Default::default() };
     w.begin(&child);
     w.commit(Vec::new());
     let live = w.wd;
@@ -30,7 +30,7 @@ fn going_into_an_expanded_child_keeps_its_watch_and_drops_the_parent() {
     let child = parent.dir("child");
     let fd = unsafe { inotify_init1(IN_CLOEXEC | IN_NONBLOCK) };
     assert!(fd >= 0, "this box has no inotify to test with");
-    let mut w = Watch { outline: Vec::new(), fd: fd.into(), events: crate::backend::events::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
+    let mut w = Watch { outline: Vec::new(), fd: fd.into(), events: crate::backend::events::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new(), ancestry: Default::default() };
     w.begin(parent.path());
     let expanded = Watch::add_raw(fd, &child);
     w.commit(vec![expanded]);
@@ -52,7 +52,7 @@ fn a_collapse_drops_only_its_child_and_a_stop_drops_the_rest() {
     let (a, b) = (parent.dir("a"), parent.dir("b"));
     let fd = unsafe { inotify_init1(IN_CLOEXEC | IN_NONBLOCK) };
     assert!(fd >= 0, "this box has no inotify to test with");
-    let mut w = Watch { outline: Vec::new(), fd: fd.into(), events: crate::backend::events::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
+    let mut w = Watch { outline: Vec::new(), fd: fd.into(), events: crate::backend::events::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new(), ancestry: Default::default() };
     w.begin(parent.path());
     let (wa, wb) = (Watch::add_raw(fd, &a), Watch::add_raw(fd, &b));
     w.commit(vec![wa, wb]);
@@ -79,7 +79,7 @@ fn a_collapse_drops_only_its_child_and_a_stop_drops_the_rest() {
 // No descriptor here: an expanded child is current, never the open folder, and an unwatchable one is neither.
 #[test]
 fn an_expanded_child_is_current_but_not_the_open_folder() {
-    let mut w = Watch { outline: Vec::new(), fd: (-1).into(), events: crate::backend::events::channel().0, wd: 7, incoming: 9, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
+    let mut w = Watch { outline: Vec::new(), fd: (-1).into(), events: crate::backend::events::channel().0, wd: 7, incoming: 9, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new(), ancestry: Default::default() };
     w.commit(vec![11, -1]);
     assert!(w.is_open_folder(9) && w.is_current(9));
     assert!(w.is_current(11) && !w.is_open_folder(11));
@@ -90,12 +90,12 @@ fn an_expanded_child_is_current_but_not_the_open_folder() {
 #[test]
 fn an_expanded_childs_unmount_re_lists_and_only_the_folders_own_leaves() {
     let (tx, _rx) = crate::backend::events::channel();
-    let w = Watch { outline: vec![9], fd: (-1).into(), events: tx.clone(), wd: 7, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
+    let mut w = Watch { outline: vec![9], fd: (-1).into(), events: tx.clone(), wd: 7, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new(), ancestry: Default::default() };
     let poller = crate::backend::watchpoll::Poller::new(tx);
     let base = Path::new("/run/media/gm");
-    let said = |wd: i32| {
+    let mut said = |wd: i32| {
         let mut out = Vec::<u8>::new();
-        crate::backend::unmount::leave_mount(&mut out, base, &w, &poller, wd);
+        crate::backend::unmount::leave_mount(&mut out, base, &mut w, &poller, wd);
         String::from_utf8(out).expect("the wire is utf-8")
     };
     assert_eq!(said(9), format!("{}\n", changed_line(base)), "a child's unmount re-lists and stays");
@@ -110,7 +110,7 @@ fn arming_over_an_aliased_incoming_keeps_its_watch() {
     let (a, b) = (parent.dir("a"), parent.dir("b"));
     let fd = unsafe { inotify_init1(IN_CLOEXEC | IN_NONBLOCK) };
     assert!(fd >= 0, "this box has no inotify to test with");
-    let mut w = Watch { outline: Vec::new(), fd: fd.into(), events: crate::backend::events::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
+    let mut w = Watch { outline: Vec::new(), fd: fd.into(), events: crate::backend::events::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new(), ancestry: Default::default() };
     w.begin(parent.path());
     let wa = Watch::add_raw(fd, &a);
     w.commit(vec![wa]);
@@ -131,7 +131,7 @@ fn arming_over_an_unused_incoming_drops_it() {
     let (a, b) = (parent.dir("a"), parent.dir("b"));
     let fd = unsafe { inotify_init1(IN_CLOEXEC | IN_NONBLOCK) };
     assert!(fd >= 0, "this box has no inotify to test with");
-    let mut w = Watch { outline: Vec::new(), fd: fd.into(), events: crate::backend::events::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new() };
+    let mut w = Watch { outline: Vec::new(), fd: fd.into(), events: crate::backend::events::channel().0, wd: -1, incoming: -1, mount: std::path::PathBuf::new(), incoming_mount: std::path::PathBuf::new(), ancestry: Default::default() };
     w.begin(parent.path());
     w.commit(Vec::new());
     let root = w.wd;

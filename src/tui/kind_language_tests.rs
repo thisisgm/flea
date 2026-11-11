@@ -27,6 +27,8 @@ fn run(code: &str, name: &str) {
         ("de", include_str!("../../i18n/de/flea.json")),
         ("fr", include_str!("../../i18n/fr/flea.json")),
         ("ar", include_str!("../../i18n/ar/flea.json")),
+        ("el", include_str!("../../i18n/el/flea.json")),
+        ("zh-CN", include_str!("../../i18n/zh-CN/flea.json")),
     ] {
         std::fs::create_dir_all(root.join(&format!("catalog/{language}"))).unwrap();
         root.file(&format!("catalog/{language}/flea.json"), text);
@@ -61,9 +63,22 @@ fn expected(mime: &str, code: &str) -> String {
     let xml =
         std::fs::read_to_string(PathBuf::from(MIME_ROOT).join(format!("{mime}.xml"))).unwrap();
     if code != "en" {
-        let opening = format!("<comment xml:lang=\"{code}\">");
-        if let Some((_, text)) = xml.split_once(&opening) {
-            return text.split_once("</comment>").unwrap().0.into();
+        // The order src/backend/kind_comments.rs reads: the code, its region spelling, the script tag, then the base.
+        let provider_code = if code == "zh-CN" { "zh-Hans-CN" } else { code };
+        let base = code.split_once('-').map_or(code, |(base, _)| base);
+        for tag in [code, &code.replace('-', "_"), provider_code, base] {
+            let opening = format!("<comment xml:lang=\"{tag}\">");
+            if let Some((_, text)) = xml.split_once(&opening) {
+                return text.split_once("</comment>").unwrap().0.into();
+            }
+        }
+        if mime == "text/plain" {
+            let paths = flea::i18n::Paths {
+                omarchy: std::env::var_os("OMARCHY_PATH").unwrap().into(),
+                language_file: std::env::var_os("OMARCHY_LANGUAGE_FILE").unwrap().into(),
+                catalogs: vec![std::env::var_os("FLEA_I18N").unwrap().into()],
+            };
+            return flea::i18n::I18n::load(paths).tr("mime.plain");
         }
     }
     xml.split_once("<comment>")
@@ -77,17 +92,18 @@ fn expected(mime: &str, code: &str) -> String {
 
 fn surfaces(code: &str) {
     let (mime, icons) = (
-        Db::from_str("50:image/png:*.png\n50:text/markdown:*.md\n50:application/pdf:*.pdf\n"),
+        Db::from_str("50:image/png:*.png\n50:text/markdown:*.md\n50:application/pdf:*.pdf\n50:text/plain:*.txt\n"),
         Names::from_str(""),
     );
     let aliases = Aliases::from_str("");
     let thumbs = Thumbnailers::from_entries(&[], &aliases);
     let mut kinds = Kinds::new();
     let mut listing = Listing::new();
-    for name in ["photo.png", "todo.md", "paper.pdf"] {
+    for name in ["photo.png", "todo.md", "paper.pdf", "notes.txt"] {
         listing.push(name, false);
     }
     let meta = Meta {
+        ino: None,
         birth: None,
         size: 48,
         mtime: 0,
@@ -99,7 +115,7 @@ fn surfaces(code: &str) {
     let line = rows::rows_line(
         std::path::Path::new("/nonexistent"),
         &listing,
-        &vec![meta; 3],
+        &vec![meta; 4],
         0,
         0.0,
         &mime,
@@ -117,13 +133,18 @@ fn surfaces(code: &str) {
         catalogs: vec![std::env::var_os("FLEA_I18N").unwrap().into()],
     });
     let mut failures = Vec::new();
-    for (index, mime) in ["image/png", "text/markdown", "application/pdf"]
-        .into_iter()
-        .enumerate()
+    for (index, mime) in [
+        "image/png",
+        "text/markdown",
+        "application/pdf",
+        "text/plain",
+    ]
+    .into_iter()
+    .enumerate()
     {
         let expected = expected(mime, code);
         let row = crate::tui::model::Row::parse(&rows[index], dictionary);
-        let gui_row = flea::ui_logic_pv1::facts::Row {
+        let gui_row = flea::ui_logic_preview_core::facts::Row {
             name: row.name.clone(),
             is_dir: false,
             size: 48,
@@ -131,17 +152,19 @@ fn surfaces(code: &str) {
             mode: 0o100644,
             icon: row.icon.clone(),
         };
-        let state = flea::ui_logic_pv1::facts::state(Some(&gui_row), 1, false, "", &row.kind);
-        let extra = flea::ui_logic_pv1::facts::Extra::default();
-        let facts =
-            flea::ui_logic_pv1::facts::facts(state, &gui_row, None, &row.kind, &extra, &catalog);
+        let state =
+            flea::ui_logic_preview_core::facts::state(Some(&gui_row), 1, false, "", &row.kind);
+        let extra = flea::ui_logic_preview_core::facts::Extra::default();
+        let facts = flea::ui_logic_preview_core::facts::facts(
+            state, &gui_row, None, &row.kind, &extra, &catalog,
+        );
         if facts[0].value != expected {
             failures.push(format!(
                 "GUI {code} {mime}: {:?} != {expected:?}",
                 facts[0].value
             ));
         }
-        let compact = flea::ui_logic_pv1::facts::compact_line(
+        let compact = flea::ui_logic_preview_core::facts::compact_line(
             state,
             Some(&gui_row),
             None,
@@ -187,6 +210,7 @@ fn kind_lang_ten_thousand_rows_read_each_mime_once() {
         );
     }
     let meta = Meta {
+        ino: None,
         birth: None,
         size: 48,
         mtime: 0,
@@ -244,4 +268,14 @@ fn kind_lang_arabic_pdf_gui_and_tui() {
 #[test]
 fn kind_lang_english_is_byte_identical_gui_and_tui() {
     run("en", "kind_lang_english_is_byte_identical_gui_and_tui");
+}
+
+#[test]
+fn kind_lang_fxi18n3_chinese_plain_text_gui_and_tui() {
+    run("zh-CN", "kind_lang_fxi18n3_chinese_plain_text_gui_and_tui");
+}
+
+#[test]
+fn kind_lang_fxi18n3_greek_plain_text_gui_and_tui() {
+    run("el", "kind_lang_fxi18n3_greek_plain_text_gui_and_tui");
 }

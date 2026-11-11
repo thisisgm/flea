@@ -3,20 +3,44 @@ use crate::{input::focus::Stop, state::Shell};
 use gpui::{Context, KeyDownEvent, Window};
 
 impl Shell {
-    pub(crate) fn sync_chrome_stops(&mut self, window: &Window) {
-        self.input.register(Stop {
-            name: "chrome",
-            handle: self.dual_focus.chrome.clone(),
-            context: flea::keys::Context::Panel,
-        });
-        if self.slots.tabs.is_some() && self.geometry(window).tabs.height > 0. {
-            self.input.register(Stop {
-                name: "strip",
-                handle: self.dual_focus.strip.clone(),
-                context: flea::keys::Context::Panel,
-            });
-        } else {
-            self.input.remove("strip");
+    pub(crate) fn sync_chrome_stops(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        // A page that covers the folder (Trash, the flash card) gives up the toolbar's row, so the ring skips it.
+        let geometry = self.geometry(window);
+        // Ctrl+L under a cover types a path in the toolbar's editor, which keeps the keys until it closes.
+        let typing = self
+            .chrome
+            .view
+            .as_ref()
+            .is_some_and(|chrome| chrome.read(cx).path.read(cx).editing());
+        let stops = [
+            (
+                "chrome",
+                self.dual_focus.chrome.clone(),
+                geometry.chrome.height > 0.,
+                typing,
+            ),
+            (
+                "strip",
+                self.dual_focus.strip.clone(),
+                self.slots.tabs.is_some() && geometry.tabs.height > 0.,
+                false,
+            ),
+        ];
+        for (name, handle, drawn, keeps) in stops {
+            if drawn {
+                self.input.register(Stop {
+                    name,
+                    handle,
+                    context: flea::keys::Context::Panel,
+                });
+                continue;
+            }
+            self.input.remove(name);
+            // An idle undrawn stop hands the keyboard to the list stop, as when the rail hides.
+            if !keeps && handle.contains_focused(window, cx) {
+                window.focus(&self.overlay_return_focus(cx), cx);
+                self.keyboard.context = flea::keys::Context::Listing;
+            }
         }
     }
 
@@ -26,17 +50,16 @@ impl Shell {
         };
         let chrome = chrome.read(cx);
         let frame = chrome.frame.borrow();
-        let mut live = frame
-            .controls
-            .iter()
-            .enumerate()
-            .filter(|(_, control)| control.visible && control.enabled);
+        let mut live = super::chrome::ORDER.into_iter().filter(|&index| {
+            let control = frame.controls[index];
+            control.reachable && control.enabled
+        });
         let target = if forward {
             live.next()
         } else {
             live.next_back()
         };
-        let handle = target.map(|(index, _)| chrome.focus[index].clone());
+        let handle = target.map(|index| chrome.focus[index].clone());
         drop(frame);
         if let Some(handle) = handle {
             window.focus(&handle, cx);
@@ -104,12 +127,12 @@ impl Shell {
         };
         let chrome = chrome.read(cx);
         let frame = chrome.frame.borrow();
-        let live: Vec<_> = frame
-            .controls
-            .iter()
-            .enumerate()
-            .filter(|(_, control)| chrome.inputs.live && control.visible && control.enabled)
-            .map(|(index, _)| index)
+        let live: Vec<_> = super::chrome::ORDER
+            .into_iter()
+            .filter(|&index| {
+                let control = frame.controls[index];
+                chrome.inputs.live && control.reachable && control.enabled
+            })
             .collect();
         let focused = chrome
             .focus

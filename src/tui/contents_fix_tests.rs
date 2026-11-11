@@ -12,7 +12,9 @@ use super::{
     wire::{self, count, text},
 };
 use crate::jsondoc::Json;
-use flea::ui_logic_sr1::{scope_label, ContentsMatch, ContentsMatches, Kind, Scope, Session};
+use flea::ui_logic_file_search::{
+    scope_label, ContentsMatch, ContentsMatches, Kind, Scope, Session,
+};
 use std::{io::Write, process::Stdio, time::Duration};
 
 pub(super) fn names(m: &mut Model, wire: &mut wire::Wire) {
@@ -21,7 +23,8 @@ pub(super) fn names(m: &mut Model, wire: &mut wire::Wire) {
         press(m, wire, key);
     }
     m.editor.as_mut().unwrap().replace("needle-".into());
-    press(m, wire, Key::named("Enter", ""));
+    // Down commits the line and only shows the results; one Enter would also open the first of them.
+    press(m, wire, Key::named("Down", ""));
 }
 fn settled(m: &mut Model, wire: &mut wire::Wire) {
     loop {
@@ -138,7 +141,7 @@ fn tui_contents_fix1_failed_navigation_keeps_refusal_identity() {
             start: 0,
             matches: vec![ContentsMatch {
                 row: 0,
-                path: "bad\u{fffd}.txt".into(),
+                path: "bad\u{fffd}.txt\u{0}626164ff2e747874".into(),
                 path_bytes: b"bad\xff.txt".to_vec(),
                 line_no: 1,
                 line: "needle".into(),
@@ -148,7 +151,14 @@ fn tui_contents_fix1_failed_navigation_keeps_refusal_identity() {
         .line(),
     );
     super::contents_tests::listed(&mut m, &mut wire, gen, 51, 1);
-    super::contents_tests::rows(&mut m, &mut wire, gen, 51, 0, &["bad\u{fffd}.txt"]);
+    super::contents_tests::rows(
+        &mut m,
+        &mut wire,
+        gen,
+        51,
+        0,
+        &["bad\u{fffd}.txt\u{0}626164ff2e747874"],
+    );
     assert!(m.current_path().is_none() && contents::guarded(&m));
     m.open("/absent-tui-08-fixture".into(), &mut wire).unwrap();
     receive(
@@ -184,13 +194,18 @@ fn tui_contents_fix1_scope_matches_shared_cycle_and_words() {
         shared.scope = Scope::Folder;
         shared.wire.everywhere = everywhere;
         for _ in 0..4 {
+            let home = std::env::var("HOME").unwrap();
+            // Tab takes the shared cycle but skips a scope that searches this folder again: Home outside Home.
+            let here = Session::scope_root("/listing", &home, shared.scope);
             shared.scope = shared.next_scope();
+            if Session::scope_root("/listing", &home, shared.scope) == here {
+                shared.scope = shared.next_scope();
+            }
             press(&mut m, &mut wire, Key::named("Tab", ""));
             assert_eq!(
                 m.find.session.scope, shared.scope,
                 "TUI must use the shared cycle"
             );
-            let home = std::env::var("HOME").unwrap();
             let root = Session::scope_root("/listing", &home, shared.scope);
             let words = scope_label(
                 &m.prompts.i18n,

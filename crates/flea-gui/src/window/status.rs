@@ -1,6 +1,6 @@
 //! The window's footer joins the pane count and disk facts around fb1's message service.
 use crate::{
-    g2::fb1::{
+    g2::status_feedback::{
         line::{ArmLost, MessageLine, NoticeEnded},
         observe::Paint,
     },
@@ -11,7 +11,7 @@ use crate::{
 };
 use flea::{
     i18n::I18n,
-    ui_logic_fb1::{messages::Messages, status::Hint},
+    ui_logic_status_feedback::{messages::Messages, status::Hint},
 };
 use gpui::{div, prelude::*, px, AppContext, Context, Entity, Render, SharedString, Window};
 use std::sync::Arc;
@@ -96,7 +96,7 @@ impl Shell {
             .get_or_insert_with(|| cx.new(|cx| Footer::new(preset, catalog, cx)))
             .clone();
         if self.surfaces[0].footer_watch.is_none() {
-            let line = footer.read_with(cx, |footer, _| footer.line.clone());
+            let line = self.footer_undo_line(&footer, cx);
             self.surfaces[0].footer_watch = Some(cx.observe(&line, |shell, line, cx| {
                 let detail = line.read_with(cx, |line, _| line.drawn().detail.clone());
                 if shell.surfaces[0].detail_text != detail {
@@ -134,7 +134,7 @@ impl Shell {
         named: &str,
         cx: &mut Context<Self>,
     ) {
-        let sentence = flea::ui_logic_fb1::errors::sentence(operation, message, named)
+        let sentence = flea::ui_logic_status_feedback::errors::sentence(operation, message, named)
             .render(&self.locale.catalog);
         self.status_messages(cx, |messages, now| {
             messages.say(&sentence, operation != "sort", "", Hint::None, now)
@@ -180,16 +180,15 @@ impl Shell {
         let free = fs
             .facts
             .as_ref()
-            .map(|facts| catalog.locale().format_size(facts.free));
+            .and_then(|facts| facts.free)
+            .map(|free| catalog.locale().format_size(free));
+        let name = fs.facts.as_ref().map_or_else(String::new, |facts| {
+            status_host::place_name(catalog, &facts.name, &facts.class, free.is_some())
+        });
         let filesystem = if recent {
             status_host::disk(catalog, "", None, false)
         } else {
-            status_host::disk(
-                catalog,
-                fs.facts.as_ref().map_or("", |facts| facts.name.as_str()),
-                free.as_deref(),
-                !fs.answered,
-            )
+            status_host::disk(catalog, &name, free.as_deref(), !fs.answered)
         };
         // HIG search.png: the landed receipt stands before the disk facts while search lives.
         let (path, state_message, retry, search) = if in_trash || in_flash {
@@ -218,7 +217,7 @@ impl Shell {
                     |facts| facts.sentence.to_string(),
                 ),
                 host.retry_text(),
-                crate::g2::sr1::Search::status(&host.search.owner, catalog).0,
+                crate::g2::file_search::Search::status(&host.search.owner, catalog).0,
             )
         };
         let revision = self.locale.revision;
@@ -268,8 +267,10 @@ impl Shell {
     }
 
     pub(crate) fn status_escape(&mut self, cx: &mut Context<Self>) -> bool {
+        // Focus.js:187-190: a standing filter or search takes Escape before the status line acknowledges an error.
         if self.panes[self.focus_side].as_ref().is_some_and(|host| {
-            host.pane.state.search
+            host.filter.owner.up()
+                || host.pane.state.search
                 || host.pane.swap.session.open
                 || !host.pane.state.query.is_empty()
         }) {

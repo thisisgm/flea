@@ -1,7 +1,7 @@
 //! The tabs family: the strip keys, Ctrl+Return and a middle click on a folder row or a rail place, through the strip's model.
 use super::Order;
-use crate::{g2::pl4::producer::Event, state::Shell};
-use flea::{keys::Context as Keys, ui_logic_pl4::rail::Kind};
+use crate::{g2::rail_places::producer::Event, state::Shell};
+use flea::{keys::Context as Keys, ui_logic_rail_places::rail::Kind};
 use gpui::{Context, Window};
 
 pub(super) fn run(
@@ -11,14 +11,10 @@ pub(super) fn run(
     cx: &mut Context<Shell>,
 ) -> bool {
     match order {
-        // keys.toml: the rail binds only the strip's new, close, next and previous keys.
+        // Focus.js windowAction: the strip's own keys (tab1..tab9, moves, new, close, next, previous) answer from the rail too.
         Order::Action(event)
             if event.context == Keys::Listing
-                || (event.context == Keys::Rail
-                    && matches!(
-                        event.action,
-                        "tabNew" | "tabClose" | "tabNext" | "tabPrevious"
-                    )) =>
+                || (event.context == Keys::Rail && event.action.starts_with("tab")) =>
         {
             // A middle click names its own row and pane and leaves the cursor where it was (Tap.js).
             if event.action == "openTab" && event.context == Keys::Listing {
@@ -63,7 +59,7 @@ fn pointed_folder(shell: &Shell, event: &crate::window::input::ActionEvent) -> O
 fn place_tab(
     shell: &mut Shell,
     side: usize,
-    entry: &flea::ui_logic_pl4::rail::RailEntry,
+    entry: &flea::ui_logic_rail_places::rail::RailEntry,
     window: &mut Window,
     cx: &mut Context<Shell>,
 ) {
@@ -71,11 +67,13 @@ fn place_tab(
         return;
     }
     let catalog = shell.locale.catalog.clone();
-    let label = crate::g2::pl4::content::row_label(&catalog, entry).to_string();
+    let label = crate::g2::rail_places::content::row_label(&catalog, entry).to_string();
     let (message, error) = if let Some(error) = &entry.error {
         let error = match error {
-            flea::ui_logic_pl4::rail::FavouriteError::Record(record) => catalog.tr(record.key()),
-            flea::ui_logic_pl4::rail::FavouriteError::Status(line) => line.clone(),
+            flea::ui_logic_rail_places::rail::FavouriteError::Record(record) => {
+                catalog.tr(record.key())
+            }
+            flea::ui_logic_rail_places::rail::FavouriteError::Status(line) => line.clone(),
         };
         let text = catalog.tr_args("places.favorite.open_failed", &[&label, &error]);
         (text, true)
@@ -85,7 +83,7 @@ fn place_tab(
             false,
         )
     } else if let Some(local) = entry.path.strip_prefix("file://") {
-        let path = flea::ui_logic_pl1::mounts::decode_path(local);
+        let path = flea::ui_logic_device_rail::mounts::decode_path(local);
         shell.open_tab(side, path, window, cx);
         return;
     } else if entry.path.is_empty() {
@@ -100,7 +98,7 @@ fn place_tab(
             &message,
             error,
             "",
-            flea::ui_logic_fb1::status::Hint::None,
+            flea::ui_logic_status_feedback::status::Hint::None,
             now,
         )
     });

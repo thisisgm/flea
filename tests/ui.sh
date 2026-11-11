@@ -7,6 +7,18 @@ set -o pipefail
 
 fail() {
     printf 'FAIL: %s\n' "$*" >&2
+    if [[ "${test_frontend-}" == gpui && "${ipc_pid-}" =~ ^[0-9]+$ && "$ipc_pid" == "${FLEA_TEST_PID-}" && "${run_root-}" == /* \
+          && -f "$run_root/.flea-test-sandbox" && ( "${evidence_dir-}" == "$run_root/evidence" || "${evidence_dir-}" == "$run_root/evidence/"* ) ]] \
+       && declare -F flea_test_call >/dev/null \
+       && [[ "$(flea_test_call call flea ready 2>/dev/null)" == true ]]; then
+        local address png="$evidence_dir/failure-${BASHPID:-$$}.png"
+        address=$(hyprctl clients -j 2>/dev/null | jq -er --arg class "${flea_window_class:-com.thisisgm.flea}" --argjson pid "$ipc_pid" \
+            '[.[] | select(.class == $class and .pid == $pid)] | select(length == 1) | .[0].address') || address=""
+        if [[ -n "$address" && ! -e "$png" && ! -L "$png" ]] && mkdir -p "$evidence_dir" \
+           && omarchy-drive shot "$png" "$address" >/dev/null 2>&1 && [[ -s "$png" ]]; then
+            printf 'SHOT %s\n' "$png" >&2
+        fi
+    fi
     exit 1
 }
 
@@ -69,7 +81,7 @@ fi
 flea_bin="${FLEA_BIN:-$repo/target/release/flea}"
 # The build these cases launch while their flea_bin points at a stub that stands in for the backend only.
 flea_launch_bin="$flea_bin"
-flea_backend_stub_cases=" dirsortstale openterminal hanglisting hanginspect noblank searchnoblank "
+flea_backend_stub_cases=" dirsortstale openterminal hanglisting hanginspect cap_heldcolumns noblank searchnoblank "
 flea_ipc_init "$flea_bin"
 # Sample input: let finished = Command::new("gio")
 # Every opener stub below is named from the product's own exec target, the same derivation
@@ -685,6 +697,8 @@ launch_window() {
     for wrap_arg in ${flea_launch_wrap[@]+"${flea_launch_wrap[@]}"}; do wrap_args+=("--wrap=$wrap_arg"); done
     local -a select_args=()
     [[ -z "$select_target" ]] || select_args=(--select "$select_target")
+    local -a component_args=()
+    [[ -z "${flea_launch_fixture-}" ]] || component_args=(--fixture "$flea_launch_fixture")
     # A backend stub case's stub under the marked fixture root goes to the transport as FLEA_BIN; the launched flea stays this build.
     local launch_bin="$flea_bin"
     local -a backend_args=()
@@ -697,7 +711,7 @@ launch_window() {
     local launch_config="${XDG_CONFIG_HOME-}"
     [[ "$HOME" != "$fixture_root"/* ]] || export XDG_CONFIG_HOME="$HOME/.config"
     flea_test_launch "$start_path" "$flea_log" --ui "$flea_ui" --binary "$launch_bin" "${backend_args[@]}" \
-        ${select_args[@]+"${select_args[@]}"} "${wrap_args[@]}" \
+        ${select_args[@]+"${select_args[@]}"} "${wrap_args[@]}" "${component_args[@]}" \
         || fail "owned window launch failed"
     if [[ -n "$launch_config" ]]; then export XDG_CONFIG_HOME="$launch_config"; else unset XDG_CONFIG_HOME; fi
     ipc_pid=$FLEA_TEST_PID
@@ -1066,16 +1080,26 @@ fact_labels() {
 
 # Walks the cursor to a row by name from the top, sort-proof; the shown view stands in for the unbuilt list delegate.
 seek_row_named() {
-    local want="$1" i n cur got
+    local want="$1" i n cur got deadline
     n=$(ipc total)
     [[ "$n" =~ ^[0-9]+$ ]] && (( n > 40 )) || n=40
     key g >/dev/null || fail "seek_row_named: key g was refused on the way to $want, so no key can move the cursor"
+    deadline=$(( $(date +%s%3N) + async_wait_ms ))
+    until [[ "$(ipc cursor)" == 0 ]]; do
+        (( $(date +%s%3N) < deadline )) || fail "seek_row_named: g did not reach the first row on the way to $want"
+        sleep 0.05
+    done
     for i in $(seq 1 "$n"); do
         cur=$(ipc cursor)
         got=$(ipc rowAt "$cur")
         [[ "$got" == "$want|"* ]] && return 0
         [[ "$got" == loading && "$(ipc visibleRowName "$cur")" == "$want" ]] && return 0
         key j >/dev/null || fail "seek_row_named: key j was refused on the way to $want, so no key can move the cursor"
+        deadline=$(( $(date +%s%3N) + async_wait_ms ))
+        while [[ "$(ipc cursor)" == "$cur" ]]; do
+            (( $(date +%s%3N) < deadline )) || fail "seek_row_named: j did not leave row $cur on the way to $want"
+            sleep 0.05
+        done
     done
     fail "could not put the cursor on $want"
 }
@@ -1126,7 +1150,7 @@ assert_invalid_network_port() {
         "$port" "$seen_port" "${uri:-empty}" "$dialog" "$error" "$bytes"
 
     # The first refused port is shot while the dialog stands, after the reader confirmed its line.
-    if [[ "$port" == "22/path" && "$error" == "visible" ]]; then
+    if [[ "$port" == "${network_shot_port:-22/path}" && "$error" == "visible" ]]; then
         shot network-invalid-port
     fi
 
@@ -1134,6 +1158,30 @@ assert_invalid_network_port() {
     settle
     [[ "$seen_port" == "$port" && -z "$uri" && "$dialog" == "true" \
         && "$error" == "visible" && "$bytes" == "unchanged" ]]
+}
+
+# A digits-only port field drops every other character as it is typed, so 22/path enters 22 and nothing is submitted.
+assert_network_port_filters() {
+    local typed="$1" want="$2" seen_port
+    key -k Escape >/dev/null
+    settle
+    [[ "$(ipc focusView)" == "list" ]] || return 1
+    key -k Tab >/dev/null
+    settle
+    [[ "$(ipc focusView)" == "rail" ]] || return 1
+    key a >/dev/null
+    settle
+    [[ "$(ipc dialogOpen)" == "true" ]] || return 1
+    key "203.0.113.1" >/dev/null
+    key -k Tab >/dev/null
+    key -M ctrl -k a -m ctrl >/dev/null
+    key "$typed" >/dev/null
+    settle
+    seen_port=$(ipc networkPort)
+    printf 'NETWORK filtered-port=%s entered=%s\n' "$typed" "$seen_port"
+    key -k Escape >/dev/null
+    settle
+    [[ "$seen_port" == "$want" && "$(ipc dialogOpen)" == "false" ]]
 }
 
 assert_network_attempt_reset() {
@@ -2453,8 +2501,7 @@ case_click() {
     [[ -n "$marker" ]] || fail "click: the path fits the bar here, so the elision marker is not under test at all"
     read -r ex ey <<< "$marker"
     read -r wx wy _ww _wh < <(window_box) || fail "native window coordinates unavailable"
-    # The status is read, because a click that never reached the compositor leaves the path
-    # unchanged too and would satisfy both assertions below without pressing anything.
+    # On GPUI the open path field proves the tap reached the window; an unchanged path alone would also pass a missed press.
     omarchy-drive click "$((ex + wx))" "$((ey + wy))" >/dev/null \
         || fail "click: omarchy-drive refused the press on the elision marker"
     # Two settles, so a press that navigated after all would have landed before the reading.
@@ -2463,9 +2510,12 @@ case_click() {
     printf 'CLICK elision path=%q barOpen=%s\n' "$(ipc path)" "$(ipc pathBarOpen)"
     shot click-elision
     [[ "$(ipc path)" == "$deep" ]] || fail "click: a tap on the elision marker navigated to $(ipc path)"
-    [[ "$(ipc pathBarOpen)" == "false" ]] || fail "click: a tap on the elision marker opened the path bar"
+    [[ "$(ipc pathBarOpen)" == "$(by_frontend false true)" ]] || fail "click: a tap on the elision marker left pathBarOpen=$(ipc pathBarOpen), expected $(by_frontend false true)"
+    key -k Escape >/dev/null
+    settle
+    [[ "$(ipc pathBarOpen)" == "false" ]] || fail "click: Escape did not close the path bar opened by one tap on the elision marker"
 
-    # The marker is one of keys.toml's inert segments, so the double click a tap on it never answers types the path.
+    # A double click on the inert marker also types the path, keeping the field the first tap opened.
     omarchy-drive click "$((ex + wx))" "$((ey + wy))" --double >/dev/null \
         || fail "click: omarchy-drive refused the double click on the elision marker"
     settle
@@ -2478,7 +2528,7 @@ case_click() {
     settle
     [[ "$(ipc pathBarOpen)" == "false" ]] || fail "click: Escape did not close the path bar the elision marker opened"
 
-    # keys.toml's chrome/left x2/inert row covers the current folder's own segment, and the chrome is the window's own top item, so its band is y 0 to chromeHeight - 1.
+    # keys.toml's chrome/left/inert row covers the current folder's own segment, and the chrome is the window's own top item, so its band is y 0 to chromeHeight - 1.
     local chrome_h band_crumb band_x band
     chrome_h=$(ipc chromeHeight)
     band_crumb=$(( $(ipc crumbCount) - 1 ))
@@ -5826,7 +5876,7 @@ case_status() {
     [[ "$(ipc lastMessage)" == "$failure" ]] || fail "status: clipboard notice acknowledged error"
     key f >/dev/null
     key notes >/dev/null
-    key -k Return >/dev/null
+    key -M ctrl -k Return -m ctrl >/dev/null
     settle
     [[ "$(ipc statusPrimary)" == "$failure" ]] || fail "status: search hid error"
     transient_beside_disk "single pane, error"
@@ -6459,7 +6509,8 @@ grid_chrome_controls() {
     key file-0 >/dev/null
     menus_expect keyDeliveryState '.filterTyping and .filterQuery == "file-0"' "Grid Filter receives actual typed text"
     cardsize_expect drawnCount 9
-    key -k Return -k Home >/dev/null
+    # One Enter on the line acts on the highlighted row since B01 (62985e07f), so Down commits the filter and Home returns.
+    key -k Down -k Home >/dev/null
     menus_expect keyDeliveryState '(.filterTyping | not) and .filterQuery == "file-0" and (.paneFocus or .listFocus)' \
         "Grid Filter commits with keyboard focus in the results"
     cardsize_expect visibleRowName file-01.txt 0
@@ -6494,7 +6545,7 @@ grid_chrome_controls() {
         done
         shot "grid-chrome-$preset-search-$view-disabled"
         if [[ "$view" == typing ]]; then
-            key file-0 -k Return >/dev/null
+            key file-0 -M ctrl -k Return -m ctrl >/dev/null
             menus_expect keyDeliveryState '.searchMode == "results" and .searchQuery == "file-0" and (.searchRunning | not)' \
                 "Grid Search finishes its actual fixture walk"
             cardsize_expect path "$dir"
@@ -12444,7 +12495,7 @@ case_dual() {
         '.focused == 0 and .panes[0].path == $left and .panes[1].path == $right' >/dev/null \
         || fail "dual: a tap on the left pane's parent crumb left $(ipc dualState | jq -c '[.focused, .panes[0].path, .panes[1].path]')"
     [[ "$(ipc pathBarOpen)" == "false" ]] || fail "dual: a single tap on a pane crumb opened the path bar"
-    # A double click types the path wherever a tap opens nothing: the padding before the first crumb, the space after the last, the current folder's own crumb.
+    # One tap types the path where it opens no folder: the padding, the space after the last crumb and the current folder's own crumb.
     local strip sx sy sw sh press_x press_y crumb_inset
     read -r sx sy sw sh <<< "$(ipc panePathRect 0)"
     [[ -n "$sh" ]] || fail "dual: the left pane path has no on-screen box"
@@ -12462,6 +12513,19 @@ case_dual() {
             tail) press_x=$((sx + sw - chrome_band_inset)) press_y=$((sy + sh / 2)) ;;
             crumb) press_x=$cx press_y=$cy ;;
         esac
+        if [[ "$test_frontend" == gpui ]]; then
+            omarchy-drive click "$((press_x + wx))" "$((press_y + wy))" >/dev/null \
+                || fail "dual: omarchy-drive refused the tap on the left pane path's $strip"
+            settle
+            settle
+            shot "dual-path-single-$strip"
+            [[ "$(ipc pathBarOpen)" == "true" ]] || fail "dual: a tap on the left pane path's $strip did not open the path bar"
+            ipc dualState | jq -e --arg left "$dir/left" '.panes[0].path == $left' >/dev/null \
+                || fail "dual: the tap on the left pane path's $strip navigated to $(ipc dualState | jq -r '.panes[0].path')"
+            key -k Escape >/dev/null
+            settle
+            [[ "$(ipc pathBarOpen)" == "false" ]] || fail "dual: Escape did not close the path bar opened by one tap on the pane path's $strip"
+        fi
         omarchy-drive click "$((press_x + wx))" "$((press_y + wy))" --double >/dev/null \
             || fail "dual: omarchy-drive refused the double click on the left pane path's $strip"
         settle
@@ -12554,6 +12618,64 @@ case_foldersort() {
     printf 'FOLDERSORT ok\n'
 }
 
+dualfoldersort_check() {
+    local label="$1" want="$2" m
+    m=$(foldersort_settled_mark)
+    printf 'DUALFOLDERSORT %s: %s (want %s)\n' "$label" "$m" "$want"
+    [[ "$m" == "$want" ]] || dualfoldersort_bad=$((dualfoldersort_bad + 1))
+}
+dualfoldersort_open() {
+    local root="$1" move="$2" child="$3"
+    key -k BackSpace >/dev/null; foldersort_wait_path "$root"; wait_listing 2
+    [[ -z "$move" ]] || key -k "$move" >/dev/null
+    key -k Return >/dev/null; foldersort_wait_path "$root/$child"; wait_listing 3
+}
+
+# Each folder keeps its own sort in either dual pane as in one pane, a folder open in both panes shows one sort, and a restart keeps both.
+case_dualfoldersort() {
+    local root="$fixture_root/dualfoldersort" d dualfoldersort_bad=0 menus_checks=0
+    local by_size="size:asc rows=y.txt,z.txt,x.txt" by_date="mtime:asc rows=x.txt,z.txt,y.txt" by_date_desc="mtime:desc rows=y.txt,z.txt,x.txt"
+    sandbox_scratch "$root"
+    for d in a b; do
+        mkdir -p "$root/$d"
+        head -c 300 /dev/zero > "$root/$d/x.txt"; head -c 10 /dev/zero > "$root/$d/y.txt"; head -c 100 /dev/zero > "$root/$d/z.txt"
+        touch -d @1700000000 "$root/$d/x.txt"; touch -d @1700000200 "$root/$d/y.txt"; touch -d @1700000100 "$root/$d/z.txt"
+    done
+    seed_ui_state "$fixture_root/dualfoldersort-state" "$(jq -cn --arg a "$root/a" --arg b "$root/b" \
+        '{view:"dual",keys:"default",rememberSort:true,sort:{key:"name",reverse:false},dual:{paths:[$a,$b],focus:0}}')"
+    launch "$root/a"
+    menus_expect dualState '.active and .focused == 0 and all(.panes[]; .total == 3 and (.loading | not))' 'dualfoldersort: both panes list their folder'
+    key s >/dev/null
+    dualfoldersort_check 'left a sorted' "$by_size"
+    key -k Tab >/dev/null
+    key s >/dev/null; foldersort_settled_mark >/dev/null; key s >/dev/null
+    dualfoldersort_check 'right b sorted' "$by_date"
+    settings_wait_value ".folderSorts[\"$root/a\"].key == \"size\" and .folderSorts[\"$root/b\"].key == \"date\""
+    dualfoldersort_open "$root" "" b
+    dualfoldersort_check 'right b reopened' "$by_date"
+    key -M shift -k Tab -m shift >/dev/null
+    dualfoldersort_open "$root" "" a
+    dualfoldersort_check 'left a reopened' "$by_size"
+    dualfoldersort_open "$root" Down b
+    dualfoldersort_check 'left opens b' "$by_date"
+    key S >/dev/null
+    dualfoldersort_check 'left b reversed' "$by_date_desc"
+    key -k Tab >/dev/null
+    dualfoldersort_check 'right b follows its folder' "$by_date_desc"
+    shot dualfoldersort-shared
+    dualfoldersort_open "$root" Up a
+    dualfoldersort_check 'right opens a' "$by_size"
+    launch "$root/a"
+    menus_expect dualState '.active and .focused == 1 and all(.panes[]; .total == 3 and (.loading | not))' 'dualfoldersort: the restart reopens both panes'
+    dualfoldersort_check 'right a after restart' "$by_size"
+    key -M shift -k Tab -m shift >/dev/null
+    dualfoldersort_check 'left b after restart' "$by_date_desc"
+    shot dualfoldersort-restart
+    kill_flea
+    [[ $dualfoldersort_bad == 0 ]] || fail "dualfoldersort: $dualfoldersort_bad of 10 remembered-sort expectations broke"
+    printf 'DUALFOLDERSORT ok\n'
+}
+
 case_dualsort() {
     local dir="$fixture_root/dual-sort" state="$fixture_root/dual-sort-state" menus_checks=0
     local side index name left right left_scroll right_scroll mode list_requests kept_name kept_at date_epoch=1700000000
@@ -12641,7 +12763,7 @@ case_dualsort() {
         key f >/dev/null
         menus_expect keyDeliveryState '.searchMode == "typing"' "dual Search $mode starts through native key"
         if [[ "$mode" == results ]]; then
-            key file- -k Return >/dev/null
+            key file- -M ctrl -k Return -m ctrl >/dev/null
             menus_expect keyDeliveryState '.searchMode == "results" and (.searchRunning | not)' 'dual Search finishes its private fixture walk'
         fi
         click_chrome sliders
@@ -13006,8 +13128,10 @@ settings_about() {
     settings_section about
     local rows
     rows=$(ipc settingsModel)
-    printf '%s' "$rows" | jq -e 'any(.[]; .kind == "fact" and .label == "Language" and .value == "English")' >/dev/null \
-        || fail "settings: About language is not passive metadata"
+    local language_kind=fact
+    [[ "$test_frontend" != gpui ]] || language_kind=action
+    printf '%s' "$rows" | jq -e --arg kind "$language_kind" 'any(.[]; .kind == $kind and .label == "Language" and .value == "English")' >/dev/null \
+        || fail "settings: About language does not match the settings-about board"
     printf '%s' "$rows" | jq -e 'any(.[]; .id == "support" and .kind == "action") and any(.[]; .id == "reportIssue" and .kind == "action")' >/dev/null \
         || fail "settings: About omitted support routes"
     shot settings-about
@@ -13067,6 +13191,9 @@ settings_read_refused() {
     before_sha=$(sha256sum "$stored" | cut -d' ' -f1)
     before_ino=$(stat -c '%i' "$stored")
     chmod 000 "$stored" || fail "settings: the state file could not be made unreadable"
+    if [[ "$test_frontend" == gpui ]]; then
+        printf '%s\n' 'flea-gui: The folder setting could not be saved.' >> "$expected_warnings"
+    fi
     launch "$dir"
     wait_listing 3
     [[ "$(ipc lastMessage)" == "Your saved settings could not be read, so these are the defaults." ]] \
@@ -13208,7 +13335,7 @@ settings_display() {
     settings_open_key
     settle
     settings_section display
-    settings_title_on_display=$(ipc settingsTitleCentre)
+    settings_title_on_display=$(ipc settingsCardRect)
     [[ -n "$settings_title_on_display" ]] || fail "settings: the panel has no title to measure"
     local omarchy_base
     omarchy_base=$(token_of baseSize)
@@ -13366,12 +13493,13 @@ assert_monitor_scale_row() {
 # The Menus section, whose consumer is ui/js/Menu.js: every assertion here is made against the real
 # context menu, never against the stored set alone.
 settings_menus() {
+    # settings-menus uses the catalog heading Basic File Actions; pinned original case stays unchanged.
     settings_open_key
     settle
     settings_section menus
-    [[ "$(ipc settingsTitleCentre)" == "$settings_title_on_display" ]] \
-        || fail "settings: the card moved when Menus came up, title at $(ipc settingsTitleCentre) against $settings_title_on_display"
-    [[ "$(ipc settingsRows)" == *"group|Basic file actions|6 of 6"* ]] \
+    [[ "$(ipc settingsCardRect)" == "$settings_title_on_display" ]] \
+        || fail "settings: the card moved when Menus came up, card at $(ipc settingsCardRect) against $settings_title_on_display"
+    [[ "$(ipc settingsRows)" == *"group|Basic File Actions|6 of 6"* ]] \
         || fail "settings: the master row does not start at six of six, got $(ipc settingsRows)"
     shot settings-menus
 
@@ -13380,7 +13508,7 @@ settings_menus() {
     settle
     key -k Space >/dev/null
     settle
-    [[ "$(ipc settingsRows)" == *"group|Basic file actions|5 of 6"* ]] \
+    [[ "$(ipc settingsRows)" == *"group|Basic File Actions|5 of 6"* ]] \
         || fail "settings: switching one action off did not read as five of six"
     key -k Escape >/dev/null
     settle
@@ -13395,11 +13523,11 @@ settings_menus() {
     settle
     key -k Space >/dev/null
     settle
-    [[ "$(ipc settingsRows)" == *"group|Basic file actions|6 of 6"* ]] \
+    [[ "$(ipc settingsRows)" == *"group|Basic File Actions|6 of 6"* ]] \
         || fail "settings: activating the partial master did not switch all six on"
     key -k Space >/dev/null
     settle
-    [[ "$(ipc settingsRows)" == *"group|Basic file actions|0 of 6"* ]] \
+    [[ "$(ipc settingsRows)" == *"group|Basic File Actions|0 of 6"* ]] \
         || fail "settings: activating the checked master did not switch all six off"
     key -k Escape >/dev/null
     settle
@@ -13412,8 +13540,12 @@ settings_menus() {
     click_row 0 right
     settle
     [[ "|$(ipc contextMenuEntries)|" == *"|Open|"* ]] || fail "settings: the locked Open row went with them"
-    [[ "|$(ipc contextMenuEntries)|" == *"|Show hidden files|"* ]] \
-        || fail "settings: the locked hidden toggle went with them"
+    key -k Escape >/dev/null
+    settle
+    click_background
+    settle
+    [[ "|$(ipc contextMenuEntries)|" == *"|Show Hidden Files|"* ]] \
+        || fail "settings: the locked background hidden toggle went with them"
     key -k Escape >/dev/null
     settle
 
@@ -13425,7 +13557,7 @@ settings_menus() {
     key j >/dev/null; key j >/dev/null; key j >/dev/null
     key -k Space >/dev/null
     settle
-    [[ "$(ipc settingsRows)" == *"group|Basic file actions|5 of 6"* ]] \
+    [[ "$(ipc settingsRows)" == *"group|Basic File Actions|5 of 6"* ]] \
         || fail "settings: the panel did not end the Menus block with Paste alone switched off"
     key -k Escape >/dev/null
     settle
@@ -13468,8 +13600,8 @@ settings_keys() {
     settings_open_key
     settle
     settings_section keys
-    [[ "$(ipc settingsTitleCentre)" == "$settings_title_on_display" ]] \
-        || fail "settings: the card moved when Keys came up, title at $(ipc settingsTitleCentre) against $settings_title_on_display"
+    [[ "$(ipc settingsCardRect)" == "$settings_title_on_display" ]] \
+        || fail "settings: the card moved when Keys came up, card at $(ipc settingsCardRect) against $settings_title_on_display"
     # The shipped preset is "default", which ui/js/Settings.js labels Default and PRESET_KEYS gives
     # ctrl-1 to ctrl-3; a window that starts anywhere else is not the one this checks the toggle on.
     [[ "$(ipc settingsRows)" == *"choice|Keybinding preset|Default"* ]] \
@@ -13484,7 +13616,7 @@ settings_keys() {
     settle
     [[ "$(ipc settingsRows)" == *"choice|Keybinding preset|Windows"* ]] \
         || fail "settings: three steps of l did not reach Windows"
-    ipc settingsModel | jq -e 'map(select(.id == "keyPreview"))[0].items | length == 6 and any(.[]; .keys == "ctrl-c" and .label == "copy")' >/dev/null \
+    ipc settingsModel | jq -e 'map(select(.id == "keyPreview"))[0].items | length == 6 and any(.[]; .keys == "ctrl-c" and .label == "Copy")' >/dev/null \
         || fail "settings: Windows binding examples must include its live copy chord"
     key -k Escape >/dev/null
     settle
@@ -13515,22 +13647,40 @@ settings_keys() {
 cache_snapshot
 trap cleanup EXIT
 
-# rows_run_under "<x y w h>" <label>: rows other than the parked row 0 lie under the whole card, so a press that runs on moves the cursor.
+# The list must extend below the card; each actual control target is checked separately.
 rows_run_under() {
     local card="$1" label="$2" cx cy cw ch visible last first second
     [[ "$card" =~ ^[0-9]+\ [0-9]+\ [0-9]+\ [0-9]+$ ]] || fail "clickthrough: no card rect for $label, ipc answered [$card]"
     read -r cx cy cw ch <<< "$card"
     visible=$(ipc visibleRows)
     [[ "$visible" =~ ^[1-9][0-9]*$ ]] || fail "clickthrough: no visible row count for $label, ipc answered [$visible]"
-    last=$(ipc rowCentre $(( visible - 1 )))
+    # visibleRows counts a part-drawn last row that rowCentre leaves out, so the last row is the last one with a centre.
+    local at
+    for (( at = visible - 1; at >= 1; at-- )); do
+        last=$(ipc rowCentre "$at")
+        [[ "$last" =~ ^[0-9]+\ [0-9]+$ ]] && break
+    done
     first=$(ipc rowCentre 0)
     second=$(ipc rowCentre 1)
     [[ "$last" =~ ^[0-9]+\ [0-9]+$ && "$first" =~ ^[0-9]+\ [0-9]+$ && "$second" =~ ^[0-9]+\ [0-9]+$ ]] \
-        || fail "clickthrough: no row centres for $label (row $(( visible - 1 )) [$last], row 0 [$first], row 1 [$second])"
+        || fail "clickthrough: no row centres for $label (row $at [$last], row 0 [$first], row 1 [$second])"
     [[ "${last#* }" -gt $(( cy + ch )) ]] || fail "clickthrough: the list does not run under $label (last visible row centre y ${last#* }, card bottom $(( cy + ch )))"
-    # The seam between rows 0 and 1 is the bottom of the parked row, and it must clear the card's top edge.
-    [[ $(( (${first#* } + ${second#* }) / 2 )) -lt "$cy" ]] \
-        || fail "clickthrough: the parked row 0 reaches under $label (rows 0 and 1 centres y ${first#* } ${second#* }, card top $cy)"
+}
+
+# A leaked control click must hit a different row, or an unchanged cursor proves nothing.
+clickthrough_target() {
+    local centre="$1" what="$2" parked="$3" cx cy at rx ry rw rh visible
+    read -r cx cy <<< "$centre"
+    visible=$(ipc visibleRows)
+    for (( at = 0; at < visible; at++ )); do
+        read -r rx ry rw rh <<< "$(ipc rowRect "$at")"
+        [[ -n "$rh" ]] || continue
+        if (( cx >= rx && cx < rx + rw && cy >= ry && cy < ry + rh )); then
+            [[ "$at" != "$parked" ]] || fail "clickthrough: $what lies over the parked row"
+            return
+        fi
+    done
+    fail "clickthrough: $what has no different underlying row at $centre"
 }
 
 # A folder named at launch goes to the side of a saved dual view that had focus, and the other side
@@ -14885,6 +15035,7 @@ clickthrough_wait() {
 clickthrough_click() {
     local centre="$1" what="$2" dir="$3" parked="$4" cx cy wx wy
     [[ "$centre" =~ ^[0-9]+\ [0-9]+$ ]] || fail "clickthrough: $what has no centre, ipc answered [$centre]"
+    clickthrough_target "$centre" "$what" "$parked"
     read -r cx cy <<< "$centre"
     read -r wx wy _ww _wh < <(window_box) || fail "native window coordinates unavailable"
     omarchy-drive click "$((cx + wx))" "$((cy + wy))" >/dev/null
@@ -15935,6 +16086,7 @@ clipboard_wait() {
 . "$repo/tests/ui-captures-glass.sh"
 . "$repo/tests/ui-captures-flasher.sh"
 . "$repo/tests/ui-captures-archives.sh"
+. "$repo/tests/ui-captures-rclone.sh"
 . "$repo/tests/ui-captures-unlock.sh"
 . "$repo/tests/ui-captures-compare.sh"
 . "$repo/tests/ui-captures-raw.sh"
@@ -16318,7 +16470,7 @@ flea_uish_load || fail "invalid GPUI override inventory"
 declare -a wanted=("$@")
 default_run=0
 [[ ${#wanted[@]} -ne 0 ]] || default_run=1
-[[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor scroll scrollbar terminal open rows click clickedge ctrlclick shiftscroll querypaste viewrestart dd ddclick griddrop collide sortrestart foldersort duallaunch dirsortstale editplace mute placemenu runscript unmounted sidebar menu background hidden xwsettings selection watch xwwatch reload optical select colour lifted icons thumbs hashcache stale nosweep oem header columnresize columnautofit overflow focus railpointer dualautohidereveal preview pdffocus network netmark networkauth networktimeout gvfs sharebrowser unmount phones trasharm eject poweroff rename renamefirst renamelife renamefar taildrop providers grid columns columnsbackground operations tabs tabdrag openterminal makeexec renderer settings makedefault scrolllane clickthrough wheelunder overlays views formats previewviews reclick colroot colwatch hangshare hanglisting hanginspect openwithdesign noblank previewswap searchnoblank lookopen transferlive recent middleclick opentab xwundo folderviews hiddenlast marqueemargin relstart userthumbnailer dualtab dualdivider)
+[[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor scroll scrollbar terminal open rows click clickedge ctrlclick shiftscroll querypaste viewrestart dd ddclick griddrop collide sortrestart foldersort duallaunch dirsortstale editplace mute placemenu runscript unmounted sidebar menu background hidden xwsettings selection watch xwwatch reload optical select colour lifted icons thumbs hashcache stale nosweep oem header columnresize columnautofit overflow focus railpointer dualautohidereveal preview pdffocus network netmark networkauth networktimeout gvfs sharebrowser unmount phones trasharm eject poweroff rename renamefirst renamelife renamefar taildrop providers grid columns columnsbackground operations tabs tabdrag openterminal makeexec renderer settings makedefault scrolllane clickthrough wheelunder overlays views formats previewviews reclick colroot colwatch hangshare hanglisting hanginspect openwithdesign noblank previewswap searchnoblank lookopen transferlive recent middleclick opentab xwundo folderviews hiddenlast marqueemargin relstart userthumbnailer dualtab dualdivider dualfoldersort)
 
 for name in "${wanted[@]}"; do
     declare -F "case_$name" >/dev/null || fail "unknown UI case: $name"

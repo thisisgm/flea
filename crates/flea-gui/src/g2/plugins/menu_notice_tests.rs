@@ -123,7 +123,8 @@ fn plugin_footer_error_started_failure_preserves_sentence(cx: &mut TestAppContex
 }
 
 #[gpui::test]
-fn plugin_menu_runtime_notice_success_preserves_unrelated_queued_errors(cx: &mut TestAppContext) {
+fn plugin_menu_runtime_notice_success_replaces_older_errors(cx: &mut TestAppContext) {
+    // S1B-2: a newer message replaces an older one, so the plugin's own notices are never hidden behind stale errors.
     let (mut fixture, folder) = fixture(cx);
     update(cx, fixture.handle, |shell, _, cx| {
         shell.menu_notice(0, shell.locale.catalog.tr("window.backend_stopped"), cx);
@@ -133,7 +134,7 @@ fn plugin_menu_runtime_notice_success_preserves_unrelated_queued_errors(cx: &mut
     assert_eq!(
         before.queued.len(),
         2,
-        "shared menu failure and refusal remain acknowledged"
+        "the menu failure and refusal both queue"
     );
     run(&mut fixture, CHECKSUM, cx);
     wait(cx, |cx| notice(&fixture, cx).pane == "Verifying checksum.");
@@ -141,19 +142,18 @@ fn plugin_menu_runtime_notice_success_preserves_unrelated_queued_errors(cx: &mut
     release(&fixture, &folder);
     wait(cx, |cx| notice(&fixture, cx).pending == 0);
     let completed = notice(&fixture, cx);
-    for seen in [&progress, &completed] {
-        assert!(seen.error);
-        assert_eq!(
-            seen.shown, before.shown,
-            "unrelated head error retains priority"
-        );
-        assert_eq!(
-            seen.queued, before.queued,
-            "plugin success cannot acknowledge or append errors"
+    for (seen, words) in [
+        (&progress, "Verifying checksum."),
+        (&completed, "Checksum matches."),
+    ] {
+        assert!(!seen.error, "the newer notice is drawn as a notice");
+        assert_eq!(seen.shown, words);
+        assert!(
+            seen.queued.is_empty(),
+            "the older errors are replaced: {:?}",
+            seen.queued
         );
     }
-    assert_eq!(progress.notice, "Verifying checksum.");
-    assert_eq!(completed.notice, "Checksum matches.");
     assert_eq!(completed.pane, "Checksum matches.");
     stop(cx, &fixture);
 }

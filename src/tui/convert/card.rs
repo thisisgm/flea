@@ -5,6 +5,7 @@ use crate::tui::{
     render::cards::{self, Button, Card},
     theme::Theme,
 };
+use flea::bytename::ExactText as _;
 
 pub fn title(m: &Model) -> String {
     let f = m.converting.card.as_ref().unwrap();
@@ -64,13 +65,13 @@ pub fn output_paths(f: &Form) -> Vec<String> {
         };
         let mut result = vec![parent
             .join(output::page_name(path, pages[0], f.format()))
-            .to_string_lossy()
+            .exact_text()
             .into_owned()];
         if pages.len() > 1 {
             result.push(
                 parent
                     .join(output::page_name(path, *pages.last().unwrap(), f.format()))
-                    .to_string_lossy()
+                    .exact_text()
                     .into_owned(),
             );
         }
@@ -86,7 +87,7 @@ pub fn output_paths(f: &Form) -> Vec<String> {
             .map(|source| {
                 parent
                     .join(output::converted_name(Path::new(source), f.format()))
-                    .to_string_lossy()
+                    .exact_text()
                     .into_owned()
             })
             .collect()
@@ -172,13 +173,6 @@ fn body(m: &Model, width: usize) -> Vec<Line> {
     }
     rows
 }
-// The range's last file goes by its name alone, under the first path, as the convert-pdf board prints it.
-fn last_name(path: &str) -> String {
-    std::path::Path::new(path).file_name().map_or_else(
-        || path.to_owned(),
-        |name| name.to_string_lossy().into_owned(),
-    )
-}
 pub fn geometry(m: &Model) -> Card {
     let f = m.converting.card.as_ref().unwrap();
     let widths: Vec<_> = labels(m).iter().map(|b| text_width(&b.label) + 4).collect();
@@ -237,6 +231,7 @@ pub fn draw(out: &mut String, m: &Model, theme: &Theme) {
         match row.kind {
             1 => {
                 let chosen = i == f.choice;
+                out.push_str(theme.depth.overlay_attribute(chosen, false));
                 let mark = if f.kind.formats()[i] == "pdf" {
                     "\u{eaeb}"
                 } else {
@@ -312,6 +307,11 @@ pub fn draw(out: &mut String, m: &Model, theme: &Theme) {
                 )
             )),
             5 => {
+                out.push_str(
+                    theme
+                        .depth
+                        .control_attribute(f.option_enabled(), false, false),
+                );
                 let checked = if f.combine_option() {
                     f.combine
                 } else {

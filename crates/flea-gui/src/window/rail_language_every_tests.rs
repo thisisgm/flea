@@ -1,6 +1,6 @@
 //! Every language Omarchy ships, switched live in turn: each rail row kind and heading reads its catalog word, data rows keep their names.
 use super::*;
-use flea::ui_logic_pl4::{
+use flea::ui_logic_rail_places::{
     order::{Heading, RailSection},
     rail::{Group, RailEntry},
 };
@@ -101,9 +101,9 @@ fn expected() -> Vec<(&'static str, Result<&'static str, &'static str>)> {
         ("invalid favourite", Ok("places.favorite.invalid_label")),
     ];
     rows.extend(
-        flea::ui_logic_pl4::tags::NAMES
+        flea::ui_logic_rail_places::tags::NAMES
             .into_iter()
-            .map(|name| ("tag", Ok(flea::ui_logic_pl4::tags::label_key(name)))),
+            .map(|name| ("tag", Ok(flea::ui_logic_rail_places::tags::label_key(name)))),
     );
     rows.extend([
         ("share", Err("NAS")),
@@ -127,7 +127,7 @@ fn every_language_switch_relabels_every_rail_row_kind(cx: &mut TestAppContext) {
     let (shell, cx) = open(false, "list", cx);
     shell.update(cx, |shell, cx| {
         let mut state = shell.launch.settings.data.clone();
-        crate::g2::st1::seams::merge(
+        crate::g2::settings_pages::seams::merge(
             &mut state,
             &flea::jsondoc::parse(r#"{"places":{"showRecent":true,"showTags":true,"favourites":[{"label":"Projects","path":"/saved/Projects"},{"label":"","path":"relative"}]}}"#).unwrap(),
         );
@@ -150,7 +150,7 @@ fn every_language_switch_relabels_every_rail_row_kind(cx: &mut TestAppContext) {
                 ),
                 cx,
             );
-            producer.tags_seen(&[true; flea::ui_logic_pl4::tags::NAMES.len()], cx);
+            producer.tags_seen(&[true; flea::ui_logic_rail_places::tags::NAMES.len()], cx);
             producer.set_tail(
                 vec![
                     RailSection {
@@ -253,7 +253,7 @@ fn every_language_switch_relabels_every_rail_row_kind(cx: &mut TestAppContext) {
             ]) {
                 assert_eq!(
                     section.heading,
-                    crate::g2::pl4::content::heading_text(&catalog, &Heading::Key(key)),
+                    crate::g2::rail_places::content::heading_text(&catalog, &Heading::Key(key)),
                     "{language}: {key}"
                 );
             }

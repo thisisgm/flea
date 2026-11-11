@@ -153,14 +153,17 @@ pub fn detail(m: &Model, index: usize, entry: &Row) -> String {
 // The backing file in the Trash store a row's text preview reads; only the preview reads it, never an action.
 pub fn content(m: &Model) -> Option<PathBuf> {
     let (_, _, content) = m.prompts.trash.as_ref()?.items.get(&m.cursor)?;
-    content.starts_with('/').then(|| PathBuf::from(content))
+    content
+        .starts_with('/')
+        .then(|| flea::bytename::exact(content))
 }
 // The preview's head: the name, kind and size, then the window's two Trash facts, a blank row, and the body read from the backing file.
 pub fn preview(m: &Model, y: usize, width: usize, theme: &Theme) -> Option<String> {
     let view = m.prompts.trash.as_ref()?;
     let (Some(row), Some((original, deleted, _))) = (m.rows.get(&m.cursor), view.items.get(&m.cursor)) else { return Some(fit("", width)); };
     let i18n = &m.prompts.i18n;
-    let location = std::path::Path::new(original).parent().map(|parent| {
+    let original = flea::bytename::display(original);
+    let location = std::path::Path::new(original.as_ref()).parent().map(|parent| {
         let home = std::env::var_os("HOME").filter(|home| !home.is_empty()).map(PathBuf::from);
         match home.as_ref().and_then(|home| parent.strip_prefix(home).ok()) {
             Some(tail) if tail.as_os_str().is_empty() => "~".into(),
@@ -171,7 +174,7 @@ pub fn preview(m: &Model, y: usize, width: usize, theme: &Theme) -> Option<Strin
     Some(match y {
         0 => {
             let mark = if m.marks() { format!("{} ", icons::row(row, true)) } else { String::new() };
-            name_title(&mark, &row.name, width)
+            name_title(&mark, &row.shown(), width)
         }
         1 => format!("{}{}", theme.meta, ellipsis(&format!("{} · {}", row.kind, m.i18n.locale().format_size(row.size as u64)), width)),
         2 => format!("{}{}", theme.meta, ellipsis(&i18n.tr_args("trash.deleted", &[&super::calendar::localized_value(&Json::Str(deleted.clone()), m.i18n.locale())]), width)),

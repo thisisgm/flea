@@ -17,8 +17,8 @@ lane() {
         CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$PWD/target}" \
         CARGO_PROFILE_TEST_DEBUG=line-tables-only CARGO_PROFILE_DEV_DEBUG=line-tables-only "$@" < /dev/null
 }
-lane cargo test --locked -p flea --lib -- ui_logic_pl3
-lane cargo test --locked -p flea-gui --lib -- g2::pl3
+lane cargo test --locked -p flea --lib -- ui_logic_trash_browser
+lane cargo test --locked -p flea-gui --lib -- g2::trash_browser
 clippy_root=$(mktemp -d "$scratch/clippy.XXXXXXXX")
 : > "$clippy_root/.flea-test-sandbox"
 printf 'tools/flea-clippy tools/clippy-baseline.txt %s\n' "$clippy_root"

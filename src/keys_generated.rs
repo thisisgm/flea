@@ -27,6 +27,7 @@ pub static PRESET_KEYS: &[Binding] = &[
     Binding::new("windows", "ctrlshift", "4", "ctrl-shift-4", "viewDual", "listing", "all", 3, 1, "keys.action.viewDual", true),
     Binding::new("all", "ctrl", "Right", "ctrl-right", "openInPlace", "listing", "gui", 1, 1, "keys.action.openInPlace", true),
     Binding::new("all", "ctrl", "Left", "ctrl-left", "closeInPlace", "listing", "gui", 1, 1, "keys.action.closeInPlace", true),
+    Binding::new("all", "ctrl", "P", "ctrl-p", "print", "listing", "gui", 1, 1, "keys.label.07c371255954", false),
     Binding::new("all", "text", ">", ">", "openInPlace", "listing", "gui", 0, 1, "keys.action.openInPlace", false),
     Binding::new("all", "text", "<", "<", "closeInPlace", "listing", "gui", 0, 1, "keys.action.closeInPlace", false),
     Binding::new("default", "ctrl", "N", "ctrl-n", "windowNew", "listing,rail", "gui", 1, 3, "keys.action.windowNew", true),
@@ -82,13 +83,14 @@ pub static PRESET_KEYS: &[Binding] = &[
     Binding::new("windows", "alt", "Up", "alt-up", "parent", "listing", "all", 4, 1, "keys.action.parent", true),
     Binding::new("all", "none", "Escape", "escape", "escape", "rail,menu,panel,preview,pdf,media", "all", 0, 126, "keys.label.037c968467aa", true),
     Binding::new("all", "none", "Menu", "menu", "menu", "listing,rail", "all", 0, 3, "keys.action.menu", true),
+    Binding::new("all", "none", "F3", "f3", "viewDual", "listing", "gui", 0, 1, "keys.action.viewDual", true),
     Binding::new("all", "none", "F4", "f4", "autofitColumns", "listing", "gui", 0, 1, "keys.action.autofitColumns", true),
     Binding::new("all", "shift", "F10", "shift-f10", "menu", "listing,rail", "all", 2, 3, "keys.action.menu", true),
     Binding::new("all", "none", "Down", "down", "cursorDown", "rail,menu,panel,preview,pdf,media", "all", 0, 126, "keys.label.104788780cb6", true),
     Binding::new("all", "none", "Up", "up", "cursorUp", "rail,menu,panel,preview,pdf,media", "all", 0, 126, "keys.label.949098c84f5d", true),
     Binding::new("all", "text", "j", "j", "cursorDown", "rail,menu,panel,preview,media", "all", 0, 94, "keys.label.104788780cb6", true),
     Binding::new("all", "text", "p", "p", "playPause", "media", "all", 0, 64, "keys.label.a2add02280cd", true),
-    Binding::new("all", "text", "m", "m", "mute", "media", "all", 0, 64, "keys.label.8dd6857baf02", true),
+    Binding::new("all", "text", "m", "m", "mute", "media", "gui", 0, 64, "keys.label.8dd6857baf02", true),
     Binding::new("all", "text", "k", "k", "cursorUp", "rail,menu,panel,preview,media", "all", 0, 94, "keys.label.949098c84f5d", true),
     Binding::new("all", "none", "Return", "return", "open", "rail,menu,panel,preview,pdf,media", "all", 0, 126, "keys.label.ed077f3d8125", true),
     Binding::new("all", "none", "Enter", "enter", "open", "rail,menu,panel,preview,pdf,media", "all", 0, 126, "keys.label.ed077f3d8125", true),
@@ -238,6 +240,11 @@ pub static SHARED_KEYS: &[Binding] = &[
 ];
 
 #[rustfmt::skip]
+pub static SHEET_EXTRA: &[Binding] = &[
+    Binding::new("all", "ctrl", "Return", "ctrl-enter", "keepResults", "editor", "gui", 1, 128, "keys.label.bc4dd3d76b73", true),
+];
+
+#[rustfmt::skip]
 pub static POINTER: &[PointerBinding] = &[
     PointerBinding::new("listing", "left", "any", "selectOnly", "keys.label.0f5e1d3b4d07", "left", 0, 1),
     PointerBinding::new("listing", "left x2", "any", "open", "keys.label.aea63c219a1f", "left", 0, 2),
@@ -258,7 +265,7 @@ pub static POINTER: &[PointerBinding] = &[
     PointerBinding::new("neighbour", "right", "any", "nothing", "keys.label.c7ad88ff7f52", "right", 0, 1),
     PointerBinding::new("neighbour", "middle", "dir", "openTab", "keys.label.a942ae0af51b", "middle", 0, 1),
     PointerBinding::new("chrome", "left", "parent", "goToCrumb", "keys.label.700673165abf", "left", 0, 1),
-    PointerBinding::new("chrome", "left x2", "inert", "pathBar", "keys.label.c7af3cadc955", "left", 0, 2),
+    PointerBinding::new("chrome", "left", "inert", "pathBar", "keys.label.c7af3cadc955", "left", 0, 1),
     PointerBinding::new("window", "back", "any", "backOrParent", "keys.label.bcf58eaeff52", "back", 0, 1),
     PointerBinding::new("window", "forward", "any", "forward", "keys.label.37962655f9c9", "forward", 0, 1),
     PointerBinding::new("rail", "left", "any", "open", "keys.label.edbf36974308", "left", 0, 1),
@@ -311,8 +318,8 @@ pub static BASE_SHEET: &[SheetBinding] = &[
 pub static SHEET_GROUPS: &[SheetGroup] = &[
     SheetGroup { id: "move", label_key: "keys.group.move", actions: &["cursorDown", "cursorUp", "cursorFirst", "cursorLast", "pageDown", "pageUp", "open", "parent", "pageForward", "historyBack", "historyForward", "focusNext", "focusPrevious", "focusPreview", "tabNew", "openTab", "tabClose", "tabNext", "tabPrevious", "tabMoveLeft", "tabMoveRight", "windowNew", "escape", "carry"] },
     SheetGroup { id: "look", label_key: "keys.group.look", actions: &["viewList", "viewColumns", "viewGrid", "viewDual", "togglePreview", "factsToggle", "loadPreview", "preview", "previewPageForward", "previewPageBack", "toggleHidden", "sidebar", "zoomIn", "zoomOut", "expand", "openInPlace", "closeInPlace", "mute", "textSizeUp", "textSizeDown", "textSizeReset", "keymapSheet"] },
-    SheetGroup { id: "find", label_key: "keys.group.find", actions: &["filter", "search", "searchContents", "reveal", "sortNext", "sortReverse", "pathBar", "reload"] },
-    SheetGroup { id: "change", label_key: "keys.group.change", actions: &["copy", "cut", "paste", "movePaste", "duplicate", "rename", "trash", "deletePermanently", "undo", "redo", "newFolder", "copydirpath", "copyPath", "openAgent", "toggleSelect", "selectAll", "extendDown", "extendUp", "menu", "properties", "addNetwork", "eject", "openTerminal", "settings", "autofitColumns", "copyAs", "pasteAs", "invertSelection", "tags"] },
+    SheetGroup { id: "find", label_key: "keys.group.find", actions: &["filter", "search", "searchContents", "keepResults", "reveal", "sortNext", "sortReverse", "pathBar", "reload"] },
+    SheetGroup { id: "change", label_key: "keys.group.change", actions: &["copy", "cut", "paste", "movePaste", "duplicate", "rename", "trash", "deletePermanently", "undo", "redo", "newFolder", "copydirpath", "copyPath", "openAgent", "toggleSelect", "selectAll", "extendDown", "extendUp", "menu", "properties", "addNetwork", "eject", "openTerminal", "settings", "autofitColumns", "copyAs", "pasteAs", "invertSelection", "tags", "print"] },
 ];
 
 #[rustfmt::skip]

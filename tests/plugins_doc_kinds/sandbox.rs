@@ -17,7 +17,7 @@ pub fn preview_supported() -> bool {
 }
 
 use super::Sandbox;
-use std::os::unix::fs::PermissionsExt;
+
 use std::process::Command;
 
 const RUNTIME_TEST: &str = "plugins_doc_examples_add_enable_and_answer_through_the_runtime";
@@ -38,7 +38,7 @@ fn controlled_runtime(name: &str, probe_exit: u8) -> (std::process::Output, Vec<
         ),
     )
     .unwrap();
-    std::fs::set_permissions(&bwrap, std::fs::Permissions::from_mode(0o755)).unwrap();
+    flea::executable_file::write(&bwrap, &std::fs::read(&bwrap).unwrap(), 0o755).unwrap();
     let mut path = vec![bin];
     path.extend(std::env::split_paths(&std::env::var_os("PATH").unwrap()));
     let output = Command::new("timeout")

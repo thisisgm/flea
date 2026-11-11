@@ -116,3 +116,62 @@ fn cwd_chooser_confirms_backend_paths_and_refuses_a_short_or_multiline_reply() {
       }
     }
 }
+
+// An output in a folder that does not exist is refused at launch, naming the flag and the folder, not after the session.
+#[test]
+fn an_output_whose_folder_is_missing_is_refused_before_the_session() {
+    let dir = TestDir::new("cwd-missing-folder");
+    for flag in ["--cwd-file", "--chooser-file"] {
+        let mut options = Options::default();
+        let output = dir.join("missing/out");
+        options.take(&[flag.into(), output.to_string_lossy().into_owned()], &mut 0).unwrap();
+        let error = options.validate(true, false).unwrap_err();
+        assert_eq!(error, format!("The folder for {flag} does not exist: {}", dir.join("missing").display()));
+        let mut options = Options::default();
+        options.take(&[flag.into(), dir.join("out").to_string_lossy().into_owned()], &mut 0).unwrap();
+        assert!(options.validate(true, false).is_ok(), "{flag} in a folder that exists");
+    }
+}
+
+// In a chooser, Right and l on a file choose it as Return does, in every preset, and never hand it to another application.
+#[test]
+fn chooser_right_and_l_on_a_file_choose_it() {
+    for (preset, key) in [
+        ("default", Key::named("Right", "")),
+        ("windows", Key::named("Right", "")),
+        ("mac", Key::named("Right", "")),
+        ("default", Key::character('l', "")),
+        ("mac", Key::character('l', "")),
+        ("vim", Key::character('l', "")),
+        ("yazi", Key::character('l', "")),
+    ] {
+        let (mut wire, reader) = wire::echo_wire();
+        let mut model = Model::new(PathBuf::from("/listing"), &Json::Null);
+        model.choosing = true;
+        model.preset = preset.into();
+        model.total = 1;
+        model.rows.insert(
+            0,
+            crate::tui::model::Row::parse(&crate::jsondoc::parse(r#"{"n":"file"}"#).unwrap(), &[]),
+        );
+        let action = Map::load().action(&key, preset);
+        actions::key(&mut model, &key, &Map::load(), &mut wire).unwrap();
+        assert!(
+            matches!(action.as_str(), "open" | "pageForward"),
+            "{preset} {} is {action}",
+            key.name
+        );
+        assert!(
+            model.choose_pending,
+            "{preset} {} ({action}) chooses the file",
+            key.name
+        );
+        assert!(
+            model.error.is_empty(),
+            "{preset} {}: {}",
+            key.name,
+            model.error
+        );
+        wire::finish(wire, reader);
+    }
+}

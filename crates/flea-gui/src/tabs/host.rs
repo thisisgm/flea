@@ -35,7 +35,7 @@ pub(crate) struct Host {
     pub launch: transfer::Launch,
     pub timer: Option<Task<()>>,
     pub native: Option<Task<()>>,
-    pub router: Option<crate::g2::dg2::router::Registration>,
+    pub router: Option<crate::g2::drag_drop::router::Registration>,
     pub drag_serial: u64,
     pub landing_request: [Option<usize>; 2],
     pub snapshot: Option<super::atomic::Snapshot>,
@@ -234,7 +234,7 @@ impl Shell {
                         &text,
                         false,
                         "",
-                        flea::ui_logic_fb1::status::Hint::None,
+                        flea::ui_logic_status_feedback::status::Hint::None,
                         now,
                     );
                     messages.notice_serial()

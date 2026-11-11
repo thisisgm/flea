@@ -31,6 +31,7 @@ coh_ydotool() { YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool "$@" >
 
 # A private UI copy adds only the capture reader; the product components and their handlers stay unchanged.
 coh_capture_ui() {
+    [[ "$test_frontend" != gpui ]] || { printf '%s\n' "$repo/ui"; return; }
     local target="$fixture_root/coh-capture-ui"
     sandbox_scratch "$target"
     cp -a "$repo/ui/." "$target/" || fail "cohesion: the UI fixture could not be copied"
@@ -286,9 +287,9 @@ coh_wake_colpdf() {
         && (( fw > 2 && fh > 2 )) || fail "cohesion: invalid PDF frame [$frame]"
     observed=$(ipc cohesionControls) || fail "cohesion: the PDF bar reader failed"
     # Sample input: {"captureReader":"porttp4d","controls":[],"previewColumns":[],"scrollBars":[]}.
-    if ! jq -e '.captureReader == "porttp4d"' <<< "$observed" >/dev/null; then
+    if ! jq -e '.captureReader == "porttp4d" or .captureReader == "gpui-paint-v1"' <<< "$observed" >/dev/null; then
         coh_pdf_receipt
-        fail "cohesion: stale capture reader; expected porttp4d, see COH_HARNESS and COH_WAKE"
+        fail "cohesion: stale capture reader; expected porttp4d or gpui-paint-v1, see COH_HARNESS and COH_WAKE"
     fi
     # Sample input: {"controls":[{"surface":"PreviewColumn","kind":"ViewportScrollBar","value":"vertical","exposed":true,"hovered":true}]}.
     coh_pdf_bar=$(jq -c '.controls[] | select(.surface == "PreviewColumn" and .kind == "ViewportScrollBar" and .value == "vertical" and .exposed and .hovered)' <<< "$observed")
@@ -318,10 +319,45 @@ coh_wake_colpdf() {
 }
 
 # The transfer card stays up because the owned backend is paused mid-copy; the pause and the window end with the surface's subshell.
-coh_transfer_bytes=$((2 * 1024 * 1024 * 1024))
+coh_bytes_per_mib=1048576
+coh_bytes_per_gib=1073741824
+coh_transfer_bytes=$((2 * coh_bytes_per_gib))
+coh_transfer_cleanup() {
+    local result=0 root="${coh_transfer_root:-}" FIXTURE_ROOT
+    coh_release_held
+    operations_close_gate || result=1
+    permissions_resume_stopped "$operations_stopped" || result=1
+    kill_flea || result=1
+    [[ -n "$root" ]] || { (( result == 0 )) || fail "cohesion: transfer cleanup could not release the gate, backend or window"; return 0; }
+    [[ "$root" =~ ^/tmp/flea-coh-transfer\.[[:alnum:]]{8}$ && "$root" == "$(realpath -e "$root")"
+        && "$(stat -c '%u:%a' "$root")" == "$(id -u):700"
+        && -f "$root/.flea-test-sandbox" && ! -L "$root/.flea-test-sandbox" ]] || fail "cohesion: transfer cleanup root differs"
+    FIXTURE_ROOT="$root"
+    sandbox_remove "$root/fixtures"
+    unlink "$root/.flea-test-sandbox" && rmdir "$root" || fail "cohesion: transfer root cleanup failed"
+    # An EXIT trap's return status is discarded, so a failed release must fail loudly here.
+    (( result == 0 )) || fail "cohesion: transfer cleanup could not release the gate, backend or window"
+}
+
 coh_open_transfer_self() {
-    local real_home="$HOME" home menu_box cancel
+    local real_home="$HOME" home menu_box cancel pid receipt operations_bytes="$coh_transfer_bytes"
+    local fixture_root="$fixture_root" FIXTURE_ROOT="$FIXTURE_ROOT" free_bytes available_bytes
+    local -a pids
+    gate_pid="" gate_input="" gate_output=""
+    operations_stopped="" coh_transfer_root=""
+    trap coh_transfer_cleanup EXIT
     home=$(coh_home "$coh_theme")
+    # Dense tmpfs data keeps the real staged copy open long enough to observe its partial inode.
+    [[ "$(stat -f -c %T /tmp)" == tmpfs ]] || fail "cohesion: transfer needs tmpfs"
+    free_bytes=$(df -B1 --output=avail /tmp | tail -1)
+    # Sample input: MemAvailable:   26214400 kB.
+    available_bytes=$(awk '/^MemAvailable:/ {printf "%.0f\n", $2 * 1024}' /proc/meminfo)
+    (( free_bytes > 2 * coh_transfer_bytes + coh_bytes_per_gib && available_bytes > 2 * coh_transfer_bytes + 2 * coh_bytes_per_gib )) \
+        || fail "cohesion: insufficient tmpfs or memory headroom for transfer"
+    coh_transfer_root=$(mktemp -d /tmp/flea-coh-transfer.XXXXXXXX) || fail "cohesion: transfer root failed"
+    printf 'owned native transfer fixture\n' > "$coh_transfer_root/.flea-test-sandbox"
+    FIXTURE_ROOT="$coh_transfer_root" fixture_root="$coh_transfer_root/fixtures"
+    sandbox_make "$fixture_root"
     operations_footer_fixture "cohesion-$coh_theme"
     if [[ -f "$home/.config/omarchy/shell.toml" ]]; then
         mkdir -p "$XDG_CONFIG_HOME/omarchy" && cp "$home/.config/omarchy/shell.toml" "$XDG_CONFIG_HOME/omarchy/shell.toml"
@@ -330,12 +366,11 @@ coh_open_transfer_self() {
         real_foreground=$(grep -E '^foreground' "$home/.local/state/omarchy/current/theme/colors.toml" | grep -oE '#[0-9A-Fa-f]{6}')
     fi
     permissions_listing="$menu_box/payload"
-    menus_guard "$permissions_listing/a-first.txt"
-    printf 'original a-first.txt\n' > "$permissions_listing/a-first.txt" || fail "cohesion: transfer fixture failed"
-    menus_guard "$permissions_listing/photo.heic"
-    truncate -s "$coh_transfer_bytes" "$permissions_listing/photo.heic" || fail "cohesion: transfer fixture could not be sized"
-    operations_stopped=""
-    trap 'permissions_resume_stopped "$operations_stopped"; kill_flea' EXIT
+    menus_guard "$permissions_listing/b-after.txt"
+    printf 'original b-after.txt\n' > "$permissions_listing/b-after.txt" || fail "cohesion: transfer fixture failed"
+    menus_guard "$permissions_listing/a-large.bin"
+    dd if=/dev/zero of="$permissions_listing/a-large.bin" bs="$coh_bytes_per_mib" count="$((coh_transfer_bytes / coh_bytes_per_mib))" status=none \
+        || fail "cohesion: transfer fixture could not be written"
     export HOME="$home"
     launch "$permissions_listing"
     export HOME="$real_home"
@@ -344,9 +379,19 @@ coh_open_transfer_self() {
     [[ "$(ipc metrics)" == "$coh_metrics" ]] || fail "cohesion: transfer metrics $(ipc metrics), not text size 14"
     click_row 0 left
     key -M shift -k Down -m shift >/dev/null || fail "cohesion: transfer selection failed"
+    mapfile -t pids < <(backend_pids)
+    [[ "${#pids[@]}" == 1 ]] || fail "cohesion: transfer needs one owned backend"
+    pid="${pids[0]}"
+    permissions_backend_owned "$pid" || fail "cohesion: transfer backend identity differs"
+    coproc OPERATIONS_GATE { operations_copy_gate "$pid" "$menu_box/destination" "$permissions_listing" staged; }
+    gate_pid="$OPERATIONS_GATE_PID" gate_input="${OPERATIONS_GATE[1]}" gate_output="${OPERATIONS_GATE[0]}"
+    read -r -t 15 -u "$gate_output" receipt || fail "cohesion: transfer gate did not arm"
+    jq -e '.state == "armed"' <<< "$receipt" >/dev/null || fail "cohesion: invalid gate readiness: $receipt"
     operations_copy_to "$menu_box/destination" live
+    read -r -t 15 -u "$gate_output" receipt || fail "cohesion: real transfer was not interrupted"
+    jq -e '.state == "stopped" and .bytes < .total and .threads > 0' <<< "$receipt" >/dev/null || fail "cohesion: invalid interruption: $receipt"
+    printf 'COH_TRANSFER_GATE %s\n' "$receipt"
     menus_expect statusActivityState '.activities[0].running and .transferCard.visible' "cohesion: the transfer card is up"
-    operations_pause_backend
     settle
     # Sample input: the reader answer above; the region is the card's own Cancel with its margin.
     cancel=$(ipc cohesionControls | jq -r --argjson pad "$coh_pad_px" '[.controls[] | select(.kind == "DialogButton" and .name == "Cancel")][0]
@@ -359,6 +404,8 @@ coh_open_transfer_self() {
 coh_run_surface() {
     local name="$1" opener="$2" state="$3" step="$4" region="${5:-}" n="cohesion-$coh_theme-$1"
     local k=0 limit="$coh_tab_limit" first="" sig st targets count i t cx cy tsig rx0 ry0 rx1 ry1 missed=0 surface="" coh_pdf_bar=""
+    local real_state_dir="$real_state_dir"
+    [[ "$coh_theme" == live ]] || real_state_dir="$fixture_root/coh-$coh_theme/home/.local/state/omarchy/current"
     [[ "$opener" == *_self ]] || coh_launch "$state"
     "$opener"
     printf 'COH_GEOMETRY %s %s window=%s outputs=%s\n' "$coh_theme" "$name" "$(window_box)" "$(hyprctl monitors -j | jq -c .)"
@@ -389,6 +436,13 @@ coh_run_surface() {
         collide) surface=CollideConfirm ;; trash) surface=TrashView ;; transfer) surface=TransferCard ;;
     esac
     [[ "$name" != cols-pdf ]] || coh_wake_colpdf
+    if [[ "$name" == cols-pdf ]]; then
+        # Sample input: {"frame":"790 42 308 620"}; only the PDF viewport bounds select its lane.
+        region=$(ipc pdfState false | jq -er --argjson pad "$coh_pad_px" '.frame | split(" ") | map(tonumber)
+            | "\(.[0] - $pad) \(.[1] - $pad) \(.[0] + .[2] + $pad) \(.[1] + .[3] + $pad)"') \
+            || fail "cohesion: PDF viewport region unavailable"
+        read -r rx0 ry0 rx1 ry1 <<< "$region"
+    fi
     # One control per distinct look: kind, role, value and enabled state.
     st=$(ipc cohesionControls) || fail "cohesion: the target reader failed"
     targets=$(jq -c --arg surface "$surface" --argjson x0 "$rx0" --argjson y0 "$ry0" --argjson x1 "$rx1" --argjson y1 "$ry1" --argjson cap "$coh_target_limit" '

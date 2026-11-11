@@ -13,6 +13,35 @@ pub(crate) fn plain_enter() -> KeyDownEvent {
     }
 }
 
+// Filtered arrows use the same visual neighbours and end policy as an unfiltered Grid.
+pub(super) fn vertical_step(host: &crate::window::pane::PaneHost, grid: bool, down: bool) -> isize {
+    if !grid {
+        return if down { 1 } else { -1 };
+    }
+    let Some(grid) = host.grid.as_ref() else {
+        return 0;
+    };
+    let shown = host.filter.shown.as_deref().map_or(
+        crate::grid::Shown::All(host.pane.held.total),
+        crate::grid::Shown::Only,
+    );
+    let Some(view) = shown.view_of(host.pane.cursor) else {
+        return 0;
+    };
+    let arrow = if down {
+        crate::grid::Arrow::Down
+    } else {
+        crate::grid::Arrow::Up
+    };
+    crate::grid::arrow(
+        grid.view.layout(shown).columns,
+        Some(view),
+        shown.total(),
+        arrow,
+    )
+    .map_or(0, |next| next as isize - view as isize)
+}
+
 impl Shell {
     /// The query line's keys while it has the caret, and Escape while a filter stands, ahead of search and marks.
     pub(crate) fn filter_key(
@@ -36,7 +65,7 @@ impl Shell {
                 && self.focus.is_focused(window)
                 && self.keyboard.context == flea::keys::Context::Listing
             {
-                return self.filter_reveal_enter(window, cx);
+                return self.filter_enter_held();
             }
             if !(plain && event.keystroke.key == "escape") {
                 return false;
@@ -134,7 +163,7 @@ impl Shell {
             && self.keyboard.context == flea::keys::Context::Listing
     }
 
-    // The committed line's Enter, run again through the listing so a file reveals and a folder enters as they always do.
+    // The committed line's Enter, run again through the listing so a file opens in its default app and a folder goes in.
     fn filter_enter_row(
         &mut self,
         event: &KeyDownEvent,
@@ -148,7 +177,7 @@ impl Shell {
         if !owner.up()
             || owner.typing()
             || owner.drawn(host.pane.held.listing).is_none()
-            || !flea::ui_logic_sr2::cursor_shown(
+            || !flea::ui_logic_listing_filter::cursor_shown(
                 host.filter.shown.as_deref(),
                 Some(host.pane.cursor),
             )
@@ -159,33 +188,11 @@ impl Shell {
         self.key(event, window, cx);
     }
 
-    fn filter_reveal_enter(&mut self, window: &mut Window, cx: &mut Context<Self>) -> bool {
-        let side = self.focus_side;
-        let Some(host) = self.panes[side].as_ref() else {
-            return false;
-        };
-        if host.pane.busy() || host.stopped || host.filter.owner.asked().is_some() {
-            return true;
-        }
-        if !flea::ui_logic_sr2::cursor_shown(host.filter.shown.as_deref(), Some(host.pane.cursor))
-            || !host
-                .pane
-                .held
-                .row(host.pane.cursor)
-                .is_some_and(|row| !flea::ui_logic_pk1::directory(row.dir, row.mode, &row.icon))
-        {
-            return false;
-        }
-        self.filter_update(
-            side,
-            |filter, pane| {
-                filter.close(pane);
-                None
-            },
-            cx,
-        );
-        self.recent_reveal(side, window, cx);
-        true
+    /// A standing filter's Enter waits out a listing or an answer in flight; otherwise the listing's Enter opens the row.
+    fn filter_enter_held(&self) -> bool {
+        self.panes[self.focus_side].as_ref().is_some_and(|host| {
+            host.pane.busy() || host.stopped || host.filter.owner.asked().is_some()
+        })
     }
 
     /// A `filtered` line for this pane: the answer in force lands whole, a stale one is dropped, a broken one is a protocol error.

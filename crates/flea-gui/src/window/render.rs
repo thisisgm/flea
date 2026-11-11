@@ -1,7 +1,7 @@
 use super::{composition, glass::producers::BodyGround, startup::View};
 use crate::{
     feedback::spinner,
-    g2::dg2::join::{flock, Seed},
+    g2::drag_drop::join::{flock, Seed},
     grid::pane_view::PaneInputs,
     list::{ListElement, Palette},
     palette::Theme,
@@ -36,6 +36,9 @@ impl Render for Shell {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         #[cfg(test)]
         super::frame_feedback::perf_tests::shell_built();
+        if !self.settings.opened || self.settings.sheet.is_some() {
+            self.settings.cover.set(None);
+        }
         #[cfg(test)]
         if let Some(renders) = cx.try_global::<EmptyOmiShellRenders>() {
             renders.0.set(renders.0.get() + 1);
@@ -150,7 +153,7 @@ impl Render for Shell {
             cx,
         );
         for side in 0..2 {
-            let search_empty = self.search_empty(side, window, cx);
+            let search_empty = self.search_empty(side, pane_width(side), window, cx);
             let contents = self.contents_blocks(side).map(Rc::new);
             let state_view = self.pane_state_view(side, cx);
             let Some(host) = self.panes[side].as_mut() else {

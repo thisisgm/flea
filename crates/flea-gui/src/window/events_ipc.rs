@@ -36,6 +36,10 @@ impl Shell {
                 if self.network_mountinfo_call(&request, &answer, cx) {
                     return;
                 }
+                if let Some(reply) = self.carry_ipc_call(&request, window, cx) {
+                    let _ = answer.try_send(crate::ipc::server::Answer { reply, quit: false });
+                    return;
+                }
                 if let Some(reply) = self.trash_focus_call(&request, window, cx) {
                     let _ = answer.try_send(crate::ipc::server::Answer { reply, quit: false });
                     return;
@@ -57,14 +61,7 @@ impl Shell {
                     grid: host.grid.as_ref(),
                     active: host.drawn_view == Some(crate::window::startup::View::Grid),
                 };
-                let chrome_glyph = self.chrome.view.as_ref().and_then(|chrome| {
-                    let frame = chrome.read(cx).frame.borrow();
-                    frame
-                        .controls
-                        .iter()
-                        .position(|control| control.focused)
-                        .map(|at| crate::path::chrome::GLYPHS[at])
-                });
+                let chrome_glyph = self.ipc_chrome_glyph(cx);
                 let focus = crate::ipc::focus::FocusAdapter {
                     view: Some(self.focus_view(window, cx))
                         .filter(|view| !view.is_empty())
@@ -106,15 +103,17 @@ impl Shell {
                 let pane = crate::ipc::tabs::SwapWithStrip {
                     pane: &pane,
                     strip: self.strip.frames.borrow().json(),
+                    shown: host.filter.shown_total(host.pane.held.total),
                 };
                 let trash_message = self.trash_message();
-                let trash = crate::g2::pl3::readers::TrashAdapter {
+                let trash = crate::g2::trash_browser::readers::TrashAdapter {
                     host: self.trash.as_ref(),
                     message: trash_message.as_deref(),
                     overlay: self.overlay.as_ref(),
+                    rail: self.rail_trash_badge(cx),
                     cx,
                 };
-                let omi = crate::g2::op1::ipc::OmiAdapter {
+                let omi = crate::g2::file_ops::ipc::OmiAdapter {
                     overlay: self.overlay.as_ref().map(|overlay| overlay.read(cx)),
                 };
                 let columns = crate::window::columns::readers::Reader {
@@ -187,15 +186,16 @@ impl Shell {
                         window.mouse_position().y.into(),
                     ),
                 };
-                let menu = crate::g2::mn1::ipc::JoinedAdapter {
+                let menu = crate::g2::context_menus::ipc::JoinedAdapter {
                     joined: &self.menu,
                     identity: self.menu_identity(),
                     catalog: &self.locale.catalog,
+                    field: crate::path::text_menu::shown(window.window_handle().window_id()),
                 };
-                let operations = crate::g2::op1::ipc::LiveOperationsAdapter {
+                let operations = crate::g2::file_ops::ipc::LiveOperationsAdapter {
                     overlay: self.overlay.as_ref().map(|view| view.read(cx)),
                 };
-                let clipboard = crate::g2::dg1::ipc::ClipboardAdapter {
+                let clipboard = crate::g2::file_clipboard::ipc::ClipboardAdapter {
                     board: &self.clipboard.board,
                 };
                 let geometry = self.geometry(window);
@@ -234,20 +234,22 @@ impl Shell {
                     built: self.network_built(),
                     rail: &rail,
                 };
-                let search = crate::g2::sr1::SearchAdapter {
+                let search = crate::g2::file_search::SearchAdapter {
                     search: &host.search.owner,
                 };
                 let query = super::super::search::QueryReader {
-                    search: &host.search.owner,
+                    search: &host.search,
                     focused: self.focus.is_focused(window) && !self.input_blocked(cx),
+                    filter_typing: host.filter.owner.typing(),
+                    no_match: self.no_match_headline(self.focus_side),
                 };
-                let network_result = crate::g2::pl2::result::Adapter(
+                let network_result = crate::g2::network_shares::result::Adapter(
                     self.rail
                         .as_ref()
                         .and_then(|rail| rail.network.as_ref())
                         .map(|network| network.service.read(cx)),
                 );
-                let providers = crate::g2::sd1::reader::State {
+                let providers = crate::g2::send_share::reader::State {
                     shell: self,
                     window,
                 };
@@ -394,6 +396,15 @@ impl Shell {
                     adapters.len() - 1
                 };
                 let cohesion = self.cohesion_inputs(host, &states, &rows, cx);
+                let overlays: [&dyn crate::ipc::Adapter; 4] =
+                    [&network_menu, &menu, &network, &preview_look];
+                let owners = crate::ipc::cohesion_controls::Owners::new(
+                    &adapters[..count],
+                    &overlays,
+                    self,
+                    window,
+                    cx,
+                );
                 let reply = if let Some(chrome) = &self.chrome.view {
                     let (path, frame) =
                         chrome.read_with(cx, |view, _| (view.path.clone(), view.frame.clone()));
@@ -402,14 +413,17 @@ impl Shell {
                         let frame = frame.borrow();
                         let chrome = crate::ipc::chrome::ChromeAdapter { frame: &frame };
                         let laid = cohesion.laid.as_ref().map(|laid| laid.borrow());
-                        let cohesion = cohesion.adapter(&frame, &path, laid.as_deref());
-                        let mut mounted = adapters[..count].to_vec();
+                        let mut cohesion = cohesion.adapter(&frame, &path, laid.as_deref());
+                        cohesion.lane = preview.cohesion_lane();
+                        let mut mounted: Vec<&dyn crate::ipc::Adapter> = vec![&owners];
+                        mounted.extend_from_slice(&adapters[..count]);
                         mounted.extend([&path as &dyn crate::ipc::Adapter, &chrome, &tabs]);
                         mounted.push(&cohesion);
                         surface.dispatch_to(request, &mounted)
                     })
                 } else {
-                    let mut mounted = adapters[..count].to_vec();
+                    let mut mounted: Vec<&dyn crate::ipc::Adapter> = vec![&owners];
+                    mounted.extend_from_slice(&adapters[..count]);
                     mounted.push(&tabs);
                     surface.dispatch_to(request, &mounted)
                 };

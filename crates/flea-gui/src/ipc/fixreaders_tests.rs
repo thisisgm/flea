@@ -2,7 +2,7 @@
 use super::reader_port_b_tests::document;
 use crate::{
     backend::Backend,
-    g2::pv1::doc::View as Document,
+    g2::quick_look_overlay::doc::View as Document,
     ipc::server::Event,
     state::{tests::shell_with, Shell},
     window::root::Root,
@@ -10,9 +10,12 @@ use crate::{
 use flea::{
     ipc::wire::{Reply, Request},
     jsondoc::{self, Json},
-    ui_logic_op4::{output::Kind, selection::Source},
+    ui_logic_print_convert::{output::Kind, selection::Source},
 };
 use gpui::{AppContext, Context, TestAppContext, VisualTestContext, Window, WindowHandle};
+
+#[path = "cohesion_pdf_tests.rs"]
+mod cohesion_pdf;
 
 type Handle = WindowHandle<Root>;
 
@@ -212,7 +215,7 @@ fn fixreaders_ey367_combine_state_follows_tab_and_right(cx: &mut TestAppContext)
             .collect();
         assert!(shell.open_output(
             0,
-            crate::g2::op4::model::Action::Combine,
+            crate::g2::print_convert::model::Action::Combine,
             0,
             files,
             window,
@@ -298,7 +301,7 @@ fn fixreaders_flash_control_centre_reads_the_painted_step_action(cx: &mut TestAp
     let mut visual = VisualTestContext::from_window(handle.into(), cx);
     draw(&mut visual);
     let action = visual
-        .debug_bounds(crate::g2::op2::flash::SEL_STEP_FLASH)
+        .debug_bounds(crate::g2::archive_flash::flash::SEL_STEP_FLASH)
         .expect("the Flash action draws");
     assert_eq!(
         value(&mut visual, handle, "flashControlCentre", &["flash"]),
@@ -333,7 +336,7 @@ fn fixreaders_flash_control_centre_reads_the_painted_step_action(cx: &mut TestAp
     });
     draw(&mut visual);
     let cancel = visual
-        .debug_bounds(crate::g2::op2::flash::SEL_STEP_CANCEL)
+        .debug_bounds(crate::g2::archive_flash::flash::SEL_STEP_CANCEL)
         .expect("Cancel draws while the flash runs");
     assert_eq!(
         value(&mut visual, handle, "flashControlCentre", &["cancel"]),
@@ -352,7 +355,7 @@ fn fixreaders_flash_control_centre_reads_the_painted_step_action(cx: &mut TestAp
             r#"{"t":"flashdone","id":7,"ok":true,"phase":"verify","at":0,"err":"","blank":false}"#,
         )
         .unwrap();
-        let done = flea::ui_logic_op2::wire::parse_flashdone(&done);
+        let done = flea::ui_logic_archive_flash::wire::parse_flashdone(&done);
         shell
             .operations
             .archive
@@ -361,7 +364,7 @@ fn fixreaders_flash_control_centre_reads_the_painted_step_action(cx: &mut TestAp
     });
     draw(&mut visual);
     let end = visual
-        .debug_bounds(crate::g2::op2::flash::SEL_STEP_END)
+        .debug_bounds(crate::g2::archive_flash::flash::SEL_STEP_END)
         .expect("the ending draws its end action");
     assert_eq!(
         value(&mut visual, handle, "flashControlCentre", &["end"]),

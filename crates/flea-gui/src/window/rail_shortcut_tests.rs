@@ -115,7 +115,7 @@ fn gcomp36_focused_rail_passes_window_handlers_and_swallows_listing_actions(
 
 #[gpui::test]
 fn rail_rename_f1_printable_t_stays_in_actual_editor(cx: &mut TestAppContext) {
-    use flea::ui_logic_pl4::{
+    use flea::ui_logic_rail_places::{
         order::{Heading, RailSection},
         rail::{Group, Kind, RailEntry},
     };
@@ -258,7 +258,7 @@ fn gcomp45_path_escape_from_rail_restores_listing_context_and_ctrl3_grid(cx: &mu
 fn settings_panel(
     shell: &gpui::Entity<Shell>,
     cx: &mut VisualTestContext,
-) -> (&'static str, crate::g2::st1::Side, String) {
+) -> (&'static str, crate::g2::settings_pages::Side, String) {
     shell.read_with(cx, |shell, cx| {
         let view = shell.settings.panel.as_ref().unwrap().read(cx);
         let panel = &view.panel;
@@ -273,7 +273,7 @@ fn settings_panel(
 // The stored text size mode: absent while following Omarchy, a stop once overridden.
 fn display_size_mode(shell: &gpui::Entity<Shell>, cx: &mut VisualTestContext) -> Option<f64> {
     shell.read_with(cx, |shell, _| {
-        flea::ui_logic_st1::pages::at(
+        flea::ui_logic_settings_pages::pages::at(
             &shell.launch.settings.data,
             &["display", "textSize", "mode"],
         )
@@ -317,7 +317,10 @@ fn ey220_display_takes_down_and_right_after_tab_from_the_sidebar(cx: &mut TestAp
     assert_eq!(display_size_mode(&shell, cx), Some(14.));
     cx.simulate_keystrokes("tab");
     frame(cx);
-    assert_eq!(settings_panel(&shell, cx).1, crate::g2::st1::Side::Rail);
+    assert_eq!(
+        settings_panel(&shell, cx).1,
+        crate::g2::settings_pages::Side::Rail
+    );
     for _ in 0..5 {
         cx.simulate_keystrokes("down");
         frame(cx);
@@ -327,14 +330,18 @@ fn ey220_display_takes_down_and_right_after_tab_from_the_sidebar(cx: &mut TestAp
     frame(cx);
     assert_eq!(
         settings_panel(&shell, cx).1,
-        crate::g2::st1::Side::Pane,
+        crate::g2::settings_pages::Side::Pane,
         "Tab hands the keys from the sidebar to the page, so the sidebar Display row is no longer held"
     );
     cx.simulate_keystrokes("down");
     frame(cx);
     assert_eq!(
         settings_panel(&shell, cx),
-        ("display", crate::g2::st1::Side::Pane, "textStop".to_owned()),
+        (
+            "display",
+            crate::g2::settings_pages::Side::Pane,
+            "textStop".to_owned()
+        ),
         "Down lights the Text size ruler on the Display page"
     );
     cx.simulate_keystrokes("right");
