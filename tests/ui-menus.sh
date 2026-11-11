@@ -501,14 +501,17 @@ menus_replace() {
     [[ "$(stat -c '%d:%i' "$original")" != "$inode" ]] || fail "menus: replacement reused the captured identity"
 }
 
-# The open menu holds the re-read back, so the identity it captured is still current at activation (routes in AGENTS.md).
+# Rename keeps the captured identity through editor commit, even while its listing is held back.
 menus_rename_after_replacement() {
-    local directory="$1"
+    local directory="$1" replacement
+    replacement=$(stat -c '%d:%i' "$directory/target.txt")
     menus_expect renameState '.index >= 0 and .index == .cursor and .cursorName == "target.txt" and .focused and (.pending | not)' 'rename opens the editor over target.txt at menu activation'
     menus_guard "$directory/renamed.txt"
     key -M ctrl -k a -m ctrl renamed.txt -k Return >/dev/null
     menus_expect renameState '.focused and (.pending | not) and .text == "renamed.txt" and (.error | contains("Selected item changed"))' 'rename refuses the replaced source at commit, in the editor'
     [[ ! -e "$directory/renamed.txt" ]] || fail "menus: rename committed the replacement"
+    menus_equal 'menu rename refusal leaves replacement identity untouched' "$replacement" "$(stat -c '%d:%i' "$directory/target.txt")"
+    menus_equal 'menu rename refusal leaves replacement bytes untouched' 'replacement' "$(cat "$directory/target.txt")"
     key -k Escape >/dev/null
     menus_expect renameEditorLive '. == false' 'Escape closes the editor that refused the replaced source'
 }

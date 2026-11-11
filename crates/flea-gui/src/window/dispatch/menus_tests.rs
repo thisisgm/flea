@@ -20,6 +20,7 @@ const FILE: u32 = 0o100644;
 
 pub(super) fn entry(name: &str, mode: u32) -> RowFacts {
     RowFacts {
+        source: Some(format!("1:2:{}", mode & 0o170000)),
         name: name.into(),
         dir: mode & 0o170000 == 0o040000,
         mode,

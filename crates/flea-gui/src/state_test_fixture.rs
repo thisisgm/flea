@@ -42,7 +42,13 @@ pub(crate) fn shell_with(backend: Backend, cx: &mut Context<Shell>) -> Shell {
     host.pane
         .receive(Reply::Rows {
             start: 0,
-            rows: vec![flea::protocol::RowFacts::default(); 320],
+            rows: vec![
+                flea::protocol::RowFacts {
+                    source: Some("1:2:32768".into()),
+                    ..Default::default()
+                };
+                320
+            ],
             listing: 2,
         })
         .unwrap();

@@ -1,12 +1,16 @@
 //! The inline rename editor and the bulk rename card's opening: Ops.js startRename and commitRename, Pane.qml openBulkRename and PaneWire.qml's rename replies.
 use crate::{path::entry::Entry, state::Shell};
-use flea::{json::escape, ui_logic_file_ops::lines, ui_logic_status_feedback::status::Hint};
+use flea::{ui_logic_file_ops::lines, ui_logic_status_feedback::status::Hint};
 use gpui::{ClipboardItem, Context, KeyDownEvent, Window};
 
 #[path = "rename_bulk.rs"]
 mod bulk;
+#[path = "rename_commit.rs"]
+mod commit;
 #[path = "rename_field.rs"]
 pub(crate) mod field;
+#[path = "rename_identity.rs"]
+mod identity;
 #[path = "rename_input.rs"]
 mod input;
 #[path = "rename_ipc.rs"]
@@ -28,6 +32,7 @@ pub(crate) struct Edit {
     pub index: usize,
     pub listing: usize,
     pub source: String,
+    pub identity: Option<String>,
     pub name: String,
     pub menu: u64,
     pub entry: Entry,
@@ -39,6 +44,7 @@ pub(crate) struct Edit {
 
 #[derive(Default)]
 pub(crate) struct Join {
+    opening: Option<identity::Opening>,
     pub(crate) ime: crate::g2::file_ops::dialog_editor::DialogEditor,
     pub edit: Option<Edit>,
     pub(crate) neighbour: Option<(String, String)>,
@@ -82,6 +88,14 @@ impl Shell {
             return true;
         };
         let source = join(host.pane.path(), &row.name);
+        let identity = row.source.clone();
+        let virtual_source = host
+            .backend
+            .as_ref()
+            .is_some_and(|backend| backend.plugin_active());
+        if menu == 0 && identity.is_none() && !virtual_source {
+            return self.rename_capture(side, source, cx);
+        }
         // A name that is not UTF-8 is edited as its lossy spelling; the source keeps its exact bytes.
         let name = flea::bytename::display(leaf(&row.name)).into_owned();
         let mut entry = Entry::default();
@@ -96,6 +110,7 @@ impl Shell {
             index,
             listing: host.pane.held.listing,
             source,
+            identity,
             name,
             menu,
             entry,
@@ -109,62 +124,9 @@ impl Shell {
         true
     }
 
-    /// Enter and an outside click: an unchanged name abandons, a refused one stays open with its reason.
-    pub(crate) fn rename_commit(&mut self, cx: &mut Context<Self>) {
-        let neighbour_live = self.rename.neighbour.is_some()
-            && self
-                .rename_neighbour_row(self.rename.edit.as_ref().map_or(0, |edit| edit.side))
-                .is_some();
-        let catalog = self.locale.catalog.clone();
-        let Some(edit) = self.rename.edit.as_mut() else {
-            return;
-        };
-        if edit.pending.is_some() || edit.entry.marked.is_some() {
-            return;
-        }
-        edit.line.end_selection_drag();
-        let next = edit.entry.text.trim().to_owned();
-        if edit.entry.text == edit.name || next == edit.name {
-            self.rename_abandon(cx);
-            return;
-        }
-        let side = edit.side;
-        let live = self.panes[side].as_ref().is_some_and(|host| {
-            host.pane.held.listing == edit.listing
-                && (neighbour_live
-                    || (self.rename.neighbour.is_none()
-                        && host.pane.held.row(edit.index).is_some()))
-        });
-        if !live {
-            edit.error = lines::rename_changed(&catalog);
-            cx.notify();
-            return;
-        }
-        if let Some(refusal) = lines::rename_refusal(&catalog, &next) {
-            edit.error = refusal;
-            cx.notify();
-            return;
-        }
-        edit.error.clear();
-        let line = format!(
-            r#"{{"c":"rename","path":"{}","to":"{}","menuId":{}}}"#,
-            escape(&edit.source),
-            escape(&next),
-            edit.menu
-        );
-        edit.pending = Some(lines::rename_destination(&edit.source, &next));
-        let sent = self.panes[side]
-            .as_ref()
-            .and_then(|host| host.backend.as_ref())
-            .map(|backend| backend.operation(line));
-        if !matches!(sent, Some(Ok(()))) {
-            self.rename_refused(String::new(), cx);
-        }
-        cx.notify();
-    }
-
     /// Escape: the draft goes and the row shows its name again.
     pub(crate) fn rename_abandon(&mut self, cx: &mut Context<Self>) {
+        self.rename_capture_cancel(cx);
         self.rename.neighbour = None;
         if let Some(edit) = self.rename.edit.take() {
             if edit.menu != 0 {
@@ -206,6 +168,13 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> bool {
+        if self.rename.opening.is_some() {
+            if event.keystroke.key == "escape" {
+                self.rename_abandon(cx);
+                self.rename_sync_gate(window, cx);
+            }
+            return true;
+        }
         if self.menu.text.is_some() {
             return false;
         }
@@ -309,7 +278,12 @@ impl Shell {
             };
             let ours = self.rename.edit.as_ref().filter(|edit| edit.side == side);
             let editing = ours.is_some_and(|edit| edit.entry.editing);
-            let pending = ours.is_some_and(|edit| edit.pending.is_some());
+            let pending = ours.is_some_and(|edit| edit.pending.is_some())
+                || self
+                    .rename
+                    .opening
+                    .as_ref()
+                    .is_some_and(|open| open.side == side);
             let gate = host.nav.gate;
             if gate.editing != editing || gate.rename_pending != pending {
                 let gate = crate::navigation::watch::Gate {

@@ -15,6 +15,7 @@ fn english() -> I18n {
 
 fn row(name: &str, dir: bool) -> RowFacts {
     RowFacts {
+        source: None,
         depth: 0,
         open: false,
         name: name.to_owned(),

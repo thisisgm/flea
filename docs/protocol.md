@@ -1529,6 +1529,14 @@ later browser reads cannot cancel the delete. A superseded check answers its ord
 
 Example: `{"c":"rename","path":"/home/gm/old.txt","to":"new.txt"}`
 
+Inline editors preserve the displayed row's optional `source` string, encoded as decimal
+`device:inode:file-type`, and send it on commit. The backend checks that identity in the rename
+worker using the same selected-item guard as `menuId`; a replacement or missing source is refused
+without moving it. Metadata and contents may change while the same inode remains selected.
+Rows without this lstat identity use an asynchronous menu snapshot before the editor opens, then
+commit with that snapshot's `menuId`. Virtual plugin places retain their provider's operation
+contract because their rows have no filesystem inode. Older callers may omit both fields.
+
 Renames one file within its own directory and answers one `renamed` line. `to` is a bare name, not a
 path: an empty `to`, `.`, `..`, or anything containing `/` or an interior NUL is refused with an `error`
 line before any syscall runs, because a separator would move the file out of its own directory.
@@ -2261,6 +2269,10 @@ added plus removed rows between the two scans, so a rename counts 2 against a ne
 A first listing and a navigation carry no `changed`, and a client reads a missing one as unknown rather than 0.
 
 ### rows
+
+Local lstat rows include optional `source` as `device:inode:file-type` for inline rename. These are
+decimal integers in a string, preserving full inode precision. Cached GIO rows omit it and use an
+on-demand selection snapshot instead. The field does not require an additional stat.
 
 Each viewport row also carries `b`, an optional creation timestamp as Unix seconds
 or null. The source is Linux `statx(STATX_BTIME)`, with no-follow and no-automount

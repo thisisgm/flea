@@ -65,6 +65,7 @@ pub fn open_at(
 
 pub fn row(name: &str, dir: bool) -> RowFacts {
     RowFacts {
+        source: Some(format!("1:2:{}", if dir { 0o040000 } else { 0o100000 })),
         name: name.into(),
         dir,
         icon: if dir { "folder" } else { "text-plain" }.into(),

@@ -31,6 +31,7 @@ impl Shell {
             index: 0,
             listing: host.pane.held.listing,
             source,
+            identity: row.source.clone(),
             name: shown,
             menu: capture.id,
             entry,
