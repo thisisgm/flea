@@ -53,10 +53,10 @@ fn carry_wire_cancel_before_offer_cannot_resurrect_it_or_replace_a_newer_lift() 
     let offer = offer();
     let mut state = State::default();
     state.retire(offer.token.clone());
-    assert!(!state.accept(&offer));
+    assert!(!state.admit(&offer));
     let newer = Offer::new(offer.lifted.clone(), offer.flock.clone(), offer.stamp);
-    assert!(state.accept(&newer));
-    assert!(!state.accept(&offer));
+    assert!(state.admit(&newer));
+    assert!(!state.admit(&offer));
 }
 
 #[test]
@@ -70,15 +70,15 @@ fn carry_wire_refresh_cannot_replace_a_newer_lift() {
     refresh.lift_stamp = first.lift_stamp;
     assert!(refresh.stamp > newer.stamp);
     let mut peer = State::default();
-    assert!(peer.accept(&newer));
+    assert!(peer.admit(&newer));
     assert!(
-        !peer.accept(&refresh),
+        !peer.admit(&refresh),
         "OLD_REFRESH_MUST_NOT_REPLACE_NEWER_LIFT"
     );
     let mut source = State::default();
-    assert!(source.accept(&refresh));
+    assert!(source.admit(&refresh));
     assert!(
-        source.accept(&newer),
+        source.admit(&newer),
         "NEWER_LIFT_MUST_REPLACE_OLDER_REFRESH"
     );
 }
@@ -87,11 +87,11 @@ fn carry_wire_refresh_cannot_replace_a_newer_lift() {
 fn carry_wire_dropped_lift_refresh_cannot_return() {
     let first = offer();
     let mut peer = State::default();
-    assert!(peer.accept(&first));
+    assert!(peer.admit(&first));
     peer.drop_lift(&first);
     let mut refresh = Offer::new(first.lifted.clone(), first.flock.clone(), first.stamp);
     refresh.lift_stamp = first.lift_stamp;
-    assert!(!peer.accept(&refresh), "DROPPED_LIFT_REFRESH_MUST_STAY_OUT");
+    assert!(!peer.admit(&refresh), "DROPPED_LIFT_REFRESH_MUST_STAY_OUT");
     let newer = Offer::new(first.lifted.clone(), first.flock.clone(), refresh.stamp);
-    assert!(peer.accept(&newer), "NEWER_LIFT_MUST_STILL_RIDE");
+    assert!(peer.admit(&newer), "NEWER_LIFT_MUST_STILL_RIDE");
 }
