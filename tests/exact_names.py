@@ -9,6 +9,23 @@ TWIN = "col�".encode()
 FAILS = []
 
 
+def sandboxed():
+    # The same kernel probe as src/backend/sandboxprobe.rs; previews and contents search run inside bwrap.
+    try:
+        return subprocess.run(["bwrap", "--unshare-user", "--unshare-pid", "--unshare-net", "--die-with-parent",
+                               "--ro-bind", "/", "/", "--proc", "/proc", "/usr/bin/true"],
+                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30).returncode == 0
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+
+
+SANDBOXED = sandboxed()
+
+
+def skip(name):
+    print("SKIP " + name + "  no unprivileged namespace for the bwrap sandbox")
+
+
 def check(name, cond, note=""):
     print(("PASS " if cond else "FAIL ") + name + ("" if cond else "  " + note))
     if not cond:
@@ -277,8 +294,11 @@ def run(root, home):
         meta = k.req({"c": "meta", "row": 0, "text": True, "token": 7}, lambda o: o.get("t") in ("meta", "error"))
         check("meta reads the invalid file itself", meta and meta.get("t") == "meta" and meta.get("lines") == 1 and meta.get("lfailed") is False, str(meta))
 
-        code = k.req({"c": "code", "token": 4, "slot": "look", "path": path}, lambda o: o.get("t") in ("code", "error"))
-        check("an invalid name alone previews its own text", code and code.get("t") == "code" and "AAAA" in json.dumps(code.get("lines")), str(code)[:300])
+        if SANDBOXED:
+            code = k.req({"c": "code", "token": 4, "slot": "look", "path": path}, lambda o: o.get("t") in ("code", "error"))
+            check("an invalid name alone previews its own text", code and code.get("t") == "code" and "AAAA" in json.dumps(code.get("lines")), str(code)[:300])
+        else:
+            skip("an invalid name alone previews its own text")
 
         hits = k.collect({"c": "search", "path": alone, "query": "bad", "hidden": True}, lambda o: o.get("t") in ("searched", "error"))
         window = k.req({"c": "window", "start": 0, "count": 10}, lambda o: o.get("t") in ("rows", "error"))
@@ -288,12 +308,16 @@ def run(root, home):
         got = k.req({"c": "paths", "rows": [0], "listing": listing}, lambda o: o.get("t") in ("paths", "error"))
         check("a search hit resolves to the exact file", got and got.get("t") == "paths" and wire_bytes(got["paths"][0]) == os.fsencode(alone) + b"/bad\xff.txt", str(got))
 
-        hits = k.collect({"c": "searchcontents", "path": alone, "query": "AAAA", "gen": 1, "count": 10}, lambda o: o.get("t") in ("searched", "error"))
-        matches = [m for one in hits if one.get("t") == "contentsmatches" for m in one.get("matches", [])]
-        check("contents search hits the invalid name and keeps it operable", len(matches) == 1 and bytes.fromhex(matches[0]["pathBytes"]) == b"bad\xff.txt" and matches[0]["operable"] is True and wire_bytes(matches[0]["path"]) == b"bad\xff.txt", str(hits)[:400])
-        listing = next((one.get("listing") for one in hits if one.get("t") in ("rows", "contentsmatches") and "listing" in one), None)
-        got = k.req({"c": "paths", "rows": [0], "listing": listing}, lambda o: o.get("t") in ("paths", "error"))
-        check("a contents hit resolves to the exact file", got and got.get("t") == "paths" and wire_bytes(got["paths"][0]) == os.fsencode(alone) + b"/bad\xff.txt", str(got))
+        if SANDBOXED:
+            hits = k.collect({"c": "searchcontents", "path": alone, "query": "AAAA", "gen": 1, "count": 10}, lambda o: o.get("t") in ("searched", "error"))
+            matches = [m for one in hits if one.get("t") == "contentsmatches" for m in one.get("matches", [])]
+            check("contents search hits the invalid name and keeps it operable", len(matches) == 1 and bytes.fromhex(matches[0]["pathBytes"]) == b"bad\xff.txt" and matches[0]["operable"] is True and wire_bytes(matches[0]["path"]) == b"bad\xff.txt", str(hits)[:400])
+            listing = next((one.get("listing") for one in hits if one.get("t") in ("rows", "contentsmatches") and "listing" in one), None)
+            got = k.req({"c": "paths", "rows": [0], "listing": listing}, lambda o: o.get("t") in ("paths", "error"))
+            check("a contents hit resolves to the exact file", got and got.get("t") == "paths" and wire_bytes(got["paths"][0]) == os.fsencode(alone) + b"/bad\xff.txt", str(got))
+        else:
+            skip("contents search hits the invalid name and keeps it operable")
+            skip("a contents hit resolves to the exact file")
         k.req({"c": "searchclose"}, lambda o: o.get("t") in ("searchclosed", "error"), timeout=5)
 
         r = k.list(alone)
