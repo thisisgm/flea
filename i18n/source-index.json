@@ -22938,7 +22938,7 @@
       "call_sites": [
         {
           "excerpt": "self.menu_notice(side, self.locale.catalog.tr(\"clipboard.no_cursor_row\"), cx);",
-          "line": 217,
+          "line": 218,
           "path": "crates/flea-gui/src/g2/context_menus/host_input.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -76201,7 +76201,7 @@
       "call_sites": [
         {
           "excerpt": "let sentence = self.locale.catalog.tr(\"menu.refusal.nocursor\");",
-          "line": 246,
+          "line": 247,
           "path": "crates/flea-gui/src/g2/context_menus/host_input.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -112456,7 +112456,7 @@
     },
     {
       "excerpt": "assert!(Instant::now() < until, \"service never published {family}\");",
-      "line": 36,
+      "line": 34,
       "literal": "service never published {family}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/service.rs",
@@ -112465,7 +112465,7 @@
     },
     {
       "excerpt": "&[\"file-0.txt\", \"esc clears\"]",
-      "line": 73,
+      "line": 76,
       "literal": "esc clears",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/service.rs",
@@ -112474,7 +112474,7 @@
     },
     {
       "excerpt": "for ch in \"Late probe search\".chars() {",
-      "line": 81,
+      "line": 84,
       "literal": "Late probe search",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/service.rs",
@@ -112483,7 +112483,7 @@
     },
     {
       "excerpt": "\"changed font input\",",
-      "line": 96,
+      "line": 99,
       "literal": "changed font input",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/service.rs",
@@ -112492,7 +112492,7 @@
     },
     {
       "excerpt": "&[\"file-0.txt\", \"Late probe search\"],",
-      "line": 102,
+      "line": 105,
       "literal": "Late probe search",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/service.rs",
@@ -112501,7 +112501,7 @@
     },
     {
       "excerpt": "\"a failed probe must not publish a later family\"",
-      "line": 138,
+      "line": 141,
       "literal": "a failed probe must not publish a later family",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/font_gate/service.rs",
@@ -114589,7 +114589,7 @@
     },
     {
       "excerpt": ".expect(\"the menu's pane\")",
-      "line": 277,
+      "line": 278,
       "literal": "the menu's pane",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/context_menus/host_input.rs",
@@ -114598,7 +114598,7 @@
     },
     {
       "excerpt": ".expect(\"the menu's pane\")",
-      "line": 317,
+      "line": 318,
       "literal": "the menu's pane",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/context_menus/host_input.rs",
@@ -120069,6 +120069,15 @@
       "surface": "gui"
     },
     {
+      "excerpt": "\"flea: AirDrop could not release its lock: {}\",",
+      "line": 25,
+      "literal": "flea: AirDrop could not release its lock: {}",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/send_share/airdrop_lock.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
       "excerpt": "eprintln!(\"flea: AirDrop holds owly's process {pid} by its pid alone: {error}\");",
       "line": 92,
       "literal": "flea: AirDrop holds owly's process {pid} by its pid alone: {error}",
@@ -120088,7 +120097,7 @@
     },
     {
       "excerpt": "Radio::On => \"on\",",
-      "line": 91,
+      "line": 95,
       "literal": "on",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/send_share/airdrop_shared.rs",
@@ -120097,7 +120106,7 @@
     },
     {
       "excerpt": ".inspect_err(|error| eprintln!(\"flea: AirDrop keeps to this window: {error}\"))",
-      "line": 108,
+      "line": 112,
       "literal": "flea: AirDrop keeps to this window: {error}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/send_share/airdrop_shared.rs",
@@ -120106,7 +120115,7 @@
     },
     {
       "excerpt": "Some(\"on\") => Radio::On,",
-      "line": 123,
+      "line": 128,
       "literal": "on",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/send_share/airdrop_shared.rs",
@@ -128250,6 +128259,15 @@
       "surface": "gui"
     },
     {
+      "excerpt": "format!(\"#!/bin/sh\\nroot=\\\"${{0%/bin/fc-match}}\\\"\\n[ \\\"$(cat \\\"$root/.flea-test-sandbox\\\")\\\" = flea-u01-owned-fixture ] || exit 91\\nif [ ! -f \\\"$root/{PROBE_OPEN}\\\" ]; then\\nmkfifo \\\"$root/launch-block\\\" || exit 92\\nexec timeout {BLOCKED_STUB_SECONDS} cat \\\"$root/launch-block\\\"\\nfi\\n{body}\")",
+      "line": 152,
+      "literal": "#!/bin/sh\nroot=\"${{0%/bin/fc-match}}\"\n[ \"$(cat \"$root/.flea-test-sandbox\")\" = flea-u01-owned-fixture ] || exit 91\nif [ ! -f \"$root/{PROBE_OPEN}\" ]; then\nmkfifo \"$root/launch-block\" || exit 92\nexec timeout {BLOCKED_STUB_SECONDS} cat \"$root/launch-block\"\nfi\n{body}",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/presentation/fixture.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
       "excerpt": "\"fixture must distinguish frame roles\"",
       "line": 36,
       "literal": "fixture must distinguish frame roles",
@@ -129835,7 +129853,7 @@
     },
     {
       "excerpt": ".expect(\"Quick Look is mounted\")",
-      "line": 143,
+      "line": 144,
       "literal": "Quick Look is mounted",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/dispatch/gh_preview_fixture.rs",
@@ -129844,7 +129862,7 @@
     },
     {
       "excerpt": "\"the full-source GPUI loader must never run for Quick Look pictures\"",
-      "line": 166,
+      "line": 167,
       "literal": "the full-source GPUI loader must never run for Quick Look pictures",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/dispatch/gh_preview_fixture.rs",
@@ -130838,6 +130856,15 @@
       "literal": "{\"settings.group.thumbnails\":\"Vorschaubilder\",\"settings.row.thumbnails\":\"Vorschaubilder\",\"settings.row.thumb_size\":\"Vorschaubildgröße\",\"settings.row.thumb_usb\":\"Auf USB-Laufwerken\",\"settings.hint.thumbs_kept\":\"Vorhandene Bilder bleiben erhalten.\",\"settings.menus.ext_thumbs\":\"Vorschaubilder anzeigen\"}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/window/m9_g2rows_02_fixtures.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
+      "excerpt": "return \"1 0 8:1 / / rw - ext4 /dev/root rw\\n\".into();",
+      "line": 36,
+      "literal": "1 0 8:1 / / rw - ext4 /dev/root rw\n",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/window/network_cloud.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "gui"
     },
@@ -174313,7 +174340,7 @@
     },
     {
       "excerpt": "return Err(format!(\"trailing text at byte {}\", at));",
-      "line": 73,
+      "line": 88,
       "literal": "trailing text at byte {}",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -174322,7 +174349,7 @@
     },
     {
       "excerpt": "return Err(format!(\"nested past {} levels at byte {}\", MAX_DEPTH, at));",
-      "line": 142,
+      "line": 175,
       "literal": "nested past {} levels at byte {}",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -174331,7 +174358,7 @@
     },
     {
       "excerpt": "None => Err(format!(\"the document ended before a value at byte {}\", at)),",
-      "line": 145,
+      "line": 178,
       "literal": "the document ended before a value at byte {}",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -174340,7 +174367,7 @@
     },
     {
       "excerpt": "Err(format!(\"{} expected at byte {}\", word, at))",
-      "line": 161,
+      "line": 194,
       "literal": "{} expected at byte {}",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -174349,7 +174376,7 @@
     },
     {
       "excerpt": "return Err(format!(\"a colon was expected at byte {}\", at));",
-      "line": 179,
+      "line": 214,
       "literal": "a colon was expected at byte {}",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -174357,8 +174384,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "_ => return Err(format!(\"a comma or a closing brace was expected at byte {}\", at)),",
-      "line": 196,
+      "excerpt": "\"a comma or a closing brace was expected at byte {}\",",
+      "line": 236,
       "literal": "a comma or a closing brace was expected at byte {}",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -174366,8 +174393,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "_ => return Err(format!(\"a comma or a closing bracket was expected at byte {}\", at)),",
-      "line": 219,
+      "excerpt": "\"a comma or a closing bracket was expected at byte {}\",",
+      "line": 264,
       "literal": "a comma or a closing bracket was expected at byte {}",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -174375,8 +174402,8 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "let text = std::str::from_utf8(&bytes[start..*at]).map_err(|_| format!(\"a number that is not UTF-8 at byte {}\", start))?;",
-      "line": 235,
+      "excerpt": ".map_err(|_| format!(\"a number that is not UTF-8 at byte {}\", start))?;",
+      "line": 284,
       "literal": "a number that is not UTF-8 at byte {}",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -174385,7 +174412,7 @@
     },
     {
       "excerpt": "return Err(format!(\"a value that is not JSON at byte {}\", start));",
-      "line": 240,
+      "line": 289,
       "literal": "a value that is not JSON at byte {}",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -174394,7 +174421,7 @@
     },
     {
       "excerpt": "_ => Err(format!(\"a value that is not JSON at byte {}\", start)),",
-      "line": 245,
+      "line": 294,
       "literal": "a value that is not JSON at byte {}",
       "owner": "controller",
       "path": "src/jsondoc.rs",
@@ -174402,227 +174429,11 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "assert!(written_back.is_empty(), \"written back verbatim: {:?}\", written_back);",
-      "line": 320,
-      "literal": "written back verbatim: {:?}",
+      "excerpt": "\"JSON key work exceeded its budget: {next} > {limit}\"",
+      "line": 14,
+      "literal": "JSON key work exceeded its budget: {next} > {limit}",
       "owner": "controller",
-      "path": "src/jsondoc.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "let v = parse(&format!(\"{{\\\"a\\\":{}}}\", good)).unwrap_or_else(|e| panic!(\"{} must parse: {}\", good, e));",
-      "line": 322,
-      "literal": "{} must parse: {}",
-      "owner": "controller",
-      "path": "src/jsondoc.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "assert_eq!(render(&v), format!(\"{{\\n  \\\"a\\\": {}\\n}}\\n\", good), \"the literal is written back as it was read\");",
-      "line": 323,
-      "literal": "the literal is written back as it was read",
-      "owner": "controller",
-      "path": "src/jsondoc.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "(\"\", \"the document ended before a value at byte 0\"),",
-      "line": 339,
-      "literal": "the document ended before a value at byte 0",
-      "owner": "controller",
-      "path": "src/jsondoc.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "(\"{\\\"a\\\":\", \"the document ended before a value at byte 5\"),",
-      "line": 342,
-      "literal": "the document ended before a value at byte 5",
-      "owner": "controller",
-      "path": "src/jsondoc.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "(\"{\", \"a string was expected at byte 1\"),",
-      "line": 343,
-      "literal": "a string was expected at byte 1",
-      "owner": "controller",
-      "path": "src/jsondoc.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "(\"{\\\"a\\\"}\", \"a colon was expected at byte 4\"),",
-      "line": 344,
-      "literal": "a colon was expected at byte 4",
-      "owner": "controller",
-      "path": "src/jsondoc.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "(\"{\\\"a\\\":}\", \"a value that is not JSON at byte 5\"),",
-      "line": 345,
-      "literal": "a value that is not JSON at byte 5",
-      "owner": "controller",
-      "path": "src/jsondoc.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "(\"[1,]\", \"a value that is not JSON at byte 3\"),",
-      "line": 346,
-      "literal": "a value that is not JSON at byte 3",
-      "owner": "controller",
-      "path": "src/jsondoc.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "(\"tru\", \"true expected at byte 0\"),",
-      "line": 347,
-      "literal": "true expected at byte 0",
-      "owner": "controller",
-      "path": "src/jsondoc.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "(\"{\\\"a\\\":1}x\", \"trailing text at byte 7\"),",
-      "line": 348,
-      "literal": "trailing text at byte 7",
-      "owner": "controller",
-      "path": "src/jsondoc.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "(\"\\\"unterminated\", \"a string opened at byte 0 ran to the end of the document\"),",
-      "line": 349,
-      "literal": "a string opened at byte 0 ran to the end of the document",
-      "owner": "controller",
-      "path": "src/jsondoc.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "(\"{\\\"a\\\":\\\"unterminated\", \"a string opened at byte 5 ran to the end of the document\"),",
-      "line": 350,
-      "literal": "a string opened at byte 5 ran to the end of the document",
-      "owner": "controller",
-      "path": "src/jsondoc.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "(\"{\\\"a\\\":+5}\", \"a value that is not JSON at byte 5\"),",
-      "line": 351,
-      "literal": "a value that is not JSON at byte 5",
-      "owner": "controller",
-      "path": "src/jsondoc.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "(\"{\\\"a\\\":.5}\", \"a value that is not JSON at byte 5\"),",
-      "line": 352,
-      "literal": "a value that is not JSON at byte 5",
-      "owner": "controller",
-      "path": "src/jsondoc.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "(\"{\\\"a\\\":1.2.3}\", \"a value that is not JSON at byte 5\"),",
-      "line": 353,
-      "literal": "a value that is not JSON at byte 5",
-      "owner": "controller",
-      "path": "src/jsondoc.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "(\"{\\\"a\\\":inf}\", \"a value that is not JSON at byte 5\"),",
-      "line": 354,
-      "literal": "a value that is not JSON at byte 5",
-      "owner": "controller",
-      "path": "src/jsondoc.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "(\"{\\\"a\\\":\\\"\\\\q\\\"}\", \"an unknown escape at byte 7\"),",
-      "line": 355,
-      "literal": "an unknown escape at byte 7",
-      "owner": "controller",
-      "path": "src/jsondoc.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "(\"{\\\"a\\\":\\\"\\\\u12\\\"}\", \"a \\\\u escape that is not hex at byte 8\"),",
-      "line": 356,
-      "literal": "a \\u escape that is not hex at byte 8",
-      "owner": "controller",
-      "path": "src/jsondoc.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "(\"{\\\"a\\\":\\\"\\\\u+041\\\"}\", \"a \\\\u escape that is not hex at byte 8\"),",
-      "line": 359,
-      "literal": "a \\u escape that is not hex at byte 8",
-      "owner": "controller",
-      "path": "src/jsondoc.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "(\"{\\\"a\\\":\\\"\\\\u\\u{20ac}\\u{20ac}\\\"}\", \"a \\\\u escape that is not hex at byte 8\"),",
-      "line": 360,
-      "literal": "a \\u escape that is not hex at byte 8",
-      "owner": "controller",
-      "path": "src/jsondoc.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "(\"{\\\"a\\\":\\\"\\\\u12\", \"a short \\\\u escape at byte 8\"),",
-      "line": 361,
-      "literal": "a short \\u escape at byte 8",
-      "owner": "controller",
-      "path": "src/jsondoc.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "(\"{\\\"a\\\":\\\"\\\\\", \"an escape ran off the end at byte 7\"),",
-      "line": 362,
-      "literal": "an escape ran off the end at byte 7",
-      "owner": "controller",
-      "path": "src/jsondoc.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "assert_eq!(parse(bad).expect_err(\"should not parse\"), message, \"{} stopped elsewhere\", bad);",
-      "line": 364,
-      "literal": "should not parse",
-      "owner": "controller",
-      "path": "src/jsondoc.rs",
-      "reason": "untranslated-literal-candidate-needs-owner-verification",
-      "surface": "core/backend"
-    },
-    {
-      "excerpt": "assert_eq!(parse(bad).expect_err(\"should not parse\"), message, \"{} stopped elsewhere\", bad);",
-      "line": 364,
-      "literal": "{} stopped elsewhere",
-      "owner": "controller",
-      "path": "src/jsondoc.rs",
+      "path": "src/jsondoc_cost.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
       "surface": "core/backend"
     },
@@ -254166,7 +253977,7 @@
     "crates/flea-gui/src/font_gate/picker.rs": "25c98930457c2d02b168563a119ff5632bd9a41bcfec21ea528b5cf5be36a0eb",
     "crates/flea-gui/src/font_gate/readers.rs": "e9019463a1e2e03c794f692cd5f15c44309ecf82822e397b1550f76a3f19d554",
     "crates/flea-gui/src/font_gate/receipt.rs": "c1bd793f85c42b7957da5a94dee5b6875b2144c4bdd313424a05d9f9f7d0bb74",
-    "crates/flea-gui/src/font_gate/service.rs": "c0fb38d1e75f2722a16c55f572cd14b1d1483df1c01e129800907440b76b86ea",
+    "crates/flea-gui/src/font_gate/service.rs": "d0ad3273983c403de1bfc4fb18d2f7ee586cdf069accf30f257a63d7025f990f",
     "crates/flea-gui/src/font_gate/settings.rs": "03663f1f99569b92eb1039fe614d1876bdd388907bb2ae68eac14588104902fc",
     "crates/flea-gui/src/font_gate/surfaces.rs": "fb83864e7a7789df59e6cfff3737dc450264e829cf2173d14dd81fd4a0f8f3d8",
     "crates/flea-gui/src/g2/archive_flash/cards.rs": "7ccc58b1d57b15912257b3f22186e00ee98a397b0bc9558ad081ae3a676b0be4",
@@ -254213,7 +254024,7 @@
     "crates/flea-gui/src/g2/context_menus/fix2_width_proof.rs": "6cf61dfccfc4db4982be7b59e6ab35836890f6f51f1b41379e4c9e4ee7e10829",
     "crates/flea-gui/src/g2/context_menus/glyphs.rs": "f768d73bf37a5358b27836aeb4924c217bcc8273ccc8898bd6d7e8eac8cbb793",
     "crates/flea-gui/src/g2/context_menus/header.rs": "411273d5f4afa6947fd1e93e99a659ca2105770f6f4643db53b320bde6553cc2",
-    "crates/flea-gui/src/g2/context_menus/host_input.rs": "ba84dd91b042e90bc9c6971d3c8dc835ae119a2cf55f138a94f6ee0df6733873",
+    "crates/flea-gui/src/g2/context_menus/host_input.rs": "1fcbfa5a6f74402cea2c3b41537ef32b8c81ba9501cad929dd8801c59f1c0d1b",
     "crates/flea-gui/src/g2/context_menus/ipc.rs": "8a64a60f5799cb3352112bbe941543a84f3f78650a50751e7de55ec0406ad002",
     "crates/flea-gui/src/g2/context_menus/ipc/cohesion.rs": "5f3c225bb956a30a17b80bb76952017b1b86854297c7c1a4a39dd1c202091244",
     "crates/flea-gui/src/g2/context_menus/ipc/joined.rs": "4b7f700d6e4f2711174de570db88ed8768bf5b25d8d859dbc121fe02c93bb226",
@@ -254229,7 +254040,7 @@
     "crates/flea-gui/src/g2/context_menus/menu.rs": "1093f0fe77ae98725af47f8cdff73ddeb95c880571b040ffc2e710b264d94833",
     "crates/flea-gui/src/g2/context_menus/menu/card.rs": "39ca9fac7e55a213f4dac21c57aab7aeecdb585176b48dcd4b13a7b806a9cb00",
     "crates/flea-gui/src/g2/context_menus/menu/choice.rs": "30cf0eaa493ec162819da4af5850d8e03bbd3f00b977dc21c735e6c3e084db32",
-    "crates/flea-gui/src/g2/context_menus/menu/fade.rs": "227ffa78f8f9de92911e7c1a67ccad443340264b8524241d3131e24285aa4cdd",
+    "crates/flea-gui/src/g2/context_menus/menu/fade.rs": "2a34559149cc2fc82d097be1361d57d186a923cf437c96699341ef5715821742",
     "crates/flea-gui/src/g2/context_menus/menu/pointer.rs": "6522c3889f2e9517e0c0fea477656aeab269ef6a5677ae599f87006a89140e82",
     "crates/flea-gui/src/g2/context_menus/mod.rs": "b5e8afb36e6e74b969d19ba9e389318e99169d3a452d9e4a7ec28826516eddf4",
     "crates/flea-gui/src/g2/context_menus/notice.rs": "8dd787d7349fbd205599619713673dcaa3989b3cd10b7036f4639469715536db",
@@ -254700,11 +254511,12 @@
     "crates/flea-gui/src/g2/send_share/activation.rs": "752793714fabbadeb2473a18cb082481e3ef1e690267e4fa1c524f4ed903cd2d",
     "crates/flea-gui/src/g2/send_share/airdrop.rs": "1373320a9f8ae1e7874779219d8a3727b4e8f5acfc7844dd8642d81e781e5a59",
     "crates/flea-gui/src/g2/send_share/airdrop_join.rs": "699b2d4613675e9a1f89eebbd02f79bc4f76829edd868db51380807449b5eac6",
+    "crates/flea-gui/src/g2/send_share/airdrop_lock.rs": "ed3700c35ca7ccdb4b359417f451d1da88d7e47df4a65f359902b06e6c030107",
     "crates/flea-gui/src/g2/send_share/airdrop_machine.rs": "cb2903cfd814912474487b0ea1fa4b2beda15c1342bc7d1c408c78e8ab61a384",
     "crates/flea-gui/src/g2/send_share/airdrop_pids.rs": "073314e00f6016c5c6bb69113909a7d288432b1fdcab70db408f3d76e42a510c",
     "crates/flea-gui/src/g2/send_share/airdrop_run.rs": "e4752877c70c29962594714af528b6ad798861b2eb1917b174d882db6ffda516",
-    "crates/flea-gui/src/g2/send_share/airdrop_shared.rs": "8bb37271f6b929f4305f14d6217654bc19aa07261b951c21990d79ef8cb4a6fd",
-    "crates/flea-gui/src/g2/send_share/airdrop_writes.rs": "6de30056caf42124126b97d9d2c0274ebbf3ef4fa4a47e1b2d28668c63c6f87d",
+    "crates/flea-gui/src/g2/send_share/airdrop_shared.rs": "6d2d8c8fdf5c430300985684b2190d7019897a8e63eeb48edafe5efbded1507e",
+    "crates/flea-gui/src/g2/send_share/airdrop_writes.rs": "d3e86f4aa4b81f5d3c9d1bb5aea500533add5ea3a6f6e1c8d4946af9f51306e7",
     "crates/flea-gui/src/g2/send_share/dropbox_status.rs": "0ec2b8a3e9bd14d2eaf2e706f40a175a50b7cf67128e3430162e462349c4be36",
     "crates/flea-gui/src/g2/send_share/ipc.rs": "998b0efe47af0b80837dbb260ec6697db421af9e4d5adc59b1f212e5ecc5c1b6",
     "crates/flea-gui/src/g2/send_share/join.rs": "2b51c35db7d44dd775f640e88d822935d8a4ea656e6975e68270240ac01e7b50",
@@ -254998,8 +254810,8 @@
     "crates/flea-gui/src/perf/memory_probe.rs": "df9e2d0beb3d97c455c59cbd69def71801237e3e412b4806e64f1a2c1b4730cd",
     "crates/flea-gui/src/presentation/epoch.rs": "905b0920fcc7905ce18ddb46f0c1c253b7868f70d24175e0842c86bbc5868397",
     "crates/flea-gui/src/presentation/face.rs": "917a13a173df62d9f82734657866f33fe19b32a95a70d7f57bcf08c8236cdffa",
-    "crates/flea-gui/src/presentation/face_cache.rs": "887388dccd56b336da94812c3e4b9a572c5419311945fae941e28e5a8b3fdfbc",
-    "crates/flea-gui/src/presentation/fixture.rs": "21fdc85553fc14eb0ac77d96d3246f97d28a0682e02ca6e956663cac02f5c2ab",
+    "crates/flea-gui/src/presentation/face_cache.rs": "bf0853c77fe536bfe3b8ae1c346893136840d166f619ad9fd86f8ee26deae484",
+    "crates/flea-gui/src/presentation/fixture.rs": "8df50d5832a596f4286bce43c2664526b9efb17220e794fe35062121c1c0ed6a",
     "crates/flea-gui/src/presentation/fonts.rs": "b43e6b10780cb0217a2a48706c871cb248b38bc11bdd94d24de00d53a31c9914",
     "crates/flea-gui/src/presentation/frame_census.rs": "77369ccf1c65732d775aa809100ead6ca8f3190d7adc4303a46f891eb7b3d7b4",
     "crates/flea-gui/src/presentation/frame_gate.rs": "4298b5315f6f714d19a060cad63fe1c2371f3181139a09e433488168e607869d",
@@ -255038,7 +254850,7 @@
     "crates/flea-gui/src/row/tags.rs": "67e2d4c2af5521bc2d51564a39b5d0e0f24db693747ea557764a30da343ad8b7",
     "crates/flea-gui/src/state.rs": "51319646b5ad27bdcf54b58ec34ded7099f10d71d16ddd9e57481a036878dea8",
     "crates/flea-gui/src/state/text_input.rs": "3c29814fc306ebd3cb1123fcd19ba9f3e68a42da14f16e5935911b1311ec96f4",
-    "crates/flea-gui/src/state_constructor_fixture.rs": "f29fec3c2ccb108d71bd7b2761a54331275ae47f0064f737ba01322fb66b2597",
+    "crates/flea-gui/src/state_constructor_fixture.rs": "b21a52a84b2bbc0f101845f31032a1d207123ac17de6bb7ba824294dc2f3d529",
     "crates/flea-gui/src/state_fixture.rs": "c1b90a04d764ced080c5805cf32ac9daf3819fb80136f13c87c33550a8a2c019",
     "crates/flea-gui/src/state_layout.rs": "9e394d039215e7995002a6f3279233ee56f7dbd62036a1faace5de608677f22f",
     "crates/flea-gui/src/strips/filter_host.rs": "fca92236d350b4aefab238ce38533224cb9254edc5caa07a1fc6d3ba0d49d8c4",
@@ -255110,7 +254922,7 @@
     "crates/flea-gui/src/window/dispatch/fileops_created.rs": "a9865f340288542eec69309ddbeed2807b80f092cf7915ca9a7a5e4ae80a48e5",
     "crates/flea-gui/src/window/dispatch/fileops_route.rs": "09e2b7c09d7b795ac871d9aa63aa3b668aa334f27ac6ac30f2bac61da368b493",
     "crates/flea-gui/src/window/dispatch/fileops_wire.rs": "411c20129871d37551e9a72bb1ee8db447aaa10032c47f96d5286e90de895496",
-    "crates/flea-gui/src/window/dispatch/gh_preview_fixture.rs": "85d025e506e9faa7a6b368611a43a103037d3b24d65cefdc5e1d643f20907d77",
+    "crates/flea-gui/src/window/dispatch/gh_preview_fixture.rs": "f291ff76f062d8714796562564eaa502250783bde8e3a854f13637e25de16b0a",
     "crates/flea-gui/src/window/dispatch/gh_rename_proof_lane.rs": "79911dd08bf148c35622bf7370b9724c488736a37534d05c36513b5acbd094ec",
     "crates/flea-gui/src/window/dispatch/gm_prevsel_tests/focus.rs": "0d6d528a90a4b5f1d9718e6d688306ac1b9c17354434255f6e47a68ac499c537",
     "crates/flea-gui/src/window/dispatch/listing.rs": "6a65b3e6e5913d5e3f8f9140a7049b5f4eb06123da18e95b744908f392a27d3b",
@@ -255186,7 +254998,7 @@
     "crates/flea-gui/src/window/mod.rs": "6d97159619ffbafb759dc4bb7ba0c29f6a1f525952af9db39526076c6823d0f0",
     "crates/flea-gui/src/window/navigate.rs": "4528992582b5ee387ecca04b1a3e1f2559bf55aabcdee2db4a4e8bdfb31255ee",
     "crates/flea-gui/src/window/network.rs": "9679683deb781852e704a6743bda610ca47706d50ef51163106c1aec47c161aa",
-    "crates/flea-gui/src/window/network_cloud.rs": "3a3febd4a7fe3d9fc7bd67c97c77245c21a3f4a8c12314558d39d5ce542d6fee",
+    "crates/flea-gui/src/window/network_cloud.rs": "c9ff2564475716c57b2f1d4d59d82b274cd8c28611efbc7d811ff1929ab37450",
     "crates/flea-gui/src/window/network_effects.rs": "72f3bf286f7095690bc4df6b248f24b4780e49968eaa3716dde1c593c520084d",
     "crates/flea-gui/src/window/network_focus.rs": "a2bd7430bcd4602d685f36f87ee7fac372aba15caa8f63a4563770c868fb9caa",
     "crates/flea-gui/src/window/network_menu.rs": "5c98bc212c702a8896a58cd4a6d06a2503267db69b974c453839ad7da83660d3",
@@ -255211,7 +255023,7 @@
     "crates/flea-gui/src/window/preview_locale.rs": "1bce6c127201f52c39d5b566c4b30ab6889bdec00dd49dd67e23c473f94dc23b",
     "crates/flea-gui/src/window/preview_text_selection.rs": "8decab538b1409306400191bcad413bfa2cea65ba396456d37140f42bf0c1473",
     "crates/flea-gui/src/window/properties.rs": "8422713e0869657f5ae51876683f6f50d3175bb63537e3d989b58371f020a2fc",
-    "crates/flea-gui/src/window/quick_look.rs": "5102c6af0f3bbe3dbcf1179c1c9bac6681825c2752f51119cb01ddbcfcece79d",
+    "crates/flea-gui/src/window/quick_look.rs": "d4c0279b62a410e6dd34b013e02db3b8a3b65a4b8cf0002c97055660ffdf34b0",
     "crates/flea-gui/src/window/quick_look_archive.rs": "c535f54abe7a6468f7105913f842c5ca812db78eefd07b67e6acfeb94ca72375",
     "crates/flea-gui/src/window/quick_look_compare.rs": "ee91b4db4c8fcc1686457b1c175d51432649f83bbe2c4a7c0f6c5dbb96506672",
     "crates/flea-gui/src/window/quick_look_docs.rs": "77af77f7fc1434455952f87b57ffd3de6fbbcf5228f822eab8047158069c177f",
@@ -255775,7 +255587,8 @@
     "src/ipc/registry.rs": "26fada4911557cf288cc680edb64f9e4d99a6cfa24aece894bb24014fdd9e94d",
     "src/ipc/wire.rs": "04144f8e7c308db8994d675d75df08d407abf0da928ce943a9b8a642b8166af0",
     "src/json.rs": "95fb006e55b47bedd14d6b39e90f51a941a2848737fca43fa74a0f5cdcd96ad9",
-    "src/jsondoc.rs": "42654f870d99ac770836534624c114130d97de8802aaa7ad25f0f6862218190b",
+    "src/jsondoc.rs": "501ba0d85bd6568aed580e83fbfa1bf96d91c02e9e6f1cc2adb3f804b293de4d",
+    "src/jsondoc_cost.rs": "af5676c3a6d003b666c33b84b826bbf5565ec5eaad55632095f0564d0096f347",
     "src/jsonmembers.rs": "de69386bca9dcd9f5970f6dedd71a69d64e8b6cf8adbdaf7965a5bd744136aff",
     "src/jsonstring.rs": "853a1de0a355febf60894f4a59a89c906f5cce18edead1dfdbd8995803fbf97d",
     "src/keys.rs": "ba8bf2e5d33b589dc888177964c7db1dfa2da8122761a9cf33b7459e2f699238",
@@ -256859,13 +256672,13 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "561b88d242be6f969fb5d88b279b302ccdf6ff9b",
-  "source_sha": "561b88d242be6f969fb5d88b279b302ccdf6ff9b",
+  "source_ref_sha": "826a346923a6903affb5fe36d67575af20132793",
+  "source_sha": "826a346923a6903affb5fe36d67575af20132793",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1377,
-      "missing_literal_candidates": 5796,
-      "source_files": 880
+      "missing_literal_candidates": 5772,
+      "source_files": 881
     },
     "generated/tooling": {
       "keys_with_occurrences": 157,
@@ -256874,8 +256687,8 @@
     },
     "gui": {
       "keys_with_occurrences": 566,
-      "missing_literal_candidates": 2307,
-      "source_files": 1208
+      "missing_literal_candidates": 2310,
+      "source_files": 1209
     },
     "qml-reference": {
       "keys_with_occurrences": 0,

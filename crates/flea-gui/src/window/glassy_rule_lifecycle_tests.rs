@@ -74,6 +74,35 @@ fn glassy_rule_overlapping_exits_clear_even_if_both_clients_remain_listed() {
     exit_pair(true);
 }
 
+#[test]
+fn glassy_rule_fake_clients_change_without_rewriting_the_executable() {
+    let root = crate::compositor::tests::Fixture::new();
+    let hyprctl = fake_hyprctl(&root.0);
+    let script = std::fs::read(&hyprctl).unwrap();
+    let mut permissions = std::fs::metadata(&hyprctl).unwrap().permissions();
+    permissions.set_readonly(true);
+    std::fs::set_permissions(&hyprctl, permissions).unwrap();
+    let next_pid = std::process::id() + 1;
+    std::fs::write(
+        root.0.join("clients"),
+        format!("[{{\"address\":\"0x2b\",\"pid\":{next_pid},\"class\":\"com.thisisgm.flea\"}}]"),
+    )
+    .unwrap();
+    let output = std::process::Command::new(&hyprctl)
+        .args(["clients", "-j"])
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    assert_eq!(
+        crate::window::glass_tag::own_addresses(
+            &String::from_utf8(output.stdout).unwrap(),
+            next_pid,
+        ),
+        ["0x2b"]
+    );
+    assert_eq!(std::fs::read(&hyprctl).unwrap(), script);
+}
+
 fn exit_pair(retain_closed: bool) {
     let root = crate::compositor::tests::Fixture::new();
     let (home, state) = (root.0.join("home"), root.0.join("state"));
@@ -82,23 +111,20 @@ fn exit_pair(retain_closed: bool) {
     std::fs::write(toggles.join("window-glassy.lua"), GLASSY).unwrap();
     std::fs::write(root.0.join("props"), "1 1\n").unwrap();
     let hyprctl = fake_hyprctl(&root.0);
-    let script = std::fs::read_to_string(&hyprctl).unwrap().replace(
-        "clients) printf",
-        "clients) if [ -f \"$d/clients\" ]; then cat \"$d/clients\"; exit; fi; printf",
-    );
-    std::fs::write(&hyprctl, script).unwrap();
     let first = Tagger::new(
         std::process::id(),
         hyprctl.clone(),
         Sources::under(&home, &state),
     );
     first.pass();
+    assert_eq!(first.lock().ruled, Some(true));
     let next_pid = std::process::id() + 1;
     let clients =
         format!("[{{\"address\":\"0x2b\",\"pid\":{next_pid},\"class\":\"com.thisisgm.flea\"}}]");
     std::fs::write(root.0.join("clients"), clients).unwrap();
     let survivor = Tagger::new(next_pid, hyprctl, Sources::under(&home, &state));
     survivor.pass();
+    assert_eq!(survivor.lock().ruled, Some(true));
     if retain_closed {
         std::fs::write(root.0.join("clients"), format!(
             "[{{\"address\":\"0x1a\",\"pid\":{},\"class\":\"com.thisisgm.flea\"}},{{\"address\":\"0x2b\",\"pid\":{next_pid},\"class\":\"com.thisisgm.flea\"}}]",

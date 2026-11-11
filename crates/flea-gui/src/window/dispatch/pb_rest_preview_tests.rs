@@ -3,6 +3,9 @@ use super::pb_rest_tests::answer_columns;
 use super::test_shell::{land, open_root, open_root_with};
 use gpui::TestAppContext;
 
+// A real pause short enough to land inside the 140 ms close on an idle host.
+const FADE_WALL_STEP: std::time::Duration = std::time::Duration::from_millis(5);
+
 #[gpui::test]
 fn pb_rest_multi_selection_draws_its_kind_summary_and_stack(cx: &mut TestAppContext) {
     let (shell, cx) = open_root_with(cx, r#""view":"columns","preview":{"column":true}"#, None);
@@ -67,6 +70,9 @@ fn pb_rest_closed_flyout_keeps_its_last_card_during_the_fade(cx: &mut TestAppCon
     cx.simulate_keystrokes("c");
     super::menus_tests::answer(&shell, cx, &[0o100644]);
     super::preview_tests::draw(cx);
+    cx.executor()
+        .advance_clock(std::time::Duration::from_millis(200));
+    super::preview_tests::draw(cx);
     shell.read_with(cx, |shell, _| {
         assert_eq!(
             shell
@@ -89,6 +95,23 @@ fn pb_rest_closed_flyout_keeps_its_last_card_during_the_fade(cx: &mut TestAppCon
         cx.debug_bounds("menu-flyout-fade").is_some(),
         "the closing flyout keeps its last rows while fading"
     );
+    let initial_alpha = shell.read_with(cx, |shell, _| {
+        shell
+            .menu
+            .menu
+            .borrow()
+            .faded
+            .as_ref()
+            .unwrap()
+            .painted
+            .get()
+    });
+    assert!(
+        initial_alpha > 0.,
+        "the close starts from a visible card: {initial_alpha}"
+    );
+    // GPUI's element animation reads wall time, so only a real pause guarantees the fade has moved.
+    std::thread::sleep(FADE_WALL_STEP);
     cx.executor()
         .advance_clock(std::time::Duration::from_millis(70));
     super::preview_tests::draw(cx);
@@ -100,9 +123,10 @@ fn pb_rest_closed_flyout_keeps_its_last_card_during_the_fade(cx: &mut TestAppCon
             .expect("the flyout is still fading")
             .painted
             .get();
+        // An overloaded draw may already have finished the fade, so zero is a valid end.
         assert!(
-            alpha > 0. && alpha < 1.,
-            "the painted opacity eased during the close: {alpha}"
+            (0. ..initial_alpha).contains(&alpha),
+            "the painted opacity eased down during the close: {initial_alpha} -> {alpha}"
         );
     });
     cx.executor()

@@ -2,12 +2,10 @@ use super::*;
 use std::time::{Duration, Instant};
 
 const RETRY_WINDOW: Duration = Duration::from_millis(1200);
-// The late probe answers only once this file exists beside bin/, so the launch probe always draws the fallback first.
-const LATE_PROBE_OPEN: &str = "late-probe-open";
-// 30 s of 20 ms polls, so a stub left behind by a failed test still exits.
-const LATE_PROBE_POLLS: u32 = 1500;
 
-fn mounted() -> (
+fn mounted(
+    before_watch: impl FnOnce() + Send + 'static,
+) -> (
     TestAppContext,
     Arc<receipt::Recorder>,
     crate::presentation::Service,
@@ -16,7 +14,7 @@ fn mounted() -> (
     let recorder = receipt::Recorder::new();
     let mut cx =
         TestAppContext::build_with_text_system(TestDispatcher::new(0), None, recorder.clone());
-    let (service, initial) = crate::presentation::Service::start();
+    let (service, initial) = crate::presentation::fixture::service_after(before_watch);
     cx.update(|cx| initial.install(cx));
     let handle = open(&mut cx);
     edit(&mut cx, handle, |shell, window, cx| {
@@ -45,13 +43,14 @@ fn wait(cx: &mut TestAppContext, handle: Handle, family: &str) {
 fn font_gate_late_probe_restyles_already_shaped_filter_and_find() {
     if isolation::enter(
         "font_gate::service::font_gate_late_probe_restyles_already_shaped_filter_and_find",
-        &format!(
-            "#!/bin/sh\ni=0\nuntil [ -e \"${{0%/bin/fc-match}}/{LATE_PROBE_OPEN}\" ]; do\n[ \"$i\" -lt {LATE_PROBE_POLLS} ] || exit 1\ni=$((i + 1))\nsleep 0.02\ndone\nprintf '%s' '{FAMILY}'\n"
-        ),
+        &crate::presentation::fixture::gated_probe(&format!("#!/bin/sh\nprintf '%s' '{FAMILY}'\n")),
     ) {
         return;
     }
-    let (mut cx, recorder, _service, handle) = mounted();
+    let (release, ready) = std::sync::mpsc::channel();
+    let (mut cx, recorder, _service, handle) = mounted(move || {
+        let _ = ready.recv();
+    });
     assert_eq!(
         edit(&mut cx, handle, |shell, _, _| shell
             .active_typeface()
@@ -65,7 +64,11 @@ fn font_gate_late_probe_restyles_already_shaped_filter_and_find() {
     )
     .unwrap();
     recorder.begin();
-    root.write(&root.path().join(LATE_PROBE_OPEN), "");
+    root.write(
+        &root.path().join(crate::presentation::fixture::PROBE_OPEN),
+        "",
+    );
+    release.send(()).unwrap();
     wait(&mut cx, handle, FAMILY);
     assert!(assert_runs(
         "late-probe-filter",
@@ -112,7 +115,7 @@ fn font_gate_failed_probe_draws_named_fallback() {
     ) {
         return;
     }
-    let (mut cx, recorder, _service, handle) = mounted();
+    let (mut cx, recorder, _service, handle) = mounted(|| {});
     assert_eq!(
         edit(&mut cx, handle, |shell, _, _| shell
             .active_typeface()

@@ -3,6 +3,7 @@ use super::super::process::{Event, Handle, Job, Runner, ThreadRunner, OUTPUT_CAP
 use super::{bounded_exit, event_before};
 use std::io::{BufRead, BufReader, ErrorKind, Write};
 use std::net::TcpListener;
+use std::os::fd::AsRawFd;
 use std::time::{Duration, Instant};
 
 const DEADLINE: Duration = Duration::from_millis(300);
@@ -23,6 +24,41 @@ fn start_job(job: Job) -> Handle {
     handle
 }
 
+fn ready_job(code: &str) -> (Handle, std::net::TcpStream) {
+    #[repr(C)]
+    struct Ready {
+        fd: i32,
+        events: i16,
+        revents: i16,
+    }
+    unsafe extern "C" {
+        fn poll(fds: *mut Ready, count: usize, timeout: i32) -> i32;
+    }
+    let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+    let script = format!("import os,socket\ndef ready():\n with socket.create_connection(('127.0.0.1',int(os.environ['FLEA_DRAIN_PORT']))) as peer:\n  peer.recv(1)\n{code}");
+    let mut job = Job::plain(&["python3", "-c", &script]);
+    job.env.push((
+        "FLEA_DRAIN_PORT".into(),
+        listener.local_addr().unwrap().port().to_string(),
+    ));
+    let handle = start_job(job);
+    // POLLIN from Linux poll.h.
+    const POLLIN: i16 = 1;
+    // Python startup on a loaded host, outside the runner's cancellation and drain deadline.
+    const STARTUP_MS: i32 = 3000;
+    let mut waiting = Ready {
+        fd: listener.as_raw_fd(),
+        events: POLLIN,
+        revents: 0,
+    };
+    assert_eq!(
+        unsafe { poll(&mut waiting, 1, STARTUP_MS) },
+        1,
+        "descendant fixture did not become ready"
+    );
+    (handle, listener.accept().unwrap().0)
+}
+
 #[test]
 fn sol_pl1_drain_escaped_descendant_cannot_hold_leader_exit() {
     let code = r#"
@@ -30,17 +66,24 @@ import os,time
 os.write(1,b'leader\xff')
 os.write(2,b'diagnostic')
 r,w=os.pipe()
+begin,release=os.pipe()
 if os.fork() == 0:
+ os.close(release)
  os.setsid()
  os.write(w,b'r')
+ os.read(begin,1)
  time.sleep(2)
  os._exit(0)
+os.close(begin)
 os.read(r,1)
+ready()
+os.write(release,b'r')
 os._exit(23)
 "#;
+    let (handle, mut peer) = ready_job(code);
     let at = Instant::now();
-    let handle = start(code);
-    let outcome = bounded_exit(&handle, DEADLINE.saturating_sub(at.elapsed()));
+    peer.write_all(b"r").unwrap();
+    let outcome = bounded_exit(&handle, DEADLINE);
     println!("escaped descendant drain {:?}", at.elapsed());
     assert!(at.elapsed() < DEADLINE);
     assert_eq!(outcome.code, 23);
@@ -123,12 +166,18 @@ fn sol_pl1_drain_continuous_writer_cannot_extend_snapshot_budget() {
     let code = r#"
 import os,time
 r,w=os.pipe()
+begin,release=os.pipe()
 if os.fork():
+ os.close(begin)
  os.read(r,1)
+ ready()
+ os.write(release,b'r')
  os._exit(23)
+os.close(release)
 os.setsid()
 os.write(1,b'w'*8192)
 os.write(w,b'r')
+os.read(begin,1)
 end=time.monotonic()+2
 try:
  while time.monotonic()<end:
@@ -137,9 +186,10 @@ except BrokenPipeError:
  pass
 os._exit(0)
 "#;
+    let (handle, mut peer) = ready_job(code);
     let at = Instant::now();
-    let handle = start(code);
-    let outcome = bounded_exit(&handle, DEADLINE.saturating_sub(at.elapsed()));
+    peer.write_all(b"r").unwrap();
+    let outcome = bounded_exit(&handle, DEADLINE);
     println!("continuous writer drain {:?}", at.elapsed());
     assert!(at.elapsed() < DEADLINE);
     assert_eq!(outcome.code, 23);
@@ -200,9 +250,8 @@ fn sol_pl1_drain_leader_exit_leaves_its_process_group_running() {
 
 #[test]
 fn sol_pl1_drain_cancel_kills_the_whole_process_group() {
-    let code = "import os,time\nif os.fork() == 0:\n os.write(1,str(os.getpid()).encode())\ntime.sleep(2)\n";
-    let handle = start(code);
-    std::thread::sleep(Duration::from_millis(100));
+    let code = "r,w=os.pipe()\nif os.fork() == 0:\n os.close(r)\n os.write(1,str(os.getpid()).encode())\n ready()\n os._exit(0)\nos.close(w)\nos.read(r,1)\n";
+    let (handle, _peer) = ready_job(code);
     handle.kill();
     let outcome = bounded_exit(&handle, DEADLINE);
     assert_ne!(outcome.code, 0);

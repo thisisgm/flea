@@ -1,12 +1,12 @@
 //! What a window changed in the machine's AirDrop state, written off its thread in the order it changed.
-use super::{Shared, STATE, STOP};
+use super::{Lock, Shared, STATE, STOP};
 use std::fs::File;
 use std::io::Write as _;
 use std::path::Path;
 
 // A look took the lock, or found the shared directory unusable so the radio keeps to this window.
 pub(crate) enum Claim {
-    Lock(File),
+    Lock(Lock),
     Local,
 }
 
@@ -17,7 +17,7 @@ pub(crate) enum Write {
     // The radio is going down: every window reads Off from here.
     Withdraw,
     // owly has exited, or an On did not use the lock its look took: the state goes first, then the lock.
-    Release(File),
+    Release(Lock),
 }
 
 impl Write {

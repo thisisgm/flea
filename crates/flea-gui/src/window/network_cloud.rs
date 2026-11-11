@@ -17,7 +17,11 @@ impl Default for Sources {
             PathBuf::from(std::env::var_os("HOME").unwrap_or_default())
         };
         Self {
-            mountinfo: "/proc/self/mountinfo".into(),
+            mountinfo: if cfg!(test) {
+                PathBuf::new()
+            } else {
+                "/proc/self/mountinfo".into()
+            },
             dropbox: home.join(".dropbox/info.json"),
             home,
         }
@@ -26,6 +30,11 @@ impl Default for Sources {
 
 impl Sources {
     pub fn read_mountinfo(&self) -> String {
+        #[cfg(test)]
+        if self.mountinfo.as_os_str().is_empty() {
+            // Keep readiness real while unit fixtures supply their own network mounts.
+            return "1 0 8:1 / / rw - ext4 /dev/root rw\n".into();
+        }
         std::fs::read_to_string(&self.mountinfo).unwrap_or_default()
     }
 

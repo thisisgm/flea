@@ -11,6 +11,18 @@ impl gpui::Global for Services {}
 pub(crate) struct NoSettingsWorker;
 impl gpui::Global for NoSettingsWorker {}
 
+pub(crate) fn isolated_services(cx: &mut gpui::App) {
+    cx.set_global(NoSettingsWorker);
+    cx.set_global(Services {
+        backend: |_, cx| {
+            let (backend, requests) = Backend::test_channel();
+            cx.on_release(move |_, _| drop(requests)).detach();
+            Ok(backend)
+        },
+        monitor: None,
+    });
+}
+
 pub(super) fn start_backend(
     listing: &crate::navigation::Listing,
     cx: &mut Context<Shell>,

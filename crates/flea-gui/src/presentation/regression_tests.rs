@@ -87,13 +87,13 @@ fn u01_fix2_same_content_save_during_probe_publishes_stable_snapshot() {
             "same-byte save did not change metadata"
         );
         fixture.write(&root.join("release"), "go");
-        let until = Instant::now() + Duration::from_secs(3);
+        let until = Instant::now() + super::service::RETRY_PUBLISH;
         let mut latest = initial;
         while Instant::now() < until {
             while let Ok(next) = updates.try_recv() {
                 latest = next;
             }
-            if latest.fonts.base == 16 {
+            if latest.fonts.base == 16 && latest.fonts.family == "Second Mono" {
                 break;
             }
             thread::sleep(Duration::from_millis(10));

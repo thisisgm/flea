@@ -10,12 +10,7 @@ fn standing(data: &Json) -> Option<&str> {
 #[gpui::test]
 fn s2_10_choosing_dual_writes_the_standing_view_a_relaunch_reads(cx: &mut TestAppContext) {
     // Dual constructs a second pane; keep both backends on the test scheduler.
-    cx.update(|cx| {
-        cx.set_global(crate::state::constructor_fixture::Services {
-            backend: |_, _| Ok(Backend::test_channel().0),
-            monitor: None,
-        });
-    });
+    cx.update(crate::state::constructor_fixture::isolated_services);
     for per_folder in [false, true] {
         let (backend, _requests) = Backend::test_channel();
         let (entity, cx) = cx.add_window_view(|_, cx| {
@@ -42,6 +37,7 @@ fn s2_10_choosing_dual_writes_the_standing_view_a_relaunch_reads(cx: &mut TestAp
 
 #[gpui::test]
 fn s2_10_leaving_dual_sets_the_standing_view_even_per_folder(cx: &mut TestAppContext) {
+    cx.update(crate::state::constructor_fixture::isolated_services);
     let (backend, _requests) = Backend::test_channel();
     let (entity, cx) = cx.add_window_view(|_, cx| {
         let mut shell = crate::state::tests::shell_with(backend, cx);

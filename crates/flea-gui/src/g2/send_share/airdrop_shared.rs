@@ -1,6 +1,6 @@
 //! The machine's one AirDrop radio: the window that turned it on owns it under a lock in XDG_RUNTIME_DIR, and every other window reads it there.
 use super::airdrop::Radio;
-use std::fs::{DirBuilder, File, OpenOptions};
+use std::fs::{DirBuilder, OpenOptions};
 use std::os::fd::AsRawFd;
 use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
 use std::path::{Path, PathBuf};
@@ -10,7 +10,11 @@ use std::time::{Duration, Instant};
 // flock(2) operations from Linux sys/file.h, the same on both supported architectures.
 const LOCK_SH: i32 = 1;
 const LOCK_EX: i32 = 2;
+const LOCK_UN: i32 = 8;
 const LOCK_NB: i32 = 4;
+#[path = "airdrop_lock.rs"]
+mod lock;
+pub(crate) use lock::Lock;
 const LOCK: &str = "airdrop.lock";
 // The owner's token, its radio and its Wi-Fi card, one per line.
 const STATE: &str = "airdrop.state";
@@ -31,7 +35,7 @@ pub(crate) struct Shared {
     // None keeps AirDrop to this window, as unit tests and a session without XDG_RUNTIME_DIR do.
     dir: Option<PathBuf>,
     // Held while this window owns the radio; the kernel lets it go when the process ends, however it ends.
-    lock: Option<File>,
+    lock: Option<Lock>,
     // A lock the look before a Receiving On took, until that On takes it or gives it back.
     offered: Option<Claim>,
     token: String,
@@ -93,7 +97,7 @@ fn word(radio: Radio) -> &'static str {
     }
 }
 
-fn open_lock(dir: &Path) -> Option<File> {
+fn open_lock(dir: &Path) -> Option<Lock> {
     let made = DirBuilder::new().recursive(true).mode(0o700).create(dir);
     let opened = made.and_then(|()| {
         OpenOptions::new()
@@ -107,9 +111,10 @@ fn open_lock(dir: &Path) -> Option<File> {
     opened
         .inspect_err(|error| eprintln!("flea: AirDrop keeps to this window: {error}"))
         .ok()
+        .map(Lock::new)
 }
 
-fn try_flock(file: &File, operation: i32) -> bool {
+fn try_flock(file: &Lock, operation: i32) -> bool {
     // SAFETY: flock takes the open file's descriptor and an operation; the lock lives as long as the File.
     unsafe { flock(file.as_raw_fd(), operation | LOCK_NB) == 0 }
 }
