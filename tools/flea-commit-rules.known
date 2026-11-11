@@ -81,3 +81,11 @@ e6dd0916a1141f73b5cf1ffced6d779902567785	body holds 1 line(s), want 2 to 4
 422c850f15e1cfe0239e80e6cc2441ed4da94af4	body holds 1 line(s), want 2 to 4
 201f515e7362d75eceb1857b2bb5beb5a396e225	body holds 1 line(s), want 2 to 4
 154953a8ca2d77320d83981c413654f76541c7f6	body holds 1 line(s), want 2 to 4
+# Credit rewrite, 2026-11-11: the same accepted waivers under their SHAs after the trailer-only raw-object rewrite.
+5d7d16bb38c9471e41ef9ffc66a211dfadabd1e2	body holds 1 line(s), want 2 to 4
+bede80bc75ba771e4bcdc197171a8a1d93938023	subject holds 63 char(s), want at most 60
+b8c2c0f0159a7ead0d0ddeea1ea7deeee1b6bf3e	body holds 1 line(s), want 2 to 4
+5c979d4db1a77035bdecef6a78bfda8c78bddacc	body holds 1 line(s), want 2 to 4
+e1f27d7c72ea5788af87a79ea55e27afe3e94c51	body holds 1 line(s), want 2 to 4
+6d9fdc8cc49a18bfcee9247da168d881a53a0eab	body holds 1 line(s), want 2 to 4
+10610efc138274d8456ee169e41d0eb789a5cda4	body holds 1 line(s), want 2 to 4
