@@ -14,7 +14,7 @@
 - A click on a playing video pauses it, and another click resumes it, in Quick Look and the preview pane (#424, @timothy-ecc).
 - Videos with rotation metadata play in the right orientation without crashing the media helper on libmpv 0.41 (#450, @kevinpardo).
 - A copy button beside the address bar copies the folder path, and a single click on empty address space opens the path editor (#327, @dpan).
-- F3 toggles Dual and returns to the previous view, the Dual buttons keep Dual selected, and Dual is remembered across relaunch.
+- F3 toggles Dual and returns to the previous view, and Dual is remembered across relaunch.
 - A folder open in both Dual panes keeps the same remembered sort in both (#179, @zm14).
 - Settings > View offers Show tabs as icons, off by default (#308, @jlahijani).
 - Settings > View can hide Omi in empty folders or stop the empty-folder messages rotating.
@@ -28,7 +28,7 @@
 - Filter and Sort stay disabled while Search is open, including while its query is being typed.
 - One Enter in Search, Find or Filter opens the highlighted file or enters the highlighted folder.
 - Fuzzy search highlights only the letters that matched, and long no-match headlines fit inside the pane.
-- A double-click selects a word in the card, Settings and Save-name fields as well as inline rename (#396, @k-kostin).
+- A double-click also selects a word in the card, Settings and Save-name fields.
 - The address, rename, search, filter, Settings and Save-name fields offer a right-click menu with Undo, Cut, Copy, Paste and Select All.
 - Dragging in the Save chooser name field selects text.
 - Inline rename keeps the typed name and refuses the change if another file has replaced the selected one, whether rename started from the keyboard or the menu.
