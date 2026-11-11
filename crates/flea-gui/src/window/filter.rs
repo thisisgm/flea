@@ -340,13 +340,20 @@ impl Shell {
                 true
             }
             _ => {
+                let vertical = match action {
+                    "cursorDown" | "cursorUp" => input::vertical_step(
+                        host,
+                        self.view == crate::window::startup::View::Grid,
+                        action == "cursorDown",
+                    ),
+                    _ => 0,
+                };
                 let page = (host.pane.visible_rows() / 2).max(1) as isize;
                 self.filter_update(
                     side,
                     |filter, pane| {
                         match action {
-                            "cursorDown" => filter.step(1, pane),
-                            "cursorUp" => filter.step(-1, pane),
+                            "cursorDown" | "cursorUp" => filter.step(vertical, pane),
                             "pageDown" => filter.step(page, pane),
                             "pageUp" => filter.step(-page, pane),
                             "cursorFirst" => filter.set_cursor_view(0, pane),
