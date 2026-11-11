@@ -3,12 +3,16 @@ CASES+=("tight-list-window 1100x700 view:list"
         "tight-columns-window 1100x700 view:columns"
         "tight-grid-window 1100x700 view:grid")
 
+# A moved cursor gets this many reads, this far apart, to paint its row: a 6 s ceiling.
+tight_drawn_attempts=60
+tight_drawn_interval=0.1
+
 # visibleRowName reads painted rows, so a cursor read alone can precede the repaint it needs.
 wait_drawn() {
     local attempt
-    for attempt in $(seq 1 60); do
+    for attempt in $(seq 1 "$tight_drawn_attempts"); do
         [ "$(ipc visibleRowName "$1")" = "$2" ] && return 0
-        sleep 0.1
+        sleep "$tight_drawn_interval"
     done
     return 1
 }

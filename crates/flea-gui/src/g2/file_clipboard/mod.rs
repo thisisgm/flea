@@ -16,6 +16,8 @@ pub mod seams;
 mod transport;
 
 #[cfg(test)]
+mod carry_claim_tests;
+#[cfg(test)]
 mod carry_ipc_tests;
 #[cfg(test)]
 mod carry_window_click_tests;
