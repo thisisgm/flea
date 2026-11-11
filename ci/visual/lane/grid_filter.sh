@@ -15,7 +15,15 @@ case_grid_filter_row_down() (
     launch grid "$root" || return 1
     key /file-0 || return 1
     wait_ipc drawnCount 9 || return 1
-    columns=$(ipc gridColumns)
+    # Flea maps at 1100x700; the arrows are driven at the shot size so the drawn cursor matches the asserted index.
+    local launch_columns
+    launch_columns=$(ipc gridColumns) || return 1
+    size_window 800 600 || return 1
+    for _i in $(seq 1 60); do
+        columns=$(ipc gridColumns) && [ "$columns" != "$launch_columns" ] && break
+        [ "$_i" = 60 ] && { echo "VISUAL $case_name gridColumns stayed $launch_columns at 800x600" | tee -a "$case_notes"; return 1; }
+        sleep 0.1
+    done
     [[ $columns =~ ^[0-9]+$ ]] && (( columns > 1 && columns < 9 )) || return 1
     key -k Down || return 1
     wait_ipc cursor "$columns" || return 1
