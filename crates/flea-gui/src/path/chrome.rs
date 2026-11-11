@@ -294,7 +294,8 @@ impl Render for ChromeView {
                     .child(right),
             );
         for control in &mut self.frame.borrow_mut().controls {
-            control.hovered = control.pointer_over && control.visible && self.inputs.live;
+            control.hovered =
+                control.pointer_over && control.visible && control.enabled && self.inputs.live;
             if !control.visible || !control.enabled || !self.inputs.live {
                 control.pointer_down = false;
                 control.set_pressed(false, cx.background_executor().now(), cx.reduce_motion());
