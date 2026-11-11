@@ -63,10 +63,14 @@ fn expected(mime: &str, code: &str) -> String {
     let xml =
         std::fs::read_to_string(PathBuf::from(MIME_ROOT).join(format!("{mime}.xml"))).unwrap();
     if code != "en" {
+        // The order src/backend/kind_comments.rs reads: the code, its region spelling, the script tag, then the base.
         let provider_code = if code == "zh-CN" { "zh-Hans-CN" } else { code };
-        let opening = format!("<comment xml:lang=\"{provider_code}\">");
-        if let Some((_, text)) = xml.split_once(&opening) {
-            return text.split_once("</comment>").unwrap().0.into();
+        let base = code.split_once('-').map_or(code, |(base, _)| base);
+        for tag in [code, &code.replace('-', "_"), provider_code, base] {
+            let opening = format!("<comment xml:lang=\"{tag}\">");
+            if let Some((_, text)) = xml.split_once(&opening) {
+                return text.split_once("</comment>").unwrap().0.into();
+            }
         }
         if mime == "text/plain" {
             let paths = flea::i18n::Paths {
