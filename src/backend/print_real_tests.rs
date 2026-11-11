@@ -184,17 +184,20 @@ fn print_real_a_percent_folder_keeps_every_magick_output_where_it_was_asked() {
     std::fs::create_dir_all(d.join("scan%d")).unwrap();
     std::fs::create_dir_all(d.join("scan0")).unwrap();
     let a = ppm(&d, "a.ppm", 4, 2, "255 0 0\n");
-    // ImageMagick 7.1.1 keeps %% literally and refuses the path; the escape this test proves needs 7.1.2 or later.
-    let probe = std::process::Command::new("magick")
+    // Upstream ImageMagick 7.1.1 keeps %% literally and names the doubled path in its refusal; 7.1.2 unescapes it.
+    let probe = d.join("scan%d/probe%d.png");
+    let done = std::process::Command::new("magick")
         .arg(&a)
-        .arg(format!("png:{}/probe%%d.png", d.join("scan%d").display()))
+        .arg(format!("png:{}", crate::backend::printconvert::magick_output(&probe)))
         .output()
-        .is_ok_and(|done| done.status.success());
-    if !(probe && d.join("scan%d/probe%d.png").is_file()) {
+        .unwrap_or_else(|e| panic!("magick percent probe could not start: {e}"));
+    let refusal = String::from_utf8_lossy(&done.stderr);
+    if !done.status.success() && refusal.contains("scan%%d/probe%%d.png") {
         writeln!(std::io::stderr(), "SKIP print-convert percent paths: this magick does not unescape %%").ok();
         return;
     }
-    std::fs::remove_file(d.join("scan%d/probe%d.png")).unwrap();
+    assert!(done.status.success() && probe.is_file(), "magick percent probe missed {probe:?}: {refusal}");
+    std::fs::remove_file(&probe).unwrap();
     let run = |argv: Vec<String>| {
         printtool::run(&argv, &AtomicBool::new(false), printtool::TOOL_WAIT)
             .unwrap_or_else(|e| panic!("{argv:?}: {}", e.message));
