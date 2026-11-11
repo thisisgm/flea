@@ -13,6 +13,9 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> bool {
+        if self.rename_capture_event(side, event, window, cx) {
+            return true;
+        }
         if self.opener_event(side, event, window, cx) {
             return true;
         }

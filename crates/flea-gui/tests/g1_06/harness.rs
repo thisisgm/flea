@@ -57,6 +57,7 @@ pub fn metrics() -> Metrics {
 
 pub fn row(name: &str, icon: &str, size: u64, dir: bool) -> RowFacts {
     RowFacts {
+        source: Some(format!("1:2:{}", if dir { 0o040000 } else { 0o100000 })),
         depth: 0,
         open: false,
         name: name.into(),

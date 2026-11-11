@@ -218,8 +218,9 @@ fn rows_line_body(
         let row_at = s.len();
         let outline = super::outline::row_fields(l, start + i);
         let born = m.birth.map_or_else(|| "null".to_string(), |time| time.to_string());
+        let source = m.ino.map_or_else(String::new, |ino| format!(r#","source":"{}:{ino}:{}""#, m.dev, m.mode & super::meta::S_IFMT));
         s.push_str(&format!(
-            r#"{{"n":"{}","d":{},"s":{},"m":{},"b":{},"p":{},"i":"{}","t":{},"k":{}{}{}{}{}{}{}}}"#,
+            r#"{{"n":"{}","d":{},"s":{},"m":{},"b":{},"p":{},"i":"{}","t":{},"k":{}{}{}{}{}{}{}{}}}"#,
             escape(name),
             is_dir,
             m.size,
@@ -229,6 +230,7 @@ fn rows_line_body(
             escape(icon),
             can_thumb,
             k,
+            source,
             link,
             dev,
             tg,

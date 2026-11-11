@@ -99,6 +99,7 @@ fn surfaces(code: &str) {
         listing.push(name, false);
     }
     let meta = Meta {
+        ino: None,
         birth: None,
         size: 48,
         mtime: 0,
@@ -205,6 +206,7 @@ fn kind_lang_ten_thousand_rows_read_each_mime_once() {
         );
     }
     let meta = Meta {
+        ino: None,
         birth: None,
         size: 48,
         mtime: 0,

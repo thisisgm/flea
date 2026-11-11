@@ -47,7 +47,9 @@ fn types_and_sends(
     cx.simulate_keystrokes("enter");
     assert_eq!(
         sent(lines),
-        [r#"{"c":"rename","path":"/files/notes.txt","to":"draft.txt","menuId":0}"#]
+        [
+            r#"{"c":"rename","path":"/files/notes.txt","to":"draft.txt","menuId":0,"source":"1:2:32768"}"#
+        ]
     );
 }
 

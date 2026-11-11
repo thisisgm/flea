@@ -17,7 +17,9 @@ fn s1b_11_a_dot_name_says_it_is_hidden_while_hidden_files_are_off(cx: &mut TestA
     cx.simulate_keystrokes("enter");
     assert_eq!(
         sent(&mut lines),
-        [r#"{"c":"rename","path":"/files/notes.txt","to":".notes.txt","menuId":0}"#]
+        [
+            r#"{"c":"rename","path":"/files/notes.txt","to":".notes.txt","menuId":0,"source":"1:2:32768"}"#
+        ]
     );
     receive(
         &shell,
@@ -40,7 +42,9 @@ fn s1b_11_a_visible_name_says_nothing_new(cx: &mut TestAppContext) {
     cx.simulate_keystrokes("enter");
     assert_eq!(
         sent(&mut lines),
-        [r#"{"c":"rename","path":"/files/notes.txt","to":"draft.txt","menuId":0}"#]
+        [
+            r#"{"c":"rename","path":"/files/notes.txt","to":"draft.txt","menuId":0,"source":"1:2:32768"}"#
+        ]
     );
     receive(
         &shell,
@@ -70,7 +74,9 @@ fn s1b_11_a_dot_name_says_nothing_while_hidden_files_show(cx: &mut TestAppContex
     cx.simulate_keystrokes("enter");
     assert_eq!(
         sent(&mut lines),
-        [r#"{"c":"rename","path":"/files/notes.txt","to":".notes.txt","menuId":0}"#]
+        [
+            r#"{"c":"rename","path":"/files/notes.txt","to":".notes.txt","menuId":0,"source":"1:2:32768"}"#
+        ]
     );
     receive(
         &shell,

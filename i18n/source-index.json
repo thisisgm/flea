@@ -60311,7 +60311,7 @@
       "call_sites": [
         {
           "excerpt": "catalog.tr(\"feedback.error.rename\")",
-          "line": 198,
+          "line": 201,
           "path": "crates/flea-gui/src/window/rename_replies.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -66181,7 +66181,7 @@
       "call_sites": [
         {
           "excerpt": ".tr_args(\"jobs.rename.exists\", &[leaf(&destination)])",
-          "line": 117,
+          "line": 120,
           "path": "crates/flea-gui/src/window/rename_replies.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -66227,7 +66227,7 @@
       "call_sites": [
         {
           "excerpt": "let said = self.locale.catalog.tr(\"jobs.rename.journal\");",
-          "line": 107,
+          "line": 110,
           "path": "crates/flea-gui/src/window/rename_replies.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -66256,7 +66256,7 @@
         },
         {
           "excerpt": "let said = self.locale.catalog.tr(\"jobs.rename.stopped\");",
-          "line": 129,
+          "line": 132,
           "path": "crates/flea-gui/src/window/rename_replies.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -82137,7 +82137,7 @@
         },
         {
           "excerpt": ".tr_args(\"path.filtered\", &[leaf(&destination)]);",
-          "line": 81,
+          "line": 84,
           "path": "crates/flea-gui/src/window/rename_replies.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -118359,6 +118359,15 @@
       "surface": "gui"
     },
     {
+      "excerpt": "name: \"Docs\".into(),",
+      "line": 16,
+      "literal": "Docs",
+      "owner": "I50-07",
+      "path": "crates/flea-gui/src/g2/picker_listing/route_ports_fixture.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "gui"
+    },
+    {
       "excerpt": "listing_loading: self.listing.state == \"loading\",",
       "line": 28,
       "literal": "loading",
@@ -127171,7 +127180,7 @@
     },
     {
       "excerpt": "other => panic!(\"no fixture named {other}\"),",
-      "line": 97,
+      "line": 98,
       "literal": "no fixture named {other}",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/list/bench.rs",
@@ -127180,7 +127189,7 @@
     },
     {
       "excerpt": "font: font(\"JetBrains Mono\"),",
-      "line": 118,
+      "line": 119,
       "literal": "JetBrains Mono",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/list/bench.rs",
@@ -127189,7 +127198,7 @@
     },
     {
       "excerpt": ".expect(\"the bench window is open\");",
-      "line": 172,
+      "line": 173,
       "literal": "the bench window is open",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/list/bench.rs",
@@ -127198,7 +127207,7 @@
     },
     {
       "excerpt": ".expect(\"the bench window is open\");",
-      "line": 177,
+      "line": 178,
       "literal": "the bench window is open",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/list/bench.rs",
@@ -153685,7 +153694,7 @@
     },
     {
       "excerpt": "busy(out, \"link\");",
-      "line": 436,
+      "line": 409,
       "literal": "link",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -153694,7 +153703,7 @@
     },
     {
       "excerpt": "e.where_ = \"link\".to_string();",
-      "line": 442,
+      "line": 415,
       "literal": "link",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -153703,7 +153712,7 @@
     },
     {
       "excerpt": "if pending_busy_for(out, ops, \"link\", &sources, &[target]) {",
-      "line": 451,
+      "line": 424,
       "literal": "link",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -153712,7 +153721,7 @@
     },
     {
       "excerpt": "let entry = Entry { op: \"link\".to_string(), steps: done.steps };",
-      "line": 461,
+      "line": 434,
       "literal": "link",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -153721,7 +153730,7 @@
     },
     {
       "excerpt": "if first_err.is_empty() { first_err = format!(\"the link source {shown} changed or no longer exists\"); }",
-      "line": 519,
+      "line": 492,
       "literal": "the link source {shown} changed or no longer exists",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -153730,7 +153739,7 @@
     },
     {
       "excerpt": "if first_err.is_empty() { first_err = format!(\"{shown} has no file name\"); }",
-      "line": 524,
+      "line": 497,
       "literal": "{shown} has no file name",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -153739,7 +153748,7 @@
     },
     {
       "excerpt": "Err(op_err(\"link\", source, \"the held link source changed before creation\"))",
-      "line": 547,
+      "line": 520,
       "literal": "link",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -153748,7 +153757,7 @@
     },
     {
       "excerpt": "Err(op_err(\"link\", source, \"the held link source changed before creation\"))",
-      "line": 547,
+      "line": 520,
       "literal": "the held link source changed before creation",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -153757,7 +153766,7 @@
     },
     {
       "excerpt": "let sentence = format!(\"{}; the link at {} could not be removed: {}\", e.msg, to.to_string_lossy(), crate::error::io_message(&remove));",
-      "line": 568,
+      "line": 541,
       "literal": "{}; the link at {} could not be removed: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -153766,7 +153775,7 @@
     },
     {
       "excerpt": "let entry = Entry { op: \"link\".to_string(), steps: done.steps };",
-      "line": 615,
+      "line": 588,
       "literal": "link",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -153775,7 +153784,7 @@
     },
     {
       "excerpt": "writeln!(out, \"{}\", error_line(&op_err(\"linktarget\", path, \"the selected link changed before Follow could run\"))).ok();",
-      "line": 647,
+      "line": 620,
       "literal": "the selected link changed before Follow could run",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -153784,7 +153793,7 @@
     },
     {
       "excerpt": "writeln!(out, \"{}\", super::proto::permissions_batch_line(id, false, \"\", \"an operation is already running\")).ok();",
-      "line": 684,
+      "line": 657,
       "literal": "an operation is already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -153793,7 +153802,7 @@
     },
     {
       "excerpt": "writeln!(out, \"{}\", super::proto::permissions_batch_line(id, false, \"\", \"every selected item needs its own target mode\")).ok();",
-      "line": 689,
+      "line": 662,
       "literal": "every selected item needs its own target mode",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -153802,7 +153811,7 @@
     },
     {
       "excerpt": "writeln!(out, \"{}\", super::proto::permissions_batch_line(id, false, &shown, \"an operation is already running\")).ok();",
-      "line": 700,
+      "line": 673,
       "literal": "an operation is already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -153811,7 +153820,7 @@
     },
     {
       "excerpt": "writeln!(out, \"{}\", super::menu_actions::response(&request, Err(\"An operation is already running.\".into()))).ok();",
-      "line": 724,
+      "line": 697,
       "literal": "An operation is already running.",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -153820,7 +153829,7 @@
     },
     {
       "excerpt": "writeln!(out, \"{}\", super::menu_actions::response(&request, Err(\"An operation is already running.\".into()))).ok();",
-      "line": 731,
+      "line": 704,
       "literal": "An operation is already running.",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -153829,7 +153838,7 @@
     },
     {
       "excerpt": "writeln!(out, \"{}\", error_line(&op_err(\"link\", &dest, &msg))).ok();",
-      "line": 881,
+      "line": 854,
       "literal": "link",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -153838,7 +153847,7 @@
     },
     {
       "excerpt": "assert!(matches!(&msg, OpMsg::Linked { .. }), \"link answered with another message\");",
-      "line": 990,
+      "line": 963,
       "literal": "link answered with another message",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -153847,7 +153856,7 @@
     },
     {
       "excerpt": "\"a cancel aimed at the first operation must never reach the one after it\"",
-      "line": 1012,
+      "line": 985,
       "literal": "a cancel aimed at the first operation must never reach the one after it",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -153856,7 +153865,7 @@
     },
     {
       "excerpt": "assert!(!flag.load(Ordering::Relaxed), \"a stale id must not cancel the live operation\");",
-      "line": 1022,
+      "line": 995,
       "literal": "a stale id must not cancel the live operation",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -153865,7 +153874,7 @@
     },
     {
       "excerpt": "assert!(text(&buf).contains(\"already running\"));",
-      "line": 1035,
+      "line": 1008,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -153874,7 +153883,7 @@
     },
     {
       "excerpt": "assert!(o.menuactions.is_none(), \"busy refusal must not start a competing service\");",
-      "line": 1036,
+      "line": 1009,
       "literal": "busy refusal must not start a competing service",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -153883,7 +153892,7 @@
     },
     {
       "excerpt": "let OpMsg::Meta { line } = rx.recv_timeout(std::time::Duration::from_secs(5)).unwrap() else { panic!(\"snapshot reply\"); };",
-      "line": 1058,
+      "line": 1031,
       "literal": "snapshot reply",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -153892,7 +153901,7 @@
     },
     {
       "excerpt": "assert!(text(&buf).contains(r#\"\"t\":\"renamed\",\"ok\":true\"#), \"a prior successful rename must not invalidate the next captured item\");",
-      "line": 1067,
+      "line": 1040,
       "literal": "a prior successful rename must not invalidate the next captured item",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -153901,7 +153910,7 @@
     },
     {
       "excerpt": "assert!(text(&buf).contains(\"That item is no longer selected\"));",
-      "line": 1071,
+      "line": 1044,
       "literal": "That item is no longer selected",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -153910,7 +153919,7 @@
     },
     {
       "excerpt": "assert!(text(&buf).contains(\"Selected item changed\"));",
-      "line": 1075,
+      "line": 1048,
       "literal": "Selected item changed",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -153919,7 +153928,7 @@
     },
     {
       "excerpt": "assert!(from.exists(), \"undo put the old name back\");",
-      "line": 1097,
+      "line": 1070,
       "literal": "undo put the old name back",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -153928,7 +153937,7 @@
     },
     {
       "excerpt": "assert!(!line.contains(r#\"\"where\":\"undo\"\"#), \"an undo must not re-stamp the kind its step answered\");",
-      "line": 1115,
+      "line": 1088,
       "literal": "an undo must not re-stamp the kind its step answered",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -153937,7 +153946,7 @@
     },
     {
       "excerpt": "assert!(text(&buf).contains(r#\"\"t\":\"error\",\"where\":\"rename\"\"#), \"the refusal is an error line, not a silent no-op\");",
-      "line": 1126,
+      "line": 1099,
       "literal": "the refusal is an error line, not a silent no-op",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -153946,7 +153955,7 @@
     },
     {
       "excerpt": "assert!(o.journal.is_empty(), \"a rename that did not happen must not be undoable\");",
-      "line": 1127,
+      "line": 1100,
       "literal": "a rename that did not happen must not be undoable",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -153955,7 +153964,7 @@
     },
     {
       "excerpt": "assert!(text(&buf).contains(\"an operation is already running\"));",
-      "line": 1160,
+      "line": 1133,
       "literal": "an operation is already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -153964,7 +153973,7 @@
     },
     {
       "excerpt": "assert!(d.join(\"a.txt\").exists(), \"the refused operation touched nothing\");",
-      "line": 1161,
+      "line": 1134,
       "literal": "the refused operation touched nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -153973,7 +153982,7 @@
     },
     {
       "excerpt": "assert!(o.live.running().is_none(), \"the cap would otherwise refuse every operation for the rest of the session\");",
-      "line": 1175,
+      "line": 1148,
       "literal": "the cap would otherwise refuse every operation for the rest of the session",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -153982,7 +153991,7 @@
     },
     {
       "excerpt": "assert!(!d.join(\"photos\").exists(), \"undo removed the folder it made\");",
-      "line": 1192,
+      "line": 1165,
       "literal": "undo removed the folder it made",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -153991,7 +154000,7 @@
     },
     {
       "excerpt": "assert!(text(&buf).contains(r#\"\"t\":\"error\",\"where\":\"mkdir\"\"#), \"the refusal is an error line, not a silent no-op\");",
-      "line": 1203,
+      "line": 1176,
       "literal": "the refusal is an error line, not a silent no-op",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154000,7 +154009,7 @@
     },
     {
       "excerpt": "assert!(o.journal.is_empty(), \"a folder that was not made must not be undoable\");",
-      "line": 1204,
+      "line": 1177,
       "literal": "a folder that was not made must not be undoable",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154009,7 +154018,7 @@
     },
     {
       "excerpt": "assert!(buf.is_empty(), \"link answered on the calling thread: {}\", text(&buf));",
-      "line": 1219,
+      "line": 1192,
       "literal": "link answered on the calling thread: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154018,7 +154027,7 @@
     },
     {
       "excerpt": "assert!(o.live.running().is_some(), \"link holds no slot while it runs\");",
-      "line": 1220,
+      "line": 1193,
       "literal": "link holds no slot while it runs",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154027,7 +154036,7 @@
     },
     {
       "excerpt": "assert!(matches!(&msg, OpMsg::Linked { .. }), \"link answered with another message\");",
-      "line": 1222,
+      "line": 1195,
       "literal": "link answered with another message",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154036,7 +154045,7 @@
     },
     {
       "excerpt": "assert!(o.live.running().is_none(), \"the slot stayed claimed after the answer\");",
-      "line": 1226,
+      "line": 1199,
       "literal": "the slot stayed claimed after the answer",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154045,7 +154054,7 @@
     },
     {
       "excerpt": "assert!(a.exists() && b.exists(), \"undo removes the links, never the sources\");",
-      "line": 1253,
+      "line": 1226,
       "literal": "undo removes the links, never the sources",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154054,7 +154063,7 @@
     },
     {
       "excerpt": "d.file(\"dest/a.txt\", \"someone else\");",
-      "line": 1262,
+      "line": 1235,
       "literal": "someone else",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154063,7 +154072,7 @@
     },
     {
       "excerpt": "assert!(o.journal.is_empty(), \"a link that was not made must not be undoable\");",
-      "line": 1269,
+      "line": 1242,
       "literal": "a link that was not made must not be undoable",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154072,7 +154081,7 @@
     },
     {
       "excerpt": "assert_eq!(std::fs::read_to_string(dest.join(\"a.txt\")).unwrap(), \"someone else\");",
-      "line": 1270,
+      "line": 1243,
       "literal": "someone else",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154081,7 +154090,7 @@
     },
     {
       "excerpt": "assert!(line.contains(\"a hard link cannot point to a folder\"), \"mixed failure silent: {}\", line);",
-      "line": 1288,
+      "line": 1261,
       "literal": "a hard link cannot point to a folder",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154090,7 +154099,7 @@
     },
     {
       "excerpt": "assert!(line.contains(\"a hard link cannot point to a folder\"), \"mixed failure silent: {}\", line);",
-      "line": 1288,
+      "line": 1261,
       "literal": "mixed failure silent: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154099,7 +154108,7 @@
     },
     {
       "excerpt": "assert!(line.contains(&sub.to_string_lossy().into_owned()), \"mixed failure unnamed: {}\", line);",
-      "line": 1289,
+      "line": 1262,
       "literal": "mixed failure unnamed: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154108,7 +154117,7 @@
     },
     {
       "excerpt": "assert!(line.contains(\"a hard link cannot point to a folder\"), \"{}\", line);",
-      "line": 1304,
+      "line": 1277,
       "literal": "a hard link cannot point to a folder",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154117,7 +154126,7 @@
     },
     {
       "excerpt": "assert!(line.contains(&at.to_string_lossy().into_owned()), \"leftover unnamed: {}\", line);",
-      "line": 1326,
+      "line": 1299,
       "literal": "leftover unnamed: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154126,7 +154135,7 @@
     },
     {
       "excerpt": "assert!(line.contains(&format!(\"the link at {} could not be removed: \", crate::json::escape(&at.to_string_lossy()))), \"cleanup failure silent: {}\", line);",
-      "line": 1327,
+      "line": 1300,
       "literal": "the link at {} could not be removed: ",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154135,7 +154144,7 @@
     },
     {
       "excerpt": "assert!(line.contains(&format!(\"the link at {} could not be removed: \", crate::json::escape(&at.to_string_lossy()))), \"cleanup failure silent: {}\", line);",
-      "line": 1327,
+      "line": 1300,
       "literal": "cleanup failure silent: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154144,7 +154153,7 @@
     },
     {
       "excerpt": "assert!(at.symlink_metadata().is_ok(), \"the leftover stays and is reported, never dropped\");",
-      "line": 1328,
+      "line": 1301,
       "literal": "the leftover stays and is reported, never dropped",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154153,7 +154162,7 @@
     },
     {
       "excerpt": "assert!(o.journal.is_empty(), \"a link never identified journals nothing\");",
-      "line": 1329,
+      "line": 1302,
       "literal": "a link never identified journals nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154162,7 +154171,7 @@
     },
     {
       "excerpt": "let there = d.file(\"dest/a.txt\", \"someone else\");",
-      "line": 1339,
+      "line": 1312,
       "literal": "someone else",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154171,7 +154180,7 @@
     },
     {
       "excerpt": "assert!(line.contains(r#\"\"t\":\"error\"\"#) && line.contains(\"could not be moved to Trash\"), \"{}\", line);",
-      "line": 1349,
+      "line": 1322,
       "literal": "could not be moved to Trash",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154180,7 +154189,7 @@
     },
     {
       "excerpt": "assert_eq!(std::fs::read_to_string(&there).unwrap(), \"someone else\");",
-      "line": 1350,
+      "line": 1323,
       "literal": "someone else",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154189,7 +154198,7 @@
     },
     {
       "excerpt": "assert!(o.journal.is_empty(), \"a refused replace journals nothing\");",
-      "line": 1351,
+      "line": 1324,
       "literal": "a refused replace journals nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154198,7 +154207,7 @@
     },
     {
       "excerpt": "assert!(!line.contains(\"..\"), \"a joined .. leaked onto the wire: {}\", line);",
-      "line": 1375,
+      "line": 1348,
       "literal": "a joined .. leaked onto the wire: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154207,7 +154216,7 @@
     },
     {
       "excerpt": "let OpMsg::Meta { line } = rx.recv_timeout(std::time::Duration::from_secs(5)).unwrap() else { panic!(\"no meta line\"); };",
-      "line": 1387,
+      "line": 1360,
       "literal": "no meta line",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154216,7 +154225,7 @@
     },
     {
       "excerpt": "assert!(line.contains(\"that folder cannot be written\"), \"usable_dest refused, not the link: {}\", line);",
-      "line": 1407,
+      "line": 1380,
       "literal": "that folder cannot be written",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154225,7 +154234,7 @@
     },
     {
       "excerpt": "assert!(line.contains(\"that folder cannot be written\"), \"usable_dest refused, not the link: {}\", line);",
-      "line": 1407,
+      "line": 1380,
       "literal": "usable_dest refused, not the link: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154234,7 +154243,7 @@
     },
     {
       "excerpt": "assert!(text(&buf).contains(r#\"\"t\":\"error\",\"where\":\"undo\"\"#), \"undo refuses a name that stopped being its link\");",
-      "line": 1429,
+      "line": 1402,
       "literal": "undo refuses a name that stopped being its link",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154243,7 +154252,7 @@
     },
     {
       "excerpt": "assert!(text(&buf).contains(r#\"\"t\":\"linked\"\"#), \"link lands for {op}\");",
-      "line": 1445,
+      "line": 1418,
       "literal": "link lands for {op}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154252,7 +154261,7 @@
     },
     {
       "excerpt": "assert!(text(&buf).contains(r#\"\"t\":\"undone\"\"#), \"undo removes the {op} link\");",
-      "line": 1449,
+      "line": 1422,
       "literal": "undo removes the {op} link",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154261,7 +154270,7 @@
     },
     {
       "excerpt": "assert_eq!(redone.unwrap(), \"link\", \"redo recreates the {op} link\");",
-      "line": 1453,
+      "line": 1426,
       "literal": "link",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154270,7 +154279,7 @@
     },
     {
       "excerpt": "assert_eq!(redone.unwrap(), \"link\", \"redo recreates the {op} link\");",
-      "line": 1453,
+      "line": 1426,
       "literal": "redo recreates the {op} link",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154279,7 +154288,7 @@
     },
     {
       "excerpt": "assert!(o.journal.redo_info().is_err(), \"a redone entry is undoable, not redoable again\");",
-      "line": 1462,
+      "line": 1435,
       "literal": "a redone entry is undoable, not redoable again",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154288,7 +154297,7 @@
     },
     {
       "excerpt": "std::fs::write(dest.join(\"a.txt\"), \"someone else\").unwrap();",
-      "line": 1483,
+      "line": 1456,
       "literal": "someone else",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154297,7 +154306,7 @@
     },
     {
       "excerpt": "assert_eq!(redone.unwrap_err().msg, \"an item with that name is already there, so redo left it in place\");",
-      "line": 1486,
+      "line": 1459,
       "literal": "an item with that name is already there, so redo left it in place",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154306,7 +154315,7 @@
     },
     {
       "excerpt": "assert_eq!(std::fs::read_to_string(dest.join(\"a.txt\")).unwrap(), \"someone else\");",
-      "line": 1487,
+      "line": 1460,
       "literal": "someone else",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154315,7 +154324,7 @@
     },
     {
       "excerpt": "\"undo removed the only remaining name; undo said {}\", text(&buf));",
-      "line": 1508,
+      "line": 1481,
       "literal": "undo removed the only remaining name; undo said {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154324,7 +154333,7 @@
     },
     {
       "excerpt": "assert!(text(&buf).contains(\"last name\"), \"{}\", text(&buf));",
-      "line": 1509,
+      "line": 1482,
       "literal": "last name",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154333,7 +154342,7 @@
     },
     {
       "excerpt": "assert!(text(&buf).contains(\"already running\"), \"{}\", text(&buf));",
-      "line": 1532,
+      "line": 1505,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154342,7 +154351,7 @@
     },
     {
       "excerpt": "assert!(o.journal.is_empty(), \"a refused link journals nothing\");",
-      "line": 1534,
+      "line": 1507,
       "literal": "a refused link journals nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154351,7 +154360,7 @@
     },
     {
       "excerpt": "assert!(text(&buf).contains(\"undone\"), \"untouched link refused by undo: {}\", text(&buf));",
-      "line": 1564,
+      "line": 1537,
       "literal": "untouched link refused by undo: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154360,7 +154369,7 @@
     },
     {
       "excerpt": "assert!(l.symlink_metadata().is_ok(), \"undo removes the link, never the source\");",
-      "line": 1566,
+      "line": 1539,
       "literal": "undo removes the link, never the source",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154369,7 +154378,7 @@
     },
     {
       "excerpt": "assert!(text(&buf).contains(\"undone\"), \"fifo link refused by undo: {}\", text(&buf));",
-      "line": 1583,
+      "line": 1556,
       "literal": "fifo link refused by undo: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154378,7 +154387,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.redo(1, &AtomicBool::new(false), &tx).unwrap(), \"link\");",
-      "line": 1586,
+      "line": 1559,
       "literal": "link",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154387,7 +154396,7 @@
     },
     {
       "excerpt": "assert!(!text(&buf).contains(r#\"\"ok\":1\"#), \"a link to nothing reported success: {}\", text(&buf));",
-      "line": 1604,
+      "line": 1577,
       "literal": "a link to nothing reported success: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154396,7 +154405,7 @@
     },
     {
       "excerpt": "assert!(o.journal.is_empty(), \"a refused link journals nothing\");",
-      "line": 1605,
+      "line": 1578,
       "literal": "a refused link journals nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154405,7 +154414,7 @@
     },
     {
       "excerpt": "assert!(line.contains(\"already running\"), \"{}\", line);",
-      "line": 1627,
+      "line": 1600,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154414,7 +154423,7 @@
     },
     {
       "excerpt": "assert!(o.journal.is_empty(), \"a refused chmod journals nothing\");",
-      "line": 1629,
+      "line": 1602,
       "literal": "a refused chmod journals nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154423,7 +154432,7 @@
     },
     {
       "excerpt": "assert!(line.contains(r#\"\"t\":\"slow\"\"#), \"a held rename answers slow, never an error: {}\", line);",
-      "line": 1677,
+      "line": 1650,
       "literal": "a held rename answers slow, never an error: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154432,7 +154441,7 @@
     },
     {
       "excerpt": "assert!(line.contains(\" is slow. The rename will finish on its own.\"), \"the slow line carries its sentence: {}\", line);",
-      "line": 1678,
+      "line": 1651,
       "literal": " is slow. The rename will finish on its own.",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154441,7 +154450,7 @@
     },
     {
       "excerpt": "assert!(line.contains(\" is slow. The rename will finish on its own.\"), \"the slow line carries its sentence: {}\", line);",
-      "line": 1678,
+      "line": 1651,
       "literal": "the slow line carries its sentence: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154450,7 +154459,7 @@
     },
     {
       "excerpt": "assert!(line.contains(r#\"\"op\":\"rename\"\"#), \"the slow line names its op: {}\", line);",
-      "line": 1679,
+      "line": 1652,
       "literal": "the slow line names its op: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154459,7 +154468,7 @@
     },
     {
       "excerpt": "assert!(waited >= crate::backend::iomount::CALL_DEADLINE, \"the slow line waits out the deadline: {:?}\", waited);",
-      "line": 1680,
+      "line": 1653,
       "literal": "the slow line waits out the deadline: {:?}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154468,7 +154477,7 @@
     },
     {
       "excerpt": "assert!(waited < crate::backend::iomount::CALL_DEADLINE + SLOW_MARGIN, \"the slow line answers at the deadline: {:?}\", waited);",
-      "line": 1681,
+      "line": 1654,
       "literal": "the slow line answers at the deadline: {:?}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154477,7 +154486,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"undo waits for the late entry: {}\", text(&busy));",
-      "line": 1684,
+      "line": 1657,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154486,7 +154495,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"undo waits for the late entry: {}\", text(&busy));",
-      "line": 1684,
+      "line": 1657,
       "literal": "undo waits for the late entry: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154495,7 +154504,7 @@
     },
     {
       "excerpt": "assert!(o.journal.is_empty(), \"nothing is journalled until the held write lands\");",
-      "line": 1685,
+      "line": 1658,
       "literal": "nothing is journalled until the held write lands",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154504,7 +154513,7 @@
     },
     {
       "excerpt": "let landed = rx.recv_timeout(std::time::Duration::from_secs(5)).expect(\"the released write reports through the op channel\");",
-      "line": 1687,
+      "line": 1660,
       "literal": "the released write reports through the op channel",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154513,7 +154522,7 @@
     },
     {
       "excerpt": "assert!(text(&late).contains(r#\"\"t\":\"renamed\",\"ok\":true\"#), \"the late write answers its own reply: {}\", text(&late));",
-      "line": 1690,
+      "line": 1663,
       "literal": "the late write answers its own reply: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154522,7 +154531,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), 1, \"one journal entry per request, so one undo reverses it\");",
-      "line": 1691,
+      "line": 1664,
       "literal": "one journal entry per request, so one undo reverses it",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154531,7 +154540,7 @@
     },
     {
       "excerpt": "assert!(from.exists(), \"undo put the old name back\");",
-      "line": 1695,
+      "line": 1668,
       "literal": "undo put the old name back",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154540,7 +154549,7 @@
     },
     {
       "excerpt": "assert!(line.contains(r#\"\"t\":\"slow\"\"#), \"a held mkdir answers slow, never an error: {}\", line);",
-      "line": 1717,
+      "line": 1690,
       "literal": "a held mkdir answers slow, never an error: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154549,7 +154558,7 @@
     },
     {
       "excerpt": "assert!(line.contains(\" is slow. The new folder will finish on its own.\"), \"the mkdir line is its own sentence: {}\", line);",
-      "line": 1718,
+      "line": 1691,
       "literal": " is slow. The new folder will finish on its own.",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154558,7 +154567,7 @@
     },
     {
       "excerpt": "assert!(line.contains(\" is slow. The new folder will finish on its own.\"), \"the mkdir line is its own sentence: {}\", line);",
-      "line": 1718,
+      "line": 1691,
       "literal": "the mkdir line is its own sentence: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154567,7 +154576,7 @@
     },
     {
       "excerpt": "assert!(line.contains(r#\"\"op\":\"mkdir\"\"#), \"the slow line names its op: {}\", line);",
-      "line": 1719,
+      "line": 1692,
       "literal": "the slow line names its op: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154576,7 +154585,7 @@
     },
     {
       "excerpt": "assert!(o.journal.is_empty(), \"nothing is journalled until the held write lands\");",
-      "line": 1720,
+      "line": 1693,
       "literal": "nothing is journalled until the held write lands",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154585,7 +154594,7 @@
     },
     {
       "excerpt": "let landed = rx.recv_timeout(std::time::Duration::from_secs(5)).expect(\"the released write reports through the op channel\");",
-      "line": 1722,
+      "line": 1695,
       "literal": "the released write reports through the op channel",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154594,7 +154603,7 @@
     },
     {
       "excerpt": "assert!(text(&late).contains(r#\"\"t\":\"made\",\"ok\":true\"#), \"the late write answers its own reply: {}\", text(&late));",
-      "line": 1725,
+      "line": 1698,
       "literal": "the late write answers its own reply: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154603,7 +154612,7 @@
     },
     {
       "excerpt": "assert!(d.join(\"photos\").is_dir(), \"the released mkdir landed\");",
-      "line": 1726,
+      "line": 1699,
       "literal": "the released mkdir landed",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154612,7 +154621,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), 1, \"one journal entry per request, so one undo reverses it\");",
-      "line": 1727,
+      "line": 1700,
       "literal": "one journal entry per request, so one undo reverses it",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154621,7 +154630,7 @@
     },
     {
       "excerpt": "assert!(!d.join(\"photos\").exists(), \"undo removed the folder it made\");",
-      "line": 1731,
+      "line": 1704,
       "literal": "undo removed the folder it made",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154630,7 +154639,7 @@
     },
     {
       "excerpt": "assert!(text(&buf).contains(r#\"\"t\":\"made\"\"#), \"the older mkdir journals first: {}\", text(&buf));",
-      "line": 1745,
+      "line": 1718,
       "literal": "the older mkdir journals first: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154639,7 +154648,7 @@
     },
     {
       "excerpt": "assert!(text(&slow).contains(r#\"\"t\":\"slow\"\"#), \"the held rename answers slow: {}\", text(&slow));",
-      "line": 1756,
+      "line": 1729,
       "literal": "the held rename answers slow: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154648,7 +154657,7 @@
     },
     {
       "excerpt": "assert!(text(&undone).contains(\"already running\"), \"undo waits for the late entry: {}\", text(&undone));",
-      "line": 1759,
+      "line": 1732,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154657,7 +154666,7 @@
     },
     {
       "excerpt": "assert!(text(&undone).contains(\"already running\"), \"undo waits for the late entry: {}\", text(&undone));",
-      "line": 1759,
+      "line": 1732,
       "literal": "undo waits for the late entry: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154666,7 +154675,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), 1, \"the older mkdir survives an undo aimed past it\");",
-      "line": 1760,
+      "line": 1733,
       "literal": "the older mkdir survives an undo aimed past it",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154675,7 +154684,7 @@
     },
     {
       "excerpt": "assert!(text(&redone).contains(\"already running\"), \"redo waits too: {}\", text(&redone));",
-      "line": 1763,
+      "line": 1736,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154684,7 +154693,7 @@
     },
     {
       "excerpt": "assert!(text(&redone).contains(\"already running\"), \"redo waits too: {}\", text(&redone));",
-      "line": 1763,
+      "line": 1736,
       "literal": "redo waits too: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154693,7 +154702,7 @@
     },
     {
       "excerpt": "assert!(text(&second).contains(\"already running\"), \"a second write waits too: {}\", text(&second));",
-      "line": 1766,
+      "line": 1739,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154702,7 +154711,7 @@
     },
     {
       "excerpt": "assert!(text(&second).contains(\"already running\"), \"a second write waits too: {}\", text(&second));",
-      "line": 1766,
+      "line": 1739,
       "literal": "a second write waits too: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154711,7 +154720,7 @@
     },
     {
       "excerpt": "let landed = rx.recv_timeout(std::time::Duration::from_secs(5)).expect(\"the released write reports through the op channel\");",
-      "line": 1768,
+      "line": 1741,
       "literal": "the released write reports through the op channel",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154720,7 +154729,7 @@
     },
     {
       "excerpt": "assert!(text(&late).contains(r#\"\"t\":\"renamed\"\"#), \"the late write journals on landing: {}\", text(&late));",
-      "line": 1771,
+      "line": 1744,
       "literal": "the late write journals on landing: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154729,7 +154738,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), 2, \"the late entry lands behind the older one\");",
-      "line": 1772,
+      "line": 1745,
       "literal": "the late entry lands behind the older one",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154738,7 +154747,7 @@
     },
     {
       "excerpt": "assert!(text(&undone).contains(r#\"{\"t\":\"undone\",\"op\":\"rename\"\"#), \"undo reverses the late write first: {}\", text(&undone));",
-      "line": 1775,
+      "line": 1748,
       "literal": "undo reverses the late write first: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154747,7 +154756,7 @@
     },
     {
       "excerpt": "assert!(victim.exists(), \"undo put the rename's old name back\");",
-      "line": 1776,
+      "line": 1749,
       "literal": "undo put the rename's old name back",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154756,7 +154765,7 @@
     },
     {
       "excerpt": "assert!(d.join(\"older\").is_dir(), \"the older mkdir is still journalled underneath\");",
-      "line": 1777,
+      "line": 1750,
       "literal": "the older mkdir is still journalled underneath",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154765,7 +154774,7 @@
     },
     {
       "excerpt": "assert!(text(&buf).contains(r#\"\"t\":\"slow\"\"#), \"the held rename answers slow: {}\", text(&buf));",
-      "line": 1798,
+      "line": 1771,
       "literal": "the held rename answers slow: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154774,7 +154783,7 @@
     },
     {
       "excerpt": "assert!(o.live.running().is_none(), \"a slow line frees the slot at once\");",
-      "line": 1799,
+      "line": 1772,
       "literal": "a slow line frees the slot at once",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154783,7 +154792,7 @@
     },
     {
       "excerpt": "assert!(text(&started).contains(r#\"\"t\":\"transferstarted\"\"#), \"a local transfer runs beside the held write: {}\", text(&started));",
-      "line": 1806,
+      "line": 1779,
       "literal": "a local transfer runs beside the held write: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154792,7 +154801,7 @@
     },
     {
       "excerpt": "let msg = rx.recv_timeout(LAND_BOUND).expect(\"the released write reports through the op channel\");",
-      "line": 1810,
+      "line": 1783,
       "literal": "the released write reports through the op channel",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154801,7 +154810,7 @@
     },
     {
       "excerpt": "assert!(landed, \"the released rename journals late\");",
-      "line": 1818,
+      "line": 1791,
       "literal": "the released rename journals late",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154810,7 +154819,7 @@
     },
     {
       "excerpt": "let msg = rx.recv_timeout(LAND_BOUND).expect(\"the local transfer reports through the op channel\");",
-      "line": 1824,
+      "line": 1797,
       "literal": "the local transfer reports through the op channel",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154819,7 +154828,7 @@
     },
     {
       "excerpt": "\"the local transfer finishes its own job\"",
-      "line": 1831,
+      "line": 1804,
       "literal": "the local transfer finishes its own job",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154828,7 +154837,7 @@
     },
     {
       "excerpt": "\"the local transfer landed beside the held write\"",
-      "line": 1835,
+      "line": 1808,
       "literal": "the local transfer landed beside the held write",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154837,7 +154846,7 @@
     },
     {
       "excerpt": "assert!(text(&undone).contains(r#\"{\"t\":\"undone\"\"#), \"no pending entry survives the late Done: {}\", text(&undone));",
-      "line": 1839,
+      "line": 1812,
       "literal": "no pending entry survives the late Done: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154846,7 +154855,7 @@
     },
     {
       "excerpt": "assert!(text(&buf).contains(r#\"\"t\":\"slow\"\"#), \"the held rename answers slow: {}\", text(&buf));",
-      "line": 1860,
+      "line": 1833,
       "literal": "the held rename answers slow: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154855,7 +154864,7 @@
     },
     {
       "excerpt": "assert!(o.live.running().is_none(), \"a slow line frees the slot at once\");",
-      "line": 1861,
+      "line": 1834,
       "literal": "a slow line frees the slot at once",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154864,7 +154873,7 @@
     },
     {
       "excerpt": "assert!(text(&second).contains(\"already running\"), \"a write on the slow mount waits: {}\", text(&second));",
-      "line": 1866,
+      "line": 1839,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154873,7 +154882,7 @@
     },
     {
       "excerpt": "assert!(text(&second).contains(\"already running\"), \"a write on the slow mount waits: {}\", text(&second));",
-      "line": 1866,
+      "line": 1839,
       "literal": "a write on the slow mount waits: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154882,7 +154891,7 @@
     },
     {
       "excerpt": "assert!(!remote.join(\"newer\").exists(), \"the refused write touches nothing\");",
-      "line": 1867,
+      "line": 1840,
       "literal": "the refused write touches nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154891,7 +154900,7 @@
     },
     {
       "excerpt": "assert!(o.journal.is_empty(), \"the refused write journals nothing\");",
-      "line": 1868,
+      "line": 1841,
       "literal": "the refused write journals nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154900,7 +154909,7 @@
     },
     {
       "excerpt": "let landed = rx.recv_timeout(LAND_BOUND).expect(\"the released write reports through the op channel\");",
-      "line": 1870,
+      "line": 1843,
       "literal": "the released write reports through the op channel",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154909,7 +154918,7 @@
     },
     {
       "excerpt": "assert!(text(&late).contains(r#\"\"t\":\"renamed\"\"#), \"the late write journals on landing: {}\", text(&late));",
-      "line": 1873,
+      "line": 1846,
       "literal": "the late write journals on landing: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154918,7 +154927,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), 1, \"one journal entry per request, so one undo reverses it\");",
-      "line": 1874,
+      "line": 1847,
       "literal": "one journal entry per request, so one undo reverses it",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154927,7 +154936,7 @@
     },
     {
       "excerpt": "assert!(text(&buf).contains(r#\"\"t\":\"slow\"\"#), \"the held rename answers slow: {}\", text(&buf));",
-      "line": 1895,
+      "line": 1868,
       "literal": "the held rename answers slow: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154936,7 +154945,7 @@
     },
     {
       "excerpt": "assert!(line.contains(\"already running\"), \"undo waits for the late entry: {}\", line);",
-      "line": 1899,
+      "line": 1872,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154945,7 +154954,7 @@
     },
     {
       "excerpt": "assert!(line.contains(\"already running\"), \"undo waits for the late entry: {}\", line);",
-      "line": 1899,
+      "line": 1872,
       "literal": "undo waits for the late entry: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154954,7 +154963,7 @@
     },
     {
       "excerpt": "assert!(line.contains(&path), \"undo names the pending path: {}\", line);",
-      "line": 1900,
+      "line": 1873,
       "literal": "undo names the pending path: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154963,7 +154972,7 @@
     },
     {
       "excerpt": "let landed = rx.recv_timeout(LAND_BOUND).expect(\"the released write reports through the op channel\");",
-      "line": 1902,
+      "line": 1875,
       "literal": "the released write reports through the op channel",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154972,7 +154981,7 @@
     },
     {
       "excerpt": "assert!(text(&late).contains(r#\"\"t\":\"renamed\"\"#), \"the late write journals on landing: {}\", text(&late));",
-      "line": 1905,
+      "line": 1878,
       "literal": "the late write journals on landing: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154981,7 +154990,7 @@
     },
     {
       "excerpt": "assert!(text(&undone).contains(r#\"{\"t\":\"undone\",\"op\":\"rename\"\"#), \"undo reverses the late write: {}\", text(&undone));",
-      "line": 1908,
+      "line": 1881,
       "literal": "undo reverses the late write: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154990,7 +154999,7 @@
     },
     {
       "excerpt": "assert!(victim.exists(), \"undo put the rename's old name back\");",
-      "line": 1909,
+      "line": 1882,
       "literal": "undo put the rename's old name back",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -154999,7 +155008,7 @@
     },
     {
       "excerpt": "assert!(text(&buf).contains(r#\"\"t\":\"slow\"\"#), \"the held rename answers slow: {}\", text(&buf));",
-      "line": 1932,
+      "line": 1905,
       "literal": "the held rename answers slow: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155008,7 +155017,7 @@
     },
     {
       "excerpt": "assert!(text(&buf2).contains(r#\"\"t\":\"slow\"\"#), \"a second mount's slow write answers slow beside the first: {}\", text(&buf2));",
-      "line": 1942,
+      "line": 1915,
       "literal": "a second mount's slow write answers slow beside the first: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155017,7 +155026,7 @@
     },
     {
       "excerpt": "let msg = rx.recv_timeout(LAND_BOUND).expect(\"the released write reports through the op channel\");",
-      "line": 1946,
+      "line": 1919,
       "literal": "the released write reports through the op channel",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155026,7 +155035,7 @@
     },
     {
       "excerpt": "assert!(first_landed, \"the first released write journals late\");",
-      "line": 1954,
+      "line": 1927,
       "literal": "the first released write journals late",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155035,7 +155044,7 @@
     },
     {
       "excerpt": "assert!(line.contains(\"already running\"), \"undo still waits on the second mount: {}\", line);",
-      "line": 1958,
+      "line": 1931,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155044,7 +155053,7 @@
     },
     {
       "excerpt": "assert!(line.contains(\"already running\"), \"undo still waits on the second mount: {}\", line);",
-      "line": 1958,
+      "line": 1931,
       "literal": "undo still waits on the second mount: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155053,7 +155062,7 @@
     },
     {
       "excerpt": "assert!(line.contains(&parent), \"undo names the remaining path: {}\", line);",
-      "line": 1959,
+      "line": 1932,
       "literal": "undo names the remaining path: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155062,7 +155071,7 @@
     },
     {
       "excerpt": "let msg = rx.recv_timeout(LAND_BOUND).expect(\"the released write reports through the op channel\");",
-      "line": 1963,
+      "line": 1936,
       "literal": "the released write reports through the op channel",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155071,7 +155080,7 @@
     },
     {
       "excerpt": "assert!(second_landed, \"the second released write journals late\");",
-      "line": 1971,
+      "line": 1944,
       "literal": "the second released write journals late",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155080,7 +155089,7 @@
     },
     {
       "excerpt": "assert!(text(&undone).contains(r#\"{\"t\":\"undone\",\"op\":\"mkdir\"\"#), \"undo reverses the newest entry first: {}\", text(&undone));",
-      "line": 1974,
+      "line": 1947,
       "literal": "undo reverses the newest entry first: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155089,7 +155098,7 @@
     },
     {
       "excerpt": "assert!(!second.join(\"photos\").exists(), \"undo removed the folder it made\");",
-      "line": 1975,
+      "line": 1948,
       "literal": "undo removed the folder it made",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155098,7 +155107,7 @@
     },
     {
       "excerpt": "assert!(text(&undone).contains(r#\"{\"t\":\"undone\",\"op\":\"rename\"\"#), \"undo reverses the late write next: {}\", text(&undone));",
-      "line": 1978,
+      "line": 1951,
       "literal": "undo reverses the late write next: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155107,7 +155116,7 @@
     },
     {
       "excerpt": "assert!(victim.exists(), \"undo put the rename's old name back\");",
-      "line": 1979,
+      "line": 1952,
       "literal": "undo put the rename's old name back",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155116,7 +155125,7 @@
     },
     {
       "excerpt": "assert!(text(&buf).contains(r#\"\"t\":\"slow\"\"#), \"the held rename answers slow: {}\", text(&buf));",
-      "line": 2000,
+      "line": 1973,
       "literal": "the held rename answers slow: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155125,7 +155134,7 @@
     },
     {
       "excerpt": "assert!(o.live.running().is_none(), \"a slow line frees the slot at once\");",
-      "line": 2001,
+      "line": 1974,
       "literal": "a slow line frees the slot at once",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155134,7 +155143,7 @@
     },
     {
       "excerpt": "assert_eq!(o.live.running(), Some(next), \"a newer operation claims the free slot beside the held write\");",
-      "line": 2003,
+      "line": 1976,
       "literal": "a newer operation claims the free slot beside the held write",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155143,7 +155152,7 @@
     },
     {
       "excerpt": "let landed = rx.recv_timeout(LAND_BOUND).expect(\"the released write reports through the op channel\");",
-      "line": 2005,
+      "line": 1978,
       "literal": "the released write reports through the op channel",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155152,7 +155161,7 @@
     },
     {
       "excerpt": "assert!(text(&late).contains(r#\"\"t\":\"renamed\"\"#), \"the late write still lands: {}\", text(&late));",
-      "line": 2008,
+      "line": 1981,
       "literal": "the late write still lands: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155161,7 +155170,7 @@
     },
     {
       "excerpt": "assert_eq!(o.live.running(), Some(next), \"a late Done never frees a newer operation's slot\");",
-      "line": 2009,
+      "line": 1982,
       "literal": "a late Done never frees a newer operation's slot",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155170,7 +155179,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), 1, \"the late entry still journals exactly once\");",
-      "line": 2010,
+      "line": 1983,
       "literal": "the late entry still journals exactly once",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155179,7 +155188,7 @@
     },
     {
       "excerpt": "assert!(text(&slow).contains(r#\"\"t\":\"slow\"\"#), \"the held rename answers slow: {}\", text(&slow));",
-      "line": 2035,
+      "line": 2008,
       "literal": "the held rename answers slow: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155188,7 +155197,7 @@
     },
     {
       "excerpt": "assert_eq!(o.live.running(), Some(transfer), \"the slow rename never took the transfer's slot\");",
-      "line": 2036,
+      "line": 2009,
       "literal": "the slow rename never took the transfer's slot",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155197,7 +155206,7 @@
     },
     {
       "excerpt": "assert!(flag.load(Ordering::Relaxed), \"the transfer's cancel still reaches it\");",
-      "line": 2038,
+      "line": 2011,
       "literal": "the transfer's cancel still reaches it",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155206,7 +155215,7 @@
     },
     {
       "excerpt": "let landed = rx.recv_timeout(LAND_BOUND).expect(\"the released write reports through the op channel\");",
-      "line": 2040,
+      "line": 2013,
       "literal": "the released write reports through the op channel",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155215,7 +155224,7 @@
     },
     {
       "excerpt": "assert!(text(&late).contains(r#\"\"t\":\"renamed\"\"#), \"the late write still lands: {}\", text(&late));",
-      "line": 2043,
+      "line": 2016,
       "literal": "the late write still lands: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155224,7 +155233,7 @@
     },
     {
       "excerpt": "assert_eq!(o.live.running(), Some(transfer), \"the late Done never frees the transfer's slot\");",
-      "line": 2044,
+      "line": 2017,
       "literal": "the late Done never frees the transfer's slot",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155233,7 +155242,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), 1, \"the late entry still journals exactly once\");",
-      "line": 2045,
+      "line": 2018,
       "literal": "the late entry still journals exactly once",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155242,7 +155251,7 @@
     },
     {
       "excerpt": "assert!(text(&slow).contains(r#\"\"t\":\"slow\"\"#), \"the sweep holds its mount slow: {}\", text(&slow));",
-      "line": 2068,
+      "line": 2041,
       "literal": "the sweep holds its mount slow: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155251,7 +155260,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a transfer onto a pending mount waits: {}\", text(&busy));",
-      "line": 2076,
+      "line": 2049,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155260,7 +155269,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a transfer onto a pending mount waits: {}\", text(&busy));",
-      "line": 2076,
+      "line": 2049,
       "literal": "a transfer onto a pending mount waits: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155269,7 +155278,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), journaled, \"the refused transfer journals nothing\");",
-      "line": 2077,
+      "line": 2050,
       "literal": "the refused transfer journals nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155278,7 +155287,7 @@
     },
     {
       "excerpt": "assert!(remote_dest.read_dir().unwrap().next().is_none(), \"the refused transfer lands nothing\");",
-      "line": 2078,
+      "line": 2051,
       "literal": "the refused transfer lands nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155287,7 +155296,7 @@
     },
     {
       "excerpt": "assert!(text(&started).contains(r#\"\"t\":\"transferstarted\"\"#), \"a local transfer runs beside the held write: {}\", text(&started));",
-      "line": 2085,
+      "line": 2058,
       "literal": "a local transfer runs beside the held write: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155296,7 +155305,7 @@
     },
     {
       "excerpt": "let msg = rx.recv_timeout(LAND_BOUND).expect(\"the local transfer reports through the op channel\");",
-      "line": 2087,
+      "line": 2060,
       "literal": "the local transfer reports through the op channel",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155305,7 +155314,7 @@
     },
     {
       "excerpt": "assert!(o.live.running().is_none(), \"the local transfer frees the slot it claimed\");",
-      "line": 2095,
+      "line": 2068,
       "literal": "the local transfer frees the slot it claimed",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155314,7 +155323,7 @@
     },
     {
       "excerpt": "assert!(local_dest.join(\"cargo.txt\").exists(), \"the local transfer landed beside the held write\");",
-      "line": 2096,
+      "line": 2069,
       "literal": "the local transfer landed beside the held write",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155323,7 +155332,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"trash on a pending mount waits: {}\", text(&busy));",
-      "line": 2102,
+      "line": 2075,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155332,7 +155341,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"trash on a pending mount waits: {}\", text(&busy));",
-      "line": 2102,
+      "line": 2075,
       "literal": "trash on a pending mount waits: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155341,7 +155350,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), journaled, \"the refused trash journals nothing\");",
-      "line": 2103,
+      "line": 2076,
       "literal": "the refused trash journals nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155350,7 +155359,7 @@
     },
     {
       "excerpt": "assert!(remote_trash.exists(), \"the refused trash touches nothing\");",
-      "line": 2104,
+      "line": 2077,
       "literal": "the refused trash touches nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155359,7 +155368,7 @@
     },
     {
       "excerpt": "assert!(text(&quiet).contains(r#\"\"t\":\"trashstarted\"\"#), \"trash elsewhere acknowledges acceptance in sync: {}\", text(&quiet));",
-      "line": 2109,
+      "line": 2082,
       "literal": "trash elsewhere acknowledges acceptance in sync: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155368,7 +155377,7 @@
     },
     {
       "excerpt": "let msg = rx.recv_timeout(LAND_BOUND).expect(\"the trash reports through the op channel\");",
-      "line": 2112,
+      "line": 2085,
       "literal": "the trash reports through the op channel",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155377,7 +155386,7 @@
     },
     {
       "excerpt": "let trash_journaled = trash_journaled.expect(\"the trash batch must complete before the sweep continues\");",
-      "line": 2123,
+      "line": 2096,
       "literal": "the trash batch must complete before the sweep continues",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155386,7 +155395,7 @@
     },
     {
       "excerpt": "assert!(o.live.running().is_none(), \"the trash frees the slot it claimed\");",
-      "line": 2124,
+      "line": 2097,
       "literal": "the trash frees the slot it claimed",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155395,7 +155404,7 @@
     },
     {
       "excerpt": "let snap = rx.recv_timeout(LAND_BOUND).expect(\"the snapshot replies\");",
-      "line": 2129,
+      "line": 2102,
       "literal": "the snapshot replies",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155404,7 +155413,7 @@
     },
     {
       "excerpt": "assert!(matches!(&snap, OpMsg::Meta { .. }), \"the snapshot answers Meta\");",
-      "line": 2130,
+      "line": 2103,
       "literal": "the snapshot answers Meta",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155413,7 +155422,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a selection on a pending mount waits: {}\", text(&busy));",
-      "line": 2136,
+      "line": 2109,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155422,7 +155431,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a selection on a pending mount waits: {}\", text(&busy));",
-      "line": 2136,
+      "line": 2109,
       "literal": "a selection on a pending mount waits: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155431,7 +155440,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), journaled, \"the refused trash journals nothing\");",
-      "line": 2137,
+      "line": 2110,
       "literal": "the refused trash journals nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155440,7 +155449,7 @@
     },
     {
       "excerpt": "assert!(local_other.exists(), \"the refused trash touches nothing\");",
-      "line": 2138,
+      "line": 2111,
       "literal": "the refused trash touches nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155449,7 +155458,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a duplicate on a pending mount waits: {}\", text(&busy));",
-      "line": 2144,
+      "line": 2117,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155458,7 +155467,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a duplicate on a pending mount waits: {}\", text(&busy));",
-      "line": 2144,
+      "line": 2117,
       "literal": "a duplicate on a pending mount waits: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155467,7 +155476,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), journaled, \"the refused duplicate journals nothing\");",
-      "line": 2145,
+      "line": 2118,
       "literal": "the refused duplicate journals nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155476,7 +155485,7 @@
     },
     {
       "excerpt": "assert!(remote_dup.exists(), \"the refused duplicate touches nothing\");",
-      "line": 2146,
+      "line": 2119,
       "literal": "the refused duplicate touches nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155485,7 +155494,7 @@
     },
     {
       "excerpt": "assert!(text(&quiet).is_empty(), \"a duplicate elsewhere answers nothing in sync: {}\", text(&quiet));",
-      "line": 2151,
+      "line": 2124,
       "literal": "a duplicate elsewhere answers nothing in sync: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155494,7 +155503,7 @@
     },
     {
       "excerpt": "let landed = rx.recv_timeout(LAND_BOUND).expect(\"the duplicate reports through the op channel\");",
-      "line": 2152,
+      "line": 2125,
       "literal": "the duplicate reports through the op channel",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155503,7 +155512,7 @@
     },
     {
       "excerpt": "assert!(text(&late).contains(r#\"\"t\":\"duplicated\"\"#), \"the duplicate lands elsewhere: {}\", text(&late));",
-      "line": 2155,
+      "line": 2128,
       "literal": "the duplicate lands elsewhere: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155512,7 +155521,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a divergent selection on a pending mount waits: {}\", text(&busy));",
-      "line": 2160,
+      "line": 2133,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155521,7 +155530,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a divergent selection on a pending mount waits: {}\", text(&busy));",
-      "line": 2160,
+      "line": 2133,
       "literal": "a divergent selection on a pending mount waits: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155530,7 +155539,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), journaled, \"the refused duplicate journals nothing\");",
-      "line": 2161,
+      "line": 2134,
       "literal": "the refused duplicate journals nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155539,7 +155548,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a rename on a pending mount waits: {}\", text(&busy));",
-      "line": 2167,
+      "line": 2140,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155548,7 +155557,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a rename on a pending mount waits: {}\", text(&busy));",
-      "line": 2167,
+      "line": 2140,
       "literal": "a rename on a pending mount waits: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155557,7 +155566,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), journaled, \"the refused rename journals nothing\");",
-      "line": 2168,
+      "line": 2141,
       "literal": "the refused rename journals nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155566,7 +155575,7 @@
     },
     {
       "excerpt": "assert!(remote_rename.exists() && !remote.join(\"r2.txt\").exists(), \"the refused rename touches nothing\");",
-      "line": 2169,
+      "line": 2142,
       "literal": "the refused rename touches nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155575,7 +155584,7 @@
     },
     {
       "excerpt": "assert!(text(&done).contains(r#\"\"t\":\"renamed\",\"ok\":true\"#), \"a rename elsewhere lands: {}\", text(&done));",
-      "line": 2174,
+      "line": 2147,
       "literal": "a rename elsewhere lands: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155584,7 +155593,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a mkdir on a pending mount waits: {}\", text(&busy));",
-      "line": 2179,
+      "line": 2152,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155593,7 +155602,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a mkdir on a pending mount waits: {}\", text(&busy));",
-      "line": 2179,
+      "line": 2152,
       "literal": "a mkdir on a pending mount waits: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155602,7 +155611,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), journaled, \"the refused mkdir journals nothing\");",
-      "line": 2180,
+      "line": 2153,
       "literal": "the refused mkdir journals nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155611,7 +155620,7 @@
     },
     {
       "excerpt": "assert!(!remote.join(\"heldsub\").exists(), \"the refused mkdir touches nothing\");",
-      "line": 2181,
+      "line": 2154,
       "literal": "the refused mkdir touches nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155620,7 +155629,7 @@
     },
     {
       "excerpt": "assert!(text(&done).contains(r#\"\"t\":\"made\",\"ok\":true\"#), \"a mkdir elsewhere lands: {}\", text(&done));",
-      "line": 2185,
+      "line": 2158,
       "literal": "a mkdir elsewhere lands: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155629,7 +155638,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a new file on a pending mount waits: {}\", text(&busy));",
-      "line": 2190,
+      "line": 2163,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155638,7 +155647,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a new file on a pending mount waits: {}\", text(&busy));",
-      "line": 2190,
+      "line": 2163,
       "literal": "a new file on a pending mount waits: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155647,7 +155656,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), journaled, \"the refused new file journals nothing\");",
-      "line": 2191,
+      "line": 2164,
       "literal": "the refused new file journals nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155656,7 +155665,7 @@
     },
     {
       "excerpt": "assert!(!remote.join(\"held.txt\").exists(), \"the refused new file touches nothing\");",
-      "line": 2192,
+      "line": 2165,
       "literal": "the refused new file touches nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155665,7 +155674,7 @@
     },
     {
       "excerpt": "assert!(text(&done).contains(r#\"\"ok\":true\"#), \"a new file elsewhere lands: {}\", text(&done));",
-      "line": 2196,
+      "line": 2169,
       "literal": "a new file elsewhere lands: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155674,7 +155683,7 @@
     },
     {
       "excerpt": "assert!(local.join(\"fresh.txt\").exists(), \"the new file landed elsewhere\");",
-      "line": 2197,
+      "line": 2170,
       "literal": "the new file landed elsewhere",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155683,7 +155692,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a link onto a pending mount waits: {}\", text(&busy));",
-      "line": 2205,
+      "line": 2178,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155692,7 +155701,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a link onto a pending mount waits: {}\", text(&busy));",
-      "line": 2205,
+      "line": 2178,
       "literal": "a link onto a pending mount waits: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155701,7 +155710,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), journaled, \"the refused link journals nothing\");",
-      "line": 2206,
+      "line": 2179,
       "literal": "the refused link journals nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155710,7 +155719,7 @@
     },
     {
       "excerpt": "assert!(remote_linkdest.read_dir().unwrap().next().is_none(), \"the refused link lands nothing\");",
-      "line": 2207,
+      "line": 2180,
       "literal": "the refused link lands nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155719,7 +155728,7 @@
     },
     {
       "excerpt": "assert!(text(&quiet).is_empty(), \"a link elsewhere answers nothing in sync: {}\", text(&quiet));",
-      "line": 2214,
+      "line": 2187,
       "literal": "a link elsewhere answers nothing in sync: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155728,7 +155737,7 @@
     },
     {
       "excerpt": "let landed = rx.recv_timeout(LAND_BOUND).expect(\"the link reports through the op channel\");",
-      "line": 2215,
+      "line": 2188,
       "literal": "the link reports through the op channel",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155737,7 +155746,7 @@
     },
     {
       "excerpt": "assert!(text(&late).contains(r#\"\"t\":\"linked\"\"#), \"a link elsewhere lands: {}\", text(&late));",
-      "line": 2218,
+      "line": 2191,
       "literal": "a link elsewhere lands: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155746,7 +155755,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a delete on a pending mount waits: {}\", text(&busy));",
-      "line": 2224,
+      "line": 2197,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155755,7 +155764,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a delete on a pending mount waits: {}\", text(&busy));",
-      "line": 2224,
+      "line": 2197,
       "literal": "a delete on a pending mount waits: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155764,7 +155773,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), journaled, \"the refused delete journals nothing\");",
-      "line": 2225,
+      "line": 2198,
       "literal": "the refused delete journals nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155773,7 +155782,7 @@
     },
     {
       "excerpt": "assert!(remote_del.exists(), \"the refused delete touches nothing\");",
-      "line": 2226,
+      "line": 2199,
       "literal": "the refused delete touches nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155782,7 +155791,7 @@
     },
     {
       "excerpt": "assert!(text(&quiet).is_empty(), \"a delete elsewhere passes the gate in sync: {}\", text(&quiet));",
-      "line": 2231,
+      "line": 2204,
       "literal": "a delete elsewhere passes the gate in sync: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155791,7 +155800,7 @@
     },
     {
       "excerpt": "let msg = rx.recv_timeout(LAND_BOUND).expect(\"the delete answers through the op channel\");",
-      "line": 2232,
+      "line": 2205,
       "literal": "the delete answers through the op channel",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155800,7 +155809,7 @@
     },
     {
       "excerpt": "assert!(text(&late).contains(crate::backend::menu_actions::SELECTION_CHANGED), \"a delete elsewhere reaches the menu's own expiry: {}\", text(&late));",
-      "line": 2235,
+      "line": 2208,
       "literal": "a delete elsewhere reaches the menu's own expiry: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155809,7 +155818,7 @@
     },
     {
       "excerpt": "assert!(!text(&late).contains(\"already running\"), \"a delete elsewhere is never the gate: {}\", text(&late));",
-      "line": 2236,
+      "line": 2209,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155818,7 +155827,7 @@
     },
     {
       "excerpt": "assert!(!text(&late).contains(\"already running\"), \"a delete elsewhere is never the gate: {}\", text(&late));",
-      "line": 2236,
+      "line": 2209,
       "literal": "a delete elsewhere is never the gate: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155827,7 +155836,7 @@
     },
     {
       "excerpt": "assert!(o.live.running().is_none(), \"the expired delete frees the slot it claimed\");",
-      "line": 2237,
+      "line": 2210,
       "literal": "the expired delete frees the slot it claimed",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155836,7 +155845,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a compress on a pending mount waits: {}\", text(&busy));",
-      "line": 2245,
+      "line": 2218,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155845,7 +155854,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a compress on a pending mount waits: {}\", text(&busy));",
-      "line": 2245,
+      "line": 2218,
       "literal": "a compress on a pending mount waits: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155854,7 +155863,7 @@
     },
     {
       "excerpt": "assert!(!text(&busy).contains(\"archivestarted\"), \"the refused compress starts nothing: {}\", text(&busy));",
-      "line": 2246,
+      "line": 2219,
       "literal": "the refused compress starts nothing: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155863,7 +155872,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), journaled, \"the refused compress journals nothing\");",
-      "line": 2247,
+      "line": 2220,
       "literal": "the refused compress journals nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155872,7 +155881,7 @@
     },
     {
       "excerpt": "assert!(!remote.join(\"out.tar\").exists(), \"the refused compress touches nothing\");",
-      "line": 2248,
+      "line": 2221,
       "literal": "the refused compress touches nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155881,7 +155890,7 @@
     },
     {
       "excerpt": "assert!(text(&started).contains(\"archivestarted\"), \"a compress elsewhere starts: {}\", text(&started));",
-      "line": 2254,
+      "line": 2227,
       "literal": "a compress elsewhere starts: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155890,7 +155899,7 @@
     },
     {
       "excerpt": "let msg = rx.recv_timeout(LAND_BOUND).expect(\"the compress reports through the op channel\");",
-      "line": 2256,
+      "line": 2229,
       "literal": "the compress reports through the op channel",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155899,7 +155908,7 @@
     },
     {
       "excerpt": "assert!(o.detached.is_empty(), \"the compress leaves the quit registry\");",
-      "line": 2264,
+      "line": 2237,
       "literal": "the compress leaves the quit registry",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155908,7 +155917,7 @@
     },
     {
       "excerpt": "\"the archive terminal result completes its job\"",
-      "line": 2268,
+      "line": 2241,
       "literal": "the archive terminal result completes its job",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155917,7 +155926,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a divergent selection on a pending mount waits: {}\", text(&busy));",
-      "line": 2274,
+      "line": 2247,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155926,7 +155935,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a divergent selection on a pending mount waits: {}\", text(&busy));",
-      "line": 2274,
+      "line": 2247,
       "literal": "a divergent selection on a pending mount waits: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155935,7 +155944,7 @@
     },
     {
       "excerpt": "assert!(!text(&busy).contains(\"archivestarted\"), \"the refused compress starts nothing: {}\", text(&busy));",
-      "line": 2275,
+      "line": 2248,
       "literal": "the refused compress starts nothing: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155944,7 +155953,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"an extract on a pending mount waits: {}\", text(&busy));",
-      "line": 2283,
+      "line": 2256,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155953,7 +155962,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"an extract on a pending mount waits: {}\", text(&busy));",
-      "line": 2283,
+      "line": 2256,
       "literal": "an extract on a pending mount waits: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155962,7 +155971,7 @@
     },
     {
       "excerpt": "assert!(!text(&busy).contains(\"archivestarted\"), \"the refused extract starts nothing: {}\", text(&busy));",
-      "line": 2284,
+      "line": 2257,
       "literal": "the refused extract starts nothing: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155971,7 +155980,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), journaled, \"the refused extract journals nothing\");",
-      "line": 2285,
+      "line": 2258,
       "literal": "the refused extract journals nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155980,7 +155989,7 @@
     },
     {
       "excerpt": "std::fs::write(&bogus, \"not an archive\").unwrap();",
-      "line": 2288,
+      "line": 2261,
       "literal": "not an archive",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155989,7 +155998,7 @@
     },
     {
       "excerpt": "assert!(text(&started).contains(\"archivestarted\"), \"an extract elsewhere starts: {}\", text(&started));",
-      "line": 2293,
+      "line": 2266,
       "literal": "an extract elsewhere starts: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -155998,7 +156007,7 @@
     },
     {
       "excerpt": "let msg = rx.recv_timeout(LAND_BOUND).expect(\"the extract reports through the op channel\");",
-      "line": 2295,
+      "line": 2268,
       "literal": "the extract reports through the op channel",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -156007,7 +156016,7 @@
     },
     {
       "excerpt": "assert!(o.live.running().is_none(), \"the extract frees the slot it claimed\");",
-      "line": 2303,
+      "line": 2276,
       "literal": "the extract frees the slot it claimed",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -156016,7 +156025,7 @@
     },
     {
       "excerpt": "\"the archive terminal result completes its job\"",
-      "line": 2307,
+      "line": 2280,
       "literal": "the archive terminal result completes its job",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -156025,7 +156034,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a convert on a pending mount waits: {}\", text(&busy));",
-      "line": 2314,
+      "line": 2287,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -156034,7 +156043,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a convert on a pending mount waits: {}\", text(&busy));",
-      "line": 2314,
+      "line": 2287,
       "literal": "a convert on a pending mount waits: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -156043,7 +156052,7 @@
     },
     {
       "excerpt": "assert!(!text(&busy).contains(\"convertstarted\"), \"the refused convert starts nothing: {}\", text(&busy));",
-      "line": 2315,
+      "line": 2288,
       "literal": "the refused convert starts nothing: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -156052,7 +156061,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), journaled, \"the refused convert journals nothing\");",
-      "line": 2316,
+      "line": 2289,
       "literal": "the refused convert journals nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -156061,7 +156070,7 @@
     },
     {
       "excerpt": "assert!(!remote.join(\"out.jpg\").exists(), \"the refused convert touches nothing\");",
-      "line": 2317,
+      "line": 2290,
       "literal": "the refused convert touches nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -156070,7 +156079,7 @@
     },
     {
       "excerpt": "assert!(!text(&past).contains(\"already running\"), \"a convert elsewhere passes the gate: {}\", text(&past));",
-      "line": 2322,
+      "line": 2295,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -156079,7 +156088,7 @@
     },
     {
       "excerpt": "assert!(!text(&past).contains(\"already running\"), \"a convert elsewhere passes the gate: {}\", text(&past));",
-      "line": 2322,
+      "line": 2295,
       "literal": "a convert elsewhere passes the gate: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -156088,7 +156097,7 @@
     },
     {
       "excerpt": "let landed = rx.recv_timeout(LAND_BOUND).expect(\"the convert reports through the op channel\");",
-      "line": 2324,
+      "line": 2297,
       "literal": "the convert reports through the op channel",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -156097,7 +156106,7 @@
     },
     {
       "excerpt": "assert!(matches!(&landed, OpMsg::DetachedDone { .. }), \"a convert leaves the quit registry\");",
-      "line": 2325,
+      "line": 2298,
       "literal": "a convert leaves the quit registry",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -156106,7 +156115,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a divergent selection on a pending mount waits: {}\", text(&busy));",
-      "line": 2332,
+      "line": 2305,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -156115,7 +156124,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"a divergent selection on a pending mount waits: {}\", text(&busy));",
-      "line": 2332,
+      "line": 2305,
       "literal": "a divergent selection on a pending mount waits: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -156124,7 +156133,7 @@
     },
     {
       "excerpt": "assert!(text(&probe).contains(\"convertchecked\"), \"a probe answers past the gate: {}\", text(&probe));",
-      "line": 2336,
+      "line": 2309,
       "literal": "a probe answers past the gate: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -156133,7 +156142,7 @@
     },
     {
       "excerpt": "assert!(!text(&probe).contains(\"already running\"), \"a probe is never the gate: {}\", text(&probe));",
-      "line": 2337,
+      "line": 2310,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -156142,7 +156151,7 @@
     },
     {
       "excerpt": "assert!(!text(&probe).contains(\"already running\"), \"a probe is never the gate: {}\", text(&probe));",
-      "line": 2337,
+      "line": 2310,
       "literal": "a probe is never the gate: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -156151,7 +156160,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"permissions on a pending mount wait: {}\", text(&busy));",
-      "line": 2343,
+      "line": 2316,
       "literal": "already running",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -156160,7 +156169,7 @@
     },
     {
       "excerpt": "assert!(text(&busy).contains(\"already running\"), \"permissions on a pending mount wait: {}\", text(&busy));",
-      "line": 2343,
+      "line": 2316,
       "literal": "permissions on a pending mount wait: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -156169,7 +156178,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), journaled, \"the refused permissions batch journals nothing\");",
-      "line": 2344,
+      "line": 2317,
       "literal": "the refused permissions batch journals nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -156178,7 +156187,7 @@
     },
     {
       "excerpt": "assert!(text(&done).contains(r#\"\"ok\":true\"#), \"permissions elsewhere apply: {}\", text(&done));",
-      "line": 2349,
+      "line": 2322,
       "literal": "permissions elsewhere apply: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -156187,7 +156196,7 @@
     },
     {
       "excerpt": "let landed = rx.recv_timeout(LAND_BOUND).expect(\"the released write reports through the op channel\");",
-      "line": 2353,
+      "line": 2326,
       "literal": "the released write reports through the op channel",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -156196,7 +156205,7 @@
     },
     {
       "excerpt": "assert!(text(&late).contains(r#\"\"t\":\"renamed\"\"#), \"the released rename journals late: {}\", text(&late));",
-      "line": 2356,
+      "line": 2329,
       "literal": "the released rename journals late: {}",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -156205,7 +156214,7 @@
     },
     {
       "excerpt": "assert_eq!(journaled, 0, \"the accepted rename holds later entries behind its reservation\");",
-      "line": 2357,
+      "line": 2330,
       "literal": "the accepted rename holds later entries behind its reservation",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -156214,7 +156223,7 @@
     },
     {
       "excerpt": "assert_eq!(o.journal.len(), 8 + trash_journaled, \"every completed write journals exactly once; an empty Trash receipt journals nothing\");",
-      "line": 2358,
+      "line": 2331,
       "literal": "every completed write journals exactly once; an empty Trash receipt journals nothing",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -156223,7 +156232,7 @@
     },
     {
       "excerpt": "assert!(o.live.running().is_none(), \"no pending entry survives the late Done\");",
-      "line": 2359,
+      "line": 2332,
       "literal": "no pending entry survives the late Done",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -156232,7 +156241,7 @@
     },
     {
       "excerpt": "assert!(o.pending.is_empty(), \"the late Done clears its own pending entry\");",
-      "line": 2360,
+      "line": 2333,
       "literal": "the late Done clears its own pending entry",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -156241,7 +156250,7 @@
     },
     {
       "excerpt": "const SELECTION_GONE: &str = \"Selected items changed; reopen the menu.\";",
-      "line": 2364,
+      "line": 2337,
       "literal": "Selected items changed; reopen the menu.",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -156250,7 +156259,7 @@
     },
     {
       "excerpt": "assert!(menu_sources(&o, 0).unwrap().is_none(), \"a request with no menu names no selection\");",
-      "line": 2371,
+      "line": 2344,
       "literal": "a request with no menu names no selection",
       "owner": "controller",
       "path": "src/backend/opsdispatch.rs",
@@ -161686,7 +161695,7 @@
     },
     {
       "excerpt": "pub const UNKNOWN_KIND: &str = \"Data\";",
-      "line": 252,
+      "line": 254,
       "literal": "Data",
       "owner": "controller",
       "path": "src/backend/rows.rs",
@@ -161695,7 +161704,7 @@
     },
     {
       "excerpt": "return \"Folder\".to_string();",
-      "line": 256,
+      "line": 258,
       "literal": "Folder",
       "owner": "controller",
       "path": "src/backend/rows.rs",
@@ -161722,7 +161731,7 @@
     },
     {
       "excerpt": "Some(\"The items changed; select them again.\".to_string())",
-      "line": 859,
+      "line": 858,
       "literal": "The items changed; select them again.",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -161731,7 +161740,7 @@
     },
     {
       "excerpt": "ops.menuactions.as_ref().ok_or_else(|| \"The items changed; select them again.\".to_string())",
-      "line": 865,
+      "line": 864,
       "literal": "The items changed; select them again.",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -161740,7 +161749,7 @@
     },
     {
       "excerpt": "let listed = String::from_utf8(std::mem::take(&mut out)).expect(\"the listing wire is UTF-8\");",
-      "line": 1133,
+      "line": 1132,
       "literal": "the listing wire is UTF-8",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -161749,7 +161758,7 @@
     },
     {
       "excerpt": "let header = listed.lines().next().expect(\"the listing has a header\");",
-      "line": 1134,
+      "line": 1133,
       "literal": "the listing has a header",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -161758,7 +161767,7 @@
     },
     {
       "excerpt": "let listed_path = crate::json::field_str(header, \"path\").expect(\"the header names its directory\");",
-      "line": 1136,
+      "line": 1135,
       "literal": "the header names its directory",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -161767,7 +161776,7 @@
     },
     {
       "excerpt": "assert_eq!(listed_path.as_bytes(), REMOTE_PATH.as_bytes(), \"the listing preserves the input spelling\");",
-      "line": 1137,
+      "line": 1136,
       "literal": "the listing preserves the input spelling",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -161776,7 +161785,7 @@
     },
     {
       "excerpt": "assert!(super::super::iomount::is_remote(&st.base, \"\"), \"the fixture takes the remote window branch\");",
-      "line": 1138,
+      "line": 1137,
       "literal": "the fixture takes the remote window branch",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -161785,7 +161794,7 @@
     },
     {
       "excerpt": "assert!(super::super::iomount::test_calls() > calls_before, \"the window reaches the real mount bound\");",
-      "line": 1145,
+      "line": 1144,
       "literal": "the window reaches the real mount bound",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -161794,7 +161803,7 @@
     },
     {
       "excerpt": "let response = String::from_utf8(out).expect(\"the error wire is UTF-8\");",
-      "line": 1146,
+      "line": 1145,
       "literal": "the error wire is UTF-8",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -161803,7 +161812,7 @@
     },
     {
       "excerpt": "let error = lines.next().expect(\"the refused window emits an error\");",
-      "line": 1148,
+      "line": 1147,
       "literal": "the refused window emits an error",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -161812,7 +161821,7 @@
     },
     {
       "excerpt": "assert_eq!(crate::json::field_str(error, \"where\").as_deref(), Some(\"window\"), \"the window emitter identifies its operation: {error}\");",
-      "line": 1150,
+      "line": 1149,
       "literal": "the window emitter identifies its operation: {error}",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -161821,7 +161830,7 @@
     },
     {
       "excerpt": "let error_path = crate::json::field_str(error, \"path\").expect(\"the error names its directory\");",
-      "line": 1151,
+      "line": 1150,
       "literal": "the error names its directory",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -161830,7 +161839,7 @@
     },
     {
       "excerpt": "assert_eq!(error_path.as_bytes(), listed_path.as_bytes(), \"the window error path must be byte-equal to the listed path; error={error_path:?}, listed={listed_path:?}\");",
-      "line": 1152,
+      "line": 1151,
       "literal": "the window error path must be byte-equal to the listed path; error={error_path:?}, listed={listed_path:?}",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -161839,7 +161848,7 @@
     },
     {
       "excerpt": "assert!(crate::json::field_str(error, \"msg\").expect(\"the error carries its cause\").contains(\"not responding\"));",
-      "line": 1153,
+      "line": 1152,
       "literal": "the error carries its cause",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -161848,7 +161857,7 @@
     },
     {
       "excerpt": "assert!(crate::json::field_str(error, \"msg\").expect(\"the error carries its cause\").contains(\"not responding\"));",
-      "line": 1153,
+      "line": 1152,
       "literal": "not responding",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -161857,7 +161866,7 @@
     },
     {
       "excerpt": "assert!(lines.next().is_none(), \"a refused window emits no rows: {response}\");",
-      "line": 1154,
+      "line": 1153,
       "literal": "a refused window emits no rows: {response}",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -161866,7 +161875,7 @@
     },
     {
       "excerpt": "let landed = rx.recv_timeout(REPLY_DEADLINE).expect(\"the released link reports through the op channel\");",
-      "line": 1192,
+      "line": 1191,
       "literal": "the released link reports through the op channel",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -161875,7 +161884,7 @@
     },
     {
       "excerpt": "assert!(matches!(landed, OpMsg::Linked { .. }), \"the production link sends Linked\");",
-      "line": 1193,
+      "line": 1192,
       "literal": "the production link sends Linked",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -161884,7 +161893,7 @@
     },
     {
       "excerpt": "assert_eq!(ops.journal.len(), 1, \"one journal entry covers both links\");",
-      "line": 1196,
+      "line": 1195,
       "literal": "one journal entry covers both links",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -161893,7 +161902,7 @@
     },
     {
       "excerpt": "assert!(ops.live.running().is_none(), \"Linked releases the operation slot\");",
-      "line": 1197,
+      "line": 1196,
       "literal": "Linked releases the operation slot",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -161902,7 +161911,7 @@
     },
     {
       "excerpt": "entered.recv_timeout(REPLY_DEADLINE).expect(\"run_link reached the handshake\");",
-      "line": 1201,
+      "line": 1200,
       "literal": "run_link reached the handshake",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -161911,7 +161920,7 @@
     },
     {
       "excerpt": "backend.join().expect(\"the backend finishes after releasing the held link\");",
-      "line": 1204,
+      "line": 1203,
       "literal": "the backend finishes after releasing the held link",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -161920,7 +161929,7 @@
     },
     {
       "excerpt": "let (out, running, unjournalled, no_pending) = responsive.expect(\"a held link must leave Request::Paths responsive\");",
-      "line": 1205,
+      "line": 1204,
       "literal": "a held link must leave Request::Paths responsive",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -161929,7 +161938,7 @@
     },
     {
       "excerpt": "let refused = replies.next().expect(\"the second link is refused while the slot is held\");",
-      "line": 1209,
+      "line": 1208,
       "literal": "the second link is refused while the slot is held",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -161938,7 +161947,7 @@
     },
     {
       "excerpt": "assert!(refused.contains(r#\"\"t\":\"error\"\"#) && refused.contains(\"an operation is already running\"), \"{refused}\");",
-      "line": 1210,
+      "line": 1209,
       "literal": "an operation is already running",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -161947,7 +161956,7 @@
     },
     {
       "excerpt": "assert!(replies.next().is_none(), \"a held link emits neither slow nor a premature linked line: {lines}\");",
-      "line": 1211,
+      "line": 1210,
       "literal": "a held link emits neither slow nor a premature linked line: {lines}",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -161956,7 +161965,7 @@
     },
     {
       "excerpt": "assert!(running && unjournalled && no_pending, \"the link holds the slot, with no slow claim or journal before completion\");",
-      "line": 1212,
+      "line": 1211,
       "literal": "the link holds the slot, with no slow claim or journal before completion",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -161965,7 +161974,7 @@
     },
     {
       "excerpt": "assert!(std::fs::symlink_metadata(dest.join(\"a.txt\")).is_err(), \"undo removed the first link\");",
-      "line": 1213,
+      "line": 1212,
       "literal": "undo removed the first link",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -161974,7 +161983,7 @@
     },
     {
       "excerpt": "assert!(std::fs::symlink_metadata(dest.join(\"b.txt\")).is_err(), \"undo removed the second link\");",
-      "line": 1214,
+      "line": 1213,
       "literal": "undo removed the second link",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -161983,7 +161992,7 @@
     },
     {
       "excerpt": "assert!(a.exists() && b.exists(), \"undo preserves both sources\");",
-      "line": 1215,
+      "line": 1214,
       "literal": "undo preserves both sources",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -161992,7 +162001,7 @@
     },
     {
       "excerpt": "let (metas, _) = window_metas(&mut st, 0, 10).expect(\"a local window answers\");",
-      "line": 1230,
+      "line": 1229,
       "literal": "a local window answers",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -162001,7 +162010,7 @@
     },
     {
       "excerpt": "assert_eq!(metas.len(), 2, \"the window carries its rows\");",
-      "line": 1231,
+      "line": 1230,
       "literal": "the window carries its rows",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -162010,7 +162019,7 @@
     },
     {
       "excerpt": "assert_eq!(crate::backend::iomount::test_calls(), 0, \"a local window takes no bound call and clones no listing\");",
-      "line": 1232,
+      "line": 1231,
       "literal": "a local window takes no bound call and clones no listing",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -162019,7 +162028,7 @@
     },
     {
       "excerpt": "let (dev, writable) = search_root_info(d.path()).expect(\"a live root answers\");",
-      "line": 1240,
+      "line": 1239,
       "literal": "a live root answers",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -162028,7 +162037,7 @@
     },
     {
       "excerpt": "assert_eq!(dev, crate::backend::fsinfo::dev_of(d.path()), \"the bound answers the root's own figures\");",
-      "line": 1241,
+      "line": 1240,
       "literal": "the bound answers the root's own figures",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -162037,7 +162046,7 @@
     },
     {
       "excerpt": "assert!(writable, \"the sandbox is writable\");",
-      "line": 1242,
+      "line": 1241,
       "literal": "the sandbox is writable",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -162046,7 +162055,7 @@
     },
     {
       "excerpt": "assert_eq!(crate::backend::iomount::test_calls(), 1, \"the root's stat takes exactly one bound call\");",
-      "line": 1243,
+      "line": 1242,
       "literal": "the root's stat takes exactly one bound call",
       "owner": "controller",
       "path": "src/backend/run.rs",
@@ -176941,7 +176950,7 @@
     },
     {
       "excerpt": ".ok_or(\"rows must be an array\")?;",
-      "line": 109,
+      "line": 111,
       "literal": "rows must be an array",
       "owner": "controller",
       "path": "src/protocol.rs",
@@ -176950,7 +176959,7 @@
     },
     {
       "excerpt": "return Err(\"z must hold [row,bytes] pairs\".into());",
-      "line": 126,
+      "line": 128,
       "literal": "z must hold [row,bytes] pairs",
       "owner": "controller",
       "path": "src/protocol.rs",
@@ -176959,7 +176968,7 @@
     },
     {
       "excerpt": "Some(Json::Num(value)) => value.parse().map_err(|_| \"mode must fit a mode\")?,",
-      "line": 144,
+      "line": 146,
       "literal": "mode must fit a mode",
       "owner": "controller",
       "path": "src/protocol.rs",
@@ -176968,7 +176977,7 @@
     },
     {
       "excerpt": "_ => return Err(\"mode must be an unsigned integer\".into()),",
-      "line": 145,
+      "line": 147,
       "literal": "mode must be an unsigned integer",
       "owner": "controller",
       "path": "src/protocol.rs",
@@ -176977,7 +176986,7 @@
     },
     {
       "excerpt": "Some(value) => value.as_bool().ok_or(\"x must be a boolean\")?,",
-      "line": 159,
+      "line": 161,
       "literal": "x must be a boolean",
       "owner": "controller",
       "path": "src/protocol.rs",
@@ -176986,7 +176995,7 @@
     },
     {
       "excerpt": ".ok_or_else(|| \"tg must be an array\".to_owned())?",
-      "line": 169,
+      "line": 176,
       "literal": "tg must be an array",
       "owner": "controller",
       "path": "src/protocol.rs",
@@ -176995,7 +177004,7 @@
     },
     {
       "excerpt": ".ok_or_else(|| \"tg names must be strings\".to_owned())",
-      "line": 174,
+      "line": 181,
       "literal": "tg names must be strings",
       "owner": "controller",
       "path": "src/protocol.rs",
@@ -177004,7 +177013,7 @@
     },
     {
       "excerpt": ".ok_or(\"d must be a boolean\")?,",
-      "line": 183,
+      "line": 190,
       "literal": "d must be a boolean",
       "owner": "controller",
       "path": "src/protocol.rs",
@@ -177013,7 +177022,7 @@
     },
     {
       "excerpt": "mode: u32::try_from(uint(row, \"p\")?).map_err(|_| \"p must fit a mode\")?,",
-      "line": 186,
+      "line": 193,
       "literal": "p must fit a mode",
       "owner": "controller",
       "path": "src/protocol.rs",
@@ -177022,7 +177031,7 @@
     },
     {
       "excerpt": ".ok_or_else(|| format!(\"{key} must be a string\"))",
-      "line": 215,
+      "line": 222,
       "literal": "{key} must be a string",
       "owner": "controller",
       "path": "src/protocol.rs",
@@ -177031,7 +177040,7 @@
     },
     {
       "excerpt": ".map_err(|_| format!(\"{key} must be an unsigned integer\")),",
-      "line": 222,
+      "line": 229,
       "literal": "{key} must be an unsigned integer",
       "owner": "controller",
       "path": "src/protocol.rs",
@@ -177040,7 +177049,7 @@
     },
     {
       "excerpt": "_ => Err(format!(\"{key} must be an unsigned integer\")),",
-      "line": 223,
+      "line": 230,
       "literal": "{key} must be an unsigned integer",
       "owner": "controller",
       "path": "src/protocol.rs",
@@ -177049,7 +177058,7 @@
     },
     {
       "excerpt": ".map_err(|_| format!(\"{key} must be an integer\")),",
-      "line": 231,
+      "line": 238,
       "literal": "{key} must be an integer",
       "owner": "controller",
       "path": "src/protocol.rs",
@@ -177058,7 +177067,7 @@
     },
     {
       "excerpt": "_ => Err(format!(\"{key} must be an integer\")),",
-      "line": 232,
+      "line": 239,
       "literal": "{key} must be an integer",
       "owner": "controller",
       "path": "src/protocol.rs",
@@ -254343,6 +254352,7 @@
     "crates/flea-gui/src/g2/picker_listing/pictures.rs": "12d6702c33b2e36898ff84c26e0127ba85a1fbda1f9a374d7e8ed2c69cc7ea15",
     "crates/flea-gui/src/g2/picker_listing/pointer.rs": "33277fed22a9a73d609eb474a0af65716473e966d1f7033f2844b16fd05ba94d",
     "crates/flea-gui/src/g2/picker_listing/route.rs": "a7a874cf420590fc4b372e38256529059733320b413f1620cbccd4f65a88bbbc",
+    "crates/flea-gui/src/g2/picker_listing/route_ports_fixture.rs": "98bd7e29b2ff8fb0e6d7392ad824c96b054cd560035146420152b40a0f9f3aac",
     "crates/flea-gui/src/g2/picker_listing/save.rs": "4f084d7766433d82c468f1434c5a260cc8f702af2fd8d1dd1458af818d90fb82",
     "crates/flea-gui/src/g2/picker_listing/scrollbar.rs": "d9b5bcafbd7313ebb7aa976682b1ae2a885f3fa83a155ec845c442cece757300",
     "crates/flea-gui/src/g2/picker_listing/settings.rs": "2ffdfd523ba422ce305f2f4222296bb6d49c14c91e544999736be825ad91083d",
@@ -254702,7 +254712,7 @@
     "crates/flea-gui/src/leaf.rs": "e5fe950bb847c3bf84f1ef04637712a908ff8b8a182f30d502f2aafe35e1726e",
     "crates/flea-gui/src/lib.rs": "178ed2e7224a06da10990a32dc48601848a4af065cdb6e127366c4fe25df5758",
     "crates/flea-gui/src/list.rs": "694756f0666c66846eeb6da4baf1aadf1ab4c5be04828e256263ea9f057b832b",
-    "crates/flea-gui/src/list/bench.rs": "4b01aaada6e926743d581756304f522971093e3ee22dc0953a8c552739aeab7c",
+    "crates/flea-gui/src/list/bench.rs": "8e0a6556013392e96c425d4e0b8468097dd367370ab993dc77e62eac2c0e63a3",
     "crates/flea-gui/src/list/columns.rs": "77a28f1288ea8273f3648f7c99dc141d17426bd3171f5e4fcab8e7431e1937b9",
     "crates/flea-gui/src/list/element.rs": "43763ff62bb5d17623b8ea2296aea1fa7287693da33cf0be0c0ffe2cebb81de3",
     "crates/flea-gui/src/list/gh315_backend_fixture.rs": "7490e6b67f3bfdeb33886cff59bb9978fcc927c4d59bc2ae401210d89a3b4835",
@@ -255033,19 +255043,21 @@
     "crates/flea-gui/src/window/rail_keys.rs": "7fe88775a37a64b9dadcc3e84a107a949c7376b6165324946e53e31d0d9983ce",
     "crates/flea-gui/src/window/rail_state.rs": "7321e9839bb81f489f91ca4ab6ea380f0fc80dc388114372887dd96405f696d1",
     "crates/flea-gui/src/window/recent.rs": "42bfdcff3b3c996ae2299de6cc148a523bfa210a228117746e7e19a90d0b6234",
-    "crates/flea-gui/src/window/rename.rs": "14d94f4d4cb13e9337662e40a22c1c460d59f217122c6d39b82388c3d63fd28a",
+    "crates/flea-gui/src/window/rename.rs": "dd9b7bd82c0676a1b43b10c761798fee28b1df06914ed624eb0669617d06c630",
     "crates/flea-gui/src/window/rename_bulk.rs": "022b9196314eae8400369cf6e301ea9408487dc15a2824baa30476349ac8942b",
+    "crates/flea-gui/src/window/rename_commit.rs": "a9a5af65020a51e58d1504515a4da2e47401beb36609f3fa1a63626ac271cb5f",
     "crates/flea-gui/src/window/rename_field.rs": "d535674dd3c2ee54302085bff395f999706d7048037c5e22fc9a29183429c84e",
     "crates/flea-gui/src/window/rename_field_pointer.rs": "023527fb38a5e40258595d2038aac47956860c6085d2049b97c5dcdd09ee1bd0",
     "crates/flea-gui/src/window/rename_field_shaping.rs": "d50fe4108fafe674afcbc5720ee57c0fae4a1367628c96f62192aba66828fa52",
+    "crates/flea-gui/src/window/rename_identity.rs": "f236593031059b6cd6a8677e2b757f8a5238e5a74a4d7bddef31a7c049e3fce0",
     "crates/flea-gui/src/window/rename_input.rs": "b34a72fea2759e5ce1e797d668965509923de1d69efd30bb765552c81b863217",
     "crates/flea-gui/src/window/rename_ipc.rs": "496e4ec838277f195aec5c83cf954fc8e10e6154337e79cf96b56586104b8546",
     "crates/flea-gui/src/window/rename_menu.rs": "c40b8a632148024d29432966154771310cf05c7bece983a450c27de4eddcd73c",
     "crates/flea-gui/src/window/rename_place.rs": "d4885371c2c5de5d2e4b3e64d6215a6d6ab374f23b34b60c5b5f040062336dfd",
-    "crates/flea-gui/src/window/rename_replies.rs": "fd2cea0c93121baa73bca9416916adb11a7fb1fe9c2c5a49f32634655c2b2b68",
+    "crates/flea-gui/src/window/rename_replies.rs": "56671fa8dce0810b54503da57410eaf2237e739ceb4878257d0dae04b1640707",
     "crates/flea-gui/src/window/rename_slow.rs": "b14e6dba20ce84e6f6895ccdb2b838a7eaeea21ec204eb8c6d855e2cb5edf5b4",
     "crates/flea-gui/src/window/rename_slow_policy.rs": "a353741f00f4e36fe7e0000ddc875252f7d9e1daa99dd62ed4be671a2967993d",
-    "crates/flea-gui/src/window/rename_target.rs": "07fee6fea5e3a9ebda2d9e47eaf609e45ad07b559db7382b59182131051295c7",
+    "crates/flea-gui/src/window/rename_target.rs": "e86a6025b4a103dbd06d84fd3937664031bf186c4f482540a2960ba15b4bd6ad",
     "crates/flea-gui/src/window/render.rs": "264d5e69703fd49133ee35300836903494c2bbeef00d59c3f972dfd87064a70f",
     "crates/flea-gui/src/window/render_footer.rs": "535512763259b18ef9b608661e5ab91da6e673596ad404ff950d50c300d27275",
     "crates/flea-gui/src/window/retry.rs": "47e28348d173fb17751a0bbec862d77ff370e9c88d7c190c9489c2dad3b1e8b9",
@@ -255282,9 +255294,9 @@
     "src/backend/menutags_states.rs": "0d7336c0413ef3fe537837c52676e36b98ecf7bb30489895a481785abe4af68a",
     "src/backend/merge.rs": "982ad737f9364923de4867522bd2b2e867eb32bfacfce5c928236d9bfec84c9b",
     "src/backend/mergeapply.rs": "ce0befd322911fed92b51a2d54615a4c82b3f75d0a1ecd103e6a389e6d1b2069",
-    "src/backend/meta.rs": "c1e3fffc68740d93a0448fe959c640e9a88292827b3b690bbe7121d4b8f6e576",
+    "src/backend/meta.rs": "dd495aa325f9f901eb6a0ede8300253d6a46f76e23b31221b82af686e1a0f19d",
     "src/backend/metareq.rs": "9e7bfedb91534dbd46f8062c8e736392f7ec236368d10182f0a31cebc948095a",
-    "src/backend/metarow.rs": "7aa447b2e60755e1c6df3514b514b9bfbeba34b63fb5b1d41209ee6192a7ce22",
+    "src/backend/metarow.rs": "b2bcd0569127cb3c19c67512ca918ec6f331424cbf3e840900678cfcf230d4c4",
     "src/backend/metasort.rs": "b147824816ec8aa7b2428fba5d6d8a70ab6f338bc64f2b5218d548bb0850239c",
     "src/backend/mime.rs": "6db356f71fc26d01c3704ea243bb46c36e85ad65d609d77840b4b1ebddf9eb47",
     "src/backend/mod.rs": "7bae5135f73a93bda68868d7b9ea5d8e412cad7b71cb4db555219f51ae098f5c",
@@ -255334,7 +255346,7 @@
     "src/backend/opmsg.rs": "1b31b86dec8d9eaaa42068f1e086e55c6f0fc4c6309ba7175ef47ab6c8a80309",
     "src/backend/ops.rs": "2990f3176e359f0badb1de7ff130a6703c63f405e381ec3df320ad3b24a8741b",
     "src/backend/opscancel.rs": "9418041dfe86184e9c30bfe87a7c8bd46208e1c1d8130f52ded4ad9e8f819fd0",
-    "src/backend/opsdispatch.rs": "26f0308fb73f9ae27e3d54556e2bfda874f5670331de840c0399d3222c1f6f77",
+    "src/backend/opsdispatch.rs": "ac48279b06a706e7346a828a78c75487e8c976149533b126f0ad91c9f6b95f29",
     "src/backend/opsname.rs": "d6a9f806c2f6c343e6fb8e1a645556e728c229f10369214c1e50f2c0ca7ab46d",
     "src/backend/opspace.rs": "6dba8573f53c68c2c35f193aabffd410f1a35b8f56ec32c309df21ac01e96bb7",
     "src/backend/opsprobe.rs": "515c27d465cdfe7b4a590812b775f3563ec3321382da7d0ff593c58039bb709f",
@@ -255397,13 +255409,14 @@
     "src/backend/redo.rs": "ecfae5d3741d64efd3bd3a4dadfa0a3d60446c0e21eaf235cb094d726334a318",
     "src/backend/regfile.rs": "32b63549d15ecf649c4625e65eb060d4c06d8659cf978ffdfa1f2adc4d2ff024",
     "src/backend/removable.rs": "791df6e35c10c458cc335479d77d19615d44eb4acb4aab1304138d4ceda6bd96",
+    "src/backend/rename_selected.rs": "30690001ae5cedff70097a865c3ffb62755c7aabd6ec57caa308e0ab27c04625",
     "src/backend/renamecompat.rs": "d9c8af01f5110c2454e265d0b306d7579bf793cb27b2d181b630e74c6dbb5bbb",
     "src/backend/renametiming.rs": "a5ce89173e838ebe8ab2852c26573233b45a0f7276a4bfbba8a30bdd5171c658",
     "src/backend/renamework.rs": "b067d509236a2fcf14205a816f15359bcc88e41f1798aaa6fb9d85b6b6322b36",
     "src/backend/replacedefer.rs": "90b68ef904bd7cfa4baa09354e630fbebe8267553b3008a79a1586a143a3ea09",
     "src/backend/rowguard.rs": "84350fe6ae586a34136d14bc8304211b5a26407777e12cef9031193f0ef0e361",
-    "src/backend/rows.rs": "525615acb29c9c94c725616b11f796ad57ead18ec560c845205b2919f63db123",
-    "src/backend/run.rs": "1aba2a0649188ac76a8e717a92178f985cabeff92f1b3bd15ad2fb647354875e",
+    "src/backend/rows.rs": "c0b06c992edb1faa707162544ae227c32d07720109d1a1b348e80e2d9dec14ce",
+    "src/backend/run.rs": "eb614424e9779d8a40541343b8176877d0270f260bf3ad0bafa2aa64314b91c4",
     "src/backend/run_rows.rs": "ca4e0a2c0dbdc7b84cf64d6401b6bc77b4f6484cac5c51267b42bf44feabcf32",
     "src/backend/sandbox.rs": "44faae7734a66ff427e5299d971a4160734feacdae7357d48f4eb129be975746",
     "src/backend/sandboxprobe.rs": "ef988091cec143e646df29292b0ff99f39605f25b8c5513a64b0a77b8db58d55",
@@ -255609,7 +255622,7 @@
     "src/prefetch.rs": "497d1fc2d6bff2fa92f15848584a08354b21e8a7c28f25e02fc5c4c6d594c60f",
     "src/preview_model.rs": "99d56098ec38e24b94b9e1ae0027e795ab647664bc45eb6ce1f081af83256a02",
     "src/procsignal.rs": "b8e84f378c153d0a6fbc2fc421f4a5f06c94d01ddedfa495fb7f36d3cfc4d069",
-    "src/protocol.rs": "6a544c617ee87a68685ce36bfa2fab9281d2465158f97d152ce05c6988be8e86",
+    "src/protocol.rs": "8961894196851f6dc7ba9f3898b248d56da164afc65b0d62198c7f100a91297d",
     "src/qscrash.rs": "ce5db46de6d437e19b46507668cd2bb9ad2156118b002397fd04c1691262217e",
     "src/qsregistry.rs": "ff4081be9a8ac4342937ae11d0f751914dbfb695c1c717049c5ba950f878cd00",
     "src/rawname.rs": "44276fcd5db0aceee9ed0c1e49b08ad952a67d57e3e1a59017107d660b3de90c",
@@ -256663,13 +256676,13 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "201f515e7362d75eceb1857b2bb5beb5a396e225",
-  "source_sha": "201f515e7362d75eceb1857b2bb5beb5a396e225",
+  "source_ref_sha": "853ab9b510f8b7850966c4920cde6ede2db01435",
+  "source_sha": "853ab9b510f8b7850966c4920cde6ede2db01435",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1377,
       "missing_literal_candidates": 5772,
-      "source_files": 881
+      "source_files": 882
     },
     "generated/tooling": {
       "keys_with_occurrences": 157,
@@ -256678,8 +256691,8 @@
     },
     "gui": {
       "keys_with_occurrences": 566,
-      "missing_literal_candidates": 2309,
-      "source_files": 1209
+      "missing_literal_candidates": 2310,
+      "source_files": 1212
     },
     "qml-reference": {
       "keys_with_occurrences": 0,

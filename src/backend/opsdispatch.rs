@@ -262,37 +262,10 @@ pub(crate) fn start_duplicate(out: &mut impl Write, ops: &mut Ops, path: &str, m
     created_request::duplicate(out, ops, path, menu_id, 0);
 }
 
-// A menu rename captures the selected identity before its worker outlives the menu and listing.
-pub(crate) fn do_menu_rename(out: &mut impl Write, ops: &mut Ops, path: &str, to: &str, id: usize) -> Vec<PathBuf> {
-    let selected = ops.menuactions.as_ref().ok_or_else(|| super::menu_actions::SELECTION_CHANGED.to_string())
-        .and_then(|menu| menu.selected_path(id, &flea::bytename::view(path)));
-    match selected {
-        Ok(item) => {
-            if ops.live.running().is_some() || ops.jobs.unfinished() > 0 {
-                busy(out, "rename");
-                return Vec::new();
-            }
-            let from = path.to_string();
-            let name = to.to_string();
-            do_rename_with(out, ops, path, CALL_DEADLINE, move || {
-                item.current().map_err(|error| op_err("rename", &from, &error))?;
-                ops::rename(&flea::bytename::view(&from), &name)
-            })
-        }
-        Err(error) => { writeln!(out, "{}", error_line(&op_err("rename", path, &error))).ok(); out.flush().ok(); Vec::new() }
-    }
-}
-
-// Even a local rename can wait on the filesystem; the dispatcher only accepts its immutable paths.
-pub(crate) fn do_rename(out: &mut impl Write, ops: &mut Ops, path: &str, to: &str) -> Vec<PathBuf> {
-    if ops.live.running().is_some() || ops.jobs.unfinished() > 0 {
-        busy(out, "rename");
-        return Vec::new();
-    }
-    let from = path.to_string();
-    let name = to.to_string();
-    do_rename_with(out, ops, path, CALL_DEADLINE, move || ops::rename(&flea::bytename::view(&from), &name))
-}
+#[path = "rename_selected.rs"]
+pub(crate) mod rename_selected;
+#[cfg(test)]
+pub(crate) use rename_selected::{do_menu_rename, do_rename};
 
 pub(crate) fn do_rename_with<F>(out: &mut impl Write, ops: &mut Ops, path: &str, deadline: Duration, work: F) -> Vec<PathBuf>
 where F: FnOnce() -> Result<(PathBuf, Vec<Step>), FleaError> + Send + 'static,

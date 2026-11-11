@@ -13,7 +13,8 @@ fn a_columns_edit_drops_once_its_row_leaves_the_track(cx: &mut TestAppContext) {
 
 // A clashing rename keeps its editor open under the refusal: the frame and the refusal take the error ink, and the edited row grows so the row below clears the refusal.
 // The clashing draft's own send, and the refusal the backend answers with.
-const CLASH_SEND: &str = r#"{"c":"rename","path":"/files/notes.txt","to":"beta.md","menuId":0}"#;
+const CLASH_SEND: &str =
+    r#"{"c":"rename","path":"/files/notes.txt","to":"beta.md","menuId":0,"source":"1:2:32768"}"#;
 
 fn clash_refusal() -> BackendEvent {
     BackendEvent::Refused {

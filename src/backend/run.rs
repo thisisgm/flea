@@ -11,7 +11,7 @@ use crate::backend::archivereq::{formats_line, start_archive, start_convert};
 use crate::backend::convert;
 use crate::backend::peekwatch::PeekWatch;
 use crate::backend::metareq::spawn as spawn_meta;
-use crate::backend::opsdispatch::{cancel_transfer, do_mkdir, do_newfile, do_permissions_batch, do_rename, do_undo, report_op, resolve_rows, start_duplicate, start_trash, start_transfer, start_menu_transfer, start_redo, Ops};
+use crate::backend::opsdispatch::{cancel_transfer, do_mkdir, do_newfile, do_permissions_batch, do_undo, report_op, resolve_rows, start_duplicate, start_trash, start_transfer, start_menu_transfer, start_redo, Ops};
 use crate::backend::opsreq::OpMsg;
 use crate::backend::dirsizereq::{queue_dirsizes, seed_answered, start_next, report_done as report_dirsize};
 use crate::backend::events::{spawn_op_forwarder, Event, Sender};
@@ -746,8 +746,7 @@ fn handle_line(
             #[cfg(test)]
             super::renametiming::begin();
             // The worker result patches the search index using the rename's owned paths.
-            let touched = if menu_id == 0 { do_rename(out, ops, &path, &to) }
-                else { super::opsdispatch::do_menu_rename(out, ops, &path, &to, menu_id) };
+            let touched = super::opsdispatch::rename_selected::request(out, ops, &path, &to, menu_id, line);
             patch_session_paths(st, touched);
         }
         Request::BulkRename { paths, names } => patch_session_paths(st, super::bulkrename::do_bulkrename(out, ops, paths, names)),
