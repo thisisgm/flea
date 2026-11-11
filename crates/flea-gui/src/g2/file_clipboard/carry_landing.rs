@@ -230,7 +230,8 @@ impl Shell {
                 };
                 if let Some(offer) = destination.remote.as_ref().filter(|_| !destination.granted) {
                     let offer = offer.clone();
-                    cx.global_mut::<Carrying>().ipc.pending = Some(offer.token.clone());
+                    let token = offer.token.clone();
+                    cx.global_mut::<Carrying>().ipc.pending = Some(token.clone());
                     let grant = cx.background_executor().spawn(async move {
                         super::carry_bus::call(offer.pid, "carryClaim", vec![offer.token])
                             .is_some_and(|reply| reply.stdout.trim() == "true")
@@ -240,7 +241,7 @@ impl Shell {
                     destination.granted = true;
                     cx.spawn_in(window, async move |this, cx| {
                         let granted = grant.await;
-                        let _ = this.update_in(cx, |shell, window, cx| {
+                        let open = this.update_in(cx, |shell, window, cx| {
                             let landed = granted
                                 && shell.carry_finish(
                                     side,
@@ -252,27 +253,22 @@ impl Shell {
                                     window,
                                     cx,
                                 );
-                            let token = &destination.remote.as_ref().unwrap().token;
-                            let carrying = cx.global_mut::<Carrying>();
-                            if carrying.ipc.pending.as_ref() == Some(token) {
-                                carrying.ipc.pending = None;
-                                if carrying
-                                    .ipc
-                                    .current
-                                    .as_ref()
-                                    .is_some_and(|current| current.token == *token)
-                                {
-                                    carrying.ipc.current = None;
-                                }
-                                carrying.ipc.retire(token.clone());
-                                // A grant ends the source's carry, so a landing that then moved nothing must say so.
-                                if !landed {
-                                    shell.say_stopped(cx);
-                                }
+                            // A grant ends the source's carry, so a landing that then moved nothing must say so.
+                            if cx.global_mut::<Carrying>().ipc.settle_claim(&token) && !landed {
+                                shell.say_stopped(cx);
                             }
                             shell.carry_ended(window_id(window), cx);
                             cx.notify();
                         });
+                        // A claim whose window closed first still frees the process carry for the other windows.
+                        if open.is_err() {
+                            let app: &gpui::AsyncApp = cx;
+                            if app.update_global::<Carrying, _>(|carrying, _| {
+                                carrying.ipc.settle_claim(&token)
+                            }) {
+                                app.update(|cx| cx.refresh_windows());
+                            }
+                        }
                     })
                     .detach();
                     return false;

@@ -66,6 +66,23 @@ impl State {
         self.latest = self.latest.max((offer.lift_stamp, offer.pid, u128::MAX));
     }
 
+    // The grant answer frees the claim it ends, landed or not; true when this call freed it.
+    pub fn settle_claim(&mut self, token: &str) -> bool {
+        if self.pending.as_deref() != Some(token) {
+            return false;
+        }
+        self.pending = None;
+        if self
+            .current
+            .as_ref()
+            .is_some_and(|offer| offer.token == token)
+        {
+            self.current = None;
+        }
+        self.retire(token.to_owned());
+        true
+    }
+
     pub fn accept(&mut self, offer: &Offer) -> bool {
         let order = (offer.lift_stamp, offer.pid, offer.stamp);
         if !offer.live() || order <= self.latest || self.retired.contains_key(&offer.token) {
