@@ -95,6 +95,9 @@ fn filtered_grid_down_without_a_row_below_still_commits(cx: &mut TestAppContext)
     let (handle, _read) = filtered_to(cx, View::Grid, "5,7");
     assert!(columns(cx, handle) > 2, "both matches share one visual row");
     assert_eq!(cursor(cx, handle), 5);
+    edit(cx, handle, |shell, _, _| {
+        assert!(shell.panes[0].as_ref().unwrap().filter.owner.typing());
+    });
     press(cx, handle, "down", None, false);
     assert_eq!(cursor(cx, handle), 5, "one visual row holds Down");
     edit(cx, handle, |shell, _, _| {
