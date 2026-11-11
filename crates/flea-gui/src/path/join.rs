@@ -60,8 +60,8 @@ impl Shell {
             // Back and Up close Recent onto the folder it opened over, so both stand at full ink there, as v0.3.12 draws them.
             back: !host.nav.history.back.is_empty() || host.recent.on,
             up: host.nav.can_go_up(&host.pane) || host.recent.on,
-            filter: !host.pane.state.search,
-            sort: !host.pane.state.search,
+            filter: !host.search.owner.active() && !host.pane.state.search,
+            sort: !host.search.owner.active() && !host.pane.state.search,
             live: !self.card_holds_keyboard(cx)
                 && self.overlay.as_ref().is_none_or(|overlay| {
                     overlay.read_with(cx, |card, _| {

@@ -19,6 +19,9 @@ mod keys;
 mod observe;
 pub(crate) use observe::{Draw, QueryReader};
 #[cfg(test)]
+#[path = "search_chrome_tests.rs"]
+mod chrome_tests;
+#[cfg(test)]
 #[path = "search_contents_tests.rs"]
 mod contents_tests;
 #[cfg(test)]
@@ -192,6 +195,11 @@ impl Shell {
         let Some(host) = self.panes[side].as_mut() else {
             return false;
         };
+        if (host.search.owner.active() || host.pane.state.search)
+            && matches!(action, "filter" | "sortNext" | "sortReverse")
+        {
+            return true;
+        }
         // Ctrl+G opens like f, already in contents; it does nothing until the contents producer is wired.
         let opens = action == "search"
             || (action == "searchContents" && host.search.owner.session.wire.contents);
@@ -355,15 +363,5 @@ impl Shell {
             return;
         }
         self.search_update(side, None, |search, host| search.leave(host), window, cx);
-    }
-
-    pub(crate) fn sync_search_text(&mut self) {
-        for host in self.panes.iter_mut().flatten() {
-            if host.search.owner.session.live() {
-                let (status, _) = Search::status(&host.search.owner, &self.locale.catalog);
-                host.state_text.message = status.clone();
-                host.status = status.into();
-            }
-        }
     }
 }

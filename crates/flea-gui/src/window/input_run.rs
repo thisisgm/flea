@@ -28,6 +28,12 @@ impl Shell {
         };
         let listing = self.keyboard.context == flea::keys::Context::Listing;
         let busy = host.pane.busy();
+        // Search keeps its unavailable listing controls silent, even while a query is in flight.
+        if matches!(action, "filter" | "sortNext" | "sortReverse")
+            && self.search_action(action, window, cx)
+        {
+            return KeyRun::Ran;
+        }
         if listing && action == "escape" && self.escape_cancels_arm(arm_live, cx) {
             return KeyRun::Kept;
         }

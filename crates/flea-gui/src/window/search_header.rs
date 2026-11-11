@@ -4,6 +4,17 @@ use gpui::{div, prelude::*, Context, IntoElement, MouseButton, Window};
 use std::rc::Rc;
 
 impl Shell {
+    pub(crate) fn sync_search_text(&mut self) {
+        for host in self.panes.iter_mut().flatten() {
+            if host.search.owner.session.live() {
+                let (status, _) =
+                    file_search::Search::status(&host.search.owner, &self.locale.catalog);
+                host.state_text.message = status.clone();
+                host.status = status.into();
+            }
+        }
+    }
+
     /// The strip's height over Grid, which has no list header to take it; v0.3.12 GridArea keeps the tiles under it.
     pub(crate) fn grid_search_strip(&self, side: usize) -> f32 {
         self.panes[side]
