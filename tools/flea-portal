@@ -12,6 +12,7 @@
 
 import json
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -97,6 +98,12 @@ def text_option(options, key):
     return value if isinstance(value, str) else ""
 
 
+# accept_label may carry GTK mnemonics ("_Open", "_OK"): the picker has no mnemonic keys, so each marking
+# underscore goes and a doubled one stays as one literal underscore, which is what GTK itself would show.
+def mnemonic_free(label):
+    return re.sub(r"_(.)", r"\1", label, flags=re.DOTALL)
+
+
 def flag_option(options, key):
     return options.get(key) is True
 
@@ -157,7 +164,7 @@ def request_for(method, title, app_id, options):
         "mode": mode,
         "title": title,
         "app": app_id,
-        "accept": text_option(options, "accept_label"),
+        "accept": mnemonic_free(text_option(options, "accept_label")),
         "multiple": flag_option(options, "multiple"),
         "directory": flag_option(options, "directory"),
         "folder": path_option(options, "current_folder"),

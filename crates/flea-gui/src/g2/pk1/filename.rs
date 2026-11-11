@@ -36,6 +36,8 @@ pub struct Filename {
     // The Save line's words, which only Save As carries; New Folder's card field has none.
     pub save: Option<Entity<SaveView>>,
     label: SharedString,
+    /// The caption as written, read by the screen reader.
+    name: String,
     // The board's caption tracking, 1.2 px, none for a caseless script.
     tracking: f32,
     drawn: RefCell<Drawn>,
@@ -80,6 +82,7 @@ impl Filename {
             focus: cx.focus_handle(),
             save,
             label: label.to_uppercase().into(),
+            name: label,
             tracking,
             probe: Default::default(),
             focused: false,
@@ -205,6 +208,7 @@ impl Render for Filename {
             } else {
                 "picker-filename"
             })
+            .map(|field| crate::window::accessible::text_field(field, self.name.clone(), &self.entry))
             .debug_selector(move || {
                 if stacked {
                     "pk1-folder-name"

@@ -336,7 +336,9 @@ impl Render for Shell {
                         .w(viewport.width)
                         .h(viewport.height)
                         .children(panes[0].take()),
-                );
+                )
+                .id("flea")
+                .role(gpui::Role::Group);
         }
         self.sync_footer(geometry.status.width, cx);
         let paths = self.path_labels.clone();
@@ -382,11 +384,16 @@ impl Render for Shell {
             .child(Self::list_header_input(cx)),
             cx,
         );
+        let accessible = self.accessible_panes(window, cx);
         Self::file_drag_events(body, cx)
+            .children(accessible)
             .children(self.settings_surface())
             .children(self.trash_menu_layer(cx))
             .children(self.network_layers(cx))
             .children(self.carry_flock(window, cx))
             .children(self.unlock_layer(cx))
+            // The root holds the keyboard focus, so it is a node: the focused pane's cursor row reports through it.
+            .id("flea")
+            .role(gpui::Role::Group)
     }
 }

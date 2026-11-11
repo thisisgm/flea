@@ -168,11 +168,16 @@ impl Render for Root {
             .font_family(typeface.font.family)
             .text_size(typeface.body)
             .text_color(foreground)
-            .child(
+            // A cached view that is reused adds no accessibility nodes, so while a screen reader listens the shell
+            // is drawn every frame: otherwise each frame that reuses it drops every node and puts them back.
+            .child(if window.is_a11y_active() {
+                div().size_full().child(self.shell.clone()).into_any_element()
+            } else {
                 self.shell
                     .clone()
-                    .cached(StyleRefinement::default().size_full()),
-            )
+                    .cached(StyleRefinement::default().size_full())
+                    .into_any_element()
+            })
             .child(crate::window::chrome_move::observer(self.shell.clone()))
             // Pane marks paint over the cached shell and below deferred surfaces.
             .child(Overlay(self.shell.clone(), false))

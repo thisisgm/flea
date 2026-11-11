@@ -70,6 +70,19 @@ impl Render for RailView {
                 .probe
                 .masked(div().relative(), &format!("rail:{index}"))
                 .id(("picker-rail-row", index))
+                .role(gpui::Role::ListBoxOption)
+                .aria_label(label.clone())
+                // the folder the listing stands on is the current place, not a selection a screen reader follows
+                .when(place || (!entry.path.is_empty() && entry.path == current), |row| {
+                    row.a11y_synthetic_children(|builder| {
+                        builder
+                            .parent_node()
+                            .set_aria_current(gpui::accesskit::AriaCurrent::Location)
+                    })
+                })
+                .aria_position_in_set(index + 1)
+                .aria_size_of_set(owner.rail.entries.len())
+                .when(cursor, |row| row.aria_active_descendant())
                 .debug_selector(move || format!("picker-rail-row-{index}"))
                 .relative()
                 .flex_none()
@@ -155,6 +168,8 @@ impl Render for RailView {
         });
         div()
             .id("picker-rail")
+            .role(gpui::Role::ListBox)
+            .aria_label(owner.labels.places.clone())
             .debug_selector(|| "picker-rail".into())
             .flex_none()
             .h_full()

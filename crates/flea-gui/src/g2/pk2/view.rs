@@ -216,9 +216,47 @@ impl Render for ListingView {
                     .child(body)
                     .child(bars),
             )
+            .child(self.accessible_list(&failure))
             .when(!failure.is_empty(), |view| {
                 view.child(div().debug_selector(|| "pk2-failure".into()).child(failure))
             })
+    }
+}
+
+impl ListingView {
+    /// The listing as a screen reader reads it: a group named by its folder whose cursor row is the focused item;
+    /// with no row to stand on, the list itself is, saying why.
+    fn accessible_list(&self, failure: &str) -> gpui::Stateful<gpui::Div> {
+        use crate::window::accessible::{folder_name, list_rows};
+        let held = self.listing.held();
+        let location = self.listing.location();
+        let cursor = self.listing.cursor();
+        let rows = list_rows(
+            &format!("picker-{location}"),
+            &held,
+            Some(cursor),
+            self.shown.as_deref(),
+            |_| false,
+            &self.i18n,
+        );
+        let empty = held.row(cursor).is_none();
+        div()
+            .id("a11y-picker-list")
+            .role(gpui::Role::Group)
+            .aria_label(folder_name(location))
+            .absolute()
+            .size_0()
+            .when(empty, |list| {
+                list.child(
+                    div()
+                        .id("a11y-state")
+                        .role(gpui::Role::Label)
+                        // a label's text is its value
+                        .aria_value(failure.to_owned())
+                        .aria_active_descendant(),
+                )
+            })
+            .children(rows)
     }
 }
 

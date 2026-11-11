@@ -40,6 +40,11 @@ fn answer(
     let outside = drawn.clone();
     div()
         .id(id)
+        .role(gpui::Role::Button)
+        .aria_label(label.clone())
+        .when(!available, |button| {
+            button.a11y_synthetic_children(|builder| builder.parent_node().set_disabled())
+        })
         .debug_selector(move || id.into())
         .relative()
         .children(drawn.probe(slot, [1.; 4]))
@@ -404,5 +409,9 @@ impl Render for Picker {
                     .child(menu)
             }))
             .children(self.drawn.probe(Slot::Window, [0.; 4]))
+            // The root holds the keyboard focus while the listing is browsed, so it is a node the listing's cursor
+            // row reports through.
+            .id("picker")
+            .role(gpui::Role::Group)
     }
 }

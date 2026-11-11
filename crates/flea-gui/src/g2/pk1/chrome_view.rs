@@ -52,9 +52,17 @@ impl Render for ChromeView {
             ("picker-list", "list", true, None),
             ("picker-grid-view", "grid", true, None),
         ];
+        // the main window's toolbar names for the same four buttons
+        let names = [
+            "keys.action.historyBack",
+            "keys.action.parent",
+            "keys.action.viewList",
+            "keys.action.viewGrid",
+        ];
         let mut controls = Vec::new();
         for (index, (id, glyph, enabled, focus)) in buttons.into_iter().enumerate() {
             let selected = (index == 2 && mode == "list") || (index == 3 && mode == "grid");
+            let name = owner.locale.catalog.tr(names[index]);
             let ink = palette.mark(enabled && (index < 2 || selected));
             let handle = picker.clone();
             let mut control = owner
@@ -62,6 +70,18 @@ impl Render for ChromeView {
                 .probe
                 .attach(div().relative(), id)
                 .id(id)
+                .role(gpui::Role::Button)
+                .aria_label(name)
+                .when(index >= 2, |view| {
+                    view.aria_toggled(if selected {
+                        gpui::accesskit::Toggled::True
+                    } else {
+                        gpui::accesskit::Toggled::False
+                    })
+                })
+                .when(!enabled, |view| {
+                    view.a11y_synthetic_children(|builder| builder.parent_node().set_disabled())
+                })
                 .debug_selector(move || id.into())
                 .w(size.px(MARK_WIDTH))
                 .h(size.px(PATH_HEIGHT))
