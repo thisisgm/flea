@@ -5,6 +5,8 @@ use crate::tui::{
     render::cards::{self, Button, Card},
     theme::Theme,
 };
+// The body row holding the Duplex and Grayscale checkboxes, which mute while unsupported or queried.
+const OPTION_ROW: usize = 6;
 
 fn title(m: &Model) -> String {
     let form = m.printing.card.as_ref().unwrap();
@@ -195,6 +197,8 @@ pub fn draw(out: &mut String, m: &Model, theme: &Theme) {
                 &theme.foreground
             };
             let fill = if *field { &theme.field } else { "" };
+            let enabled = i + card.top != OPTION_ROW || !*muted;
+            let attribute = theme.depth.control_attribute(enabled, false, false);
             let mark = if focused { "\x1b[4m" } else { "" };
             let width = (text_width(text) + usize::from(*field)).min(width);
             let shown = cards::field_text(m, text, width);
@@ -211,7 +215,7 @@ pub fn draw(out: &mut String, m: &Model, theme: &Theme) {
                 shown
             };
             out.push_str(&format!(
-                "\x1b[{};{}H{base}{fill}{ink}{mark}{}{base}",
+                "\x1b[{};{}H{base}{fill}{ink}{attribute}{mark}{}{base}",
                 card.y + 4 + i,
                 cards::column(m, &card, *x, width) + 1,
                 shown

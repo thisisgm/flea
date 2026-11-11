@@ -1979,7 +1979,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
-      "line": 253,
+      "line": 256,
       "path": "src/tui/cards.rs",
       "pattern": null,
       "possible_keys": [],
@@ -1989,7 +1989,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
-      "line": 370,
+      "line": 373,
       "path": "src/tui/cards.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2301,7 +2301,7 @@
     {
       "coverage": "dynamic-needs-owner-verification",
       "excerpt": "text_width(&m.i18n.tr(&format!(\"dialogs.output.choice.{format}\"))) + 3",
-      "line": 193,
+      "line": 186,
       "path": "src/tui/convert/card.rs",
       "pattern": "dialogs.output.choice.{format}",
       "possible_keys": [
@@ -2359,7 +2359,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "&format!(\"dialogs.output.choice.{format}\")",
-      "line": 193,
+      "line": 186,
       "path": "src/tui/convert/card.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2369,7 +2369,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "if f.combine_option() {\n                \"dialogs.output.combine_pdf\"\n            } else {\n                \"dialogs.output.metadata\"\n            }",
-      "line": 199,
+      "line": 192,
       "path": "src/tui/convert/card.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2533,7 +2533,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "if no_printer(f) {\n                \"dialogs.output.setup\"\n            } else {\n                \"dialogs.output.print\"\n            }",
-      "line": 41,
+      "line": 43,
       "path": "src/tui/print/card.rs",
       "pattern": null,
       "possible_keys": [],
@@ -2543,7 +2543,7 @@
       "blocks_removals": true,
       "coverage": "unresolved-key-expression",
       "expression": "key",
-      "line": 64,
+      "line": 66,
       "path": "src/tui/print/card.rs",
       "pattern": null,
       "possible_keys": [],
@@ -22599,7 +22599,7 @@
       "call_sites": [
         {
           "excerpt": "Button { label: m.i18n.tr(\"card.cancel\"), default: true, focused: !focus, enabled: true },",
-          "line": 167,
+          "line": 170,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -22621,14 +22621,14 @@
       "call_sites": [
         {
           "excerpt": "let close = button_width(&m.i18n.tr(\"card.close\"));",
-          "line": 297,
+          "line": 300,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "buttons(out, theme, &card, &[Button { label: m.i18n.tr(\"card.close\"), default: true, focused: true, enabled: true }]);",
-          "line": 312,
+          "line": 315,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -22650,7 +22650,7 @@
       "call_sites": [
         {
           "excerpt": "Button { label: m.i18n.tr(\"card.delete\"), default: false, focused: focus, enabled: token != 0 },",
-          "line": 168,
+          "line": 171,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -22679,14 +22679,14 @@
         },
         {
           "excerpt": "let need = rows.iter().map(|row| text_width(row)).max().unwrap_or(0).max(text_width(&title) + 2 + text_width(&m.i18n.tr(\"card.esc\")))",
-          "line": 174,
+          "line": 177,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": ".max(text_width(&m.i18n.tr(\"properties.title\")) + 2 + text_width(&m.i18n.tr(\"card.esc\")));",
-          "line": 299,
+          "line": 302,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -22700,7 +22700,7 @@
         },
         {
           "excerpt": "let need = (text_width(&title(m)) + text_width(&m.i18n.tr(\"card.esc\")) + 2)",
-          "line": 186,
+          "line": 179,
           "path": "src/tui/convert/card.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -22714,7 +22714,7 @@
         },
         {
           "excerpt": ".max(text_width(&title(m)) + text_width(&m.i18n.tr(\"card.esc\")) + 2)",
-          "line": 150,
+          "line": 152,
           "path": "src/tui/print/card.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -23240,7 +23240,7 @@
       "call_sites": [
         {
           "excerpt": "let body = if token == 0 { m.i18n.tr(\"delete.inspecting\") } else { m.i18n.trn(\"delete.body\", count) };",
-          "line": 162,
+          "line": 165,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -23271,7 +23271,7 @@
       "call_sites": [
         {
           "excerpt": "let body = if token == 0 { m.i18n.tr(\"delete.inspecting\") } else { m.i18n.trn(\"delete.body\", count) };",
-          "line": 162,
+          "line": 165,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -23293,7 +23293,7 @@
       "call_sites": [
         {
           "excerpt": "(m.i18n.trn(\"delete.title\", count), rows, [",
-          "line": 166,
+          "line": 169,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -30850,7 +30850,7 @@
         },
         {
           "excerpt": "tr(\"dialogs.output.all\")",
-          "line": 107,
+          "line": 109,
           "path": "src/tui/print/card.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -31474,7 +31474,7 @@
         },
         {
           "excerpt": "label: m.i18n.tr(\"dialogs.output.cancel\"),",
-          "line": 35,
+          "line": 37,
           "path": "src/tui/print/card.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -32490,7 +32490,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "text_width(&m.i18n.tr(&format!(\"dialogs.output.choice.{format}\"))) + 3",
-          "line": 193,
+          "line": 186,
           "path": "src/tui/convert/card.rs",
           "pattern": "dialogs.output.choice.{format}",
           "possible_keys": [
@@ -32949,7 +32949,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "text_width(&m.i18n.tr(&format!(\"dialogs.output.choice.{format}\"))) + 3",
-          "line": 193,
+          "line": 186,
           "path": "src/tui/convert/card.rs",
           "pattern": "dialogs.output.choice.{format}",
           "possible_keys": [
@@ -33408,7 +33408,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "text_width(&m.i18n.tr(&format!(\"dialogs.output.choice.{format}\"))) + 3",
-          "line": 193,
+          "line": 186,
           "path": "src/tui/convert/card.rs",
           "pattern": "dialogs.output.choice.{format}",
           "possible_keys": [
@@ -33867,7 +33867,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "text_width(&m.i18n.tr(&format!(\"dialogs.output.choice.{format}\"))) + 3",
-          "line": 193,
+          "line": 186,
           "path": "src/tui/convert/card.rs",
           "pattern": "dialogs.output.choice.{format}",
           "possible_keys": [
@@ -34333,7 +34333,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "text_width(&m.i18n.tr(&format!(\"dialogs.output.choice.{format}\"))) + 3",
-          "line": 193,
+          "line": 186,
           "path": "src/tui/convert/card.rs",
           "pattern": "dialogs.output.choice.{format}",
           "possible_keys": [
@@ -34792,7 +34792,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "text_width(&m.i18n.tr(&format!(\"dialogs.output.choice.{format}\"))) + 3",
-          "line": 193,
+          "line": 186,
           "path": "src/tui/convert/card.rs",
           "pattern": "dialogs.output.choice.{format}",
           "possible_keys": [
@@ -35251,7 +35251,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "text_width(&m.i18n.tr(&format!(\"dialogs.output.choice.{format}\"))) + 3",
-          "line": 193,
+          "line": 186,
           "path": "src/tui/convert/card.rs",
           "pattern": "dialogs.output.choice.{format}",
           "possible_keys": [
@@ -35710,7 +35710,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "text_width(&m.i18n.tr(&format!(\"dialogs.output.choice.{format}\"))) + 3",
-          "line": 193,
+          "line": 186,
           "path": "src/tui/convert/card.rs",
           "pattern": "dialogs.output.choice.{format}",
           "possible_keys": [
@@ -36169,7 +36169,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "text_width(&m.i18n.tr(&format!(\"dialogs.output.choice.{format}\"))) + 3",
-          "line": 193,
+          "line": 186,
           "path": "src/tui/convert/card.rs",
           "pattern": "dialogs.output.choice.{format}",
           "possible_keys": [
@@ -36628,7 +36628,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "text_width(&m.i18n.tr(&format!(\"dialogs.output.choice.{format}\"))) + 3",
-          "line": 193,
+          "line": 186,
           "path": "src/tui/convert/card.rs",
           "pattern": "dialogs.output.choice.{format}",
           "possible_keys": [
@@ -37087,7 +37087,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "text_width(&m.i18n.tr(&format!(\"dialogs.output.choice.{format}\"))) + 3",
-          "line": 193,
+          "line": 186,
           "path": "src/tui/convert/card.rs",
           "pattern": "dialogs.output.choice.{format}",
           "possible_keys": [
@@ -37546,7 +37546,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "text_width(&m.i18n.tr(&format!(\"dialogs.output.choice.{format}\"))) + 3",
-          "line": 193,
+          "line": 186,
           "path": "src/tui/convert/card.rs",
           "pattern": "dialogs.output.choice.{format}",
           "possible_keys": [
@@ -38005,7 +38005,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "text_width(&m.i18n.tr(&format!(\"dialogs.output.choice.{format}\"))) + 3",
-          "line": 193,
+          "line": 186,
           "path": "src/tui/convert/card.rs",
           "pattern": "dialogs.output.choice.{format}",
           "possible_keys": [
@@ -38464,7 +38464,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "text_width(&m.i18n.tr(&format!(\"dialogs.output.choice.{format}\"))) + 3",
-          "line": 193,
+          "line": 186,
           "path": "src/tui/convert/card.rs",
           "pattern": "dialogs.output.choice.{format}",
           "possible_keys": [
@@ -38923,7 +38923,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "text_width(&m.i18n.tr(&format!(\"dialogs.output.choice.{format}\"))) + 3",
-          "line": 193,
+          "line": 186,
           "path": "src/tui/convert/card.rs",
           "pattern": "dialogs.output.choice.{format}",
           "possible_keys": [
@@ -39382,7 +39382,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "text_width(&m.i18n.tr(&format!(\"dialogs.output.choice.{format}\"))) + 3",
-          "line": 193,
+          "line": 186,
           "path": "src/tui/convert/card.rs",
           "pattern": "dialogs.output.choice.{format}",
           "possible_keys": [
@@ -39841,7 +39841,7 @@
         {
           "coverage": "needs-owner-verification",
           "excerpt": "text_width(&m.i18n.tr(&format!(\"dialogs.output.choice.{format}\"))) + 3",
-          "line": 193,
+          "line": 186,
           "path": "src/tui/convert/card.rs",
           "pattern": "dialogs.output.choice.{format}",
           "possible_keys": [
@@ -40493,7 +40493,7 @@
         },
         {
           "excerpt": "\"dialogs.output.combine_pdf\"",
-          "line": 200,
+          "line": 193,
           "path": "src/tui/convert/card.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -41722,14 +41722,14 @@
         },
         {
           "excerpt": ".max(text_width(&m.heading(\"dialogs.output.copies\")) + 2)",
-          "line": 57,
+          "line": 59,
           "path": "src/tui/print/card.rs",
           "surface": "tui",
           "usage": "key-declaration"
         },
         {
           "excerpt": "rows[3].push((0, m.heading(\"dialogs.output.copies\"), true, false));",
-          "line": 95,
+          "line": 97,
           "path": "src/tui/print/card.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -42041,14 +42041,14 @@
         },
         {
           "excerpt": "tr(\"dialogs.output.default\"),",
-          "line": 83,
+          "line": 85,
           "path": "src/tui/print/card.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "format!(\"  {}\", m.i18n.tr(\"dialogs.output.default\"))",
-          "line": 234,
+          "line": 238,
           "path": "src/tui/print/card.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -52167,7 +52167,7 @@
         },
         {
           "excerpt": "tr(\"dialogs.output.grayscale\")",
-          "line": 130,
+          "line": 132,
           "path": "src/tui/print/card.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -52777,7 +52777,7 @@
         },
         {
           "excerpt": "\"dialogs.output.metadata\"",
-          "line": 202,
+          "line": 195,
           "path": "src/tui/convert/card.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -53380,7 +53380,7 @@
         },
         {
           "excerpt": "return vec![vec![(0, tr(\"dialogs.output.no_printer\"), false, false)]];",
-          "line": 67,
+          "line": 69,
           "path": "src/tui/print/card.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -53699,7 +53699,7 @@
         },
         {
           "excerpt": "let output = m.i18n.tr(\"dialogs.output.output\");",
-          "line": 357,
+          "line": 355,
           "path": "src/tui/convert/card.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -54326,7 +54326,7 @@
         },
         {
           "excerpt": "m.heading(\"dialogs.output.pages\"),",
-          "line": 100,
+          "line": 102,
           "path": "src/tui/print/card.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -54624,7 +54624,7 @@
       "call_sites": [
         {
           "excerpt": "\"dialogs.output.print\"",
-          "line": 44,
+          "line": 46,
           "path": "src/tui/print/card.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -54929,7 +54929,7 @@
         },
         {
           "excerpt": "rows[0].push((0, m.heading(\"dialogs.output.printer\"), true, false));",
-          "line": 70,
+          "line": 72,
           "path": "src/tui/print/card.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -55542,7 +55542,7 @@
         },
         {
           "excerpt": "\"dialogs.output.setup\"",
-          "line": 42,
+          "line": 44,
           "path": "src/tui/print/card.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -57398,7 +57398,7 @@
         },
         {
           "excerpt": "m.i18n.tr_args(\"dialogs.output.title.print\", &[name])",
-          "line": 25,
+          "line": 27,
           "path": "src/tui/print/card.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -57705,7 +57705,7 @@
         },
         {
           "excerpt": ".trn(\"dialogs.output.title.print_many\", m.menu_count as i64)",
-          "line": 13,
+          "line": 15,
           "path": "src/tui/print/card.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -58021,14 +58021,14 @@
         },
         {
           "excerpt": ".max(text_width(&m.i18n.tr(\"dialogs.output.two_sided\")) + 6)",
-          "line": 58,
+          "line": 60,
           "path": "src/tui/print/card.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "tr(\"dialogs.output.two_sided\")",
-          "line": 120,
+          "line": 122,
           "path": "src/tui/print/card.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -75661,7 +75661,7 @@
         },
         {
           "excerpt": "tr(\"menu.loading\")",
-          "line": 72,
+          "line": 74,
           "path": "src/tui/print/card.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -82007,7 +82007,7 @@
         },
         {
           "excerpt": "facts.insert(3, fact(\"properties.birth\", if birth.is_empty() { i18n.tr(\"pane.unavailable\") } else { birth }));",
-          "line": 274,
+          "line": 277,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -94179,7 +94179,7 @@
       "call_sites": [
         {
           "excerpt": "facts.insert(3, fact(\"properties.birth\", if birth.is_empty() { i18n.tr(\"pane.unavailable\") } else { birth }));",
-          "line": 274,
+          "line": 277,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -94215,7 +94215,7 @@
       "call_sites": [
         {
           "excerpt": "fact(\"properties.size\", i18n.trn_args(\"properties.bytes\", bytes as i64, &[&i18n.locale().format_size(bytes as u64)])),",
-          "line": 265,
+          "line": 268,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -94249,7 +94249,7 @@
       "call_sites": [
         {
           "excerpt": "if !deleted.is_empty() { facts.push(fact(\"properties.deleted\", deleted)); }",
-          "line": 277,
+          "line": 280,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -94271,7 +94271,7 @@
       "call_sites": [
         {
           "excerpt": "fact(\"properties.group\", i18n.tr_args(\"properties.groupValue\", &[&count(value, \"gid\").to_string()])),",
-          "line": 268,
+          "line": 271,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -94293,7 +94293,7 @@
       "call_sites": [
         {
           "excerpt": "fact(\"properties.group\", i18n.tr_args(\"properties.groupValue\", &[&count(value, \"gid\").to_string()])),",
-          "line": 268,
+          "line": 271,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -94317,7 +94317,7 @@
       "call_sites": [
         {
           "excerpt": "fact(\"properties.kind\", kind),",
-          "line": 264,
+          "line": 267,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -94361,7 +94361,7 @@
       "call_sites": [
         {
           "excerpt": "if !modified.is_empty() { facts.insert(3, fact(\"properties.modified\", modified)); }",
-          "line": 271,
+          "line": 274,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -94383,7 +94383,7 @@
       "call_sites": [
         {
           "excerpt": "fact(\"properties.owner\", i18n.tr_args(\"properties.ownerValue\", &[text(value, \"owner\"), &count(value, \"uid\").to_string()])),",
-          "line": 267,
+          "line": 270,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -94419,7 +94419,7 @@
       "call_sites": [
         {
           "excerpt": "fact(\"properties.owner\", i18n.tr_args(\"properties.ownerValue\", &[text(value, \"owner\"), &count(value, \"uid\").to_string()])),",
-          "line": 267,
+          "line": 270,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -94444,7 +94444,7 @@
       "call_sites": [
         {
           "excerpt": "fact(\"properties.path\", text(value, \"path\").into()),",
-          "line": 263,
+          "line": 266,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -94466,7 +94466,7 @@
       "call_sites": [
         {
           "excerpt": "fact(\"properties.permissions\", text(value, \"mode\").into()),",
-          "line": 266,
+          "line": 269,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -94488,7 +94488,7 @@
       "call_sites": [
         {
           "excerpt": "fact(\"properties.size\", i18n.trn_args(\"properties.bytes\", bytes as i64, &[&i18n.locale().format_size(bytes as u64)])),",
-          "line": 265,
+          "line": 268,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -94510,7 +94510,7 @@
       "call_sites": [
         {
           "excerpt": "if flag(value, \"symlink\") { facts.push(fact(\"properties.target\", text(value, \"target\").into())); }",
-          "line": 278,
+          "line": 281,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "key-declaration"
@@ -94532,14 +94532,14 @@
       "call_sites": [
         {
           "excerpt": ".max(text_width(&m.i18n.tr(\"properties.title\")) + 2 + text_width(&m.i18n.tr(\"card.esc\")));",
-          "line": 299,
+          "line": 302,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
         },
         {
           "excerpt": "frame(out, m, theme, &card, &m.i18n.tr(\"properties.title\"));",
-          "line": 305,
+          "line": 308,
           "path": "src/tui/cards.rs",
           "surface": "tui",
           "usage": "translated-call"
@@ -178984,7 +178984,7 @@
     },
     {
       "excerpt": "let mut cancel = key.name == \"Escape\";",
-      "line": 193,
+      "line": 196,
       "literal": "Escape",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -178993,7 +178993,7 @@
     },
     {
       "excerpt": "else if key.mods.is_empty() && key.name == \"Down\" { deletion.scroll = (card.top + 1).min(most); }",
-      "line": 208,
+      "line": 211,
       "literal": "Down",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -179002,7 +179002,7 @@
     },
     {
       "excerpt": "else if (matches!(key.name.as_str(), \"Tab\" | \"Backtab\") && matches!(key.mods.as_str(), \"\" | \"shift\"))",
-      "line": 209,
+      "line": 212,
       "literal": "Tab",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -179011,7 +179011,7 @@
     },
     {
       "excerpt": "else if (matches!(key.name.as_str(), \"Tab\" | \"Backtab\") && matches!(key.mods.as_str(), \"\" | \"shift\"))",
-      "line": 209,
+      "line": 212,
       "literal": "Backtab",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -179020,7 +179020,7 @@
     },
     {
       "excerpt": "|| (key.mods.is_empty() && (matches!(key.name.as_str(), \"Right\" | \"Left\") || matches!(key.text.as_str(), \"h\" | \"l\"))) {",
-      "line": 210,
+      "line": 213,
       "literal": "Right",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -179029,7 +179029,7 @@
     },
     {
       "excerpt": "|| (key.mods.is_empty() && (matches!(key.name.as_str(), \"Right\" | \"Left\") || matches!(key.text.as_str(), \"h\" | \"l\"))) {",
-      "line": 210,
+      "line": 213,
       "literal": "Left",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -179038,7 +179038,7 @@
     },
     {
       "excerpt": "\"Left\" => rtl, \"Right\" => !rtl,",
-      "line": 212,
+      "line": 215,
       "literal": "Left",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -179047,7 +179047,7 @@
     },
     {
       "excerpt": "\"Left\" => rtl, \"Right\" => !rtl,",
-      "line": 212,
+      "line": 215,
       "literal": "Right",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -179056,7 +179056,7 @@
     },
     {
       "excerpt": "} else if key.mods.is_empty() && matches!(key.name.as_str(), \"Return\" | \"Enter\" | \"Space\") { activate = true; }",
-      "line": 216,
+      "line": 219,
       "literal": "Return",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -179065,7 +179065,7 @@
     },
     {
       "excerpt": "} else if key.mods.is_empty() && matches!(key.name.as_str(), \"Return\" | \"Enter\" | \"Space\") { activate = true; }",
-      "line": 216,
+      "line": 219,
       "literal": "Enter",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -179074,7 +179074,7 @@
     },
     {
       "excerpt": "} else if key.mods.is_empty() && matches!(key.name.as_str(), \"Return\" | \"Enter\" | \"Space\") { activate = true; }",
-      "line": 216,
+      "line": 219,
       "literal": "Space",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -179083,7 +179083,7 @@
     },
     {
       "excerpt": "\"File\" | \"Directory\" | \"Symbolic link\" | \"Special file\" => flea::ui_logic_open_with_properties::properties::kind_word(",
-      "line": 256,
+      "line": 259,
       "literal": "File",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -179092,7 +179092,7 @@
     },
     {
       "excerpt": "\"File\" | \"Directory\" | \"Symbolic link\" | \"Special file\" => flea::ui_logic_open_with_properties::properties::kind_word(",
-      "line": 256,
+      "line": 259,
       "literal": "Directory",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -179101,7 +179101,7 @@
     },
     {
       "excerpt": "\"File\" | \"Directory\" | \"Symbolic link\" | \"Special file\" => flea::ui_logic_open_with_properties::properties::kind_word(",
-      "line": 256,
+      "line": 259,
       "literal": "Symbolic link",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -179110,7 +179110,7 @@
     },
     {
       "excerpt": "\"File\" | \"Directory\" | \"Symbolic link\" | \"Special file\" => flea::ui_logic_open_with_properties::properties::kind_word(",
-      "line": 256,
+      "line": 259,
       "literal": "Special file",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -179119,7 +179119,7 @@
     },
     {
       "excerpt": "if flag(value, \"symlink\") { facts.push(fact(\"properties.target\", text(value, \"target\").into())); }",
-      "line": 278,
+      "line": 281,
       "literal": "symlink",
       "owner": "t11",
       "path": "src/tui/cards.rs",
@@ -180082,7 +180082,7 @@
     },
     {
       "excerpt": "assert!(Instant::now() < until, \"decoder was not reaped after cancellation\");",
-      "line": 321,
+      "line": 336,
       "literal": "decoder was not reaped after cancellation",
       "owner": "t11",
       "path": "src/tui/graphics.rs",
@@ -255821,14 +255821,14 @@
     "src/tui/batch.rs": "ed0719bf8ebff2e79724b5d1b1cdd50757a355553f7694b23bd1216a8bb5788a",
     "src/tui/calendar.rs": "203b5d1b559f78cae42cfdb6f2dc4bce95b437579db485f63615a3fb9eb96230",
     "src/tui/capabilities.rs": "a8790641f17557c0e34c7b417b5d321bb6f8ebb8e1becd0ab37060b947596eb9",
-    "src/tui/cards.rs": "6fdcecb15048830eb83bd005aec56cdb95029d95c345dcafe63598d6832cf3db",
+    "src/tui/cards.rs": "62745db000cdba2cd4173881b72280dce59f4e79b85305875298311956a0f67f",
     "src/tui/cards/words.rs": "fdff477f46d3b5c62f9ffa99d50144ff653885144051b0a83c09d9c5a6517aba",
     "src/tui/cells.rs": "acd8db85699af84982869dedf3738162a241d86ecdaca21a69c0dd49967ec512",
     "src/tui/chafa.rs": "8f0a06ee01069e36e703619ed6c5770d6764fab464aec587c8919e705c5ccbf0",
     "src/tui/chafa_process.rs": "e88bd7ad9d1ac18581ce19444c750572c513182a139d8a2c164ab75bd0a0cd5a",
     "src/tui/claims.rs": "c520335a41e07298ffb3690bbe697786db36db583cb648f6eff35d635fd3e42a",
     "src/tui/combine.rs": "1cb77217cb8cc0552ee4128b64def2e48885bea4fa9cc48d25850077f721984d",
-    "src/tui/combine/card.rs": "3a1f0094e6a578e1dc97f7b57156ee2ec4d6f412054d209bf0b04d93a64808cc",
+    "src/tui/combine/card.rs": "783e6ce30a81bff0b9f0e64dc3a053b97551ce97ddd3d6f43fbfe3cf5ca2891b",
     "src/tui/combine/card_layout.rs": "5496031b09999340d4ed721de81be5e1585793dcba0d2c4ca65cb34ff714d1c0",
     "src/tui/combine/font.rs": "d84d2e462c3b5d7ae5c791683fd0f29d14594d21f679929a76d27ea6f812ac3a",
     "src/tui/combine/input.rs": "bd8eba002f636d8dec17755deb6bba04047b806b0f745ea0ff48c90829a77c0e",
@@ -255838,8 +255838,8 @@
     "src/tui/completion.rs": "58dffb9479dcb1853d5fc56675d2ce49a313114b8ea847c13a8b65f5cf60056f",
     "src/tui/contents.rs": "8aa0c3ec7778b24364bbb686ba4aca0e25e273efdb91f07a8156a0e48727cc2a",
     "src/tui/contents/failure.rs": "7bff3518c6d58500217f7f7a01bb99f70a67962a6b2ad16eb4b5af1347cd2808",
-    "src/tui/convert.rs": "55db49b48b829095caf5402989a475c13dda032f77042e6941c766085ed39794",
-    "src/tui/convert/card.rs": "f99a995fddfe0ab09a8baa2b110ae27777dd77d9e145e60cd916e880b03e9b4a",
+    "src/tui/convert.rs": "dab07a25e1e3fe7fb7fc22a2e0cdaba8d147b0e1fd03a8cd184444db36c24488",
+    "src/tui/convert/card.rs": "3083cbeabe16427d63f16e5842ee6fa11ca9b6352a52f57637f98c5e2b425a30",
     "src/tui/convert/input.rs": "5c58f1f6dbca09cd9397275976d1af0e8192548f341e47b1aadfc4b7b6f57dab",
     "src/tui/convert/replies.rs": "0bb3f382e556326a50650b1b999121c1fe535480ddec61d150b52c120721b5bb",
     "src/tui/cwd.rs": "68b1f7c4493200964a84de4e3a49c1cdea108875387d0668aff6de242c1ae018",
@@ -255854,7 +255854,7 @@
     "src/tui/finder.rs": "8385b46bca074fb0b78f37337e1495799af68364e0e982842efdd750c526fdf1",
     "src/tui/footer_errors.rs": "82ee24155f81f20adb9643c0e72e2c583e482cd665f9120878c45e329d337994",
     "src/tui/gone.rs": "8c9ccb241b04405812e9f312cde7d638665702afd42d80a32eec6a40fe23bdf1",
-    "src/tui/graphics.rs": "340f6b50e3f9bb8cc63d0696598918d7e2fe3b210728924d73fc44e072341bfa",
+    "src/tui/graphics.rs": "81b077e2c6f65cbaf7572bf1f7ad6394919c42ee7fd7513902736c99f7909195",
     "src/tui/hold.rs": "9aadaa765d5e5d81d4bbfb2923988966ed65ad96bf89e0eab46ec3e996e11868",
     "src/tui/icons.rs": "559cba80f1abec8f008b52031b46872b893bf4b2573c141bce9ef354e56c4acf",
     "src/tui/input.rs": "180b665df160b72d6c1227dc7b13ee11cbe0d451df9099349193612f48b40b2a",
@@ -255871,7 +255871,7 @@
     "src/tui/menu_run.rs": "d17a9c47d79be3b433987a49d30207875b62654bf20df7289f07012625c1dd32",
     "src/tui/mod.rs": "f7e83ab580d36717ced57aba396a9d490295101436a3d31ae0d74437e0b62a29",
     "src/tui/model.rs": "81ca4bd76b3402860526cd0d53980a30cd68cd342084cae2a66483a8ed3e45b9",
-    "src/tui/model3d.rs": "909cffe2cca8b9ae936fce79fcae5dc08a41e70fbf0f7813149019607f4c72a8",
+    "src/tui/model3d.rs": "42c21d4a469a703b17c49a774c3e835ddc39cd52bb2d458878c92c5323a85735",
     "src/tui/mounts.rs": "ac7b31e12ae0ee526a65fd8ea04d1594ec730c06a0765b9d8f76da9644621bf1",
     "src/tui/mpv.rs": "cbdc0c69cf48c259093532466139e5c090143cb54aa9d13e196ef5909c973909",
     "src/tui/office.rs": "b177e23d0eb61d8d69258c4b8049aa394199371247184fca78f8f73d9dd491fe",
@@ -255886,7 +255886,7 @@
     "src/tui/preview/words.rs": "f7173cf365031ee196b4694bcfe7dd558ad8853e1ca46fd04a3d140dfe742794",
     "src/tui/preview_keys.rs": "f168da485b74a5d92b6c8a06015dd7f849f4fe91faddd2030c0f086aecdcaff4",
     "src/tui/print.rs": "a47d203a7a43552643ea3ab67d3fe535677a089ef7aad73464685aa58d81eb7f",
-    "src/tui/print/card.rs": "d35b49ea98edbcff2a11638feff69a08517575ef436a345ec73016f44f9adc4d",
+    "src/tui/print/card.rs": "d036ad0f891a4fabee342eff2f76f4d0c6a84f2bbab4b68dd6ece8f00bb39aa0",
     "src/tui/print/input.rs": "2feadebdca18d18e77e604d762044c371781dfc4c265662d47e8e71d8920cc98",
     "src/tui/print/replies.rs": "02b5a80fe69671d8c07e3695746f8e2dd0983c51085271f7fead1a6a7655f76b",
     "src/tui/prompts.rs": "68d8f4020f570cc1e089abdb10f31378c284a5d53ae6810d254e05ca3aa85ee4",
@@ -255901,7 +255901,7 @@
     "src/tui/terminal.rs": "b855eda8fc1ab45104e380b3aae2d94d535cb0097cca491cdead241029531c89",
     "src/tui/terminal_editor.rs": "a533dd080b71b4ed18103101e140eb499b9a6b0541271949f8227028989b9e47",
     "src/tui/terminal_suspend_fixture.rs": "ad6be04a4087cca37e4c4da82e36d75feb01f274897ff3f3a01f29d1c317f2df",
-    "src/tui/theme.rs": "9093a0ebba34c0ff5a5b07f827c1d217e6b46ff1ac4f428b3fe2e2e6e14690b6",
+    "src/tui/theme.rs": "cb0604d4c1343158608fd117c59707799ca5744fead1c7ce644602929946ed3e",
     "src/tui/tmux.rs": "54f48512fd40051fc430fb8459c32ba6579ba5ff60918337558f0392ff0c6a1e",
     "src/tui/trashview.rs": "47d342f84b4329e014360ee403aac7dc228d767b3a373585f32c8c06706a5573",
     "src/tui/visual.rs": "8cf13e1f95c65db49ab567b97fb551eb87355c6ecb79a0c3993f093bf6014648",
@@ -256841,8 +256841,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "e9675aa2ed09cc287e871fe894adad4c298032bb",
-  "source_sha": "e9675aa2ed09cc287e871fe894adad4c298032bb",
+  "source_ref_sha": "64aadcc22cb58acb13dbcaee56d1c92f09e730c1",
+  "source_sha": "64aadcc22cb58acb13dbcaee56d1c92f09e730c1",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1377,

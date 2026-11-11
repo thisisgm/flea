@@ -16,6 +16,9 @@ use std::time::Duration;
 mod support;
 use support::*;
 
+#[path = "mono_raster_tests.rs"]
+mod mono_raster_tests;
+
 #[test]
 fn mono_menu_cursor_moves_without_marking_neighbours_or_frame() {
     let theme = Theme::with_depth(PALETTE, Depth::Mono);
@@ -190,11 +193,13 @@ fn mono_combine_choices_stay_marked_as_focus_moves() {
                 let focused = field.enabled && field.focus == focus && field.chosen;
                 let at = format!("{layout:?}, focus {focus}, field {}", field.focus);
                 assert_eq!(ink.reverse, focused, "{at}");
-                if field.chosen && !focused {
-                    assert!(ink.underline, "{at}: lost its selection");
-                }
-                if !field.chosen {
-                    assert!(!ink.underline, "{at}: unchosen field acquired a mark");
+                if field.chosen && (field.enabled || field.focus == focus) {
+                    assert!(ink.underline, "{at}: lost its selection or focus");
+                } else {
+                    assert!(
+                        !ink.underline,
+                        "{at}: unchosen or disabled field acquired a mark"
+                    );
                 }
             }
         }

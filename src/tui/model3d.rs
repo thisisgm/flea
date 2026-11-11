@@ -279,8 +279,8 @@ pub fn step(m: &mut Model, graphics: &mut Graphics, wire: &mut Wire, room: (usiz
             Err(_) => failure(m),
         }
     }
-    let can_draw = m.preview_state.colors.is_some() && (graphics.protocol != super::graphics::Protocol::None
-        || m.model3d.chafa == Some(true));
+    let can_draw = graphics.protocol != super::graphics::Protocol::None
+        || (m.preview_state.colors.is_some() && m.model3d.chafa == Some(true));
     if graphics.protocol != super::graphics::Protocol::None && m.preview_state.cell.is_none() { return Ok(()); }
     let Some(pixels) = pixels(room, m.preview_state.cell.unwrap_or(super::graphics::FALLBACK_CELL)).filter(|_| can_draw) else { return Ok(()); };
     let Some((path, generation)) = m.model3d.source.clone() else { return Ok(()); };
@@ -358,3 +358,6 @@ mod transport_tests;
 #[cfg(test)]
 #[path = "model3d_fixtui3d_tests.rs"]
 mod fixtui3d_tests;
+#[cfg(test)]
+#[path = "model3d_mono_tests.rs"]
+mod mono_tests;

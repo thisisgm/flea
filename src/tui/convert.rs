@@ -252,3 +252,11 @@ pub fn refresh_locale(m: &mut Model) {
         Held::refresh(&mut f.error, &mut f.error_words, &m.i18n);
     }
 }
+
+// The range's last file goes by its name alone, under the first path, as the convert-pdf board prints it.
+fn last_name(path: &str) -> String {
+    std::path::Path::new(path).file_name().map_or_else(
+        || path.to_owned(),
+        |name| flea::bytename::display(&name.to_string_lossy()).into_owned(),
+    )
+}

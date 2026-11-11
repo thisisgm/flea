@@ -1,11 +1,11 @@
 //! Convert's format cursor, option row and output line follow the supplied cell boards.
-use flea::bytename::ExactText as _;
 use super::*;
 use crate::tui::{
     cells::{fit, text_width, Wrapped},
     render::cards::{self, Button, Card},
     theme::Theme,
 };
+use flea::bytename::ExactText as _;
 
 pub fn title(m: &Model) -> String {
     let f = m.converting.card.as_ref().unwrap();
@@ -173,13 +173,6 @@ fn body(m: &Model, width: usize) -> Vec<Line> {
     }
     rows
 }
-// The range's last file goes by its name alone, under the first path, as the convert-pdf board prints it.
-fn last_name(path: &str) -> String {
-    std::path::Path::new(path).file_name().map_or_else(
-        || path.to_owned(),
-        |name| flea::bytename::display(&name.to_string_lossy()).into_owned(),
-    )
-}
 pub fn geometry(m: &Model) -> Card {
     let f = m.converting.card.as_ref().unwrap();
     let widths: Vec<_> = labels(m).iter().map(|b| text_width(&b.label) + 4).collect();
@@ -314,6 +307,11 @@ pub fn draw(out: &mut String, m: &Model, theme: &Theme) {
                 )
             )),
             5 => {
+                out.push_str(
+                    theme
+                        .depth
+                        .control_attribute(f.option_enabled(), false, false),
+                );
                 let checked = if f.combine_option() {
                     f.combine
                 } else {

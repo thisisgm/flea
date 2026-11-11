@@ -4,6 +4,7 @@ pub(super) const PALETTE: &str = render::cards::tests::PALETTE;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(super) struct Attribute {
+    pub(super) dim: bool,
     pub(super) reverse: bool,
     pub(super) underline: bool,
 }
@@ -31,6 +32,8 @@ pub(super) fn attributes(text: &str, columns: usize, lines: usize) -> Vec<Vec<At
                         while i < codes.len() {
                             match codes[i] {
                                 "" | "0" => ink = Attribute::default(),
+                                "2" => ink.dim = true,
+                                "22" => ink.dim = false,
                                 "4" => ink.underline = true,
                                 "7" => ink.reverse = true,
                                 "24" => ink.underline = false,
