@@ -17,13 +17,14 @@ impl Cue {
                 Seen::Unseen
             }
         };
+        let facts = self.facts.unwrap_or_default();
         if let Some((copy, shift)) = self.flags {
             core::verb_for(
                 drop_held(copy, seen(control)),
                 drop_held(shift, seen(shift_held)),
-                self.facts.src_dev,
-                self.facts.dest_dev,
-                self.facts.deletable,
+                facts.src_dev,
+                facts.dest_dev,
+                facts.deletable,
             )
         } else if control && shift_held {
             Verb::Link
@@ -35,7 +36,7 @@ impl Cue {
             core::drop_verb(
                 None,
                 self.proposed,
-                self.facts.dest_dev,
+                facts.dest_dev,
                 Seen::Unseen,
                 Seen::Unseen,
             )

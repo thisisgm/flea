@@ -8,9 +8,31 @@ use crate::{
 };
 use gpui::{
     div, prelude::*, px, size, App, AppContext, Context, DevicePixels, ExternalDragImage,
-    ExternalDragPayload, Render, SvgSize, TextRun, Window,
+    ExternalDragPayload, Render, SharedFontData, SvgRenderer, SvgSize, TextRun, Window,
 };
-use std::rc::Rc;
+use std::{
+    rc::Rc,
+    sync::atomic::{AtomicBool, Ordering},
+    time::Duration,
+};
+
+/// The platform image's height in logical pixels.
+const HEIGHT: u32 = 60;
+/// How long a new window settles before the rehearsal, so a launch does none of its work.
+const SETTLE: Duration = Duration::from_secs(1);
+/// Set once this process has rehearsed.
+static REHEARSED: AtomicBool = AtomicBool::new(false);
+/// Set by a test that runs alone in its process, to keep the rehearsal `follow_file_drags` schedules.
+#[cfg(test)]
+pub(super) static REHEARSES_IN_TESTS: AtomicBool = AtomicBool::new(false);
+
+/// A drag picture as SVG text with the faces it names, free of the window so another thread can draw it.
+pub(super) struct Sketch {
+    svg: String,
+    fonts: Vec<SharedFontData>,
+    width: u32,
+    scale: u32,
+}
 
 pub struct Flock {
     paint: Option<FlockElement>,
@@ -81,11 +103,7 @@ pub(super) fn pictured(
 ) -> gpui::Entity<Flock> {
     let flock = Rc::new(flock);
     let list = host.list.borrow();
-    let theme = cx
-        .try_global::<crate::palette::Theme>()
-        .copied()
-        .unwrap_or_default();
-    let palette = Palette::inherited(&window.text_style(), theme);
+    let palette = palette(window, cx);
     let font = list.typeface.font.clone();
     let image = raster(&flock, &font, palette, window, cx);
     let paint = Some(FlockElement::new(
@@ -100,6 +118,15 @@ pub(super) fn pictured(
         #[cfg(test)]
         family: font.family,
     })
+}
+
+/// The pane's colours as the drag picture is drawn in them.
+fn palette(window: &Window, cx: &App) -> Palette {
+    let theme = cx
+        .try_global::<crate::palette::Theme>()
+        .copied()
+        .unwrap_or_default();
+    Palette::inherited(&window.text_style(), theme)
 }
 
 pub fn flock(cx: &mut App) -> gpui::Entity<Flock> {
@@ -142,6 +169,16 @@ fn raster(
     window: &Window,
     cx: &App,
 ) -> Option<ExternalDragImage> {
+    draw(&cx.svg_renderer(), &sketch(flock, font, palette, window)?)
+}
+
+/// The window's half of a drag picture: the name's width and the loaded faces it is drawn in.
+fn sketch(
+    flock: &carry::Flock,
+    font: &gpui::Font,
+    palette: Palette,
+    window: &Window,
+) -> Option<Sketch> {
     let name: gpui::SharedString = flock.name.clone().into();
     // The listing's own face: the SVG font database cannot resolve GPUI's default family and falls back to a symbol font.
     let line = window.text_system().shape_line(
@@ -159,7 +196,7 @@ fn raster(
     );
     let scale = window.scale_factor().ceil().clamp(1., 8.) as u32;
     let width = (f32::from(line.width).ceil() as u32 + 64).clamp(64, 1024 / scale);
-    let height = 60;
+    let height = HEIGHT;
     let fg = ink(palette.foreground);
     let ground = ink(palette.background);
     let mut svg = format!(
@@ -170,7 +207,6 @@ fn raster(
         svg.push_str(&format!(r#"<g transform="translate({x} {y})" opacity="{}"><rect width="19" height="19" fill="{ground}"/><svg width="19" height="19" viewBox="0 0 24 24">{}</svg></g>"#, alpha * carry::OPACITY, std::str::from_utf8(mark.svg().1).ok()?));
     }
     svg.push_str(&format!(r#"<text x="47" y="42" font-family="&apos;{}&apos;, monospace" font-size="14" fill="{fg}" opacity="0.8">{}</text></svg>"#, xml(&font.family), xml(&name)));
-    let renderer = cx.svg_renderer();
     let text_system = window.text_system();
     let mut ids = Vec::new();
     let mut fonts = Vec::new();
@@ -180,13 +216,26 @@ fn raster(
             fonts.push(text_system.font_data(run.font_id)?);
         }
     }
-    let parsed = renderer.parse_svg_with_fonts(svg.as_bytes(), fonts).ok()?;
+    Some(Sketch {
+        svg,
+        fonts,
+        width,
+        scale,
+    })
+}
+
+/// The half that needs no window: SVG text to the platform image's pixels.
+pub(super) fn draw(renderer: &SvgRenderer, sketch: &Sketch) -> Option<ExternalDragImage> {
+    let (width, height) = (sketch.width * sketch.scale, HEIGHT * sketch.scale);
+    let parsed = renderer
+        .parse_svg_with_fonts(sketch.svg.as_bytes(), sketch.fonts.iter().cloned())
+        .ok()?;
     let image = renderer
         .render_parsed(
             &parsed,
             SvgSize::ExactSize(size(
-                DevicePixels((width * scale) as i32),
-                DevicePixels((height * scale) as i32),
+                DevicePixels(width as i32),
+                DevicePixels(height as i32),
             )),
         )
         .ok()?;
@@ -194,7 +243,33 @@ fn raster(
     for pixel in rgba.as_chunks_mut::<4>().0 {
         pixel.swap(0, 2);
     }
-    ExternalDragImage::new(rgba.into(), width * scale, height * scale, scale, (0, 0)).ok()
+    ExternalDragImage::new(rgba.into(), width, height, sketch.scale, (0, 0)).ok()
+}
+
+/// Draws one throwaway picture off the UI thread, once per process: the SVG text shaper is code no launch runs, and the first drag would read it from disk while the pointer waits.
+pub(super) fn rehearse(window: &Window, cx: &mut Context<crate::state::Shell>) {
+    cx.spawn_in(window, async move |shell, cx| {
+        cx.background_executor().timer(SETTLE).await;
+        let sample = shell.update_in(cx, |shell, window, cx| {
+            if REHEARSED.swap(true, Ordering::Relaxed) {
+                return None;
+            }
+            let flock = carry::Flock {
+                marks: vec![Mark::FileText],
+                name: "a".into(),
+            };
+            let font = shell.active_typeface().font;
+            let sketch = sketch(&flock, &font, palette(window, cx), window)?;
+            Some((cx.svg_renderer(), sketch))
+        });
+        if let Ok(Some((renderer, sketch))) = sample {
+            cx.background_spawn(async move {
+                draw(&renderer, &sketch);
+            })
+            .await;
+        }
+    })
+    .detach();
 }
 
 #[cfg(test)]
