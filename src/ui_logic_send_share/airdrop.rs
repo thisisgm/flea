@@ -152,15 +152,18 @@ pub fn browse_line(line: &str) -> Option<Peer> {
     if id.is_empty() || name.is_empty() || !rest.starts_with('(') || !rest.ends_with(')') {
         return None;
     }
-    let lower = name.to_lowercase();
-    let phone = ["iphone", "ipad", "ipod"]
-        .iter()
-        .any(|word| lower.contains(word));
+    let phone = browse_name_is_phone(&name);
     Some(Peer {
         id: id.into(),
         name,
         phone,
     })
+}
+
+// An iPhone, iPad or iPod by its owner's name for it, the only hint a device gives.
+pub(crate) fn browse_name_is_phone(name: &str) -> bool {
+    let lower = name.to_lowercase();
+    ["iphone", "ipad", "ipod"].iter().any(|word| lower.contains(word))
 }
 
 // Sample input: `"Jane's \"B\" iPhone" ([fe80::1]:8770)`, a Rust Debug string first; gives the name and what follows it.
@@ -321,11 +324,11 @@ pub fn sent_said(i18n: &I18n, peer: &str, code: &str, reason: &str) -> Option<St
 // Any of the owner, group and other execute bits, as a shell's PATH search asks for.
 const EXECUTE_BITS: u32 = 0o111;
 
-// owly's path in a PATH value, as a shell would find it; None when no directory holds an executable one.
-pub fn find(path: &std::ffi::OsStr) -> Option<String> {
+// A program's path in a PATH value, as a shell would find it; None when no directory holds an executable one.
+pub fn find(path: &std::ffi::OsStr, program: &str) -> Option<String> {
     use std::os::unix::fs::PermissionsExt;
     std::env::split_paths(path)
-        .map(|dir| dir.join(PROGRAM))
+        .map(|dir| dir.join(program))
         .find(|candidate| {
             candidate
                 .metadata()

@@ -1654,6 +1654,8 @@
   "plugins.airdrop.receiving": "பெறுதல்",
   "plugins.airdrop.receiving.off": "முடக்கம்",
   "plugins.airdrop.receiving.everyone": "10 நிமிடங்களுக்கு அனைவரும்",
+  "plugins.airdrop.receiving.omdrop_everyone": "அனைவரும்",
+  "plugins.airdrop.receiving.omdrop_contacts": "தொடர்புகள் மட்டும்",
   "plugins.airdrop.folder": "பெற்ற கோப்புகளைச் சேமிக்கும் இடம்",
   "plugins.airdrop.computer": "இந்தக் கணினி",
   "plugins.airdrop.shown_as": "காட்டப்படும் பெயர்",

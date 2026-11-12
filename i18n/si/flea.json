@@ -1654,6 +1654,8 @@
   "plugins.airdrop.receiving": "ලැබීම",
   "plugins.airdrop.receiving.off": "අක්‍රිය",
   "plugins.airdrop.receiving.everyone": "මිනිත්තු 10ක් සඳහා සැමට",
+  "plugins.airdrop.receiving.omdrop_everyone": "සියලු දෙනා",
+  "plugins.airdrop.receiving.omdrop_contacts": "සම්බන්ධතා පමණි",
   "plugins.airdrop.folder": "ලැබුණු ගොනු සුරකින්නේ",
   "plugins.airdrop.computer": "මෙම පරිගණකය",
   "plugins.airdrop.shown_as": "පෙන්වන්නේ",

@@ -1674,6 +1674,8 @@
   "plugins.airdrop.receiving": "Recepció",
   "plugins.airdrop.receiving.off": "Desactivat",
   "plugins.airdrop.receiving.everyone": "Tothom durant 10 minuts",
+  "plugins.airdrop.receiving.omdrop_everyone": "Tothom",
+  "plugins.airdrop.receiving.omdrop_contacts": "Només contactes",
   "plugins.airdrop.folder": "Desa els fitxers rebuts a",
   "plugins.airdrop.computer": "Aquest ordinador",
   "plugins.airdrop.shown_as": "Es mostra com a",

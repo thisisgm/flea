@@ -1674,6 +1674,8 @@
   "plugins.airdrop.receiving": "קבלה",
   "plugins.airdrop.receiving.off": "כבוי",
   "plugins.airdrop.receiving.everyone": "כולם למשך 10 דקות",
+  "plugins.airdrop.receiving.omdrop_everyone": "כולם",
+  "plugins.airdrop.receiving.omdrop_contacts": "אנשי קשר בלבד",
   "plugins.airdrop.folder": "שמירת הקבצים שהתקבלו אל",
   "plugins.airdrop.computer": "מחשב זה",
   "plugins.airdrop.shown_as": "מוצג בשם",

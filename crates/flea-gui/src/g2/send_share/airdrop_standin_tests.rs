@@ -312,3 +312,53 @@ fn a_stop_asked_as_the_reader_closes_still_reaches_the_owner(cx: &mut TestAppCon
         "the closed reader's stop names the owner"
     );
 }
+
+// A stand-in omdrop: status says on and receiving; off refuses as a running send makes it.
+fn omdrop_stand_in(tag: &str) -> (PathBuf, String) {
+    let root = std::env::temp_dir().join(format!("flea-omdrop-{tag}-{}", std::process::id()));
+    let _ = std::fs::create_dir_all(&root);
+    std::fs::write(root.join(".flea-test-sandbox"), "").unwrap();
+    let script = "#!/bin/sh\ncase \"$1\" in\n  status) echo '{\"receiving\": true, \"visible\": true, \"name\": \"Omarchy\", \"dir\": \"/tmp\", \"visibility\": \"everyone\"}' ;;\n  off) echo 'Still sending to TestPhone. Cancel the send first, or turn it off anyway with: omdrop off --force' >&2; exit 1 ;;\nesac\n";
+    let omdrop = root.join("omdrop");
+    std::fs::write(&omdrop, script).unwrap();
+    flea::executable_file::write(&omdrop, script.as_bytes(), 0o755).unwrap();
+    (root.clone(), omdrop.to_string_lossy().into_owned())
+}
+
+#[gpui::test]
+fn a_refused_omdrop_off_from_the_page_says_omdrops_reason_in_the_footer(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let (root, omdrop) = omdrop_stand_in("off");
+    let (backend, _lines) = Backend::test_lines();
+    let (shell, cx) = cx.add_window_view(|_, cx| shell_with(backend, cx));
+    shell.update_in(cx, |shell, window, cx| {
+        let _ = shell.menu.providers.omdrop.facts(&omdrop);
+        let acts = shell.menu.providers.omdrop.ask_status();
+        shell.stack_acts(super::airdrop_run::Origin::omdrop(0), acts, window, cx);
+    });
+    settle(cx, 500);
+    let on = shell.update(cx, |shell, _| shell.menu.providers.omdrop.on());
+    assert!(on, "status said on");
+    shell.update_in(cx, |shell, window, cx| {
+        shell.airdrop_receiving(false, "/tmp", window, cx)
+    });
+    let mut errors = Vec::new();
+    let started = Instant::now();
+    while started.elapsed() < Duration::from_secs(5) && errors.is_empty() {
+        settle(cx, 20);
+        errors = shell.update(cx, |shell, cx| {
+            shell.status_messages(cx, |messages, _| {
+                messages
+                    .errors()
+                    .iter()
+                    .map(|e| e.text.clone())
+                    .collect::<Vec<_>>()
+            })
+        });
+    }
+    let _ = std::fs::remove_dir_all(&root);
+    assert_eq!(
+        errors,
+        ["AirDrop · Still sending to TestPhone. Cancel the send first, or turn it off anyway with: omdrop off --force"]
+    );
+}

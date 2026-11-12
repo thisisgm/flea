@@ -1869,6 +1869,8 @@
   "plugins.airdrop.receiving": "Ontvangen",
   "plugins.airdrop.receiving.off": "Uit",
   "plugins.airdrop.receiving.everyone": "Iedereen gedurende 10 minuten",
+  "plugins.airdrop.receiving.omdrop_everyone": "Iedereen",
+  "plugins.airdrop.receiving.omdrop_contacts": "Alleen contacten",
   "plugins.airdrop.folder": "Ontvangen bestanden bewaren in",
   "plugins.airdrop.computer": "Deze computer",
   "plugins.airdrop.shown_as": "Getoond als",

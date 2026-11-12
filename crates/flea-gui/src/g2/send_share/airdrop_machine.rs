@@ -117,6 +117,25 @@ impl AirDrop {
         acts
     }
 
+    // Omdrop takes AirDrop over: this window's own runs stop as Off stops them, and its lock waits for the radio's exit;
+    // no look, menu or answer already asked of owly lands, and another window's radio is left alone.
+    pub fn retire(&mut self) -> Vec<Act> {
+        let mut acts = if self.radio == Radio::Off {
+            self.again = None;
+            self.asks += 1;
+            self.on_wait = None;
+            self.quiet()
+        } else {
+            self.turn_off()
+        };
+        self.facts("");
+        self.menus += 1;
+        self.elsewhere = Radio::Off;
+        self.watching = false;
+        acts.push(Act::Refresh);
+        acts
+    }
+
     // True once when a watch should start: the radio is up or waited for, and other windows can see or stop it.
     pub fn watch(&mut self) -> bool {
         if self.watching || !(self.on() || self.again.is_some()) || !self.shared.machine_wide() {

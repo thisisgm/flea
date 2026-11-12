@@ -1654,6 +1654,8 @@
   "plugins.airdrop.receiving": "وصولی",
   "plugins.airdrop.receiving.off": "بند",
   "plugins.airdrop.receiving.everyone": "10 منٹ کے لیے سب",
+  "plugins.airdrop.receiving.omdrop_everyone": "ہر شخص",
+  "plugins.airdrop.receiving.omdrop_contacts": "صرف رابطے",
   "plugins.airdrop.folder": "موصول فائلیں یہاں محفوظ کریں",
   "plugins.airdrop.computer": "یہ کمپیوٹر",
   "plugins.airdrop.shown_as": "اس نام سے دکھایا جاتا ہے",

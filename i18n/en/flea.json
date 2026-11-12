@@ -606,6 +606,8 @@
   "plugins.airdrop.receiving": "Receiving",
   "plugins.airdrop.receiving.off": "Off",
   "plugins.airdrop.receiving.everyone": "Everyone for 10 Minutes",
+  "plugins.airdrop.receiving.omdrop_everyone": "Everyone",
+  "plugins.airdrop.receiving.omdrop_contacts": "Contacts Only",
   "plugins.airdrop.folder": "Save received files to",
   "plugins.airdrop.computer": "This Computer",
   "plugins.airdrop.shown_as": "Shown as",

@@ -1674,6 +1674,8 @@
   "plugins.airdrop.receiving": "Saņemšana",
   "plugins.airdrop.receiving.off": "Izslēgts",
   "plugins.airdrop.receiving.everyone": "Visi uz 10 minūtēm",
+  "plugins.airdrop.receiving.omdrop_everyone": "Visi",
+  "plugins.airdrop.receiving.omdrop_contacts": "Tikai kontakti",
   "plugins.airdrop.folder": "Saņemtos failus saglabāt mapē",
   "plugins.airdrop.computer": "Šis dators",
   "plugins.airdrop.shown_as": "Parādīts kā",

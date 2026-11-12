@@ -36,7 +36,7 @@ fn signal_group(child: &Child) {
 }
 
 // Nonblocking pipes keep a descendant holding stdout open from extending the discovery deadline.
-fn nonblocking(pipe: &impl AsRawFd) -> io::Result<()> {
+pub(crate) fn nonblocking(pipe: &impl AsRawFd) -> io::Result<()> {
     let fd = pipe.as_raw_fd();
     let flags = unsafe { fcntl(fd, F_GETFL) };
     if flags < 0 || unsafe { fcntl(fd, F_SETFL, flags | O_NONBLOCK) } < 0 {

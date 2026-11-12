@@ -1776,6 +1776,8 @@
   "plugins.airdrop.receiving": "Sprejemanje",
   "plugins.airdrop.receiving.off": "Izklopljeno",
   "plugins.airdrop.receiving.everyone": "Vsi za 10 minut",
+  "plugins.airdrop.receiving.omdrop_everyone": "Vsi",
+  "plugins.airdrop.receiving.omdrop_contacts": "Samo stiki",
   "plugins.airdrop.folder": "Prejete datoteke shrani v",
   "plugins.airdrop.computer": "Ta računalnik",
   "plugins.airdrop.shown_as": "Prikazano kot",

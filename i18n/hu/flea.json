@@ -604,6 +604,8 @@
   "plugins.airdrop.receiving": "Fogadás",
   "plugins.airdrop.receiving.off": "Ki",
   "plugins.airdrop.receiving.everyone": "Mindenki 10 percig",
+  "plugins.airdrop.receiving.omdrop_everyone": "Mindenki",
+  "plugins.airdrop.receiving.omdrop_contacts": "Csak névjegyek",
   "plugins.airdrop.folder": "A fogadott fájlok mentési helye",
   "plugins.airdrop.computer": "Ez a számítógép",
   "plugins.airdrop.shown_as": "Megjelenített név",

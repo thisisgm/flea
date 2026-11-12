@@ -23,6 +23,18 @@ fn stand_in(root: &TestDir, body: &str) -> String {
     root.script("owly", &script).to_string_lossy().into_owned()
 }
 
+fn owly(path: String) -> Option<Tool> {
+    Some(Tool { stack: Stack::Owly, path })
+}
+
+// A stand-in omdrop: logs its argv, then plays one script of stdout and stderr sentences and an exit code.
+fn omdrop_stand_in(root: &TestDir, body: &str) -> Option<Tool> {
+    let log = root.join("argv.log");
+    let script = format!("#!/bin/sh\nprintf '%s\\n' \"$@\" > '{}'\n{body}\n", log.display());
+    let path = root.script("omdrop", &script).to_string_lossy().into_owned();
+    Some(Tool { stack: Stack::Omdrop, path })
+}
+
 fn bytes(rx: &mpsc::Receiver<OpMsg>) -> Vec<(u64, u64)> {
     rx.try_iter()
         .filter_map(|m| match m {
@@ -40,14 +52,14 @@ fn bytes(rx: &mpsc::Receiver<OpMsg>) -> Vec<(u64, u64)> {
 #[test]
 fn a_delivered_send_reports_owlys_byte_progress_and_passes_files_after_the_double_dash() {
     let root = TestDir::new("airdrop-delivered");
-    let owly = stand_in(
+    let owly_path = stand_in(
         &root,
         r#"printf 'looking for "x" for 30 s...\nsending to "x"\naccepted\n\r100 / 400 bytes\r400 / 400 bytes\n' >&2; echo delivered; exit 0"#,
     );
     let (tx, rx) = mpsc::channel();
     let file = root.file("-photo.png", "x").to_string_lossy().into_owned();
     let verdict = run(
-        Some(owly),
+        owly(owly_path),
         3,
         &send(vec![file.clone()]),
         &AtomicBool::new(false),
@@ -66,7 +78,7 @@ fn a_declined_or_failed_send_keeps_the_devices_answer_and_owlys_reason() {
     let declined = stand_in(&root, "echo declined; exit 1");
     assert_eq!(
         run(
-            Some(declined),
+            owly(declined),
             3,
             &send(vec!["/x".into()]),
             &AtomicBool::new(false),
@@ -77,7 +89,7 @@ fn a_declined_or_failed_send_keeps_the_devices_answer_and_owlys_reason() {
     );
     let gone = stand_in(&root, "echo 'owly: no such receiver found' >&2; exit 2");
     let verdict = run(
-        Some(gone),
+        owly(gone),
         3,
         &send(vec!["/x".into()]),
         &AtomicBool::new(false),
@@ -93,7 +105,7 @@ fn a_declined_or_failed_send_keeps_the_devices_answer_and_owlys_reason() {
     );
     assert_eq!(
         run(
-            Some(radio),
+            owly(radio),
             3,
             &send(vec!["/x".into()]),
             &AtomicBool::new(false),
@@ -128,7 +140,7 @@ fn a_missing_owly_says_so_and_a_cancel_stops_a_send_in_flight() {
     });
     let started = Instant::now();
     assert_eq!(
-        run(Some(slow), 3, &send(vec!["/x".into()]), &cancel, &tx).0,
+        run(owly(slow), 3, &send(vec!["/x".into()]), &cancel, &tx).0,
         "cancelled"
     );
     assert!(
@@ -136,6 +148,77 @@ fn a_missing_owly_says_so_and_a_cancel_stops_a_send_in_flight() {
         "the cancel waited for owly"
     );
     stopper.join().unwrap();
+}
+
+#[test]
+fn an_omdrop_send_goes_to_the_address_and_reads_omdrops_own_sentences() {
+    let root = TestDir::new("airdrop-omdrop");
+    let (tx, _rx) = mpsc::channel();
+    let file = root.file("-photo.png", "x").to_string_lossy().into_owned();
+    let sent = omdrop_stand_in(&root, "echo 'Sent -photo.png (1 B)'; exit 0");
+    let verdict = run(sent, 3, &send(vec![file.clone()]), &AtomicBool::new(false), &tx);
+    assert_eq!(verdict, ("delivered".to_string(), String::new()));
+    let argv = std::fs::read_to_string(root.join("argv.log")).unwrap();
+    assert_eq!(argv, format!("send\n--to=3a9f0c2be41d\n--\n{file}\n"));
+    let declined = omdrop_stand_in(&root, "echo 'They declined it.' >&2; exit 1");
+    let refused = run(declined, 3, &send(vec!["/x".into()]), &AtomicBool::new(false), &tx);
+    assert_eq!(refused.0, "declined");
+    let silent = omdrop_stand_in(&root, "echo 'They never answered: timed out' >&2; exit 1");
+    let failed = run(silent, 3, &send(vec!["/x".into()]), &AtomicBool::new(false), &tx);
+    assert_eq!(failed, ("failed".to_string(), "They never answered: timed out".to_string()));
+}
+
+#[test]
+fn an_omdrop_send_that_floods_stdout_or_leaves_stderr_open_still_ends() {
+    let root = TestDir::new("airdrop-omdrop-pipes");
+    let (tx, _rx) = mpsc::channel();
+    // Far more than any pipe holds, before exiting: a pipe nobody drains would block it forever.
+    let flood = omdrop_stand_in(&root, "head -c 4194304 /dev/zero | tr '\\0' x; exit 0");
+    let started = Instant::now();
+    assert_eq!(run(flood, 3, &send(vec!["/x".into()]), &AtomicBool::new(false), &tx).0, "delivered");
+    // A descendant still holding stderr after the send exits must not hold the job.
+    let lingering = omdrop_stand_in(&root, "sleep 30 & exit 0");
+    assert_eq!(run(lingering, 3, &send(vec!["/x".into()]), &AtomicBool::new(false), &tx).0, "delivered");
+    // What it said before then still decides the verdict.
+    let refused = omdrop_stand_in(&root, "echo 'They declined it.' >&2; sleep 30 & exit 1");
+    assert_eq!(run(refused, 3, &send(vec!["/x".into()]), &AtomicBool::new(false), &tx).0, "declined");
+    assert!(started.elapsed() < Duration::from_secs(15), "{:?}", started.elapsed());
+}
+
+#[test]
+fn a_cancelled_omdrop_send_hears_sigterm_so_it_can_stop_its_sender() {
+    let root = TestDir::new("airdrop-omdrop-cancel");
+    let mark = root.join("terminated");
+    let body = format!("trap 'kill $!; touch \"{}\"; echo Cancelled. >&2; exit 130' TERM\nsleep 30 & wait", mark.display());
+    let slow = omdrop_stand_in(&root, &body);
+    let (tx, _rx) = mpsc::channel();
+    let cancel = std::sync::Arc::new(AtomicBool::new(false));
+    let flag = std::sync::Arc::clone(&cancel);
+    let stopper = std::thread::spawn(move || {
+        std::thread::sleep(Duration::from_millis(300));
+        flag.store(true, Ordering::Relaxed);
+    });
+    assert_eq!(run(slow, 3, &send(vec!["/x".into()]), &cancel, &tx).0, "cancelled");
+    stopper.join().unwrap();
+    assert!(mark.exists(), "omdrop was killed before its TERM trap could stop the sender");
+}
+
+#[test]
+fn a_send_whose_descendant_never_stops_writing_stderr_still_cancels_and_ends() {
+    let root = TestDir::new("airdrop-omdrop-chatter");
+    // `yes` outlives the script and writes stderr until the job closes its end of the pipe.
+    let chatty = omdrop_stand_in(&root, "yes 'Still sending.' >&2 & wait");
+    let (tx, _rx) = mpsc::channel();
+    let cancel = std::sync::Arc::new(AtomicBool::new(false));
+    let flag = std::sync::Arc::clone(&cancel);
+    let stopper = std::thread::spawn(move || {
+        std::thread::sleep(Duration::from_millis(300));
+        flag.store(true, Ordering::Relaxed);
+    });
+    let started = Instant::now();
+    assert_eq!(run(chatty, 3, &send(vec!["/x".into()]), &cancel, &tx).0, "cancelled");
+    stopper.join().unwrap();
+    assert!(started.elapsed() < Duration::from_secs(10), "{:?}", started.elapsed());
 }
 
 #[test]
@@ -164,13 +247,13 @@ fn owly_is_found_on_path_as_a_shell_finds_it_and_a_folder_named_owly_is_not() {
     ])
     .unwrap();
     assert_eq!(
-        airdrop::find(&path),
+        airdrop::find(&path, airdrop::PROGRAM),
         Some(found),
         "a non-executable owly is skipped"
     );
     std::fs::create_dir_all(missing.join("owly")).unwrap();
     let only_folder = std::env::join_paths([missing]).unwrap();
-    assert_eq!(airdrop::find(&only_folder), None);
+    assert_eq!(airdrop::find(&only_folder, airdrop::PROGRAM), None);
 }
 
 #[test]
@@ -198,17 +281,17 @@ fn the_windows_send_line_parses_as_an_airdrop_request_and_the_facts_carry_owly()
     let facts = crate::backend::providers::facts();
     let parsed = flea::ui_logic_send_share::providers::parse_facts(&facts).expect("facts parse");
     assert!(facts.contains(r#""owly":{"installed":"#), "{facts}");
-    assert_eq!(
-        parsed.owly_command.is_empty(),
-        airdrop::find(&std::env::var_os("PATH").unwrap_or_default()).is_none()
-    );
+    assert!(facts.contains(r#""omdrop":{"installed":"#), "{facts}");
+    let path = std::env::var_os("PATH").unwrap_or_default();
+    assert_eq!(parsed.owly_command.is_empty(), airdrop::find(&path, "owly").is_none());
+    assert_eq!(parsed.omdrop_command.is_empty(), airdrop::find(&path, "omdrop").is_none());
 }
 
 #[test]
 fn a_failed_job_says_a_sentence_and_owlys_reason_wins() {
     assert_eq!(job_reason("declined", ""), "The device declined the files.");
     assert_eq!(job_reason("cancelled", ""), "Send cancelled.");
-    assert_eq!(job_reason("missing", ""), "AirDrop needs the owly package.");
+    assert_eq!(job_reason("missing", ""), "AirDrop needs the owly or Omdrop package.");
     assert_eq!(
         job_reason("failed", ""),
         "AirDrop could not finish the transfer."

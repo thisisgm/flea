@@ -17,6 +17,8 @@ fn ready() -> Page {
             readiness: Readiness::Ready,
             card: "Intel AX210".into(),
         },
+        omdrop: false,
+        contacts: false,
     }
 }
 

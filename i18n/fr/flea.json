@@ -1674,6 +1674,8 @@
   "plugins.airdrop.receiving": "Réception",
   "plugins.airdrop.receiving.off": "Désactivé",
   "plugins.airdrop.receiving.everyone": "Tout le monde pendant 10 minutes",
+  "plugins.airdrop.receiving.omdrop_everyone": "Tout le monde",
+  "plugins.airdrop.receiving.omdrop_contacts": "Contacts uniquement",
   "plugins.airdrop.folder": "Enregistrer les fichiers reçus dans",
   "plugins.airdrop.computer": "Cet ordinateur",
   "plugins.airdrop.shown_as": "Affiché comme",
