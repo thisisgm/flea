@@ -3395,7 +3395,7 @@ as a `send` job headed by `name` (the service ID when `name` is absent or empty)
 `{"t":"airdropsent","id":1,"ok":true,"code":"delivered","reason":""}`
 
 `code` is `delivered`, `declined` (the device refused), `failed` (with owly's own `reason`), `cancelled`, `missing`
-(owly is not on PATH) or `stale` (a path is gone). The window owns the radio, the receiver and discovery: it runs
+(neither owly nor `omdrop` is on PATH) or `stale` (a path is gone). The window owns the radio, the receiver and discovery: it runs
 `owly doctor --json`, `owly radio up --for 600`, `owly receive --dir <folder>` and `owly browse` itself, and the
 backend's `providers` facts name `owly`'s path. The machine has one radio: the window that turns it on holds an
 exclusive lock on `$XDG_RUNTIME_DIR/flea/airdrop.lock` (with `FLEA_AIRDROP_DIR` set, the three files sit directly in that

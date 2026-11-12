@@ -276,3 +276,29 @@ fn the_omdrop_page_learns_this_machines_name_for_shown_as(cx: &mut TestAppContex
     assert!(active, "omdrop runs AirDrop");
     assert_eq!(host, want.trim(), "Shown as has a name to fall back on");
 }
+
+#[gpui::test]
+fn an_omdrop_already_on_keeps_its_row_through_a_failed_status(cx: &mut TestAppContext) {
+    let (shell, cx) = window(cx);
+    let (root, omdrop) = omdrop_with_status("row-on");
+    std::fs::write(root.join("status.json"), ON).unwrap();
+    acts_from_omdrop(&shell, cx, |om| {
+        let _ = om.facts(&omdrop);
+        om.ask_status()
+    });
+    settle(cx, 300);
+    std::fs::remove_file(root.join("status.json")).unwrap();
+    acts_from_omdrop(&shell, cx, |om| om.ask_status());
+    settle(cx, 300);
+    let (ready, row) = shell.update(cx, |shell, _| {
+        let mut context = flea::ui_logic_context_menus::build::Context::default();
+        shell.omdrop_context(true, &mut context);
+        (
+            shell.menu.providers.omdrop.adapter.ready(),
+            context.airdrop_installed,
+        )
+    });
+    let _ = std::fs::remove_dir_all(&root);
+    assert!(!ready, "the second status failed");
+    assert!(row, "Omdrop is still on, so its row stays");
+}

@@ -1,6 +1,6 @@
 //! The window's AirDrop when Omdrop runs it: the menu, page and choices of airdrop_join.rs, carried out on Omdrop.
 use super::airdrop::Act;
-use super::airdrop_omdrop::{DirDone, DirJob};
+use super::airdrop_omdrop::{DirDone, DirJob, Phase};
 use super::airdrop_run::Origin;
 use super::join::now_ms;
 use super::seams::Action;
@@ -103,7 +103,8 @@ impl Shell {
 
     pub(super) fn omdrop_context(&self, row_on: bool, context: &mut MenuContext) {
         let om = &self.menu.providers.omdrop;
-        context.airdrop_installed = row_on && om.adapter.ready();
+        // An Omdrop already on keeps its row through a failed status: its devices can still be sent to.
+        context.airdrop_installed = row_on && (om.adapter.ready() || om.phase == Phase::On);
         context.airdrop_on = om.on();
         context.airdrop_devices = om.devices();
     }
