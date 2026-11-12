@@ -20,6 +20,22 @@ const ROLES: [(&str, &[&str]); 5] = [
 // `@a` naming `@b` naming `@a` must end, and real themes chain two or three names at most.
 const MAX_HOPS: usize = 8;
 
+// Sample input: "a /* b */ c" gives "a   c"; an unclosed comment runs to the end, as in CSS.
+fn uncommented(sheet: &str) -> String {
+    let mut out = String::with_capacity(sheet.len());
+    let mut rest = sheet;
+    while let Some(open) = rest.find("/*") {
+        out.push_str(&rest[..open]);
+        out.push(' ');
+        match rest[open + 2..].find("*/") {
+            Some(close) => rest = &rest[open + 2 + close + 2..],
+            None => return out,
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
 // Sample input: "@define-color accent_color #c4c0ff;" or "@define-color x @accent_bg_color;".
 fn defines(text: &str) -> impl Iterator<Item = (&str, &str)> {
     text.split(';').filter_map(|chunk| {
@@ -52,8 +68,9 @@ fn hex(value: &str) -> Option<String> {
 /// The colours.toml lines for these stylesheets, a later sheet overriding an earlier one name by
 /// name; empty when none of them names a colour Flea uses.
 pub fn colours_text(sheets: &[&str]) -> String {
+    let sheets: Vec<String> = sheets.iter().map(|sheet| uncommented(sheet)).collect();
     let mut named: HashMap<&str, &str> = HashMap::new();
-    for sheet in sheets {
+    for sheet in &sheets {
         named.extend(defines(sheet));
     }
     let resolve = |name: &str| {
@@ -108,6 +125,17 @@ mod tests {
         assert!(text.contains("foreground = '#fcfcfc'"));
         assert!(text.contains("accent = '#c4c0ff'"));
         assert!(text.contains("red = '#da4453'"));
+    }
+
+    #[test]
+    fn a_commented_out_define_never_paints() {
+        let sheet = "@define-color window_bg_color #ffffff; /* @define-color window_bg_color #000000; */\n\
+            /* @define-color accent_bg_color #ff0000; */ @define-color window_fg_color #101010;\n\
+            /* unclosed @define-color view_bg_color #00ff00;";
+        assert_eq!(
+            colours_text(&[sheet]),
+            "background = '#ffffff'\nforeground = '#101010'\n"
+        );
     }
 
     #[test]

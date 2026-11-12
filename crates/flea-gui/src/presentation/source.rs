@@ -24,6 +24,8 @@ impl Snapshot {
 
 /// How many files a presentation reads: seven Omarchy and fontconfig inputs, then three GTK 4 stylesheets.
 pub(super) const INPUT_COUNT: usize = 10;
+// The first of the three GTK 4 stylesheets in `Sources::inputs`.
+const GTK_SHEETS: usize = 7;
 pub(super) type Inputs = [Option<String>; INPUT_COUNT];
 /// The most bytes one input may hold; a larger file is refused, never cut.
 pub(super) const INPUT_CAP: usize = 65536;
@@ -106,10 +108,16 @@ impl Sources {
     }
 
     /// Every input or the first failure: a live change that cannot be read keeps the last complete snapshot.
+    /// The GTK sheets only count without an Omarchy colors.toml, so with one their failures are ignored
+    /// and can never hold back an Omarchy change.
     pub fn read(&self) -> io::Result<Inputs> {
-        let mut inputs = std::array::from_fn(|_| None);
-        for (path, input) in self.inputs.iter().zip(&mut inputs) {
-            *input = Self::read_one(path)?;
+        let mut inputs: Inputs = std::array::from_fn(|_| None);
+        for at in 0..INPUT_COUNT {
+            inputs[at] = match Self::read_one(&self.inputs[at]) {
+                // Omarchy's colors.toml, input 0, is read first; while it is there the sheets paint nothing.
+                Err(_) if at >= GTK_SHEETS && inputs[0].is_some() => None,
+                result => result?,
+            };
         }
         Ok(inputs)
     }
@@ -226,6 +234,28 @@ mod tests {
             .unwrap()
             .iter()
             .all(|value| value.as_ref().is_some_and(|text| !text.is_empty())));
+    }
+
+    #[test]
+    fn an_unreadable_gtk_sheet_never_holds_back_an_omarchy_palette() {
+        let fixture = super::super::fixture::Fixture::new("gtk-sheet");
+        let colors = fixture.path().join("colors.toml");
+        fixture.write(&colors, "background = '#101010'");
+        let at = |omarchy: &PathBuf| {
+            sources(std::array::from_fn(|at| match at {
+                0 => omarchy.clone(),
+                // A directory fails a regular-file read, as an oversized or unreadable sheet does.
+                7 => PathBuf::from("/proc/self"),
+                _ => PathBuf::from("/proc/self/flea-absent"),
+            }))
+        };
+        let read = at(&colors)
+            .read()
+            .expect("Omarchy's palette reads past a broken sheet");
+        assert!(read[0].is_some() && read[7].is_none());
+        // Without Omarchy's palette the sheet is live, so its failure keeps the last snapshot.
+        assert!(at(&fixture.path().join("absent")).read().is_err());
+        fixture.cleanup();
     }
 
     #[test]
