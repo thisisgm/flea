@@ -365,3 +365,6 @@ fn a_refused_omdrop_off_from_the_page_says_omdrops_reason_in_the_footer(cx: &mut
 
 #[path = "airdrop_folder_tests.rs"]
 mod folder;
+
+#[path = "airdrop_retry_tests.rs"]
+mod retry;

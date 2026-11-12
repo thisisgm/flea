@@ -9,7 +9,6 @@ const SIGTERM: i32 = 15;
 const SIGKILL: i32 = 9;
 
 extern "C" {
-    fn kill(pid: i32, sig: i32) -> i32;
     fn getsid(pid: i32) -> i32;
 }
 // A sweep that still finds live members after this long gives up rather than hold the job forever.
@@ -23,8 +22,8 @@ pub(crate) fn cancel(child: &mut Child, grace: Duration, mut during: impl FnMut(
         let _ = child.wait();
         return;
     };
-    // SAFETY: kill(2) on our own child, which is not yet reaped, so the pid is still its own.
-    unsafe { kill(leader, SIGTERM) };
+    // Our own child, not yet reaped, so the pid is still its own.
+    let _ = crate::procsignal::signal_process(leader, SIGTERM);
     let deadline = Instant::now() + grace;
     while !exited(leader) && Instant::now() < deadline {
         during();
@@ -60,8 +59,7 @@ fn sweep(sid: i32) {
             return;
         }
         for pid in live {
-            // SAFETY: kill(2) on a process in the session our unreaped child leads.
-            unsafe { kill(pid, SIGKILL) };
+            let _ = crate::procsignal::signal_process(pid, SIGKILL);
         }
         std::thread::sleep(Duration::from_millis(10));
     }

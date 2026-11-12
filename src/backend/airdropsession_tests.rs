@@ -56,8 +56,7 @@ impl Drop for StandIn {
     fn drop(&mut self) {
         if let Ok(text) = std::fs::read_to_string(self.root.join("unrelated.pid")) {
             if let Ok(pid) = text.trim().parse::<i32>() {
-                // SAFETY: kill(2) on the stand-in's own unrelated sleeper, which the test started.
-                unsafe { libc::kill(pid, libc::SIGKILL) };
+                let _ = crate::procsignal::signal_process(pid, libc::SIGKILL);
             }
         }
     }

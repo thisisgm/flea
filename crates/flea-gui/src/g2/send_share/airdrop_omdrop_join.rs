@@ -127,6 +127,27 @@ impl Shell {
         self.stack_acts(Origin::omdrop(side), acts, window, cx);
     }
 
+    // A failed status's retry, asked once its delay has passed if nothing made it stale meanwhile.
+    pub(super) fn omdrop_status_later(
+        &mut self,
+        from: Origin,
+        token: u64,
+        ms: u64,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        cx.spawn_in(window, async move |this, cx| {
+            cx.background_executor()
+                .timer(std::time::Duration::from_millis(ms))
+                .await;
+            let _ = this.update_in(cx, |shell, window, cx| {
+                let acts = shell.menu.providers.omdrop.status_due(token);
+                shell.stack_acts(from, acts, window, cx);
+            });
+        })
+        .detach();
+    }
+
     // The Settings page asks Omdrop's status when it shows, so its facts are current.
     pub(super) fn omdrop_settings_shown(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let enabled = self.airdrop_enabled();
@@ -171,7 +192,7 @@ impl Shell {
                     })
                     .into_iter()
                     .collect();
-                acts.extend(shell.menu.providers.omdrop.ask_status());
+                acts.extend(shell.menu.providers.omdrop.folder_done());
                 let side = shell.focus_side;
                 shell.stack_acts(Origin::omdrop(side), acts, window, cx);
             });

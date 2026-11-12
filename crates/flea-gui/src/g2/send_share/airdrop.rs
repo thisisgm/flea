@@ -46,6 +46,8 @@ pub enum Act {
     Refresh,
     // Another window owns the radio: its owner is asked to stop, off the window's thread.
     AskStop,
+    // Omdrop's status asked again once the delay, in ms, has passed, unless its token is stale by then.
+    StatusLater(u64, u64),
 }
 
 #[derive(Default)]

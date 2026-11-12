@@ -133,6 +133,9 @@ impl Shell {
                     self.airdrop_page(cx);
                 }
                 Act::AskStop => self.airdrop_ask_stop(cx),
+                Act::StatusLater(token, ms) => {
+                    self.omdrop_status_later(from, token, ms, window, cx)
+                }
             }
         }
         self.airdrop_watch(window, cx);
