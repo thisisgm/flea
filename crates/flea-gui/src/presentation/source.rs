@@ -35,12 +35,30 @@ pub(super) type Stamps = [Option<(u64, u64, u64, i64, i64, i64, i64, u32)>; INPU
 pub(super) struct Sources {
     inputs: [PathBuf; INPUT_COUNT],
     cache: PathBuf,
+    // Omarchy's state folder. While it exists the GTK sheets are never read, so a theme swap's
+    // missing colors.toml keeps today's behaviour instead of falling back to GTK colours.
+    omarchy: Option<PathBuf>,
 }
 
 impl Sources {
     #[cfg(test)]
     pub fn at(inputs: [PathBuf; INPUT_COUNT], cache: PathBuf) -> Self {
-        Self { inputs, cache }
+        Self {
+            inputs,
+            cache,
+            omarchy: None,
+        }
+    }
+
+    #[cfg(test)]
+    pub fn with_omarchy(mut self, dir: PathBuf) -> Self {
+        self.omarchy = Some(dir);
+        self
+    }
+
+    /// Whether this input is read: the GTK sheets only without an Omarchy install.
+    fn active(&self, at: usize) -> bool {
+        at < GTK_SHEETS || !self.omarchy.as_deref().is_some_and(Path::is_dir)
     }
 
     pub fn current() -> Self {
@@ -71,6 +89,7 @@ impl Sources {
                 config.join("gtk-4.0/dank-colors.css"),
             ],
             cache: state.join("flea/fc-match-monospace"),
+            omarchy: Some(state.join("omarchy")),
         }
     }
 
@@ -108,16 +127,11 @@ impl Sources {
     }
 
     /// Every input or the first failure: a live change that cannot be read keeps the last complete snapshot.
-    /// The GTK sheets only count without an Omarchy colors.toml, so with one their failures are ignored
-    /// and can never hold back an Omarchy change.
+    /// On an Omarchy install the GTK sheets are never read, so they can never hold back an Omarchy change.
     pub fn read(&self) -> io::Result<Inputs> {
         let mut inputs: Inputs = std::array::from_fn(|_| None);
-        for at in 0..INPUT_COUNT {
-            inputs[at] = match Self::read_one(&self.inputs[at]) {
-                // Omarchy's colors.toml, input 0, is read first; while it is there the sheets paint nothing.
-                Err(_) if at >= GTK_SHEETS && inputs[0].is_some() => None,
-                result => result?,
-            };
+        for at in (0..INPUT_COUNT).filter(|&at| self.active(at)) {
+            inputs[at] = Self::read_one(&self.inputs[at])?;
         }
         Ok(inputs)
     }
@@ -126,7 +140,10 @@ impl Sources {
     pub fn read_for_launch(&self) -> (Inputs, Vec<String>) {
         let mut inputs = std::array::from_fn(|_| None);
         let mut failures = Vec::new();
-        for (path, input) in self.inputs.iter().zip(&mut inputs) {
+        for (at, (path, input)) in self.inputs.iter().zip(&mut inputs).enumerate() {
+            if !self.active(at) {
+                continue;
+            }
             match Self::read_one(path) {
                 Ok(text) => *input = text,
                 Err(error) => failures.push(format!("{}: {error}", path.display())),
@@ -211,6 +228,7 @@ mod tests {
         Sources {
             inputs,
             cache: PathBuf::from("/proc/self/flea-u01-no-cache/entry"),
+            omarchy: None,
         }
     }
 
@@ -237,24 +255,28 @@ mod tests {
     }
 
     #[test]
-    fn an_unreadable_gtk_sheet_never_holds_back_an_omarchy_palette() {
+    fn on_omarchy_the_gtk_sheets_are_never_read() {
         let fixture = super::super::fixture::Fixture::new("gtk-sheet");
-        let colors = fixture.path().join("colors.toml");
-        fixture.write(&colors, "background = '#101010'");
-        let at = |omarchy: &PathBuf| {
-            sources(std::array::from_fn(|at| match at {
-                0 => omarchy.clone(),
-                // A directory fails a regular-file read, as an oversized or unreadable sheet does.
-                7 => PathBuf::from("/proc/self"),
-                _ => PathBuf::from("/proc/self/flea-absent"),
-            }))
-        };
-        let read = at(&colors)
+        let sheet = fixture.path().join("dank-colors.css");
+        fixture.write(&sheet, "@define-color accent_bg_color #c4c0ff;");
+        let paths: [PathBuf; INPUT_COUNT] = std::array::from_fn(|at| match at {
+            // A directory fails a regular-file read, as an oversized or unreadable sheet does.
+            7 => PathBuf::from("/proc/self"),
+            9 => sheet.clone(),
+            _ => PathBuf::from("/proc/self/flea-absent"),
+        });
+        let omarchy = sources(paths.clone()).with_omarchy(fixture.path().to_path_buf());
+        // Neither a broken sheet nor a theme swap's missing colors.toml reaches the GTK colours.
+        let read = omarchy
             .read()
-            .expect("Omarchy's palette reads past a broken sheet");
-        assert!(read[0].is_some() && read[7].is_none());
-        // Without Omarchy's palette the sheet is live, so its failure keeps the last snapshot.
-        assert!(at(&fixture.path().join("absent")).read().is_err());
+            .expect("a broken sheet never holds back Omarchy");
+        assert!(read.iter().all(Option::is_none));
+        assert!(omarchy.read_for_launch().1.is_empty());
+        // Without Omarchy the sheets are live, so a broken one keeps the last snapshot.
+        let elsewhere = sources(paths).with_omarchy(fixture.path().join("absent"));
+        assert!(elsewhere.read().is_err());
+        let (launch, failures) = elsewhere.read_for_launch();
+        assert!(launch[9].is_some() && failures.len() == 1);
         fixture.cleanup();
     }
 

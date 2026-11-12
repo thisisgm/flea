@@ -180,9 +180,13 @@ impl Theme {
         }
     }
 }
-// The Omarchy palette, or, when that file is absent, the one GTK 4 apps are given (src/desktop_palette.rs).
+// The Omarchy palette, or, without an Omarchy install, the one GTK 4 apps are given (src/desktop_palette.rs).
+// Omarchy's state folder, three levels above colors.toml, decides, so a theme swap's gap never paints GTK colours.
 fn read(path: &std::path::Path) -> Option<String> {
-    read_file(path).or_else(desktop_palette)
+    read_file(path).or_else(|| {
+        let omarchy = path.ancestors().nth(3).is_some_and(std::path::Path::is_dir);
+        (path == Theme::path() && !omarchy).then(desktop_palette).flatten()
+    })
 }
 // The same three sheets, in the same order, as the GUI's crates/flea-gui/src/presentation/source.rs.
 fn desktop_palette() -> Option<String> {
