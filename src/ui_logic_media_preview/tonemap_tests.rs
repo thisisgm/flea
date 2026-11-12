@@ -7,9 +7,9 @@ fn with(source: Source) -> Tonemap {
     tonemap
 }
 
-fn pq_4k() -> Tonemap {
+fn hdr_4k() -> Tonemap {
     with(Source {
-        pq: true,
+        hdr: true,
         width: 3840,
         height: 2160,
         rotated: false,
@@ -17,19 +17,21 @@ fn pq_4k() -> Tonemap {
 }
 
 #[test]
-fn pv3_only_pq_is_tone_mapped() {
-    assert!(pq("pq"));
-    for other in ["hlg", "bt.1886", "srgb", "linear", "gamma2.2", "auto", ""] {
-        assert!(!pq(other), "{other}");
+fn pv3_only_hdr_is_tone_mapped() {
+    for gamma in ["pq", "hlg"] {
+        assert!(hdr(gamma), "{gamma}");
+    }
+    for other in ["bt.1886", "srgb", "linear", "gamma2.2", "auto", ""] {
+        assert!(!hdr(other), "{other}");
     }
 }
 
 #[test]
-fn pv3_a_pq_clip_gets_the_zscale_filter_at_its_decoded_size() {
-    let mut tonemap = pq_4k();
+fn pv3_an_hdr_clip_gets_the_tone_map_filter_at_its_decoded_size() {
+    let mut tonemap = hdr_4k();
     assert_eq!(
         tonemap.update(1920, 1080).as_deref(),
-        Some("lavfi=[zscale=w=1920:h=1080:f=lanczos:d=random:t=bt709:p=bt709:m=gbr:r=pc,format=gbrp,setsar=1]")
+        Some("lavfi=[zscale=w=1920:h=1080:f=lanczos:t=linear:npl=203,format=gbrpf32le,zscale=p=bt709,tonemap=tonemap=mobius:peak=4.93:desat=0,zscale=t=bt709:m=gbr:r=pc:d=random,format=gbrp,setsar=1]")
     );
     assert!(tonemap.on());
     assert_eq!(
@@ -44,7 +46,7 @@ fn pv3_a_pq_clip_gets_the_zscale_filter_at_its_decoded_size() {
 
 #[test]
 fn pv3_a_resize_moves_the_filter_and_never_upscales() {
-    let mut tonemap = pq_4k();
+    let mut tonemap = hdr_4k();
     tonemap.update(960, 540);
     assert_eq!(tonemap.wanted(2560, 1440), Some((2560, 1440)));
     assert!(tonemap
@@ -55,22 +57,22 @@ fn pv3_a_resize_moves_the_filter_and_never_upscales() {
 }
 
 #[test]
-fn pv3_non_pq_rotated_and_unsized_clips_keep_the_renderer_path() {
+fn pv3_sdr_rotated_and_unsized_clips_keep_the_renderer_path() {
     for source in [
         Source {
-            pq: false,
+            hdr: false,
             width: 3840,
             height: 2160,
             rotated: false,
         },
         Source {
-            pq: true,
+            hdr: true,
             width: 3840,
             height: 2160,
             rotated: true,
         },
         Source {
-            pq: true,
+            hdr: true,
             width: 0,
             height: 2160,
             rotated: false,
@@ -87,17 +89,17 @@ fn pv3_non_pq_rotated_and_unsized_clips_keep_the_renderer_path() {
 }
 
 #[test]
-fn pv3_a_clip_that_turns_out_not_pq_takes_the_filter_off() {
-    let mut tonemap = pq_4k();
+fn pv3_a_clip_that_turns_out_not_hdr_takes_the_filter_off() {
+    let mut tonemap = hdr_4k();
     tonemap.update(1920, 1080);
-    tonemap.source.pq = false;
+    tonemap.source.hdr = false;
     assert_eq!(tonemap.update(1920, 1080).as_deref(), Some(""));
     assert!(!tonemap.on());
 }
 
 #[test]
 fn pv3_a_failed_filter_comes_off_and_stays_off() {
-    let mut tonemap = pq_4k();
+    let mut tonemap = hdr_4k();
     tonemap.update(1920, 1080);
     assert_eq!(tonemap.fail().as_deref(), Some(""));
     assert_eq!(tonemap.update(2560, 1440), None);
