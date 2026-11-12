@@ -51,21 +51,7 @@ impl Cleanup {
     }
 
     fn unchanged(&self) -> Result<(), Refusal> {
-        if !same_node(
-            &identity(&self.path).refuse(Outcome::RecordLeft(None), "Quarantine unreadable")?,
-            &Identity::of(
-                &self
-                    .quarantine
-                    .metadata()
-                    .refuse(Outcome::RecordLeft(None), "Quarantine unreadable")?,
-            ),
-        ) {
-            return Err(left(
-                "Recovery quarantine changed before cleanup; it was preserved.",
-                "the temporary folder changed",
-            ));
-        }
-        Ok(())
+        unchanged_quarantine(&self.path, &self.quarantine)
     }
 
     pub(super) fn validate(&self) -> Result<(), Refusal> {
@@ -173,19 +159,22 @@ impl Batch {
                 .collect();
         }
         let mut emptied = Vec::new();
-        for (index, effect, recovery) in completed {
+        for (index, effect, mut recovery) in completed {
             let written = recovery
                 .cleanup
-                .as_ref()
+                .take()
                 .ok_or_else(|| {
                     left(
                         "Recovery has no completed quarantine.",
                         "the temporary folder is unavailable",
                     )
                 })
-                .and_then(Cleanup::clear_metadata);
+                .and_then(|cleanup| {
+                    cleanup.clear_metadata()?;
+                    Ok(cleanup)
+                });
             match written {
-                Ok(()) => emptied.push((index, effect, recovery)),
+                Ok(cleanup) => emptied.push((index, effect, recovery, cleanup)),
                 Err(error) => failures.push((index, error.wrap(Outcome::RecordLeft(effect)))),
             }
         }
@@ -193,14 +182,14 @@ impl Batch {
             failures.extend(
                 emptied
                     .into_iter()
-                    .map(|(index, effect, _)| (index, error.wrap(Outcome::RecordLeft(effect)))),
+                    .map(|(index, effect, _, _)| (index, error.wrap(Outcome::RecordLeft(effect)))),
             );
             return failures;
         }
         let mut ready = Vec::new();
-        for (index, effect, mut recovery) in emptied {
+        for (index, effect, mut recovery, cleanup) in emptied {
             match recovery.record.append(FINISHED) {
-                Ok(()) => ready.push((index, effect, recovery)),
+                Ok(()) => ready.push((index, effect, recovery, cleanup)),
                 Err(error) => failures.push((
                     index,
                     left(&error, "the recovery record could not be written")
@@ -212,17 +201,12 @@ impl Batch {
             failures.extend(
                 ready
                     .into_iter()
-                    .map(|(index, effect, _)| (index, error.wrap(Outcome::RecordLeft(effect)))),
+                    .map(|(index, effect, _, _)| (index, error.wrap(Outcome::RecordLeft(effect)))),
             );
             return failures;
         }
-        for (index, effect, mut recovery) in ready {
-            let result = recovery
-                .cleanup
-                .take()
-                .expect("validated cleanup")
-                .remove()
-                .and_then(|()| recovery.complete());
+        for (index, effect, recovery, cleanup) in ready {
+            let result = cleanup.remove().and_then(|()| recovery.complete());
             if let Err(error) = result {
                 let outcome = match error.outcome() {
                     Outcome::RecordUnconfirmed(_) => Outcome::RecordUnconfirmed(effect),

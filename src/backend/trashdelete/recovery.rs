@@ -44,6 +44,23 @@ fn left(detail: &str, reason: &str) -> Refusal {
     Refusal::new(Outcome::RecordLeft(None), detail).because(reason)
 }
 
+fn unchanged_quarantine(path: &Path, quarantine: &File) -> Result<(), Refusal> {
+    if !same_node(
+        &identity(path).refuse(Outcome::RecordLeft(None), "Quarantine unreadable")?,
+        &Identity::of(
+            &quarantine
+                .metadata()
+                .refuse(Outcome::RecordLeft(None), "Quarantine unreadable")?,
+        ),
+    ) {
+        return Err(left(
+            "Recovery quarantine changed before cleanup; it was preserved.",
+            "the temporary folder changed",
+        ));
+    }
+    Ok(())
+}
+
 pub(super) struct Recovery {
     path: PathBuf,
     record: Manifest,

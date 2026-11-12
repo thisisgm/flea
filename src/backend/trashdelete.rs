@@ -531,8 +531,10 @@ impl PathReview {
             .map_err(|e| Refusal::os(Outcome::Prepare(op), "Could not create deletion quarantine", &e))?;
         let quarantine = open_dir(&quarantine_path).map_err(|refusal| refusal.wrap(Outcome::Prepare(op)))?;
         let recovery = parent_path.join(&quarantine_name);
-        let mut journal = match Recovery::begin(recovery_root, &self.path, &parent, &self.payload,
-            None, &recovery, &quarantine, Some(&self.tree), None) {
+        let mut journal = match Recovery::begin(recovery_root, recovery::RecordInput {
+            source: &self.path, parent: &parent, payload: &self.payload, paired: None,
+            quarantine_path: &recovery, quarantine: &quarantine, tree: Some(&self.tree), destination: None,
+        }) {
             Ok(journal) => journal,
             Err(error) => { let _ = std::fs::remove_dir(&quarantine_path); return Err(error.wrap(Outcome::NoRecord(op))); }
         };
