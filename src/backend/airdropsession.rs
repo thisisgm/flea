@@ -16,7 +16,16 @@ const SWEEP_LIMIT: Duration = Duration::from_secs(2);
 
 // SIGTERM to omdrop so it can stop its sender itself, then SIGKILL to every process left in its session, whether or not
 // omdrop exited first. omdrop stays unreaped until the sweep is done, so its pid, and so the session id, can't be reused.
-pub(crate) fn cancel(child: &mut Child, grace: Duration, mut during: impl FnMut()) {
+pub(crate) fn cancel(child: &mut Child, grace: Duration, during: impl FnMut()) {
+    cancel_reading(child, grace, during, &proc_stat);
+}
+
+fn proc_stat(pid: i32) -> String {
+    std::fs::read_to_string(format!("/proc/{pid}/stat")).unwrap_or_default()
+}
+
+// `cancel`, reading each process's stat line through `stat`.
+fn cancel_reading(child: &mut Child, grace: Duration, mut during: impl FnMut(), stat: &dyn Fn(i32) -> String) {
     let Ok(leader) = i32::try_from(child.id()) else {
         let _ = child.kill();
         let _ = child.wait();
@@ -25,23 +34,22 @@ pub(crate) fn cancel(child: &mut Child, grace: Duration, mut during: impl FnMut(
     // Our own child, not yet reaped, so the pid is still its own.
     let _ = crate::procsignal::signal_process(leader, SIGTERM);
     let deadline = Instant::now() + grace;
-    while !exited(leader) && Instant::now() < deadline {
+    while !exited(&stat(leader)) && Instant::now() < deadline {
         during();
         std::thread::sleep(POLL);
     }
     // Only a session the child leads is swept, never one it merely belongs to, such as Flea's own.
     // SAFETY: getsid(2) reads the session of our own unreaped child.
     if unsafe { getsid(leader) } == leader {
-        sweep(leader);
-    } else {
-        let _ = child.kill();
+        sweep(leader, stat);
     }
+    // The leader is killed whatever /proc showed: unreaped, its pid is still its own, so this never reaches another.
+    let _ = child.kill();
     let _ = child.wait();
 }
 
 // True once the child has exited: unreaped, it is a zombie, and its pid stays its own.
-fn exited(pid: i32) -> bool {
-    let stat = std::fs::read_to_string(format!("/proc/{pid}/stat")).unwrap_or_default();
+fn exited(stat: &str) -> bool {
     matches!(
         stat.rsplit_once(')')
             .and_then(|(_, rest)| rest.split_whitespace().next()),
@@ -51,10 +59,10 @@ fn exited(pid: i32) -> bool {
 
 // SIGKILL to every live member of the session, again and again: one that forked between a scan and its signal leaves a
 // child the next scan finds. Done when a scan finds only zombies.
-fn sweep(sid: i32) {
+fn sweep(sid: i32, stat: &dyn Fn(i32) -> String) {
     let deadline = Instant::now() + SWEEP_LIMIT;
     loop {
-        let live = members(sid);
+        let live = members(sid, stat);
         if live.is_empty() || Instant::now() >= deadline {
             return;
         }
@@ -66,16 +74,13 @@ fn sweep(sid: i32) {
 }
 
 // Every live process whose session is `sid`; zombies are already gone and only wait to be reaped.
-pub(super) fn members(sid: i32) -> Vec<i32> {
+pub(super) fn members(sid: i32, stat: &dyn Fn(i32) -> String) -> Vec<i32> {
     let Ok(entries) = std::fs::read_dir("/proc") else {
         return Vec::new();
     };
     entries
         .filter_map(|entry| entry.ok()?.file_name().to_str()?.parse::<i32>().ok())
-        .filter(|pid| {
-            let stat = std::fs::read_to_string(format!("/proc/{pid}/stat")).unwrap_or_default();
-            live_in(&stat, sid)
-        })
+        .filter(|&pid| live_in(&stat(pid), sid))
         .collect()
 }
 

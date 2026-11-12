@@ -302,3 +302,35 @@ fn an_omdrop_already_on_keeps_its_row_through_a_failed_status(cx: &mut TestAppCo
     assert!(!ready, "the second status failed");
     assert!(row, "Omdrop is still on, so its row stays");
 }
+
+#[gpui::test]
+fn a_menu_closed_while_owly_ran_starts_no_omdrop_lookup_when_omdrop_returns(
+    cx: &mut TestAppContext,
+) {
+    let (shell, cx) = window(cx);
+    let (root, omdrop) = omdrop_with_status("menu-close");
+    std::fs::write(root.join("status.json"), ON).unwrap();
+    acts_from_omdrop(&shell, cx, |om| {
+        let _ = om.facts(&omdrop);
+        om.ask_status()
+    });
+    settle(cx, 300);
+    // Opened now, so a lookup that ends at once is not run again for the open menu.
+    acts_from_omdrop(&shell, cx, |om| {
+        om.menu_opened(super::super::join::now_ms())
+    });
+    settle(cx, 300);
+    let looked = ran(&root, "peers");
+    acts_from_omdrop(&shell, cx, |om| om.facts(""));
+    shell.update_in(cx, |shell, _, _| shell.airdrop_menu_closed());
+    acts_from_omdrop(&shell, cx, |om| {
+        let mut acts = om.facts(&omdrop);
+        acts.extend(om.ask_status());
+        acts
+    });
+    settle(cx, 500);
+    let after = ran(&root, "peers");
+    let _ = std::fs::remove_dir_all(&root);
+    assert_eq!(looked, 1, "the open menu looked once");
+    assert_eq!(after, 1, "Omdrop back behind a shut menu looks for nothing");
+}

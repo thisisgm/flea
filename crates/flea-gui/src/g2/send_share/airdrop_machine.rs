@@ -130,6 +130,7 @@ impl AirDrop {
         };
         self.facts("");
         self.menus += 1;
+        self.menu_open = false;
         self.elsewhere = Radio::Off;
         self.watching = false;
         acts.push(Act::Refresh);
