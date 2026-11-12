@@ -2083,6 +2083,7 @@
   "settings.caption.group_by_kind": "תיקיות, תמונות, קבצים",
   "settings.caption.permanently": "לצמיתות",
   "settings.caption.wrap": "בחזרה לראש הרשימה",
+  "settings.caption.grid_wrap_rows": "שמאלה וימינה בתצוגת רשת",
   "settings.choice.automatic": "אוטומטי",
   "settings.choice.breadcrumb": "פירורי לחם",
   "settings.choice.chosen": "נבחר",
@@ -2291,7 +2292,7 @@
   "settings.row.use_this_folder": "שימוש בתיקייה זו",
   "settings.row.view": "התצוגה האחרונה בשימוש",
   "settings.row.wrap": "מעבר מחזורי בקצות הרשימה",
-  "settings.row.grid_wrap_rows": "Wrap across grid rows",
+  "settings.row.grid_wrap_rows": "מעבר בקצות השורות",
   "settings.section.about": "אודות",
   "settings.section.display": "תצוגה",
   "settings.section.keys": "מקשים",
@@ -2779,5 +2780,7 @@
     "one": "לא ניתן היה להעביר ⁨%1⁩ פריט בפנים; הראשון הוא ⁨%2⁩: ⁨%3⁩",
     "other": "לא ניתן היה להעביר ⁨%1⁩ פריטים בפנים; הראשון הוא ⁨%2⁩: ⁨%3⁩",
     "two": "לא ניתן היה להעביר ⁨%1⁩ פריטים בפנים; הראשון הוא ⁨%2⁩: ⁨%3⁩"
-  }
+  },
+  "keys.action.extendLeft": "הרחבת הבחירה שמאלה",
+  "keys.action.extendRight": "הרחבת הבחירה ימינה"
 }

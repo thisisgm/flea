@@ -2215,6 +2215,7 @@
   "settings.caption.group_by_kind": "mape, fotografije, datoteke",
   "settings.caption.permanently": "trajno",
   "settings.caption.wrap": "znova na vrhu",
+  "settings.caption.grid_wrap_rows": "levo in desno v mreži",
   "settings.choice.automatic": "Samodejno",
   "settings.choice.breadcrumb": "Pot po odsekih",
   "settings.choice.chosen": "Izbrana",
@@ -2423,7 +2424,7 @@
   "settings.row.use_this_folder": "Uporabi to mapo",
   "settings.row.view": "Nazadnje uporabljen pogled",
   "settings.row.wrap": "Na koncih seznama preskoči na drug konec",
-  "settings.row.grid_wrap_rows": "Wrap across grid rows",
+  "settings.row.grid_wrap_rows": "Nadaljuj na koncih vrstic",
   "settings.section.about": "Vizitka",
   "settings.section.display": "Zaslon",
   "settings.section.keys": "Tipke",
@@ -2893,5 +2894,7 @@
     "one": "Premikanje notranjih predmetov (%1) ni uspelo; prvi je %2: %3",
     "other": "Premikanje notranjih predmetov (%1) ni uspelo; prvi je %2: %3",
     "two": "Premikanje notranjih predmetov (%1) ni uspelo; prvi je %2: %3"
-  }
+  },
+  "keys.action.extendLeft": "Razširi levo",
+  "keys.action.extendRight": "Razširi desno"
 }

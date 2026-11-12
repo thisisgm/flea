@@ -2083,6 +2083,7 @@
   "settings.caption.group_by_kind": "carpetas, fotos, archivos",
   "settings.caption.permanently": "permanentemente",
   "settings.caption.wrap": "al subir desde el inicio",
+  "settings.caption.grid_wrap_rows": "izquierda y derecha en Cuadrícula",
   "settings.choice.automatic": "Automático",
   "settings.choice.breadcrumb": "Ruta de navegación",
   "settings.choice.chosen": "Elegido",
@@ -2291,7 +2292,7 @@
   "settings.row.use_this_folder": "Usar esta carpeta",
   "settings.row.view": "Última vista usada",
   "settings.row.wrap": "Continuar al otro extremo de la lista",
-  "settings.row.grid_wrap_rows": "Wrap across grid rows",
+  "settings.row.grid_wrap_rows": "Continuar al final de las filas",
   "settings.section.about": "Acerca de",
   "settings.section.display": "Pantalla",
   "settings.section.keys": "Teclas",
@@ -2779,5 +2780,7 @@
     "one": "No se pudo mover %1 elemento del interior; el primero es %2: %3",
     "many": "No se pudieron mover %1 elementos del interior; el primero es %2: %3",
     "other": "No se pudieron mover %1 elementos del interior; el primero es %2: %3"
-  }
+  },
+  "keys.action.extendLeft": "Extender a la izquierda",
+  "keys.action.extendRight": "Extender a la derecha"
 }

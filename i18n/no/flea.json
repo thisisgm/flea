@@ -1993,6 +1993,7 @@
   "settings.caption.group_by_kind": "mapper, bilder, filer",
   "settings.caption.permanently": "permanent",
   "settings.caption.wrap": "opp øverst i listen",
+  "settings.caption.grid_wrap_rows": "venstre og høyre i rutenettvisning",
   "settings.choice.automatic": "Automatisk",
   "settings.choice.breadcrumb": "Brødsmulesti",
   "settings.choice.chosen": "Valgt",
@@ -2201,7 +2202,7 @@
   "settings.row.use_this_folder": "Bruk denne mappen",
   "settings.row.view": "Sist brukte visning",
   "settings.row.wrap": "Fortsett fra motsatt ende av listen",
-  "settings.row.grid_wrap_rows": "Wrap across grid rows",
+  "settings.row.grid_wrap_rows": "Fortsett ved radslutt",
   "settings.section.about": "Om",
   "settings.section.display": "Skjerm",
   "settings.section.keys": "Taster",
@@ -2665,5 +2666,7 @@
   "feedback.unheld.move_many": {
     "one": "%1 element inni kunne ikke flyttes; det første er %2: %3",
     "other": "%1 elementer inni kunne ikke flyttes; det første er %2: %3"
-  }
+  },
+  "keys.action.extendLeft": "Utvid mot venstre",
+  "keys.action.extendRight": "Utvid mot høyre"
 }

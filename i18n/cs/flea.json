@@ -2083,6 +2083,7 @@
   "settings.caption.group_by_kind": "složky, fotografie, soubory",
   "settings.caption.permanently": "trvale",
   "settings.caption.wrap": "na začátku seznamu",
+  "settings.caption.grid_wrap_rows": "vlevo a vpravo v mřížce",
   "settings.choice.automatic": "Automaticky",
   "settings.choice.breadcrumb": "Drobečková navigace",
   "settings.choice.chosen": "Vybrané",
@@ -2291,7 +2292,7 @@
   "settings.row.use_this_folder": "Použít tuto složku",
   "settings.row.view": "Poslední použité zobrazení",
   "settings.row.wrap": "Na konci seznamu přejít na začátek",
-  "settings.row.grid_wrap_rows": "Wrap across grid rows",
+  "settings.row.grid_wrap_rows": "Přecházet na koncích řádků",
   "settings.section.about": "O aplikaci",
   "settings.section.display": "Displej",
   "settings.section.keys": "Klávesy",
@@ -2779,5 +2780,7 @@
     "one": "Uvnitř se nepodařilo přesunout %1 položku; první je %2: %3",
     "few": "Uvnitř se nepodařilo přesunout %1 položky; první je %2: %3",
     "other": "Uvnitř se nepodařilo přesunout %1 položek; první je %2: %3"
-  }
+  },
+  "keys.action.extendLeft": "Rozšířit vlevo",
+  "keys.action.extendRight": "Rozšířit vpravo"
 }

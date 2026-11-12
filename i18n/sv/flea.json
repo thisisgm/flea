@@ -2033,6 +2033,7 @@
   "settings.caption.group_by_kind": "mappar, foton, filer",
   "settings.caption.permanently": "permanent",
   "settings.caption.wrap": "tillbaka till början",
+  "settings.caption.grid_wrap_rows": "vänster och höger i rutnätsvyn",
   "settings.choice.automatic": "Automatisk",
   "settings.choice.breadcrumb": "Brödsmulor",
   "settings.choice.chosen": "Vald",
@@ -2241,7 +2242,7 @@
   "settings.row.use_this_folder": "Använd den här mappen",
   "settings.row.view": "Senast använda vy",
   "settings.row.wrap": "Fortsätt från andra änden av listan",
-  "settings.row.grid_wrap_rows": "Wrap across grid rows",
+  "settings.row.grid_wrap_rows": "Fortsätt vid radslut",
   "settings.section.about": "Om",
   "settings.section.display": "Visning",
   "settings.section.keys": "Tangenter",
@@ -2665,5 +2666,7 @@
   "feedback.unheld.move_many": {
     "one": "%1 objekt inuti kunde inte flyttas; det första är %2: %3",
     "other": "%1 objekt inuti kunde inte flyttas; det första är %2: %3"
-  }
+  },
+  "keys.action.extendLeft": "Utöka åt vänster",
+  "keys.action.extendRight": "Utöka åt höger"
 }

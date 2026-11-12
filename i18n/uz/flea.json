@@ -2033,6 +2033,7 @@
   "settings.caption.group_by_kind": "jildlar, suratlar, fayllar",
   "settings.caption.permanently": "butunlay",
   "settings.caption.wrap": "boshiga qaytish",
+  "settings.caption.grid_wrap_rows": "To‘r ko‘rinishida chapga va o‘ngga yurish",
   "settings.choice.automatic": "Avtomatik",
   "settings.choice.breadcrumb": "Yoʻl boʻlaklari",
   "settings.choice.chosen": "Tanlangan",
@@ -2241,7 +2242,7 @@
   "settings.row.use_this_folder": "Shu jilddan foydalanish",
   "settings.row.view": "Oxirgi ishlatilgan koʻrinish",
   "settings.row.wrap": "Roʻyxat oxiridan boshiga oʻtish",
-  "settings.row.grid_wrap_rows": "Wrap across grid rows",
+  "settings.row.grid_wrap_rows": "Qator oxirida davom etish",
   "settings.section.about": "Haqida",
   "settings.section.display": "Ekran",
   "settings.section.keys": "Tugmalar",
@@ -2665,5 +2666,7 @@
   "feedback.unheld.move_many": {
     "one": "Ichidagi %1 ta obyekt koʻchirilmadi; birinchisi %2: %3",
     "other": "Ichidagi %1 ta obyekt koʻchirilmadi; birinchisi %2: %3"
-  }
+  },
+  "keys.action.extendLeft": "Chapga kengaytirish",
+  "keys.action.extendRight": "O‘ngga kengaytirish"
 }

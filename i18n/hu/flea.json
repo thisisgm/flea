@@ -707,7 +707,7 @@
   "settings.row.lang_marks": "Kódikonok megjelenítése",
   "settings.row.remember_sort": "Mappánkénti rendezés megjegyzése",
   "settings.row.wrap": "Körbefordulás a lista végén",
-  "settings.row.grid_wrap_rows": "Wrap across grid rows",
+  "settings.row.grid_wrap_rows": "Folytatás a sorok végén",
   "settings.row.escape_up": "Escape: szülőmappába lépés",
   "settings.row.start_in": "A Flea kezdőmappája",
   "settings.row.start_folder": "Kiválasztott mappa",
@@ -732,6 +732,7 @@
   "settings.row.preset": "Billentyűparancs-előbeállítás",
   "settings.caption.group_by_kind": "mappák, fotók, fájlok",
   "settings.caption.wrap": "felfelé a lista elején",
+  "settings.caption.grid_wrap_rows": "balra és jobbra a rácsnézetben",
   "settings.caption.escape_up": "ha nincs mit bezárni",
   "settings.caption.permanently": "véglegesen",
   "settings.hint.compact_default": "A kompakt marad az alapértelmezett.",
@@ -2665,5 +2666,7 @@
   "feedback.unheld.move_many": {
     "one": "A benne lévő %1 elem áthelyezése sikertelen; az első: %2: %3",
     "other": "A benne lévő %1 elem áthelyezése sikertelen; az első: %2: %3"
-  }
+  },
+  "keys.action.extendLeft": "Bővítés balra",
+  "keys.action.extendRight": "Bővítés jobbra"
 }

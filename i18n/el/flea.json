@@ -1993,6 +1993,7 @@
   "settings.caption.group_by_kind": "φάκελοι, φωτογραφίες, αρχεία",
   "settings.caption.permanently": "οριστικά",
   "settings.caption.wrap": "πάνω στην κορυφή",
+  "settings.caption.grid_wrap_rows": "αριστερά και δεξιά στο πλέγμα",
   "settings.choice.automatic": "Αυτόματο",
   "settings.choice.breadcrumb": "Διαδρομή με τμήματα",
   "settings.choice.chosen": "Επιλεγμένος",
@@ -2201,7 +2202,7 @@
   "settings.row.use_this_folder": "Χρήση αυτού του φακέλου",
   "settings.row.view": "Τελευταία προβολή",
   "settings.row.wrap": "Κυκλική μετακίνηση στα άκρα λίστας",
-  "settings.row.grid_wrap_rows": "Wrap across grid rows",
+  "settings.row.grid_wrap_rows": "Συνέχεια στα άκρα των σειρών",
   "settings.section.about": "Πληροφορίες",
   "settings.section.display": "Οθόνη",
   "settings.section.keys": "Πλήκτρα",
@@ -2665,5 +2666,7 @@
   "feedback.unheld.move_many": {
     "one": "Δεν ήταν δυνατό να μετακινηθεί %1 στοιχείο στο εσωτερικό· το πρώτο είναι %2: %3",
     "other": "Δεν ήταν δυνατό να μετακινηθούν %1 στοιχεία στο εσωτερικό· το πρώτο είναι %2: %3"
-  }
+  },
+  "keys.action.extendLeft": "Επέκταση αριστερά",
+  "keys.action.extendRight": "Επέκταση δεξιά"
 }

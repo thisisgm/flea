@@ -2083,6 +2083,7 @@
   "settings.caption.group_by_kind": "mapes, fotoattēli, faili",
   "settings.caption.permanently": "neatgriezeniski",
   "settings.caption.wrap": "augšā pie sākuma",
+  "settings.caption.grid_wrap_rows": "pa kreisi un pa labi režģī",
   "settings.choice.automatic": "Automātiski",
   "settings.choice.breadcrumb": "Ceļa posmi",
   "settings.choice.chosen": "Izvēlēts",
@@ -2291,7 +2292,7 @@
   "settings.row.use_this_folder": "Izmantot šo mapi",
   "settings.row.view": "Pēdējais lietotais skats",
   "settings.row.wrap": "Saraksta galos pāriet uz otru galu",
-  "settings.row.grid_wrap_rows": "Wrap across grid rows",
+  "settings.row.grid_wrap_rows": "Turpināt rindu galos",
   "settings.section.about": "Par",
   "settings.section.display": "Displejs",
   "settings.section.keys": "Taustiņi",
@@ -2779,5 +2780,7 @@
     "one": "Neizdevās pārvietot iekšējos vienumus (%1); pirmais ir %2: %3",
     "other": "Neizdevās pārvietot iekšējos vienumus (%1); pirmais ir %2: %3",
     "zero": "Neizdevās pārvietot iekšējos vienumus (%1); pirmais ir %2: %3"
-  }
+  },
+  "keys.action.extendLeft": "Paplašināt pa kreisi",
+  "keys.action.extendRight": "Paplašināt pa labi"
 }

@@ -5,6 +5,7 @@
 . "$(dirname "${BASH_SOURCE[0]}")/search_chrome.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/tight_window.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/grid_filter.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/grid_wrap.sh"
 CASES+=("settings-plugin-source-row 1100x700 surface:SettingsPanel")
 # Print and print-no-printer boards: Ctrl+P opens the real card with fixture CUPS replies.
 CASES+=("print-card 1100x700 key:print"

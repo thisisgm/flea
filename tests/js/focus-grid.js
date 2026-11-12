@@ -104,25 +104,6 @@ function run(check) {
     Grid.arrow(kPress, "cursorUp", gridPane)
     check("k at the first row stays there", gridPane.cursorIndex, 0)
 
-    // Issue 434: horizontal row crossing is opt-in and keeps the linear item order.
-    gridPane.gridWrapRows = false
-    gridPane.cursorIndex = 2
-    Grid.arrow(key(Qt.Key_Right, "", none), "cursorRight", gridPane)
-    check("grid Right clamps at a row edge while row wrapping is off", gridPane.cursorIndex, 2)
-    gridPane.gridWrapRows = true
-    gridPane.cursorIndex = 2
-    Grid.arrow(key(Qt.Key_Right, "", none), "cursorRight", gridPane)
-    check("grid Right crosses to the next row's first tile", gridPane.cursorIndex, 3)
-    gridPane.cursorIndex = 3
-    Grid.arrow(key(Qt.Key_Left, "", none), "cursorLeft", gridPane)
-    check("grid Left crosses to the previous row's last tile", gridPane.cursorIndex, 2)
-    gridPane.cursorIndex = 0
-    Grid.arrow(key(Qt.Key_Left, "", none), "cursorLeft", gridPane)
-    check("grid Left stops at the start of the listing", gridPane.cursorIndex, 0)
-    gridPane.cursorIndex = 6
-    Grid.arrow(key(Qt.Key_Right, "", none), "cursorRight", gridPane)
-    check("grid Right stops at the end of the incomplete final row", gridPane.cursorIndex, 6)
-
     // A reflowed grid reads the new column count for the letters the way it does for the arrow.
     gridPane.cursorStride = 2
     gridPane.cursorIndex = 3
@@ -131,6 +112,7 @@ function run(check) {
     gridPane.cursorIndex = 3
     Grid.arrow(jPress, "cursorDown", gridPane)
     check("grid j uses the reflowed column count too", gridPane.cursorIndex, 5)
+
     // Filtered coordinates: "screen" matches rows 0, 5 and 6, so a two-tile row's third cell is row 6.
     gridPane.filterQuery = "screen"
     gridPane.refresh()
@@ -164,7 +146,6 @@ function run(check) {
     // A modifier takes the letter out of the pair: ctrl+j resolves to nothing, and shift+J extends.
     check("ctrl j is not an arrow", Focus.lookup(key(Qt.Key_J, "", ctrl), gridPane), "")
     check("shift J is the extension pair", Focus.lookup(shiftJ, gridPane), "extendDown")
-
     gridPane.cursorIndex = 1
     gridPane.selection.clear()
     gridPane.selectionVersion = 0

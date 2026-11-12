@@ -2033,6 +2033,7 @@
   "settings.caption.group_by_kind": "ফোল্ডার, ছবি, ফাইল",
   "settings.caption.permanently": "স্থায়ীভাবে",
   "settings.caption.wrap": "উপরে ফিরে যায়",
+  "settings.caption.grid_wrap_rows": "গ্রিডে বামে ও ডানে চলা",
   "settings.choice.automatic": "স্বয়ংক্রিয়",
   "settings.choice.breadcrumb": "পাথের ধাপ",
   "settings.choice.chosen": "বাছা",
@@ -2241,7 +2242,7 @@
   "settings.row.use_this_folder": "এই ফোল্ডার ব্যবহার করুন",
   "settings.row.view": "শেষ ব্যবহৃত দৃশ্য",
   "settings.row.wrap": "তালিকার শেষে অন্য প্রান্তে যান",
-  "settings.row.grid_wrap_rows": "Wrap across grid rows",
+  "settings.row.grid_wrap_rows": "সারির শেষে পরের সারিতে যান",
   "settings.section.about": "সম্পর্কে",
   "settings.section.display": "ডিসপ্লে",
   "settings.section.keys": "কী",
@@ -2665,5 +2666,7 @@
   "feedback.unheld.move_many": {
     "one": "ভিতরের %1টি আইটেম সরানো যায়নি; প্রথমটি %2: %3",
     "other": "ভিতরের %1টি আইটেম সরানো যায়নি; প্রথমটি %2: %3"
-  }
+  },
+  "keys.action.extendLeft": "বামে নির্বাচন বাড়ান",
+  "keys.action.extendRight": "ডানে নির্বাচন বাড়ান"
 }

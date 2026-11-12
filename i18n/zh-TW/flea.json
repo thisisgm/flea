@@ -1942,6 +1942,7 @@
   "settings.caption.group_by_kind": "資料夾、照片、檔案",
   "settings.caption.permanently": "永久",
   "settings.caption.wrap": "回到頂端",
+  "settings.caption.grid_wrap_rows": "網格檢視中的左右移動",
   "settings.choice.automatic": "自動",
   "settings.choice.breadcrumb": "麵包屑路徑",
   "settings.choice.chosen": "自訂",
@@ -2150,7 +2151,7 @@
   "settings.row.use_this_folder": "使用此資料夾",
   "settings.row.view": "上次使用的檢視",
   "settings.row.wrap": "在清單結尾循環",
-  "settings.row.grid_wrap_rows": "Wrap across grid rows",
+  "settings.row.grid_wrap_rows": "在列尾換列",
   "settings.section.about": "關於",
   "settings.section.display": "顯示",
   "settings.section.keys": "按鍵",
@@ -2551,5 +2552,7 @@
   },
   "feedback.unheld.move_many": {
     "other": "內部有 %1 個項目無法移動；第一個是 %2：%3"
-  }
+  },
+  "keys.action.extendLeft": "向左延伸選取範圍",
+  "keys.action.extendRight": "向右延伸選取範圍"
 }

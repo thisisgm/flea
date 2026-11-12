@@ -1942,6 +1942,7 @@
   "settings.caption.group_by_kind": "โฟลเดอร์ รูปภาพ ไฟล์",
   "settings.caption.permanently": "อย่างถาวร",
   "settings.caption.wrap": "กลับไปด้านบน",
+  "settings.caption.grid_wrap_rows": "ซ้ายและขวาในมุมมองตาราง",
   "settings.choice.automatic": "อัตโนมัติ",
   "settings.choice.breadcrumb": "แถบเส้นทาง",
   "settings.choice.chosen": "ที่เลือก",
@@ -2150,7 +2151,7 @@
   "settings.row.use_this_folder": "ใช้โฟลเดอร์นี้",
   "settings.row.view": "มุมมองที่ใช้ล่าสุด",
   "settings.row.wrap": "วนเมื่อถึงท้ายรายการ",
-  "settings.row.grid_wrap_rows": "Wrap across grid rows",
+  "settings.row.grid_wrap_rows": "เลื่อนไปแถวถัดไปเมื่อสุดแถว",
   "settings.section.about": "เกี่ยวกับ",
   "settings.section.display": "การแสดงผล",
   "settings.section.keys": "ปุ่ม",
@@ -2551,5 +2552,7 @@
   },
   "feedback.unheld.move_many": {
     "other": "ย้าย %1 รายการ ภายในไม่สำเร็จ รายการแรกคือ %2: %3"
-  }
+  },
+  "keys.action.extendLeft": "ขยายการเลือกไปทางซ้าย",
+  "keys.action.extendRight": "ขยายการเลือกไปทางขวา"
 }

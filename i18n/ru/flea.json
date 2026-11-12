@@ -2215,6 +2215,7 @@
   "settings.caption.group_by_kind": "папки, фото, файлы",
   "settings.caption.permanently": "навсегда",
   "settings.caption.wrap": "снизу к началу",
+  "settings.caption.grid_wrap_rows": "влево и вправо в сетке",
   "settings.choice.automatic": "Автоматически",
   "settings.choice.breadcrumb": "Цепочка папок",
   "settings.choice.chosen": "Выбранный",
@@ -2423,7 +2424,7 @@
   "settings.row.use_this_folder": "Использовать эту папку",
   "settings.row.view": "Последний вид",
   "settings.row.wrap": "Переходить к началу после конца списка",
-  "settings.row.grid_wrap_rows": "Wrap across grid rows",
+  "settings.row.grid_wrap_rows": "Переходить на концах строк",
   "settings.section.about": "О программе",
   "settings.section.display": "Экран",
   "settings.section.keys": "Клавиши",
@@ -2893,5 +2894,7 @@
     "few": "Не удалось переместить элементы внутри (%1); первый: %2: %3",
     "many": "Не удалось переместить элементы внутри (%1); первый: %2: %3",
     "other": "Не удалось переместить элементы внутри (%1); первый: %2: %3"
-  }
+  },
+  "keys.action.extendLeft": "Расширить влево",
+  "keys.action.extendRight": "Расширить вправо"
 }

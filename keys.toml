@@ -382,6 +382,27 @@ key = "Up"
 action = "extendUp"
 label = "Extend up"
 
+# Shared shift rows carry no frontend, so the GUI-only horizontal pair sits in the preset table.
+[[preset]]
+name = "all"
+mods = "shift"
+key = "Left"
+keys = "shift-left"
+action = "extendLeft"
+label = "Extend left"
+context = "listing"
+frontend = "gui"
+
+[[preset]]
+name = "all"
+mods = "shift"
+key = "Right"
+keys = "shift-right"
+action = "extendRight"
+label = "Extend right"
+context = "listing"
+frontend = "gui"
+
 # Bindings on the key code, for the keys that carry no printable character.
 [[code]]
 key = "Down"
@@ -780,7 +801,7 @@ look = ["viewList", "viewColumns", "viewGrid", "viewDual", "togglePreview", "fac
 find = ["filter", "search", "searchContents", "keepResults", "reveal", "sortNext", "sortReverse", "pathBar", "reload"]
 change = ["copy", "cut", "paste", "movePaste", "duplicate", "rename", "trash",
           "deletePermanently", "undo", "redo", "newFolder", "copydirpath", "copyPath", "openAgent",
-          "toggleSelect", "selectAll", "extendDown", "extendUp", "menu", "properties", "addNetwork", "eject",
+          "toggleSelect", "selectAll", "extendDown", "extendUp", "extendLeft", "extendRight", "menu", "properties", "addNetwork", "eject",
           "openTerminal", "settings", "autofitColumns", "copyAs", "pasteAs", "invertSelection", "tags",
           "print"]
 
@@ -795,7 +816,8 @@ cap_budget = 16
 mirrors = [
     ["cursorDown", "cursorUp"], ["cursorFirst", "cursorLast"], ["pageDown", "pageUp"],
     ["historyBack", "historyForward"], ["tabNext", "tabPrevious"], ["tabMoveLeft", "tabMoveRight"],
-    ["zoomIn", "zoomOut"], ["textSizeUp", "textSizeDown"], ["extendDown", "extendUp"]
+    ["zoomIn", "zoomOut"], ["textSizeUp", "textSizeDown"], ["extendDown", "extendUp"],
+    ["extendLeft", "extendRight"]
 ]
 
 # Spellings that win a sheet cap tie, per preset name; "all" applies to every preset.
@@ -1079,6 +1101,8 @@ duplicate = "Duplicate"
 eject = "Eject"
 extendDown = "Extend down"
 extendUp = "Extend up"
+extendLeft = "Extend left"
+extendRight = "Extend right"
 invertSelection = "Invert selection"
 markdownView = "Rendered/source"
 menu = "Menu"

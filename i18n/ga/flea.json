@@ -755,7 +755,7 @@
   "settings.row.lang_marks": "Taispeáin deilbhíní cóid",
   "settings.row.remember_sort": "Cuimhnigh ar shórtáil gach fillteáin",
   "settings.row.wrap": "Fill ag foircinn an liosta",
-  "settings.row.grid_wrap_rows": "Wrap across grid rows",
+  "settings.row.grid_wrap_rows": "Lean ar aghaidh ag foircinn rónna",
   "settings.row.escape_up": "Téann Escape suas fillteán amháin",
   "settings.row.start_in": "Osclaítear Flea i",
   "settings.row.start_folder": "Fillteán roghnaithe",
@@ -780,6 +780,7 @@
   "settings.row.preset": "Réamhshocrú eochaircheangal",
   "settings.caption.group_by_kind": "fillteáin, grianghraif, comhaid",
   "settings.caption.wrap": "suas ag an mbarr",
+  "settings.caption.grid_wrap_rows": "clé agus deas sa ghreille",
   "settings.caption.escape_up": "gan aon rud le dúnadh",
   "settings.caption.permanently": "go buan",
   "settings.hint.compact_default": "Fanann Dlúth mar réamhshocrú.",
@@ -3007,5 +3008,7 @@
     "few": "Níorbh fhéidir na míreanna laistigh (%1) a bhogadh; is é %2 an chéad cheann: %3",
     "many": "Níorbh fhéidir na míreanna laistigh (%1) a bhogadh; is é %2 an chéad cheann: %3",
     "other": "Níorbh fhéidir na míreanna laistigh (%1) a bhogadh; is é %2 an chéad cheann: %3"
-  }
+  },
+  "keys.action.extendLeft": "Leathnaigh ar chlé",
+  "keys.action.extendRight": "Leathnaigh ar dheis"
 }

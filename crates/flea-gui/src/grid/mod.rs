@@ -20,6 +20,8 @@ mod arrow_tests;
 pub(crate) mod host;
 mod input;
 #[cfg(test)]
+mod input_tests;
+#[cfg(test)]
 mod join_landing_tests;
 #[cfg(test)]
 mod join_tests;
@@ -42,6 +44,12 @@ mod tile;
 mod transition;
 #[cfg(test)]
 mod wheel_tests;
+#[cfg(test)]
+mod wrap_keys_tests;
+#[cfg(test)]
+mod wrap_scope_tests;
+#[cfg(test)]
+mod wrap_tests;
 
 use crate::pane::{requests::WindowRequest, Pane};
 use geometry::{window_for, Density, Metrics, ThumbSize, WindowPlan};
@@ -303,6 +311,29 @@ impl GridView {
             pane.held.total,
         )?;
         let asked = Self::ask(pane, need);
+        self.counters.drift_asks += asked.is_some() as usize;
+        asked
+    }
+
+    /// The list's filtered window for tiles: the listing run the drawn view positions span, capped at one window.
+    pub fn wanted_filtered_window(
+        &mut self,
+        pane: &mut Pane,
+        shown: Shown,
+    ) -> Option<(usize, usize)> {
+        if self.landing_wait || !self.visible || pane.held.total == 0 || pane.swap.pending.is_some()
+        {
+            return None;
+        }
+        let layout = self.layout(shown);
+        let (first, last) = layout.viewport(self.drawn_scroll());
+        let drawn = shown.span(first.max(0) as usize, last.max(0) as usize)?;
+        let size = self.plan(&layout).size;
+        let (lo, span) = (*drawn.start(), (drawn.end() - drawn.start() + 1).min(size));
+        if lo >= pane.held.start && lo + span <= pane.held.start + pane.held.rows.len() {
+            return None;
+        }
+        let asked = Self::ask(pane, (lo, size));
         self.counters.drift_asks += asked.is_some() as usize;
         asked
     }

@@ -23,18 +23,14 @@ pub fn arrow_with_wrap(
     wrap_rows: bool,
 ) -> Option<usize> {
     let (view, columns) = (view?, columns.max(1));
+    if view >= total {
+        return None;
+    }
     let next = match step {
         Arrow::Down | Arrow::ExtendDown => view.checked_add(columns)?,
         Arrow::Up | Arrow::ExtendUp => view.checked_sub(columns)?,
-        Arrow::Left if view % columns == 0 => {
-            if !wrap_rows || view == 0 {
-                return None;
-            }
-            let previous_start = view - columns;
-            previous_start + columns.min(total - previous_start) - 1
-        }
-        Arrow::Left => view - 1,
-        Arrow::Right if view + 1 == total => return None,
+        Arrow::Left if view % columns == 0 && !wrap_rows => return None,
+        Arrow::Left => view.checked_sub(1)?,
         Arrow::Right if (view + 1) % columns == 0 && !wrap_rows => {
             return None;
         }

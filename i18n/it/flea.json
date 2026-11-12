@@ -2083,6 +2083,7 @@
   "settings.caption.group_by_kind": "cartelle, foto, file",
   "settings.caption.permanently": "definitivamente",
   "settings.caption.wrap": "in cima all'elenco",
+  "settings.caption.grid_wrap_rows": "sinistra e destra nella griglia",
   "settings.choice.automatic": "Automatico",
   "settings.choice.breadcrumb": "Segmenti del percorso",
   "settings.choice.chosen": "Scelta",
@@ -2291,7 +2292,7 @@
   "settings.row.use_this_folder": "Usa questa cartella",
   "settings.row.view": "Ultima vista usata",
   "settings.row.wrap": "Riprendi dall'altro estremo dell'elenco",
-  "settings.row.grid_wrap_rows": "Wrap across grid rows",
+  "settings.row.grid_wrap_rows": "Continua alle estremità delle righe",
   "settings.section.about": "Info",
   "settings.section.display": "Schermo",
   "settings.section.keys": "Tasti",
@@ -2779,5 +2780,7 @@
     "one": "Impossibile spostare %1 elemento all’interno; il primo è %2: %3",
     "many": "Impossibile spostare %1 elementi all’interno; il primo è %2: %3",
     "other": "Impossibile spostare %1 elementi all’interno; il primo è %2: %3"
-  }
+  },
+  "keys.action.extendLeft": "Estendi a sinistra",
+  "keys.action.extendRight": "Estendi a destra"
 }

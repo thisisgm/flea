@@ -1993,6 +1993,7 @@
   "settings.caption.group_by_kind": "پوشه‌ها، عکس‌ها، فایل‌ها",
   "settings.caption.permanently": "برای همیشه",
   "settings.caption.wrap": "در بالا",
+  "settings.caption.grid_wrap_rows": "چپ و راست در نمای شبکه‌ای",
   "settings.choice.automatic": "خودکار",
   "settings.choice.breadcrumb": "مسیر پله‌ای",
   "settings.choice.chosen": "انتخاب‌شده",
@@ -2201,7 +2202,7 @@
   "settings.row.use_this_folder": "استفاده از این پوشه",
   "settings.row.view": "آخرین نمای استفاده‌شده",
   "settings.row.wrap": "بازگشت در انتهای فهرست",
-  "settings.row.grid_wrap_rows": "Wrap across grid rows",
+  "settings.row.grid_wrap_rows": "رفتن به ردیف بعد در انتهای ردیف",
   "settings.section.about": "درباره",
   "settings.section.display": "نمایش",
   "settings.section.keys": "کلیدها",
@@ -2665,5 +2666,7 @@
   "feedback.unheld.move_many": {
     "one": "انتقال ⁨%1⁩ مورد داخل ممکن نشد؛ نخستین مورد ⁨%2⁩ است: ⁨%3⁩",
     "other": "انتقال ⁨%1⁩ مورد داخل ممکن نشد؛ نخستین مورد ⁨%2⁩ است: ⁨%3⁩"
-  }
+  },
+  "keys.action.extendLeft": "گسترش انتخاب به چپ",
+  "keys.action.extendRight": "گسترش انتخاب به راست"
 }

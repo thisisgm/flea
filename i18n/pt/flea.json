@@ -723,7 +723,7 @@
   "settings.row.lang_marks": "Mostrar ícones de código",
   "settings.row.remember_sort": "Memorizar a ordenação de cada pasta",
   "settings.row.wrap": "Navegação circular na lista",
-  "settings.row.grid_wrap_rows": "Wrap across grid rows",
+  "settings.row.grid_wrap_rows": "Continuar nas extremidades das linhas",
   "settings.row.escape_up": "Escape sobe uma pasta",
   "settings.row.start_in": "O Flea abre em",
   "settings.row.start_folder": "Pasta escolhida",
@@ -748,6 +748,7 @@
   "settings.row.preset": "Predefinição de atalhos",
   "settings.caption.group_by_kind": "pastas, fotografias, ficheiros",
   "settings.caption.wrap": "ao subir no início",
+  "settings.caption.grid_wrap_rows": "esquerda e direita na Grelha",
   "settings.caption.escape_up": "sem nada para fechar",
   "settings.caption.permanently": "permanentemente",
   "settings.hint.compact_default": "Compacto continua a ser a predefinição.",
@@ -2779,5 +2780,7 @@
     "one": "Não foi possível mover %1 item no interior; o primeiro é %2: %3",
     "other": "Não foi possível mover %1 itens no interior; o primeiro é %2: %3",
     "many": "Não foi possível mover %1 itens no interior; o primeiro é %2: %3"
-  }
+  },
+  "keys.action.extendLeft": "Estender à esquerda",
+  "keys.action.extendRight": "Estender à direita"
 }

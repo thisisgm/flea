@@ -2124,6 +2124,7 @@
   "settings.caption.group_by_kind": "priečinky, fotky, súbory",
   "settings.caption.permanently": "natrvalo",
   "settings.caption.wrap": "nahor na začiatku",
+  "settings.caption.grid_wrap_rows": "doľava a doprava v mriežke",
   "settings.choice.automatic": "Automaticky",
   "settings.choice.breadcrumb": "Omrvinková navigácia",
   "settings.choice.chosen": "Vybraný",
@@ -2332,7 +2333,7 @@
   "settings.row.use_this_folder": "Použiť tento priečinok",
   "settings.row.view": "Posledné použité zobrazenie",
   "settings.row.wrap": "Prechádzať cez konce zoznamu",
-  "settings.row.grid_wrap_rows": "Wrap across grid rows",
+  "settings.row.grid_wrap_rows": "Prechádzať na koncoch riadkov",
   "settings.section.about": "Informácie",
   "settings.section.display": "Displej",
   "settings.section.keys": "Klávesy",
@@ -2779,5 +2780,7 @@
     "one": "Vnútri sa nepodarilo presunúť %1 položku; prvá položka je %2: %3",
     "few": "Vnútri sa nepodarilo presunúť %1 položky; prvá položka je %2: %3",
     "other": "Vnútri sa nepodarilo presunúť %1 položiek; prvá položka je %2: %3"
-  }
+  },
+  "keys.action.extendLeft": "Rozšíriť doľava",
+  "keys.action.extendRight": "Rozšíriť doprava"
 }

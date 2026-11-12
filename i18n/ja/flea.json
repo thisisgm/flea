@@ -1872,6 +1872,7 @@
   "settings.caption.group_by_kind": "フォルダー、写真、ファイル",
   "settings.caption.permanently": "完全に",
   "settings.caption.wrap": "先頭で上に移動したとき",
+  "settings.caption.grid_wrap_rows": "グリッドでの左右移動",
   "settings.choice.automatic": "自動",
   "settings.choice.breadcrumb": "パンくず",
   "settings.choice.chosen": "指定",
@@ -2080,7 +2081,7 @@
   "settings.row.use_this_folder": "このフォルダーを使用",
   "settings.row.view": "最後に使用した表示",
   "settings.row.wrap": "一覧の端で折り返す",
-  "settings.row.grid_wrap_rows": "Wrap across grid rows",
+  "settings.row.grid_wrap_rows": "行末で折り返す",
   "settings.section.about": "このアプリについて",
   "settings.section.display": "画面",
   "settings.section.keys": "キーバインド",
@@ -2272,7 +2273,9 @@
   "window.waiting": "そのフォルダーが応答しません。",
   "archive.flash.chooser_failed": "イメージを選択するために %1 を起動できませんでした：%2。",
   "carry.hint": "移動先をクリック、esc でキャンセル",
-  "carry.status": {"other": "持ち運び中：%1 項目"},
+  "carry.status": {
+    "other": "持ち運び中：%1 項目"
+  },
   "clipboard.no_cursor_row": "カーソル位置に項目がないため、メニューを開けません",
   "dialogs.file.disconnected": "ドライブまたは共有への接続が切れたため、このフォルダーは利用できなくなりました",
   "dialogs.file.open.unlisted": "そのファイルはもう一覧にありません。",
@@ -2322,7 +2325,9 @@
   "menu.shelf.added_one": "シェルフに追加しました",
   "menu.shelf.nothing": "シェルフに置く項目がありません。",
   "menu.shelf.refused": "シェルフにその項目を追加できませんでした。",
-  "picker.browser.selection_changed": {"other": "選択した %1 項目が移動または変更されました。選択し直してください。"},
+  "picker.browser.selection_changed": {
+    "other": "選択した %1 項目が移動または変更されました。選択し直してください。"
+  },
   "picker.browser.selection_timeout": "Flea が選択内容を確認できませんでした。再試行してください。",
   "places.recent.hidden_refused": "「最近使った項目」では、隠し項目も含めて一覧の全項目を表示します",
   "places.recent.new_folder_refused": "「最近使った項目」にはフォルダーを作成できません。先にフォルダーを開いてください",
@@ -2336,8 +2341,12 @@
   "send.providers.dropbox_checking": "Dropbox を確認中",
   "send.providers.dropbox_timeout": "Dropbox から時間内に応答がありませんでした",
   "send.providers.taildrop_failed": "Taildrop で %1 を %2 に送信できませんでした。",
-  "tui.convert.cancelled": {"other": "変換をキャンセルしました。%1 個の出力ファイルを作成しました。"},
-  "tui.convert.failed": {"other": "%1 個の出力ファイルを作成した後に変換に失敗しました：%2"},
+  "tui.convert.cancelled": {
+    "other": "変換をキャンセルしました。%1 個の出力ファイルを作成しました。"
+  },
+  "tui.convert.failed": {
+    "other": "%1 個の出力ファイルを作成した後に変換に失敗しました：%2"
+  },
   "tui.find.invalid_response": "検索結果を安全に使用できませんでした。もう一度検索してください。",
   "tui.find.scope_hint": "%1 · tab で範囲を変更",
   "tui.find.status": "「%1」を検索 · %2",
@@ -2544,5 +2553,7 @@
   },
   "feedback.unheld.move_many": {
     "other": "内部の %1 項目を移動できませんでした。最初の項目は %2: %3"
-  }
+  },
+  "keys.action.extendLeft": "選択範囲を左に拡張",
+  "keys.action.extendRight": "選択範囲を右に拡張"
 }
