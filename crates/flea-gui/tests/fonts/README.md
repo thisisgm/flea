@@ -1,7 +1,8 @@
 # OP1 typography regression fixtures
 
-JetBrains Mono Regular and Bold 2.304, copyright 2020 JetBrains s.r.o., Apache License 2.0.
-The files come unchanged from Debian fonts-jetbrains-mono 2.304+ds-5, installed under
+JetBrains Mono Regular and Bold 2.304, copyright 2020 The JetBrains Mono Project Authors,
+SIL Open Font License 1.1 by the fonts' own name tables. The files come unchanged from Debian
+fonts-jetbrains-mono 2.304+ds-5, which builds them from the upstream source, installed under
 /usr/share/fonts/truetype/jetbrains-mono. LICENSE-JetBrainsMono.txt contains the license.
 Upstream: https://github.com/JetBrains/JetBrainsMono.
 
