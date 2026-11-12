@@ -31,7 +31,7 @@ fn pv3_an_hdr_clip_gets_the_tone_map_filter_at_its_decoded_size() {
     let mut tonemap = hdr_4k();
     assert_eq!(
         tonemap.update(1920, 1080).as_deref(),
-        Some("lavfi=[zscale=w=1920:h=1080:f=lanczos:t=linear:npl=203,format=gbrpf32le,zscale=p=bt709,tonemap=tonemap=mobius:peak=4.93:desat=0,zscale=t=bt709:m=gbr:r=pc:d=random,format=gbrp,setsar=1]")
+        Some("lavfi=[zscale=w=1920:h=1080:f=lanczos:t=linear:npl=203,format=gbrpf32le,zscale=p=bt709,tonemap=tonemap=mobius:param=0.3:peak=4.93:desat=0,zscale=t=bt709:m=gbr:r=pc:d=random,format=gbrp,setsar=1]")
     );
     assert!(tonemap.on());
     assert_eq!(

@@ -5,8 +5,11 @@ use std::time::Duration;
 /// The luminance the filter maps to SDR white: BT.2408's HDR reference white, in nits.
 const WHITE_NITS: u32 = 203;
 /// The peak the curve brings down to SDR white, in multiples of WHITE_NITS: 1000 nits, HLG's nominal peak and the usual PQ mastering peak.
-/// The curve is mobius: a clip no brighter than SDR keeps its picture, and only the highlights are rolled off.
 const PEAK: &str = "4.93";
+/// Where the mobius curve stops being linear, in multiples of WHITE_NITS: about 61 nits. Darker than that the picture is untouched.
+/// Brighter, the roll-off begins, and reference white lands near 0.68 in linear light to leave room for the highlights.
+/// It is libavfilter's default, set here so every build draws alike.
+const KNEE: &str = "0.3";
 
 /// How long frames may stop under the filter, while play should be moving, before the filter is given up.
 pub const STALL: Duration = Duration::from_secs(2);
@@ -31,7 +34,7 @@ pub fn filter(size: Option<(u32, u32)>) -> String {
     // setsar=1 keeps mpv's reported size the size asked for, so the clip size never feeds back into a new filter.
     match size {
         Some((w, h)) => format!(
-            "lavfi=[zscale=w={w}:h={h}:f=lanczos:t=linear:npl={WHITE_NITS},format=gbrpf32le,zscale=p=bt709,tonemap=tonemap=mobius:peak={PEAK}:desat=0,zscale=t=bt709:m=gbr:r=pc:d=random,format=gbrp,setsar=1]"
+            "lavfi=[zscale=w={w}:h={h}:f=lanczos:t=linear:npl={WHITE_NITS},format=gbrpf32le,zscale=p=bt709,tonemap=tonemap=mobius:param={KNEE}:peak={PEAK}:desat=0,zscale=t=bt709:m=gbr:r=pc:d=random,format=gbrp,setsar=1]"
         ),
         None => String::new(),
     }
