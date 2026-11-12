@@ -2083,6 +2083,7 @@
   "settings.caption.group_by_kind": "dossiers, photos, fichiers",
   "settings.caption.permanently": "définitivement",
   "settings.caption.wrap": "reprend en haut",
+  "settings.caption.grid_wrap_rows": "gauche et droite dans la grille",
   "settings.choice.automatic": "Automatique",
   "settings.choice.breadcrumb": "Fil d’Ariane",
   "settings.choice.chosen": "Choisi",
@@ -2291,6 +2292,7 @@
   "settings.row.use_this_folder": "Utiliser ce dossier",
   "settings.row.view": "Dernière vue utilisée",
   "settings.row.wrap": "Reprendre à l’autre extrémité de la liste",
+  "settings.row.grid_wrap_rows": "Continuer aux extrémités des lignes",
   "settings.section.about": "À propos",
   "settings.section.display": "Affichage",
   "settings.section.keys": "Touches",
@@ -2778,5 +2780,7 @@
     "one": "Impossible de déplacer %1 élément à l’intérieur ; le premier est %2 : %3",
     "many": "Impossible de déplacer %1 éléments à l’intérieur ; le premier est %2 : %3",
     "other": "Impossible de déplacer %1 éléments à l’intérieur ; le premier est %2 : %3"
-  }
+  },
+  "keys.action.extendLeft": "Étendre vers la gauche",
+  "keys.action.extendRight": "Étendre vers la droite"
 }

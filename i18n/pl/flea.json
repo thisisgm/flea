@@ -2173,6 +2173,7 @@
   "settings.caption.group_by_kind": "foldery, zdjęcia, pliki",
   "settings.caption.permanently": "trwale",
   "settings.caption.wrap": "w górę na początku",
+  "settings.caption.grid_wrap_rows": "w lewo i w prawo w siatce",
   "settings.choice.automatic": "Automatycznie",
   "settings.choice.breadcrumb": "Okruszki",
   "settings.choice.chosen": "Wybrany",
@@ -2381,6 +2382,7 @@
   "settings.row.use_this_folder": "Użyj tego folderu",
   "settings.row.view": "Ostatnio używany widok",
   "settings.row.wrap": "Przechodź na drugi koniec listy",
+  "settings.row.grid_wrap_rows": "Przechodź na końcach wierszy",
   "settings.section.about": "Informacje",
   "settings.section.display": "Wyświetlanie",
   "settings.section.keys": "Klawisze",
@@ -2892,5 +2894,7 @@
     "many": "Nie udało się przenieść elementów wewnątrz (%1); pierwszy to %2: %3",
     "one": "Nie udało się przenieść elementów wewnątrz (%1); pierwszy to %2: %3",
     "other": "Nie udało się przenieść elementów wewnątrz (%1); pierwszy to %2: %3"
-  }
+  },
+  "keys.action.extendLeft": "Rozszerz w lewo",
+  "keys.action.extendRight": "Rozszerz w prawo"
 }

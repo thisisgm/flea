@@ -1,5 +1,5 @@
 //! Grid input uses the drawn tile mask and the shared key table, with no per-tile handlers.
-use super::{arrow, host::GridHost, Arrow, Shown};
+use super::{arrow_with_wrap, host::GridHost, Arrow, Shown};
 use crate::{
     list::pane::page_items,
     state::Shell,
@@ -18,12 +18,13 @@ impl Shell {
     ) -> Option<&'static str> {
         if self.view != View::Grid
             || self.keyboard.context != flea::keys::Context::Listing
-            || modifiers(event.keystroke.modifiers) != 0
             || event.prefer_character_input
         {
             return None;
         }
+        let mask = modifiers(event.keystroke.modifiers);
         match (
+            mask,
             reading(event.keystroke.key.as_str(), mirrored),
             event
                 .keystroke
@@ -31,8 +32,8 @@ impl Shell {
                 .as_deref()
                 .map(|text| reading(text, mirrored)),
         ) {
-            ("left", _) | (_, Some("h")) => Some("cursorLeft"),
-            ("right", _) | (_, Some("l")) => Some("cursorRight"),
+            (0, "left", _) | (0, _, Some("h")) => Some("cursorLeft"),
+            (0, "right", _) | (0, _, Some("l")) => Some("cursorRight"),
             _ => None,
         }
     }
@@ -47,27 +48,53 @@ impl Shell {
         let Some(grid) = host.grid.as_ref() else {
             return false;
         };
-        let total = host.pane.held.total;
+        let listing_total = host.pane.held.total;
+        let shown = host
+            .input
+            .shown
+            .as_deref()
+            .map_or(Shown::All(listing_total), Shown::Only);
+        let total = shown.total();
         let cursor = host.pane.cursor;
-        let layout = grid.view.layout(Shown::All(total));
+        // Shown rows are sorted listing rows, so a binary search finds the cursor's view without a scan.
+        let cursor_view = match host.input.shown.as_deref() {
+            Some(rows) => rows.binary_search(&cursor).ok(),
+            None => (cursor < total).then_some(cursor),
+        };
+        let wrap_rows = flea::ui_logic_settings_pages::pages::is_true(
+            &self.launch.settings.data,
+            &["gridWrapRows"],
+        );
+        let wrap_ends = flea::ui_logic_settings_pages::pages::is_true(
+            &self.launch.settings.data,
+            &["wrapAtEnds"],
+        );
+        let layout = grid.view.layout(shown);
         let step = match action {
             "cursorUp" => Some(Arrow::Up),
             "cursorDown" => Some(Arrow::Down),
-            "cursorLeft" => Some(Arrow::Left),
-            "cursorRight" => Some(Arrow::Right),
+            "cursorLeft" | "extendLeft" => Some(Arrow::Left),
+            "cursorRight" | "extendRight" => Some(Arrow::Right),
             "extendUp" => Some(Arrow::ExtendUp),
             "extendDown" => Some(Arrow::ExtendDown),
             _ => None,
         };
         let next = if let Some(step) = step {
-            arrow(layout.columns, Some(cursor), total, step)
+            match (wrap_rows && wrap_ends, action, cursor_view, total) {
+                // The filter's step: a hidden cursor stands before view 0, so any arrow lands on the first drawn row.
+                (_, _, None, 1..) if host.input.shown.is_some() => Some(0),
+                (true, "cursorLeft", Some(0), 1..) => Some(total - 1),
+                (true, "cursorRight", Some(at), 1..) if at == total - 1 => Some(0),
+                _ => arrow_with_wrap(layout.columns, cursor_view, total, step, wrap_rows),
+            }
         } else {
             let page = page_items(host.pane.visible_rows());
+            let at = cursor_view.unwrap_or(0);
             match action {
                 "cursorFirst" => Some(0),
                 "cursorLast" => total.checked_sub(1),
-                "pageUp" => Some(cursor.saturating_sub(page)),
-                "pageDown" => Some(cursor.saturating_add(page).min(total.saturating_sub(1))),
+                "pageUp" => Some(at.saturating_sub(page)),
+                "pageDown" => Some(at.saturating_add(page).min(total.saturating_sub(1))),
                 _ => return false,
             }
         };
@@ -86,12 +113,15 @@ impl Shell {
                 cx.notify();
             }
         }
-        if let Some(next) = next.filter(|next| *next < total) {
+        if let Some(next) = next.and_then(|view| shown.at(view)) {
             if let Some(grid) = host.grid.as_mut() {
                 grid.refollow();
             }
             if next != cursor {
-                if matches!(action, "extendUp" | "extendDown") {
+                if matches!(
+                    action,
+                    "extendUp" | "extendDown" | "extendLeft" | "extendRight"
+                ) {
                     let pulled = host.input.take_pull(cursor, host.pane.held.listing);
                     host.input.selection.extend(
                         &mut host.selected,

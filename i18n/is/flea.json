@@ -1993,6 +1993,7 @@
   "settings.caption.group_by_kind": "möppur, ljósmyndir, skrár",
   "settings.caption.permanently": "endanlega",
   "settings.caption.wrap": "upp efst",
+  "settings.caption.grid_wrap_rows": "vinstri og hægri í reitayfirliti",
   "settings.choice.automatic": "Sjálfvirkt",
   "settings.choice.breadcrumb": "Slóðarstika",
   "settings.choice.chosen": "Valin",
@@ -2201,6 +2202,7 @@
   "settings.row.use_this_folder": "Nota þessa möppu",
   "settings.row.view": "Síðast notaða sýn",
   "settings.row.wrap": "Halda áfram frá hinum enda listans",
+  "settings.row.grid_wrap_rows": "Halda áfram við enda raða",
   "settings.section.about": "Um",
   "settings.section.display": "Skjár",
   "settings.section.keys": "Lyklar",
@@ -2664,5 +2666,7 @@
   "feedback.unheld.move_many": {
     "one": "Ekki tókst að færa atriðin inni (%1); það fyrsta er %2: %3",
     "other": "Ekki tókst að færa atriðin inni (%1); það fyrsta er %2: %3"
-  }
+  },
+  "keys.action.extendLeft": "Víkka val til vinstri",
+  "keys.action.extendRight": "Víkka val til hægri"
 }

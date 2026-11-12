@@ -2033,6 +2033,7 @@
   "settings.caption.group_by_kind": "klasörler, fotoğraflar, dosyalar",
   "settings.caption.permanently": "kalıcı olarak",
   "settings.caption.wrap": "en üstte yukarı gidince",
+  "settings.caption.grid_wrap_rows": "Izgarada sola ve sağa hareket",
   "settings.choice.automatic": "Otomatik",
   "settings.choice.breadcrumb": "İçerik haritası",
   "settings.choice.chosen": "Seçilen",
@@ -2241,6 +2242,7 @@
   "settings.row.use_this_folder": "Bu klasörü kullan",
   "settings.row.view": "Son kullanılan görünüm",
   "settings.row.wrap": "Liste uçlarında başa veya sona dön",
+  "settings.row.grid_wrap_rows": "Satır uçlarında devam et",
   "settings.section.about": "Hakkında",
   "settings.section.display": "Ekran",
   "settings.section.keys": "Tuşlar",
@@ -2664,5 +2666,7 @@
   "feedback.unheld.move_many": {
     "one": "İçerideki %1 öge taşınamadı; ilki %2: %3",
     "other": "İçerideki %1 öge taşınamadı; ilki %2: %3"
-  }
+  },
+  "keys.action.extendLeft": "Seçimi sola genişlet",
+  "keys.action.extendRight": "Seçimi sağa genişlet"
 }

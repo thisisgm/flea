@@ -2033,6 +2033,7 @@
   "settings.caption.group_by_kind": "ෆෝල්ඩර, ඡායාරූප, ගොනු",
   "settings.caption.permanently": "ස්ථිරව",
   "settings.caption.wrap": "ඉහළින් නැවත පහළට",
+  "settings.caption.grid_wrap_rows": "ජාල දසුනේ වමට සහ දකුණට ගමන් කිරීම",
   "settings.choice.automatic": "ස්වයංක්‍රීය",
   "settings.choice.breadcrumb": "මාර්ග කොටස්",
   "settings.choice.chosen": "තෝරාගත්",
@@ -2241,6 +2242,7 @@
   "settings.row.use_this_folder": "මෙම ෆෝල්ඩරය භාවිත කරන්න",
   "settings.row.view": "අවසන් වරට භාවිත දසුන",
   "settings.row.wrap": "ලැයිස්තු අගදී අනෙක් අන්තයට යන්න",
+  "settings.row.grid_wrap_rows": "පේළි කෙළවරේදී ඊළඟ පේළියට යන්න",
   "settings.section.about": "ගැන",
   "settings.section.display": "සංදර්ශකය",
   "settings.section.keys": "යතුරු",
@@ -2664,5 +2666,7 @@
   "feedback.unheld.move_many": {
     "one": "ඇතුළත අයිතම %1 ක් ගෙන යා නොහැකි විය; පළමුවැන්න %2 යි: %3",
     "other": "ඇතුළත අයිතම %1 ක් ගෙන යා නොහැකි විය; පළමුවැන්න %2 යි: %3"
-  }
+  },
+  "keys.action.extendLeft": "වමට තේරීම දිගු කරන්න",
+  "keys.action.extendRight": "දකුණට තේරීම දිගු කරන්න"
 }

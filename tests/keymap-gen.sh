@@ -48,6 +48,23 @@ else
   exit 1
 fi
 
+# Shared rows bind every frontend, so a scoped one once dropped its frontend and reached the TUI.
+scoped=$probe_dir/scoped.toml
+for scope in 'frontend = "gui"' 'context = "media"'; do
+  cp keys.toml "$scoped"
+  printf '\n[[shift]]\nkey = "Insert"\naction = "extendRight"\n%s\n' "$scope" >> "$scoped"
+  if ./tools/flea-keymap-gen "$probe_dir/scoped.js" "$scoped" 2>"$probe_dir/scoped.err"; then
+    echo "FAIL the generator accepted a shared row scoped by $scope"
+    exit 1
+  fi
+  if ! grep -qF 'a scoped binding belongs in [[preset]]' "$probe_dir/scoped.err"; then
+    echo "FAIL the shared row scoped by $scope was refused without saying where it belongs:"
+    cat "$probe_dir/scoped.err"
+    exit 1
+  fi
+done
+echo "ok   a shared row scoped to a frontend or context fails the build"
+
 # A mistyped name emits a comparison against undefined, which is false forever and diffs clean.
 if ! command -v qml6 >/dev/null; then
   echo "FAIL qml6 is not installed, cannot check the key names in keys.toml"

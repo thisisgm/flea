@@ -2083,6 +2083,7 @@
   "settings.caption.group_by_kind": "dosare, fotografii, fișiere",
   "settings.caption.permanently": "definitiv",
   "settings.caption.wrap": "sus, la început",
+  "settings.caption.grid_wrap_rows": "stânga și dreapta în grilă",
   "settings.choice.automatic": "Automat",
   "settings.choice.breadcrumb": "Fir de navigare",
   "settings.choice.chosen": "Ales",
@@ -2291,6 +2292,7 @@
   "settings.row.use_this_folder": "Folosește acest dosar",
   "settings.row.view": "Ultima vizualizare folosită",
   "settings.row.wrap": "Reia de la capăt la sfârșitul listei",
+  "settings.row.grid_wrap_rows": "Continuă la capetele rândurilor",
   "settings.section.about": "Despre",
   "settings.section.display": "Afișaj",
   "settings.section.keys": "Taste",
@@ -2778,5 +2780,7 @@
     "few": "Nu s-au putut muta %1 elemente din interior; primul este %2: %3",
     "one": "Nu s-a putut muta %1 element din interior; primul este %2: %3",
     "other": "Nu s-au putut muta %1 de elemente din interior; primul este %2: %3"
-  }
+  },
+  "keys.action.extendLeft": "Extinde spre stânga",
+  "keys.action.extendRight": "Extinde spre dreapta"
 }

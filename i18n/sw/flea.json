@@ -2033,6 +2033,7 @@
   "settings.caption.group_by_kind": "folda, picha, faili",
   "settings.caption.permanently": "kabisa",
   "settings.caption.wrap": "juu kabisa",
+  "settings.caption.grid_wrap_rows": "kushoto na kulia katika Gridi",
   "settings.choice.automatic": "Kiotomatiki",
   "settings.choice.breadcrumb": "Mfululizo wa njia",
   "settings.choice.chosen": "Iliyochaguliwa",
@@ -2241,6 +2242,7 @@
   "settings.row.use_this_folder": "Tumia folda hii",
   "settings.row.view": "Mwonekano uliotumika mwisho",
   "settings.row.wrap": "Rudia mwanzo au mwisho wa orodha",
+  "settings.row.grid_wrap_rows": "Endelea kwenye mwisho wa safu",
   "settings.section.about": "Kuhusu",
   "settings.section.display": "Onyesho",
   "settings.section.keys": "Vitufe",
@@ -2664,5 +2666,7 @@
   "feedback.unheld.move_many": {
     "one": "Kipengee %1 kilichomo hakikuweza kuhamishwa; cha kwanza ni %2: %3",
     "other": "Vipengee %1 vilivyomo havikuweza kuhamishwa; cha kwanza ni %2: %3"
-  }
+  },
+  "keys.action.extendLeft": "Panua uteuzi kushoto",
+  "keys.action.extendRight": "Panua uteuzi kulia"
 }

@@ -90,3 +90,51 @@ fn the_schema_ships_the_rows_as_041_draws_and_takes_only_booleans() {
         assert!(message.contains(key), "{message} names {key}");
     }
 }
+
+#[test]
+fn issue_434_row_matches_the_approved_cursor_board_and_search_finds_it() {
+    let rows = view("{}");
+    let at = rows
+        .iter()
+        .position(|row| row.id == "gridWrapRows")
+        .unwrap();
+    let wrap = &rows[at];
+    assert_eq!(rows[at - 1].id, "wrapAtEnds");
+    assert_eq!(rows[at + 1].id, "escapeUp");
+    assert_eq!(say(&wrap.label), "Wrap at row ends");
+    assert_eq!(say(&wrap.caption), "left and right in Grid");
+    assert_eq!(wrap.glyph, "move-horizontal");
+    assert!(!wrap.on);
+    assert!(row(&view(r#"{"gridWrapRows":true}"#), "gridWrapRows").on);
+    let sections = vec![(0, rows)];
+    let found = crate::ui_logic_settings_pages::search::search(
+        &sections,
+        "row ends",
+        &crate::ui_logic_settings_pages::test_support::english(),
+    );
+    assert_eq!(
+        crate::ui_logic_settings_pages::search::first_target(&found, &sections),
+        Some((0, at))
+    );
+}
+
+#[test]
+fn issue_434_row_wrap_survives_state_round_trip_and_requires_a_boolean() {
+    let fresh = crate::uistate::from_file("{}");
+    assert_eq!(
+        fresh.get("gridWrapRows").and_then(Json::as_bool),
+        Some(false)
+    );
+    let patch = parse(r#"{"gridWrapRows":true}"#).unwrap();
+    let updated = crate::uistate::patched(&fresh, &patch).unwrap();
+    let loaded = crate::uistate::from_file(&crate::jsondoc::render(&updated));
+    assert!(row(&view_rows(&State::new(&loaded)), "gridWrapRows").on);
+    assert_eq!(
+        loaded.get("wrapAtEnds").and_then(Json::as_bool),
+        Some(false)
+    );
+    for invalid in [r#"{"gridWrapRows":"true"}"#, r#"{"gridWrapRows":1}"#] {
+        let message = crate::uistate::patched(&fresh, &parse(invalid).unwrap()).unwrap_err();
+        assert!(message.contains("gridWrapRows"));
+    }
+}

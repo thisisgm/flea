@@ -2215,6 +2215,7 @@
   "settings.caption.group_by_kind": "теки, фото, файли",
   "settings.caption.permanently": "назавжди",
   "settings.caption.wrap": "угору на початок",
+  "settings.caption.grid_wrap_rows": "ліворуч і праворуч у сітці",
   "settings.choice.automatic": "Автоматично",
   "settings.choice.breadcrumb": "Навігаційний ланцюжок",
   "settings.choice.chosen": "Вибрана",
@@ -2423,6 +2424,7 @@
   "settings.row.use_this_folder": "Використати цю теку",
   "settings.row.view": "Останній використаний перегляд",
   "settings.row.wrap": "Циклічний перехід на кінцях списку",
+  "settings.row.grid_wrap_rows": "Переходити на кінцях рядків",
   "settings.section.about": "Про програму",
   "settings.section.display": "Екран",
   "settings.section.keys": "Клавіші",
@@ -2892,5 +2894,7 @@
     "many": "Не вдалося перемістити елементи всередині (%1); перший: %2: %3",
     "one": "Не вдалося перемістити елементи всередині (%1); перший: %2: %3",
     "other": "Не вдалося перемістити елементи всередині (%1); перший: %2: %3"
-  }
+  },
+  "keys.action.extendLeft": "Розширити ліворуч",
+  "keys.action.extendRight": "Розширити праворуч"
 }

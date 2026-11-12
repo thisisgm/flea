@@ -269,3 +269,12 @@ fn tui_fix_1101_p2_up_in_the_panel_is_cursor_up() {
         assert_eq!(map.in_context(&Key::named("Up", ""), preset, "panel"), "cursorUp", "{preset}");
     }
 }
+#[test]
+fn gui_only_horizontal_extension_stays_out_of_the_terminal() {
+    let map = Map::load();
+    for preset in ["default", "vim", "mac", "windows", "yazi"] {
+        for name in ["Left", "Right"] {
+            assert_eq!(map.action(&Key::named(name, "shift"), preset), "", "{preset} shift-{name}");
+        }
+    }
+}

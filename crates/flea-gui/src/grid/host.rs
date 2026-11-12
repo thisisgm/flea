@@ -73,27 +73,39 @@ impl GridHost {
         }
     }
 
-    fn request(&mut self, pane: &mut Pane) -> Option<(usize, usize)> {
+    fn request(&mut self, pane: &mut Pane, shown: Shown) -> Option<(usize, usize)> {
         if self.settle_refusal(pane) {
             return None;
         }
-        let shown = Shown::All(pane.held.total);
         let focus = Self::focus(pane);
-        let landed = self.view.rows_landed(pane, shown, &focus);
+        let narrowed = shown.narrowed();
+        if narrowed && pane.held.row(pane.cursor).is_some() {
+            self.view.end_landing(shown, &focus, true);
+            let identity = (pane.held.listing, pane.cursor);
+            if self.followed != Some(identity) {
+                self.followed = Some(identity);
+                self.view.follow_cursor(pane, shown, &focus);
+            }
+            return self.view.wanted_filtered_window(pane, shown);
+        }
+        // Missing filtered facts still use listing coordinates to fetch their window.
+        let listing = Shown::All(pane.held.total);
+        let landed = self.view.rows_landed(pane, listing, &focus);
         let identity = (pane.held.listing, pane.cursor);
         if self.failed == Some((identity.0, identity.1, self.view.scroll)) {
             return None;
         }
         self.failed = None;
-        let followed = if self.followed != Some(identity) {
+        let missing = narrowed && !self.view.landing_wait && pane.held.row(pane.cursor).is_none();
+        let followed = if self.followed != Some(identity) || missing {
             self.followed = Some(identity);
-            self.view.follow_cursor(pane, shown, &focus)
+            self.view.follow_cursor(pane, listing, &focus)
         } else {
             None
         };
         landed
             .or(followed)
-            .or_else(|| self.view.wanted_window(pane, shown))
+            .or_else(|| self.view.wanted_window(pane, listing))
     }
 
     pub(super) fn settle_refusal(&mut self, pane: &mut Pane) -> bool {
@@ -234,7 +246,7 @@ impl PaneHost {
             .map_or(Shown::All(self.pane.held.total), Shown::Only);
         if !self.stopped && grid.next_view.is_none() {
             if let (Some((start, count)), Some(backend)) =
-                (grid.request(&mut self.pane), &self.backend)
+                (grid.request(&mut self.pane, shown), &self.backend)
             {
                 if let Err(error) = backend.window(start, count) {
                     self.stopped = true;

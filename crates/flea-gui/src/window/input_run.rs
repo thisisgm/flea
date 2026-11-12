@@ -27,6 +27,13 @@ impl Shell {
             return KeyRun::Unclaimed;
         };
         let listing = self.keyboard.context == flea::keys::Context::Listing;
+        // Horizontal extension belongs to Grid; other listing views leave these keys idle.
+        if listing
+            && self.view != crate::window::startup::View::Grid
+            && matches!(action, "extendLeft" | "extendRight")
+        {
+            return KeyRun::Kept;
+        }
         let busy = host.pane.busy();
         // Search keeps its unavailable listing controls silent, even while a query is in flight.
         if matches!(action, "filter" | "sortNext" | "sortReverse")

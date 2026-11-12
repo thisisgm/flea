@@ -852,6 +852,7 @@
   "settings.row.lang_marks": "코드 아이콘 표시",
   "settings.row.remember_sort": "폴더별 정렬 기억",
   "settings.row.wrap": "목록 끝에서 반대쪽으로 이동",
+  "settings.row.grid_wrap_rows": "행 끝에서 다음 행으로 이동",
   "settings.row.escape_up": "Escape로 상위 폴더 이동",
   "settings.row.start_in": "Flea 시작 위치",
   "settings.row.start_folder": "선택한 폴더",
@@ -873,6 +874,7 @@
   "settings.row.preset": "단축키 프리셋",
   "settings.caption.group_by_kind": "폴더, 사진, 파일",
   "settings.caption.wrap": "맨 위에서 위로 이동할 때",
+  "settings.caption.grid_wrap_rows": "격자 보기에서 왼쪽 및 오른쪽 이동",
   "settings.caption.escape_up": "닫을 항목이 없을 때",
   "settings.caption.permanently": "영구적으로",
   "settings.hint.compact_default": "기본값은 촘촘하게 유지됩니다.",
@@ -2271,7 +2273,9 @@
   "plugins.source.heading": "출처",
   "archive.flash.chooser_failed": "이미지를 선택하기 위해 %1을(를) 시작할 수 없습니다: %2.",
   "carry.hint": "놓을 위치를 클릭하세요. esc로 취소",
-  "carry.status": {"other": "항목 %1개 가져가는 중"},
+  "carry.status": {
+    "other": "항목 %1개 가져가는 중"
+  },
   "clipboard.no_cursor_row": "커서 아래에 항목이 없어 메뉴를 열 수 없습니다",
   "dialogs.file.disconnected": "드라이브나 공유의 연결이 끊어져 이 폴더를 더 이상 사용할 수 없습니다",
   "dialogs.file.open.unlisted": "이 파일은 더 이상 목록에 없습니다.",
@@ -2321,7 +2325,9 @@
   "menu.shelf.added_one": "선반에 항목을 추가했습니다",
   "menu.shelf.nothing": "선반에 넣을 항목이 없습니다.",
   "menu.shelf.refused": "선반에 해당 항목을 추가하지 못했습니다.",
-  "picker.browser.selection_changed": {"other": "선택한 항목 %1개가 이동되거나 변경되었습니다. 다시 선택하세요."},
+  "picker.browser.selection_changed": {
+    "other": "선택한 항목 %1개가 이동되거나 변경되었습니다. 다시 선택하세요."
+  },
   "picker.browser.selection_timeout": "Flea가 선택 항목을 확인하지 못했습니다. 다시 시도하세요.",
   "places.recent.hidden_refused": "최근 항목은 숨김 항목을 포함하여 목록의 모든 항목을 표시합니다",
   "places.recent.new_folder_refused": "최근 항목에는 새 폴더를 만들 수 없습니다. 먼저 폴더를 여세요",
@@ -2335,8 +2341,12 @@
   "send.providers.dropbox_checking": "Dropbox 확인 중",
   "send.providers.dropbox_timeout": "Dropbox가 제시간에 응답하지 않았습니다",
   "send.providers.taildrop_failed": "Taildrop으로 %1을(를) %2에 보내지 못했습니다.",
-  "tui.convert.cancelled": {"other": "변환을 취소했습니다. 출력 파일 %1개를 만들었습니다."},
-  "tui.convert.failed": {"other": "출력 파일 %1개를 만든 후 변환에 실패했습니다: %2"},
+  "tui.convert.cancelled": {
+    "other": "변환을 취소했습니다. 출력 파일 %1개를 만들었습니다."
+  },
+  "tui.convert.failed": {
+    "other": "출력 파일 %1개를 만든 후 변환에 실패했습니다: %2"
+  },
   "tui.find.invalid_response": "검색 결과를 안전하게 사용할 수 없습니다. 찾기를 다시 시도하세요.",
   "tui.find.scope_hint": "%1 · tab으로 범위 변경",
   "tui.find.status": "“%1” 찾기 · %2",
@@ -2542,5 +2552,7 @@
   },
   "feedback.unheld.move_many": {
     "other": "내부 항목 %1개를 이동하지 못했습니다. 첫 항목은 %2: %3"
-  }
+  },
+  "keys.action.extendLeft": "선택 영역을 왼쪽으로 확장",
+  "keys.action.extendRight": "선택 영역을 오른쪽으로 확장"
 }
