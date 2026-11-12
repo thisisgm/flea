@@ -24,6 +24,7 @@ while IFS= read -r line; do :; done
     ]);
     command.args(lines);
     let backend = Backend::start_command(command, "/files".into(), None, 320).unwrap();
+    let _ = backend.test_own(cx);
     let handle = cx.add_window(|_, cx| crate::state::tests::shell_with(backend, cx));
     handle
         .update(cx, |shell, window, cx| {

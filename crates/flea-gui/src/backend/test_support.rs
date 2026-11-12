@@ -3,6 +3,9 @@ use super::{transport, Backend, Closing, Control, Event};
 use std::os::unix::net::UnixStream;
 use std::sync::{atomic::AtomicUsize, mpsc, Arc, Mutex};
 
+#[path = "test_completion.rs"]
+mod completion;
+
 impl Backend {
     pub(crate) fn test_output(&self) -> async_channel::Sender<Event> {
         self.plugin_output.clone()
@@ -57,6 +60,7 @@ impl Backend {
                 wake,
                 replies,
                 drained,
+                worker: Default::default(),
                 thumbs: Default::default(),
                 folders: Default::default(),
                 transfers: Default::default(),
@@ -84,6 +88,7 @@ impl Backend {
                 wake,
                 replies,
                 drained,
+                worker: Default::default(),
                 thumbs: Default::default(),
                 folders: Default::default(),
                 transfers: Default::default(),

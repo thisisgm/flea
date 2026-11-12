@@ -1,9 +1,20 @@
 //! Wire adapters keep the optional denied-directory mode and captured row numbering intact.
-use super::{Event, Located};
+use super::{Event, Failure, Located};
 use crate::navigation::{folder_state::Order, Command, Listing};
 use crate::pane::requests::RowAction;
 use flea::{json::escape, jsondoc, protocol::parse_reply, protocol::Reply};
 use std::io::{self, Write};
+
+pub(super) fn failed(output: &async_channel::Sender<Event>, error: Failure) {
+    let _sent = output.try_send(Event::Failed(error));
+    #[cfg(test)]
+    if let Err(error) = _sent {
+        panic!(
+            "backend fixture lost a worker failure: {:?}",
+            error.into_inner()
+        );
+    }
+}
 
 pub(super) fn parse(line: &str) -> Result<Event, String> {
     match parse_reply(line)? {

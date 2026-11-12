@@ -51,6 +51,7 @@ fn real_host(cx: &mut TestAppContext, fixture: &mut Fixture, root: &Path) {
         .current_dir(root);
     let backend =
         Backend::start_with(command, wire::request_line(0, "list", "", Vec::new())).unwrap();
+    let _ = backend.test_own(cx);
     fixture.drained = Some(backend.drained());
     update(cx, fixture.handle, |shell, window, cx| {
         shell.launch.settings.data = flea::uistate::from_file(r#"{"shelf":{"enabled":false}}"#);

@@ -117,6 +117,8 @@ pub struct Backend {
     wake: UnixStream,
     pub replies: Receiver<Event>,
     drained: Receiver<()>,
+    #[cfg(test)]
+    worker: Mutex<Option<thread::JoinHandle<()>>>,
     /// Backend.qml thumbRequests: every thumb line this backend was sent.
     thumbs: std::sync::atomic::AtomicUsize,
     /// Each recently listed folder's "w", which Backend.qml keeps as dirWritable.
@@ -232,13 +234,13 @@ impl Backend {
         let (output, replies) = async_channel::unbounded();
         let (done, drained) = async_channel::bounded(1);
         let plugin_output = output.clone();
-        thread::Builder::new()
+        let _worker = thread::Builder::new()
             .name("flea-backend".into())
             .spawn(move || {
                 let worker =
                     worker::Worker::new(receiver, listener, state, (listed, answered), &output);
                 if let Err(error) = worker.run(command, first_line) {
-                    let _ = output.try_send(Event::Failed(error));
+                    transport::failed(&output, error);
                 }
                 exited.lock().unwrap_or_else(PoisonError::into_inner).stop();
                 let _ = output.try_send(Event::Drained);
@@ -253,6 +255,8 @@ impl Backend {
             wake,
             replies,
             drained,
+            #[cfg(test)]
+            worker: Mutex::new(Some(_worker)),
             thumbs: Default::default(),
             folders,
             transfers,

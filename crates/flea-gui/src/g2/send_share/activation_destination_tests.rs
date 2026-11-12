@@ -62,6 +62,7 @@ fn fxuish2b_dropbox_replaced_captured_root_keeps_the_backend_destination_sentenc
         .env("FLEA_UNDO_DIR", root.0.join("undo"));
     let backend =
         Backend::start_command(command, listing.to_str().unwrap().into(), None, 32).unwrap();
+    let _completion = backend.test_completion().unwrap();
     let (shell, cx, mut lines, id) = warm(cx);
     backend
         .line(format!(

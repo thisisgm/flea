@@ -175,6 +175,7 @@ for line in sys.stdin:
         print('{"t":"transferdone","id":9,"ok":1,"failed":1}',flush=True)
 "#]);
     let backend = Backend::start_command(command, "/files".into(), None, 320).unwrap();
+    let _ = backend.test_own(cx);
     let events = backend.replies.clone();
     let handle = cx.add_window(|window, cx| {
         let shell = cx.new(|cx| shell_with(backend, cx));
