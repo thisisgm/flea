@@ -2,8 +2,9 @@
 use super::mounted_tests::{centre, frame, open, Root};
 use gpui::{point, px, AppContext, Modifiers, MouseButton, TestAppContext, VisualTestContext};
 
-#[gpui::test]
-fn vf_look_held_drag_has_a_native_flock_and_folder_feedback(cx: &mut TestAppContext) {
+#[test]
+fn vf_look_held_drag_has_a_native_flock_and_folder_feedback() {
+    let cx = &mut crate::list::bench::real_cx();
     let root = Root::new("vf-look");
     let (handle, _) = open(cx, root.src());
     frame(cx, handle);

@@ -116,6 +116,9 @@ impl PlatformTextSystem for Recorder {
     fn prewarm_fonts(&self, ids: &[FontId]) {
         self.real.prewarm_fonts(ids);
     }
+    fn font_data(&self, id: FontId) -> Option<gpui::SharedFontData> {
+        self.real.font_data(id)
+    }
     fn font_metrics(&self, id: FontId) -> FontMetrics {
         self.real.font_metrics(id)
     }
