@@ -14,7 +14,29 @@ fn m9_perf_cached_frames_reuse_painted_snapshots() {
     }
     scrolling(&shell, cx, 120, 2000, 0, 0);
     loading(&shell, cx);
-    let before = snapshot(&shell, cx);
+    assert_cached_frames(&shell, cx);
+    edit(&shell, cx, |shell, window, cx| shell.close(window, cx));
+}
+
+#[test]
+fn m9_perf_cached_frames_start_without_input() {
+    let mut context = TestAppContext::build_with_text_system(
+        TestDispatcher::new(0),
+        None,
+        gpui_platform::current_platform(true).text_system(),
+    );
+    let (shell, cx, _requests) = mount(&mut context, 2000);
+    assert!(
+        cx.update(|window, _| window.is_window_active()),
+        "frame fixture must be active without input"
+    );
+    loading(&shell, cx);
+    assert_cached_frames(&shell, cx);
+    edit(&shell, cx, |shell, window, cx| shell.close(window, cx));
+}
+
+fn assert_cached_frames(shell: &Entity<Shell>, cx: &mut VisualTestContext) {
+    let before = snapshot(shell, cx);
     assert!(
         before[3] > 0,
         "gate requires actual painted feedback metadata"
@@ -22,7 +44,7 @@ fn m9_perf_cached_frames_reuse_painted_snapshots() {
     for _ in 0..60 {
         callback(cx, Duration::from_nanos(1_000_000_000 / 120));
     }
-    let after = snapshot(&shell, cx);
+    let after = snapshot(shell, cx);
     assert_eq!(
         after[0] - before[0],
         60,
@@ -43,5 +65,4 @@ fn m9_perf_cached_frames_reuse_painted_snapshots() {
         0,
         "unchanged painted List snapshot must be reused"
     );
-    edit(&shell, cx, |shell, window, cx| shell.close(window, cx));
 }
