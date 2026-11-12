@@ -49,6 +49,7 @@ impl Pane {
         self.scroll_extent = None;
         self.path = pending.path;
         self.named = true;
+        self.listed = Some(self.path.clone());
         self.swap.listing_first = pending.first;
         // Wire numbering still changes so stale row actions cannot address newly inserted files.
         self.greatest_listing = held.listing;

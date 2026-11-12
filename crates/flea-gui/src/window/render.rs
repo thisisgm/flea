@@ -126,6 +126,7 @@ impl Render for Shell {
         self.sync_output_thumbnails(cx);
         for side in 0..2 {
             self.sync_surfaces(side, cx);
+            self.sync_state_reload(side, window, cx);
         }
         let drop_cues = [0, 1].map(|side| self.file_grid_cue(side, window, cx));
         let mut panes: [Option<AnyElement>; 2] = [None, None];

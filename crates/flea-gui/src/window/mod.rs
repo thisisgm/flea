@@ -60,6 +60,7 @@ pub mod settings;
 pub(crate) mod sidebar_edge;
 mod sniff;
 pub mod startup;
+mod state_reload;
 pub(crate) mod status;
 mod status_undo;
 pub(crate) mod surfaces;

@@ -95,7 +95,7 @@ g2.fb1.extra.no-trash BLOCKED fb1: G1.05 keys: needs the shift-delete hint
 g2.fb1.extra.receipt-then-error BLOCKED fb1: G1.02 transport: needs backend event ordering, a fixture setup sends one listing
 g2.fb1.extra.reload-under-card BLOCKED fb1: G1.13 status MessageLine: the card half mounts now, the reload notice lives in the status bar
 g2.fb1.extra.undo-hint BLOCKED fb1: G1.05 keys: needs the z keystroke under the pointer
-g2.fb1.extra.waiting BLOCKED fb1: G1.02 transport: needs a pending listing, a fixture never pends
+g2.fb1.extra.waiting BLOCKED fb1: G1.02 transport: needs a held device readdir, and a fixture never pends a listing. FX-MTP-RELOAD's minipc FUSE captures show the waiting sentence and Reload at rest, hover, keyboard focus and press in List, Grid and Dual; the mtp_reload GUI tests and listwork scanner tests pin dispatch, automatic recovery and stale-answer cleanup.
 g2.fb1.open-refused.primary BLOCKED fb1: G1.05 keys plus a backend refusal, and the G1.13 status MessageLine: a setup cannot drive an open, so nothing refuses it and no notice can show
 g2.fb1.reload-notice.primary BLOCKED fb1: G1.13 status MessageLine: the notice lives in the status bar, not in a pane slot
 g2.st2.plugin-add.primary BLOCKED st2: st1 host mount, backend PluginsWire send, pluginop passthrough

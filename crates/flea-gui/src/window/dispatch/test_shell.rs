@@ -1,4 +1,9 @@
 //! The production Shell the dispatch tests drive: the native constructor with only the backend process replaced.
+#[path = "mtp_critic_tests.rs"]
+mod mtp_critic_tests;
+#[path = "mtp_reload_tests.rs"]
+mod mtp_reload_tests;
+
 use crate::{
     backend::{Backend, Event as BackendEvent},
     navigation::folder_state::Writer,

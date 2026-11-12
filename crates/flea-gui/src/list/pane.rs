@@ -146,6 +146,8 @@ pub struct Pane {
     pub(crate) greatest_listing: usize,
     /// Pane.qml path is empty until a listing or a failure names a folder; EY-546 reads it for Up.
     pub(crate) named: bool,
+    /// The folder the held rows came from, which a waiting place can leave behind `path`; None before any lands.
+    pub(crate) listed: Option<String>,
     pub(crate) clock: crate::pane::clock::Clock,
 }
 
@@ -170,6 +172,7 @@ impl Pane {
             first_rows_at: 0,
             greatest_listing: 0,
             named: false,
+            listed: None,
             clock: Default::default(),
         };
         pane.begin(path, Options::default(), 0);

@@ -12,6 +12,12 @@ pub struct Focus {
     stops: Vec<Stop>,
 }
 impl Focus {
+    pub fn handle(&self, name: &str) -> Option<FocusHandle> {
+        self.stops
+            .iter()
+            .find(|stop| stop.name == name)
+            .map(|stop| stop.handle.clone())
+    }
     pub fn register(&mut self, stop: Stop) {
         self.remove(stop.name);
         self.stops.push(stop);

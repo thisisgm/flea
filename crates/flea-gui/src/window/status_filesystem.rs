@@ -28,6 +28,15 @@ impl Filesystem {
         }
     }
 
+    pub(crate) fn show_waiting(&mut self, path: &str) {
+        self.enter(path);
+        self.facts = self.facts.take().filter(|facts| facts.path == path);
+    }
+
+    pub(crate) fn pending(&self, kind: crate::pane::Kind) -> bool {
+        !self.answered && kind != crate::pane::Kind::Waiting
+    }
+
     /// A refused listing or failed backend answers with no facts; retained facts stay.
     pub(crate) fn settle_without_facts(&mut self) {
         self.answered = true;
