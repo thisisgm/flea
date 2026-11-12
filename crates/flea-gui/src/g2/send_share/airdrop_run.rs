@@ -4,6 +4,7 @@ use super::airdrop_pids::{Held, Pids};
 use super::airdrop_shared::Seen;
 use super::join::{now_ms, Senders};
 use crate::state::Shell;
+use flea::bytename::{args, text_name};
 use flea::ui_logic_send_share::airdrop_ask;
 use flea::ui_logic_send_share::omdrop::Stack;
 use gpui::{Context, Window};
@@ -82,8 +83,8 @@ impl Shell {
             let output = cx
                 .background_executor()
                 .spawn(async move {
-                    Command::new(&argv[0])
-                        .args(&argv[1..])
+                    Command::new(text_name(&argv[0]))
+                        .args(args(&argv[1..]))
                         .stdin(Stdio::null())
                         .stderr(Stdio::null())
                         .output()
@@ -125,9 +126,9 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        let mut command = Command::new(&argv[0]);
+        let mut command = Command::new(text_name(&argv[0]));
         command
-            .args(&argv[1..])
+            .args(args(&argv[1..]))
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null());

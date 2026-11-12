@@ -11,6 +11,8 @@ use std::sync::mpsc::Sender;
 use std::sync::Arc;
 #[path = "airdropsend.rs"]
 pub(crate) mod airdropsend;
+#[path = "airdropsession.rs"]
+pub(crate) mod airdropsession;
 
 pub(crate) struct Spec<'a> {
     pub kind: &'a str,

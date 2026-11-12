@@ -26,6 +26,13 @@ pub enum Phase {
     Confirming,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+enum Run {
+    On,
+    #[default]
+    Off,
+}
+
 #[derive(Default)]
 pub struct Omdrop {
     // omdrop's path, empty unless it runs AirDrop for this window.
@@ -37,6 +44,10 @@ pub struct Omdrop {
     // The status generation whose answer is awaited, if one is.
     status_wait: Option<u64>,
     pub phase: Phase,
+    // Which of `on` and `off` the status being awaited confirms.
+    confirming: Run,
+    // A Receiving choice made while an `on` ran, carried out once its status is known: only Off waits.
+    chosen: Option<Run>,
     gens: [u64; Proc::ALL.len()],
     // Omdrop's own sentences from `on` and `off`, for the one said when either fails.
     said: String,
@@ -51,6 +62,10 @@ pub struct Omdrop {
 impl Omdrop {
     pub fn active(&self) -> bool {
         !self.path.is_empty()
+    }
+
+    pub fn path(&self) -> &str {
+        &self.path
     }
 
     // The backend's facts or PATH name omdrop, or nothing when owly runs AirDrop or omdrop is missing.
@@ -71,6 +86,7 @@ impl Omdrop {
         self.status = omdrop::Status::default();
         // Nothing a run of the omdrop just replaced says lands: an on or off finishes by itself, a lookup is stopped.
         self.phase = Phase::Off;
+        self.chosen = None;
         self.next_gen(Proc::Radio);
         self.drop_devices()
     }
@@ -119,7 +135,11 @@ impl Omdrop {
             return Vec::new();
         }
         self.status_wait = None;
-        let status = omdrop::status(stdout, exit_code);
+        // A failed run leaves Omdrop's state unknown: the confirmed receiver, folder and name stand, but nothing reads ready.
+        let Some(status) = omdrop::status(stdout, exit_code) else {
+            self.adapter.readiness = Readiness::NotReady;
+            return vec![Act::Refresh];
+        };
         self.adapter = status.adapter.clone();
         let on = status.on;
         self.status = status;
@@ -141,6 +161,10 @@ impl Omdrop {
                 self.drop_devices()
             }
         };
+        // An Off chosen while on or off ran is carried out once Omdrop's state is known.
+        if self.chosen.take().is_some() {
+            acts.extend(self.receiving_off());
+        }
         acts.push(Act::Refresh);
         acts
     }
@@ -200,6 +224,9 @@ impl Omdrop {
 
     // Turn On AirDrop, or Receiving set on: `omdrop on` unless the receiver already runs, even with the radio up.
     pub fn turn_on(&mut self, i18n: &I18n) -> Vec<Act> {
+        if self.chosen.take().is_some() {
+            return vec![Act::Refresh];
+        }
         if self.busy() || (self.phase == Phase::On && self.status.receiving) {
             return Vec::new();
         }
@@ -221,7 +248,16 @@ impl Omdrop {
 
     // Receiving set to Off: a receiver can run with the radio down, so either counts, whatever Omdrop's readiness.
     pub fn receiving_off(&mut self) -> Vec<Act> {
-        if self.busy() || !(self.phase == Phase::On || self.status.receiving) {
+        let starting = self.phase == Phase::Starting
+            || (self.phase == Phase::Confirming && self.confirming == Run::On);
+        if starting {
+            self.chosen = Some(Run::Off);
+            return vec![Act::Refresh];
+        }
+        if self.busy() {
+            return Vec::new();
+        }
+        if !(self.phase == Phase::On || self.status.receiving) {
             return Vec::new();
         }
         let mut acts = self.drop_devices();
@@ -291,6 +327,10 @@ impl Omdrop {
         if !matches!(self.phase, Phase::Starting | Phase::Stopping) {
             return Vec::new();
         }
+        self.confirming = match self.phase {
+            Phase::Starting => Run::On,
+            _ => Run::Off,
+        };
         self.phase = Phase::Confirming;
         let mut acts = Vec::new();
         if exit_code != 0 {
@@ -334,7 +374,7 @@ impl Omdrop {
     pub fn page(&self, folder: &str, shown_as: &str) -> Page {
         let own = |mine: &str, flea: &str| if mine.is_empty() { flea } else { mine }.to_string();
         Page {
-            receiving: self.busy() || self.status.receiving,
+            receiving: self.chosen.is_none() && (self.busy() || self.status.receiving),
             folder: own(&self.status.dir, folder),
             shown_as: own(&self.status.name, shown_as),
             adapter: self.adapter.clone(),
@@ -343,8 +383,9 @@ impl Omdrop {
         }
     }
 
-    // Save received files to: Omdrop keeps its folder itself, so the choice becomes `omdrop dir`.
+    // Save received files to: Omdrop keeps its folder itself, so the choice becomes `omdrop dir`, and a status asked before it must not land.
     pub fn folder_argv(&mut self, folder: &str) -> Vec<String> {
+        self.forget_status();
         self.status.dir = folder.to_string();
         omdrop::dir_argv(&self.path, folder)
     }

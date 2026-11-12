@@ -313,12 +313,12 @@ fn a_stop_asked_as_the_reader_closes_still_reaches_the_owner(cx: &mut TestAppCon
     );
 }
 
-// A stand-in omdrop: status says on and receiving; off refuses as a running send makes it.
+// A stand-in omdrop that logs each argv: status says on and receiving; off refuses as a running send makes it.
 fn omdrop_stand_in(tag: &str) -> (PathBuf, String) {
     let root = std::env::temp_dir().join(format!("flea-omdrop-{tag}-{}", std::process::id()));
     let _ = std::fs::create_dir_all(&root);
     std::fs::write(root.join(".flea-test-sandbox"), "").unwrap();
-    let script = "#!/bin/sh\ncase \"$1\" in\n  status) echo '{\"receiving\": true, \"visible\": true, \"name\": \"Omarchy\", \"dir\": \"/tmp\", \"visibility\": \"everyone\"}' ;;\n  off) echo 'Still sending to TestPhone. Cancel the send first, or turn it off anyway with: omdrop off --force' >&2; exit 1 ;;\nesac\n";
+    let script = "#!/bin/sh\necho \"$*\" >> \"$(dirname \"$0\")/argv.log\"\ncase \"$1\" in\n  status) echo '{\"receiving\": true, \"visible\": true, \"name\": \"Omarchy\", \"dir\": \"/tmp\", \"visibility\": \"everyone\"}' ;;\n  off) echo 'Still sending to TestPhone. Cancel the send first, or turn it off anyway with: omdrop off --force' >&2; exit 1 ;;\nesac\n";
     let omdrop = root.join("omdrop");
     std::fs::write(&omdrop, script).unwrap();
     flea::executable_file::write(&omdrop, script.as_bytes(), 0o755).unwrap();
@@ -362,3 +362,6 @@ fn a_refused_omdrop_off_from_the_page_says_omdrops_reason_in_the_footer(cx: &mut
         ["AirDrop · Still sending to TestPhone. Cancel the send first, or turn it off anyway with: omdrop off --force"]
     );
 }
+
+#[path = "airdrop_folder_tests.rs"]
+mod folder;

@@ -11,8 +11,11 @@ use std::sync::mpsc::Sender;
 use std::time::Duration;
 
 const POLL: Duration = Duration::from_millis(100);
-// A cancelled `omdrop send` takes its sender's process group down on SIGTERM; this long, then it is killed.
+// How long a send's stderr is read on after it ends, for the last of its sentences.
 const TERM_GRACE: Duration = Duration::from_secs(3);
+// A cancelled `omdrop send` may wait 75 s for a start it began, then stop its radio, whose helper allows 60 s; this long,
+// then its session is killed.
+const CANCEL_GRACE: Duration = Duration::from_secs(150);
 // A shell reports a run killed by signal N as exit 128 + N.
 const SIGNAL_EXIT_BASE: i32 = 128;
 const READ_CHUNK: usize = 4096;
@@ -122,22 +125,13 @@ impl Said {
     }
 }
 
-// omdrop must hear SIGTERM to stop its sender's process group, which SIGKILL to the script would leave running.
+// omdrop must hear SIGTERM to stop its sender's process group, which SIGKILL to the script would leave running; whatever
+// of its session is left once it exits or the grace ends, a sender included, is then killed.
 fn stop(child: &mut std::process::Child, stack: Stack, said: &mut Said) {
     if stack == Stack::Omdrop {
-        // The child is not reaped until try_wait sees it exit, so its pid is still its own.
-        let _ = std::process::Command::new("kill")
-            .args(["-TERM", &child.id().to_string()])
-            .stdin(Stdio::null())
-            .status();
-        let deadline = std::time::Instant::now() + TERM_GRACE;
-        while std::time::Instant::now() < deadline {
+        return super::airdropsession::cancel(child, CANCEL_GRACE, || {
             said.drain();
-            if matches!(child.try_wait(), Ok(Some(_))) {
-                return;
-            }
-            std::thread::sleep(POLL);
-        }
+        });
     }
     let _ = child.kill();
     let _ = child.wait();

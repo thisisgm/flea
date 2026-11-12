@@ -380,3 +380,6 @@ fn an_omdrop_send_is_answered_through_the_windows_one_numbering() {
         [Act::Say("Jane's iPhone declined the files.".into(), true)]
     );
 }
+
+#[path = "airdrop_omdrop_status_tests.rs"]
+mod status;

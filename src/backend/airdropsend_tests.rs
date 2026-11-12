@@ -188,18 +188,27 @@ fn an_omdrop_send_that_floods_stdout_or_leaves_stderr_open_still_ends() {
 #[test]
 fn a_cancelled_omdrop_send_hears_sigterm_so_it_can_stop_its_sender() {
     let root = TestDir::new("airdrop-omdrop-cancel");
-    let mark = root.join("terminated");
-    let body = format!("trap 'kill $!; touch \"{}\"; echo Cancelled. >&2; exit 130' TERM\nsleep 30 & wait", mark.display());
+    let (mark, ready) = (root.join("terminated"), root.join("trapped"));
+    let body = format!(
+        "trap 'kill $!; touch \"{}\"; echo Cancelled. >&2; exit 130' TERM\nsleep 30 &\ntouch \"{}\"\nwait",
+        mark.display(),
+        ready.display()
+    );
     let slow = omdrop_stand_in(&root, &body);
     let (tx, _rx) = mpsc::channel();
     let cancel = std::sync::Arc::new(AtomicBool::new(false));
     let flag = std::sync::Arc::clone(&cancel);
+    // The cancel waits for the stand-in to have set its trap and started its sender, at most 10 s.
     let stopper = std::thread::spawn(move || {
-        std::thread::sleep(Duration::from_millis(300));
+        let deadline = Instant::now() + Duration::from_secs(10);
+        while !ready.exists() && Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(10));
+        }
         flag.store(true, Ordering::Relaxed);
+        ready.exists()
     });
     assert_eq!(run(slow, 3, &send(vec!["/x".into()]), &cancel, &tx).0, "cancelled");
-    stopper.join().unwrap();
+    assert!(stopper.join().unwrap(), "the stand-in never set its trap and started its sender");
     assert!(mark.exists(), "omdrop was killed before its TERM trap could stop the sender");
 }
 
@@ -231,6 +240,21 @@ fn the_reply_line_names_its_request_and_only_delivered_is_ok() {
         sent_line(4, "failed", "a \"b\""),
         r#"{"t":"airdropsent","id":4,"ok":false,"code":"failed","reason":"a \"b\""}"#
     );
+}
+
+#[test]
+fn omdrop_under_a_path_directory_that_is_not_utf8_is_found_and_runs_by_its_exact_name() {
+    use std::os::unix::ffi::OsStrExt;
+    let root = TestDir::new("airdrop-find-bytes");
+    let dir = root.path().join(std::ffi::OsStr::from_bytes(b"bin-\xff"));
+    std::fs::create_dir_all(&dir).unwrap();
+    let program = dir.join("omdrop");
+    std::fs::write(&program, "#!/bin/sh\necho ran\n").unwrap();
+    std::fs::set_permissions(&program, std::os::unix::fs::PermissionsExt::from_mode(0o755)).unwrap();
+    let found = airdrop::find(dir.as_os_str(), omdrop::PROGRAM).expect("found");
+    assert_eq!(flea::bytename::text_path(&found).into_owned(), program, "the exact bytes survive");
+    let out = std::process::Command::new(flea::bytename::text_name(&found)).output().unwrap();
+    assert_eq!(out.stdout, b"ran\n");
 }
 
 #[test]

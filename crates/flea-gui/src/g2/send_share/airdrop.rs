@@ -108,6 +108,11 @@ impl AirDrop {
         }
     }
 
+    // owly's path, empty while it does not run AirDrop.
+    pub(super) fn tool(&self) -> &str {
+        &self.owly
+    }
+
     fn next_gen(&mut self, proc: Proc) -> u64 {
         self.gens[slot(proc)] += 1;
         self.gens[slot(proc)]
