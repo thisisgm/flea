@@ -1,5 +1,7 @@
 // Claim the exact reviewed payload and metadata before deletion; later arrivals keep their original names.
 mod recovery;
+mod claims;
+pub use claims::{restore_many, RESTORE_BATCH_ITEMS};
 mod cancel;
 mod parents;
 use parents::parent_at;
@@ -38,6 +40,10 @@ thread_local! {
 #[cfg(test)]
 fn match_walks() -> usize {
     MATCH_WALKS.with(|walks| walks.get())
+}
+#[cfg(test)]
+pub(crate) fn take_record_barriers() -> usize {
+    recovery::ITEM_BARRIERS.with(|count| count.replace(0))
 }
 extern "C" {
     fn renameat2(
@@ -335,7 +341,7 @@ pub(crate) fn original_path(metadata: &File, trash_root: &Path) -> Result<PathBu
 
 // Completed steps distinguish a record still held from a removal whose durability could not be confirmed.
 fn finish(journal: Recovery, op: Op, done: bool) -> Result<(), Refusal> {
-    journal.complete().map_err(|refusal| {
+    journal.complete_with(done.then_some(op)).map_err(|refusal| {
         let effect = done.then_some(op);
         let outcome = match refusal.outcome() {
             Outcome::RecordUnconfirmed(_) => Outcome::RecordUnconfirmed(effect),
@@ -479,129 +485,7 @@ impl Reviewed {
         };
         completed.then(|| super::thumbcache::uri_for(&self.path))
     }
-    pub fn restore(&self, original: &Path, recovery_root: &Path) -> Result<(), Refusal> {
-        self.restore_after(original, recovery_root, || {})
-    }
-    fn restore_after(&self, original: &Path, recovery_root: &Path, before_claim: impl FnOnce()) -> Result<(), Refusal> {
-        self.with_claimed(Op::Restore, recovery_root, Some(original), before_claim, |quarantine| {
-            let metadata = crate::backend::regfile::open_if_regular(&fd_path(quarantine, OsStr::new("metadata")), O_NOFOLLOW)
-                .map_err(|e| Refusal::changed(format!("Could not read claimed Trash metadata: {}", e)))?;
-            if Identity::of(&metadata.metadata().changed("Claimed Trash metadata unreadable")?) != self.metadata {
-                return Err(Refusal::changed("Trash metadata changed after being claimed."));
-            }
-            let destination = original_path(&metadata, self.path.parent().and_then(Path::parent).changed("Missing Trash root.")?)?;
-            if destination != original || Identity::of(&metadata.metadata().changed("Claimed Trash metadata unreadable")?) != self.metadata {
-                return Err(Refusal::new(Outcome::OriginalChanged, "The Trash item's original location changed; refresh the selection."));
-            }
-            let parent = destination.parent().changed("Original parent is missing.")?;
-            // A gone original folder is recreated first, as undo and gio restore do.
-            let destination_parent = std::fs::create_dir_all(parent).and_then(|()| parent.canonicalize())
-                .map_err(|e| Refusal::os(Outcome::Blocked, &format!("Could not open original location {}", destination.display()), &e))?;
-            let destination_directory = open_dir(&destination_parent).map_err(|refusal| refusal.wrap(Outcome::Blocked))?;
-            rename(quarantine, OsStr::new("payload"), &destination_directory,
-                destination.file_name().changed("Original filename is missing.")?)
-                .map_err(|reason| Refusal::new(Outcome::Blocked, format!("Could not restore {} without overwriting: {}", destination.display(), reason)).because(reason))
-        })
-    }
-    fn with_claimed(&self, op: Op, recovery_root: &Path, destination: Option<&Path>, before_claim: impl FnOnce(), perform: impl FnOnce(&File) -> Result<(), Refusal>) -> Result<(), Refusal> {
-        self.claimed(op, recovery_root, destination, before_claim, perform).map_err(Refusal::logged)
-    }
-    fn claimed(&self, op: Op, recovery_root: &Path, destination: Option<&Path>, before_claim: impl FnOnce(), perform: impl FnOnce(&File) -> Result<(), Refusal>) -> Result<(), Refusal> {
-        let files = open_dir(self.path.parent().changed("Missing Trash parent.")?)?;
-        let infos = open_dir(self.info.parent().changed("Missing Trash metadata parent.")?)?;
-        let name = self
-            .path
-            .file_name()
-            .changed("Invalid Trash filename.")?;
-        let info_name = self
-            .info
-            .file_name()
-            .changed("Invalid Trash metadata name.")?;
-        if identity(&fd_path(&files, name)).changed("Trash item unreadable")? != self.payload
-            || identity(&fd_path(&infos, info_name)).changed("Trash metadata unreadable")? != self.metadata
-        {
-            return Err(Refusal::new(Outcome::ConfirmAgain, "Trash item changed; confirm again."));
-        }
-        let quarantine_name = format!(
-            ".flea-delete-{}-{}",
-            std::process::id(),
-            NEXT.fetch_add(1, Ordering::Relaxed)
-        );
-        let quarantine_path = fd_path(&files, OsStr::new(&quarantine_name));
-        std::fs::DirBuilder::new()
-            .mode(0o700)
-            .create(&quarantine_path)
-            .map_err(|e| Refusal::os(Outcome::Prepare(op), "Could not create Trash quarantine", &e))?;
-        let quarantine = open_dir(&quarantine_path).map_err(|refusal| refusal.wrap(Outcome::Prepare(op)))?;
-        let recovery = self.path.parent().unwrap().join(&quarantine_name);
-        let mut journal = match Recovery::begin(recovery_root, &self.path, &files, &self.payload,
-            Some((&self.info, &self.metadata, &infos)), &recovery, &quarantine,
-            if destination.is_some() { None } else { self.tree.as_ref() }, destination) {
-            Ok(journal) => journal,
-            Err(error) => { let _ = std::fs::remove_dir(&quarantine_path); return Err(error.wrap(Outcome::NoRecord(op))); }
-        };
-        before_claim();
-        if let Err(error) = rename(&files, name, &quarantine, OsStr::new("payload")) {
-            match journal.remove_empty(&quarantine_path, &quarantine, &files) {
-                Ok(()) => settle(journal, op),
-                Err(left) => { left.logged(); }
-            }
-            return Err(Refusal::new(Outcome::Prepare(op), format!("Could not claim Trash item: {}", error)).because(error));
-        }
-        let info_claim = rename_claim(&infos, info_name, &quarantine, OsStr::new("metadata"));
-        let checked = identity(&fd_path(&quarantine, OsStr::new("payload"))).ok().as_ref() == Some(&self.payload)
-            && info_claim.is_ok()
-            && identity(&fd_path(&quarantine, OsStr::new("metadata"))).ok().as_ref() == Some(&self.metadata);
-        if !checked {
-            let refused = match &info_claim {
-                Err((ErrorKind::NotFound, _)) | Ok(()) => Refusal::new(Outcome::ConfirmAgain, "Trash changed; no operation attempted. Confirm again."),
-                Err((_, reason)) => Refusal::new(Outcome::Prepare(op), format!("Could not claim Trash metadata: {reason}")).because(reason.clone()),
-            };
-            let payload_back = rename(&quarantine, OsStr::new("payload"), &files, name);
-            let info_back = if info_claim.is_ok() {
-                rename(&quarantine, OsStr::new("metadata"), &infos, info_name)
-            } else {
-                Ok(())
-            };
-            if payload_back.is_err() || info_back.is_err() {
-                return Err(refused.wrap(Outcome::Kept(recovery.clone())));
-            }
-            match journal.remove_empty(&quarantine_path, &quarantine, &files) {
-                Ok(()) => settle(journal, op),
-                Err(left) => { left.logged(); }
-            }
-            return Err(refused);
-        }
-        let removal = perform(&quarantine);
-        if let Err(error) = removal {
-            let payload_back = rename(&quarantine, OsStr::new("payload"), &files, name);
-            let info_back = rename(&quarantine, OsStr::new("metadata"), &infos, info_name);
-            if payload_back.is_err() || info_back.is_err() {
-                return Err(error.wrap(Outcome::Stuck(op, recovery)));
-            }
-            if journal.remove_empty(&quarantine_path, &quarantine, &files).is_err() {
-                return Err(error.wrap(Outcome::StuckInTrash(op, recovery)));
-            }
-            if error.outcome() == &Outcome::Cancelled {
-                finish(journal, op, false).map_err(Refusal::logged)?;
-                return Err(error);
-            }
-            settle(journal, op);
-            // A refusal that is a whole sentence already says what was done: nothing was deleted, or nothing was restored.
-            let whole = match (op, error.outcome()) {
-                (_, Outcome::NothingDeleted) => true,
-                (Op::Restore, Outcome::Blocked) => false,
-                (Op::Restore, _) => true,
-                _ => false,
-            };
-            return Err(if whole { error } else { error.wrap(Outcome::Partial(op)) });
-        }
-        std::fs::remove_file(fd_path(&quarantine, OsStr::new("metadata")))
-            .map_err(|e| Refusal::os(Outcome::InfoLeft(op, recovery.clone()), "Trash metadata cleanup after completion", &e))?;
-        journal.remove_empty(&quarantine_path, &quarantine, &files)
-            .map_err(|e| e.wrap(Outcome::FolderLeft(op, Some(recovery.clone()))))?;
-        finish(journal, op, true)
-    }
+
 }
 
 // Ordinary-path deletion shares the complete tree review; only Trash requires paired .trashinfo claims.
