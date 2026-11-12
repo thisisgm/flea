@@ -165,7 +165,7 @@ pub fn fit_budget(budget: usize, total: usize, fits: impl Fn(usize) -> bool) -> 
 }
 
 // Shaped advances sum in f32, so a name exactly its cells wide may read a hair over them.
-const FIT_SLACK: f32 = 0.01;
+pub(crate) const FIT_SLACK: f32 = 0.01;
 
 /// A name elided by `elide` at the largest budget whose shaped `width` fits the cells' pixels, so a CJK name is not cut early and a wide script never runs past its cells; no width or advance keeps the cell budget.
 pub fn fitted<'a, T>(

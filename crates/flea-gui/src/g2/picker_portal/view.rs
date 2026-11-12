@@ -144,9 +144,12 @@ impl Render for Picker {
         self.read_control_focus(window);
         self.chrome.probe.clear();
         let focused = self.focus.is_focused(window) || self.find.owner.typing();
-        self.browse
-            .listing
-            .update(cx, |listing, _| listing.set_focused(focused));
+        let tips_blocked = self.chrome.menu_view.is_some()
+            || self.chrome.menu_closing.is_some()
+            || self.browse.path_view(cx).read(cx).jump.shown();
+        self.browse.listing.update(cx, |listing, _| {
+            listing.set_name_tip_focus(focused, tips_blocked)
+        });
         let theme = cx
             .try_global::<crate::palette::Theme>()
             .copied()
@@ -351,5 +354,6 @@ impl Render for Picker {
                     .child(menu)
             }))
             .children(self.drawn.probe(Slot::Window, [0.; 4]))
+            .map(|root| crate::name_tip::picker_keys(root, &self.browse.listing, cx))
     }
 }
