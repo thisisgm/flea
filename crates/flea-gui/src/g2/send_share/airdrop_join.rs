@@ -297,6 +297,7 @@ impl Shell {
         cx: &mut Context<Self>,
     ) {
         let binary = crate::window::startup::binary();
+        let tool = self.airdrop_tool();
         let (title, start) = (
             self.locale.catalog.tr("plugins.airdrop.folder"),
             start.to_string(),
@@ -319,16 +320,41 @@ impl Shell {
                 .await;
             if let Some(path) = chosen {
                 let _ = this.update_in(cx, |shell, window, cx| {
-                    if shell.omdrop_active() {
-                        return shell.omdrop_folder_chosen(&path, window, cx);
-                    }
-                    if let Some(view) = &shell.settings.plugins.pane {
-                        view.update(cx, |view, cx| view.set_airdrop_folder(&path, cx));
-                    }
+                    shell.airdrop_folder_landed(&tool, &path, window, cx)
                 });
             }
         })
         .detach();
+    }
+
+    // The tool running AirDrop, by stack and path, so another stack or another install of the same one never matches.
+    pub(super) fn airdrop_tool(&self) -> (Stack, String) {
+        let providers = &self.menu.providers;
+        match self.omdrop_active() {
+            true => (Stack::Omdrop, providers.omdrop.path().to_string()),
+            false => (Stack::Owly, providers.airdrop.tool().to_string()),
+        }
+    }
+
+    // A chosen folder goes to the tool that ran AirDrop when the chooser opened, or nowhere if another runs it now.
+    pub(super) fn airdrop_folder_landed(
+        &mut self,
+        tool: &(Stack, String),
+        path: &str,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if self.airdrop_tool() != *tool {
+            return;
+        }
+        match tool.0 {
+            Stack::Omdrop => self.omdrop_folder_chosen(path, window, cx),
+            Stack::Owly => {
+                if let Some(view) = &self.settings.plugins.pane {
+                    view.update(cx, |view, cx| view.set_airdrop_folder(path, cx));
+                }
+            }
+        }
     }
 }
 

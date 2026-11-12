@@ -13,21 +13,21 @@ fn owly_wins_when_both_are_installed_and_neither_is_no_airdrop() {
 #[test]
 fn status_reads_the_radio_name_and_folder_and_a_missing_radio_backend_is_not_ready() {
     let on = r#"{"receiving": true, "visible": true, "remaining": null, "name": "Omarchy", "dir": "/home/u/Downloads", "mode": "forever", "reason": "ok"}"#;
-    let status = status(on, 0);
+    let status = status(on, 0).unwrap();
     assert!(status.adapter.ready() && status.on);
     assert_eq!((status.name.as_str(), status.dir.as_str()), ("Omarchy", "/home/u/Downloads"));
     assert_eq!(status.adapter.card, STACK);
     // Receiving stopped but the radio still advertising for a send is on; receiving alone is not.
-    let radio_only = super::status(r#"{"receiving": false, "visible": true}"#, 0);
+    let radio_only = super::status(r#"{"receiving": false, "visible": true}"#, 0).unwrap();
     assert!(radio_only.on && !radio_only.receiving);
-    let receiver_only = super::status(r#"{"receiving": true, "visible": false, "visibility": "contacts"}"#, 0);
+    let receiver_only = super::status(r#"{"receiving": true, "visible": false, "visibility": "contacts"}"#, 0).unwrap();
     assert!(receiver_only.adapter.ready() && !receiver_only.on && receiver_only.receiving);
     assert!(receiver_only.contacts && !status.contacts, "Contacts Only is Omdrop's saved visibility");
-    let no_backend = super::status(r#"{"receiving": false, "visible": null}"#, 0);
+    let no_backend = super::status(r#"{"receiving": false, "visible": null}"#, 0).unwrap();
     assert_eq!(no_backend.adapter.readiness, Readiness::NotReady);
     assert!(!no_backend.on);
-    assert_eq!(super::status("", 124).adapter.readiness, Readiness::NotReady);
-    assert!(!super::status(on, 1).adapter.ready(), "a failed status run is not trusted");
+    assert_eq!(super::status("", 124), None, "a run that said nothing is no answer");
+    assert_eq!(super::status(on, 1), None, "a failed status run is not trusted");
 }
 
 #[test]

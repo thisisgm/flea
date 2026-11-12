@@ -324,7 +324,7 @@ pub fn sent_said(i18n: &I18n, peer: &str, code: &str, reason: &str) -> Option<St
 // Any of the owner, group and other execute bits, as a shell's PATH search asks for.
 const EXECUTE_BITS: u32 = 0o111;
 
-// A program's path in a PATH value, as a shell would find it; None when no directory holds an executable one.
+// A program's path in a PATH value, as a shell would find it, in exact text; None when no directory holds an executable one.
 pub fn find(path: &std::ffi::OsStr, program: &str) -> Option<String> {
     use std::os::unix::fs::PermissionsExt;
     std::env::split_paths(path)
@@ -334,7 +334,7 @@ pub fn find(path: &std::ffi::OsStr, program: &str) -> Option<String> {
                 .metadata()
                 .is_ok_and(|m| m.is_file() && m.permissions().mode() & EXECUTE_BITS != 0)
         })
-        .map(|found| found.to_string_lossy().into_owned())
+        .map(|found| crate::bytename::ExactText::exact_text(found.as_path()).into_owned())
 }
 
 pub fn doctor_argv(owly: &str) -> Vec<String> {

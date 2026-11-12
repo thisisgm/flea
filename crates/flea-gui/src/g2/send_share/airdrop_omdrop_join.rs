@@ -3,6 +3,7 @@ use super::airdrop::Act;
 use super::airdrop_run::Origin;
 use super::join::now_ms;
 use crate::state::Shell;
+use flea::bytename::{args, text_name};
 use flea::ui_logic_context_menus::airdrop::{peer_id, TURN_ON};
 use flea::ui_logic_context_menus::build::Context as MenuContext;
 use flea::ui_logic_send_share::omdrop::{self, Stack, Tool};
@@ -147,8 +148,8 @@ impl Shell {
         self.airdrop_page(cx);
         cx.spawn_in(window, async move |this, cx| {
             let run = cx.background_executor().spawn(async move {
-                Command::new(&argv[0])
-                    .args(&argv[1..])
+                Command::new(text_name(&argv[0]))
+                    .args(args(&argv[1..]))
                     .stdin(Stdio::null())
                     .output()
             });

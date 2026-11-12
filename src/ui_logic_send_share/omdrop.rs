@@ -55,30 +55,24 @@ pub struct Status {
 }
 
 // Sample input: {"receiving": true, "visible": true, "remaining": null, "name": "Omarchy", "dir": "/home/u/Downloads", "mode": "forever", "reason": "ok", "visibility": "everyone"}
-// A null `visible` is a radio backend Omdrop cannot find, so nothing can be sent.
-pub fn status(stdout: &str, exit_code: i32) -> Status {
+// A null `visible` is a radio backend Omdrop cannot find, so nothing can be sent; None when the run failed and said nothing.
+pub fn status(stdout: &str, exit_code: i32) -> Option<Status> {
     let card = STACK.to_string();
-    let parsed = jsondoc::parse(stdout.trim()).ok().filter(|_| exit_code == 0);
-    let Some(doc) = parsed else {
-        return Status {
-            adapter: Adapter { readiness: Readiness::NotReady, card },
-            ..Status::default()
-        };
-    };
+    let doc = jsondoc::parse(stdout.trim()).ok().filter(|_| exit_code == 0)?;
     let visible = doc.get("visible").and_then(Json::as_bool);
     let text = |key: &str| doc.get(key).and_then(Json::as_str).unwrap_or_default().to_string();
     let readiness = match visible {
         Some(_) => Readiness::Ready,
         None => Readiness::NotReady,
     };
-    Status {
+    Some(Status {
         adapter: Adapter { readiness, card },
         on: visible == Some(true),
         receiving: doc.get("receiving").and_then(Json::as_bool) == Some(true),
         contacts: text("visibility") == "contacts",
         name: text("name"),
         dir: text("dir"),
-    }
+    })
 }
 
 // Sample input: {"mac": "f2:f2:ee:c4:5a:f7", "rssi": null, "name": "Jane's iPhone"}; a device that gave no name is not listed.
