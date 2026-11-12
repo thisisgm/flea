@@ -180,7 +180,7 @@ fn a_sender_that_keeps_forking_leaves_no_live_process_in_the_session() {
     cancel(&mut child, Duration::from_millis(300), || {});
     assert!(came, "the stand-in never started its sender");
     assert_eq!(
-        members(sid),
+        members(sid, &proc_stat),
         Vec::<i32>::new(),
         "live processes left in the session"
     );
@@ -200,4 +200,28 @@ fn a_stat_line_counts_only_a_live_process_of_that_session() {
     );
     assert!(!live_in("123 (sleep) S 1 120 778 0 -1", 777));
     assert!(!live_in("garbage", 777));
+}
+
+#[test]
+fn a_cancel_with_proc_unreadable_still_kills_and_reaps_omdrop() {
+    let stand_in = StandIn::new("trap '' TERM", "exec sleep 30");
+    let script = stand_in.tool.clone().unwrap().path;
+    let mut child = std::process::Command::new("setsid")
+        .args(["-w", &script])
+        .spawn()
+        .unwrap();
+    let pid = i32::try_from(child.id()).unwrap();
+    let came = ready(&stand_in.root.join("ready"));
+    let (tx, rx) = mpsc::channel();
+    std::thread::spawn(move || {
+        cancel_reading(&mut child, Duration::from_millis(300), || {}, &|_| String::new());
+        let _ = tx.send(child.try_wait().ok().flatten().is_some());
+    });
+    let reaped = rx.recv_timeout(Duration::from_secs(5));
+    if reaped.is_err() {
+        let _ = crate::procsignal::signal_process(pid, libc::SIGKILL);
+    }
+    let _ = crate::procsignal::signal_process(stand_in.pid("sender.pid"), libc::SIGKILL);
+    assert!(came, "the stand-in never started");
+    assert_eq!(reaped, Ok(true), "cancel returned with omdrop killed and reaped");
 }

@@ -121,4 +121,13 @@ fn omdrop_taking_over_leaves_another_windows_owly_radio_alone_and_browses_nothin
         !acts.iter().any(|a| matches!(a, Act::Start(..))),
         "a later look of that radio starts no owly browse: {acts:?}"
     );
+    // owly back on PATH with the menu shut meanwhile, which went to Omdrop: still no browse.
+    air.facts("/usr/bin/owly");
+    let (acts, _) = air.tick(10_000, &english(), &up);
+    assert!(
+        !acts
+            .iter()
+            .any(|a| matches!(a, Act::Start(Proc::Browse, ..))),
+        "owly returning behind a shut menu browses nothing: {acts:?}"
+    );
 }

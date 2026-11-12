@@ -70,8 +70,10 @@ impl Shell {
 
     // A shut menu stops the browse; nothing else runs behind it.
     pub(super) fn airdrop_menu_closed(&mut self) {
+        // Omdrop's flag follows every close, so an Omdrop that takes over again starts no lookup behind a shut menu.
+        self.menu.providers.omdrop.menu_closed();
         if self.omdrop_active() {
-            return self.menu.providers.omdrop.menu_closed();
+            return;
         }
         for act in self.menu.providers.airdrop.menu_closed() {
             if let Act::Stop(proc) = act {
