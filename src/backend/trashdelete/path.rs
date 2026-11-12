@@ -1,4 +1,6 @@
 use super::*;
+#[path = "directory.rs"]
+mod directory;
 
 // Ordinary-path deletion shares the complete tree review; only Trash requires paired .trashinfo claims.
 pub struct PathReview {
@@ -82,9 +84,16 @@ impl PathReview {
                 "Item changed; confirm again.",
             ));
         }
+        let directory = self.payload.directory() && super::file_claim::retains(parent_path);
         let held = if let Some(held) = &self.held {
             Some(held.duplicate()?)
-        } else if self.payload.mode & 0o170000 == 0o040000 {
+        } else if directory {
+            Some(super::file_claim::FileClaim::open_at(
+                &parent,
+                name,
+                &self.payload,
+            )?)
+        } else if self.payload.directory() {
             None
         } else {
             Some(super::file_claim::FileClaim::open(
@@ -131,43 +140,55 @@ impl PathReview {
                 return Err(error.wrap(Outcome::NoRecord(op)));
             }
         };
-        before_claim();
-        if let Err(error) = rename(&parent, name, &quarantine, OsStr::new("payload")) {
-            match journal.remove_empty(&quarantine_path, &quarantine, &parent) {
-                Ok(()) => settle(journal, op),
-                Err(left) => {
-                    left.logged();
+        let removal = if directory {
+            held.as_ref()
+                .ok_or_else(super::file_claim::changed)
+                .and_then(|held| {
+                    self.remove_directory(&parent, name, &quarantine, held, before_claim)
+                })
+        } else {
+            before_claim();
+            if let Err(error) = rename(&parent, name, &quarantine, OsStr::new("payload")) {
+                match journal.remove_empty(&quarantine_path, &quarantine, &parent) {
+                    Ok(()) => settle(journal, op),
+                    Err(left) => {
+                        left.logged();
+                    }
                 }
+                return Err(Refusal::new(
+                    Outcome::Prepare(op),
+                    format!("Could not claim item for deletion: {}", error),
+                )
+                .because(error));
             }
-            return Err(Refusal::new(
-                Outcome::Prepare(op),
-                format!("Could not claim item for deletion: {}", error),
-            )
-            .because(error));
-        }
-        let removal = match held {
-            Some(held) => held.remove(&quarantine),
-            None => remove_tree(
-                &self.tree,
-                &quarantine,
-                Refusal::new(
-                    Outcome::ItemChanged,
-                    "Item changed after confirmation; no deletion attempted.",
+            match held {
+                Some(held) => held.remove(&quarantine),
+                None => remove_tree(
+                    &self.tree,
+                    &quarantine,
+                    Refusal::new(
+                        Outcome::ItemChanged,
+                        "Item changed after confirmation; no deletion attempted.",
+                    ),
                 ),
-            ),
+            }
         };
         if let Err(error) = removal {
-            if rename(&quarantine, OsStr::new("payload"), &parent, name).is_err() {
+            if !directory && rename(&quarantine, OsStr::new("payload"), &parent, name).is_err() {
                 return Err(error.wrap(Outcome::Stuck(op, recovery)));
             }
             if journal
                 .remove_empty(&quarantine_path, &quarantine, &parent)
                 .is_err()
             {
-                return Err(error.wrap(Outcome::StuckAtOriginal(recovery)));
+                return Err(error.wrap(if directory {
+                    Outcome::Stuck(op, recovery)
+                } else {
+                    Outcome::StuckAtOriginal(recovery)
+                }));
             }
             settle(journal, op);
-            return Err(if error.outcome() == &Outcome::ItemChanged {
+            return Err(if directory || error.outcome() == &Outcome::ItemChanged {
                 error
             } else {
                 error.wrap(Outcome::PartialAtOriginal)

@@ -38,6 +38,8 @@ const RENAME_NOREPLACE: u32 = 1;
 // A kernel without renameat2 flags answers EINVAL, an old FUSE daemon EOPNOTSUPP.
 const EINVAL: i32 = 22;
 const EOPNOTSUPP: i32 = 95;
+const FILE_TYPE: u32 = 0o170000;
+const DIRECTORY_TYPE: u32 = 0o040000;
 static NEXT: AtomicUsize = AtomicUsize::new(1);
 #[cfg(test)]
 thread_local! {
@@ -71,6 +73,9 @@ struct Identity {
     mode: u32,
 }
 impl Identity {
+    fn directory(&self) -> bool {
+        self.mode & FILE_TYPE == DIRECTORY_TYPE
+    }
     fn saved(&self) -> String {
         format!(
             "{},{},{},{},{},{}",
@@ -106,6 +111,8 @@ impl Identity {
         };
         #[cfg(test)]
         let value = claim_tests::alias_inode(value);
+        #[cfg(test)]
+        let value = directory_tests::alias_inode(value);
         value
     }
     fn matches_survivor(&self, current: &Self) -> bool {
@@ -188,6 +195,8 @@ fn fd_path(file: &File, name: &OsStr) -> PathBuf {
 }
 // The error is io_message's plain clause, so each caller can say it under the outcome of its own step.
 fn rename(from: &File, old: &OsStr, to: &File, new: &OsStr) -> Result<(), String> {
+    #[cfg(test)]
+    directory_tests::renamed();
     rename_claim(from, old, to, new).map_err(|(_, reason)| reason)
 }
 fn rename_claim(
@@ -237,6 +246,8 @@ fn identity(path: &Path) -> std::io::Result<Identity> {
     let result = path.symlink_metadata().map(|m| Identity::of(&m));
     #[cfg(test)]
     let result = claim_tests::renumber_staged(path, result);
+    #[cfg(test)]
+    let result = directory_tests::renumber_staged(path, result);
     result
 }
 // A review that cannot be stored refuses the deletion before it starts, whatever the disk said.
@@ -668,3 +679,6 @@ mod tests;
 
 #[cfg(test)]
 mod claim_tests;
+
+#[cfg(test)]
+mod directory_tests;
