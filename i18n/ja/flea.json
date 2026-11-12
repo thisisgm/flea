@@ -1533,6 +1533,8 @@
   "plugins.airdrop.receiving": "受信",
   "plugins.airdrop.receiving.off": "オフ",
   "plugins.airdrop.receiving.everyone": "すべての人（10分間）",
+  "plugins.airdrop.receiving.omdrop_everyone": "全員",
+  "plugins.airdrop.receiving.omdrop_contacts": "連絡先のみ",
   "plugins.airdrop.folder": "受信したファイルの保存先",
   "plugins.airdrop.computer": "このコンピューター",
   "plugins.airdrop.shown_as": "表示名",

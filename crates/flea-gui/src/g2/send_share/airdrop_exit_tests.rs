@@ -78,3 +78,47 @@ fn a_doctor_still_running_when_owly_goes_away_never_lands() {
     assert!(air.doctor_done(generation, 0, READY, 1).is_empty());
     assert_eq!(air.adapter.readiness, Readiness::Missing);
 }
+
+const JANE: &str = r#"3a9f0c2be41d   "Jane's iPhone" ([fe80::1%awdl0]:8770)"#;
+
+#[test]
+fn omdrop_taking_over_stops_this_windows_owly_runs_and_no_answer_of_theirs_lands() {
+    let i18n = english();
+    let (mut air, browse) = on_with_menu();
+    let receive = air.gens[slot(Proc::Receive)];
+    let menus = air.menus;
+    let acts = air.retire();
+    for proc in Proc::ALL {
+        assert!(acts.contains(&Act::Stop(proc)), "{proc:?} stops: {acts:?}");
+    }
+    assert!(!acts.contains(&Act::AskStop), "{acts:?}");
+    assert!(air.line(Proc::Browse, browse, JANE, 0, &i18n).is_empty());
+    assert!(air.devices().is_empty());
+    assert!(air.ended(Proc::Receive, receive, 0, 0, &i18n).is_empty());
+    assert!(
+        air.menu_looked(1, &Seen::default(), menus).is_empty(),
+        "a menu look asked before the switch starts nothing"
+    );
+    assert_eq!(air.adapter.readiness, Readiness::Missing);
+    assert!(!air.on() && !air.page("/d", "h").receiving);
+}
+
+#[test]
+fn omdrop_taking_over_leaves_another_windows_owly_radio_alone_and_browses_nothing() {
+    let mut air = ready();
+    air.menu_opened(1, &Seen::default());
+    let mut up = Seen::default();
+    up.radio = Radio::On;
+    air.look(&up);
+    let acts = air.retire();
+    assert!(!acts.contains(&Act::AskStop), "{acts:?}");
+    assert!(
+        !acts.iter().any(|a| matches!(a, Act::Start(..))),
+        "{acts:?}"
+    );
+    let (acts, _) = air.tick(5_000, &english(), &up);
+    assert!(
+        !acts.iter().any(|a| matches!(a, Act::Start(..))),
+        "a later look of that radio starts no owly browse: {acts:?}"
+    );
+}

@@ -204,8 +204,8 @@ pub fn page_rows_with(plugin: &Plugin, update: &Update, airdrop: Option<&super::
         rows.push(Row::Group { id: "plugins.access".into(), label: i18n.tr("plugins.access.heading"), switch: None, action: None });
         rows.extend(access.into_iter().map(|text| Row::Fact { text, value: String::new() }));
     }
-    if airdrop.is_some() {
-        rows.extend(super::airdrop::credit_rows(i18n));
+    if let Some(page) = airdrop {
+        rows.extend(super::airdrop::credit_rows(page, i18n));
     }
     let origin = match &plugin.source {
         Source::Builtin => None,

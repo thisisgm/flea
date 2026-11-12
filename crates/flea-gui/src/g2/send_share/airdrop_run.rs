@@ -1,9 +1,11 @@
-//! The window's owly runs as host processes: doctor, radio, receiver and browse, and the look a second while the radio is up.
+//! The window's AirDrop runs as host processes: doctor or status, radio, receiver and browse, and owly's look a second while its radio is up.
 use super::airdrop::{Proc, Radio};
+use super::airdrop_pids::{Held, Pids};
 use super::airdrop_shared::Seen;
-use super::join::now_ms;
+use super::join::{now_ms, Senders};
 use crate::state::Shell;
 use flea::ui_logic_send_share::airdrop_ask;
+use flea::ui_logic_send_share::omdrop::Stack;
 use gpui::{Context, Window};
 use std::io::{BufRead, BufReader, Read};
 use std::process::{Command, Stdio};
@@ -12,10 +14,64 @@ use std::time::Duration;
 // How often a window looks at the machine's radio while it is up.
 const WATCH: Duration = Duration::from_secs(1);
 
+// Where acts came from: the side that asked, and the stack whose state their runs answer, whichever runs AirDrop by then.
+#[derive(Clone, Copy, Debug)]
+pub(super) struct Origin {
+    pub(super) side: usize,
+    pub(super) stack: Stack,
+}
+
+impl Origin {
+    pub(super) fn omdrop(side: usize) -> Self {
+        Origin {
+            side,
+            stack: Stack::Omdrop,
+        }
+    }
+}
+
+impl Senders {
+    // Each stack numbers its runs itself, so each holds them in its own slots.
+    pub(super) fn pids(&mut self, stack: Stack) -> &mut Pids {
+        match stack {
+            Stack::Owly => &mut self.airdrop_pids,
+            Stack::Omdrop => &mut self.omdrop_pids,
+        }
+    }
+}
+
+// A run Flea may signal is held in its stack's slots; Omdrop's on and off never are, so no Stop, closing window or quit reaches them.
+pub(super) enum Hold {
+    Claimed(Held),
+    Unowned,
+}
+
+impl Hold {
+    // Claimed before the spawn, as Pids::claim is.
+    pub(super) fn new(slots: &mut Pids, stack: Stack, proc: Proc, generation: u64) -> Self {
+        match (stack, proc) {
+            (Stack::Omdrop, Proc::Radio) => Hold::Unowned,
+            _ => Hold::Claimed(slots.claim(proc, generation)),
+        }
+    }
+
+    pub(super) fn started(&self, pid: u32) {
+        if let Hold::Claimed(run) = self {
+            super::airdrop_pids::started(run, pid);
+        }
+    }
+
+    fn reaped(&self) {
+        if let Hold::Claimed(run) = self {
+            super::airdrop_pids::reaped(run);
+        }
+    }
+}
+
 impl Shell {
     pub(super) fn airdrop_doctor(
         &mut self,
-        side: usize,
+        from: Origin,
         generation: u64,
         argv: Vec<String>,
         window: &mut Window,
@@ -44,13 +100,16 @@ impl Shell {
                 }
             };
             let _ = this.update_in(cx, |shell, window, cx| {
-                let acts =
-                    shell
-                        .menu
-                        .providers
-                        .airdrop
-                        .doctor_done(generation, code, &stdout, now_ms());
-                shell.airdrop_acts(side, acts, window, cx);
+                let providers = &mut shell.menu.providers;
+                let acts = match from.stack {
+                    Stack::Omdrop => {
+                        (providers.omdrop).status_done(generation, code, &stdout, now_ms())
+                    }
+                    Stack::Owly => {
+                        (providers.airdrop).doctor_done(generation, code, &stdout, now_ms())
+                    }
+                };
+                shell.stack_acts(from, acts, window, cx);
             });
         })
         .detach();
@@ -59,7 +118,7 @@ impl Shell {
     // A long run: the radio speaks on stderr, a browse on stdout, the receiver's prompts are answered from a notification.
     pub(super) fn airdrop_start(
         &mut self,
-        side: usize,
+        from: Origin,
         proc: Proc,
         generation: u64,
         argv: Vec<String>,
@@ -82,7 +141,9 @@ impl Shell {
         };
         // Ok carries one line of the run's output and Err its exit code, -1 when it never started or died on a signal.
         let (lines, heard) = async_channel::unbounded::<Result<String, i32>>();
-        let run = self.menu.providers.airdrop_pids.claim(proc, generation);
+        let slots = self.menu.providers.pids(from.stack);
+        let run = Hold::new(slots, from.stack, proc, generation);
+        let owned = matches!(run, Hold::Claimed(_));
         let catalog = self.locale.catalog.clone();
         // The spawn and every read and wait run on this thread, never the window's.
         std::thread::spawn(move || {
@@ -97,7 +158,7 @@ impl Shell {
                     return;
                 }
             };
-            super::airdrop_pids::started(&run, child.id());
+            run.started(child.id());
             let stream: Option<Box<dyn Read + Send>> = match proc {
                 Proc::Radio => child
                     .stderr
@@ -144,7 +205,7 @@ impl Shell {
                 let _ = saved.join();
             }
             let code = child.wait().ok().and_then(|status| status.code());
-            super::airdrop_pids::reaped(&run);
+            run.reaped();
             let _ = lines.send_blocking(Err(code.unwrap_or(-1)));
         });
         cx.spawn_in(window, async move |this, cx| {
@@ -152,16 +213,30 @@ impl Shell {
                 let done = message.is_err();
                 let _ = this.update_in(cx, |shell, window, cx| {
                     let catalog = shell.locale.catalog.clone();
-                    let air = &mut shell.menu.providers.airdrop;
-                    let acts = match &message {
-                        Ok(line) => air.line(proc, generation, line, now_ms(), &catalog),
-                        Err(code) => {
-                            let acts = air.ended(proc, generation, *code, now_ms(), &catalog);
-                            shell.menu.providers.airdrop_pids.ended(proc, generation);
-                            acts
+                    let (air, om) = (
+                        &mut shell.menu.providers.airdrop,
+                        &mut shell.menu.providers.omdrop,
+                    );
+                    let acts = match (&message, from.stack) {
+                        (Ok(line), Stack::Omdrop) => om.line(proc, generation, line),
+                        (Ok(line), Stack::Owly) => {
+                            air.line(proc, generation, line, now_ms(), &catalog)
+                        }
+                        (Err(code), Stack::Omdrop) => {
+                            om.ended(proc, generation, *code, now_ms(), &catalog)
+                        }
+                        (Err(code), Stack::Owly) => {
+                            air.ended(proc, generation, *code, now_ms(), &catalog)
                         }
                     };
-                    shell.airdrop_acts(side, acts, window, cx);
+                    if owned && message.is_err() {
+                        shell
+                            .menu
+                            .providers
+                            .pids(from.stack)
+                            .ended(proc, generation);
+                    }
+                    shell.stack_acts(from, acts, window, cx);
                 });
                 if done {
                     break;
@@ -280,13 +355,18 @@ impl Shell {
 
     // While the radio is up, the owner answers another window's Off and a reader follows the owner's radio.
     pub(super) fn airdrop_watch(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        if !self.menu.providers.airdrop.watch() {
+        if self.omdrop_active() || !self.menu.providers.airdrop.watch() {
             return;
         }
         cx.spawn_in(window, async move |this, cx| loop {
             cx.background_executor().timer(WATCH).await;
             let (done, going) = async_channel::bounded(1);
             let asked = this.update_in(cx, |shell, window, cx| {
+                // Omdrop took AirDrop over, and owly's watch ends with it.
+                if shell.omdrop_active() {
+                    let _ = done.try_send(false);
+                    return;
+                }
                 // A Receiving On waiting for the radio to come free has this look take the lock.
                 let air = &shell.menu.providers.airdrop;
                 let claim = air.waits() && air.claims();
@@ -310,3 +390,7 @@ impl Shell {
         .detach();
     }
 }
+
+#[cfg(test)]
+#[path = "airdrop_run_tests.rs"]
+mod tests;

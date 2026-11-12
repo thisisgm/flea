@@ -1674,6 +1674,8 @@
   "plugins.airdrop.receiving": "Gavimas",
   "plugins.airdrop.receiving.off": "Išjungta",
   "plugins.airdrop.receiving.everyone": "Visi 10 minučių",
+  "plugins.airdrop.receiving.omdrop_everyone": "Visi",
+  "plugins.airdrop.receiving.omdrop_contacts": "Tik kontaktai",
   "plugins.airdrop.folder": "Išsaugoti gautus failus į",
   "plugins.airdrop.computer": "Šis kompiuteris",
   "plugins.airdrop.shown_as": "Rodoma kaip",

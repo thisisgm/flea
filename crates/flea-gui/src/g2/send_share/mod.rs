@@ -2,6 +2,9 @@
 mod activation;
 pub(crate) mod airdrop;
 pub(crate) mod airdrop_join;
+pub(crate) mod airdrop_omdrop;
+mod airdrop_omdrop_join;
+mod airdrop_outbox;
 pub mod airdrop_pids;
 mod airdrop_run;
 pub(crate) mod airdrop_shared;
@@ -236,6 +239,7 @@ fn installed(role: Role, facts: &Facts) -> bool {
             Role::LocalSend => &facts.localsend_command,
             Role::Tailscale => &facts.tailscale_command,
             Role::Dropbox => &facts.dropbox_command,
+            Role::AirDrop if facts.owly_command.is_empty() => &facts.omdrop_command,
             Role::AirDrop => &facts.owly_command,
         }
         .is_empty()

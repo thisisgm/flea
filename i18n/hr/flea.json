@@ -1674,6 +1674,8 @@
   "plugins.airdrop.receiving": "Primanje",
   "plugins.airdrop.receiving.off": "Isključeno",
   "plugins.airdrop.receiving.everyone": "Svi na 10 minuta",
+  "plugins.airdrop.receiving.omdrop_everyone": "Svi",
+  "plugins.airdrop.receiving.omdrop_contacts": "Samo kontakti",
   "plugins.airdrop.folder": "Spremi primljene datoteke u",
   "plugins.airdrop.computer": "Ovo računalo",
   "plugins.airdrop.shown_as": "Prikazuje se kao",

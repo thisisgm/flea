@@ -8,13 +8,17 @@ pub const RECEIVING_ID: &str = "airdrop.receiving";
 pub const FOLDER_ID: &str = "airdrop.folder";
 pub const RECEIVING: [&str; 2] = ["off", "everyone"];
 
-// What the window knows that the plugin listing does not: the radio, the folder in effect and owly doctor's answer.
+// What the window knows that the plugin listing does not: the radio, the folder in effect, the doctor's answer and the stack.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Page {
     pub receiving: bool,
     pub folder: String,
     pub shown_as: String,
     pub adapter: Adapter,
+    // Omdrop runs AirDrop in place of owly, so the credit names it.
+    pub omdrop: bool,
+    // Omdrop's saved Contacts Only, which its own `omdrop on` keeps.
+    pub contacts: bool,
 }
 
 // The folder the page saved, when it names one.
@@ -41,12 +45,19 @@ fn leaf(path: &str) -> String {
         .to_string()
 }
 
+// Omdrop keeps its saved audience and window length, so its on choice names only the audience.
+fn receiving_labels(page: &Page, i18n: &I18n) -> Vec<String> {
+    let on = match (page.omdrop, page.contacts) {
+        (false, _) => "plugins.airdrop.receiving.everyone",
+        (true, false) => "plugins.airdrop.receiving.omdrop_everyone",
+        (true, true) => "plugins.airdrop.receiving.omdrop_contacts",
+    };
+    vec![i18n.tr("plugins.airdrop.receiving.off"), i18n.tr(on)]
+}
+
 pub fn rows(plugin: &Plugin, page: &Page, i18n: &I18n) -> Vec<Row> {
     let on = plugin.enabled;
-    let labels = RECEIVING
-        .iter()
-        .map(|v| i18n.tr(&format!("plugins.airdrop.receiving.{v}")))
-        .collect();
+    let labels = receiving_labels(page, i18n);
     vec![
         Row::Group {
             id: format!("{}:enabled", plugin.manifest.id),
@@ -61,7 +72,8 @@ pub fn rows(plugin: &Plugin, page: &Page, i18n: &I18n) -> Vec<Row> {
             values: RECEIVING.iter().map(|v| v.to_string()).collect(),
             labels,
             selected: RECEIVING[usize::from(page.receiving)].into(),
-            available: on && page.adapter.ready(),
+            // Readiness gates starting; a receiver already running can always be turned off.
+            available: on && (page.adapter.ready() || page.receiving),
         },
         Row::Action {
             id: FOLDER_ID.into(),
@@ -88,7 +100,11 @@ pub fn rows(plugin: &Plugin, page: &Page, i18n: &I18n) -> Vec<Row> {
 }
 
 // The stack the plugin builds on, named on its page (proposal board 0401-airdrop-credit).
-pub fn credit_rows(i18n: &I18n) -> Vec<Row> {
+pub fn credit_rows(page: &Page, i18n: &I18n) -> Vec<Row> {
+    let (stack, author) = match page.omdrop {
+        true => ("Omdrop", "Brent Kearney (@netmojo)"),
+        false => ("owly", "Tristan (@t4t5)"),
+    };
     vec![
         Row::Group {
             id: "airdrop.credits".into(),
@@ -97,7 +113,7 @@ pub fn credit_rows(i18n: &I18n) -> Vec<Row> {
             action: None,
         },
         Row::Fact {
-            text: i18n.tr_args("plugins.airdrop.credit", &["owly", "Tristan (@t4t5)"]),
+            text: i18n.tr_args("plugins.airdrop.credit", &[stack, author]),
             value: "MIT".into(),
         },
     ]
