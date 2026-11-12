@@ -5,7 +5,7 @@ use crate::{backend::Backend, state::tests::shell_with, state::Shell};
 use flea::ui_logic_send_share::airdrop::{Adapter, Readiness};
 use gpui::{TestAppContext, VisualTestContext};
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
 
@@ -313,16 +313,19 @@ fn a_stop_asked_as_the_reader_closes_still_reaches_the_owner(cx: &mut TestAppCon
     );
 }
 
+#[path = "airdrop_standin_dir.rs"]
+mod standin_dir;
+use standin_dir::StandInDir;
+
 // A stand-in omdrop that logs each argv: status says on and receiving; off refuses as a running send makes it.
-fn omdrop_stand_in(tag: &str) -> (PathBuf, String) {
-    let root = std::env::temp_dir().join(format!("flea-omdrop-{tag}-{}", std::process::id()));
-    let _ = std::fs::create_dir_all(&root);
-    std::fs::write(root.join(".flea-test-sandbox"), "").unwrap();
+fn omdrop_stand_in(tag: &str) -> (StandInDir, String) {
+    let root = StandInDir::fresh(tag);
     let script = "#!/bin/sh\necho \"$*\" >> \"$(dirname \"$0\")/argv.log\"\ncase \"$1\" in\n  status) echo '{\"receiving\": true, \"visible\": true, \"name\": \"Omarchy\", \"dir\": \"/tmp\", \"visibility\": \"everyone\"}' ;;\n  off) echo 'Still sending to TestPhone. Cancel the send first, or turn it off anyway with: omdrop off --force' >&2; exit 1 ;;\nesac\n";
     let omdrop = root.join("omdrop");
     std::fs::write(&omdrop, script).unwrap();
     flea::executable_file::write(&omdrop, script.as_bytes(), 0o755).unwrap();
-    (root.clone(), omdrop.to_string_lossy().into_owned())
+    let omdrop = omdrop.to_string_lossy().into_owned();
+    (root, omdrop)
 }
 
 #[gpui::test]
