@@ -26,6 +26,12 @@ esac
 
 BIN=${FLEA_BIN:-${BIN:-$REPO/target/release/flea}}
 BOARD_MANIFEST="$REPO/.superpowers/flea/design-completion-20260908/references/SHA256SUMS"
+BOARD_REFERENCES_AVAILABLE=1
+# Only an absent manifest is undriven; an unreadable file or a dangling link still fails the authority check.
+if [ ! -e "$BOARD_MANIFEST" ] && [ ! -L "$BOARD_MANIFEST" ]; then
+  BOARD_REFERENCES_AVAILABLE=0
+  printf 'flea-acceptance: immutable 30-board reference manifest unavailable: %s; artboards UNDRIVEN, independent groups can run\n' "$BOARD_MANIFEST" >&2
+fi
 # Long enough for a worker to answer on a four-file directory, short enough that seventeen of them
 # is not a coffee break.
 ASYNC_WAIT_S=${ASYNC_WAIT_S:-1.5}
@@ -266,7 +272,9 @@ drive_quit() {
 # ---- setup -------------------------------------------------------------------------------------
 
 if [[ "$INVENTORY" == 1 ]]; then
-  derive_bindings && derive_menu_actions && derive_artboards
+  derive_bindings && derive_menu_actions || exit 1
+  [[ "$BOARD_REFERENCES_AVAILABLE" == 1 ]] || exit 2
+  derive_artboards
   exit $?
 fi
 
@@ -274,7 +282,6 @@ mapfile -t HEADER_KEYS < <(derive_header_keys)
 validate_header_keys "${HEADER_KEYS[@]}"
 [ -x "$BIN" ] || die "$BIN is missing, so run cargo build --release first"
 [ -f "$REPO/docs/protocol.md" ] || die "docs/protocol.md is missing, so the request list cannot be derived"
-[ -r "$BOARD_MANIFEST" ] || die "current 30-board SHA256 manifest is missing: $BOARD_MANIFEST"
 
 if [[ "$DRIVE" == 0 ]] || drive_wants omarchy; then
   [ -r "$OMARCHY_CLIPBOARD_LUA" ] || die "$OMARCHY_CLIPBOARD_LUA is missing, so the Omarchy chord list cannot be derived"
@@ -305,7 +312,10 @@ cmp -s "$SB/Keymap.js" "$REPO/ui/js/Keymap.js" || die "generated Keymap.js diffe
 BINDINGS="$SB/bindings"
 derive_bindings > "$BINDINGS" || die "key matrix derivation failed"
 [[ -s "$BINDINGS" ]] || die "derived no key rows"
-derive_artboards > "$SB/boards" || die "current board authority check failed"
+: > "$SB/boards"
+if [[ "$BOARD_REFERENCES_AVAILABLE" == 1 ]]; then
+  derive_artboards > "$SB/boards" || die "current board authority check failed"
+fi
 if [[ "$DRIVE" == 1 ]]; then drive_session_setup; fi
 drive_private_trash
 
@@ -370,7 +380,9 @@ require_list "key matrix rows from Keymap.js" "${#KEY_ROWS[@]}"
 mapfile -t MENU_ACTIONS < <(derive_menu_actions)
 require_list "menu actions from ui/js/Menu.js" "${#MENU_ACTIONS[@]}"
 mapfile -t ARTBOARDS < "$SB/boards"
-require_list "artboards from current SHA256 manifest" "${#ARTBOARDS[@]}"
+if [[ "$BOARD_REFERENCES_AVAILABLE" == 1 ]]; then
+  require_list "artboards from current SHA256 manifest" "${#ARTBOARDS[@]}"
+fi
 mapfile -t SIDEBAR_KINDS < <(derive_sidebar_kinds)
 require_list "sidebar entry kinds from ui/" "${#SIDEBAR_KINDS[@]}"
 
@@ -417,6 +429,9 @@ done
 for a in "${ARTBOARDS[@]}"; do
   skip artboard "$a" "native specimen matching and inspection are recorded separately in coverage.md"
 done
+if [[ "$BOARD_REFERENCES_AVAILABLE" == 0 ]]; then
+  skip artboard reference-set "immutable 30-board SHA256 manifest unavailable; no boards derived or checked"
+fi
 for a in $(derive_sidebar_kinds); do
   skip sidebar "$a" "a sidebar entry kind in ui/, not driven here"
 done

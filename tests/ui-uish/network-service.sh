@@ -193,7 +193,7 @@ case_gvfs() {
     done
     [[ "$(ipc networkEntries)" != *"share.zip"* ]] \
         || fail "gvfs: the row survived unmount, the rail carries $(ipc networkEntries)"
-    ! gio mount -l | grep -Fq -- "-> $uri" || fail "gvfs: GIO mount survived Flea unmount"
+    ! gio mount -l | grep -Fq -- "-> ${uri%/}" || fail "gvfs: GIO mount survived Flea unmount"
 
     printf 'GVFS rail=ok browse=ok preview=ok unmount=ok\n'
     case_gvfs_cleanup

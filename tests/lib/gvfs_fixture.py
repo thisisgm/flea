@@ -1,15 +1,15 @@
-"""Check archive capability separately from the real GMount and FUSE contract."""
+"""Exercise the public fixture through the real GMount and FUSE contract."""
 import os
+import http.client
+from contextlib import closing
 from pathlib import Path
 import pwd
 import selectors
-import shlex
 import signal
 import socket
 import stat
 import subprocess
 import sys
-import zipfile
 
 
 REPO = Path(__file__).resolve().parents[2]
@@ -29,16 +29,6 @@ def run(argv, *, check=True, environment=None):
     return result
 
 
-def stop(process):
-    if process.poll() is None:
-        process.terminate()
-    try:
-        process.wait(timeout=3)
-    except subprocess.TimeoutExpired:
-        process.kill()
-        process.wait(timeout=3)
-
-
 def isolated(root):
     account = pwd.getpwuid(os.getuid())
     require(account.pw_uid != 0, "run the fixture as its unprivileged owner")
@@ -48,20 +38,15 @@ def isolated(root):
     require((root / ".flea-test-sandbox").is_file(), "fixture root has no ownership marker")
     home = Path(account.pw_dir)
     require(not root.is_relative_to(home), "fixture root must be outside the caller's home")
-    for name in ("home", "tmp", "runtime", "config", "cache", "data", "state", "bin"):
+    for name in ("home", "tmp", "runtime", "config", "cache", "data", "state"):
         (root / name).mkdir(mode=0o700)
-    client = root / "home/.ssh/config"
-    launcher = root / "bin/ssh"
-    options = ["/usr/bin/ssh", "-F", str(client), "-oNoHostAuthenticationForLocalhost=no",
-               "-oStrictHostKeyChecking=yes", "-oBatchMode=yes", "-oIdentitiesOnly=yes",
-               "-oControlMaster=no", "-oControlPath=none"]
-    launcher.write_text("#!/bin/sh\nexec " + shlex.join(options) + ' "$@"\n')
-    launcher.chmod(0o700)
-    environment = dict(PATH=f"{root / 'bin'}:/usr/bin:/bin", HOME=str(root / "home"), USER=account.pw_name,
+    environment = dict(PATH="/usr/bin:/bin", HOME=str(root / "home"), USER=account.pw_name,
                        LOGNAME=account.pw_name, LC_ALL="C.UTF-8", LANG="C.UTF-8", LANGUAGE="",
                        XDG_RUNTIME_DIR=str(root / "runtime"), TMPDIR=str(root / "tmp"))
     for name in ("CONFIG", "CACHE", "DATA", "STATE"):
         environment[f"XDG_{name}_HOME"] = str(root / name.lower())
+    if "FLEA_FIXTURE_ROOT" in os.environ:
+        environment["FLEA_FIXTURE_ROOT"] = os.environ["FLEA_FIXTURE_ROOT"]
     argv = ["/usr/bin/dbus-run-session", "--", "/usr/bin/python3", "-B", str(Path(__file__).resolve()),
             "--inside", str(root)]
     process = None
@@ -111,20 +96,21 @@ def isolated(root):
     return 128 + termination if termination is not None else process.returncode
 
 
-# Sample input: Mount(0): gm on 127.0.0.1 -> sftp://gm@127.0.0.1:2222/
+# Sample input: Mount(0): share.zip on 127.0.0.1 -> dav://127.0.0.1:2222/share.zip
 def mount_lines():
     return [line.split(" -> ", 1)[1] for line in run([GIO, "mount", "-l"]).stdout.splitlines()
             if line.startswith("Mount(") and " -> " in line]
 
 
 def boundaries(uri, mount_uri, unmount):
-    require(mount_uri in mount_lines(), f"GMount regression: {mount_uri} absent from gio mount -l")
+    mounts = mount_lines()
+    require(mount_uri in mounts, f"GMount regression: {mount_uri} absent from gio mount -l: {mounts}")
     require(sorted(run([GIO, "list", uri]).stdout.splitlines()) == ["alpha.txt", "beta.txt"],
             "GMount regression: unexpected directory listing")
     require(run([GIO, "cat", uri + "alpha.txt"]).stdout == "alpha\n",
             "GMount regression: remote content differs")
     info = run([GIO, "info", uri]).stdout
-    # Sample input: local path: /fixture/runtime/gvfs/sftp:host=127.0.0.1,port=2222,user=gm/share
+    # Sample input: local path: /fixture/runtime/gvfs/dav:host=127.0.0.1,port=2222,prefix=%2Fshare.zip
     paths = [line.removeprefix("local path: ") for line in info.splitlines()
              if line.startswith("local path: ")]
     require(len(paths) == 1 and paths[0].startswith(os.environ["XDG_RUNTIME_DIR"] + "/gvfs/"),
@@ -138,108 +124,72 @@ def boundaries(uri, mount_uri, unmount):
     require(not local.exists(), "GMount regression: FUSE file survived unmount")
 
 
-# Sample stderr: gio: archive://file%253A%252F%252F%252Ffixture.zip/: Location is not mountable
-def unsupported(result, uri):
-    messages = ("Location is not mountable", "volume doesn't implement mount")
-    return result.returncode != 0 and any(f"gio: {uri}: {message}" in result.stderr
-                                         for message in messages)
+# Sample input: dav://127.0.0.1:2222/share.zip/
+def port_of(uri):
+    return int(uri.split(":")[2].split("/")[0])
 
 
-def archive(root):
-    fixture = REPO / "tools/flea-gvfs-fixture"
-    environment = dict(os.environ, DIR=str(root / "archive"))
-    uri = run([str(fixture), "make"], environment=environment).stdout.strip()
-    with zipfile.ZipFile(root / "archive/share.zip") as package:
-        require(package.testzip() is None and sorted(package.namelist()) == ["alpha.txt", "beta.txt"],
-                "archive integrity control failed")
-        require(package.read("alpha.txt") == b"alpha\n" and package.read("beta.txt") == b"beta\n",
-                "archive contents control failed")
-    descriptor = any(Path(prefix, "share/gvfs/mounts/archive.mount").exists()
-                     for prefix in ("/usr", "/usr/local"))
-    daemon = any(Path(prefix, directory, "gvfsd-archive").exists()
-                 for prefix in ("/usr", "/usr/local") for directory in ("lib", "libexec", "lib/gvfs"))
-    result = run([str(fixture), "mount"], check=False, environment=environment)
-    if result.returncode == 0:
-        try:
-            boundaries(uri, uri, lambda: run([str(fixture), "unmount"], environment=environment))
-        finally:
-            run([GIO, "mount", "-u", uri], check=False)
-        print("gvfs: archive=supported integrity=ok mount=ok list=ok read=ok fuse=ok unmount=ok", flush=True)
-        return True
-    require(not descriptor and not daemon and unsupported(result, uri),
-            f"archive regression: {result.stderr.strip()}")
-    missing = "archive://file%253A%252F%252F%252Fctl2-missing-archive.zip/"
-    require(unsupported(run([GIO, "mount", missing], check=False), missing),
-            "archive absence control did not refuse a nonexistent archive")
-    unknown = "flea-unsupported:///"
-    require(unsupported(run([GIO, "mount", unknown], check=False), unknown),
-            "unknown-backend refusal control failed")
-    require(uri not in mount_lines(), "unsupported archive unexpectedly registered a mount")
-    print("gvfs: archive=unsupported-expected integrity=ok refusal=ok absent-backend=confirmed", flush=True)
-    return False
+def endpoint_stopped(uri):
+    port = port_of(uri)
+    with socket.socket() as client:
+        client.settimeout(2)
+        require(client.connect_ex(("127.0.0.1", port)) != 0, "DAV server survived cleanup")
 
 
-def sftp(root):
-    account = pwd.getpwuid(os.getuid())
-    share = root / "share"
-    share.mkdir()
-    for name in ("alpha", "beta"):
-        (share / f"{name}.txt").write_text(name + "\n")
-    for name in ("host", "client"):
-        run(["/usr/bin/ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-f", str(root / name)])
-        require((root / name).stat().st_uid == account.pw_uid
-                and stat.S_IMODE((root / name).stat().st_mode) == 0o600, "unsafe ephemeral key ownership")
-    with socket.socket() as reservation:
-        reservation.bind(("127.0.0.1", 0))
-        port = reservation.getsockname()[1]
-    known = root / "known_hosts"
-    known.write_text(f"[127.0.0.1]:{port} " + (root / "host.pub").read_text())
-    ssh = Path.home() / ".ssh"
-    ssh.mkdir(mode=0o700)
-    client = ssh / "config"
-    client.write_text(f"Host 127.0.0.1\n    User {account.pw_name}\n    Port {port}\n"
-                      f"    IdentityFile {root / 'client'}\n    IdentityAgent none\n    IdentitiesOnly yes\n"
-                      "    BatchMode yes\n    PasswordAuthentication no\n    KbdInteractiveAuthentication no\n"
-                      f"    UserKnownHostsFile {known}\n    GlobalKnownHostsFile /dev/null\n"
-                      "    StrictHostKeyChecking yes\n    ForwardAgent no\n    ControlMaster no\n    ControlPath none\n"
-                      "    ProxyCommand none\n    ProxyJump none\n    PermitLocalCommand no\n    ClearAllForwardings yes\n")
-    client.chmod(0o600)
-    config = root / "sshd_config"
-    config.write_text(f"ListenAddress 127.0.0.1\nPort {port}\nHostKey {root / 'host'}\n"
-                      f"PidFile {root / 'sshd.pid'}\nAuthorizedKeysFile {root / 'client.pub'}\n"
-                      "StrictModes yes\nUsePAM no\nPubkeyAuthentication yes\nPasswordAuthentication no\n"
-                      f"KbdInteractiveAuthentication no\nPermitRootLogin no\nAllowUsers {account.pw_name}\n"
-                      "Subsystem sftp internal-sftp\nLogLevel INFO\n")
-    run(["/usr/bin/sshd", "-t", "-f", str(config)])
-    server = subprocess.Popen(["/usr/bin/sshd", "-D", "-e", "-f", str(config)], stderr=subprocess.PIPE)
-    mount_uri = f"sftp://{account.pw_name}@127.0.0.1:{port}/"
+def fixture(root):
+    tool = str(REPO / "tools/flea-gvfs-fixture")
+    environment = dict(os.environ, DIR=str(root / "dav"))
+    other = dict(os.environ, DIR=str(root / "other"))
+    dead = dict(os.environ, DIR=str(root / "dead"))
+    uri = run([tool, "make"], environment=environment).stdout.strip()
+    require(uri.startswith("dav://127.0.0.1:"), "fixture must use the shared DAV backend")
+    require(run([tool, "uri"], environment=environment).stdout.strip() == uri, "fixture URI changed")
     try:
-        with selectors.DefaultSelector() as ready:
-            ready.register(server.stderr, selectors.EVENT_READ)
-            require(ready.select(timeout=5), "SFTP server readiness timed out")
-        # Sample input: Server listening on 127.0.0.1 port 2222.
-        line = server.stderr.readline().decode()
-        require(f"Server listening on 127.0.0.1 port {port}" in line, f"SFTP server failed: {line.strip()}")
-        correct_host = known.read_text()
-        known.write_text(f"[127.0.0.1]:{port} " + (root / "client.pub").read_text())
-        rejected = run([str(root / "bin/ssh"), "127.0.0.1", "printf sftp-positive"], check=False)
-        require(rejected.returncode != 0 and "Host key verification failed" in rejected.stderr,
-                "strict host-key negative control unexpectedly succeeded")
-        print(rejected.stderr, file=sys.stderr, end="")
-        known.write_text(correct_host)
-        print("gvfs: strict-host-key-refusal=ok", flush=True)
-        require(run([str(root / "bin/ssh"), "127.0.0.1", "printf sftp-positive"]).stdout
-                == "sftp-positive", "SFTP authentication positive control failed")
-        run([GIO, "mount", mount_uri])
-        boundaries(mount_uri + str(share).lstrip("/") + "/", mount_uri,
-                   lambda: run([GIO, "mount", "-u", mount_uri]))
-        print("gvfs: gmount=sftp auth=ok mount=ok list=ok read=ok fuse=ok missing-refusal=ok unmount=ok", flush=True)
+        port = port_of(uri)
+        (root / "private.txt").write_text("private fixture control")
+        (root / "dav/src/escape.txt").symlink_to(root / "private.txt")
+        for method, path, expected in (("GET", "/share.zip/%2e%2e/private.txt", 404),
+                                       ("GET", "/share.zip/escape.txt", 404),
+                                       ("PUT", "/share.zip/alpha.txt", 501)):
+            with closing(http.client.HTTPConnection("127.0.0.1", port, timeout=5)) as client:
+                client.request(method, path, body=b"changed" if method == "PUT" else None)
+                response = client.getresponse()
+                require(response.status == expected, f"DAV boundary accepted {method} {path}")
+                response.read()
+        run([tool, "mount"], environment=environment)
+        boundaries(uri, uri.rstrip("/"), lambda: run([tool, "unmount"], environment=environment))
+        run([tool, "unmount"], environment=environment)
+        run([tool, "mount"], environment=environment)
+        second = run([tool, "make"], environment=other).stdout.strip()
+        require(second != uri, "independent fixtures reused one endpoint")
+        run([tool, "mount"], environment=other)
+        run([tool, "clean"], environment=environment)
+        require(uri.rstrip("/") not in mount_lines(), "clean left its mount behind")
+        require(second.rstrip("/") in mount_lines(), "clean unmounted another fixture")
+        endpoint_stopped(uri)
+        require(not (root / "dav").exists(), "clean left its sandbox behind")
+        run([tool, "clean"], environment=environment)
+        run([tool, "unmount"], environment=environment)
+        require(run([tool, "uri"], check=False, environment=environment).returncode != 0,
+                "missing fixture URI unexpectedly succeeded")
+        replacement = run([tool, "make"], environment=other).stdout.strip()
+        require(second.rstrip("/") not in mount_lines(), "remake left the previous mount behind")
+        if replacement != second:
+            endpoint_stopped(second)
+        run([tool, "make"], environment=dead)
+        run([sys.executable, "-B", str(REPO / "tools/flea-gvfs-dav.py"), "stop", str(root / "dead")])
+        # A bound socket nobody listens on is what a killed server leaves behind.
+        with socket.socket(socket.AF_UNIX) as orphan:
+            orphan.bind(str(root / "dead/control.sock"))
+        run([tool, "clean"], environment=dead)
+        require(not (root / "dead").exists(), "clean refused a fixture whose server had died")
+        print("gvfs: fixture=dav mount=ok list=ok read=ok fuse=ok missing-refusal=ok unmount=ok", flush=True)
+        print("gvfs: concurrent-fixtures=ok clean=ok idempotent-clean=ok remake=ok", flush=True)
+        print("gvfs: traversal-refusal=ok symlink-refusal=ok write-refusal=ok dead-server-clean=ok", flush=True)
     finally:
-        try:
-            run([GIO, "mount", "-u", mount_uri], check=False)
-        finally:
-            stop(server)
-            print(server.stderr.read().decode(), file=sys.stderr, end="")
+        failed = [(env["DIR"], result.stderr.strip()) for env in (environment, other, dead)
+                  if (result := run([tool, "clean"], check=False, environment=env)).returncode]
+        require(not failed, f"fixture clean failed: {failed}")
 
 
 def main():
@@ -250,8 +200,7 @@ def main():
     run(["/usr/bin/gdbus", "call", "--session", "--dest", "org.freedesktop.DBus", "--object-path",
          "/org/freedesktop/DBus", "--method", "org.freedesktop.DBus.ListNames"])
     try:
-        if not archive(root):
-            sftp(root)
+        fixture(root)
     finally:
         fuse = Path(os.environ["XDG_RUNTIME_DIR"]) / "gvfs"
         if os.path.ismount(fuse):
@@ -262,6 +211,6 @@ def main():
 if __name__ == "__main__":
     try:
         sys.exit(main())
-    except (OSError, RuntimeError, subprocess.TimeoutExpired, zipfile.BadZipFile) as error:
+    except (OSError, RuntimeError, subprocess.TimeoutExpired) as error:
         print(f"gvfs: FAIL {error}", file=sys.stderr)
         sys.exit(1)

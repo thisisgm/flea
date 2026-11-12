@@ -237,4 +237,5 @@ jq -se 'length == 4 and (map(.status) == ["PASS","FAIL","UNDRIVEN","UNDRIVEN"])'
   for test_result in 0 1 2; do omarchy_general_case super_return || die "Omarchy caller accounting failed"; done
   [[ "$PASSED/$FAILED/$UNDRIVEN" == 1/1/1 ]] || die "Omarchy caller misclassified a required undriven chord"
 )
+python3 -B "$REPO/tests/lib/acceptance_references.py"
 printf 'ACCEPTANCE_SELF_CHECK passed; no native coverage claimed.\n'
