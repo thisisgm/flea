@@ -206,7 +206,7 @@ fn folders_chosen_while_omdrop_dir_runs_wait_and_only_the_latest_runs_next() {
     let DirDone::Next(next) = om.folder_done(a) else {
         panic!("the latest choice runs once A returns")
     };
-    assert_eq!(next.argv, ["/usr/bin/omdrop", "dir", "/home/u/C"]);
+    assert_eq!(next.argv[3..], ["/usr/bin/omdrop", "dir", "/home/u/C"]);
     assert!(
         matches!(om.folder_done(a), DirDone::Asked(ref x) if x.is_empty()),
         "A answers once"
@@ -280,7 +280,7 @@ fn a_dir_run_from_before_omdrop_went_away_and_came_back_still_runs_alone() {
     let DirDone::Next(c) = om.folder_done(a) else {
         panic!("A's completion starts C, the latest choice")
     };
-    assert_eq!(c.argv, ["/usr/bin/omdrop", "dir", "/home/u/C"]);
+    assert_eq!(c.argv[3..], ["/usr/bin/omdrop", "dir", "/home/u/C"]);
     assert!(
         matches!(om.folder_done(a), DirDone::Asked(ref x) if x.is_empty()),
         "A answers once"
@@ -290,4 +290,17 @@ fn a_dir_run_from_before_omdrop_went_away_and_came_back_still_runs_alone() {
     };
     assert!(matches!(asked[..], [Act::Doctor(..)]), "{asked:?}");
     assert_eq!(om.page("/d", "h").folder, "/home/u/C");
+}
+
+#[test]
+fn an_off_queued_during_on_is_handed_over_as_omdrop_off_and_nothing_else_is() {
+    let i18n = english();
+    let (mut om, _) = opened(OFF);
+    assert_eq!(om.queued_off(), None);
+    started(&om.turn_on(&i18n), Proc::Radio).unwrap();
+    assert_eq!(om.queued_off(), None, "on alone is not an Off");
+    om.receiving_off();
+    assert_eq!(om.queued_off().unwrap(), ["/usr/bin/omdrop", "off"]);
+    om.turn_on(&i18n);
+    assert_eq!(om.queued_off(), None, "On withdrew it");
 }

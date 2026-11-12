@@ -291,7 +291,14 @@ fn the_page_shows_omdrops_own_name_and_folder_and_a_new_folder_goes_to_omdrop_di
     assert!(page.omdrop && page.receiving && !page.contacts);
     assert_eq!(
         om.folder_argv("/home/u/New").unwrap().argv,
-        ["/usr/bin/omdrop", "dir", "/home/u/New"]
+        [
+            "timeout",
+            "--signal=KILL",
+            "30",
+            "/usr/bin/omdrop",
+            "dir",
+            "/home/u/New"
+        ]
     );
     assert_eq!(om.page("/d", "h").folder, "/home/u/New");
 }

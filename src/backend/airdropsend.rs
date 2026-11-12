@@ -21,6 +21,10 @@ const SIGNAL_EXIT_BASE: i32 = 128;
 const READ_CHUNK: usize = 4096;
 // One drain reads at most this much, so a child that never stops writing cannot hold off cancel or the deadlines.
 const MAX_READ_TURN: usize = 64 * 1024;
+// The reason is the last sentence, so only this much of the end of a send's stderr is kept.
+const KEPT_MAX: usize = 16 * 1024;
+// A line longer than this keeps only its start: a writer that never ends its line cannot grow it.
+const LINE_MAX: usize = 4 * 1024;
 
 pub(crate) struct Send {
     // The service ID `owly browse` printed, or the address `omdrop peers` did; either's `send --to` takes it.
@@ -87,7 +91,9 @@ impl Said {
     fn feed(&mut self, bytes: &[u8]) {
         for &byte in bytes {
             if byte != b'\r' && byte != b'\n' {
-                self.step.push(byte);
+                if self.step.len() < LINE_MAX {
+                    self.step.push(byte);
+                }
                 continue;
             }
             let text = String::from_utf8_lossy(&self.step).into_owned();
@@ -107,10 +113,20 @@ impl Said {
                 None if !text.trim().is_empty() => {
                     self.kept.push_str(&text);
                     self.kept.push('\n');
+                    self.keep_tail();
                 }
                 None => {}
             }
         }
+    }
+
+    // Drops whole lines from the front until the kept text fits KEPT_MAX.
+    fn keep_tail(&mut self) {
+        let Some(over) = self.kept.len().checked_sub(KEPT_MAX) else { return };
+        // A newline is one byte and never inside a character, so cutting after one keeps the text valid.
+        let newline = self.kept.as_bytes()[over..].iter().position(|&b| b == b'\n');
+        let cut = newline.map_or(self.kept.len(), |at| over + at + 1);
+        self.kept.drain(..cut);
     }
 
     // Reads until the pipe closes or `wait` passes, then closes it: a descendant holding it open delays the job

@@ -78,6 +78,12 @@ impl Omdrop {
         &self.path
     }
 
+    // An Off chosen while `on` ran, as the `omdrop off` that still carries it out once this omdrop is retired.
+    pub fn queued_off(&self) -> Option<Vec<String>> {
+        let waits = self.active() && self.chosen == Some(Run::Off);
+        waits.then(|| omdrop::off_argv(&self.path))
+    }
+
     // The backend's facts or PATH name omdrop, or nothing when owly runs AirDrop or omdrop is missing.
     pub fn facts(&mut self, path: &str) -> Vec<Act> {
         if self.path == path {

@@ -358,3 +358,20 @@ fn the_job_card_names_the_device_the_window_chose_not_its_service_id() {
         "an older window's send without a name keeps the ID"
     );
 }
+
+#[test]
+fn a_send_that_never_stops_writing_stderr_keeps_only_a_bounded_tail() {
+    let (tx, _rx) = mpsc::channel();
+    let mut said = Said::new(None, 0, 1, String::new(), tx);
+    for n in 0..20_000 {
+        said.feed(format!("line {n} of noise from the sender\n").as_bytes());
+    }
+    said.feed("They declined it.\n".as_bytes());
+    said.feed(&vec![b'x'; 1 << 20]);
+    assert!(said.step.len() <= LINE_MAX, "an unended line grew to {}", said.step.len());
+    let kept = said.finish(Duration::ZERO);
+    assert!(kept.len() <= KEPT_MAX + LINE_MAX, "kept {} bytes", kept.len());
+    assert!(kept.contains("They declined it.\n"), "the last sentence is kept");
+    assert!(!kept.contains("line 0 "), "the oldest lines are dropped");
+    assert!(kept.starts_with("line "), "only whole lines are dropped");
+}
