@@ -47,7 +47,7 @@ impl Node {
         })
     }
     pub(super) fn directory(&self) -> bool {
-        self.identity.mode & 0o170000 == 0o040000
+        self.identity.directory()
     }
     fn deletion_identity_matches(&self, current: &Identity) -> bool {
         self.identity.matches_survivor(current)
@@ -59,9 +59,53 @@ impl Node {
         quarantine: &File,
         record_offset: u64,
     ) -> Result<(), Refusal> {
-        if !self.deletion_identity_matches(
-            &identity(&fd_path(parent, name)).changed("Trash child unreadable")?,
-        ) {
+        self.claim_remove_with(parent, name, quarantine, record_offset, None)
+    }
+
+    pub(super) fn claim_remove_held(
+        &self,
+        parent: &File,
+        name: &OsStr,
+        quarantine: &File,
+        record_offset: u64,
+        proof: Option<(&super::file_claim::InodeMarks, i32)>,
+    ) -> Result<(), Refusal> {
+        if let Some((marks, watch)) = proof {
+            let held = super::file_claim::FileClaim::open_directory_at(
+                parent,
+                name,
+                &self.identity,
+                marks,
+                watch,
+            )?;
+            return self.claim_remove_with(parent, name, quarantine, record_offset, Some(held));
+        }
+        let current = identity(&fd_path(parent, name)).changed("Trash child unreadable")?;
+        if !self.deletion_identity_matches(&current) {
+            return Err(Refusal::new(
+                Outcome::ChildChanged,
+                "Trash child changed; remaining data was preserved.",
+            ));
+        }
+        let held = super::file_claim::FileClaim::open_at(parent, name, &current)?;
+        self.claim_remove_with(parent, name, quarantine, record_offset, Some(held))
+    }
+
+    fn claim_remove_with(
+        &self,
+        parent: &File,
+        name: &OsStr,
+        quarantine: &File,
+        record_offset: u64,
+        held: Option<super::file_claim::FileClaim>,
+    ) -> Result<(), Refusal> {
+        let matches = match held.as_ref() {
+            Some(held) => held.source_matches(parent, name)?,
+            None => self.deletion_identity_matches(
+                &identity(&fd_path(parent, name)).changed("Trash child unreadable")?,
+            ),
+        };
+        if !matches {
             return Err(Refusal::new(
                 Outcome::ChildChanged,
                 "Trash child changed; remaining data was preserved.",
@@ -69,11 +113,18 @@ impl Node {
         }
         let claimed = format!("entry-{}", record_offset);
         let claimed = OsStr::new(&claimed);
+        #[cfg(test)]
+        super::directory_tests::before_node_claim(parent, name);
         rename(parent, name, quarantine, claimed).map_err(|reason| {
             Refusal::new(Outcome::ChildLeft, "Trash child could not be claimed").because(reason)
         })?;
         let path = fd_path(quarantine, claimed);
+        #[cfg(test)]
+        super::directory_tests::after_node_claim(name, &path);
         let removal = (|| {
+            if let Some(held) = held {
+                return held.remove_at(quarantine, claimed);
+            }
             if !self.deletion_identity_matches(
                 &identity(&path).changed("Claimed Trash child unreadable")?,
             ) {

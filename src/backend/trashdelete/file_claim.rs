@@ -1,5 +1,8 @@
 // A held dentry proves which file the rename moved, even when FUSE renumbers its inode.
 use super::*;
+#[path = "inode_marks.rs"]
+mod marks;
+pub(super) use marks::InodeMarks;
 
 const O_PATH: i32 = 0o10000000;
 const MAX_REVIEW_HANDLES: usize = 256;
@@ -41,7 +44,7 @@ pub(super) struct FileClaim {
     _review_hold: Option<ReviewHold>,
 }
 
-fn changed() -> Refusal {
+pub(super) fn changed() -> Refusal {
     Refusal::new(
         Outcome::ItemChanged,
         "Item changed after confirmation; no deletion attempted.",
@@ -82,15 +85,8 @@ fn same_metadata(expected: &Identity, current: &Identity) -> bool {
 
 impl FileClaim {
     pub(super) fn for_review(path: &Path, expected: &Identity) -> Result<Option<Self>, Refusal> {
-        if expected.mode & 0o170000 == 0o040000 {
-            return Ok(None);
-        }
         let parent_path = path.parent().ok_or_else(changed)?;
-        let magic = crate::backend::fsinfo::magic_of(parent_path);
-        let retain = magic.is_none() || magic == Some(crate::backend::copyread::FUSE_MAGIC);
-        #[cfg(test)]
-        let retain = retain || super::claim_tests::simulated_fuse() || hold_tests::simulated_fuse();
-        if !retain {
+        if !retains(parent_path) {
             return Ok(None);
         }
         let Some(hold) = ReviewHold::take() else {
@@ -108,15 +104,7 @@ impl FileClaim {
     }
 
     pub(super) fn open(parent: &File, name: &OsStr, expected: &Identity) -> Result<Self, Refusal> {
-        #[cfg(test)]
-        if let Some(error) = hold_tests::open_error() {
-            return Err(hold_failed(error));
-        }
-        let held = OpenOptions::new()
-            .read(true)
-            .custom_flags(O_PATH | O_NOFOLLOW)
-            .open(fd_path(parent, name))
-            .map_err(hold_failed)?;
+        let held = open_handle(parent, name)?;
         if Identity::of(&held.metadata().map_err(hold_failed)?) != *expected {
             return Err(changed());
         }
@@ -137,6 +125,65 @@ impl FileClaim {
         })
     }
 
+    pub(super) fn open_at(
+        parent: &File,
+        name: &OsStr,
+        expected: &Identity,
+    ) -> Result<Self, Refusal> {
+        let mut claim = Self::open(parent, name, expected)?;
+        claim.original = Some(location(parent)?.join(name));
+        Ok(claim)
+    }
+
+    pub(super) fn open_directory_at(
+        parent: &File,
+        name: &OsStr,
+        expected: &Identity,
+        marks: &InodeMarks,
+        watch: i32,
+    ) -> Result<Self, Refusal> {
+        let held = open_handle(parent, name)?;
+        let current = Identity::of(&held.metadata().map_err(hold_failed)?);
+        if !expected.directory()
+            || expected.dev != current.dev
+            || expected.mode != current.mode
+            || marks.descriptor(held.as_raw_fd())? != watch
+        {
+            return Err(changed());
+        }
+        Ok(Self {
+            held,
+            expected: current,
+            original: Some(location(parent)?.join(name)),
+            _review_hold: None,
+        })
+    }
+
+    pub(super) fn kernel_mark(&self, marks: &InodeMarks) -> Result<i32, Refusal> {
+        marks.descriptor(self.held.as_raw_fd())
+    }
+
+    fn metadata_matches(&self, current: &Identity) -> bool {
+        if self.expected.directory() {
+            self.expected.dev == current.dev && self.expected.mode == current.mode
+        } else {
+            same_metadata(&self.expected, current)
+        }
+    }
+
+    pub(super) fn source_matches(&self, parent: &File, name: &OsStr) -> Result<bool, Refusal> {
+        if !self.unchanged() {
+            return Ok(false);
+        }
+        let path = fd_path(parent, name);
+        let current = identity(&path).map_err(|_| changed())?;
+        if self.expected.directory() {
+            Ok(self.metadata_matches(&current) && self.same_kernel_inode(&path)?)
+        } else {
+            Ok(current == self.expected)
+        }
+    }
+
     pub(super) fn unchanged(&self) -> bool {
         self.original.as_ref().map_or(true, |original| {
             location(&self.held).ok().as_ref() == Some(original)
@@ -144,17 +191,25 @@ impl FileClaim {
     }
 
     pub(super) fn remove(self, quarantine: &File) -> Result<(), Refusal> {
-        let path = fd_path(quarantine, OsStr::new("payload"));
+        self.remove_at(quarantine, OsStr::new("payload"))
+    }
+
+    pub(super) fn remove_at(self, quarantine: &File, name: &OsStr) -> Result<(), Refusal> {
+        let path = fd_path(quarantine, name);
         let landed = staged_identity(&path).map_err(|_| changed())?;
-        if !same_metadata(&self.expected, &landed) {
+        if !self.metadata_matches(&landed) {
             return Err(changed());
         }
-        if (self.original.is_some() || landed != self.expected) && !self.moved_into(quarantine)? {
+        if (self.original.is_some() || landed != self.expected)
+            && !self.moved_into(quarantine, name)?
+        {
             return Err(changed());
         }
-        let needs_inode_proof = if landed != self.expected {
+        let needs_inode_proof = if self.expected.directory() {
+            true
+        } else if landed != self.expected {
             let held_metadata = Identity::of(&self.held.metadata().map_err(|_| changed())?);
-            if !same_metadata(&self.expected, &held_metadata) {
+            if !self.metadata_matches(&held_metadata) {
                 return Err(changed());
             }
             !renumbers(quarantine)?
@@ -163,18 +218,24 @@ impl FileClaim {
         };
         let current = staged_identity(&path).map_err(|_| changed())?;
         if (needs_inode_proof || current != landed)
-            && (!same_metadata(&self.expected, &current) || !self.same_kernel_inode(&path)?)
+            && (!self.metadata_matches(&current) || !self.same_kernel_inode(&path)?)
         {
             return Err(changed());
         }
         // Only this operation populates its private quarantine; no second staging rename is needed.
-        std::fs::remove_file(&path).refuse(Outcome::ChildLeft, "Trash child could not be removed")
+        if self.expected.directory() {
+            std::fs::remove_dir(&path)
+                .refuse(Outcome::ChildLeft, "Trash directory has surviving items")
+        } else {
+            std::fs::remove_file(&path)
+                .refuse(Outcome::ChildLeft, "Trash child could not be removed")
+        }
     }
 
-    fn moved_into(&self, quarantine: &File) -> Result<bool, Refusal> {
+    fn moved_into(&self, quarantine: &File, name: &OsStr) -> Result<bool, Refusal> {
         let held = location(&self.held)?;
         let folder = location(quarantine)?;
-        let expected = folder.join("payload");
+        let expected = folder.join(name);
         if held == expected {
             return Ok(true);
         }
@@ -186,36 +247,32 @@ impl FileClaim {
 
     // Watch descriptors compare kernel inode objects, even if FUSE changes their reported numbers.
     pub(super) fn same_kernel_inode(&self, path: &Path) -> Result<bool, Refusal> {
-        use std::os::fd::FromRawFd;
-        extern "C" {
-            fn inotify_init1(flags: i32) -> i32;
-            fn inotify_add_watch(fd: i32, path: *const std::ffi::c_char, mask: u32) -> i32;
-        }
-        // SAFETY: no pointers are passed; a successful descriptor is owned below.
-        let raw = unsafe { inotify_init1(super::super::watch::IN_CLOEXEC) };
-        if raw < 0 {
-            return Err(watch_failed(std::io::Error::last_os_error()));
-        }
-        // SAFETY: raw is a fresh descriptor transferred exclusively to this File.
-        let watches = unsafe { File::from_raw_fd(raw) };
-        let held = CString::new(format!("/proc/self/fd/{}", self.held.as_raw_fd()))
-            .map_err(|_| changed())?;
-        let staged = CString::new(path.as_os_str().as_bytes()).map_err(|_| changed())?;
-        let mark = |name: &CString, flags| {
-            // SAFETY: watches owns the descriptor and name is a live NUL-terminated path.
-            let wd = unsafe { inotify_add_watch(watches.as_raw_fd(), name.as_ptr(), flags) };
-            if wd < 0 {
-                Err(watch_failed(std::io::Error::last_os_error()))
-            } else {
-                Ok(wd)
-            }
-        };
-        let selected = mark(&held, super::super::watch::IN_ATTRIB)?;
-        Ok(mark(
-            &staged,
-            super::super::watch::IN_ATTRIB | super::super::watch::IN_DONT_FOLLOW,
-        )? == selected)
+        let marks = InodeMarks::new()?;
+        Ok(self.kernel_mark(&marks)? == marks.path(path)?)
     }
+}
+
+fn open_handle(parent: &File, name: &OsStr) -> Result<File, Refusal> {
+    #[cfg(test)]
+    if let Some(error) = hold_tests::open_error() {
+        return Err(hold_failed(error));
+    }
+    OpenOptions::new()
+        .read(true)
+        .custom_flags(O_PATH | O_NOFOLLOW)
+        .open(fd_path(parent, name))
+        .map_err(hold_failed)
+}
+
+pub(super) fn retains(parent: &Path) -> bool {
+    let magic = crate::backend::fsinfo::magic_of(parent);
+    let retain = magic.is_none() || magic == Some(crate::backend::copyread::FUSE_MAGIC);
+    #[cfg(test)]
+    let retain = retain
+        || super::claim_tests::simulated_fuse()
+        || hold_tests::simulated_fuse()
+        || super::directory_tests::simulated_fuse();
+    retain
 }
 
 fn staged_identity(path: &Path) -> std::io::Result<Identity> {
