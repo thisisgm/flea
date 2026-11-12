@@ -161,10 +161,11 @@ impl Shell {
         cx: &mut Context<Self>,
     ) {
         let om = &mut self.menu.providers.omdrop;
-        if enabled {
-            return om.enable();
-        }
-        let acts = om.disable();
+        let acts = if enabled {
+            om.enable(now_ms())
+        } else {
+            om.disable()
+        };
         let side = self.focus_side;
         self.stack_acts(Origin::omdrop(side), acts, window, cx);
     }

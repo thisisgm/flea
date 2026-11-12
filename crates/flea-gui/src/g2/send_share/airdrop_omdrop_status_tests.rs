@@ -304,3 +304,20 @@ fn an_off_queued_during_on_is_handed_over_as_omdrop_off_and_nothing_else_is() {
     om.turn_on(&i18n);
     assert_eq!(om.queued_off(), None, "On withdrew it");
 }
+
+#[test]
+fn switched_back_on_omdrop_looks_only_under_an_open_menu_and_only_once() {
+    let (mut om, _) = opened(ON);
+    assert!(om.enable(1).is_empty(), "already on, nothing more");
+    om.disable();
+    om.menu_closed();
+    let shut = om.enable(2);
+    assert!(
+        started(&shut, Proc::Browse).is_none(),
+        "behind a shut menu, nothing yet"
+    );
+    assert!(
+        started(&om.menu_opened(3), Proc::Browse).is_some(),
+        "the next open looks"
+    );
+}

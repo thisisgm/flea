@@ -340,10 +340,10 @@ fn a_switched_off_plugin_starts_no_lookup_from_any_answer_that_lands_later() {
     om.disable();
     assert!(no_lookup(&confirm(&mut om, &asked, ON, 5)));
     assert!(no_lookup(&om.menu_opened(6)), "nor does a menu");
-    om.enable();
+    let looked = om.enable(7);
     assert!(
-        started(&om.menu_opened(7), Proc::Browse).is_some(),
-        "switched on again, the next open looks"
+        started(&looked, Proc::Browse).is_some(),
+        "switched on again, it looks at once"
     );
 }
 

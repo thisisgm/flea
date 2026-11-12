@@ -169,8 +169,12 @@ impl Omdrop {
         self.drop_devices()
     }
 
-    pub fn enable(&mut self) {
-        self.disabled = false;
+    // Switched back on: a menu still open looks for devices again, as disable() stopped its lookup.
+    pub fn enable(&mut self, now_ms: u64) -> Vec<Act> {
+        if !std::mem::replace(&mut self.disabled, false) {
+            return Vec::new();
+        }
+        self.browse(now_ms)
     }
 
     // Turn On AirDrop, or Receiving set on: `omdrop on` unless the receiver already runs, even with the radio up.
