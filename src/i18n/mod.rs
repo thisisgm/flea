@@ -252,9 +252,25 @@ impl I18n {
         // Stamp before reading so a concurrent edit remains visible to the next poll.
         let language_file = self.watch(self.paths.language_file.clone());
         let registry = self.watch(self.paths.omarchy.join("default/i18n/locales.json"));
-        self.roster = locale::parse(&catalog::read(&registry).unwrap_or_default(), &registry);
+        // Omarchy's roster and language file name the language; without Omarchy, Flea's own
+        // catalogs and the session's locale do.
+        let registry_text = catalog::read(&registry);
+        let omarchy = registry_text.is_some();
+        self.roster = match registry_text {
+            Some(text) => locale::parse(&text, &registry),
+            None => locale::from_catalogs(&self.paths.catalogs),
+        };
         self.language_text = catalog::read(&language_file);
-        let code = language_code(self.language_text.as_deref().unwrap_or_default());
+        let session;
+        let code = match self.language_text.as_deref() {
+            Some(text) => language_code(text),
+            // On Omarchy a missing language file means English, as it always has.
+            None if omarchy => "",
+            None => {
+                session = locale::pick_from_session(&mut self.roster, |key| std::env::var(key).ok()).unwrap_or_default();
+                session.as_str()
+            }
+        };
         self.locale = self.roster.iter().find(|l| l.code == code).cloned()
             .unwrap_or_else(|| self.roster.iter().find(|l| l.code == "en").unwrap().clone());
         let code = self.locale.code.clone();

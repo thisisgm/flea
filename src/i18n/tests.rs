@@ -305,3 +305,15 @@ fn dates_keep_fixed_fields_and_use_digits_without_mutating_global_locale() {
 
 #[path = "test_contracts.rs"]
 mod contracts;
+
+#[test]
+fn without_omarchy_the_shipped_catalogs_and_the_session_language_choose() {
+    let f = Fixture::new();
+    f.write("source/i18n/es-MX/flea.json", r#"{"folder.empty":"Carpeta vacía"}"#);
+    let mut paths = f.paths();
+    paths.omarchy = f.path("no-omarchy");
+    let mut roster = super::locale::from_catalogs(&paths.catalogs);
+    assert_eq!(roster.iter().map(|l| l.code.as_str()).collect::<Vec<_>>(), ["en", "es-MX"]);
+    let picked = super::locale::pick_from_session(&mut roster, |key| (key == "LANG").then(|| "es_ES.UTF-8".to_owned()));
+    assert_eq!(picked.as_deref(), Some("es-MX"));
+}
