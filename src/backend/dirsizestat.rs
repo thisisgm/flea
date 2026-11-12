@@ -131,8 +131,8 @@ fn query_with(
 
 // Sample input: the 256-byte buffer statx(2) filled, read at the STX_* offsets; glibc's makedev packs the device.
 fn decode(bytes: &[u8; 256]) -> Option<Entry> {
-    let u32_at = |at| u32::from_ne_bytes(bytes[at..at + 4].try_into().unwrap());
-    let u64_at = |at| u64::from_ne_bytes(bytes[at..at + 8].try_into().unwrap());
+    let u32_at = |at: usize| u32::from_ne_bytes(std::array::from_fn(|i| bytes[at + i]));
+    let u64_at = |at: usize| u64::from_ne_bytes(std::array::from_fn(|i| bytes[at + i]));
     let mask = u32_at(STX_MASK);
     // An unavailable required field leaves a partial total rather than a guessed one.
     if mask & STATX_REQUIRED != STATX_REQUIRED {
@@ -150,7 +150,7 @@ fn decode(bytes: &[u8; 256]) -> Option<Entry> {
         nlink: u32_at(STX_NLINK) as u64,
         mount: (mask & STATX_MNT_ID != 0).then(|| u64_at(STX_MNT_ID)),
         automount: u64_at(STX_ATTRIBUTES) & u64_at(STX_ATTRIBUTES_MASK) & STATX_ATTR_AUTOMOUNT != 0,
-        kind: u16::from_ne_bytes(bytes[STX_MODE..STX_MODE + 2].try_into().unwrap()) & S_IFMT,
+        kind: u16::from_ne_bytes([bytes[STX_MODE], bytes[STX_MODE + 1]]) & S_IFMT,
     })
 }
 

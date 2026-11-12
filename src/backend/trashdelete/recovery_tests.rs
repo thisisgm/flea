@@ -40,9 +40,12 @@ fn fixture(d: &TestDir, child: Option<&str>, destination: Option<&Path>) -> (Rev
     let recovery_root = d.dir("recovery");
     for path in [&source, &reviewed.info, &quarantine, &recovery_root] { guard(d, path); }
     if let Some(destination) = destination { guard(d, destination); }
-    let journal = Recovery::begin(&recovery_root, &source, &open_dir(&d.join("files")).unwrap(),
-        &reviewed.payload, Some((&reviewed.info, &reviewed.metadata, &open_dir(&d.join("info")).unwrap())), &quarantine,
-        &open_dir(&quarantine).unwrap(), if destination.is_none() { reviewed.tree.as_ref() } else { None }, destination).unwrap();
+    let journal = Recovery::begin(&recovery_root, RecordInput {
+        source: &source, parent: &open_dir(&d.join("files")).unwrap(), payload: &reviewed.payload,
+        paired: Some((&reviewed.info, &reviewed.metadata, &open_dir(&d.join("info")).unwrap())),
+        quarantine_path: &quarantine, quarantine: &open_dir(&quarantine).unwrap(),
+        tree: if destination.is_none() { reviewed.tree.as_ref() } else { None }, destination,
+    }).unwrap();
     (reviewed, quarantine, journal)
 }
 fn claim(d: &TestDir, reviewed: &Reviewed, quarantine: &Path, metadata: bool) {

@@ -1,8 +1,5 @@
 // Image layout math and ImageMagick commands are shared by the window and terminal cards.
-use super::{
-    aliases::Aliases, archivework::Work, convertbatch, menu_actions::Selected, mime::Db,
-    opsreq::OpMsg, printconvert, printtool,
-};
+use super::{archivework::Work, convertbatch, opsreq::OpMsg, printconvert, printtool};
 use crate::json::{field_str, field_usize};
 use flea::bytename::ExactText as _;
 use std::path::{Path, PathBuf};
@@ -136,23 +133,14 @@ fn make(
 
 pub fn run(
     ask: Ask,
-    selection: Result<Option<Vec<Selected>>, String>,
+    sources: printtool::Sources<'_>,
     id: usize,
-    mime: &Db,
-    aliases: &Aliases,
     cancel: Arc<AtomicBool>,
     tx: &Sender<OpMsg>,
 ) -> String {
     let mut published = Vec::new();
     let outcome = (|| {
-        let selected = selection?;
-        super::menu_actions::validate_sources(selected.as_deref(), &ask.paths)?;
-        printtool::inputs(&ask.paths)?;
-        let kinds: Vec<_> = ask
-            .paths
-            .iter()
-            .map(|p| printconvert::classify(&p.to_string_lossy(), mime, aliases))
-            .collect();
+        let kinds = sources.kinds(&ask.paths)?;
         if !printconvert::can_combine(&kinds) {
             return Err("Select at least two images to combine.".into());
         }

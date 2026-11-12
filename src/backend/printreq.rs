@@ -191,16 +191,20 @@ pub fn serve(out: &mut impl Write, ops: &mut Ops, request: Request, mime: Arc<Db
     out.flush().ok();
     let tx = ops.tx.clone();
     std::thread::spawn(move || {
+        let sources = printtool::Sources {
+            selection,
+            mime: &mime,
+            aliases: &aliases,
+        };
         let line = match request {
             Request::Options { id, printer } => options_line(id, &printer, &cancel),
-            Request::Print(ask) => print(ask, selection, id, &mime, &aliases, cancel, &tx),
+            Request::Print(ask) => print(ask, sources.selection, id, &mime, &aliases, cancel, &tx),
             Request::Convert(ask) => {
-                let (line, steps) =
-                    super::convertbatch::run(ask, selection, id, &mime, &aliases, cancel, &tx);
+                let (line, steps) = super::convertbatch::run(ask, sources, id, cancel, &tx);
                 let _ = tx.send(OpMsg::Converted { id, line, steps });
                 return;
             }
-            Request::Combine(ask) => super::combine::run(ask, selection, id, &mime, &aliases, cancel, &tx),
+            Request::Combine(ask) => super::combine::run(ask, sources, id, cancel, &tx),
         };
         let _ = tx.send(OpMsg::DetachedDone { id, line });
     });

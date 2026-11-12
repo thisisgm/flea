@@ -350,6 +350,11 @@ fn a_combine_and_a_batch_convert_onto_a_copy_fallback_mount_never_stage_on_it() 
         crate::backend::aliases::Aliases::load(),
     );
     let (tx, _rx) = std::sync::mpsc::channel();
+    let sources = || crate::backend::printtool::Sources {
+        selection: Ok(None),
+        mime: &mime,
+        aliases: &aliases,
+    };
     let ask = format!(
         r#"{{"c":"combine","paths":["{}","{}"],"format":"png","layout":"Row","spacing":"None","background":"White","name":"both.png"}}"#,
         first.display(),
@@ -358,10 +363,8 @@ fn a_combine_and_a_batch_convert_onto_a_copy_fallback_mount_never_stage_on_it() 
     let line = off_the_mount(drive.path(), local.path(), || {
         crate::backend::combine::run(
             crate::backend::combine::Ask::parse(&ask),
-            Ok(None),
+            sources(),
             1,
-            &mime,
-            &aliases,
             Arc::new(AtomicBool::new(false)),
             &tx,
         )
@@ -378,10 +381,8 @@ fn a_combine_and_a_batch_convert_onto_a_copy_fallback_mount_never_stage_on_it() 
     let (line, _steps) = off_the_mount(drive.path(), local.path(), || {
         crate::backend::convertbatch::run(
             crate::backend::convertbatch::Ask::parse(&ask),
-            Ok(None),
+            sources(),
             2,
-            &mime,
-            &aliases,
             Arc::new(AtomicBool::new(false)),
             &tx,
         )

@@ -7,6 +7,26 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{channel, Receiver};
 use std::time::{Duration, Instant};
 
+pub struct Sources<'a> {
+    pub selection: Result<Option<Vec<super::menu_actions::Selected>>, String>,
+    pub mime: &'a super::mime::Db,
+    pub aliases: &'a super::aliases::Aliases,
+}
+
+impl Sources<'_> {
+    pub fn kinds(self, paths: &[PathBuf]) -> Result<Vec<super::printconvert::Kind>, String> {
+        let selected = self.selection?;
+        super::menu_actions::validate_sources(selected.as_deref(), paths)?;
+        inputs(paths)?;
+        Ok(paths
+            .iter()
+            .map(|path| {
+                super::printconvert::classify(&path.to_string_lossy(), self.mime, self.aliases)
+            })
+            .collect())
+    }
+}
+
 pub const TOOL_WAIT: Duration = Duration::from_secs(60);
 pub const QUERY_WAIT: Duration = Duration::from_secs(10);
 const OUTPUT_CAP: usize = 64 * 1024;

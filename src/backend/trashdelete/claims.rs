@@ -135,7 +135,8 @@ impl Reviewed {
         destination: Option<&Path>,
         batch: Option<recovery::batch::Ticket>,
     ) -> Result<Prepared, Refusal> {
-        let files = open_dir(self.path.parent().changed("Missing Trash parent.")?)?;
+        let parent = self.path.parent().changed("Missing Trash parent.")?;
+        let files = open_dir(parent)?;
         let infos = open_dir(
             self.info
                 .parent()
@@ -173,7 +174,7 @@ impl Reviewed {
             })?;
         let quarantine =
             open_dir(&quarantine_path).map_err(|refusal| refusal.wrap(Outcome::Prepare(op)))?;
-        let recovery = self.path.parent().unwrap().join(&quarantine_name);
+        let recovery = parent.join(&quarantine_name);
         let journal = match Recovery::prepare(
             recovery_root,
             recovery::RecordInput {

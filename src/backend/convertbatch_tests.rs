@@ -1,5 +1,6 @@
 use super::*;
 use crate::backend::testdir::TestDir;
+use crate::backend::{aliases::Aliases, mime::Db};
 
 #[test]
 fn pdf_rendering_uses_150_dpi_and_only_the_chosen_page() {
@@ -254,10 +255,12 @@ fn an_expired_menu_and_mixed_kinds_run_no_tools() {
     let (tx, _) = std::sync::mpsc::channel();
     let (line, steps) = run(
         ask,
-        Err("Selected items changed; reopen the menu.".into()),
+        printtool::Sources {
+            selection: Err("Selected items changed; reopen the menu.".into()),
+            mime: &mime,
+            aliases: &Aliases::from_str(""),
+        },
         3,
-        &mime,
-        &Aliases::from_str(""),
         Arc::new(AtomicBool::new(false)),
         &tx,
     );

@@ -1,9 +1,6 @@
 // Multi-image, PDF-page and office export jobs, published beside the source without replacement.
 use super::{
-    aliases::Aliases,
     archivework::Work,
-    menu_actions::Selected,
-    mime::Db,
     opsreq::OpMsg,
     pagerange::Pages,
     printconvert::{self, Kind},
@@ -287,24 +284,15 @@ fn convert_office(ask: &Ask, work: &Work, cancel: Arc<AtomicBool>) -> Result<Vec
 
 pub fn run(
     ask: Ask,
-    selection: Result<Option<Vec<Selected>>, String>,
+    sources: printtool::Sources<'_>,
     id: usize,
-    mime: &Db,
-    aliases: &Aliases,
     cancel: Arc<AtomicBool>,
     tx: &Sender<OpMsg>,
 ) -> (String, Vec<Step>) {
     let mut published = Vec::new();
     let mut journalled = Vec::new();
     let outcome = (|| {
-        let selected = selection?;
-        super::menu_actions::validate_sources(selected.as_deref(), &ask.paths)?;
-        printtool::inputs(&ask.paths)?;
-        let kinds: Vec<_> = ask
-            .paths
-            .iter()
-            .map(|p| printconvert::classify(&p.to_string_lossy(), mime, aliases))
-            .collect();
+        let kinds = sources.kinds(&ask.paths)?;
         if !printconvert::can_convert(&kinds) {
             return Err("Select images, one PDF or one office document to convert.".into());
         }
@@ -363,9 +351,8 @@ pub fn run(
             }
             let landed = land(&made, &dest, &cancel)?;
             journalled.extend(step(&from, &landed));
-            published.push(landed);
             let done = CONVERSION_PROGRESS
-                + published.len() * (PROGRESS_TOTAL - CONVERSION_PROGRESS) / count;
+                + (published.len() + 1) * (PROGRESS_TOTAL - CONVERSION_PROGRESS) / count;
             progress(
                 tx,
                 "convert",
@@ -373,8 +360,9 @@ pub fn run(
                 ask.request_id,
                 done,
                 PROGRESS_TOTAL,
-                published.last().unwrap(),
+                &landed,
             );
+            published.push(landed);
         }
         Ok(())
     })();

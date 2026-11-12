@@ -21,29 +21,9 @@ fn sync_record(record: &Manifest) -> Result<(), String> {
 impl Recovery {
     pub(in crate::backend::trashdelete) fn begin(
         root: &Path,
-        source: &Path,
-        parent: &File,
-        payload: &Identity,
-        paired: Option<(&Path, &Identity, &File)>,
-        quarantine_path: &Path,
-        quarantine: &File,
-        tree: Option<&Records>,
-        destination: Option<&Path>,
+        input: RecordInput<'_>,
     ) -> Result<Self, Refusal> {
-        Self::prepare(
-            root,
-            RecordInput {
-                source,
-                parent,
-                payload,
-                paired,
-                quarantine_path,
-                quarantine,
-                tree,
-                destination,
-            },
-            None,
-        )
+        Self::prepare(root, input, None)
     }
     pub(in crate::backend::trashdelete) fn prepare(
         root: &Path,
@@ -230,19 +210,7 @@ impl Recovery {
     ) -> Result<(), Refusal> {
         let cleanup =
             |what: &str, e: &std::io::Error| Refusal::os(Outcome::RecordLeft(None), what, e);
-        if !same_node(
-            &identity(path).refuse(Outcome::RecordLeft(None), "Quarantine unreadable")?,
-            &Identity::of(
-                &quarantine
-                    .metadata()
-                    .refuse(Outcome::RecordLeft(None), "Quarantine unreadable")?,
-            ),
-        ) {
-            return Err(left(
-                "Recovery quarantine changed before cleanup; it was preserved.",
-                "the temporary folder changed",
-            ));
-        }
+        unchanged_quarantine(path, quarantine)?;
         if self.batch.is_some() {
             let metadata = if self.metadata_pending {
                 Some(self.metadata.clone().refuse(
