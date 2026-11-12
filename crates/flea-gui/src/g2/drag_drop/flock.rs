@@ -171,7 +171,16 @@ fn raster(
     }
     svg.push_str(&format!(r#"<text x="47" y="42" font-family="&apos;{}&apos;, monospace" font-size="14" fill="{fg}" opacity="0.8">{}</text></svg>"#, xml(&font.family), xml(&name)));
     let renderer = cx.svg_renderer();
-    let parsed = renderer.parse_svg(svg.as_bytes()).ok()?;
+    let text_system = window.text_system();
+    let mut ids = Vec::new();
+    let mut fonts = Vec::new();
+    for run in &line.runs {
+        if !ids.contains(&run.font_id) {
+            ids.push(run.font_id);
+            fonts.push(text_system.font_data(run.font_id)?);
+        }
+    }
+    let parsed = renderer.parse_svg_with_fonts(svg.as_bytes(), fonts).ok()?;
     let image = renderer
         .render_parsed(
             &parsed,
@@ -189,16 +198,19 @@ fn raster(
 }
 
 #[cfg(test)]
+#[path = "first_drag_tests.rs"]
+mod first_drag_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use crate::g2::drag_drop::mounted_tests::{open, Root};
-    use gpui::TestAppContext;
-
-    #[gpui::test]
-    fn vf_look_review_native_name_pixels_use_the_listing_font(cx: &mut TestAppContext) {
+    #[test]
+    fn vf_look_review_native_name_pixels_use_the_listing_font() {
+        let mut cx = crate::list::bench::real_cx();
         let root = Root::new("flock-pixels");
-        let (handle, _) = open(cx, root.src());
-        handle.update(cx, |shell, window, cx| {
+        let (handle, _) = open(&mut cx, root.src());
+        handle.update(&mut cx, |shell, window, cx| {
             let font = shell.active_typeface().font;
             let palette = Palette::inherited(&window.text_style(), crate::palette::Theme::default());
             let flock = carry::Flock { marks: vec![], name: "alpha.txt".into() };
