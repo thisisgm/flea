@@ -36,12 +36,14 @@ pub(crate) struct Shaped {
     pub error_ground: Option<Bounds<Pixels>>,
     inset: Pixels,
     selecting: bool,
+    pressed_away: Option<gpui::Point<Pixels>>,
 }
 
 impl Shaped {
     /// Ends the pointer gesture while keeping the text selection for the next action.
     pub(crate) fn end_selection_drag(&mut self) {
         self.selecting = false;
+        self.pressed_away = None;
     }
 
     pub(super) fn origin(&self) -> Pixels {
