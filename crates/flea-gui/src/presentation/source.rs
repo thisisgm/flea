@@ -22,20 +22,22 @@ impl Snapshot {
     }
 }
 
-pub(super) type Inputs = [Option<String>; 7];
+/// How many files a presentation reads: seven Omarchy and fontconfig inputs, then GTK 4's settings.ini.
+pub(super) const INPUT_COUNT: usize = 8;
+pub(super) type Inputs = [Option<String>; INPUT_COUNT];
 /// The most bytes one input may hold; a larger file is refused, never cut.
 pub(super) const INPUT_CAP: usize = 65536;
-pub(super) type Stamps = [Option<(u64, u64, u64, i64, i64, i64, i64, u32)>; 7];
+pub(super) type Stamps = [Option<(u64, u64, u64, i64, i64, i64, i64, u32)>; INPUT_COUNT];
 
-/// The seven files a presentation reads, and where the resolved font family is cached.
+/// The files a presentation reads, and where the resolved font family is cached.
 pub(super) struct Sources {
-    inputs: [PathBuf; 7],
+    inputs: [PathBuf; INPUT_COUNT],
     cache: PathBuf,
 }
 
 impl Sources {
     #[cfg(test)]
-    pub fn at(inputs: [PathBuf; 7], cache: PathBuf) -> Self {
+    pub fn at(inputs: [PathBuf; INPUT_COUNT], cache: PathBuf) -> Self {
         Self { inputs, cache }
     }
 
@@ -59,6 +61,8 @@ impl Sources {
                 config.join("fontconfig/conf.d/50-omarchy-input-method.conf"),
                 state.join("omarchy/toggles/hypr/window-opaque.lua"),
                 state.join("omarchy/toggles/hypr/window-glassy.lua"),
+                // Without Omarchy's shell.toml, the text size comes from the font GTK 4 apps are given.
+                config.join("gtk-4.0/settings.ini"),
             ],
             cache: state.join("flea/fc-match-monospace"),
         }
@@ -155,6 +159,12 @@ impl Sources {
     ) -> (Snapshot, Option<io::Error>) {
         let text = |at: usize| input[at].as_deref().unwrap_or("");
         let (mut theme, parsed) = Theme::from_text_observed(text(0));
+        // Omarchy's shell.toml sizes the text when either copy exists; elsewhere GTK's font does.
+        let shell = if input[1].is_some() || input[2].is_some() {
+            text(1).to_owned()
+        } else {
+            flea::desktop_font::shell_text(text(7))
+        };
         theme.glass = crate::window::glass::Inputs::resolve(
             text(0),
             text(1),
@@ -170,7 +180,7 @@ impl Sources {
         let snapshot = Snapshot {
             theme,
             parsed,
-            fonts: Fonts::from_sources(text(1), text(2), family),
+            fonts: Fonts::from_sources(&shell, text(2), family),
         };
         (snapshot, failure)
     }
@@ -181,7 +191,7 @@ mod tests {
     use super::*;
     use std::process::Command;
 
-    fn sources(inputs: [PathBuf; 7]) -> Sources {
+    fn sources(inputs: [PathBuf; INPUT_COUNT]) -> Sources {
         Sources {
             inputs,
             cache: PathBuf::from("/proc/self/flea-u01-no-cache/entry"),
@@ -193,24 +203,34 @@ mod tests {
         let absent = sources(std::array::from_fn(|_| {
             PathBuf::from("/proc/self/flea-u01-absent-input")
         }));
-        assert_eq!(
-            absent.read().unwrap(),
-            [None, None, None, None, None, None, None]
-        );
+        assert_eq!(absent.read().unwrap(), std::array::from_fn(|_| None));
         let failed = sources(std::array::from_fn(|_| PathBuf::from("/proc/self")));
         assert_eq!(
             failed.read().unwrap_err().kind(),
             io::ErrorKind::InvalidInput
         );
         let (launch, failures) = failed.read_for_launch();
-        assert_eq!(launch, [None, None, None, None, None, None, None]);
-        assert_eq!(failures.len(), 7);
+        assert_eq!(launch, std::array::from_fn(|_| None));
+        assert_eq!(failures.len(), INPUT_COUNT);
         let valid = sources(std::array::from_fn(|_| PathBuf::from("/proc/self/status")));
         assert!(valid
             .read()
             .unwrap()
             .iter()
             .all(|value| value.as_ref().is_some_and(|text| !text.is_empty())));
+    }
+
+    #[test]
+    fn without_an_omarchy_shell_toml_the_gtk_font_sizes_the_text() {
+        let absent = sources(std::array::from_fn(|_| {
+            PathBuf::from("/proc/self/flea-absent")
+        }));
+        let mut input: Inputs = std::array::from_fn(|_| None);
+        input[7] = Some("[Settings]\ngtk-font-name=Noto Sans,  10\n".into());
+        assert_eq!(absent.resolve(&input, "monospace").0.fonts.base, 13);
+        // An Omarchy shell.toml, even one naming no size, keeps GTK's font out.
+        input[2] = Some(String::new());
+        assert_eq!(absent.resolve(&input, "monospace").0.fonts.base, 12);
     }
 
     #[test]
