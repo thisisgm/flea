@@ -26,7 +26,7 @@ impl Picker {
             return vec![self.chrome.cancel.clone()];
         }
         let mut stops = Vec::new();
-        if !self.chrome.history.is_empty() {
+        if self.can_go_back() {
             stops.push(self.chrome.back.clone());
         }
         if self.can_go_up() {

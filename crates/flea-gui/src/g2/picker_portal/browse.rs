@@ -106,6 +106,14 @@ impl Browse {
 }
 
 impl Picker {
+    // Sample input: {"c":"list","path":"/d","first":128,"hidden":false}
+    // request_line and paths_line end on the object's closing brace, with no newline.
+    pub(super) fn listing_request(&self, mut line: String, cx: &gpui::App) -> String {
+        let generation = self.browse.listing.read(cx).generation();
+        line.insert_str(line.len() - 1, &format!(",\"pickerGen\":{generation}"));
+        line
+    }
+
     pub(super) fn send_listing(&self, line: &str) -> bool {
         self.listing_child.send(line)
     }
@@ -124,6 +132,15 @@ impl Picker {
 
     // Only an absolute folder lists, or Recent, whose paths the history file names.
     pub fn open_folder(&mut self, path: &str, cx: &mut Context<Self>) {
+        self.open_folder_travel(path, super::navigation::Travel::Open, cx);
+    }
+
+    pub(super) fn open_folder_travel(
+        &mut self,
+        path: &str,
+        travel: super::navigation::Travel,
+        cx: &mut Context<Self>,
+    ) {
         let recent = logic::is_recent(path);
         if !path.starts_with('/') && !recent {
             return;
@@ -133,7 +150,8 @@ impl Picker {
             self.rail.awaiting.clear();
             self.cancel_network(cx);
         }
-        self.remember_folder(path);
+        self.remember_folder(path, travel);
+        self.browse.route.asked.clear();
         self.selection_reset();
         self.validate_marks(false);
         self.find_abandon(cx);
@@ -146,6 +164,7 @@ impl Picker {
             listing.set_hidden(hidden);
             listing.request_line(first)
         });
+        let line = self.listing_request(line, cx);
         self.rail.recent_read = None;
         if recent {
             self.read_recent(cx);
@@ -252,6 +271,9 @@ impl Picker {
         listing.state = facts.state;
         listing.failed = facts.failed;
         listing.cursor_file = facts.cursor_file;
+        if self.listing.failed {
+            self.navigation_failed();
+        }
         if moved {
             self.sync_path(cx);
             if let Some(filename) = &self.browse.filename {

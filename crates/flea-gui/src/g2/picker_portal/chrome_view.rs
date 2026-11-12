@@ -40,7 +40,7 @@ impl Render for ChromeView {
             (
                 "picker-back",
                 "arrow-left",
-                !owner.chrome.history.is_empty(),
+                owner.can_go_back(),
                 Some(owner.chrome.back.clone()),
             ),
             (
