@@ -201,8 +201,8 @@ pub(crate) fn run(
             Ok(Some(status)) => break status,
             Ok(None) => std::thread::sleep(POLL),
             Err(error) => {
-                let _ = child.kill();
-                let _ = child.wait();
+                // Not known to be reaped, so the session it leads is still its own to sweep.
+                stop(&mut child, stack, &mut said);
                 said.finish(TERM_GRACE);
                 return ("failed".into(), crate::error::io_message(&error));
             }

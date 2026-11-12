@@ -216,6 +216,11 @@ impl Omdrop {
         if !(self.phase == Phase::On || self.status.receiving) {
             return Vec::new();
         }
+        self.run_off()
+    }
+
+    // `omdrop off`, which also ends a start still running, whatever Omdrop's status said or failed to say.
+    fn run_off(&mut self) -> Vec<Act> {
         let mut acts = self.drop_devices();
         self.forget_status();
         self.phase = Phase::Stopping;

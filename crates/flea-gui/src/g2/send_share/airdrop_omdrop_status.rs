@@ -102,6 +102,9 @@ impl Omdrop {
                 self.retry.token += 1;
                 self.retry.armed = Some(self.retry.token);
                 acts.push(Act::StatusLater(self.retry.token, RETRY_MS));
+            } else if self.phase == Phase::Confirming && self.chosen.take().is_some() {
+                // No answer is coming, and the Off chosen during `on` must not wait on one.
+                acts.extend(self.run_off());
             }
             return acts;
         };

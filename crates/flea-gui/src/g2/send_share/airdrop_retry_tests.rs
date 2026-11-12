@@ -98,17 +98,35 @@ fn the_off_waiting_on_a_failed_status_runs_when_the_delayed_retry_answers(cx: &m
 }
 
 #[gpui::test]
-fn a_status_that_keeps_failing_is_retried_five_times_and_never_turns_omdrop_off(
+fn a_status_that_keeps_failing_is_retried_five_times_then_the_queued_off_runs(
     cx: &mut TestAppContext,
 ) {
     let (shell, cx) = window(cx);
     let root = off_waiting_on_a_failed_status("retry-bound", &shell, cx);
-    for _ in 0..10 {
+    for _ in 0..4 {
         wait_ms(cx, 2_000);
     }
-    let (status, off) = (ran(&root, "status"), ran(&root, "off"));
+    assert_eq!(ran(&root, "off"), 0, "the Off waits while retries remain");
+    for _ in 0..6 {
+        wait_ms(cx, 2_000);
+    }
+    let log = std::fs::read_to_string(root.join("argv.log")).unwrap_or_default();
     let _ = std::fs::remove_dir_all(&root);
-    assert_eq!((status, off), (2 + 5, 0));
+    let before_off = log
+        .lines()
+        .take_while(|l| !l.starts_with("off"))
+        .filter(|l| l.starts_with("status"))
+        .count();
+    assert_eq!(
+        log.lines().filter(|l| l.starts_with("off")).count(),
+        1,
+        "{log}"
+    );
+    assert_eq!(
+        before_off,
+        2 + 5,
+        "off ran once the fifth retry failed:\n{log}"
+    );
 }
 
 #[gpui::test]
