@@ -10,7 +10,6 @@ use std::collections::HashMap;
 use std::ffi::{c_char, c_int, c_void, CString};
 use std::io;
 use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
-use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard, Weak};
 use std::time::Instant;
@@ -134,10 +133,7 @@ pub fn walk_watched(
     cancelled: &dyn Fn() -> bool,
     watch: &TreeWatch,
 ) -> (DirSize, Pins) {
-    let mut pins = watch.pins();
-    // Taken before the walk arms its start, so a folder swapped in after this misses rather than passes.
-    pins.root = identity(path);
-    let pins = RefCell::new(pins);
+    let pins = RefCell::new(watch.pins());
     if cancelled() {
         return (
             DirSize {
@@ -147,7 +143,14 @@ pub fn walk_watched(
             pins.into_inner(),
         );
     }
-    let arm = |dir: &Path| watch.arm(&mut pins.borrow_mut(), dir);
+    let arm = |_: &Path, held: &Path| {
+        let mut pins = pins.borrow_mut();
+        // The walk has checked this inode before arming it, so no earlier name probe can trigger an automount.
+        if pins.root.is_none() {
+            pins.root = identity(held);
+        }
+        watch.arm(&mut pins, held);
+    };
     let stop = || cancelled() || Instant::now() >= deadline;
     let (size, linked) = walk_display_armed(path, &stop, &super::iomount::mount_body(), Some(&arm));
     let mut pins = pins.into_inner();
@@ -212,8 +215,8 @@ pub struct Pins {
 }
 
 fn identity(path: &Path) -> Option<(u64, u64)> {
-    let meta = path.symlink_metadata().ok()?;
-    Some((meta.dev(), meta.ino()))
+    let meta = super::dirsize::stat::at(path)?;
+    Some((meta.dev, meta.ino))
 }
 
 impl Pins {
