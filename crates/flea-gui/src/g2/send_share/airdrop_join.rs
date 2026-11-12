@@ -254,8 +254,18 @@ impl Shell {
         let path = std::env::var_os("PATH").unwrap_or_default();
         let find =
             |program| flea::ui_logic_send_share::airdrop::find(&path, program).unwrap_or_default();
+        self.airdrop_settings_for((&find("owly"), &find("omdrop")), window, cx);
+    }
+
+    pub(crate) fn airdrop_settings_for(
+        &mut self,
+        tools: (&str, &str),
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         let side = self.focus_side;
-        let owly = self.airdrop_tools((&find("owly"), &find("omdrop")), side, window, cx);
+        let owly = self.airdrop_tools(tools, side, window, cx);
+        self.airdrop_host_lookup(window, cx);
         if self.omdrop_active() {
             return self.omdrop_settings_shown(window, cx);
         }
@@ -268,7 +278,10 @@ impl Shell {
             shell.airdrop_acts(side, acts, window, cx);
         });
         self.airdrop_page(cx);
-        // The host name is read off the window's thread; the page redraws once it is known.
+    }
+
+    // The page's Shown as falls back to this machine's name, read off the window's thread; the page redraws once known.
+    fn airdrop_host_lookup(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         cx.spawn_in(window, async move |this, cx| {
             let host = cx.background_executor().spawn(async { host_name() }).await;
             let _ = this.update_in(cx, |shell, _, cx| {

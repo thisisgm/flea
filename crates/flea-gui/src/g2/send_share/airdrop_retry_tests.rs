@@ -191,3 +191,50 @@ fn a_retry_armed_before_omdrop_is_replaced_asks_neither(cx: &mut TestAppContext)
     );
     assert_eq!(asked, (2, 0));
 }
+
+#[gpui::test]
+fn an_off_queued_during_on_still_runs_when_owly_takes_over(cx: &mut TestAppContext) {
+    let (shell, cx) = window(cx);
+    let (root, omdrop) = omdrop_with_status("retire-off");
+    std::fs::write(root.join("status.json"), OFF).unwrap();
+    acts_from_omdrop(&shell, cx, |om| {
+        let _ = om.facts(&omdrop);
+        om.ask_status()
+    });
+    settle(cx, 300);
+    shell.update_in(cx, |shell, window, cx| {
+        shell.airdrop_receiving(true, "/tmp", window, cx);
+        shell.airdrop_receiving(false, "/tmp", window, cx);
+        // owly appears on PATH before `on` has returned.
+        shell.airdrop_tools(("/usr/bin/owly", ""), 0, window, cx);
+    });
+    settle(cx, 500);
+    let (on, off) = (ran(&root, "on"), ran(&root, "off"));
+    let _ = std::fs::remove_dir_all(&root);
+    assert_eq!((on, off), (1, 1), "the Off chosen during on still ran");
+}
+
+#[gpui::test]
+fn the_omdrop_page_learns_this_machines_name_for_shown_as(cx: &mut TestAppContext) {
+    let (shell, cx) = window(cx);
+    let (root, omdrop) = omdrop_with_status("host");
+    std::fs::write(
+        root.join("status.json"),
+        r#"{"receiving": false, "visible": false, "name": "", "dir": "/tmp"}"#,
+    )
+    .unwrap();
+    shell.update_in(cx, |shell, window, cx| {
+        shell.airdrop_settings_for(("", &omdrop), window, cx)
+    });
+    settle(cx, 500);
+    let (active, host) = shell.update(cx, |shell, _| {
+        (
+            shell.omdrop_active(),
+            shell.menu.providers.airdrop_host.clone(),
+        )
+    });
+    let _ = std::fs::remove_dir_all(&root);
+    let want = std::fs::read_to_string("/proc/sys/kernel/hostname").unwrap_or_default();
+    assert!(active, "omdrop runs AirDrop");
+    assert_eq!(host, want.trim(), "Shown as has a name to fall back on");
+}

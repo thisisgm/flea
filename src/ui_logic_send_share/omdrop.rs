@@ -145,8 +145,13 @@ pub fn send_argv(omdrop: &str, peer: &str, paths: &[String]) -> Vec<String> {
 }
 
 // Save received files to, chosen on the page, is Omdrop's own folder setting.
+// `omdrop dir` may restart the receiver; one that hangs past this is killed, so the next folder choice can run.
+pub const DIR_TIMEOUT_SECS: u64 = 30;
+
 pub fn dir_argv(omdrop: &str, folder: &str) -> Vec<String> {
-    vec![omdrop.into(), "dir".into(), folder.into()]
+    let mut argv = vec!["timeout".into(), "--signal=KILL".into(), DIR_TIMEOUT_SECS.to_string()];
+    argv.extend([omdrop.into(), "dir".into(), folder.into()]);
+    argv
 }
 
 #[cfg(test)]
