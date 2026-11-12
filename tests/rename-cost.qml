@@ -80,13 +80,13 @@ ShellRoot {
     property var warm: null
     property int rests: 0
     property int plans: 0
-    // Per case: the rows replies it saw, the fields they armed on arrival, and the fields still unarmed in the pane one turn after a reply (the handler arms the reply's rows, not the pane's).
+    // Per case: rows replies, fields armed when they land, and fields still unarmed one turn after a reply.
     property var replyLog: []
     property int escapeChecked: 0
     property bool warmStarted: false
     property bool advancing: false
     // Field reads of held rows, in an object never reassigned: a getter that wrote a property would loop every binding that reads a row.
-    readonly property var tally: ({ rowReads: 0 })
+    readonly property var tally: ({ rowReads: 0, rows: null, landing: null })
 
     function check(cond, label) {
         root.checks++
@@ -416,8 +416,8 @@ ShellRoot {
         function onSelectionVersionChanged() { root.selectionBumps++ }
         function onCursorRowChanged() { root.cursorRowEvals++ }
         function onInputAtChanged() { root.inputs++ }
-        // Qt 6.12 hands each rows handler its own copy of the reply, so the pane's held rows are armed as they land.
-        function onRowsChanged() { Cost.armRows(root) }
+        // Qt 6.12 gives each reply handler its own rows, so arm the held copies and credit the reply as they land.
+        function onRowsChanged() { Cost.armLandedRows(root) }
     }
     Connections {
         target: root.warm ? root.warm.prepare : null
@@ -433,13 +433,13 @@ ShellRoot {
     }
     Connections {
         target: root.pane ? root.pane.backend : null
-        // This handler runs before the pane's own takeRows and arms the reply's row objects, the ones the pane holds before Qt 6.12.
+        // This handler runs before takeRows; the landing handler credits the fresh counted copies to this reply.
         function onRows(start, items) {
             root.rowsReplies++
             var seen = root.replyLog[root.caseIndex]
             if (seen === undefined) { seen = { replies: 0, armed: 0, late: 0 }; root.replyLog[root.caseIndex] = seen }
             seen.replies++
-            seen.armed += Cost.armItems(root, items)
+            root.tally.landing = seen
             Qt.callLater(function () { seen.late += Cost.armRows(root) })
         }
     }
