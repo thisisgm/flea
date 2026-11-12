@@ -24,6 +24,8 @@ impl Snapshot {
 
 /// How many files a presentation reads: seven Omarchy and fontconfig inputs, then GTK 4's settings.ini.
 pub(super) const INPUT_COUNT: usize = 8;
+// GTK 4's settings.ini in `Sources::inputs`.
+const GTK_SETTINGS: usize = 7;
 pub(super) type Inputs = [Option<String>; INPUT_COUNT];
 /// The most bytes one input may hold; a larger file is refused, never cut.
 pub(super) const INPUT_CAP: usize = 65536;
@@ -102,10 +104,18 @@ impl Sources {
     }
 
     /// Every input or the first failure: a live change that cannot be read keeps the last complete snapshot.
+    /// GTK's settings.ini only counts without either Omarchy shell.toml, so with one its failures are
+    /// ignored and can never hold back an Omarchy change.
     pub fn read(&self) -> io::Result<Inputs> {
-        let mut inputs = std::array::from_fn(|_| None);
-        for (path, input) in self.inputs.iter().zip(&mut inputs) {
-            *input = Self::read_one(path)?;
+        let mut inputs: Inputs = std::array::from_fn(|_| None);
+        for at in 0..INPUT_COUNT {
+            inputs[at] = match Self::read_one(&self.inputs[at]) {
+                // Both shell.toml copies, inputs 1 and 2, are read first; while one is there GTK sizes nothing.
+                Err(_) if at == GTK_SETTINGS && (inputs[1].is_some() || inputs[2].is_some()) => {
+                    None
+                }
+                result => result?,
+            };
         }
         Ok(inputs)
     }
@@ -218,6 +228,28 @@ mod tests {
             .unwrap()
             .iter()
             .all(|value| value.as_ref().is_some_and(|text| !text.is_empty())));
+    }
+
+    #[test]
+    fn an_unreadable_gtk_settings_never_holds_back_an_omarchy_shell_toml() {
+        let fixture = super::super::fixture::Fixture::new("gtk-settings");
+        let shell = fixture.path().join("shell.toml");
+        fixture.write(&shell, "[font]\nbase-size=14");
+        let at = |omarchy: &PathBuf| {
+            sources(std::array::from_fn(|at| match at {
+                2 => omarchy.clone(),
+                // A directory fails a regular-file read, as an oversized or unreadable file does.
+                7 => PathBuf::from("/proc/self"),
+                _ => PathBuf::from("/proc/self/flea-absent"),
+            }))
+        };
+        let read = at(&shell)
+            .read()
+            .expect("Omarchy's shell.toml reads past a broken settings.ini");
+        assert!(read[2].is_some() && read[7].is_none());
+        // Without either shell.toml the settings are live, so their failure keeps the last snapshot.
+        assert!(at(&fixture.path().join("absent")).read().is_err());
+        fixture.cleanup();
     }
 
     #[test]

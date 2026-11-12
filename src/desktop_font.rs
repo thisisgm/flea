@@ -10,11 +10,14 @@ const PX_PER_PT: f64 = 96.0 / 72.0;
 // A size outside this range is a typo or a joke, never a desktop's text size.
 const SANE_PX: std::ops::RangeInclusive<f64> = 6.0..=72.0;
 
-// Sample input: "Noto Sans,  10", "Adwaita Sans 11", "Inter Bold 10.5" or "Cantarell 14px".
+// Sample input: "Noto Sans,  10", "Adwaita Sans 11", "Inter Bold 10.5", "Cantarell 14px" or
+// "Inter 14 @wght=450 #tnum=1": Pango puts variations (@) and features (#) after the size.
 fn size_px(description: &str) -> Option<u32> {
     let last = description
-        .rsplit(|c: char| c.is_whitespace() || c == ',')
-        .find(|word| !word.is_empty())?;
+        .split(|c: char| c.is_whitespace() || c == ',')
+        .filter(|word| !word.is_empty())
+        .take_while(|word| !word.starts_with(['@', '#']))
+        .last()?;
     let px = match last.strip_suffix("px") {
         Some(px) => px.parse::<f64>().ok()?,
         None => last.parse::<f64>().ok()? * PX_PER_PT,
@@ -56,6 +59,8 @@ mod tests {
         assert_eq!(base_px(&ini("Inter Bold 10.5")), Some(14));
         assert_eq!(base_px(&ini("Cantarell 14px")), Some(14));
         assert_eq!(base_px(&ini("\"Noto Sans 12\"")), Some(16));
+        assert_eq!(base_px(&ini("Inter 14 @wght=450")), Some(19));
+        assert_eq!(base_px(&ini("Inter 14 @wght=450,opsz=14 #tnum=1")), Some(19));
     }
 
     #[test]
