@@ -1,7 +1,7 @@
 //! The settled List's visible folder sizes, using the existing backend walker and bounded planner.
-use super::{columns::Column, pane::Held};
+use super::pane::Held;
 use crate::{
-    navigation::sort::{wants_sizes, DirSizes, Size},
+    navigation::sort::{DirSizes, Size},
     pane::requests::RowAction,
     state::Shell,
     window::startup::View,
@@ -10,6 +10,9 @@ use flea::jsondoc::Json;
 use gpui::{Context, Task, Window};
 use std::{rc::Rc, time::Duration};
 
+#[path = "sizes_demand.rs"]
+mod demand;
+
 // ui/Pane.qml: the first rest is 70 ms, subsequent rests 120 ms, with 240 answered rows.
 const FIRST_MS: u64 = 70;
 const SETTLE_MS: u64 = 120;
@@ -17,8 +20,15 @@ const CAP: usize = 240;
 
 #[derive(Debug)]
 pub enum Reply {
-    Filesystem { path: String, class: String },
-    Sized { row: usize, size: Size },
+    Filesystem {
+        path: String,
+        class: String,
+    },
+    Sized {
+        listing: Option<usize>,
+        row: usize,
+        size: Size,
+    },
 }
 
 pub(crate) fn parse(document: &Json) -> Result<Option<Reply>, String> {
@@ -41,6 +51,14 @@ pub(crate) fn parse(document: &Json) -> Result<Option<Reply>, String> {
             class: text("class")?,
         }),
         Some("dirsized") => Some(Reply::Sized {
+            listing: document
+                .get("listing")
+                .map(|_| {
+                    unsigned("listing").and_then(|value| {
+                        usize::try_from(value).map_err(|_| "listing must fit an index".into())
+                    })
+                })
+                .transpose()?,
             row: usize::try_from(unsigned("row")?).map_err(|_| "row must fit an index")?,
             size: Size {
                 bytes: unsigned("bytes")?,
@@ -199,7 +217,7 @@ impl Shell {
         let state = &mut host.sizes;
         // Every new answer, a re-list's first or a later window on the same listing, installs its own inline sizes.
         let fresh = !Rc::ptr_eq(&state.held, current);
-        if state.held.listing != current.listing {
+        if state.held.listing != current.listing || state.path != host.path {
             state.cancel(backend);
             // PaneSwap.applyListed: a re-list starts its walks clean, since a move into a folder changes its size.
             if state.path != host.path {
@@ -232,7 +250,12 @@ impl Shell {
         if state.key.as_ref() == Some(&key) {
             return;
         }
-        state.cancel(backend);
+        let visible = demand::visible(host, self.view == View::Columns);
+        host.sizes.task = None;
+        if let Err(error) = host.sizes.retain_visible(backend, &visible) {
+            host.record_error(error, &self.locale);
+        }
+        let state = &mut host.sizes;
         state.key = Some(key.clone());
         let delay = if state.asked_sizes {
             SETTLE_MS
@@ -276,36 +299,19 @@ impl Shell {
             return;
         }
         host.sizes.task = None;
-        let columns = self.view == View::Columns;
-        let class = host.sizes.class.as_deref();
-        let surface = if columns { "columns" } else { "list" };
-        if !wants_sizes(surface, &[], class.unwrap_or_default(), class.is_some()) {
+        let visible = demand::visible(host, self.view == View::Columns);
+        host.sizes.key = Some(key);
+        if let Err(error) = host.sizes.retain_visible(backend, &visible) {
+            host.record_error(error, &self.locale);
+            cx.notify();
             return;
         }
         let held = &host.pane.held;
-        let ask = if columns {
-            let Some((first, last)) = crate::columns::walks::painted_rows(host, key.listing) else {
-                return;
-            };
-            host.sizes.sizes.plan(&held.rows, held.start, first, last)
-        } else {
-            let list = host.list.borrow();
-            if !host.drawn_list
-                || list.drawn.listing != key.listing
-                || !list.drawn.layout.shown(Column::Size)
-            {
-                return;
-            }
-            // A filter's listing indexes need not be adjacent or ascending.
-            list.visible()
-                .iter()
-                .flat_map(|row| {
-                    host.sizes
-                        .sizes
-                        .plan(&held.rows, held.start, row.index, row.index)
-                })
-                .collect()
-        };
+        let ask: Vec<_> = visible
+            .into_iter()
+            .filter(|row| !host.sizes.waiting.contains(row))
+            .flat_map(|row| host.sizes.sizes.plan(&held.rows, held.start, row, row))
+            .collect();
         if ask.is_empty() {
             return;
         }
@@ -320,7 +326,7 @@ impl Shell {
                 host.sizes.requests += 1;
                 host.sizes.asked_sizes = true;
                 host.sizes.sizes.applied(&ask);
-                host.sizes.waiting = ask;
+                host.sizes.waiting.extend(ask);
             }
             Err(error) => {
                 host.record_error(error, &self.locale);
@@ -344,7 +350,11 @@ impl Shell {
                     cx.notify();
                 }
             }
-            Reply::Sized { row, size } if host.sizes.held.listing == host.pane.held.listing => {
+            Reply::Sized { listing, row, size }
+                if host.sizes.held.listing == host.pane.held.listing
+                    && host.sizes.path == host.path
+                    && listing.is_none_or(|listing| listing == host.pane.held.listing) =>
+            {
                 let Some(at) = host.sizes.waiting.iter().position(|asked| *asked == row) else {
                     return;
                 };
@@ -367,8 +377,9 @@ impl super::ListView {
             self.walked.clear();
             self.walked_listing = listing;
         }
-        self.walked.insert(row, size);
-        self.walked_revision += 1;
+        if self.walked.insert(row, size) != Some(size) {
+            self.walked_revision += 1;
+        }
     }
 
     /// What a cached row's clip mark and walked size were resolved against in this listing.

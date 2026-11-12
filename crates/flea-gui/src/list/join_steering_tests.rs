@@ -1,6 +1,9 @@
 //! Controller native findings: walked folder bytes and selection from the same painted frame.
 use super::{ask, frame, open};
 
+#[path = "fx400_tests.rs"]
+mod fx400;
+
 #[path = "s4_size_tests.rs"]
 mod s4_size_tests;
 

@@ -41,9 +41,17 @@ impl DirSizes {
         self.file.values().any(Option::is_none)
     }
 
-    // A scroll cancels every row still waiting, matching the backend's own dirsizecancel.
+    // A full cancellation forgets pending rows, retaining the completed facts.
     pub fn cancelled(&mut self) {
         self.file.retain(|_, value| value.is_some());
+        let file = &self.file;
+        self.order.retain(|row| file.contains_key(row));
+    }
+
+    // Selective cancellation forgets only pending rows that left the painted demand.
+    pub fn cancel_rows(&mut self, rows: &[usize]) {
+        self.file
+            .retain(|row, value| value.is_some() || !rows.contains(row));
         let file = &self.file;
         self.order.retain(|row| file.contains_key(row));
     }

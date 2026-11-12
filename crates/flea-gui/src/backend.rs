@@ -301,7 +301,7 @@ impl Backend {
     }
 
     pub fn rows(&self, command: &'static str, action: RowAction) -> Result<(), Failure> {
-        if !matches!(command, "paths" | "trash" | "dirsize")
+        if !matches!(command, "paths" | "trash" | "dirsize" | "dirsizecancel")
             || action.listing == 0
             || action.rows.is_empty()
         {

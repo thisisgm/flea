@@ -707,12 +707,12 @@ fn handle_line(
             super::trashthumb::cancel(out, st, pool, &ids);
         }
         Request::DirSize { rows } => {
-            queue_dirsizes(out, st, &rows);
+            if super::dirsizereq::current(st, line) {
+                queue_dirsizes(out, st, &rows);
+            }
         }
-        // No rows form: a stale row from a scrolled-past viewport would delay the rows the new one wants, see docs/protocol.md "dirsizecancel".
-        Request::DirSizeCancel => {
-            st.dirsize_queue.clear();
-            st.dirsize_worker.cancel();
+        Request::DirSizeCancel { rows } => {
+            super::dirsizereq::cancel(st, &rows, line);
         }
         Request::Transfer { op, paths, rows, dest, menu_id, shelf, collide } => {
             if !shelf.is_empty() {
