@@ -166,6 +166,8 @@ fn theme_gate_live_switch_whole_window() {
     let updates = source.subscribe();
     assert_eq!(updates.try_recv().unwrap().theme, initial.theme);
     let mut cx = crate::list::bench::real_cx();
+    // window::open builds the real backend, whose worker the test scope joins on quit.
+    crate::backend::Backend::test_scope(&mut cx);
     cx.update(|cx| {
         initial.install(cx);
         cx.set_reduce_motion(true);
