@@ -31,9 +31,11 @@ name_tip_shot() (
                 [ "$(hyprctl getoption decoration:rounding -j | jq -er .int)" = "$previous_rounding" ] ||
                 { state_failure "decoration:rounding was not restored to $previous_rounding"; status=1; }
             exit "$status"' EXIT
-        hyprctl eval 'hl.config({ decoration = { rounding = 8 } })' > /dev/null &&
-            [ "$(hyprctl getoption decoration:rounding -j | jq -er .int)" = 8 ] ||
-            { state_failure "decoration:rounding did not change from $previous_rounding to 8"; return 1; }
+        # The session rounding already draws the other cases, so this case raises it by 8.
+        local rounding=$((previous_rounding + 8))
+        hyprctl eval "hl.config({ decoration = { rounding = $rounding } })" > /dev/null &&
+            [ "$(hyprctl getoption decoration:rounding -j | jq -er .int)" = "$rounding" ] ||
+            { state_failure "decoration:rounding did not change from $previous_rounding to $rounding"; return 1; }
     fi
     mkdir -p "$root" || return 1
     : > "$root/.flea-test-sandbox" || return 1
