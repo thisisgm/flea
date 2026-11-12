@@ -37,15 +37,7 @@ impl Fixture {
         // The normal workspace build supplies this sibling, as tests/gui-ipc.sh also requires.
         let binary = std::env::var_os("FLEA_GH315_BACKEND")
             .map(PathBuf::from)
-            .unwrap_or_else(|| {
-                std::env::current_exe()
-                    .unwrap()
-                    .parent()
-                    .unwrap()
-                    .parent()
-                    .unwrap()
-                    .join("flea")
-            });
+            .unwrap_or_else(|| crate::cargo_artifacts::binary("flea"));
         assert!(
             binary.is_file(),
             "build the matching flea backend before these tests: {}",

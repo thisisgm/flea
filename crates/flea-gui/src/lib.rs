@@ -1,6 +1,9 @@
 pub mod backend;
 mod bench_thumbs;
 mod capture;
+#[cfg(test)]
+#[path = "../../../tests/lib/cargo_artifacts.rs"]
+mod cargo_artifacts;
 pub mod columns;
 pub(crate) mod compositor;
 #[cfg(test)]

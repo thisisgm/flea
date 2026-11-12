@@ -257,10 +257,14 @@ class Controls(unittest.TestCase):
         from unittest import mock
         hello = 'UISH\t{"sequence": null, "result": {"ok": true, "value": {"protocol": "flea-uish-headless-v1"}}}'
         target = self.root / "target"
-        driver = target / "release/deps/uish_driver-0"
+        drivers = [target / path for path in ("release/deps/uish_driver-0", "release/build/flea-gui/abcd/out/uish_driver-0")]
+        driver = drivers[0]
         driver.parent.mkdir(parents=True)
         driver.write_text("#!/bin/sh\nprintf '%s\\n' '" + hello + "'\nread -r line\nexit 0\n")
         driver.chmod(0o700)
+        drivers[1].parent.mkdir(parents=True)
+        drivers[1].write_bytes(driver.read_bytes())
+        drivers[1].chmod(0o700)
         backend = target / "release/flea"
         backend.write_text("#!/bin/sh\n")
         backend.chmod(0o700)
@@ -272,8 +276,9 @@ class Controls(unittest.TestCase):
         # A flea under CARGO_TARGET_DIR is never the backend; only the one beside the driver's profile is.
         with mock.patch.dict(os.environ, {"CARGO_TARGET_DIR": str(decoy)}):
             os.environ.pop("FLEA_BIN", None)
-            with headless.Host(driver, timeout=1) as host:
-                self.assertEqual(host.source["backend"], str(backend.resolve()))
+            for driver in drivers:
+                with self.subTest(driver=driver), headless.Host(driver, timeout=1) as host:
+                    self.assertEqual(host.source["backend"], str(backend.resolve()))
 
     def host_run(self, headless, mock, name, script, body, kind):
         driver = self.root / (name + "-driver")
