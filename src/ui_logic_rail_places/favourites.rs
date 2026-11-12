@@ -213,11 +213,15 @@ impl Favourites {
         }
     }
 
-    // The visible indices still unchecked, as one `inspect` operation; None while one runs or nothing is new.
+    // Unchecked or unavailable visible indices, asked again only on a viewport change or explicit activation.
     pub fn inspect(&mut self, visible: &[usize]) -> Option<String> {
         let pending: Vec<Json> = visible
             .iter()
-            .filter(|index| !self.statuses.contains_key(index))
+            .filter(|index| {
+                self.statuses
+                    .get(index)
+                    .map_or(true, |status| !status.is_empty())
+            })
             .take(INSPECT_MAX)
             .map(|index| num(*index))
             .collect();

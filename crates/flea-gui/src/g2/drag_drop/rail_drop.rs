@@ -90,7 +90,7 @@ impl Shell {
         let name = producer.laid.borrow().row(row)?.label.clone();
         let side = producer.side;
         let host = self.panes.get(side)?.as_ref()?;
-        if host.pane.busy() || entry.error.is_some() {
+        if host.pane.busy() || entry.invalid_record() {
             return None;
         }
         let paths = lift.paths.as_ref()?;

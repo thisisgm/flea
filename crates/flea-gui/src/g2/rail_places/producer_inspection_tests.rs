@@ -1,6 +1,9 @@
 //! The painted rail asks the real favorites CLI about its visible local paths.
 use super::*;
 
+#[path = "producer_availability_tests.rs"]
+mod availability;
+
 use std::process::Command;
 
 struct Rail(gpui::Entity<Producer>);
