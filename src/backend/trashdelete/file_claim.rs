@@ -7,6 +7,8 @@ static HELD_REVIEW_HANDLES: AtomicUsize = AtomicUsize::new(0);
 
 struct ReviewHold;
 impl ReviewHold {
+    // try_update needs Rust 1.95, newer than the workspace rust-version 1.77, so fetch_update stays.
+    #[allow(deprecated)]
     fn take() -> Option<Self> {
         let limit = MAX_REVIEW_HANDLES;
         #[cfg(test)]

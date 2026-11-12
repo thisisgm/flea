@@ -12,7 +12,7 @@ clippy::manual_pattern_char_comparison|style|1
 clippy::manual_range_contains|style|1
 clippy::map_identity|complexity|1
 clippy::single_match|style|2
-clippy::too_many_arguments|complexity|17
+clippy::too_many_arguments|complexity|16
 clippy::type_complexity|complexity|3
 clippy::unnecessary_cast|complexity|3
 clippy::unnecessary_sort_by|complexity|3
