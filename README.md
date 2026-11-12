@@ -245,7 +245,9 @@ If this saved you an afternoon, you can
 [MIT](LICENSE).
 
 The AirDrop plugin is built on [owly](https://github.com/t4t5/owly) by Tristan
-([t4t5](https://github.com/t4t5)), MIT, which Flea runs as a separate program.
+([t4t5](https://github.com/t4t5)), MIT, which Flea runs as a separate program. Without owly, it runs
+[Omdrop](https://github.com/netmojo-systems/omdrop-plugin) by Brent Kearney ([netmojo](https://github.com/netmojo)),
+MIT, the same way.
 
 The language marks in `ui/js/LangMarkPaths.js` use [simple-icons](https://github.com/simple-icons/simple-icons)
 geometry (CC0 1.0) and remain their owners' trademarks.
