@@ -3,6 +3,7 @@ use super::airdrop::Act;
 use super::airdrop_omdrop::{DirDone, DirJob};
 use super::airdrop_run::Origin;
 use super::join::now_ms;
+use super::seams::Action;
 use crate::state::Shell;
 use flea::bytename::{args, text_name};
 use flea::ui_logic_context_menus::airdrop::{peer_id, TURN_ON};
@@ -11,24 +12,6 @@ use flea::ui_logic_send_share::omdrop::{self, Stack, Tool};
 use flea::ui_logic_send_share::providers::Role;
 use gpui::{Context, Window};
 use std::process::{Command, Stdio};
-
-// The Off chosen during `on` is still the user's choice once Omdrop stops running AirDrop: Omdrop's `off` also ends a start
-// still running. Nothing it says lands on the stack that took over.
-fn omdrop_off_retired(argv: Vec<String>, cx: &mut Context<Shell>) {
-    cx.background_executor()
-        .spawn(async move {
-            let ran = Command::new(text_name(&argv[0]))
-                .args(args(&argv[1..]))
-                .stdin(Stdio::null())
-                .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .status();
-            if !ran.as_ref().is_ok_and(|s| s.success()) {
-                eprintln!("flea: the Off chosen during omdrop on did not run once Omdrop was replaced: {ran:?}");
-            }
-        })
-        .detach();
-}
 
 impl Shell {
     pub(super) fn omdrop_active(&self) -> bool {
@@ -56,7 +39,7 @@ impl Shell {
         let off = (om.path() != omdrop).then(|| om.queued_off()).flatten();
         let retired = self.menu.providers.omdrop.facts(&omdrop);
         if let Some(argv) = off {
-            omdrop_off_retired(argv, cx);
+            self.omdrop_off_retired(argv, side, window, cx);
         }
         self.stack_acts(Origin::omdrop(side), retired, window, cx);
         if !was_omdrop && self.omdrop_active() {
@@ -67,6 +50,40 @@ impl Shell {
             true => owly.to_string(),
             false => String::new(),
         }
+    }
+
+    // The Off chosen during `on` is still the user's choice once Omdrop stops running AirDrop: Omdrop's `off` also ends a
+    // start still running. Nothing it says lands on the stack that took over, but a refusal is said in the footer.
+    fn omdrop_off_retired(
+        &mut self,
+        argv: Vec<String>,
+        side: usize,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        cx.spawn_in(window, async move |this, cx| {
+            let run = cx.background_executor().spawn(async move {
+                Command::new(text_name(&argv[0]))
+                    .args(args(&argv[1..]))
+                    .stdin(Stdio::null())
+                    .stdout(Stdio::null())
+                    .output()
+            });
+            let why = match run.await {
+                Ok(out) if out.status.success() => return,
+                Ok(out) => match omdrop::reason(&String::from_utf8_lossy(&out.stderr)) {
+                    why if why.is_empty() => format!("omdrop off: {}", out.status),
+                    why => why,
+                },
+                Err(error) => format!("omdrop off: {error}"),
+            };
+            let _ = this.update_in(cx, |shell, window, cx| {
+                let said = (shell.locale.catalog)
+                    .tr_args("send.providers.airdrop_reason", &[why.as_str()]);
+                shell.provider_actions(side, vec![Action::Say(said, true)], window, cx);
+            });
+        })
+        .detach();
     }
 
     // A file menu just opened: Omdrop's status, then a lookup while the row shows.
