@@ -843,13 +843,13 @@ Selected: MIT
 Targets: aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu
 Texts: 025436edff4cfcdde17a5811fdea78892d8482efd1abdec5a17872d07a4f2112 a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2
 
-flea 0.4.2 (workspace)
+flea 0.4.3 (workspace)
 SPDX: MIT
 Selected: MIT
 Targets: aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu
 Texts: d2a2191fc6fa3fb43cd6dfe0a7b156ded8f4a5e23c498ef1111788c37ec4f0c4
 
-flea-gui 0.4.2 (workspace)
+flea-gui 0.4.3 (workspace)
 SPDX: MIT
 Selected: MIT
 Targets: aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu
@@ -20224,8 +20224,8 @@ DEALINGS IN THE SOFTWARE.
 Text SHA256: d2a2191fc6fa3fb43cd6dfe0a7b156ded8f4a5e23c498ef1111788c37ec4f0c4
 Covers:
   Flea: LICENSE
-  flea 0.4.2 (workspace): LICENSE
-  flea-gui 0.4.2 (workspace): workspace/LICENSE
+  flea 0.4.3 (workspace): LICENSE
+  flea-gui 0.4.3 (workspace): workspace/LICENSE
 
 MIT License
 
