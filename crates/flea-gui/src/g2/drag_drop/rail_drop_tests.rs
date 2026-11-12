@@ -217,6 +217,45 @@ fn ey221_raildrop_release_on_home_moves_into_it() {
 }
 
 #[test]
+fn fx462_a_cached_unavailable_place_accepts_a_drop_after_its_target_returns() {
+    let root = Root::new("returned-rail");
+    let home = home(&root);
+    let mut cx = bench::real_cx();
+    let (handle, mut lines) = open(&mut cx, root.src());
+    frame(&mut cx, handle);
+    rail(&mut cx, handle, &home);
+    handle
+        .update(&mut cx, |shell, _, cx| {
+            shell
+                .rail
+                .as_ref()
+                .unwrap()
+                .places
+                .update(cx, |producer, cx| {
+                    let mut sections = producer.sections.clone();
+                    sections[0].rows[0].error =
+                        Some(flea::ui_logic_rail_places::rail::FavouriteError::Status(
+                            "unavailable (NotFound)".into(),
+                        ));
+                    producer.replace_sections(sections, cx);
+                });
+        })
+        .unwrap();
+    frame(&mut cx, handle);
+    let file = centre(&mut cx, handle, 1);
+    let to = rail_centre(&mut cx, handle, 0);
+    let mut vcx = VisualTestContext::from_window(handle.into(), &cx);
+    hold(&mut vcx, file, to, Modifiers::default());
+    vcx.simulate_mouse_up(to, MouseButton::Left, Modifiers::default());
+    vcx.run_until_parked();
+    let transfer = transfer(&mut vcx, handle, &mut lines);
+    assert!(
+        transfer.contains(&format!(r#""dest":"{home}""#)),
+        "{transfer}"
+    );
+}
+
+#[test]
 fn ey221_raildrop_ctrl_at_the_release_copies() {
     let root = Root::new("railcopy");
     let home = home(&root);

@@ -116,6 +116,11 @@ pub enum Identity {
 }
 
 impl RailEntry {
+    // Record errors are permanent; an inspection status describes only the last availability check.
+    pub fn invalid_record(&self) -> bool {
+        matches!(self.error, Some(FavouriteError::Record(_)))
+    }
+
     // The device node, uri or path that names a device, share or phone row, as Mounts.railKey reads it.
     pub fn rail_key(&self) -> &str {
         match (self.group, self.kind) {

@@ -307,30 +307,6 @@ impl Producer {
         self.entries().into_iter().nth(index)
     }
 
-    pub fn activate(&mut self, index: usize, cx: &mut Context<Self>) {
-        let Some(entry) = self.entry(index) else {
-            return;
-        };
-        if entry.error.is_some() {
-            return;
-        }
-        self.model.borrow_mut().cursor = Some(index);
-        match entry.kind {
-            Kind::Recent => {
-                let path = self.history_file();
-                self.read_recent(path, cx);
-            }
-            Kind::Trash => self.queue(Event::Trash),
-            Kind::Share | Kind::Volume | Kind::Disk | Kind::Phone | Kind::Tag | Kind::PluginRow => {
-                self.queue(Event::Activate(entry))
-            }
-            _ if !entry.path.starts_with('/') => self.queue(Event::Activate(entry)),
-            _ if !entry.path.is_empty() => self.queue(Event::Open(entry.path.clone())),
-            _ => {}
-        }
-        cx.notify();
-    }
-
     pub(crate) fn row_at(&self, position: gpui::Point<gpui::Pixels>) -> Option<usize> {
         let (x, y) = (f32::from(position.x), f32::from(position.y));
         self.laid
@@ -380,6 +356,7 @@ impl Producer {
                 cx.notify();
             }
             MouseButton::Middle => {
+                self.retry_availability(&entry, cx);
                 self.model.borrow_mut().cursor = Some(index);
                 self.queue(Event::Tab(entry));
                 cx.notify();

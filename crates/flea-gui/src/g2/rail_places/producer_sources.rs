@@ -1,5 +1,6 @@
 //! Background source loading and complete snapshot adoption for the live rail.
 use super::*;
+use flea::ui_logic_rail_places::order::with_statuses;
 
 impl Producer {
     pub fn set_locale(&mut self, catalog: Arc<I18n>, cx: &mut Context<Self>) {
@@ -48,17 +49,8 @@ impl Producer {
         let in_use = self.places.read(cx).tags_in_use;
         let rows = home_entries(&self.home, &self.dirs, home_glyph);
         let records = &self.places.read(cx).favourites.records;
-        let mut favourites = stored_entries(records, &self.home);
         let statuses = &self.places.read(cx).favourites.statuses;
-        for entry in &mut favourites {
-            if let Some(status) = entry.favourite_index.and_then(|index| statuses.get(&index)) {
-                if !status.is_empty() {
-                    entry.error = Some(flea::ui_logic_rail_places::rail::FavouriteError::Status(
-                        status.clone(),
-                    ));
-                }
-            }
-        }
+        let favourites = with_statuses(stored_entries(records, &self.home), statuses);
         let sections = rail_sections(
             &rows,
             saved.shown,
