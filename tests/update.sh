@@ -9,6 +9,7 @@ BIN=./target/debug/flea
 [ -x "$BIN" ] || { echo "update.sh: $BIN is missing, run cargo build" >&2; exit 1; }
 # current_exe() answers with the kernel's resolved path, which is what the stub pacman is asked to own.
 BIN_REAL=$(readlink -f "$BIN")
+check_binary=$BIN
 fail=0
 
 check() {
@@ -52,7 +53,7 @@ stub() {
 # Sample input: pacman -Qqo /src/target/debug/flea, then pacman -Qi flea.
 stub pacman '
 case "$1" in
-  -Qqo) [ -n "${STUB_OWNER-}" ] || exit 1; printf "%s\n" "$STUB_OWNER" ;;
+  -Qqo) [ -n "${STUB_OWNER-}" ] || exit 1; [ -z "${STUB_OWNED_PATH-}" ] || [ "$2" = "$STUB_OWNED_PATH" ] || exit 1; printf "%s\n" "$STUB_OWNER" ;;
   -Qi) printf "Name            : %s\nVersion         : %s\nValidated By    : %s\n" "$2" "$STUB_INSTALLED" "$STUB_VALIDATED" ;;
   *) exit 1 ;;
 esac'
@@ -66,7 +67,7 @@ run_check() {
   : > "$calls"
   env -i HOME="$D/home" XDG_DATA_HOME="$D/data" XDG_CONFIG_HOME="$D/config" XDG_CACHE_HOME="$D/cache" PATH="$D/bin" "$@" LC_ALL=C.UTF-8 /usr/bin/env -0 \
     | LC_ALL=C.UTF-8 LANGUAGE= sort -z > "$D/expected.env"
-  out=$(env -i HOME="$D/home" XDG_DATA_HOME="$D/data" XDG_CONFIG_HOME="$D/config" XDG_CACHE_HOME="$D/cache" PATH="$D/bin" LC_ALL=de_DE.UTF-8 LANGUAGE=de:ar "$@" "$BIN" --update check 2>"$D/stderr")
+  out=$(env -i HOME="$D/home" XDG_DATA_HOME="$D/data" XDG_CONFIG_HOME="$D/config" XDG_CACHE_HOME="$D/cache" PATH="$D/bin" LC_ALL=de_DE.UTF-8 LANGUAGE=de:ar "$@" "$check_binary" --update check 2>"$D/stderr")
   rc=$?
   err=$(cat "$D/stderr")
   check "every parser child received only the expected environment" "0" "$(grep -c ' ENV=unexpected$' "$calls")"
@@ -87,6 +88,28 @@ check "a local build prints unchecked local with its version" "unchecked local 0
 check "and exits with nothing to install" "3" "$rc"
 check "and pacman described it in the C.UTF-8 locale" "1" "$(grep -Fxc 'pacman -Qi flea LC_ALL=C.UTF-8 LANGUAGE=unset NARGS=2 ENV=exact' "$calls")"
 check "and asked no source" "0|0" "$(called checkupdates)|$(called curl)"
+
+# An installed package must not claim a checkout or an unpacked release beside it.
+for relative in installed/usr/bin/flea checkout/target/debug/flea home/.local/bin/flea; do
+  mkdir -p "$D/$(dirname "$relative")"
+  cp "$BIN_REAL" "$D/$relative"
+done
+installed_binary=$D/installed/usr/bin/flea
+for validated in Signature None; do
+  check_binary=$installed_binary
+  run_check STUB_OWNER=flea STUB_OWNED_PATH="$installed_binary" STUB_INSTALLED=0.4.2-2 STUB_VALIDATED="$validated"
+  expected='unchecked local 0.4.2-2 -'
+  [ "$validated" != Signature ] || expected='current opr 0.4.2-2 -'
+  check "the pacman-owned path ($validated) names its package kind" "$expected" "$out"
+done
+for relative in checkout/target/debug/flea home/.local/bin/flea; do
+  check_binary=$D/$relative
+  run_check STUB_OWNER=flea STUB_OWNED_PATH="$installed_binary" STUB_INSTALLED=0.4.2-2 STUB_VALIDATED=Signature
+  check "$relative is unowned beside an installed package" 'unchecked unowned - -' "$out"
+  check "$relative queried its own resolved path" '1' "$(grep -Fxc "pacman -Qqo $check_binary LC_ALL=C.UTF-8 LANGUAGE=unset NARGS=2 ENV=exact" "$calls")"
+  check "$relative asked no package source" '0|0' "$(called checkupdates)|$(called curl)"
+done
+check_binary=$BIN
 
 # flea-bin is the prebuilt release, and other names are local; signed or not, none asks a release source.
 for owner in flea-bin flea-git flea-custom; do

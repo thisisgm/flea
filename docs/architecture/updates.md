@@ -24,6 +24,10 @@ decides the kind:
   to OPR's `flea` through `omarchy update` once the OPR recipe declares `replaces=('flea-bin' 'flea-git')`:
   pacman's `-Syu` takes that replacement, and upgrades a same-name AUR `flea` to a newer repository build.
 
+About's unchecked package kinds use the existing "Release build" state and "Omarchy update installs newer
+releases." note. Only an unowned binary uses "Built from source" and the checkout rebuild note; a checkout
+or unpacked binary beside an installed package never borrows that package's ownership.
+
 Every version that reaches `vercmp` or a screen matches `^[0-9]+(\.[0-9]+){2}-[0-9]+$` first, which is
 how network text is kept out of the line; `vercmp` then decides. The line is
 `<state> <kind> <installed> <latest>`, the states `available`, `current`, `failed` and `unchecked`, the

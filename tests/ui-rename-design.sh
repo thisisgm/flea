@@ -237,7 +237,7 @@ case_renamedesign() (
         local replacement_identity
         replacement_identity=$(stat -c '%d:%i' "$menu_dir/a-original.md")
         rename_design_draft a-replaced.md
-        rename_design_refusal a-replaced.md 'Selected item changed' "$mode keyboard rename refuses replaced source identity"
+        rename_design_refusal a-replaced.md 'Item changed; reopen Rename.' "$mode keyboard rename refuses replaced source identity"
         [[ ! -e "$menu_dir/a-replaced.md" ]] || fail 'rename: changed source was renamed'
         menus_equal "$mode stale refusal preserves original" 'original bytes' "$(cat "$menu_box/retained-$mode.md")"
         menus_equal "$mode stale refusal preserves replacement" 'replacement bytes' "$(cat "$menu_dir/a-original.md")"

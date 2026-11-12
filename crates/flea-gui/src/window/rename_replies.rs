@@ -1,8 +1,20 @@
 //! The rename replies: PaneWire.qml onRenamed, the refused write's reason, and the bulk card's paths, refusal and end.
 use super::{leaf, parent, Shell};
 use crate::{backend::Event as BackendEvent, window::navigate::Step};
+use flea::ui_logic_file_ops::lines;
 use flea::ui_logic_status_feedback::errors;
 use gpui::{Context, Window};
+
+// Identity refusals name Rename before and after its editor opens.
+pub(super) fn identity_refusal(catalog: &flea::i18n::I18n, message: &str) -> Option<String> {
+    matches!(
+        message,
+        "Selected item changed; reopen the menu."
+            | "Selected item moved or disappeared; reopen the menu."
+            | "Selected items changed; reopen the menu."
+    )
+    .then(|| lines::rename_changed(catalog))
+}
 
 impl Shell {
     /// The backend's rename answer, its refusal or its end, before any other owner reads the line.
@@ -118,6 +130,8 @@ impl Shell {
                         self.locale
                             .catalog
                             .tr_args("jobs.rename.exists", &[leaf(&destination)])
+                    } else if let Some(reason) = identity_refusal(&self.locale.catalog, message) {
+                        reason
                     } else if let Some(refusal) = errors::drive_refusal(message) {
                         // A drive's name refusal reads in the window's language, as the status line says it.
                         refusal.render(&self.locale.catalog)
