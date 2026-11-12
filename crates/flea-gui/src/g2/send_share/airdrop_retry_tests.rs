@@ -10,7 +10,7 @@ fn omdrop_with_status(tag: &str) -> (PathBuf, String) {
     let root = std::env::temp_dir().join(format!("flea-omdrop-{tag}-{}", std::process::id()));
     let _ = std::fs::create_dir_all(&root);
     std::fs::write(root.join(".flea-test-sandbox"), "").unwrap();
-    let script = "#!/bin/sh\nd=$(dirname \"$0\")\necho \"$*\" >> \"$d/argv.log\"\ncase \"$1\" in\n  status) cat \"$d/status.json\" 2>/dev/null || exit 1 ;;\n  dir) echo \"$2\" > \"$d/folder\" ;;\nesac\n";
+    let script = "#!/bin/sh\nd=$(dirname \"$0\")\necho \"$*\" >> \"$d/argv.log\"\ncase \"$1\" in\n  status) cat \"$d/status.json\" 2>/dev/null || exit 1 ;;\n  dir) echo \"$2\" > \"$d/folder\" ;;\n  off) if [ -e \"$d/refuse\" ]; then echo 'Still sending to TestPhone. Cancel the send first.' >&2; exit 1; fi ;;\nesac\n";
     let omdrop = root.join("omdrop");
     flea::executable_file::write(&omdrop, script.as_bytes(), 0o755).unwrap();
     (root, omdrop.to_string_lossy().into_owned())
@@ -192,11 +192,18 @@ fn a_retry_armed_before_omdrop_is_replaced_asks_neither(cx: &mut TestAppContext)
     assert_eq!(asked, (2, 0));
 }
 
-#[gpui::test]
-fn an_off_queued_during_on_still_runs_when_owly_takes_over(cx: &mut TestAppContext) {
+// Omdrop off; on with an Off chosen meanwhile; owly appears on PATH before `on` has returned.
+fn off_queued_then_owly_takes_over(
+    tag: &str,
+    refuse: &str,
+    cx: &mut TestAppContext,
+) -> (PathBuf, Vec<String>) {
     let (shell, cx) = window(cx);
-    let (root, omdrop) = omdrop_with_status("retire-off");
+    let (root, omdrop) = omdrop_with_status(tag);
     std::fs::write(root.join("status.json"), OFF).unwrap();
+    if !refuse.is_empty() {
+        std::fs::write(root.join("refuse"), refuse).unwrap();
+    }
     acts_from_omdrop(&shell, cx, |om| {
         let _ = om.facts(&omdrop);
         om.ask_status()
@@ -205,13 +212,44 @@ fn an_off_queued_during_on_still_runs_when_owly_takes_over(cx: &mut TestAppConte
     shell.update_in(cx, |shell, window, cx| {
         shell.airdrop_receiving(true, "/tmp", window, cx);
         shell.airdrop_receiving(false, "/tmp", window, cx);
-        // owly appears on PATH before `on` has returned.
         shell.airdrop_tools(("/usr/bin/owly", ""), 0, window, cx);
     });
-    settle(cx, 500);
+    let mut errors = Vec::new();
+    let started = Instant::now();
+    while started.elapsed() < Duration::from_secs(3) && (refuse.is_empty() || errors.is_empty()) {
+        settle(cx, 100);
+        errors = shell.update(cx, |shell, cx| {
+            shell.status_messages(cx, |messages, _| {
+                messages
+                    .errors()
+                    .iter()
+                    .map(|e| e.text.clone())
+                    .collect::<Vec<_>>()
+            })
+        });
+    }
+    (root, errors)
+}
+
+#[gpui::test]
+fn an_off_queued_during_on_still_runs_when_owly_takes_over(cx: &mut TestAppContext) {
+    let (root, errors) = off_queued_then_owly_takes_over("retire-off", "", cx);
     let (on, off) = (ran(&root, "on"), ran(&root, "off"));
     let _ = std::fs::remove_dir_all(&root);
     assert_eq!((on, off), (1, 1), "the Off chosen during on still ran");
+    assert!(errors.is_empty(), "{errors:?}");
+}
+
+#[gpui::test]
+fn a_refused_off_after_owly_takes_over_says_omdrops_reason_in_the_footer(cx: &mut TestAppContext) {
+    let (root, errors) = off_queued_then_owly_takes_over("retire-refused", "1", cx);
+    let off = ran(&root, "off");
+    let _ = std::fs::remove_dir_all(&root);
+    assert_eq!(off, 1);
+    assert_eq!(
+        errors,
+        ["AirDrop · Still sending to TestPhone. Cancel the send first."]
+    );
 }
 
 #[gpui::test]

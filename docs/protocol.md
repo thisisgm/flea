@@ -3459,7 +3459,8 @@ until it is switched back on. When owly appears or leaves PATH, or `omdrop` move
 AirDrop is retired: its lookup and the window's owly runs stop as Off stops them, owly's lock goes back only once its
 radio has exited, another window's owly radio is left alone, and nothing either stack had already asked lands after.
 An Off chosen during Flea's `omdrop on` is the exception: when Omdrop is retired with it still queued, Flea runs that
-omdrop's `off` once, which also ends a start still running, and nothing it says lands. `omdrop dir` runs under
+omdrop's `off` once, which also ends a start still running; nothing it says lands on the stack that took over,
+but a refusal is said in the footer with Omdrop's reason. `omdrop dir` runs under
 `timeout --signal=KILL 30`, so a hung one fails like a refused one and the next folder choice runs.
 Owly's and Omdrop's sends share one request numbering per window, so each reply finds the device it was sent to. The `providers` facts carry `omdrop` beside `owly`, each path in exact text so a PATH directory that is not UTF-8 still
 runs; owly wins when both are installed.
