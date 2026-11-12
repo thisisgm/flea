@@ -3448,8 +3448,8 @@ choosing on again withdraws the Off and asks it too. A status run that fails or 
 is not an answer: the receiver, folder and name keep their last confirmed values, but the adapter reads not ready; while
 Flea's `on` or `off` awaits its confirming status, the status is asked again 2 s later, up to 5 times in a row, and a
 retry still waiting is dropped once another status is asked, on is chosen again, a folder is chosen or another omdrop
-takes over. After the fifth, the window stays unconfirmed, with any Off still queued and the adapter not ready, until a
-menu open, Settings, a Receiving choice or a folder change asks again. A device lookup starts once that status shows
+takes over. After the fifth, an Off queued during `on` runs `omdrop off` without an answer; otherwise the window stays
+unconfirmed, with the adapter not ready, until a menu open, Settings, a Receiving choice or a folder change asks again. A device lookup starts once that status shows
 the radio up after Flea's `on`, or when a menu opens with Omdrop on; a closed menu lets a running lookup finish and does
 not start another, and one that ends within 5 s waits for a later menu open. Omdrop coordinates its own radio across
 windows and programs, so under Omdrop no window takes `airdrop.lock` or writes `airdrop.state`; each reads Omdrop's

@@ -152,26 +152,26 @@ fn failed_with_off_waiting() -> (Omdrop, u64) {
 fn a_failing_status_is_retried_after_its_delay_at_most_five_times_in_a_row() {
     let (mut om, mut token) = failed_with_off_waiting();
     let mut retries = 1;
-    loop {
+    let last = loop {
         let Some(Act::Doctor(generation, _)) = om.status_due(token).pop() else {
             panic!("the armed retry asks")
         };
-        match om.status_done(generation, 124, "", 0)[..] {
+        let acts = om.status_done(generation, 124, "", 0);
+        match acts[..] {
             [Act::Refresh, Act::StatusLater(next, 2_000)] => token = next,
-            [Act::Refresh] => break,
-            ref acts => panic!("{acts:?}"),
+            _ => break acts,
         }
         retries += 1;
-    }
+    };
     assert_eq!(retries, 5);
     assert!(
         om.status_due(token).is_empty(),
         "a spent token asks nothing"
     );
-    // Off still waits, unconfirmed and not ready, for the next status a menu or Settings asks.
-    assert_eq!(om.adapter.readiness, Readiness::NotReady);
-    let asked = om.menu_opened(1);
-    assert!(started(&confirm(&mut om, &asked, ON, 1), Proc::Radio).is_some());
+    // No answer is coming, so the Off chosen during `on` runs without one.
+    let (_, argv) = started(&last, Proc::Radio).expect("the queued Off runs");
+    assert_eq!(argv, ["/usr/bin/omdrop", "off"]);
+    assert_eq!(om.queued_off(), None);
 }
 
 #[test]
