@@ -61,8 +61,10 @@ pub enum Request {
     TrashThumb { line: String },
     TrashThumbCancel { ids: Vec<usize> },
     DirSize { rows: Vec<usize> },
-    // Unlike thumbcancel, there is no rows form: it always cancels everything in flight, see docs/protocol.md "dirsizecancel".
-    DirSizeCancel,
+    // Empty rows cancel all unfinished walks; named rows cancel only those viewport exits.
+    DirSizeCancel {
+        rows: Vec<usize>,
+    },
     // The five write operations and their cancel, per the operations design's own wire.
     Transfer { op: String, paths: Vec<String>, rows: Vec<usize>, dest: String, menu_id: usize, shelf: String,
                collide: super::collide::Ask },

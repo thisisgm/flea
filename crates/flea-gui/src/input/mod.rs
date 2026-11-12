@@ -211,6 +211,10 @@ pub struct Band {
 }
 
 impl PaneInput {
+    pub(crate) fn prepared_frame(&self) -> Option<Frame> {
+        self.prepared
+    }
+
     /// Call before preparing a view's row states so rollback and the new geometry present together.
     pub fn prepare(&mut self, frame: Frame, selected: &mut Vec<usize>, cursor: &mut usize) {
         // A rename band moves only the rows below its own row, and gestures hold content positions, so it never cancels one.

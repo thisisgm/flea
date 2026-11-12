@@ -150,7 +150,9 @@ pub fn parse_request(line: &str) -> Request {
         Some("dirsize") => Request::DirSize {
             rows: field_usize_array(line, "rows"),
         },
-        Some("dirsizecancel") => Request::DirSizeCancel,
+        Some("dirsizecancel") => Request::DirSizeCancel {
+            rows: field_usize_array(line, "rows"),
+        },
         Some("transfer") => Request::Transfer {
             // Anything that is not "move" is a copy, so a malformed op can never delete a source.
             op: field_str(line, "op").unwrap_or_default(),
