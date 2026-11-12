@@ -135,6 +135,11 @@ impl PathView {
             cx.stop_propagation();
             return;
         }
+        if self.entry.control_move(key, held) {
+            cx.notify();
+            cx.stop_propagation();
+            return;
+        }
         let at = self.entry.cursor();
         match key {
             "escape" => self.close(cx),

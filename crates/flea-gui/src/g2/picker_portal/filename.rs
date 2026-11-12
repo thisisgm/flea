@@ -192,6 +192,10 @@ impl Filename {
         if self.entry.marked.is_some() {
             return FieldKey::Ignored;
         }
+        if self.entry.control_move(key, held) {
+            cx.notify();
+            return FieldKey::Moved;
+        }
         let at = self.entry.cursor();
         let answer = match key {
             "enter" => return FieldKey::Enter,

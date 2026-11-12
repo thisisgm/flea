@@ -109,6 +109,8 @@ mod side_button_owner_tests;
 mod side_button_tests;
 #[cfg(test)]
 mod word_click_tests;
+#[cfg(test)]
+mod word_navigation_tests;
 
 #[cfg(test)]
 mod board_parity_tests;

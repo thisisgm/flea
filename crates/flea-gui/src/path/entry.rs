@@ -11,6 +11,8 @@ mod word;
 pub use ime::right_to_left;
 use ime::{binds, extends};
 #[cfg(test)]
+pub(crate) mod navigation_cases;
+#[cfg(test)]
 mod tests;
 
 // Session ids are unique in the process, so a reset Entry never reuses an id a retained callback holds.
