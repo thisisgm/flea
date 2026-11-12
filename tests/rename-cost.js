@@ -30,27 +30,35 @@ function homed(root) {
     root.pane.setCursor(root.home)
     return false
 }
-// rowFor is a QML method and cannot be wrapped, so every field a held row gives out is counted instead; a rows reply arms its rows on arrival, snapshots arm the rest.
+// rowFor is a QML method and cannot be wrapped, so every field a held row gives out is counted instead; landed rows are armed on arrival, snapshots arm the rest.
 function armRows(root) {
+    var rows = root.pane.rows
+    if (rows === root.tally.rows) return 0
     var armed = 0
-    for (var i = 0; i < root.pane.rows.length; i++)
-        for (var field in root.pane.rows[i])
-            if (armField(root, root.pane.rows[i], field)) armed++
+    var copies = []
+    for (var i = 0; i < rows.length; i++) {
+        var copy = {}
+        for (var field in rows[i]) {
+            countedField(root, copy, field, rows[i][field])
+            armed++
+        }
+        copies.push(copy)
+    }
+    // Qt 6.12's QVariant-backed rows must never be converted to getters: its V4 collector can corrupt the heap.
+    root.tally.rows = copies
+    root.pane.rows = copies
     return armed
 }
-function armItems(root, items) {
-    var armed = 0
-    for (var i = 0; i < items.length; i++)
-        for (var field in items[i])
-            if (armField(root, items[i], field)) armed++
-    return armed
-}
-function armField(root, row, field) {
-    var desc = Object.getOwnPropertyDescriptor(row, field)
-    if (desc.get !== undefined) return false
-    var value = row[field]
+function countedField(root, row, field, value) {
     Object.defineProperty(row, field, { get: function () { root.tally.rowReads++; return value }, enumerable: true, configurable: true })
-    return true
+}
+function armLandedRows(root) {
+    // Save the reply before replacing rows: the nested rowsChanged must not consume its credit.
+    var seen = root.tally.landing
+    root.tally.landing = null
+    var armed = armRows(root)
+    // A reply the swap dropped never lands, so its pending credit must not pass to a later case.
+    if (seen !== null && seen === root.replyLog[root.caseIndex]) seen.armed += armed
 }
 // Every row delegate under the window, pooled ones included: List's Row, the Grid's tile and Columns' ColumnRow carry listingIndex.
 function cellSnap(top) {
