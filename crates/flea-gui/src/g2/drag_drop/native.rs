@@ -45,6 +45,12 @@ impl Shell {
             }
         })
         .detach();
+        // Tests draw their pictures themselves, so no test's schedule gains a task unless its process asks for it.
+        #[cfg(test)]
+        if !image::REHEARSES_IN_TESTS.load(std::sync::atomic::Ordering::Relaxed) {
+            return;
+        }
+        image::rehearse(window, cx);
     }
 
     /// The live lift and its captured flock are handed to the platform together.

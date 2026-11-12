@@ -166,3 +166,51 @@ fn vf_look_native_held_drag_lights_the_destination_without_a_transfer(cx: &mut T
         "holding and cancelling never sends a write"
     );
 }
+
+#[test]
+fn fxdragcold_a_folder_row_never_says_copy_before_its_facts_are_read() {
+    use gpui::{InputEvent, MouseMoveEvent};
+    let cx = &mut crate::list::bench::real_cx();
+    let root = Root::new("first-cue");
+    let (handle, _) = open(cx, root.src());
+    frame(cx, handle);
+    let from = centre(cx, handle, 1);
+    let to = centre(cx, handle, 0);
+    let mut visual = VisualTestContext::from_window(handle.into(), cx);
+    visual.simulate_mouse_down(from, MouseButton::Left, Modifiers::none());
+    visual.simulate_mouse_move(
+        point(from.x + px(12.), from.y),
+        Some(MouseButton::Left),
+        Modifiers::none(),
+    );
+    visual.run_until_parked();
+    // The move is dispatched without running the executor, so the folder's facts are still unread.
+    visual
+        .update_window(handle.into(), |_, window, cx| {
+            let moved = MouseMoveEvent {
+                position: to,
+                pressed_button: Some(MouseButton::Left),
+                modifiers: Modifiers::none(),
+            };
+            window.dispatch_event(moved.to_platform_input(), cx);
+        })
+        .unwrap();
+    handle
+        .update(&mut visual, |shell, window, cx| {
+            let states = shell.list_states(0, window, cx);
+            assert_eq!(
+                (states.drop_target, states.drop_label.as_deref()),
+                (None, None),
+                "a folder whose facts are unread must not light or name an action"
+            );
+        })
+        .unwrap();
+    visual.run_until_parked();
+    handle
+        .update(&mut visual, |shell, window, cx| {
+            let states = shell.list_states(0, window, cx);
+            assert_eq!(states.drop_target, Some(0));
+            assert_eq!(states.drop_label.as_deref(), Some("move here"));
+        })
+        .unwrap();
+}

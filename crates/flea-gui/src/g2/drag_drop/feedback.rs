@@ -26,7 +26,8 @@ pub(super) struct Cue {
     source_keys: Option<(bool, bool)>,
     pub(super) own: bool,
     proposed: Proposed,
-    facts: Facts,
+    /// None until the background read lands; a cue paints nothing before it, since unread facts would say copy.
+    facts: Option<Facts>,
 }
 
 #[path = "feedback_keys.rs"]
@@ -165,10 +166,11 @@ impl Shell {
                 source_keys: None,
                 own,
                 proposed,
-                facts: Facts::default(),
+                facts: None,
             },
         ));
-        self.refresh_file_cue(window, cx);
+        // The folder left behind gives up its line now; this one says its own once its facts are read.
+        self.settle_file_feedback(window, cx);
         cx.refresh_windows();
         let facts = cx
             .background_executor()
@@ -178,7 +180,7 @@ impl Shell {
             let _ = this.update_in(cx, |shell, window, cx| {
                 if let Some((owner, cue)) = cx.default_global::<Drags>().cue.as_mut() {
                     if *owner == key && cue.serial == serial {
-                        cue.facts = facts;
+                        cue.facts = Some(facts);
                         shell.refresh_file_cue(window, cx);
                         cx.notify();
                     }
@@ -197,6 +199,7 @@ impl Shell {
             && host.path == cue.target.folder
             && host.pane.held.listing == cue.target.listing
             && !host.pane.busy()
+            && cue.facts.is_some()
             && self
                 .cue_target(window.mouse_position(), cue.own, window, cx)
                 .is_some_and(|target| target == cue.target))
