@@ -9,21 +9,34 @@ TWIN = "col�".encode()
 FAILS = []
 
 
-def sandboxed():
-    # The same kernel probe as src/backend/sandboxprobe.rs; previews and contents search run inside bwrap.
+BACKEND_PATH = "/usr/bin:/bin"
+PROBE_SECONDS = 30
+
+
+def sandbox_failure():
+    # The kernel probe of src/backend/sandboxprobe.rs on the backend's own PATH; previews and contents search run inside bwrap.
     try:
-        return subprocess.run(["bwrap", "--unshare-user", "--unshare-pid", "--unshare-net", "--die-with-parent",
-                               "--ro-bind", "/", "/", "--proc", "/proc", "/usr/bin/true"],
-                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30).returncode == 0
-    except (OSError, subprocess.TimeoutExpired):
-        return False
+        probe = subprocess.run(["bwrap", "--unshare-user", "--unshare-pid", "--unshare-net", "--die-with-parent",
+                                "--ro-bind", "/", "/", "--proc", "/proc", "/usr/bin/true"], env={"PATH": BACKEND_PATH},
+                               stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=PROBE_SECONDS)
+    except FileNotFoundError:
+        return "bwrap is not on " + BACKEND_PATH
+    except subprocess.TimeoutExpired:
+        return "the bwrap probe ran past %d s" % PROBE_SECONDS
+    except OSError as error:
+        return "bwrap did not start: " + str(error)
+    if probe.returncode == 0:
+        return None
+    said = probe.stderr.decode("utf-8", "replace").splitlines()
+    return said[0] if said else "bwrap exited %d and said nothing" % probe.returncode
 
 
-SANDBOXED = sandboxed()
+SANDBOX_FAILURE = sandbox_failure()
+SANDBOXED = SANDBOX_FAILURE is None
 
 
 def skip(name):
-    print("SKIP " + name + "  no unprivileged namespace for the bwrap sandbox")
+    print("SKIP " + name + "  the bwrap sandbox cannot run here: " + SANDBOX_FAILURE)
 
 
 def check(name, cond, note=""):
@@ -34,7 +47,7 @@ def check(name, cond, note=""):
 
 class Backend:
     def __init__(self, home):
-        env = {"PATH": "/usr/bin:/bin", "HOME": home, "LANG": "C.UTF-8", "LC_ALL": "C.UTF-8"}
+        env = {"PATH": BACKEND_PATH, "HOME": home, "LANG": "C.UTF-8", "LC_ALL": "C.UTF-8"}
         for key, sub in (("XDG_DATA_HOME", "data"), ("XDG_CONFIG_HOME", "config"), ("XDG_CACHE_HOME", "cache"),
                          ("XDG_STATE_HOME", "state"), ("XDG_RUNTIME_DIR", "run")):
             env[key] = os.path.join(home, sub)
@@ -313,8 +326,9 @@ def run(root, home):
             matches = [m for one in hits if one.get("t") == "contentsmatches" for m in one.get("matches", [])]
             check("contents search hits the invalid name and keeps it operable", len(matches) == 1 and bytes.fromhex(matches[0]["pathBytes"]) == b"bad\xff.txt" and matches[0]["operable"] is True and wire_bytes(matches[0]["path"]) == b"bad\xff.txt", str(hits)[:400])
             listing = next((one.get("listing") for one in hits if one.get("t") in ("rows", "contentsmatches") and "listing" in one), None)
-            got = k.req({"c": "paths", "rows": [0], "listing": listing}, lambda o: o.get("t") in ("paths", "error"))
-            check("a contents hit resolves to the exact file", got and got.get("t") == "paths" and wire_bytes(got["paths"][0]) == os.fsencode(alone) + b"/bad\xff.txt", str(got))
+            # Without the contents listing, row 0 would resolve the name search above and pass with no contents hit.
+            got = k.req({"c": "paths", "rows": [0], "listing": listing}, lambda o: o.get("t") in ("paths", "error")) if listing is not None else None
+            check("a contents hit resolves to the exact file", got and got.get("t") == "paths" and wire_bytes(got["paths"][0]) == os.fsencode(alone) + b"/bad\xff.txt", str(got) if listing is not None else "no contents reply carried a listing: " + str(hits)[:300])
         else:
             skip("contents search hits the invalid name and keeps it operable")
             skip("a contents hit resolves to the exact file")
