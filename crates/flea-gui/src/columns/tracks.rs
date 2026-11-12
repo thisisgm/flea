@@ -284,6 +284,11 @@ impl Tracks {
 
     /// A wheel or drag over a peek track, clamped to its rows and ColumnPane.qml's footer band below them.
     pub fn scroll_by(&mut self, slot: Slot, dy: f32) -> f32 {
+        self.scroll_grown(slot, dy, 0.)
+    }
+
+    /// The same clamp while a refused rename grows one of the track's rows by `band`.
+    pub fn scroll_grown(&mut self, slot: Slot, dy: f32, band: f32) -> f32 {
         let total = self
             .views
             .iter()
@@ -292,7 +297,7 @@ impl Tracks {
                 TrackRows::Peek(rows) => rows.len(),
                 _ => 0,
             });
-        let end = (total as f32 * self.row + super::geometry::FOOTER - self.height).max(0.);
+        let end = (total as f32 * self.row + super::geometry::FOOTER + band - self.height).max(0.);
         let held = &mut self.scrolls[slot.index()];
         held.2 = (held.2 + dy).clamp(0., end);
         held.2
@@ -342,6 +347,10 @@ impl super::Area {
 
     pub fn scroll(&self, slot: Slot) -> f32 {
         self.tracks.scroll(slot)
+    }
+
+    pub(crate) fn scroll_grown(&mut self, slot: Slot, dy: f32, band: f32) -> f32 {
+        self.tracks.scroll_grown(slot, dy, band)
     }
 
     pub fn scroll_by(&mut self, slot: Slot, dy: f32) -> f32 {

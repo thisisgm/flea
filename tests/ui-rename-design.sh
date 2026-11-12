@@ -292,7 +292,7 @@ case_renamedesign() (
         rename_design_open F2 f1199.txt
         rename_design_draft b-existing.md
         rename_design_refusal b-existing.md 'already exists' "$mode bottom-row refusal retains the draft"
-        menus_expect renameState '.editorTop >= 0 and .editorBottom <= .viewportHeight' "$mode expanded bottom editor remains entirely within its viewport"
+        menus_expect renameState '.editorTop >= 0 and .errorBottom > .editorBottom and .errorBottom <= .viewportHeight' "$mode expanded bottom row and refusal remain entirely within its viewport"
         menus_shot "rename-$mode-bottom-error"
         key -k Escape -k Home >/dev/null
         menus_expect renameState '.index == -1 and .cursor == 0' "$mode bottom editor dismissal restores navigation"

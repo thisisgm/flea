@@ -21,6 +21,8 @@ pub(crate) mod menu;
 mod place;
 #[path = "rename_replies.rs"]
 mod replies;
+#[path = "rename_reveal.rs"]
+mod reveal;
 #[path = "rename_slow.rs"]
 pub(crate) mod slow;
 #[path = "rename_target.rs"]
@@ -327,7 +329,12 @@ impl Shell {
         if self.shown_view() == crate::window::startup::View::Grid {
             return Default::default();
         }
-        crate::list::pane::Grow::of_row(self.renaming_row(side), band, host.filter.shown.as_deref())
+        let shown = if self.rename.neighbour.is_some() {
+            None
+        } else {
+            host.filter.shown.as_deref()
+        };
+        crate::list::pane::Grow::of_row(self.renaming_row(side), band, shown)
     }
 
     /// The row the editor stands over, when it is this side's drawn listing.

@@ -14,7 +14,15 @@ pub(super) fn write(host: &mut PaneHost, slot: Slot, y: f32) {
         host.pane.scroll_to(y);
     } else if let Some(columns) = &mut host.columns {
         let before = columns.area.scroll(slot);
-        columns.area.scroll_by(slot, y - before);
+        // The painted refusal band is this track's grown end, so a wheel never pulls the sentence back out.
+        let band = columns.painters.get(slot).map_or(0., |paint| {
+            paint
+                .borrow()
+                .drawn
+                .as_ref()
+                .map_or(0., |drawn| drawn.grow.band)
+        });
+        columns.area.scroll_grown(slot, y - before, band);
     }
 }
 

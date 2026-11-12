@@ -107,7 +107,7 @@ pub struct Focus {
     pub hover: Option<(Slot, usize)>,
     /// Settings > View > Highlight on hover: the pointer's row washes and brightens; hover stays the pointer's.
     pub hover_wash: bool,
-    /// The listing row a rename edits, and the rename band's Grow on the active track.
+    /// The row a rename edits, and the band's Grow on the track hosting it.
     pub renaming: Option<usize>,
     pub rename_slot: Option<Slot>,
     pub menu_target: Option<(Slot, usize)>,
@@ -115,6 +115,14 @@ pub struct Focus {
 }
 
 impl Focus {
+    pub fn grow_for(&self, slot: Slot) -> crate::list::pane::Grow {
+        if slot == self.rename_slot.unwrap_or(Slot::Active) {
+            self.grow
+        } else {
+            Default::default()
+        }
+    }
+
     /// The pointer's row as drawn: lit only while Highlight on hover is ticked.
     pub(super) fn hover_lit(&self, slot: Slot, index: usize) -> bool {
         self.hover_wash && self.hover == Some((slot, index))

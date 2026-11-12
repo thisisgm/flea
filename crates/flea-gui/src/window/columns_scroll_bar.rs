@@ -15,6 +15,7 @@ pub(super) fn surface(
     side: usize,
     slot: Slot,
     tracks: Rc<[TrackView]>,
+    grow: crate::list::pane::Grow,
 ) -> impl IntoElement {
     let weak = shell.downgrade();
     let paint = weak.clone();
@@ -37,12 +38,6 @@ pub(super) fn surface(
                             .map_or(host.pane.held.total, |rows| rows.len()),
                         TrackRows::Peek(rows) => rows.len(),
                         _ => return None,
-                    };
-                    // Only the active track takes the refused rename's band, as its rows do.
-                    let grow = if slot == Slot::Active {
-                        shell.grows[side]
-                    } else {
-                        crate::list::pane::Grow::default()
                     };
                     let row = if slot == Slot::Active {
                         active_row
