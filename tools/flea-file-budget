@@ -10,7 +10,7 @@ soft_rust=250; hard_rust=400
 soft_qml=250;  hard_qml=400
 soft_js=200;   hard_js=300
 
-# Recorded ceilings include CTL2's src/backend/thumbworker.rs 974: test setup for confine ownership.
+# Recorded ceilings include src/backend/thumbworker.rs 549: the worker loop after its tests and job table moved out.
 known_over_cap="src/tui/parity_candidate_tests.rs 696
 src/tui/office.rs 404
 src/tui/preview_locale_tests.rs 513
@@ -160,7 +160,7 @@ src/backend/undoshare.rs 468
 src/backend/undoshare_tests.rs 574
 src/backend/collide_replace_tests.rs 492
 src/backend/sandbox.rs 410
-src/backend/thumbworker.rs 974
+src/backend/thumbworker.rs 549
 src/backend/trashbrowse.rs 808
 src/backend/rawpreview_tests.rs 427
 src/backend/trashdelete.rs 690
