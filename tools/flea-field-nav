@@ -34,10 +34,12 @@ import subprocess
 import sys
 import tempfile
 import time
-from importlib.machinery import SourceFileLoader
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-S = SourceFileLoader("flea_field_search", os.path.join(HERE, "flea-field-search")).load_module()
+sys.path.insert(0, HERE)
+from flea_import import load_source
+
+S = load_source("flea_field_search", os.path.join(HERE, "flea-field-search"))
 
 NS = S.NS
 MS = S.MS
@@ -1063,8 +1065,7 @@ def selftest():
     check("kinds", [k for k, _ in PREVIEW_FILES], ["jpg", "png", "pdf", "md", "txt", "video"])
     check("order_sorted", [n for _, n in PREVIEW_FILES] == sorted(n for _, n in PREVIEW_FILES), True)
     # Quick Look table journeys: documents of one size, a table or not, and a verdict that reads a shift.
-    from importlib.machinery import SourceFileLoader as _L
-    fx = _L("flea_nav_fixture", os.path.join(HERE, "flea-nav-fixture")).load_module()
+    fx = load_source("flea_nav_fixture", os.path.join(HERE, "flea-nav-fixture"))
     docs = fx.ql_texts()
     check("ql_kinds", sorted(docs), sorted(QL_KINDS))
     check("ql_sizes", {len(v.encode()) for v in docs.values()}, {fx.QL_BYTES})

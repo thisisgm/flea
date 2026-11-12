@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 REPO = Path(__file__).resolve().parents[2]
 TOOL = REPO / 'tools/flea-i18n-native'
@@ -511,6 +512,24 @@ class Adapters(Scratch):
                      'I50-01 source index differs from the accepted handoff')
         self.refused('--source-index', self.copy(INDEX, 'changed-index.json', lambda d: d['counts'].update(extra=1)),
                      'I50-01 source index differs from the accepted handoff')
+
+    def test_i50_native_missing_index_guidance_uses_the_authoritative_pin(self):
+        tool = load_tool()
+        contract = tool.load_contract(tool.CONTRACT)
+        roster = tool.load_roster(ROSTER)
+        for pin in (contract['source_index']['sha256'], '0' * 64):
+            contract['source_index']['sha256'] = pin
+            with patch.object(tool, 'INDEX', self.root / 'absent-index.json'):
+                inputs = tool.load_inputs(contract, roster)
+            self.assertIsNone(inputs['source_index'])
+            plan = tool.build_plan(contract, roster, 'all', inputs=inputs)
+            row = next(row for row in plan['owed'] if row['dependency'] == 'I50-02')
+            self.assertIn('source_index.sha256', row['missing'])
+            self.assertNotIn('cbf351a8', row['missing'])
+            self.assertFalse(plan['complete'])
+            self.assertTrue(any('I50-02' in case['missing'] for case in plan['cases']))
+        with self.assertRaisesRegex(ValueError, 'differs from the accepted handoff'):
+            tool.load_source_index(INDEX, roster, '0' * 64)
 
     def test_i50_native_verify_binds_the_tree_head(self):
         plan = self.plan()
