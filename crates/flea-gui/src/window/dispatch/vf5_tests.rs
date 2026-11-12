@@ -12,6 +12,9 @@ use gpui::{
     TestAppContext,
 };
 
+#[path = "model_budget_tests.rs"]
+mod model_budget_tests;
+
 pub(super) fn opened(
     cx: &mut TestAppContext,
 ) -> (

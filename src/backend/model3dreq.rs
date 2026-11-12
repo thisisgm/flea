@@ -1,12 +1,16 @@
+use super::{
+    archivework::Work, codereq, jail, model3d, model3dcache as cache, opsreq::OpMsg, regfile,
+    sandbox, thumbcache, thumbs, thumbwrite,
+};
+use crate::json::{escape, field_bool, field_str, field_usize};
 use flea::bytename::ExactText as _;
-use super::{archivework::Work, codereq, jail, model3d, model3dcache as cache, opsreq::OpMsg, regfile, sandbox, thumbcache, thumbs, thumbwrite};
-use crate::json::{escape,field_bool,field_str,field_usize};
+use flea::ui_logic_model_preview::wire::{Failure, Refusal};
 use std::io::Read;
-use std::os::unix::fs::{DirBuilderExt,OpenOptionsExt};
-use std::path::{Path,PathBuf};
+use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
+use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::sync::mpsc::Sender;
-use std::time::{Duration,Instant};
+use std::time::{Duration, Instant};
 
 const DEADLINE: Duration = Duration::from_secs(20);
 const STDERR_MAX: usize = 8192;
@@ -15,13 +19,32 @@ const REASON_MAX_CHARS: usize = 1024;
 pub(super) const THUMB_TABLE: &str = "flea-3d-v2";
 static PARSING: super::model3dadmit::Gate = super::model3dadmit::Gate::new();
 
-pub struct Ask { token: usize, slot: String, path: String, plate: Option<usize>, cancel: bool }
+#[path = "model3dreq_worker.rs"]
+mod worker;
+pub(super) fn worker_entry() -> Option<i32> {
+    worker::entry()
+}
+#[cfg(test)]
+use worker::args as worker_args;
+
+pub struct Ask {
+    token: usize,
+    slot: String,
+    path: String,
+    plate: Option<usize>,
+    cancel: bool,
+}
 
 impl Ask {
     // Sample input: {"c":"model3d","slot":"look","token":4,"path":"/models/part.obj","plate":0}.
     pub fn parse(line: &str) -> Self {
-        Self { token: field_usize(line,"token").unwrap_or(0), slot: field_str(line,"slot").unwrap_or_default(),
-            path: field_str(line,"path").unwrap_or_default(), plate: field_usize(line,"plate"), cancel: field_bool(line,"cancel") }
+        Self {
+            token: field_usize(line, "token").unwrap_or(0),
+            slot: field_str(line, "slot").unwrap_or_default(),
+            path: field_str(line, "path").unwrap_or_default(),
+            plate: field_usize(line, "plate"),
+            cancel: field_bool(line, "cancel"),
+        }
     }
 }
 
@@ -29,7 +52,7 @@ pub fn spawn(ask: Ask, tx: Sender<OpMsg>) {
     let ticket = codereq::begin(&format!("model3d:{}", ask.slot));
     std::thread::spawn(move || {
         let answer = if ask.cancel {
-            reply(&ask, "cancelled", None, None, "")
+            reply(&ask, "cancelled", None, None, &Failure::default())
         } else {
             match ensure(
                 &flea::bytename::view(&ask.path),
@@ -37,13 +60,13 @@ pub fn spawn(ask: Ask, tx: Sender<OpMsg>) {
                 ask.plate,
                 &ticket,
             ) {
-                Ok(data) => reply(&ask, "ready", Some(&data), None, ""),
-                Err(reason) => reply(
+                Ok(data) => reply(&ask, "ready", Some(&data), None, &Failure::default()),
+                Err(failure) => reply(
                     &ask,
                     "failed",
                     None,
                     Some("This file cannot be previewed."),
-                    &reason,
+                    &failure,
                 ),
             }
         };
@@ -62,7 +85,7 @@ fn reply(
     state: &str,
     ready: Option<&Ready>,
     message: Option<&str>,
-    reason: &str,
+    failure: &Failure,
 ) -> String {
     let mut line = format!(
         r#"{{"t":"model3d","slot":"{}","token":{},"state":"{}""#,
@@ -88,8 +111,11 @@ fn reply(
         line.push_str(&format!(
             r#", "message":"{}","reason":"{}""#,
             escape(message),
-            escape(reason)
-        ))
+            escape(&failure.reason)
+        ));
+        if failure.refusal == Some(Refusal::TooLarge) {
+            line.push_str(r#", "refusal":"too_large""#);
+        }
     }
     line.push('}');
     line
@@ -97,13 +123,15 @@ fn reply(
 
 fn drain(mut reader: impl Read) -> String {
     let mut kept = Vec::new();
-    let mut chunk = [0;STDERR_CHUNK];
+    let mut chunk = [0; STDERR_CHUNK];
     loop {
         match reader.read(&mut chunk) {
-            Ok(0)|Err(_) => break,
+            Ok(0) | Err(_) => break,
             Ok(n) => {
                 kept.extend_from_slice(&chunk[..n]);
-                if kept.len() > STDERR_MAX { kept.drain(..kept.len()-STDERR_MAX); }
+                if kept.len() > STDERR_MAX {
+                    kept.drain(..kept.len() - STDERR_MAX);
+                }
             }
         }
     }
@@ -122,7 +150,7 @@ fn ensure(
     root: &Path,
     plate: Option<usize>,
     ticket: &codereq::Ticket,
-) -> Result<Ready, String> {
+) -> Result<Ready, Failure> {
     ensure_until(path, root, plate, ticket, Instant::now() + DEADLINE, false)
 }
 
@@ -133,7 +161,7 @@ fn ensure_until(
     ticket: &codereq::Ticket,
     deadline: Instant,
     background: bool,
-) -> Result<Ready, String> {
+) -> Result<Ready, Failure> {
     if ticket.superseded() {
         return Err("preview superseded".into());
     }
@@ -205,12 +233,16 @@ fn ensure_until(
             .reap_until(Some(deadline))
             .ok_or("preview superseded")?;
         let reason = log.join().unwrap_or_default();
-        if !status.map_err(|e| e.to_string())?.success() {
-            return Err(if reason.is_empty() {
-                "3D parser failed".into()
-            } else {
-                reason
-            });
+        let status = status.map_err(|e| e.to_string())?;
+        if !status.success() {
+            return Err(worker::failure(
+                status,
+                if reason.is_empty() {
+                    "3D parser failed".into()
+                } else {
+                    reason
+                },
+            ));
         }
         let header = cache::header(&temp).ok_or("3D parser produced no model")?;
         let (_, after) =
@@ -233,7 +265,7 @@ fn ready(
     dest: PathBuf,
     plate: Option<usize>,
     header: (String, Vec<model3d::Thumbnail>),
-) -> Result<Ready, String> {
+) -> Result<Ready, Failure> {
     let (summary, thumbnails) = header;
     let data = crate::jsondoc::parse(&summary)?;
     if plate.is_some_and(|p| {
@@ -252,62 +284,73 @@ fn ready(
     })
 }
 
-// The model path arrives as raw bytes, which args() would panic on, so each argument is read as its exact text.
-fn worker_args(raw: impl IntoIterator<Item = std::ffi::OsString>) -> Vec<String> {
-    raw.into_iter()
-        .map(|arg| arg.exact_text().into_owned())
-        .collect()
-}
-
-// run.rs selects this before loading backend tables; the helper has exactly one file and no nested tools.
-pub(super) fn worker_entry() -> Option<i32> {
-    let args = worker_args(std::env::args_os());
-    if !args.iter().any(|s| s == "--3d-worker") {
-        return None;
-    }
-    let result = (|| -> Result<(), String> {
-        if args.len() != 6 || args[1] != "--backend" || args[2] != "--3d-worker" || args[4] != "--"
-        {
-            return Err("invalid 3D helper arguments".into());
-        }
-        let file = regfile::open_if_regular(&flea::bytename::view(&args[5]), 0)
-            .map_err(|e| e.to_string())?;
-        let mut bytes = Vec::new();
-        file.take(model3d::MAX_INPUT as u64 + 1)
-            .read_to_end(&mut bytes)
-            .map_err(|e| e.to_string())?;
-        let model = model3d::parse(&args[3], &bytes)?;
-        model3d::wire::write(&model, std::io::BufWriter::new(std::io::stdout()))
-    })();
-    Some(match result {
-        Ok(()) => 0,
-        Err(reason) => {
-            eprintln!("flea: {reason}");
-            1
-        }
-    })
-}
-
 pub(super) fn thumbnail(tables: &thumbs::Tables, job: &thumbs::Job) -> thumbs::Outcome {
-    let root = tables.cache.large_dir().parent().unwrap_or(Path::new("/")).join("flea-3d");
-    let ticket = codereq::begin(&format!("model3d-thumb:{}",thumbcache::uri_for(&job.path)));
-    let answer = ensure_until(&job.path,&root,None,&ticket,Instant::now()+DEADLINE,true);
+    let root = tables
+        .cache
+        .large_dir()
+        .parent()
+        .unwrap_or(Path::new("/"))
+        .join("flea-3d");
+    let ticket = codereq::begin(&format!("model3d-thumb:{}", thumbcache::uri_for(&job.path)));
+    let answer = ensure_until(
+        &job.path,
+        &root,
+        None,
+        &ticket,
+        Instant::now() + DEADLINE,
+        true,
+    );
     ticket.discard();
-    let Ok(ready) = answer else { return thumbs::Outcome::Failed };
+    let Ok(ready) = answer else {
+        return thumbs::Outcome::Failed;
+    };
     let Some(image) = ready.thumbnail else {
         let uri = thumbcache::uri_for(&job.path);
-        thumbs::record_failure_for(&tables.cache,&uri,job.mtime,THUMB_TABLE,job.trash_identity.as_deref());
+        thumbs::record_failure_for(
+            &tables.cache,
+            &uri,
+            job.mtime,
+            THUMB_TABLE,
+            job.trash_identity.as_deref(),
+        );
         return thumbs::Outcome::Failed;
     };
     let dir = tables.cache.large_dir();
-    if std::fs::create_dir_all(&dir).is_err() { return thumbs::Outcome::Failed }
-    let Some(temp) = thumbwrite::exclusive_temp(&dir) else { return thumbs::Outcome::Failed };
-    let mime = match image.extension().and_then(|e| e.to_str()) { Some("png") => "image/png", Some("jpg") => "image/jpeg", _ => "image/qoi" };
-    let mut child_job = thumbs::Job { replies: None, path: image, mime: mime.into(), mtime: job.mtime, trash_identity: None, trace: None };
-    let source = match thumbs::run_one_in(tables,&mut child_job,&root) { thumbs::Outcome::Ready(p) => p, _ => return thumbs::discard(&temp) };
-    if std::fs::copy(source,&temp).is_err() { return thumbs::discard(&temp) }
+    if std::fs::create_dir_all(&dir).is_err() {
+        return thumbs::Outcome::Failed;
+    }
+    let Some(temp) = thumbwrite::exclusive_temp(&dir) else {
+        return thumbs::Outcome::Failed;
+    };
+    let mime = match image.extension().and_then(|e| e.to_str()) {
+        Some("png") => "image/png",
+        Some("jpg") => "image/jpeg",
+        _ => "image/qoi",
+    };
+    let mut child_job = thumbs::Job {
+        replies: None,
+        path: image,
+        mime: mime.into(),
+        mtime: job.mtime,
+        trash_identity: None,
+        trace: None,
+    };
+    let source = match thumbs::run_one_in(tables, &mut child_job, &root) {
+        thumbs::Outcome::Ready(p) => p,
+        _ => return thumbs::discard(&temp),
+    };
+    if std::fs::copy(source, &temp).is_err() {
+        return thumbs::discard(&temp);
+    }
     let uri = thumbcache::uri_for(&job.path);
-    thumbs::publish(&temp,&uri,job.mtime,tables.cache.large_path_for(&uri,job.trash_identity.as_deref()))
+    thumbs::publish(
+        &temp,
+        &uri,
+        job.mtime,
+        tables
+            .cache
+            .large_path_for(&uri, job.trash_identity.as_deref()),
+    )
 }
 
 #[cfg(test)]
