@@ -66,11 +66,13 @@ import tempfile
 import threading
 import time
 import types
-from importlib.machinery import SourceFileLoader
 
 sys.dont_write_bytecode = True  # the loader would leave tools/__pycache__ behind
 HERE = os.path.dirname(os.path.abspath(__file__))
-I = SourceFileLoader("flea_field_instant", os.path.join(HERE, "flea-field-instant")).load_module()
+sys.path.insert(0, HERE)
+from flea_import import load_source
+
+I = load_source("flea_field_instant", os.path.join(HERE, "flea-field-instant"))
 S, N = I.S, I.N
 MS = I.MS
 MARKER = ".flea-census-probe"

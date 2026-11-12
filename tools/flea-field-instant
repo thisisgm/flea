@@ -98,13 +98,13 @@ import subprocess
 import sys
 import tempfile
 import time
-from importlib.machinery import SourceFileLoader
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from flea_import import load_source
 from flea_ipc import Client
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
-N = SourceFileLoader("flea_field_nav", os.path.join(HERE, "flea-field-nav")).load_module()
+N = load_source("flea_field_nav", os.path.join(HERE, "flea-field-nav"))
 S = N.S
 NS, MS = S.NS, S.MS
 
@@ -286,7 +286,7 @@ def wheel(keys, notches):
 
 def touchpad():
     """tools/flea-touchpad as a module, or None with the reason when /dev/uinput is not writable."""
-    T = SourceFileLoader("flea_touchpad", os.path.join(HERE, "flea-touchpad")).load_module()
+    T = load_source("flea_touchpad", os.path.join(HERE, "flea-touchpad"))
     if not os.access(T.UINPUT, os.W_OK):
         return None, "%s is not writable, so no touchpad can be created" % T.UINPUT
     return T, None
@@ -479,7 +479,7 @@ def build_fixtures(root, usb=None, nas=None):
         if os.path.isdir(src) and not os.path.lexists(os.path.join(real, "data", name)):
             os.symlink(src, os.path.join(real, "data", name))
     nav = os.path.join(real, "nav")
-    builder = SourceFileLoader("flea_nav_fixture", os.path.join(HERE, "flea-nav-fixture")).load_module()
+    builder = load_source("flea_nav_fixture", os.path.join(HERE, "flea-nav-fixture"))
     facts = {"root": real, "nav": builder.build(nav)}
     prev = os.path.join(nav, "preview")
     with open(os.path.join(prev, KINDS["code"]), "w") as f:
@@ -2622,6 +2622,11 @@ def selftest():
     def check(name, got, want):
         if got != want:
             fail.append("%s: got %r, wanted %r" % (name, got, want))
+
+    imports = subprocess.run([sys.executable, "-B", os.path.join(REPO, "tests/lib/test_flea_import.py")],
+                             capture_output=True, text=True, timeout=30)
+    if imports.returncode:
+        fail.append("sibling imports: %s%s" % (imports.stdout, imports.stderr))
 
     ms = MS
     check("row_cursor", row_of("nav.grid.l"), 1)

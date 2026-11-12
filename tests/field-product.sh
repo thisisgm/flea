@@ -15,15 +15,16 @@ import socket
 from pathlib import Path
 import subprocess
 import sys
-from importlib.machinery import SourceFileLoader
 from unittest.mock import patch
 
 root = Path(sys.argv[1])
 sys.path.insert(0, str(Path('tools').resolve()))
-S = SourceFileLoader('product_search', 'tools/flea-field-search').load_module()
-N = SourceFileLoader('product_nav', 'tools/flea-field-nav').load_module()
-I = SourceFileLoader('product_instant', 'tools/flea-field-instant').load_module()
-R = SourceFileLoader('product_readme', 'tools/flea-bench-readme').load_module()
+from flea_import import load_source
+
+S = load_source('product_search', 'tools/flea-field-search')
+N = load_source('product_nav', 'tools/flea-field-nav')
+I = load_source('product_instant', 'tools/flea-field-instant')
+R = load_source('product_readme', 'tools/flea-bench-readme')
 S.ENV = dict(os.environ)
 S.STATE_ROOT = str(root / 'harness-state')
 
@@ -422,11 +423,13 @@ import socket
 from pathlib import Path
 import subprocess
 import sys
-from importlib.machinery import SourceFileLoader
 from unittest.mock import patch
 
 root = Path(sys.argv[1])
-P = SourceFileLoader('bench_product', 'tools/flea_bench_product.py').load_module()
+sys.path.insert(0, str(Path('tools').resolve()))
+from flea_import import load_source
+
+P = load_source('bench_product', 'tools/flea_bench_product.py')
 MANIFEST = str(Path('tools/flea-bench-manifest').resolve())
 PIN = 'ac631dc8b9ef612b875edcc5dd9cfa5870dc77cc'
 GIT = ['git', '-c', 'user.name=t', '-c', 'user.email=t@t', '-c', 'init.defaultBranch=main']

@@ -7,9 +7,11 @@ import queue
 import subprocess
 import sys
 import time
-from importlib.machinery import SourceFileLoader
 
-Backend = SourceFileLoader("rename_timing", str(Path(__file__).with_name("rename-timing.py"))).load_module().Backend
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
+from flea_import import load_source
+
+Backend = load_source("rename_timing", Path(__file__).with_name("rename-timing.py")).Backend
 
 # A distinct child status proves the kernel refused its nonblocking lock attempt.
 CONTENDED_EXIT = 75
@@ -158,12 +160,17 @@ def case(binary, root, shim, mode):
     return failed is None
 
 
-binary, directory, shim = sys.argv[1:]
-root = Path(directory)
-assert directory and root.is_absolute() and root.resolve() == root
-assert (root / ".flea-test-sandbox").is_file() and not root.is_relative_to(Path.home())
-assert Path(shim).is_relative_to(root)
-witness_controls(root, shim)
-results = [case(binary, root, shim, mode) for mode in ("syscall", "journal", "journal-timeout")]
-print(f"RENAMELAG DONE cases=3 failed={results.count(False)}")
-sys.exit(0 if all(results) else 1)
+def main():
+    binary, directory, shim = sys.argv[1:]
+    root = Path(directory)
+    assert directory and root.is_absolute() and root.resolve() == root
+    assert (root / ".flea-test-sandbox").is_file() and not root.is_relative_to(Path.home())
+    assert Path(shim).is_relative_to(root)
+    witness_controls(root, shim)
+    results = [case(binary, root, shim, mode) for mode in ("syscall", "journal", "journal-timeout")]
+    print(f"RENAMELAG DONE cases=3 failed={results.count(False)}")
+    return 0 if all(results) else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
