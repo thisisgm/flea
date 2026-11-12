@@ -42,13 +42,15 @@ class Controls(unittest.TestCase):
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(source, destination)
 
-    def rejected(self, label, mutate):
+    def rejected(self, label, mutate, cause=None):
         mutate()
         result = subprocess.run([sys.executable, "-B", str(self.repo / "tests/lib/flea_uish_inventory.py"),
                                  "--repo", str(self.repo), "--check"], capture_output=True, text=True,
                                 timeout=15, stdin=subprocess.DEVNULL, start_new_session=True)
         self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
         self.assertTrue(result.stderr.startswith("REFUSED:"), result.stderr)
+        if cause is not None:
+            self.assertIn(cause, result.stderr)
         print(f"CONTROL {label} rc={result.returncode} cause={result.stderr.strip()}")
 
     def ui(self, *arguments, driver=None, frontend="gpui"):
@@ -62,9 +64,34 @@ class Controls(unittest.TestCase):
     def test_inventory(self):
         result = inventory.check(self.repo)
         self.assertEqual((result["wanted"], result["inline"], result["sourced"], result["declared_overrides"]),
-                         (112, 85, 27, 86))
+                         (112, 54, 13, 86))
+        self.assertEqual(result["retired"], 45)
         self.assertGreaterEqual(result["installed_overrides"], 68)
         print("INVENTORY " + json.dumps(result, sort_keys=True))
+
+    def test_retired_oracle_is_pinned(self):
+        name = next(name for name, pin in inventory.ORACLE.items() if pin["path"].startswith("tests/ui-uish/"))
+        path = self.repo / inventory.ORACLE[name]["path"]
+        self.rejected("retired-pin", lambda: path.write_text(path.read_text().replace(f"case_{name}() {{", f"case_{name}() {{\n    :", 1)),
+                      f"oracle {name} changed at")
+
+    def test_retired_oracle_cannot_return_as_legacy(self):
+        name = next(name for name, pin in inventory.ORACLE.items() if pin["path"].startswith("tests/ui-uish/"))
+        path = self.repo / "tests/ui.sh"
+        self.rejected("retired-legacy", lambda: path.write_text(path.read_text().replace("case_cursor() {", f"case_{name}() {{ :; }}\n\ncase_cursor() {{", 1)),
+                      f"retired oracle {name} still has a legacy definition")
+
+    def test_retired_oracle_needs_a_declared_owner(self):
+        name = next(name for name, pin in inventory.ORACLE.items() if pin["path"].startswith("tests/ui-uish/"))
+        owner = inventory.ORACLE[name]["path"]
+        stray = self.repo / "tests/ui-uish/undeclared.sh"
+        body = next(body for found, body in inventory.functions((self.repo / owner).read_text()) if found == name)
+        module = self.repo / "tests/lib/flea_uish_inventory.py"
+
+        def mutate():
+            stray.write_text(body + "\n")
+            module.write_text(module.read_text().replace(f"('{name}', '{owner}',", f"('{name}', 'tests/ui-uish/undeclared.sh',", 1))
+        self.rejected("retired-owner", mutate, f"retired oracle {name} has no declared GPUI owner")
 
     def test_missing_definition(self):
         path = self.repo / "tests/ui.sh"

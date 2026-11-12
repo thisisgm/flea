@@ -71,7 +71,6 @@ columndividers|^COLUMNDIVIDERS PASS panes=[0-9]+ dividers=[0-9]+$|1
 columnsfolder|^COLUMNSFOLDER PASS folder=data-held preview=kept file=reshown empty=settled w25=kept-landed-bounded$|1
 headerhandles|^HEADERHANDLES PASS list=4 shown=[0-4] columns=0 grid=0 dual=0 search=0 nopane=0 presses=[0-8]$|1
 listcost|^LISTCOST PASS delegates=6 calls=[0-9]+$|1
-columnspeekgate|^COLUMNSPEEKGATE PASS width=parent path=parent root=empty hidden=held visible=/p$|1
 lockedmenu|^LOCKEDMENU PASS [1-9][0-9]* checks$|1
 listnamebudget|^LISTNAMEBUDGET PASS rows=6 plain=[0-9]+ resized=[0-9]+$|1
 ui-fixture-home|^ok present icons\.theme copied byte-equal as regular bytes, rest unaltered$|1
@@ -212,7 +211,6 @@ search-sizes|SEARCHSIZES DONE checks=[1-9][0-9]* failed=0$|1
 filter-held|FILTERHELD PASS list drawn=[1-9][0-9]* made=0 gone=0 moved=0 .*grid drawn=[1-9][0-9]* made=0 gone=0 moved=0|1
 columnsfilter-edge|^COLUMNSFILTEREDGE PASS file-match=held-no-empty folder-match=held-until-answered nomatch=empty refresh=empty( zero-rows=empty rows-back=shown)?$|1
 navcost|NAVCOST DONE [1-9][0-9]* checks, 0 failed$|1
-columnspeekorder|^COLUMNSPEEKORDER PASS reorder=reask stale=dropped held=rows remember=reask quiet=none$|1
 glass|^glass: checks=[1-9][0-9]* failed=0$|1
 glass-boot|^glass-boot: failed=0$|1
 tui-wake|^tui-wake: all passed$|1
@@ -321,7 +319,6 @@ theme-contrast|THEMECONTRAST ok |100
 navsupersede|NAVSUPERSEDE DONE [1-9][0-9]* checks, 0 failed$|1
 keyreach|KEYREACH DONE checks=[1-9][0-9]* failed=0$|1
 heldcolumns|HELDCOLUMNS DONE [1-9][0-9]* checks, 0 failed$|1
-columnsdrawn|^COLUMNSDRAWN PASS file-cursor=no-child folder-cursor=its-rows$|1
 reveal|^REVEAL PASS [1-9][0-9]* checks|1
 reveal|^REVEAL STATUS qs_exit=143 done=1$|1
 permissions-point-proof|^PERMPOINT PASS |10
