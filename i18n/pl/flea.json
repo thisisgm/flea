@@ -2381,6 +2381,7 @@
   "settings.row.use_this_folder": "Użyj tego folderu",
   "settings.row.view": "Ostatnio używany widok",
   "settings.row.wrap": "Przechodź na drugi koniec listy",
+  "settings.row.grid_wrap_rows": "Wrap across grid rows",
   "settings.section.about": "Informacje",
   "settings.section.display": "Wyświetlanie",
   "settings.section.keys": "Klawisze",

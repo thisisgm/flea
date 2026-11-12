@@ -2297,6 +2297,7 @@
   "settings.row.use_this_folder": "Deze map gebruiken",
   "settings.row.view": "Laatst gebruikte weergave",
   "settings.row.wrap": "Doorlopen bij lijsteinden",
+  "settings.row.grid_wrap_rows": "Wrap across grid rows",
   "settings.section.about": "Over",
   "settings.section.display": "Scherm",
   "settings.section.keys": "Toetsen",

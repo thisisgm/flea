@@ -2423,6 +2423,7 @@
   "settings.row.use_this_folder": "Використати цю теку",
   "settings.row.view": "Останній використаний перегляд",
   "settings.row.wrap": "Циклічний перехід на кінцях списку",
+  "settings.row.grid_wrap_rows": "Wrap across grid rows",
   "settings.section.about": "Про програму",
   "settings.section.display": "Екран",
   "settings.section.keys": "Клавіші",

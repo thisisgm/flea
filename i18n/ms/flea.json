@@ -691,6 +691,7 @@
   "settings.row.lang_marks": "Tunjukkan ikon kod",
   "settings.row.remember_sort": "Ingat isihan setiap folder",
   "settings.row.wrap": "Kursor berulang pada hujung senarai",
+  "settings.row.grid_wrap_rows": "Wrap across grid rows",
   "settings.row.escape_up": "Escape naik satu folder",
   "settings.row.start_in": "Flea dibuka dalam",
   "settings.row.start_folder": "Folder dipilih",

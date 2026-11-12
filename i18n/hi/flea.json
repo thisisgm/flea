@@ -2201,6 +2201,7 @@
   "settings.row.use_this_folder": "यह फ़ोल्डर उपयोग करें",
   "settings.row.view": "अंतिम उपयोग किया गया दृश्य",
   "settings.row.wrap": "सूची के अंत से दूसरे सिरे पर जाएँ",
+  "settings.row.grid_wrap_rows": "Wrap across grid rows",
   "settings.section.about": "बारे में",
   "settings.section.display": "डिस्प्ले",
   "settings.section.keys": "कुंजियाँ",

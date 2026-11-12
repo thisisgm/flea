@@ -173,7 +173,7 @@ src/tui/input.rs 455
 src/tui/model.rs 1293
 src/tui/mod.rs 459
 src/tui/render.rs 260
-src/uischema.rs 650
+src/uischema.rs 654
 src/uistate.rs 856
 src/uistore.rs 568
 src/vulkan.rs 751
@@ -199,7 +199,7 @@ tests/picker-040.qml 952
 tests/js/network.js 307
 tests/js/ops.js 597
 tests/js/slowclick.js 309
-tests/js/settings.js 398
+tests/js/settings.js 400
 tests/js/tap.js 407
 tests/js/uistate.js 489
 tests/js/watch.js 541
@@ -265,7 +265,7 @@ ui/NetworkDialog.qml 435
 ui/NetworkForm.qml 426
 ui/NetworkMounts.qml 913
 ui/OpenWithDialog.qml 613
-ui/Pane.qml 1236
+ui/Pane.qml 1237
 ui/PaneMenuActions.qml 526
 ui/PaneWire.qml 602
 ui/PermissionsDialog.qml 658
@@ -308,7 +308,7 @@ ui/js/Ops.js 576
 ui/js/Search.js 396
 ui/js/Mounts.js 320
 ui/js/Picker.js 353
-ui/js/Settings.js 476
+ui/js/Settings.js 477
 ui/js/Scroll.js 304
 ui/js/Tabs.js 736
 ui/js/UiState.js 438

@@ -2150,6 +2150,7 @@
   "settings.row.use_this_folder": "ใช้โฟลเดอร์นี้",
   "settings.row.view": "มุมมองที่ใช้ล่าสุด",
   "settings.row.wrap": "วนเมื่อถึงท้ายรายการ",
+  "settings.row.grid_wrap_rows": "Wrap across grid rows",
   "settings.section.about": "เกี่ยวกับ",
   "settings.section.display": "การแสดงผล",
   "settings.section.keys": "ปุ่ม",

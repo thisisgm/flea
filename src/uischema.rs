@@ -28,6 +28,7 @@ pub const DEFAULTS: &str = r#"{
   "emptyFolderOmi": true,
   "emptyFolderRotate": true,
   "wrapAtEnds": false,
+  "gridWrapRows": false,
   "escapeUp": false,
   "openMode": "double",
   "clickRename": true,
@@ -224,6 +225,7 @@ pub const SCHEMA: &[(&str, Rule)] = &[
     ("emptyFolderOmi", Rule::Bool),
     ("emptyFolderRotate", Rule::Bool),
     ("wrapAtEnds", Rule::Bool),
+    ("gridWrapRows", Rule::Bool),
     // ClickAndRefresh: Escape climbs when on, the pointer's open mode, and the
     // slow-click rename it greys. Single click and Escape-up ship off, slow click ships on.
     ("escapeUp", Rule::Bool),
@@ -326,6 +328,7 @@ mod tests {
                 "emptyFolderOmi",
                 "emptyFolderRotate",
                 "wrapAtEnds",
+                "gridWrapRows",
                 "escapeUp",
                 "openMode",
                 "clickRename",
@@ -348,6 +351,7 @@ mod tests {
         assert_eq!(d.get("foldersFirst").and_then(Json::as_bool), Some(true));
         assert_eq!(d.get("groupByKind").and_then(Json::as_bool), Some(false));
         assert_eq!(d.get("hidden").and_then(Json::as_bool), Some(false));
+        assert_eq!(d.get("gridWrapRows").and_then(Json::as_bool), Some(false));
         assert_eq!(d.get("hiddenLast").and_then(Json::as_bool), Some(false));
         assert_eq!(d.get("langMarks").and_then(Json::as_bool), Some(true));
         assert_eq!(d.get("showGitStatus").and_then(Json::as_bool), Some(false));

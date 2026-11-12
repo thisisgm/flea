@@ -707,6 +707,7 @@
   "settings.row.lang_marks": "Kódikonok megjelenítése",
   "settings.row.remember_sort": "Mappánkénti rendezés megjegyzése",
   "settings.row.wrap": "Körbefordulás a lista végén",
+  "settings.row.grid_wrap_rows": "Wrap across grid rows",
   "settings.row.escape_up": "Escape: szülőmappába lépés",
   "settings.row.start_in": "A Flea kezdőmappája",
   "settings.row.start_folder": "Kiválasztott mappa",

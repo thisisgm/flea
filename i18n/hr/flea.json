@@ -2291,6 +2291,7 @@
   "settings.row.use_this_folder": "Koristi ovu mapu",
   "settings.row.view": "Posljednji korišteni prikaz",
   "settings.row.wrap": "Kruži kroz popis",
+  "settings.row.grid_wrap_rows": "Wrap across grid rows",
   "settings.section.about": "O programu",
   "settings.section.display": "Zaslon",
   "settings.section.keys": "Tipke",

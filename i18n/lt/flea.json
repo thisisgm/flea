@@ -2291,6 +2291,7 @@
   "settings.row.use_this_folder": "Naudoti šį aplanką",
   "settings.row.view": "Paskutinis naudotas rodinys",
   "settings.row.wrap": "Tęsti nuo kito sąrašo galo",
+  "settings.row.grid_wrap_rows": "Wrap across grid rows",
   "settings.section.about": "Apie",
   "settings.section.display": "Ekranas",
   "settings.section.keys": "Klavišai",

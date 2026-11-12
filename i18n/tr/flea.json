@@ -2241,6 +2241,7 @@
   "settings.row.use_this_folder": "Bu klasörü kullan",
   "settings.row.view": "Son kullanılan görünüm",
   "settings.row.wrap": "Liste uçlarında başa veya sona dön",
+  "settings.row.grid_wrap_rows": "Wrap across grid rows",
   "settings.section.about": "Hakkında",
   "settings.section.display": "Ekran",
   "settings.section.keys": "Tuşlar",

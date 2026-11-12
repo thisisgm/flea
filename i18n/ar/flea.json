@@ -2605,6 +2605,7 @@
   "settings.row.use_this_folder": "استخدام هذا المجلد",
   "settings.row.view": "آخر عرض مستخدم",
   "settings.row.wrap": "الالتفاف عند نهايتي القائمة",
+  "settings.row.grid_wrap_rows": "Wrap across grid rows",
   "settings.section.about": "حول",
   "settings.section.display": "الشاشة",
   "settings.section.keys": "المفاتيح",

@@ -2332,6 +2332,7 @@
   "settings.row.use_this_folder": "Použiť tento priečinok",
   "settings.row.view": "Posledné použité zobrazenie",
   "settings.row.wrap": "Prechádzať cez konce zoznamu",
+  "settings.row.grid_wrap_rows": "Wrap across grid rows",
   "settings.section.about": "Informácie",
   "settings.section.display": "Displej",
   "settings.section.keys": "Klávesy",
