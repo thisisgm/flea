@@ -4,7 +4,9 @@ use super::*;
 impl Session {
     pub(super) fn restore(&mut self, line: &str) -> Result<String, String> {
         let mut thumbnails = ThumbnailPurge(Vec::new());
-        if field_bool(line, "all") { self.items = list()?; }
+        if field_bool(line, "all") {
+            self.items = list()?;
+        }
         let targets = self.targets(line)?;
         // A target whose original sits on a pending mount waits, so the late write lands first.
         if self.targets_blocked(&targets)? {
@@ -14,35 +16,76 @@ impl Session {
         let mut done = 0;
         let mut failures = Vec::new();
         let mut cursor = 0;
-        while let Some(bytes) = targets.records().next(&mut cursor)? {
-            let text = record_text(bytes)?;
-            let item = record_item(&text)?;
-            let mut retained = field_str(&text, "identity").unwrap_or_default();
-            let restored = detail(&item).map_err(String::from).and_then(|current| {
-                if !field_bool(line, "all") {
-                    require_selected_identity(&current, &field_str(&text, "identity").unwrap_or_default())?;
-                }
-                let backing = current.backing.as_ref().ok_or_else(|| unchecked(Op::Restore))?;
+        loop {
+            let mut chunk = Vec::new();
+            for _ in 0..crate::backend::trashdelete::RESTORE_BATCH_ITEMS {
+                let Some(bytes) = targets.records().next(&mut cursor)? else {
+                    break;
+                };
+                let text = record_text(bytes)?;
+                let item = record_item(&text)?;
+                let retained = field_str(&text, "identity").unwrap_or_default();
+                let current = detail(&item).map_err(String::from).and_then(|current| {
+                    if !field_bool(line, "all") {
+                        require_selected_identity(&current, &retained)?;
+                    }
+                    current
+                        .backing
+                        .as_ref()
+                        .ok_or_else(|| unchecked(Op::Restore))?;
+                    Ok(current)
+                });
                 let original = flea::bytename::exact(&item.original);
-                let result =
-                    backing.restore(&original, &crate::backend::trashdelete::recovery_root()?);
-                if let (Ok(()), Some(parent)) = (&result, original.parent()) {
-                    crate::backend::trashdelete::FolderSyncs::restored(parent);
+                chunk.push((item, retained, original, current));
+            }
+            if chunk.is_empty() {
+                break;
+            }
+            let requests: Vec<_> = chunk
+                .iter()
+                .filter_map(|(_, _, original, current)| {
+                    current
+                        .as_ref()
+                        .ok()
+                        .map(|current| (current.backing.as_ref().unwrap(), original.as_path()))
+                })
+                .collect();
+            let root = crate::backend::trashdelete::recovery_root();
+            let results = match &root {
+                Ok(root) => crate::backend::trashdelete::restore_many(&requests, root),
+                Err(_) => Vec::new(),
+            };
+            let mut results = results.into_iter();
+            for (item, mut retained, original, current) in chunk {
+                let restored = current.and_then(|current| {
+                    if let Err(error) = &root {
+                        return Err(error.clone());
+                    }
+                    let result = results.next().expect("one restore result per checked item");
+                    if let (Ok(()), Some(parent)) = (&result, original.parent()) {
+                        crate::backend::trashdelete::FolderSyncs::restored(parent);
+                    }
+                    thumbnails.record(current.backing.as_ref().unwrap(), &result);
+                    if result.is_err() {
+                        retained = surviving_identity(&current);
+                    }
+                    result.map_err(String::from)
+                });
+                match restored {
+                    Ok(_) => done += 1,
+                    Err(error) => failures.push(failure(&item, &retained, &error)),
                 }
-                thumbnails.record(backing, &result);
-                let result = result.map_err(String::from);
-                if result.is_err() { retained = surviving_identity(&current); }
-                result
-            });
-            match restored {
-                Ok(_) => done += 1,
-                Err(error) => failures.push(failure(&item, &retained, &error)),
             }
         }
         // Every restored item is back before the reply, and so is each folder's sync.
         drop(syncs);
         self.confirmation = None;
         self.selection = None;
-        Ok(format!(r#""done":{},"failed":{},"failures":[{}]"#, done, failures.len(), failures.join(",")))
+        Ok(format!(
+            r#""done":{},"failed":{},"failures":[{}]"#,
+            done,
+            failures.len(),
+            failures.join(",")
+        ))
     }
 }
