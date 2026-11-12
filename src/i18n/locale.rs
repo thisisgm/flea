@@ -46,6 +46,14 @@ fn right_to_left(code: &str) -> bool {
     languages.iter().any(|rtl| rtl == language)
 }
 
+// The zero digits other than '0' that Omarchy's locales.json gives a language
+// (src/i18n/fixtures/locales.json holds a copy, and a test keeps the two in step).
+const NATIVE_ZERO_DIGITS: [(&str, char); 2] = [("bn", '\u{09e6}'), ("fa", '\u{06f0}')];
+
+fn zero_digit(code: &str) -> char {
+    NATIVE_ZERO_DIGITS.iter().find(|(language, _)| *language == code).map_or('0', |(_, zero)| *zero)
+}
+
 /// Without Omarchy's roster: one locale per catalog Flea ships, English first, so the session's
 /// language can still choose one. Names stay the codes, since only Omarchy's roster carries them;
 /// the direction comes from i18n/rtl-policy.json, the list Omarchy's roster agrees with.
@@ -68,6 +76,7 @@ pub(super) fn from_catalogs(dirs: &[std::path::PathBuf]) -> Vec<Locale> {
         format_locale: code.clone(),
         glibc_locale: "C".into(),
         right_to_left: right_to_left(&code),
+        zero_digit: zero_digit(&code),
         code,
         ..Locale::default()
     }));
@@ -85,8 +94,10 @@ fn session_locale(value: &str) -> Option<(String, Option<String>)> {
 /// The roster entry the session's own locale picks, LC_ALL over LC_MESSAGES over LANG as gettext
 /// reads them: the exact region, then the bare language, then any region of that language. The
 /// entry then formats numbers and dates the session's way, since that locale is the user's choice.
+pub(super) const SESSION_KEYS: [&str; 3] = ["LC_ALL", "LC_MESSAGES", "LANG"];
+
 pub(super) fn pick_from_session(roster: &mut [Locale], get: impl Fn(&str) -> Option<String>) -> Option<String> {
-    let value = ["LC_ALL", "LC_MESSAGES", "LANG"]
+    let value = SESSION_KEYS
         .iter()
         .find_map(|key| get(key).filter(|value| !value.is_empty()))?;
     let (language, region) = session_locale(&value)?;
@@ -171,6 +182,16 @@ mod session_tests {
         assert!(super::right_to_left("ar") && super::right_to_left("he") && super::right_to_left("fa"));
         assert!(super::right_to_left("ur"));
         assert!(!super::right_to_left("es-MX") && !super::right_to_left("en"));
+    }
+
+    #[test]
+    fn catalog_zero_digits_match_omarchys_roster_for_every_shipped_catalog() {
+        let roster = super::parse(include_str!("fixtures/locales.json"), std::path::Path::new("fixture"));
+        let catalogs = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("i18n");
+        for locale in super::from_catalogs(&[catalogs]) {
+            let omarchy = roster.iter().find(|l| l.code == locale.code).map_or('0', |l| l.zero_digit);
+            assert_eq!(locale.zero_digit, omarchy, "{}", locale.code);
+        }
     }
 
     #[test]
