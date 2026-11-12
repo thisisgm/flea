@@ -8,6 +8,10 @@ use flea::ui_logic_context_menus::build::Peer;
 use flea::ui_logic_plugin_settings::airdrop::Page;
 use flea::ui_logic_send_share::airdrop::{self as owly, Adapter, Readiness};
 use flea::ui_logic_send_share::omdrop;
+use status::Retry;
+
+#[path = "airdrop_omdrop_status.rs"]
+mod status;
 
 // A device lookup that ends sooner than this is not run again until a later menu open.
 const LOOK_MIN_MS: u64 = 5_000;
@@ -48,6 +52,9 @@ pub struct Omdrop {
     confirming: Run,
     // A Receiving choice made while an `on` ran, carried out once its status is known: only Off waits.
     chosen: Option<Run>,
+    retry: Retry,
+    // `omdrop dir` runs not yet returned: no status is asked until the last has.
+    dirs: u32,
     gens: [u64; Proc::ALL.len()],
     // Omdrop's own sentences from `on` and `off`, for the one said when either fails.
     said: String,
@@ -83,6 +90,7 @@ impl Omdrop {
             card: String::new(),
         };
         self.forget_status();
+        self.dirs = 0;
         self.status = omdrop::Status::default();
         // Nothing a run of the omdrop just replaced says lands: an on or off finishes by itself, a lookup is stopped.
         self.phase = Phase::Off;
@@ -101,72 +109,6 @@ impl Omdrop {
             self.phase,
             Phase::Starting | Phase::Stopping | Phase::Confirming
         )
-    }
-
-    // Omdrop's state can change behind Flea, so its status is asked on every open, but not while on or off runs.
-    pub fn ask_status(&mut self) -> Vec<Act> {
-        let running = matches!(self.phase, Phase::Starting | Phase::Stopping);
-        if !self.active() || self.status_wait.is_some() || running {
-            return Vec::new();
-        }
-        self.status_gen += 1;
-        self.status_wait = Some(self.status_gen);
-        vec![Act::Doctor(
-            self.status_gen,
-            omdrop::status_argv(&self.path),
-        )]
-    }
-
-    // A status asked before an `omdrop on` or `off` describes Omdrop before it, so its answer must not land.
-    fn forget_status(&mut self) {
-        self.status_gen += 1;
-        self.status_wait = None;
-    }
-
-    // Omdrop's status sets the radio and the receiver as Omdrop has them, unless Flea's `omdrop on` or `off` still runs.
-    pub fn status_done(
-        &mut self,
-        generation: u64,
-        exit_code: i32,
-        stdout: &str,
-        now_ms: u64,
-    ) -> Vec<Act> {
-        if self.status_wait != Some(generation) {
-            return Vec::new();
-        }
-        self.status_wait = None;
-        // A failed run leaves Omdrop's state unknown: the confirmed receiver, folder and name stand, but nothing reads ready.
-        let Some(status) = omdrop::status(stdout, exit_code) else {
-            self.adapter.readiness = Readiness::NotReady;
-            return vec![Act::Refresh];
-        };
-        self.adapter = status.adapter.clone();
-        let on = status.on;
-        self.status = status;
-        let mut acts = match (self.phase, on) {
-            (Phase::Starting | Phase::Stopping, _) | (Phase::On, true) | (Phase::Off, false) => {
-                Vec::new()
-            }
-            (Phase::Off, true) => {
-                self.phase = Phase::On;
-                self.browse(now_ms)
-            }
-            // Flea's own on just came up: its first lookup starts even with the menu shut, so the next open has names.
-            (Phase::Confirming, true) => {
-                self.phase = Phase::On;
-                self.look(now_ms)
-            }
-            (Phase::On | Phase::Confirming, false) => {
-                self.phase = Phase::Off;
-                self.drop_devices()
-            }
-        };
-        // An Off chosen while on or off ran is carried out once Omdrop's state is known.
-        if self.chosen.take().is_some() {
-            acts.extend(self.receiving_off());
-        }
-        acts.push(Act::Refresh);
-        acts
     }
 
     fn browse(&mut self, now_ms: u64) -> Vec<Act> {
@@ -225,6 +167,7 @@ impl Omdrop {
     // Turn On AirDrop, or Receiving set on: `omdrop on` unless the receiver already runs, even with the radio up.
     pub fn turn_on(&mut self, i18n: &I18n) -> Vec<Act> {
         if self.chosen.take().is_some() {
+            self.retry.disarm();
             return vec![Act::Refresh];
         }
         if self.busy() || (self.phase == Phase::On && self.status.receiving) {
@@ -381,13 +324,6 @@ impl Omdrop {
             omdrop: true,
             contacts: self.status.contacts,
         }
-    }
-
-    // Save received files to: Omdrop keeps its folder itself, so the choice becomes `omdrop dir`, and a status asked before it must not land.
-    pub fn folder_argv(&mut self, folder: &str) -> Vec<String> {
-        self.forget_status();
-        self.status.dir = folder.to_string();
-        omdrop::dir_argv(&self.path, folder)
     }
 }
 
