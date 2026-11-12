@@ -8,8 +8,8 @@ use flea::ui_logic_context_menus::build::Peer;
 use flea::ui_logic_plugin_settings::airdrop::Page;
 use flea::ui_logic_send_share::airdrop::{self as owly, Adapter, Readiness};
 use flea::ui_logic_send_share::omdrop;
-pub use status::DirDone;
 use status::{Dir, Retry};
+pub use status::{DirDone, DirJob};
 
 #[path = "airdrop_omdrop_status.rs"]
 mod status;
@@ -56,6 +56,8 @@ pub struct Omdrop {
     retry: Retry,
     // No status is asked while an `omdrop dir` runs.
     dir: Dir,
+    // Numbers every `omdrop dir` this window runs, never reset, so a run from before a reset never matches a later one.
+    dir_jobs: u64,
     gens: [u64; Proc::ALL.len()],
     // Omdrop's own sentences from `on` and `off`, for the one said when either fails.
     said: String,
@@ -91,7 +93,7 @@ impl Omdrop {
             card: String::new(),
         };
         self.forget_status();
-        self.dir = Dir::Idle;
+        self.dir.drop_queued();
         self.status = omdrop::Status::default();
         // Nothing a run of the omdrop just replaced says lands: an on or off finishes by itself, a lookup is stopped.
         self.phase = Phase::Off;

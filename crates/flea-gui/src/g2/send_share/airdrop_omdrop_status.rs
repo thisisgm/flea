@@ -7,18 +7,34 @@ use flea::ui_logic_send_share::omdrop;
 const RETRY_MS: u64 = 2_000;
 const RETRIES: u32 = 5;
 
-// One `omdrop dir` runs at a time: a folder chosen meanwhile waits, the latest replacing any earlier one.
+// One `omdrop dir` runs at a time, numbered: a folder chosen meanwhile waits, the latest replacing any earlier one.
 #[derive(Default)]
 pub(super) enum Dir {
     #[default]
     Idle,
-    Running,
-    Queued(String),
+    Running(u64),
+    Queued(u64, String),
+}
+
+impl Dir {
+    // A replaced omdrop drops the folder chosen for it, but a run still going is waited for: it writes the same folder.
+    pub(super) fn drop_queued(&mut self) {
+        if let Dir::Queued(job, _) = self {
+            *self = Dir::Running(*job);
+        }
+    }
+}
+
+// An `omdrop dir` to run, and the number its completion is answered by.
+#[derive(Debug, PartialEq, Eq)]
+pub struct DirJob {
+    pub job: u64,
+    pub argv: Vec<String>,
 }
 
 // What follows an `omdrop dir` that returned: the folder chosen meanwhile, or the one fresh status.
 pub enum DirDone {
-    Next(Vec<String>),
+    Next(DirJob),
     Asked(Vec<Act>),
 }
 
@@ -130,30 +146,42 @@ impl Omdrop {
 
     // Save received files to: Omdrop keeps its folder itself, so the choice becomes `omdrop dir`, run now unless one
     // still runs, when it waits for that one to return.
-    pub fn folder_argv(&mut self, folder: &str) -> Option<Vec<String>> {
+    pub fn folder_argv(&mut self, folder: &str) -> Option<DirJob> {
         self.forget_status();
         self.status.dir = folder.to_string();
-        if matches!(self.dir, Dir::Idle) {
-            self.dir = Dir::Running;
-            return Some(omdrop::dir_argv(&self.path, folder));
+        match self.dir {
+            Dir::Idle => Some(self.dir_job(folder)),
+            Dir::Running(job) | Dir::Queued(job, _) => {
+                self.dir = Dir::Queued(job, folder.to_string());
+                None
+            }
         }
-        self.dir = Dir::Queued(folder.to_string());
-        None
     }
 
-    // The `omdrop dir` run on `path` returned: the folder chosen meanwhile runs next, else every status asked before or
-    // during the runs is dropped and one fresh one asked. A run of a replaced omdrop changes nothing.
-    pub fn folder_done(&mut self, path: &str) -> DirDone {
-        if path != self.path {
+    fn dir_job(&mut self, folder: &str) -> DirJob {
+        self.dir_jobs += 1;
+        self.dir = Dir::Running(self.dir_jobs);
+        DirJob {
+            job: self.dir_jobs,
+            argv: omdrop::dir_argv(&self.path, folder),
+        }
+    }
+
+    // `omdrop dir` number `job` returned: the folder chosen meanwhile runs next, else every status asked before or during
+    // the runs is dropped and one fresh one asked. Any other run, such as one of an omdrop since replaced even at the same
+    // path, changes nothing.
+    pub fn folder_done(&mut self, job: u64) -> DirDone {
+        let current = match self.dir {
+            Dir::Running(running) | Dir::Queued(running, _) => running,
+            Dir::Idle => return DirDone::Asked(Vec::new()),
+        };
+        if job != current {
             return DirDone::Asked(Vec::new());
         }
         self.forget_status();
         match std::mem::take(&mut self.dir) {
-            Dir::Queued(folder) => {
-                self.dir = Dir::Running;
-                DirDone::Next(omdrop::dir_argv(&self.path, &folder))
-            }
-            Dir::Idle | Dir::Running => DirDone::Asked(self.ask_status()),
+            Dir::Queued(_, folder) => DirDone::Next(self.dir_job(&folder)),
+            Dir::Idle | Dir::Running(_) => DirDone::Asked(self.ask_status()),
         }
     }
 }
