@@ -289,7 +289,7 @@ fn pid_routes_two_window_processes_and_missing_pid_never_falls_back() {
 #[test]
 fn headless_cli_and_harness_contract() {
     let exe = std::env::current_exe().unwrap();
-    let target = exe.parent().unwrap().parent().unwrap().to_owned();
+    let backend = crate::cargo_artifacts::binary("flea");
     let exe = exe.to_str().unwrap();
     assert!(!exe.contains('\''), "the fixture script cannot quote {exe}");
     let fixture = root().join("ipc-fixture");
@@ -311,7 +311,7 @@ fn headless_cli_and_harness_contract() {
     let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let result = Command::new("bash")
         .arg(repo.join("tests/gui-ipc.sh"))
-        .env("FLEA_BIN", target.join("flea"))
+        .env("FLEA_BIN", backend)
         .env("FLEA_GUI_IPC_FIXTURE", &fixture)
         .output()
         .unwrap();

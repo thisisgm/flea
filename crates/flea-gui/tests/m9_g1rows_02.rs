@@ -1,4 +1,6 @@
 //! A real backend process lists a marked 100k folder: its first answer is one viewport window, and the pane asks nothing more.
+#[path = "../../../tests/lib/cargo_artifacts.rs"]
+mod cargo_artifacts;
 #[path = "m9_g1rows_02/helpers.rs"]
 mod helpers;
 #[path = "m9_g1rows_02/prior.rs"]

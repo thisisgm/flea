@@ -1,6 +1,55 @@
 //! Locked direct dependencies for the fixtures that build the backend with bare rustc.
 use std::path::{Path, PathBuf};
 
+// Sample input: <profile>/.fingerprint/flea-1a2b with rlibs in <profile>/deps (Cargo 1.99), or <profile>/build/flea/1a2b/{fingerprint,out} (Cargo 1.100).
+fn unit_dirs(profile: &Path, package: &str) -> Vec<(PathBuf, PathBuf)> {
+    let mut units = Vec::new();
+    if let Ok(entries) = std::fs::read_dir(profile.join(".fingerprint")) {
+        for entry in entries.filter_map(Result::ok) {
+            if entry
+                .file_name()
+                .to_string_lossy()
+                .starts_with(&format!("{package}-"))
+            {
+                units.push((entry.path(), profile.join("deps")));
+            }
+        }
+    }
+    if let Ok(entries) = std::fs::read_dir(profile.join("build").join(package)) {
+        for entry in entries.filter_map(Result::ok) {
+            units.push((entry.path().join("fingerprint"), entry.path().join("out")));
+        }
+    }
+    units
+}
+
+// Sample input: <profile>/deps/<test> (Cargo 1.99) gives <profile>/deps; <profile>/build/flea-gui/<hash>/out/<test> (Cargo 1.100) gives every <profile>/build/<package>/<hash>/out, sorted.
+// A target dir shared by both toolchains holds both layouts, and only the test's own layout was built by its rustc.
+fn dependency_dirs(test_binary: &Path) -> Vec<PathBuf> {
+    let profile = crate::cargo_artifacts::profile_dir(test_binary);
+    let modern = test_binary
+        .parent()
+        .is_some_and(|directory| directory.ends_with("out"));
+    if !modern {
+        return vec![profile.join("deps")];
+    }
+    let mut directories = Vec::new();
+    if let Ok(packages) = std::fs::read_dir(profile.join("build")) {
+        for package in packages.filter_map(Result::ok) {
+            if let Ok(units) = std::fs::read_dir(package.path()) {
+                directories.extend(
+                    units
+                        .filter_map(Result::ok)
+                        .map(|unit| unit.path().join("out"))
+                        .filter(|out| out.is_dir()),
+                );
+            }
+        }
+    }
+    directories.sort();
+    directories
+}
+
 fn named(block: &str, name: &str) -> bool {
     block
         .lines()
@@ -45,13 +94,14 @@ fn locked_dependencies(lock: &str) -> Vec<(&str, &str)> {
         .collect()
 }
 
-// Sample input (deps/foldhash-<hash>.d): /x-target/debug/deps/foldhash-1a2b3c.d: /home/gm/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/foldhash-0.2.0/src/lib.rs
+// Sample input (deps/foldhash-<hash>.d, or build/foldhash/<hash>/out/foldhash-<hash>.d on Cargo 1.100): /x-target/debug/deps/foldhash-1a2b3c.d: /home/gm/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/foldhash-0.2.0/src/lib.rs
 // Takes the newest rlib for the locked version, the latest build's; a dep-info file with no rlib (a cargo check) is skipped.
-fn extern_arg(dependencies: &Path, package: &str, version: &str) -> String {
+fn extern_arg(dependencies: &[PathBuf], package: &str, version: &str) -> String {
     let name = package.replace('-', "_");
     let source = format!("/{package}-{version}/");
-    let library: PathBuf = std::fs::read_dir(dependencies)
-        .unwrap()
+    let library: PathBuf = dependencies
+        .iter()
+        .flat_map(|directory| std::fs::read_dir(directory).unwrap())
         .filter_map(Result::ok)
         .map(|entry| entry.path())
         .filter(|path| {
@@ -62,7 +112,7 @@ fn extern_arg(dependencies: &Path, package: &str, version: &str) -> String {
         })
         .map(|info| {
             let stem = info.file_stem().unwrap().to_string_lossy().into_owned();
-            dependencies.join(format!("lib{stem}.rlib"))
+            info.parent().unwrap().join(format!("lib{stem}.rlib"))
         })
         .filter_map(|library| Some((library.metadata().ok()?.modified().ok()?, library)))
         .max()
@@ -80,16 +130,29 @@ fn flea_fingerprint(unit: &str) -> Option<u64> {
 }
 
 // A shared target dir holds several libflea rlibs, so the one this test links is the one its own cargo fingerprint names.
-pub(crate) fn core_library(dependencies: &Path, test_binary: &Path) -> PathBuf {
-    let fingerprints = dependencies
-        .parent()
-        .unwrap_or_else(|| panic!("deps dir {} has no target dir", dependencies.display()))
-        .join(".fingerprint");
+pub(crate) fn core_library(test_binary: &Path) -> PathBuf {
+    let profile = crate::cargo_artifacts::profile_dir(test_binary);
     let name = test_binary.file_name().unwrap().to_string_lossy();
     let (_, hash) = name
         .rsplit_once('-')
         .unwrap_or_else(|| panic!("test binary {name} carries no cargo hash"));
-    let unit_dir = fingerprints.join(format!("flea-gui-{hash}"));
+    let unit_dir = if test_binary
+        .parent()
+        .unwrap()
+        .file_name()
+        .is_some_and(|name| name == "out")
+    {
+        test_binary
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .join("fingerprint")
+    } else {
+        profile
+            .join(".fingerprint")
+            .join(format!("flea-gui-{hash}"))
+    };
     let unit = std::fs::read_dir(&unit_dir)
         .unwrap_or_else(|error| {
             panic!(
@@ -114,37 +177,53 @@ pub(crate) fn core_library(dependencies: &Path, test_binary: &Path) -> PathBuf {
     });
     // cargo writes lib-flea as the fingerprint's little-endian bytes in hex.
     let wanted = format!("{:016x}", linked.swap_bytes());
-    std::fs::read_dir(&fingerprints)
-        .unwrap_or_else(|error| panic!("cannot read {}: {error}", fingerprints.display()))
-        .filter_map(Result::ok)
-        .filter_map(|entry| {
-            let name = entry.file_name().to_string_lossy().into_owned();
-            let library_hash = name.strip_prefix("flea-")?.to_owned();
-            let recorded = std::fs::read_to_string(entry.path().join("lib-flea")).ok()?;
-            (recorded.trim() == wanted).then_some(library_hash)
+    unit_dirs(&profile, "flea")
+        .into_iter()
+        .filter_map(|(fingerprint, out)| {
+            let recorded = std::fs::read_to_string(fingerprint.join("lib-flea")).ok()?;
+            if recorded.trim() != wanted {
+                return None;
+            }
+            let name = fingerprint.file_name()?.to_string_lossy();
+            let library_hash = if name == "fingerprint" {
+                fingerprint
+                    .parent()?
+                    .file_name()?
+                    .to_string_lossy()
+                    .into_owned()
+            } else {
+                name.strip_prefix("flea-")?.to_owned()
+            };
+            Some(out.join(format!("libflea-{library_hash}.rlib")))
         })
-        .map(|library_hash| dependencies.join(format!("libflea-{library_hash}.rlib")))
         .find(|library| library.is_file())
         .unwrap_or_else(|| {
             panic!(
                 "no flea rlib in {} carries fingerprint {wanted}, which {} links",
-                dependencies.display(),
+                profile.display(),
                 unit.display()
             )
         })
 }
 
 // -L resolves transitive crates, but each direct dependency also needs --extern.
-pub(crate) fn backend_extern_args(workspace: &Path, dependencies: &Path) -> Vec<String> {
+pub(crate) fn backend_extern_args(workspace: &Path, test_binary: &Path) -> Vec<String> {
+    let dependencies = dependency_dirs(test_binary);
     let lock = std::fs::read_to_string(workspace.join("Cargo.lock")).unwrap();
     locked_dependencies(&lock)
         .into_iter()
         .flat_map(|(package, version)| {
             [
                 "--extern".to_string(),
-                extern_arg(dependencies, package, version),
+                extern_arg(&dependencies, package, version),
             ]
         })
+        .chain(dependencies.iter().flat_map(|directory| {
+            [
+                "-L".to_owned(),
+                format!("dependency={}", directory.display()),
+            ]
+        }))
         .collect()
 }
 

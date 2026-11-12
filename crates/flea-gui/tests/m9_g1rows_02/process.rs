@@ -119,12 +119,9 @@ pub(crate) fn build_dir() -> PathBuf {
 
 pub(crate) fn rustc(args: &[&std::ffi::OsStr]) {
     let executable = std::env::current_exe().unwrap();
-    let dependencies = executable.parent().unwrap();
     let output = Command::new("rustc")
         .args(args)
-        .args(foldhash::backend_extern_args(&workspace(), dependencies))
-        .arg("-L")
-        .arg(format!("dependency={}", dependencies.display()))
+        .args(foldhash::backend_extern_args(&workspace(), &executable))
         .env("CARGO_MANIFEST_DIR", workspace())
         .env("CARGO_PKG_VERSION", env!("CARGO_PKG_VERSION"))
         .output()

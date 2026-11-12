@@ -15,13 +15,7 @@ fn fx462_a_returned_favourite_retries_in_each_window_and_pane(cx: &mut gpui::Tes
             ("favourites".into(), Json::Arr(vec![record])),
         ]),
     )]);
-    let backend = std::env::current_exe()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .join("flea");
+    let backend = crate::cargo_artifacts::binary("flea");
     assert!(backend.is_file(), "build the matching flea backend first");
     std::fs::create_dir_all(fixture.0.join("state/flea")).unwrap();
     std::fs::write(

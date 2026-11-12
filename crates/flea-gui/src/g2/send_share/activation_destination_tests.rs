@@ -37,13 +37,7 @@ fn fxuish2b_dropbox_replaced_captured_root_keeps_the_backend_destination_sentenc
     std::fs::create_dir(&destination).unwrap();
     std::fs::write(listing.join("notes.txt"), "source retained").unwrap();
     let helper = root.script("dropbox-cli", "#!/bin/sh\nprintf 'Up to date\\n'\n");
-    let binary = std::env::current_exe()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .join("flea");
+    let binary = crate::cargo_artifacts::binary("flea");
     assert!(
         binary.is_file(),
         "build the matching flea backend before this test: {}",

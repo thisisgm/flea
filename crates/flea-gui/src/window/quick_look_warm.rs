@@ -48,9 +48,9 @@ impl Warm {
 impl Shell {
     pub(crate) fn sync_quick_look_warm(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let side = self.focus_side;
-        for other in 0..2 {
+        for (other, pane) in self.panes.iter_mut().enumerate() {
             if other != side {
-                if let Some(host) = &mut self.panes[other] {
+                if let Some(host) = pane {
                     host.look_warm.key = None;
                     host.look_warm.timer = None;
                     host.look_warm.prepare_timer = None;
