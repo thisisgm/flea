@@ -122,7 +122,9 @@ impl Shell {
             );
             if live {
                 let message = doc.get("error").and_then(Json::as_str).unwrap_or("");
-                self.rename_say(errors::capitalised(message), true, cx);
+                let reason = super::replies::identity_refusal(&self.locale.catalog, message)
+                    .unwrap_or_else(|| errors::capitalised(message));
+                self.rename_say(reason, true, cx);
             }
         }
         self.rename_sync_gate(window, cx);
