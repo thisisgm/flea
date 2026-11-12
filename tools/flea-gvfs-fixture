@@ -3,6 +3,10 @@
 set -euo pipefail
 . "$(dirname "$0")/flea-sandbox-guard"
 
+# This tool reads machine output and launches no application for the user.
+export LC_ALL=C.UTF-8
+unset LANGUAGE
+
 # DAV replaces the archive backend, which GVFS 1.62 removed; actions: make, uri, mount, unmount, clean.
 dir=${DIR:-$FIXTURE_ROOT/flea-gvfs-fixture}
 helper="$(dirname "$0")/flea-gvfs-dav.py"
@@ -17,7 +21,7 @@ unmount_fixture() {
     [ -f "$dir/uri" ] || return 0
     local uri mounts
     uri=$(python3 "$helper" uri "$dir")
-    mounts=$(LC_ALL=C.UTF-8 LANGUAGE='' gio mount -l) || fail "could not list mounts"
+    mounts=$(gio mount -l) || fail "could not list mounts"
     # Sample input: Mount(0): share.zip on 127.0.0.1 -> dav://127.0.0.1:2222/share.zip
     if printf '%s\n' "$mounts" | sed -n 's/^Mount([0-9]*): .* -> //p' | sed 's:/$::' | grep -Fx -- "${uri%/}" >/dev/null; then
         gio mount -u "$uri" || fail "could not unmount $uri"
