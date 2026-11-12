@@ -64,6 +64,8 @@ fn mount(
         });
         Root { shell }
     });
+    // Synthetic frame cadence must not depend on wall-clock inactive throttling.
+    cx.update(|window, _| window.activate_window());
     cx.enable_frame_feedback();
     let shell = root.read_with(cx, |root, _| root.shell.clone());
     edit(&shell, cx, |shell, window, cx| {
