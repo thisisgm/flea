@@ -103,5 +103,3 @@ rename_design_far() {
     rename_far_commit far-return 0000-far.txt "$name" "$row"
     rename_far_settled "$total" "$name" "$row"
 }
-
-case_renamefar() { case_renamedesign far; }

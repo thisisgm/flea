@@ -134,8 +134,6 @@ rename_design_backend_loss() {
     menus_shot "rename-$mode-backend-recovered"
 }
 
-case_renamelife() { case_renamedesign life; }
-
 case_renamedesign() (
     local menu_box menu_dir menus_checks=0 mode path draft before wx wy ww wh cx cy index
     local proof="${1:-design}" permissions_listing rename_stopped=""
