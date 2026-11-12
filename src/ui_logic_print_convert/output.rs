@@ -53,11 +53,19 @@ pub fn extension(path: &Path) -> String {
         .to_ascii_lowercase()
 }
 
-// magick expands %d and %x anywhere in an output path (scan%d/o.jpg writes scan0/o.jpg), so each % is doubled in the path's own bytes.
-pub fn magick_output(path: &Path) -> String {
+pub const MAGICK_LITERAL: [&str; 2] = ["-define", "filename:literal=true"];
+
+// Pair with -read, whose argument bypasses property expansion (unlike --).
+pub fn magick_input(path: &Path) -> String {
+    magick_output(path)
+}
+
+// -font still interprets properties, so escape percent bytes before encoding exact-name transport.
+pub fn magick_font(path: &Path) -> String {
     use std::os::unix::ffi::{OsStrExt, OsStringExt};
-    let mut doubled = Vec::with_capacity(path.as_os_str().len());
-    for &byte in path.as_os_str().as_bytes() {
+    let literal = literal_path(path);
+    let mut doubled = Vec::with_capacity(literal.as_os_str().len());
+    for &byte in literal.as_os_str().as_bytes() {
         doubled.push(byte);
         if byte == b'%' {
             doubled.push(b'%');
@@ -65,6 +73,25 @@ pub fn magick_output(path: &Path) -> String {
     }
     let doubled = std::path::PathBuf::from(std::ffi::OsString::from_vec(doubled));
     crate::bytename::path_text(&doubled).into_owned()
+}
+
+pub fn magick_first_frame(path: &Path) -> String {
+    let mut input = path.as_os_str().to_owned();
+    input.push("[0]");
+    magick_input(Path::new(&input))
+}
+
+// Output percent escaping differs across ImageMagick versions; every writer uses MAGICK_LITERAL.
+pub fn magick_output(path: &Path) -> String {
+    crate::bytename::path_text(&literal_path(path)).into_owned()
+}
+
+fn literal_path(path: &Path) -> std::path::PathBuf {
+    if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        Path::new(".").join(path)
+    }
 }
 
 pub fn converted_name(source: &Path, format: &str) -> String {

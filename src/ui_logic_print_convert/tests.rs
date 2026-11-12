@@ -150,19 +150,29 @@ fn op4_option_validation_keeps_transparency_and_background_eligibility() {
     assert!(Settings::parse("Row", "Large", "Black", "webp", 2).is_ok());
 }
 
-// The output path doubles each % in its own bytes, so a name that is not UTF-8 reaches magick as those bytes.
+// -read and literal outputs keep the original bytes; font option arguments still expand properties.
 #[test]
-fn magick_output_doubles_percent_and_keeps_raw_bytes() {
+fn magick_paths_escape_only_fonts_and_keep_raw_bytes() {
     use std::os::unix::ffi::OsStrExt;
     let plain = std::path::Path::new("/d/scan%d/o.jpg");
-    assert_eq!(output::magick_output(plain), "/d/scan%%d/o.jpg");
+    assert_eq!(output::magick_input(plain), "/d/scan%d/o.jpg");
+    assert_eq!(output::magick_font(plain), "/d/scan%%d/o.jpg");
+    assert_eq!(output::magick_output(plain), "/d/scan%d/o.jpg");
     let raw = std::path::Path::new(std::ffi::OsStr::from_bytes(b"/d/a%\xff/o.png"));
     let text = output::magick_output(raw);
-    let name = crate::bytename::name_text(b"a%%\xff");
+    let name = crate::bytename::name_text(b"a%\xff");
     assert_eq!(text, format!("/d/{name}/o.png"));
     assert_eq!(
         crate::bytename::text_path(&text).as_os_str().as_bytes(),
-        b"/d/a%%\xff/o.png"
+        b"/d/a%\xff/o.png"
+    );
+    assert_eq!(
+        output::magick_output(std::path::Path::new("png:photo.png")),
+        "./png:photo.png"
+    );
+    assert_eq!(
+        output::magick_input(std::path::Path::new("-a%[fx:1].png")),
+        "./-a%[fx:1].png"
     );
 }
 

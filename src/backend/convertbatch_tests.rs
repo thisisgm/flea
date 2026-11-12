@@ -3,8 +3,23 @@ use crate::backend::testdir::TestDir;
 
 #[test]
 fn pdf_rendering_uses_150_dpi_and_only_the_chosen_page() {
-    assert_eq!(pdf_argv(Path::new("/work/in.pdf"), Path::new("/work/page"), 5, "jpg"),
-        ["pdftoppm", "-r", "150", "-f", "5", "-l", "5", "-singlefile", "-jpeg", "--", "/work/in.pdf", "/work/page"]);
+    assert_eq!(
+        pdf_argv(Path::new("/work/in.pdf"), Path::new("/work/page"), 5, "jpg"),
+        [
+            "pdftoppm",
+            "-r",
+            "150",
+            "-f",
+            "5",
+            "-l",
+            "5",
+            "-singlefile",
+            "-jpeg",
+            "--",
+            "/work/in.pdf",
+            "/work/page"
+        ]
+    );
     assert!(pdf_argv(Path::new("/in.pdf"), Path::new("/out"), 1, "tiff").contains(&"-tiff".into()));
     assert!(pdf_argv(Path::new("/in.pdf"), Path::new("/out"), 1, "webp").contains(&"-png".into()));
 }
@@ -13,10 +28,33 @@ fn pdf_rendering_uses_150_dpi_and_only_the_chosen_page() {
 fn multiple_images_keep_the_listing_order_and_combine_by_default() {
     let ask = Ask::parse(r#"{"paths":["/x/b.png","/x/a.jpg"],"format":"pdf"}"#);
     assert!(ask.combine);
-    assert_eq!(image_argv(&ask.paths, Path::new("/out.pdf"), false),
-        ["magick", "--", "/x/b.png[0]", "--", "/x/a.jpg[0]", "pdf:/out.pdf"]);
-    assert_eq!(image_argv(&ask.paths, Path::new("/out.tiff"), true),
-        ["magick", "--", "/x/b.png", "--", "/x/a.jpg", "-strip", "tiff:/out.tiff"]);
+    assert_eq!(
+        image_argv(&ask.paths, Path::new("/out.pdf"), false),
+        [
+            "magick",
+            "-define",
+            "filename:literal=true",
+            "-read",
+            "/x/b.png[0]",
+            "-read",
+            "/x/a.jpg[0]",
+            "pdf:/out.pdf"
+        ]
+    );
+    assert_eq!(
+        image_argv(&ask.paths, Path::new("/out.tiff"), true),
+        [
+            "magick",
+            "-define",
+            "filename:literal=true",
+            "-read",
+            "/x/b.png",
+            "-read",
+            "/x/a.jpg",
+            "-strip",
+            "tiff:/out.tiff"
+        ]
+    );
     assert!(!Ask::parse(r#"{"combine":false}"#).combine);
 }
 
@@ -26,7 +64,7 @@ fn a_raw_named_page_source_keeps_its_bytes_beside_the_page_suffix() {
     let input = PathBuf::from(std::ffi::OsStr::from_bytes(b"/x/scan-\xff.png"));
     let args = image_argv(&[input], Path::new("/out.pdf"), false);
     assert_eq!(
-        flea::bytename::text_name(&args[2]).as_bytes(),
+        flea::bytename::text_name(&args[4]).as_bytes(),
         b"/x/scan-\xff.png[0]"
     );
 }
@@ -45,15 +83,31 @@ fn image_encoder_is_explicit_for_every_supported_target() {
 fn output_collisions_include_dangling_links_and_never_choose_the_original() {
     let d = TestDir::new("print-convert-names");
     let src = d.file("photo.png", "original");
-    let mut ask = Ask::parse(&format!(r#"{{"paths":["{}"],"format":"pdf"}}"#, src.display()));
-    assert_eq!(image_outputs(&ask).unwrap(), [d.join("photo (converted).pdf")]);
+    let mut ask = Ask::parse(&format!(
+        r#"{{"paths":["{}"],"format":"pdf"}}"#,
+        src.display()
+    ));
+    assert_eq!(
+        image_outputs(&ask).unwrap(),
+        [d.join("photo (converted).pdf")]
+    );
     d.file("photo (converted).pdf", "keep");
-    assert_eq!(image_outputs(&ask).unwrap(), [d.join("photo (converted).pdf")], "a taken name is stepped past at publish, not refused");
+    assert_eq!(
+        image_outputs(&ask).unwrap(),
+        [d.join("photo (converted).pdf")],
+        "a taken name is stepped past at publish, not refused"
+    );
     ask.format = "png".into();
-    assert_eq!(image_outputs(&ask).unwrap(), [d.join("photo (stripped).png")]);
+    assert_eq!(
+        image_outputs(&ask).unwrap(),
+        [d.join("photo (stripped).png")]
+    );
     let page = d.join("report (page 1).png");
     std::os::unix::fs::symlink(d.join("missing"), &page).unwrap();
-    assert_eq!(destination(&src, "report (page 1).png".into(), true).unwrap(), d.join("report (page 1) (converted).png"));
+    assert_eq!(
+        destination(&src, "report (page 1).png".into(), true).unwrap(),
+        d.join("report (page 1) (converted).png")
+    );
     assert_eq!(std::fs::read_to_string(src).unwrap(), "original");
 }
 
@@ -64,7 +118,9 @@ fn different_inputs_that_would_share_one_output_name_are_refused() {
     let b = d.file("photo.jpg", "b");
     let mut ask = Ask::parse(r#"{"format":"pdf","combine":false}"#);
     ask.paths = vec![a, b];
-    assert!(image_outputs(&ask).unwrap_err().contains("same output name"));
+    assert!(image_outputs(&ask)
+        .unwrap_err()
+        .contains("same output name"));
 }
 
 // S1B-8: a second Convert of the same file lands under Duplicate's next free copy name and leaves the first whole.
@@ -97,7 +153,12 @@ fn a_taken_output_lands_under_the_next_free_copy_name() {
     );
     let fresh = d.file("fresh.jpg", "fourth");
     assert_eq!(
-        land(&fresh, &d.join("other (converted).jpg"), &AtomicBool::new(false)).unwrap(),
+        land(
+            &fresh,
+            &d.join("other (converted).jpg"),
+            &AtomicBool::new(false)
+        )
+        .unwrap(),
         d.join("other (converted).jpg"),
         "a free name lands as asked"
     );
@@ -155,15 +216,30 @@ fn numbered_image_outputs_are_ordered_and_a_taken_page_name_waits_for_publish() 
     let work = d.dir("stage");
     let staged = work.join("output.png");
     let dest = d.join("scan (converted).png");
-    for scene in [10, 2] { d.file(&format!("stage/output-{scene}.png"), &scene.to_string()); }
+    for scene in [10, 2] {
+        d.file(&format!("stage/output-{scene}.png"), &scene.to_string());
+    }
     let pages = image_results(&staged, &dest, &source).unwrap();
-    assert_eq!(pages.iter().map(|(path, _)| std::fs::read_to_string(path).unwrap()).collect::<Vec<_>>(), ["2", "10"]);
+    assert_eq!(
+        pages
+            .iter()
+            .map(|(path, _)| std::fs::read_to_string(path).unwrap())
+            .collect::<Vec<_>>(),
+        ["2", "10"]
+    );
     assert_eq!(pages[0].1, d.join("scan (converted) (page 1).png"));
     assert_eq!(pages[1].1, d.join("scan (converted) (page 2).png"));
     d.file("scan (converted) (page 2).png", "keep");
-    assert_eq!(image_results(&staged, &dest, &source).unwrap(), pages, "a taken page name is stepped past at publish, not refused");
+    assert_eq!(
+        image_results(&staged, &dest, &source).unwrap(),
+        pages,
+        "a taken page name is stepped past at publish, not refused"
+    );
     assert!(!pages[0].1.exists());
-    assert!(pages.iter().all(|(path, _)| path.is_file()), "the staged pages stay unpublished");
+    assert!(
+        pages.iter().all(|(path, _)| path.is_file()),
+        "the staged pages stay unpublished"
+    );
     assert_eq!(std::fs::read_to_string(&pages[1].1).unwrap(), "keep");
     assert_eq!(std::fs::read_to_string(source).unwrap(), "original pages");
 }
@@ -176,7 +252,15 @@ fn an_expired_menu_and_mixed_kinds_run_no_tools() {
     ask.paths = vec![path];
     let mime = Db::from_str("50:image/png:*.png\n");
     let (tx, _) = std::sync::mpsc::channel();
-    let (line, steps) = run(ask, Err("Selected items changed; reopen the menu.".into()), 3, &mime, &Aliases::from_str(""), Arc::new(AtomicBool::new(false)), &tx);
+    let (line, steps) = run(
+        ask,
+        Err("Selected items changed; reopen the menu.".into()),
+        3,
+        &mime,
+        &Aliases::from_str(""),
+        Arc::new(AtomicBool::new(false)),
+        &tx,
+    );
     assert!(steps.is_empty(), "a refused convert journals nothing");
     assert!(!crate::json::field_bool(&line, "ok"));
     assert_eq!(crate::json::field_usize(&line, "requestId"), Some(17));
