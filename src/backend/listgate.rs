@@ -1,15 +1,13 @@
-//! The existing remote scan gate, kept separate from listing reply emission.
-use super::{Done, Job};
+//! The remote scan gate, on the stage's extracted owner.
+use super::scanner::{Scanner, Work};
+use super::{Done, Job, Requested};
 use crate::backend::events::Event;
 use crate::backend::iomount::{internal_failure, ListErr, ListOut};
 use std::collections::VecDeque;
 use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicU8, Ordering};
-use std::sync::mpsc::{channel, SendError, Sender};
 use std::sync::Arc;
-use std::thread;
-
-pub(super) type Work = Box<dyn FnOnce() + Send>;
 
 // What became of the scan out (reading, answered with its Event::List, or let go for a newer list); worker and loop each try to leave READING and the first decides, so a let-go scan never also answers.
 const READING: u8 = 0;
@@ -20,8 +18,8 @@ const LET_GO: u8 = 2;
 pub struct Gate {
     // The loop's channel: the scan answers on it and its worker hands a late watch descriptor back on it.
     answers: crate::backend::events::Sender<Event>,
-    // The one thread every remote scan runs on, started by the first remote list, so no later list pays a thread start.
-    pub(super) scanner: Option<Sender<Work>>,
+    // At most two remote readers and one replaceable queued scan; the ordinary path keeps its reader.
+    pub(super) scanner: Option<Scanner>,
     // The newest scan's fate, shared with its worker.
     fate: Arc<AtomicU8>,
     job: Option<Job>,
@@ -65,12 +63,11 @@ impl Gate {
         self.job = Some(job);
     }
 
-    // Lets a plain list scan of another folder go so a newer list starts at once; false when none is out, it answers a search session, or its answer is already on the way.
-    pub fn let_go(&mut self, path: &str) -> bool {
-        let plain = self
-            .job
-            .as_ref()
-            .is_some_and(|job| job.session.is_none() && job.path != path);
+    // Another folder or an explicit Reload supersedes the read out; ordinary same-folder lists keep their order.
+    pub fn let_go(&mut self, requested: &Requested) -> bool {
+        let plain = self.job.as_ref().is_some_and(|job| {
+            job.session.is_none() && (job.path != requested.path || requested.reload)
+        });
         if !plain
             || self
                 .fate
@@ -80,8 +77,9 @@ impl Gate {
             return false;
         }
         self.job = None;
-        // The let-go thread ends with its read, and the next remote list starts a fresh one.
-        self.scanner = None;
+        if let Some(scanner) = &self.scanner {
+            scanner.abandon();
+        }
         true
     }
 
@@ -89,6 +87,7 @@ impl Gate {
     pub(super) fn scan(
         &mut self,
         path: String,
+        mount: PathBuf,
         work: impl FnOnce(crate::backend::events::Sender<Event>) -> Result<ListOut, ListErr>
             + Send
             + 'static,
@@ -97,6 +96,10 @@ impl Gate {
         let fate = Arc::new(AtomicU8::new(READING));
         self.fate = Arc::clone(&fate);
         let run: Work = Box::new(move || {
+            // A queued scan replaced before it started never touches the old device.
+            if fate.load(Ordering::SeqCst) == LET_GO {
+                return;
+            }
             let result = catch_unwind(AssertUnwindSafe(|| work(loop_tx))).unwrap_or_else(|_| {
                 Err(ListErr {
                     error: internal_failure("scan", &flea::bytename::view(&path)),
@@ -125,16 +128,9 @@ impl Gate {
                 let _ = answers.send(Event::AbandonWatch(wd));
             }
         });
-        let scanner = self.scanner.get_or_insert_with(|| {
-            let (jobs, queue) = channel::<Work>();
-            thread::spawn(move || queue.into_iter().for_each(|run| run()));
-            jobs
-        });
-        // A scanner that is gone leaves this scan to the caller and is started afresh next time, so the gate still answers.
-        if let Err(SendError(run)) = scanner.send(run) {
-            self.scanner = None;
-            run();
-        }
+        self.scanner
+            .get_or_insert_with(Scanner::default)
+            .send(mount, run);
     }
 
     pub fn take(&mut self) -> Option<Job> {

@@ -234,8 +234,9 @@ impl Navigator {
         let now = pane.now();
         pane.swap.end(now, "retried");
         pane.state.kind = Kind::Loading;
-        if waited != pane.path() {
-            return self.open_without_history(pane, &waited, Options::default(), None, false);
+        // A place whose rows never landed retries its navigation, so its first rows are no change.
+        if pane.listed.as_deref() != Some(waited.as_str()) {
+            return self.open_without_history(pane, &waited, Options::default(), None, true);
         }
         self.reload(pane, selected)
     }

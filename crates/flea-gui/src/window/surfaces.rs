@@ -29,6 +29,7 @@ pub(crate) struct Surfaces {
     pub(crate) filesystem: super::status::Filesystem,
     pub(crate) hero: Option<Entity<EmptyHero>>,
     notice: Option<Entity<StateMessage>>,
+    pub(super) reload_watch: Option<gpui::Subscription>,
     refusal: Option<Refusal>,
     /// A catalog key that names the refusal instead of its own sentence: a rename the dead backend may not have finished.
     said: Option<&'static str>,
@@ -36,6 +37,9 @@ pub(crate) struct Surfaces {
 }
 
 impl Surfaces {
+    pub(super) fn notice(&self) -> Option<&Entity<StateMessage>> {
+        self.notice.as_ref()
+    }
     pub(crate) fn restyle(&self, face: &crate::list::Typeface, cx: &mut Context<Shell>) {
         if let Some(hero) = &self.hero {
             hero.update(cx, |hero, cx| {
@@ -181,7 +185,11 @@ impl Shell {
         }
         let catalog = self.locale.catalog.clone();
         let typeface = host.list.borrow().typeface.clone();
-        let metrics = if self.view == View::Grid { GRID } else { LIST };
+        let metrics = if self.view == View::Grid && kind != Kind::Waiting {
+            GRID
+        } else {
+            LIST
+        };
         let facts = match kind {
             Kind::Waiting => Some(Facts::waiting(&catalog)),
             Kind::Locked | Kind::Error => surfaces.refused(&catalog),

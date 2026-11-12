@@ -71,6 +71,7 @@ pub struct MessageLine {
     messages: Messages,
     catalog: Arc<I18n>,
     state_message: String,
+    waiting: bool,
     retry: String,
     drawn: Drawn,
     spinner: Rc<crate::feedback::spinner::Crawl>,
@@ -96,6 +97,7 @@ impl MessageLine {
             messages: Messages::new(preset),
             catalog,
             state_message: String::new(),
+            waiting: false,
             retry: String::new(),
             drawn: Drawn::default(),
             spinner: Rc::default(),
@@ -145,8 +147,14 @@ impl MessageLine {
 
     /// The pane's own state sentence, under which the dismiss key is no news.
     pub fn set_state_message(&mut self, text: &str, cx: &mut Context<Self>) {
-        if self.state_message != text {
+        self.set_pane_state(text, false, cx);
+    }
+
+    /// Waiting is a persistent pane state, outside the timed operation error queue.
+    pub fn set_pane_state(&mut self, text: &str, waiting: bool, cx: &mut Context<Self>) {
+        if self.state_message != text || self.waiting != waiting {
             self.state_message = text.into();
+            self.waiting = waiting;
             self.refresh(cx);
         }
     }
@@ -173,7 +181,14 @@ impl MessageLine {
     }
 
     fn refresh(&mut self, cx: &mut Context<Self>) {
-        let drawn = Drawn::from(self.messages.line(&self.catalog, &self.state_message));
+        let mut drawn = Drawn::from(self.messages.line(&self.catalog, &self.state_message));
+        if self.waiting && !drawn.error {
+            drawn = Drawn {
+                primary: self.state_message.clone().into(),
+                error: true,
+                ..Default::default()
+            };
+        }
         if drawn != self.drawn {
             self.drawn = drawn;
             cx.notify();

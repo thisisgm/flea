@@ -1,4 +1,4 @@
-// Issue 144: a remote list scans on one kept thread and answers as an event, and requests that arrive meanwhile wait in `Gate` and replay in order; a local list runs inline.
+// Remote lists use bounded kept readers and answer as events; queued requests replay in Gate, and local lists run inline.
 #[cfg(test)]
 use crate::backend::events::Event;
 use crate::backend::iomount::{ListErr, ListOut};
@@ -12,6 +12,8 @@ use crate::backend::watchpoll::Poller;
 use std::io::Write;
 use std::path::Path;
 use std::sync::Arc;
+#[path = "listwork_scanner.rs"]
+mod scanner;
 
 // One scan the loop has started and not yet adopted, with the request it answers.
 pub struct Job {
@@ -48,15 +50,23 @@ pub struct Landed {
 #[path = "listgate.rs"]
 mod gate;
 pub use gate::Gate;
-#[cfg(test)]
-use {gate::Work, std::thread};
 #[path = "requestgen.rs"]
 pub(crate) mod requestgen;
 
-// The folder a `list` request names, None for any other line.
-pub fn list_path(line: &str) -> Option<String> {
+// The folder a list names and the manual Reload flag its existing wire already carries.
+pub struct Requested {
+    path: String,
+    reload: bool,
+}
+
+pub fn list_path(line: &str) -> Option<Requested> {
     match parse_request(line) {
-        Request::List { path, .. } => Some(path),
+        Request::List {
+            path, want_changed, ..
+        } => Some(Requested {
+            path,
+            reload: want_changed,
+        }),
         _ => None,
     }
 }
@@ -125,133 +135,28 @@ pub fn start(
     // Read here, because the watch lives on the loop and the worker only carries the number.
     let fd = watch.raw_fd();
     let (path, line, hidden, first) = (job.path.clone(), job.line.clone(), job.hidden, job.first);
+    let mount = super::iomount::mount_key(&flea::bytename::exact(&path), &body);
     gate.begin(job);
-    gate.scan(path.clone(), move |tx| {
-        super::iomount::list_dir(path, hidden, first, line, mime, fd, tx, &body)
+    gate.scan(path.clone(), mount.clone(), move |tx| {
+        let result = super::iomount::scan_dir(path, hidden, first, line, mime, fd, tx);
+        super::iomount::clear_stuck(&mount);
+        result
     });
     Started::Remote
 }
 
-// A landed scan becomes the listing and a failed one leaves it alone; true when it became the listing.
-pub fn finish<W: Write>(
-    out: &mut W,
-    st: &mut State,
-    tb: &Tables,
-    pool: &Pool,
-    watch: &mut Watch,
-    poller: &Poller,
-    landed: Landed,
-) -> bool {
-    let out =
-        &mut requestgen::Writer::new(out, crate::json::field_usize(&landed.job.line, "pickerGen"));
-    let Landed { job, done } = landed;
-    let Job {
-        path,
-        first: _,
-        line: _,
-        hidden: _,
-        want_changed,
-        session: _,
-    } = job;
-    if super::unmount::crossed_answers(out, watch, &flea::bytename::view(&path), &done.result) {
-        out.flush().ok();
-        return false;
-    }
-    let landed = match done.result {
-        Ok(listed) => {
-            watch.set_incoming(listed.watch_wd, listed.watch_mount.clone());
-            watch.commit(listed.listing.outline_watches.clone());
-            // Said once per listing, because a folder nobody can watch goes stale in silence.
-            if watch.refused() {
-                eprintln!(
-                    "flea: {} will not follow outside changes, inotify refused a watch on it",
-                    path
-                );
-            }
-            adopt_listed(out, st, pool, tb, &path, listed, want_changed);
-            watch.ancestry.follow(&st.base);
-            out.flush().ok();
-            true
-        }
-        Err(failed) => {
-            // The listing did not move, so the loop removes the watch the failed scan armed.
-            watch.abandon_wd(failed.watch_wd);
-            if !super::unmount::gone_answers(
-                out,
-                st,
-                watch,
-                poller,
-                &flea::bytename::view(&path),
-                &failed,
-            ) {
-                say_failed(out, &failed);
-            }
-            false
-        }
-    };
-    out.flush().ok();
-    crate::prefetch::first_rows_sent();
-    landed
-}
-
-// An empty query's folder answer, written only while its session still stands at the gen it claimed.
-pub fn finish_session<W: Write>(
-    out: &mut W,
-    st: &mut State,
-    tb: &Tables,
-    pool: &Pool,
-    watch: &mut Watch,
-    landed: Landed,
-    scan: ForSession,
-) {
-    let Landed { job, done } = landed;
-    let current = st.search_session.as_ref().is_some_and(|session| {
-        session.last_answered_gen == scan.gen && session.folder == *flea::bytename::view(&job.path)
-    });
-    match done.result {
-        Ok(listed) => {
-            // The folder's own listing answers, so the armed watch the scan added goes back.
-            watch.abandon_wd(listed.watch_wd);
-            if !current {
-                return;
-            }
-            let n = listed.listing.len();
-            if let Some(session) = st.search_session.as_mut() {
-                session.note_folder_count(n);
-            }
-            let ms = listed.read_ms + listed.sort_ms;
-            adopt_session(out, st, pool, tb, &job.path, listed, scan.gen);
-            st.held = Held::Walk;
-            let reason = st
-                .search_session
-                .as_ref()
-                .and_then(|session| session.partial_reason());
-            writeln!(
-                out,
-                "{}",
-                super::searchreq::searched_status_line(n, n, ms, scan.gen, scan.walking, reason)
-            )
-            .ok();
-        }
-        Err(failed) => {
-            watch.abandon_wd(failed.watch_wd);
-            if current {
-                say_failed(out, &failed);
-            }
-        }
-    }
-    out.flush().ok();
-}
-
-// The denial's mode rides the answer from the worker, because a stat here would hang the loop on a stalled mount.
-fn say_failed(out: &mut impl Write, failed: &ListErr) {
-    if failed.mode == 0 {
-        writeln!(out, "{}", error_line(&failed.error)).ok();
-    } else {
-        writeln!(out, "{}", error_line_with_mode(&failed.error, failed.mode)).ok();
-    }
-}
+pub use finishing::{finish, finish_session};
+#[path = "listwork_finish.rs"]
+mod finishing;
 
 #[cfg(test)]
 #[path = "listwork_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "listwork_scanner_tests.rs"]
+mod scanner_tests;
+
+#[cfg(test)]
+#[path = "listwork_event_tests.rs"]
+mod event_tests;

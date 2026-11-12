@@ -188,7 +188,7 @@ impl Shell {
         let filesystem = if recent {
             status_host::disk(catalog, "", None, false)
         } else {
-            status_host::disk(catalog, &name, free.as_deref(), !fs.answered)
+            status_host::disk(catalog, &name, free.as_deref(), fs.pending(kind))
         };
         // HIG search.png: the landed receipt stands before the disk facts while search lives.
         let (path, state_message, retry, search) = if in_trash || in_flash {
@@ -254,7 +254,7 @@ impl Shell {
                         cx.emit(ArmLost(arm));
                     }
                 }
-                line.set_state_message(&state_message, cx);
+                line.set_pane_state(&state_message, kind == Kind::Waiting, cx);
                 line.set_retry_line(&retry, cx);
                 if footer.search != search {
                     line.update(cx, |m, now| m.set_search(&search, now));

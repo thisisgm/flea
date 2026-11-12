@@ -29,6 +29,11 @@ mod loop_tests;
 pub mod mark;
 pub mod observe;
 pub mod state;
+mod state_reload;
+#[cfg(test)]
+mod state_reload_motion_tests;
+#[cfg(test)]
+mod state_reload_tests;
 #[cfg(test)]
 mod state_tests;
 #[cfg(test)]

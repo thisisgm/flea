@@ -20,15 +20,25 @@ pub(super) fn is_stuck(mount: &Path, ttl: Duration) -> bool {
     if TEST_STUCK.with(|slot| slot.borrow().as_deref() == Some(mount)) {
         return true;
     }
-    stuck_table().lock().unwrap_or_else(|poisoned| poisoned.into_inner()).get(mount).is_some_and(|marked| marked.elapsed() < ttl)
+    stuck_table()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .get(mount)
+        .is_some_and(|marked| marked.elapsed() < ttl)
 }
 // A call past its deadline marks its mount, so later requests on it answer at once.
 pub(super) fn mark_stuck(mount: &Path) {
-    stuck_table().lock().unwrap_or_else(|poisoned| poisoned.into_inner()).insert(mount.to_path_buf(), Instant::now());
+    stuck_table()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .insert(mount.to_path_buf(), Instant::now());
 }
 // A call that answered clears its mount, so the next request probes it again.
-fn clear_stuck(mount: &Path) {
-    stuck_table().lock().unwrap_or_else(|poisoned| poisoned.into_inner()).remove(mount);
+pub(super) fn clear_stuck(mount: &Path) {
+    stuck_table()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .remove(mount);
 }
 // The mount a path sits under, lexical and never a stat, so a dead server costs no syscall here.
 // Sample body: "1 0 8:1 / / rw - ext4 /dev/a rw" then "30 1 0:45 / /hung rw - nfs n:/s rw".
@@ -36,20 +46,22 @@ pub fn mount_key(path: &Path, body: &str) -> PathBuf {
     if let Some(root) = super::extclass::gvfs_root(path) {
         return root;
     }
-    super::mountinfo::mount_entry_in(path, body).map(|e| e.mount).unwrap_or_else(|| PathBuf::from("/"))
+    super::mountinfo::mount_entry_in(path, body)
+        .map(|e| e.mount)
+        .unwrap_or_else(|| PathBuf::from("/"))
 }
 // The same lookup without the gvfs root, so an unmounted path keys itself; mount_key keeps the root.
 pub fn mount_key_plain(path: &Path, body: &str) -> PathBuf {
-    super::mountinfo::mount_entry_in(path, body).map(|e| e.mount).unwrap_or_else(|| path.to_path_buf())
+    super::mountinfo::mount_entry_in(path, body)
+        .map(|e| e.mount)
+        .unwrap_or_else(|| path.to_path_buf())
 }
 // A mount whose syscalls can wedge: gvfs, network fstypes and any FUSE daemon.
 pub fn is_remote(path: &Path, body: &str) -> bool {
     if super::extclass::gvfs_class(path).is_some() {
         return true;
     }
-    super::mountinfo::mount_entry_in(path, body).is_some_and(|e| {
-        super::netfs::can_wedge(&e.fstype)
-    })
+    super::mountinfo::mount_entry_in(path, body).is_some_and(|e| super::netfs::can_wedge(&e.fstype))
 }
 // One plain sentence naming the mount: "<mount> is not responding."
 fn not_responding(where_: &str, path: &Path, mount: &Path) -> FleaError {
@@ -97,15 +109,31 @@ struct Delivery {
 }
 impl Delivery {
     fn new() -> Delivery {
-        Delivery { state: std::sync::atomic::AtomicU8::new(PENDING) }
+        Delivery {
+            state: std::sync::atomic::AtomicU8::new(PENDING),
+        }
     }
     // Worker side, run before the send: true means send, false means the loop gave up and the value goes back.
     fn worker_claim(&self) -> bool {
-        self.state.compare_exchange(PENDING, DELIVERED, std::sync::atomic::Ordering::SeqCst, std::sync::atomic::Ordering::SeqCst).is_ok()
+        self.state
+            .compare_exchange(
+                PENDING,
+                DELIVERED,
+                std::sync::atomic::Ordering::SeqCst,
+                std::sync::atomic::Ordering::SeqCst,
+            )
+            .is_ok()
     }
     // Loop side, run on a timeout: true means abandoned, false means the worker delivered and the value is taken.
     fn loop_abandon(&self) -> bool {
-        self.state.compare_exchange(PENDING, ABANDONED, std::sync::atomic::Ordering::SeqCst, std::sync::atomic::Ordering::SeqCst).is_ok()
+        self.state
+            .compare_exchange(
+                PENDING,
+                ABANDONED,
+                std::sync::atomic::Ordering::SeqCst,
+                std::sync::atomic::Ordering::SeqCst,
+            )
+            .is_ok()
     }
 }
 // A late value goes back here instead of the floor; the list worker hands its watch to the loop through it.
@@ -169,7 +197,10 @@ pub fn mount_body() -> String {
 // A remote write either answers in time or stays running past the deadline; the loop moves on and the worker reports late.
 pub enum SlowWrite<T> {
     Ready(Result<T, FleaError>),
-    Slow { mount: PathBuf, rx: std::sync::mpsc::Receiver<Result<T, FleaError>> },
+    Slow {
+        mount: PathBuf,
+        rx: std::sync::mpsc::Receiver<Result<T, FleaError>>,
+    },
 }
 // One whole sentence per operation, each with {mount} for the slow mount.
 pub const SLOW_RENAME: &str = "{mount} is slow. The rename will finish on its own.";
@@ -202,7 +233,9 @@ pub fn slow_write_with<T: Send + 'static>(
         Ok(done) => SlowWrite::Ready(done),
         // A write still running is never a failure and never marks its mount: its worker reports late.
         Err(std::sync::mpsc::RecvTimeoutError::Timeout) => SlowWrite::Slow { mount, rx },
-        Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => SlowWrite::Ready(Err(internal_failure(where_, path))),
+        Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
+            SlowWrite::Ready(Err(internal_failure(where_, path)))
+        }
     }
 }
 // Thread-local, so parallel suites never see each other's calls; tests reset it with test_reset.
@@ -269,85 +302,13 @@ pub fn call_bulk<T: Send + 'static>(
 pub fn test_reset() {
     CALLS.with(|calls| calls.set(0));
 }
-// One listing's syscalls, computed on a worker with the listing, never on the loop.
-pub struct ListOut {
-    pub listing: super::listing::Listing,
-    pub read_ms: f64,
-    pub sort_ms: f64,
-    pub sized: Vec<Option<super::dirsize::DirSize>>,
-    pub dev: u64,
-    pub writable: bool,
-    pub first_metas: Vec<super::meta::Meta>,
-    pub first_start: usize,
-    pub first_ms: f64,
-    pub watch_wd: i32,
-    pub watch_mount: std::path::PathBuf,
-}
-// A failed listing carries its mode for the denial tile, or zero when no stat ran, with the armed descriptor or -1 when none needs removing.
-#[derive(Debug)]
-pub struct ListErr {
-    pub error: FleaError,
-    pub mode: u32,
-    pub watch_wd: i32,
-}
-// The loop gave up first, so every descriptor the scan armed, expanded children included, goes back for its guarded drop.
-fn hand_back_late(out: &Result<ListOut, ListErr>, tx: &super::events::Sender<super::events::Event>) {
-    if let Ok(done) = out {
-        for &wd in &done.listing.outline_watches {
-            let _ = tx.send(super::events::Event::AbandonWatch(wd));
-        }
-    }
-    let wd = match out { Ok(done) => done.watch_wd, Err(failed) => failed.watch_wd };
-    if wd >= 0 {
-        let _ = tx.send(super::events::Event::AbandonWatch(wd));
-    }
-}
-// Sample request: {"c":"list","path":"/hung/dir","first":350,"hidden":false} on an nfs mount.
-// Eight inputs: the request fields plus the mount table they classify against.
-#[allow(clippy::too_many_arguments)]
-pub fn list_dir(
-    path: String,
-    hidden: bool,
-    first: usize,
-    line: String,
-    mime: std::sync::Arc<super::mime::Db>,
-    fd: std::ffi::c_int,
-    loop_tx: super::events::Sender<super::events::Event>,
-    body: &str,
-) -> Result<ListOut, ListErr> {
-    let path_buf = flea::bytename::exact(&path);
-    let late_tx = loop_tx.clone();
-    call_with_flag(&path_buf, body, "scan", CALL_DEADLINE, STUCK_TTL, move |out: Result<ListOut, ListErr>| hand_back_late(&out, &late_tx), move || {
-        let base = flea::bytename::exact(&path);
-        let wd = super::watch::Watch::add_raw(fd, &base);
-        match super::scan::scan(&path, hidden) {
-            Ok((mut l, read_ms)) => {
-                super::picker::filter_listing(&mut l, &mime, &line);
-                let (pass_ms, sort_ms, mut sized) = match super::ordering::request(&mut l, &base, &mime, &line) {
-                    Ok(timing) => timing,
-                    Err(msg) => {
-                        let error = FleaError { where_: "sort".to_string(), path: path.clone(), msg: msg.to_string() };
-                        return Err(ListErr { error, mode: 0, watch_wd: wd });
-                    }
-                };
-                let (child_read, child_sort) = super::outline::expand(&mut l, &base, hidden, &line, mime.clone(), fd, loop_tx.clone());
-                // Child rows shift every row after them, so sizes keyed by row index would land on the wrong rows.
-                if !l.outline_open.is_empty() { sized.clear(); }
-                let dev = super::fsinfo::dev_of(&base);
-                let writable = super::ops::dir_writable(&base);
-                let first_start = l.first_start(&base, crate::json::field_str(&line, "select").as_deref(), first);
-                let (first_metas, first_ms) = super::meta::stat_range(&base, &l, first_start, first);
-                Ok(ListOut { listing: l, read_ms: read_ms + pass_ms + child_read, sort_ms: sort_ms + child_sort, sized, dev, writable, first_metas, first_start, first_ms, watch_wd: wd, watch_mount: super::watch::live_mount_of(&base) })
-            }
-            Err(e) => {
-                let mode = super::scan::mode_of(&path);
-                Err(ListErr { error: e, mode, watch_wd: wd })
-            }
-        }
-    })
-    .map_err(|timeout| ListErr { error: timeout, mode: 0, watch_wd: -1 })
-    .and_then(|inner| inner)
-}
+#[cfg(test)]
+use listing::hand_back_late;
+pub(crate) use listing::scan_dir;
+pub use listing::{list_dir, ListErr, ListOut};
+#[path = "iomount_listing.rs"]
+mod listing;
+
 #[cfg(test)]
 #[path = "iomount_tests.rs"]
 mod tests;

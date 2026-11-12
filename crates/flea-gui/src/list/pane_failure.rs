@@ -2,6 +2,15 @@
 use super::*;
 
 impl Pane {
+    /// Waiting publishes the requested place while its listing transaction keeps the outstanding read.
+    pub(crate) fn show_waiting(&mut self) {
+        self.path = self.place().to_owned();
+        self.named = true;
+        self.state.kind = Kind::Waiting;
+        self.state.target = self.path.clone();
+        self.swap.mark_shown(false, self.now());
+    }
+
     pub fn fail(
         &mut self,
         operation: &str,

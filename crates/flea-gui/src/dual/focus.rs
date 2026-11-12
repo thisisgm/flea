@@ -54,6 +54,8 @@ impl Shell {
             "rail" => 2,
             "chrome" => 3,
             "strip" => 4,
+            "reload-left" => 5,
+            "reload-right" => 6,
             _ => return false,
         };
         self.dual_walk(current, forward, window, cx);
@@ -81,10 +83,15 @@ impl Shell {
                 && crate::rail::Mode::from_places(places) != crate::rail::Mode::Hidden,
             self.slots.chrome.is_some(),
             self.slots.tabs.is_some() && self.geometry(window).tabs.height > 0.,
+            self.state_reload_focus(0, cx).is_some(),
+            self.state_reload_focus(1, cx).is_some(),
         ];
+        let order = [0, 5, 1, 6, 2, 3, 4];
+        let mut at = order.iter().position(|&stop| stop == current).unwrap_or(0);
         let mut to = current;
         for _ in 0..shown.len() {
-            to = (to + if forward { 1 } else { shown.len() - 1 }) % shown.len();
+            at = (at + if forward { 1 } else { shown.len() - 1 }) % shown.len();
+            to = order[at];
             if shown[to] {
                 break;
             }
@@ -93,11 +100,18 @@ impl Shell {
         // The chrome and the strip keep the side the walk left from; the rail belongs to the left pane.
         if to <= 2 {
             self.focus_pane(usize::from(to == 1), cx);
+        } else if to >= 5 {
+            self.focus_pane(to - 5, cx);
         }
         match to {
             2 => window.focus(&self.dual_focus.rail, cx),
             3 => window.focus(&self.dual_focus.chrome, cx),
             4 => window.focus(&self.dual_focus.strip, cx),
+            5 | 6 => {
+                if let Some(focus) = self.state_reload_focus(to - 5, cx) {
+                    window.focus(&focus, cx);
+                }
+            }
             _ => self.enter_list_stop(forward, window, cx),
         }
         if to == 3 {
