@@ -43,14 +43,17 @@ impl Thumbnailers {
             // Sorting one directory at a time, rather than the whole list, keeps the search path's own precedence intact.
             entries.append(&mut sorted_by_path(in_dir));
         }
-        Thumbnailers::from_entries(&entries, aliases).with_appimage_route(aliases, appicon::available())
+        Thumbnailers::from_entries(&entries, aliases)
+            .with_appimage_route(aliases, appicon::available())
     }
 
     // An internal spec so rows.rs sets t for an AppImage; a thumbnailer file that declares the type keeps it, and without 7z there is no route.
     pub(crate) fn with_appimage_route(mut self, aliases: &Aliases, tool: bool) -> Thumbnailers {
         if tool {
             for mime in appicon::MIMES {
-                self.by_mime.entry(aliases.canonical(mime).to_string()).or_insert_with(appicon::route_spec);
+                self.by_mime
+                    .entry(aliases.canonical(mime).to_string())
+                    .or_insert_with(appicon::route_spec);
             }
         }
         self
@@ -64,7 +67,11 @@ impl Thumbnailers {
                 Some(l) => tokenise(&l),
                 None => continue,
             };
-            let found = match exec.first().filter(|p| !p.is_empty()).and_then(|p| resolve(p)) {
+            let found = match exec
+                .first()
+                .filter(|p| !p.is_empty())
+                .and_then(|p| resolve(p))
+            {
                 Some(f) => f,
                 None => continue,
             };
@@ -77,11 +84,16 @@ impl Thumbnailers {
             for mime in mimes {
                 let key = aliases.canonical(&mime).to_string();
                 // corner: the first file to declare a MIME type keeps it, and load sorts each directory by path so that winner is fixed; see AGENTS.md "Thumbnailer specs".
-                by_mime.entry(key).or_insert_with(|| Spec { exec: exec.clone() });
+                by_mime
+                    .entry(key)
+                    .or_insert_with(|| Spec { exec: exec.clone() });
             }
         }
         let fingerprint = fingerprint_of(&by_mime);
-        Thumbnailers { by_mime, fingerprint }
+        Thumbnailers {
+            by_mime,
+            fingerprint,
+        }
     }
 
     pub fn fingerprint(&self) -> &str {
@@ -90,25 +102,44 @@ impl Thumbnailers {
 
     // Both sides are canonicalised, because a thumbnailer may declare either one; see AGENTS.md "MIME aliases".
     pub fn for_mime(&self, mime: &str, aliases: &Aliases) -> Option<&Spec> {
-        self.by_mime.get(aliases.canonical(mime)).or_else(|| self.raw_route(mime, aliases))
+        self.by_mime
+            .get(aliases.canonical(mime))
+            .or_else(|| self.raw_route(mime, aliases))
     }
 
     // A camera RAW no thumbnailer declares is thumbnailed by the image/jpeg spec on the JPEG it embeds; none when the type is not a RAW, a thumbnailer declares it, or no image/jpeg thumbnailer is installed.
     pub fn raw_route(&self, mime: &str, aliases: &Aliases) -> Option<&Spec> {
         let canonical = aliases.canonical(mime);
-        let raw = flea::rawname::FORMATS.iter().any(|(_, mime)| aliases.canonical(mime) == canonical);
+        let raw = flea::rawname::FORMATS
+            .iter()
+            .any(|(_, mime)| aliases.canonical(mime) == canonical);
         if raw && !self.by_mime.contains_key(canonical) {
-            self.by_mime.get(if canonical == IIQ_MIME { "image/tiff" } else { JPEG_MIME })
-        } else { None }
+            self.by_mime.get(if canonical == IIQ_MIME {
+                "image/tiff"
+            } else {
+                JPEG_MIME
+            })
+        } else {
+            None
+        }
     }
 }
 
 // Sample output, 16 lowercase hex characters over every (MIME type, resolved program, arguments) entry; the entries are sorted so the map's order never reaches the hash.
 fn fingerprint_of(by_mime: &HashMap<String, Spec>) -> String {
-    let mut entries: Vec<String> = by_mime.iter().map(|(mime, spec)| format!("{}\0{}", mime, spec.exec.join("\0"))).collect();
+    let mut entries: Vec<String> = by_mime
+        .iter()
+        .map(|(mime, spec)| format!("{}\0{}", mime, spec.exec.join("\0")))
+        .collect();
     entries.sort();
-    entries.insert(0, "embedded-field-codes-v1".to_string()); // Retry failures made before embedded argv expansion.
-    format!("{:016x}", crate::backend::xxh64::hash(entries.join("\n").as_bytes()))
+    entries.insert(
+        0,
+        "embedded-field-codes-v1\nliteral-imagemagick-paths-v1".to_string(),
+    ); // Retry failures made before literal ImageMagick paths.
+    format!(
+        "{:016x}",
+        crate::backend::xxh64::hash(entries.join("\n").as_bytes())
+    )
 }
 
 // read_dir order is unspecified by POSIX, so a directory's files are ordered by path and the winner of a duplicate declaration is the same on every box.
@@ -128,7 +159,11 @@ fn search_path() -> Vec<PathBuf> {
         dirs.push(h.join(THUMBNAILERS_SUBDIR));
     }
     let data_dirs = std::env::var("XDG_DATA_DIRS").unwrap_or_default();
-    let data_dirs = if data_dirs.is_empty() { DEFAULT_DATA_DIRS.to_string() } else { data_dirs };
+    let data_dirs = if data_dirs.is_empty() {
+        DEFAULT_DATA_DIRS.to_string()
+    } else {
+        data_dirs
+    };
     for d in data_dirs.split(':') {
         if !d.is_empty() {
             dirs.push(PathBuf::from(d).join(THUMBNAILERS_SUBDIR));
@@ -223,7 +258,10 @@ fn resolve_in(program: &str, path: &str) -> Option<String> {
     };
     candidates
         .into_iter()
-        .find(|c| std::fs::metadata(c).is_ok_and(|m| m.is_file() && m.permissions().mode() & ANY_EXECUTE_BIT != 0))
+        .find(|c| {
+            std::fs::metadata(c)
+                .is_ok_and(|m| m.is_file() && m.permissions().mode() & ANY_EXECUTE_BIT != 0)
+        })
         .map(|c| c.to_string_lossy().to_string())
 }
 

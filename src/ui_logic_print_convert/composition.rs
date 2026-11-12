@@ -159,8 +159,10 @@ pub fn scale_argv(
 ) -> Vec<String> {
     let mut args = vec![
         "magick".into(),
-        "--".into(),
-        format!("{}[0]", input.display()),
+        output::MAGICK_LITERAL[0].into(),
+        output::MAGICK_LITERAL[1].into(),
+        "-read".into(),
+        output::magick_first_frame(input),
         "-auto-orient".into(),
         "-resize".into(),
     ];
@@ -215,8 +217,14 @@ pub fn join_argv(
         "magick"
     }
     .into()];
+    args.extend(output::MAGICK_LITERAL.map(String::from));
+    let read = if settings.layout == Layout::Grid {
+        "--"
+    } else {
+        "-read"
+    };
     for input in inputs {
-        args.extend(["--".into(), input.to_string_lossy().into_owned()]);
+        args.extend([read.into(), output::magick_input(input)]);
     }
     args.extend(["-background".into(), settings.background.ink().into()]);
     match settings.layout {
@@ -276,8 +284,10 @@ pub fn join_commands(
     ));
     let mut finish = vec![
         "magick".into(),
-        "--".into(),
-        intermediate.to_string_lossy().into_owned(),
+        output::MAGICK_LITERAL[0].into(),
+        output::MAGICK_LITERAL[1].into(),
+        "-read".into(),
+        output::magick_input(&intermediate),
         "-background".into(),
         settings.background.ink().into(),
         "-gravity".into(),

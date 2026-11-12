@@ -37,7 +37,10 @@ fn append_file(args: &mut Vec<String>, font: Option<&Path>, work: &Path) {
     });
     if let Some(path) = staged {
         // User-installed fonts live outside /usr, so copy into the existing private image jail.
-        args.extend(["-font".into(), path.to_string_lossy().into_owned()]);
+        args.extend([
+            "-font".into(),
+            flea::ui_logic_print_convert::output::magick_font(&path),
+        ]);
     }
 }
 
