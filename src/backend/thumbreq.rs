@@ -2,10 +2,10 @@ use crate::backend::proto::thumbed_line;
 use flea::bytename::ExactText as _;
 #[path = "thumbidentity.rs"]
 pub mod identity;
-use crate::backend::timing::since;
 use crate::backend::state::{State, Tables};
 use crate::backend::thumbcache::{Cache, Hit};
 use crate::backend::thumbs::{trace, Done, Job, Outcome, Pool, Trace};
+use crate::backend::timing::since;
 use std::io::Write;
 use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
@@ -23,6 +23,15 @@ pub(crate) fn forget_one(st: &mut State, path: &Path) {
 // st_mode mask and symlink bits: a symlink row always takes the target-stat path below.
 const S_IFMT: u32 = 0o170000;
 const S_IFLNK: u32 = 0o120000;
+
+// A 3D model's thumbnail comes from its own embedded table, every other file from the thumbnailer specs.
+fn cache_table<'a>(tb: &'a Tables, name: &str) -> &'a str {
+    if super::model3d::embedded_thumbnail_supported(name) {
+        super::model3dreq::THUMB_TABLE
+    } else {
+        tb.thumbs.fingerprint()
+    }
+}
 
 // corner: generation happens only for the rows a client named, and nothing here walks the listing; see AGENTS.md "Thumbnail requests".
 pub(crate) fn thumb_rows(
@@ -44,9 +53,18 @@ pub(crate) fn thumb_rows(
         let t = Instant::now();
         let name = st.listing.name(row);
         let path = st.base.join(name);
-        let reply = options.identity.as_ref().and_then(|tag| identity::Reply::capture(tag, row, &path, st.generation));
-        if options.identity.is_some() && reply.is_none() { continue; }
-        let answer = |file: &str, ms| reply.as_ref().map_or_else(|| thumbed_line(row, file, ms), |reply| reply.line(file, ms));
+        let reply = options
+            .identity
+            .as_ref()
+            .and_then(|tag| identity::Reply::capture(tag, row, &path, st.generation));
+        if options.identity.is_some() && reply.is_none() {
+            continue;
+        }
+        let answer = |file: &str, ms| {
+            reply
+                .as_ref()
+                .map_or_else(|| thumbed_line(row, file, ms), |reply| reply.line(file, ms))
+        };
         // The window's lstat mode and mtime stand in for a stat, except a symlink whose target the path below gates.
         if let Some((mode, mtime, target_dir)) = st.window_meta.get(&row).copied() {
             if mode & S_IFMT != S_IFLNK {
@@ -54,10 +72,18 @@ pub(crate) fn thumb_rows(
                     writeln!(out, "{}", answer("", since(t))).ok();
                     continue;
                 }
-                let declared = crate::backend::meta::thumbnailable(mode).then(|| {
-                    tb.mime.lookup(name).filter(|m| tb.thumbs.for_mime(m, &tb.aliases).is_some()).map(str::to_string)
-                        .or_else(|| super::model3d::embedded_thumbnail_supported(name).then(|| "model/x-flea-3d".to_string()))
-                }).flatten();
+                let declared = crate::backend::meta::thumbnailable(mode)
+                    .then(|| {
+                        tb.mime
+                            .lookup(name)
+                            .filter(|m| tb.thumbs.for_mime(m, &tb.aliases).is_some())
+                            .map(str::to_string)
+                            .or_else(|| {
+                                super::model3d::embedded_thumbnail_supported(name)
+                                    .then(|| "model/x-flea-3d".to_string())
+                            })
+                    })
+                    .flatten();
                 let mime = match declared {
                     None => {
                         writeln!(out, "{}", answer("", since(t))).ok();
@@ -65,7 +91,7 @@ pub(crate) fn thumb_rows(
                     }
                     Some(m) => m,
                 };
-                let table = if super::model3d::embedded_thumbnail_supported(name) { super::model3dreq::THUMB_TABLE } else { tb.thumbs.fingerprint() };
+                let table = cache_table(tb, name);
                 match cache.lookup(&path, mtime, table) {
                     Hit::Ready(p) => {
                         writeln!(out, "{}", answer(&p.exact_text(), since(t))).ok();
@@ -91,7 +117,9 @@ pub(crate) fn thumb_rows(
         let path = st.base.join(&name);
         // corner: only a regular file is queued, so a fifo or a device node named like a video cannot block a worker; see AGENTS.md "Thumbnail requests".
         let owned = path.clone();
-        let meta = match super::iomount::call(&path, &body, "thumb", move || std::fs::metadata(&owned).ok()) {
+        let meta = match super::iomount::call(&path, &body, "thumb", move || {
+            std::fs::metadata(&owned).ok()
+        }) {
             Ok(found) => found.filter(|m| m.is_file()),
             Err(_) => {
                 writeln!(out, "{}", answer("", since(t))).ok();
@@ -103,7 +131,10 @@ pub(crate) fn thumb_rows(
                 .lookup(&name)
                 .filter(|m| tb.thumbs.for_mime(m, &tb.aliases).is_some())
                 .map(str::to_string)
-                .or_else(|| super::model3d::embedded_thumbnail_supported(&name).then(|| "model/x-flea-3d".to_string()))
+                .or_else(|| {
+                    super::model3d::embedded_thumbnail_supported(&name)
+                        .then(|| "model/x-flea-3d".to_string())
+                })
         });
         let mime = match declared {
             // corner: a row no thumbnailer declares is answered at once and never queued, see AGENTS.md.
@@ -114,7 +145,7 @@ pub(crate) fn thumb_rows(
             Some(m) => m,
         };
         let mtime = meta.map(|m| m.mtime()).unwrap_or(0);
-        let table = if super::model3d::embedded_thumbnail_supported(&name) { super::model3dreq::THUMB_TABLE } else { tb.thumbs.fingerprint() };
+        let table = cache_table(tb, &name);
         match cache.lookup(&path, mtime, table) {
             Hit::Ready(p) => {
                 writeln!(out, "{}", answer(&p.exact_text(), since(t))).ok();
@@ -156,26 +187,44 @@ fn queue_row(
     super::thumbdefer::pump(out, st, pool);
     // corner: past MAX_DEFERRED nothing waits any longer, so the row is answered empty at once; see AGENTS.md "Thumbnail requests".
     if st.deferred.full() {
-        writeln!(out, "{}", reply.as_ref().map_or_else(|| thumbed_line(row, "", 0.0), |reply| reply.line("", 0.0))).ok();
+        writeln!(
+            out,
+            "{}",
+            reply
+                .as_ref()
+                .map_or_else(|| thumbed_line(row, "", 0.0), |reply| reply.line("", 0.0))
+        )
+        .ok();
         return;
     }
     st.asked.push((path.clone(), row));
     st.thumb_mtimes.insert(path.clone(), mtime);
     st.outstanding += 1;
     let replies = Some(identity::start(st, path.clone(), mtime, reply));
-    st.deferred.enqueue(Job { replies, path, mtime, trash_identity: None, mime, trace: trace(row) });
+    st.deferred.enqueue(Job {
+        replies,
+        path,
+        mtime,
+        trash_identity: None,
+        mime,
+        trace: trace(row),
+    });
     super::thumbdefer::pump(out, st, pool);
 }
 
 // A job already inside a worker keeps its mapping; every queued or waiting job leaves with its cancellation.
 pub(crate) fn cancel_all(st: &mut State, pool: &Pool) {
     identity::retire_all(st);
-    for job in pool.cancel_listing().into_iter().chain(st.deferred.take_listing()) {
+    for job in pool
+        .cancel_listing()
+        .into_iter()
+        .chain(st.deferred.take_listing())
+    {
         forget_one(st, &job.path);
     }
 }
 
-// A job already inside a worker cannot be cancelled, so its row stays mapped until it reports.
+// Active video cancellation keeps its outstanding slot until the matching completion.
 pub(crate) fn cancel_row(out: &mut impl Write, st: &mut State, pool: &Pool, row: usize) {
     identity::retire_row(st, row);
     let at = match st.asked.iter().position(|(_, r)| *r == row) {
@@ -187,7 +236,7 @@ pub(crate) fn cancel_row(out: &mut impl Write, st: &mut State, pool: &Pool, row:
     if dropped.is_empty() {
         dropped = pool.cancel(&st.asked[at].0, None);
     }
-    if dropped.is_empty() {
+    if dropped.is_empty() && !identity::cancel_video(st, &st.asked[at].0) {
         return;
     }
     st.outstanding = st.outstanding.saturating_sub(dropped.len());
@@ -205,9 +254,27 @@ pub(crate) fn report_done(out: &mut impl Write, st: &mut State, pool: &Pool, don
     let file = match done.result {
         Outcome::Ready(p) => p.exact_text().into_owned(),
         Outcome::Failed => String::new(),
+        Outcome::Cancelled => {
+            identity::complete(out, st, &done.replies, "", done.ms);
+            if let Some(t) = &done.trace {
+                eprintln!("flea: cancelled active video row={}", t.row);
+            }
+            return;
+        }
     };
-    super::trashthumb::answer(out, st, &done.path, done.mtime, done.trash_identity.as_deref(), &file);
-    if let Some(at) = st.asked.iter().position(|(p, _)| done.trash_identity.is_none() && *p == done.path && st.thumb_mtimes.get(p) == Some(&done.mtime)) {
+    super::trashthumb::answer(
+        out,
+        st,
+        &done.path,
+        done.mtime,
+        done.trash_identity.as_deref(),
+        &file,
+    );
+    if let Some(at) = st.asked.iter().position(|(p, _)| {
+        done.trash_identity.is_none()
+            && *p == done.path
+            && st.thumb_mtimes.get(p) == Some(&done.mtime)
+    }) {
         st.thumb_mtimes.remove(&done.path);
         let row = st.asked.remove(at).1;
         writeln!(out, "{}", thumbed_line(row, &file, done.ms)).ok();
@@ -223,13 +290,22 @@ pub(crate) fn report_done(out: &mut impl Write, st: &mut State, pool: &Pool, don
 fn trace_line(t: &Trace) {
     let whole = t.at.elapsed();
     // A job that failed before any child has no spawn and no exit mark, so its whole life after the pop is charged to setup.
-    let spawned = if t.spawned.is_zero() { whole } else { t.spawned };
+    let spawned = if t.spawned.is_zero() {
+        whole
+    } else {
+        t.spawned
+    };
     let exited = if t.exited.is_zero() { whole } else { t.exited };
     let ms = |d: Duration| d.as_secs_f64() * 1000.0;
     eprintln!(
         "flea: trace row={} depth={} queued={:.2} setup={:.2} child={:.2} after={:.2} total={:.2}",
-        t.row, t.depth, ms(t.popped), ms(spawned.saturating_sub(t.popped)),
-        ms(exited.saturating_sub(spawned)), ms(whole.saturating_sub(exited)), ms(whole)
+        t.row,
+        t.depth,
+        ms(t.popped),
+        ms(spawned.saturating_sub(t.popped)),
+        ms(exited.saturating_sub(spawned)),
+        ms(whole.saturating_sub(exited)),
+        ms(whole)
     );
 }
 

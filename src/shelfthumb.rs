@@ -57,10 +57,17 @@ fn thumb_of(
                 cache: Cache::at(root.to_path_buf()),
                 worker: None,
             };
-            let mut job = Job { replies: None, path: file.to_path_buf(), mtime, trash_identity: None, mime: kind, trace: None };
+            let mut job = Job {
+                replies: None,
+                path: file.to_path_buf(),
+                mtime,
+                trash_identity: None,
+                mime: kind,
+                trace: None,
+            };
             match run_one(&tables, &mut job) {
                 Outcome::Ready(made) => Some(made.to_string_lossy().to_string()),
-                Outcome::Failed => None,
+                Outcome::Failed | Outcome::Cancelled => None,
             }
         }
     }
