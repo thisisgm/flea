@@ -1,4 +1,6 @@
 //! F2, every preset's rename key, the editor's commit, refusals and replies, an outside click, and the bulk card, on the production Shell.
+#[path = "rename_bottom_tests.rs"]
+mod bottom;
 #[path = "rename_clickaway_tests.rs"]
 mod clickaway;
 #[path = "rename_hidden_tests.rs"]

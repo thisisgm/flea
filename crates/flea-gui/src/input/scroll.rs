@@ -42,12 +42,13 @@ impl Bar {
 pub fn reveal(frame: Frame, cursor: usize, context: usize) -> f32 {
     let cursor = cursor / frame.columns.max(1);
     let total = frame.total.div_ceil(frame.columns.max(1));
-    let top = cursor as f32 * frame.row;
+    let top = frame.grow.top(cursor, frame.row);
     if context == 0 {
+        let bottom = top + frame.grow.height(cursor, frame.row);
         return if top < frame.scroll {
             top
-        } else if top + frame.row > frame.scroll + frame.viewport() {
-            top + frame.row - frame.viewport()
+        } else if bottom > frame.scroll + frame.viewport() {
+            bottom - frame.viewport()
         } else {
             frame.scroll
         }

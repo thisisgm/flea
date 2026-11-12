@@ -75,7 +75,7 @@ impl Reader<'_> {
         let cursor_name = host
             .and_then(|host| host.pane.held.row(cursor))
             .map_or("", |row| row.name.as_str());
-        let (row, area) = host.map_or((0., 0.), |host| {
+        let (row, mut area) = host.map_or((0., 0.), |host| {
             let list = host.list.borrow();
             (
                 list.drawn.metrics.row,
@@ -84,9 +84,15 @@ impl Reader<'_> {
         });
         // RenameField.qml's errorHeight: the caption band every view draws, Grid included.
         let band = shell.bands[side];
-        let top = host.map_or(0., |host| {
+        let mut top = host.map_or(0., |host| {
             f32::from(host.list.borrow().drawn.bounds.origin.y)
         });
+        if let Some(super::place::Spot::At(place)) =
+            edit.map(|edit| shell.rename_place(side, edit.index))
+        {
+            top = f32::from(place.clip.origin.y);
+            area = f32::from(place.clip.size.height);
+        }
         let frame = edit.and_then(|edit| edit.line.frame);
         let error = edit.is_some_and(|edit| !edit.error.is_empty());
         let (field, editor_top, centre) = frame.map_or((0., 0., String::new()), |frame| {
@@ -95,10 +101,14 @@ impl Reader<'_> {
             (h, y - top, centre_of(x, y, w, h))
         });
         let error_height = if error { band } else { 0. };
+        let error_bottom = edit
+            .and_then(|edit| edit.line.error_area)
+            .filter(|_| error)
+            .map_or(editor_top + field, |area| f32::from(area.bottom()) - top);
         let selected = edit.map_or("", |edit| &edit.entry.text[edit.entry.selected.clone()]);
         let listing_state = host.map_or("", |host| host.pane.state.kind.name());
         format!(
-            "{{\"index\":{},\"pending\":{},\"error\":\"{}\",\"text\":\"{}\",\"cursor\":{cursor},\"cursorName\":\"{}\",\"loading\":{},\"listingState\":\"{listing_state}\",\"focused\":{},\"rowHeight\":{},\"currentRowHeight\":{current},\"normalRowHeight\":{row},\"fieldHeight\":{field},\"errorHeight\":{error_height},\"editorTop\":{editor_top},\"editorBottom\":{},\"viewportHeight\":{area},\"selectedText\":\"{}\",\"centre\":\"{centre}\"}}",
+            "{{\"index\":{},\"pending\":{},\"error\":\"{}\",\"text\":\"{}\",\"cursor\":{cursor},\"cursorName\":\"{}\",\"loading\":{},\"listingState\":\"{listing_state}\",\"focused\":{},\"rowHeight\":{},\"currentRowHeight\":{current},\"normalRowHeight\":{row},\"fieldHeight\":{field},\"errorHeight\":{error_height},\"editorTop\":{editor_top},\"editorBottom\":{},\"errorBottom\":{error_bottom},\"viewportHeight\":{area},\"selectedText\":\"{}\",\"centre\":\"{centre}\"}}",
             shell.renaming_row(side).map_or(-1, |row| row as i64),
             edit.is_some_and(|edit| edit.pending.is_some()),
             escape(edit.map_or("", |edit| &edit.error)),
