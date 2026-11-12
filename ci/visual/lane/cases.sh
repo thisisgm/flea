@@ -1,4 +1,5 @@
 # Source after the shared flea-ci-visual lane cases to register the plugin SOURCE regression and the AirDrop plugin.
+. "$(dirname "${BASH_SOURCE[0]}")/wait.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/trash.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/state_pairs.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/search_root.sh"

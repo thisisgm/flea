@@ -4,6 +4,9 @@ use crate::{backend::Backend, path::chrome::GLYPHS, state::Shell};
 use flea::ui_logic_file_search::{Kind, Mode};
 use gpui::{point, px, size, Entity, Modifiers, MouseButton, TestAppContext, VisualTestContext};
 
+#[path = "search_menu_sort_tests.rs"]
+mod menu_sort_tests;
+
 fn open(backend: Backend, cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestContext) {
     let (shell, cx) = cx.add_window_view(|_, cx| crate::state::tests::shell_with(backend, cx));
     cx.simulate_resize(size(px(1100.), px(700.)));
