@@ -99,7 +99,7 @@ fn a_status_asked_before_or_during_a_new_folder_does_not_put_the_old_folder_back
     let Some(Act::Doctor(stale, _)) = om.menu_opened(1).into_iter().next() else {
         panic!()
     };
-    om.folder_argv("/home/u/New");
+    let job = om.folder_argv("/home/u/New").unwrap().job;
     // Settings shows while `omdrop dir` runs: no status is asked that could read the old folder.
     assert!(om.ask_status().is_empty());
     assert!(om
@@ -111,7 +111,7 @@ fn a_status_asked_before_or_during_a_new_folder_does_not_put_the_old_folder_back
         "the old answer is dropped"
     );
     assert_eq!(om.page("/d", "h").folder, "/home/u/New");
-    let DirDone::Asked(asked) = om.folder_done("/usr/bin/omdrop") else {
+    let DirDone::Asked(asked) = om.folder_done(job) else {
         panic!("nothing was chosen meanwhile")
     };
     let fresh: Vec<u64> = asked
@@ -198,19 +198,21 @@ fn a_retry_is_dropped_once_anything_else_asks_withdraws_or_replaces_omdrop() {
 #[test]
 fn folders_chosen_while_omdrop_dir_runs_wait_and_only_the_latest_runs_next() {
     let (mut om, _) = opened(ON);
-    assert!(om.folder_argv("/home/u/A").is_some());
+    let a = om.folder_argv("/home/u/A").unwrap().job;
     assert!(om.folder_argv("/home/u/B").is_none(), "B waits for A");
     assert!(om.folder_argv("/home/u/C").is_none(), "C replaces B");
     assert_eq!(om.page("/d", "h").folder, "/home/u/C");
     assert!(om.ask_status().is_empty());
-    // A run of an omdrop since replaced changes nothing.
-    assert!(matches!(om.folder_done("/opt/omdrop"), DirDone::Asked(ref a) if a.is_empty()));
-    let DirDone::Next(next) = om.folder_done("/usr/bin/omdrop") else {
+    let DirDone::Next(next) = om.folder_done(a) else {
         panic!("the latest choice runs once A returns")
     };
-    assert_eq!(next, ["/usr/bin/omdrop", "dir", "/home/u/C"]);
+    assert_eq!(next.argv, ["/usr/bin/omdrop", "dir", "/home/u/C"]);
+    assert!(
+        matches!(om.folder_done(a), DirDone::Asked(ref x) if x.is_empty()),
+        "A answers once"
+    );
     assert!(om.ask_status().is_empty(), "still none while C runs");
-    let DirDone::Asked(asked) = om.folder_done("/usr/bin/omdrop") else {
+    let DirDone::Asked(asked) = om.folder_done(next.job) else {
         panic!()
     };
     assert!(
@@ -259,4 +261,33 @@ fn on_chosen_again_over_a_waiting_off_asks_for_a_status_at_once() {
     assert!(started(&confirm(&mut om, &asked, ON, 0), Proc::Radio).is_none());
     assert_eq!(om.phase, Phase::On, "the status ended Confirming");
     let _ = failed_confirming_on();
+}
+
+#[test]
+fn a_dir_run_from_before_omdrop_went_away_and_came_back_still_runs_alone() {
+    let (mut om, _) = opened(ON);
+    let a = om.folder_argv("/home/u/A").unwrap().job;
+    assert!(om.folder_argv("/home/u/Gone").is_none());
+    let _ = om.facts("");
+    let _ = om.facts("/usr/bin/omdrop");
+    // A still runs against the same folder setting, so B and C wait for it rather than run beside it.
+    assert!(om.folder_argv("/home/u/B").is_none(), "B waits for A");
+    assert!(om.folder_argv("/home/u/C").is_none(), "C replaces B");
+    assert!(
+        matches!(om.folder_done(a + 1), DirDone::Asked(ref x) if x.is_empty()),
+        "a completion of a run that is not current changes nothing"
+    );
+    let DirDone::Next(c) = om.folder_done(a) else {
+        panic!("A's completion starts C, the latest choice")
+    };
+    assert_eq!(c.argv, ["/usr/bin/omdrop", "dir", "/home/u/C"]);
+    assert!(
+        matches!(om.folder_done(a), DirDone::Asked(ref x) if x.is_empty()),
+        "A answers once"
+    );
+    let DirDone::Asked(asked) = om.folder_done(c.job) else {
+        panic!()
+    };
+    assert!(matches!(asked[..], [Act::Doctor(..)]), "{asked:?}");
+    assert_eq!(om.page("/d", "h").folder, "/home/u/C");
 }

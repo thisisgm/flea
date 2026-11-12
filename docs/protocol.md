@@ -3435,8 +3435,9 @@ Omdrop owns its radio, receiver, audience and download folder. The window runs `
 page open and keeps its `visible` (discovery and sending) apart from `receiving` (the Receiving row) and `visibility`
 (the row's Everyone or Contacts Only label). It runs `setsid -w omdrop on` for Turn On AirDrop or Receiving set on while
 no receiver runs, even with the radio up; `omdrop off` for Receiving set to Off, which a running receiver allows even
-when Omdrop is not ready; and `omdrop dir <folder>` for Save received files to, whose refusal says Omdrop's reason. One runs at a time: a folder chosen while one runs waits, the latest replacing
-any earlier one, and runs when it returns. No status is asked while one runs, one asked before is dropped, and exactly
+when Omdrop is not ready; and `omdrop dir <folder>` for Save received files to, whose refusal says Omdrop's reason. One runs at a time, even across a switch of omdrop and back: a folder chosen
+while one runs waits, the latest replacing any earlier one, and runs when it returns; a replaced omdrop drops the folder
+queued for it, and a completion counts only for the run current then. No status is asked while one runs, one asked before is dropped, and exactly
 one is asked once the last returns; a folder chosen while owly ran AirDrop is never sent to Omdrop, nor the reverse. One `on` or `off` runs at a
 time in a window, and Omdrop serializes those of several windows itself. Flea never signals them: they are held in no
 slot, so no Off, closed window, quit or signal reaches them. Starting one drops any status request already out; when it ends, a failure says Omdrop's

@@ -1,6 +1,6 @@
 //! The window's AirDrop when Omdrop runs it: the menu, page and choices of airdrop_join.rs, carried out on Omdrop.
 use super::airdrop::Act;
-use super::airdrop_omdrop::DirDone;
+use super::airdrop_omdrop::{DirDone, DirJob};
 use super::airdrop_run::Origin;
 use super::join::now_ms;
 use crate::state::Shell;
@@ -166,15 +166,15 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        if let Some(argv) = self.menu.providers.omdrop.folder_argv(path) {
-            self.omdrop_dir(argv, window, cx);
+        if let Some(job) = self.menu.providers.omdrop.folder_argv(path) {
+            self.omdrop_dir(job, window, cx);
         }
         self.airdrop_page(cx);
     }
 
     // One `omdrop dir`: a refusal says why, then the folder chosen meanwhile runs, or Omdrop's status is read again.
-    fn omdrop_dir(&mut self, argv: Vec<String>, window: &mut Window, cx: &mut Context<Self>) {
-        let omdrop_path = argv[0].clone();
+    fn omdrop_dir(&mut self, job: DirJob, window: &mut Window, cx: &mut Context<Self>) {
+        let DirJob { job, argv } = job;
         cx.spawn_in(window, async move |this, cx| {
             let run = cx.background_executor().spawn(async move {
                 Command::new(text_name(&argv[0]))
@@ -200,7 +200,7 @@ impl Shell {
                     })
                     .into_iter()
                     .collect();
-                match shell.menu.providers.omdrop.folder_done(&omdrop_path) {
+                match shell.menu.providers.omdrop.folder_done(job) {
                     DirDone::Next(next) => shell.omdrop_dir(next, window, cx),
                     DirDone::Asked(asked) => acts.extend(asked),
                 }
