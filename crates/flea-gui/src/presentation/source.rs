@@ -71,6 +71,11 @@ impl Sources {
             .filter(|v| !v.is_empty())
             .map(PathBuf::from)
             .unwrap_or_else(|| home.join(".local/state"));
+        Self::from_dirs(home, config, state)
+    }
+
+    /// The inputs under these home, config and state folders, so a test needs no process environment.
+    fn from_dirs(home: PathBuf, config: PathBuf, state: PathBuf) -> Self {
         let theme = home.join(".local/state/omarchy/current/theme");
         Self {
             inputs: [
@@ -85,7 +90,8 @@ impl Sources {
                 config.join("gtk-4.0/settings.ini"),
             ],
             cache: state.join("flea/fc-match-monospace"),
-            omarchy: Some(state.join("omarchy")),
+            // The same HOME-based folder the theme is read from, whatever XDG_STATE_HOME says.
+            omarchy: Some(home.join(".local/state/omarchy")),
         }
     }
 
@@ -244,6 +250,20 @@ mod tests {
             .unwrap()
             .iter()
             .all(|value| value.as_ref().is_some_and(|text| !text.is_empty())));
+    }
+
+    #[test]
+    fn the_omarchy_gate_is_the_folder_the_theme_is_read_from() {
+        let sources = Sources::from_dirs(
+            PathBuf::from("/home/u"),
+            PathBuf::from("/home/u/.config"),
+            PathBuf::from("/var/xdg-state"),
+        );
+        assert_eq!(
+            sources.omarchy,
+            Some(PathBuf::from("/home/u/.local/state/omarchy"))
+        );
+        assert!(sources.inputs[0].starts_with(sources.omarchy.as_ref().unwrap()));
     }
 
     #[test]
