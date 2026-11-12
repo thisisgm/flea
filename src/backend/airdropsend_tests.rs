@@ -3,6 +3,9 @@ use crate::backend::testdir::TestDir;
 use std::sync::mpsc;
 use std::time::Instant;
 
+#[path = "airdrop_identity_tests.rs"]
+mod identity;
+
 fn send(paths: Vec<String>) -> Send {
     Send {
         peer: "3a9f0c2be41d".into(),
