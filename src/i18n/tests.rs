@@ -317,3 +317,20 @@ fn without_omarchy_the_shipped_catalogs_and_the_session_language_choose() {
     let picked = super::locale::pick_from_session(&mut roster, |key| (key == "LANG").then(|| "es_ES.UTF-8".to_owned()));
     assert_eq!(picked.as_deref(), Some("es-MX"));
 }
+
+#[test]
+fn without_omarchy_its_language_file_is_ignored_and_a_new_catalog_is_seen() {
+    let f = Fixture::new();
+    f.write("source/i18n/fa/flea.json", r#"{"folder.empty":"خالی"}"#);
+    f.write("config/omarchy/language", "fa");
+    let mut paths = f.paths();
+    paths.omarchy = f.path("no-omarchy");
+    let mut i = I18n::load(paths);
+    // The session decides, and no test runner's session language is Persian.
+    assert_ne!(i.language(), "fa");
+    assert!(i.roster().iter().any(|l| l.code == "fa" && l.right_to_left));
+    assert!(!i.roster().iter().any(|l| l.code == "de"));
+    f.write("installed/i18n/de/flea.json", r#"{"folder.empty":"Leer"}"#);
+    assert!(i.poll_changed());
+    assert!(i.roster().iter().any(|l| l.code == "de"));
+}

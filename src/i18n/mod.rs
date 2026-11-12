@@ -258,18 +258,27 @@ impl I18n {
         let omarchy = registry_text.is_some();
         self.roster = match registry_text {
             Some(text) => locale::parse(&text, &registry),
-            None => locale::from_catalogs(&self.paths.catalogs),
+            None => {
+                // A catalog added or removed at runtime changes a root's or a language folder's stamp.
+                for root in self.paths.catalogs.clone() {
+                    let entries: Vec<PathBuf> = std::fs::read_dir(self.watch(root)).into_iter().flatten().flatten()
+                        .map(|entry| entry.path()).filter(|path| path.is_dir()).collect();
+                    for entry in entries {
+                        self.watch(entry);
+                    }
+                }
+                locale::from_catalogs(&self.paths.catalogs)
+            }
         };
         self.language_text = catalog::read(&language_file);
         let session;
-        let code = match self.language_text.as_deref() {
-            Some(text) => language_code(text),
-            // On Omarchy a missing language file means English, as it always has.
-            None if omarchy => "",
-            None => {
-                session = locale::pick_from_session(&mut self.roster, |key| std::env::var(key).ok()).unwrap_or_default();
-                session.as_str()
-            }
+        let code = if omarchy {
+            // A missing language file means English, as it always has.
+            language_code(self.language_text.as_deref().unwrap_or_default())
+        } else {
+            // Omarchy's language file belongs to Omarchy's roster; without it the session decides.
+            session = locale::pick_from_session(&mut self.roster, |key| std::env::var(key).ok()).unwrap_or_default();
+            session.as_str()
         };
         self.locale = self.roster.iter().find(|l| l.code == code).cloned()
             .unwrap_or_else(|| self.roster.iter().find(|l| l.code == "en").unwrap().clone());

@@ -34,8 +34,21 @@ pub(super) fn valid_code(code: &str) -> bool {
         && region.map_or(true, |r| r.len() == 2 && r.bytes().all(|b| b.is_ascii_alphabetic()))
 }
 
+// Sample input: i18n/rtl-policy.json, whose rtl_languages list is ["ar", "fa", "he", "ur"].
+fn right_to_left(code: &str) -> bool {
+    static RTL: std::sync::OnceLock<Vec<String>> = std::sync::OnceLock::new();
+    let languages = RTL.get_or_init(|| {
+        let policy = document::parse(include_str!("../../i18n/rtl-policy.json")).unwrap_or(Json::Null);
+        policy.get("rtl_languages").and_then(Json::as_array).unwrap_or_default()
+            .iter().filter_map(Json::as_str).map(str::to_owned).collect()
+    });
+    let language = code.split('-').next().unwrap_or(code);
+    languages.iter().any(|rtl| rtl == language)
+}
+
 /// Without Omarchy's roster: one locale per catalog Flea ships, English first, so the session's
-/// language can still choose one. Names stay the codes, since only Omarchy's roster carries them.
+/// language can still choose one. Names stay the codes, since only Omarchy's roster carries them;
+/// the direction comes from i18n/rtl-policy.json, the list Omarchy's roster agrees with.
 pub(super) fn from_catalogs(dirs: &[std::path::PathBuf]) -> Vec<Locale> {
     let mut codes: Vec<String> = dirs
         .iter()
@@ -54,6 +67,7 @@ pub(super) fn from_catalogs(dirs: &[std::path::PathBuf]) -> Vec<Locale> {
         english_name: code.clone(),
         format_locale: code.clone(),
         glibc_locale: "C".into(),
+        right_to_left: right_to_left(&code),
         code,
         ..Locale::default()
     }));
@@ -150,6 +164,13 @@ mod session_tests {
         assert_eq!(list[1].format_locale, "es-ES");
         assert_eq!(pick_from_session(&mut list, env(&[("LANG", "pt_BR.UTF-8")])).as_deref(), Some("pt-BR"));
         assert_eq!(pick_from_session(&mut list, env(&[("LANG", "pt_PT.UTF-8")])).as_deref(), Some("pt"));
+    }
+
+    #[test]
+    fn catalog_locales_take_their_direction_from_the_rtl_policy() {
+        assert!(super::right_to_left("ar") && super::right_to_left("he") && super::right_to_left("fa"));
+        assert!(super::right_to_left("ur"));
+        assert!(!super::right_to_left("es-MX") && !super::right_to_left("en"));
     }
 
     #[test]
