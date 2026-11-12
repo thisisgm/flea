@@ -204,6 +204,21 @@ impl Shell {
             cx.stop_propagation();
             return true;
         }
+        if entry.marked.is_some()
+            && held.control
+            && !held.alt
+            && !held.platform
+            && !held.function
+            && matches!(stroke.key.as_str(), "left" | "right" | "up" | "down")
+        {
+            cx.stop_propagation();
+            return true;
+        }
+        if edit.pending.is_none() && entry.control_move(&stroke.key, held) {
+            cx.notify();
+            cx.stop_propagation();
+            return true;
+        }
         match stroke.key.as_str() {
             // RenameField.qml abandon(): a write already out cannot be abandoned, so the editor keeps its pending name.
             "escape" if edit.pending.is_some() => {

@@ -5,6 +5,46 @@ use gpui::Pixels;
 use unicode_segmentation::UnicodeSegmentation;
 
 impl Entry {
+    /// Linux single-line word motion: previous word start, next word end; vertical Control arrows reach the line edges.
+    pub fn control_move(&mut self, key: &str, held: gpui::Modifiers) -> bool {
+        if !held.control
+            || held.alt
+            || held.platform
+            || held.function
+            || self.kind == Kind::Private
+            || self.marked.is_some()
+        {
+            return false;
+        }
+        let at = self.cursor();
+        let to = match key {
+            "left" if !held.shift && !self.selected.is_empty() => self.selected.start,
+            "right" if !held.shift && !self.selected.is_empty() => self.selected.end,
+            "left" => self
+                .text
+                .unicode_word_indices()
+                .map(|(start, _)| start)
+                .take_while(|&start| start < at)
+                .last()
+                .unwrap_or(0),
+            "right" => self
+                .text
+                .unicode_word_indices()
+                .map(|(start, word)| start + word.len())
+                .find(|&end| end > at)
+                .unwrap_or(self.text.len()),
+            "up" => 0,
+            "down" => self.text.len(),
+            _ => return false,
+        };
+        if held.shift {
+            self.select_to(to);
+        } else {
+            self.move_to(to);
+        }
+        true
+    }
+
     /// Selects the word of the character at byte `at` as a text input does, the last one past the end; a password selects its whole line.
     pub fn select_word(&mut self, at: usize) {
         if self.kind == Kind::Private {
@@ -37,6 +77,76 @@ impl Entry {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn fx466_control_motion_excludes_passwords_composition_and_other_modifiers() {
+        let control = gpui::Modifiers {
+            control: true,
+            ..Default::default()
+        };
+        for held in [
+            gpui::Modifiers::default(),
+            gpui::Modifiers {
+                alt: true,
+                ..control
+            },
+            gpui::Modifiers {
+                platform: true,
+                ..control
+            },
+            gpui::Modifiers {
+                function: true,
+                ..control
+            },
+        ] {
+            let mut field = entry("alpha beta", Kind::Text);
+            field.move_to(field.text.len());
+            let before = super::super::navigation_cases::snapshot(&field);
+            assert!(!field.control_move("left", held));
+            assert_eq!(super::super::navigation_cases::snapshot(&field), before);
+        }
+        let mut private = entry("alpha beta", Kind::Private);
+        assert!(!private.control_move("left", control));
+        assert_eq!(private.selected, 0..10);
+        let mut field = entry("alpha beta", Kind::Text);
+        field.replace_and_mark(None, "にほん", None);
+        let before = super::super::navigation_cases::snapshot(&field);
+        for key in ["left", "right", "up", "down"] {
+            assert!(!field.control_move(key, control));
+            assert_eq!(super::super::navigation_cases::snapshot(&field), before);
+        }
+    }
+
+    #[test]
+    fn fx466_word_targets_never_split_a_grapheme_even_from_an_interior_caret() {
+        use unicode_segmentation::UnicodeSegmentation;
+        for text in [
+            "e\u{301}cole café",
+            "hi \u{1f469}\u{200d}\u{1f4bb} \u{1f1e8}\u{1f1e6} name",
+            "हिन्दी 日本語",
+        ] {
+            for at in text.char_indices().map(|(at, _)| at) {
+                for key in ["left", "right", "up", "down"] {
+                    let mut field = entry(text, Kind::Text);
+                    field.move_to(at);
+                    assert!(field.control_move(
+                        key,
+                        gpui::Modifiers {
+                            control: true,
+                            ..Default::default()
+                        }
+                    ));
+                    assert!(
+                        field.cursor() == text.len()
+                            || text
+                                .grapheme_indices(true)
+                                .any(|(at, _)| at == field.cursor()),
+                        "{text:?}: {key} from {at}"
+                    );
+                }
+            }
+        }
+    }
 
     fn entry(text: &str, kind: Kind) -> Entry {
         let mut entry = Entry {
