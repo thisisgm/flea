@@ -15,11 +15,10 @@ use crate::{
 };
 use gpui::{Context, FocusHandle, SharedString, Task, Window};
 
-const FALLBACK_HEADER_HEIGHT: f32 = 27.;
-
 pub struct Shell {
     pub(crate) capture: crate::capture::Capture,
     pub(crate) visual: crate::visual::Visual,
+    pub(crate) name_tip: crate::name_tip::Owner,
     pub(crate) presentation: crate::window::frame_feedback::Presentation,
     pub launch: Launch,
     pub slots: Slots,
@@ -119,6 +118,7 @@ impl Shell {
         let mut shell = Self {
             capture,
             visual: crate::visual::Visual::default(),
+            name_tip: Default::default(),
             presentation: Default::default(),
             strip: crate::tabs::host::Host::new(&launch.settings, &launch.paths[focus_side]),
             launch,

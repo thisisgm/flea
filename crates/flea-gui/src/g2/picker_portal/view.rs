@@ -23,57 +23,9 @@ const RULE: f32 = 0.24;
 const REFUSED: f32 = 0.55;
 const WASH: f32 = 0.14;
 
-// DialogButton's recipe: every button framed, the default an accent frame on the wash; a refused default loses both.
-fn answer(
-    id: &'static str,
-    label: SharedString,
-    default: bool,
-    available: bool,
-    (palette, size): (&Palette, Size),
-    drawn: &super::drawn::Drawn,
-    slot: Slot,
-) -> Stateful<Div> {
-    let lit = default && available;
-    let hover = drawn.clone();
-    let down = drawn.clone();
-    let up = drawn.clone();
-    let outside = drawn.clone();
-    div()
-        .id(id)
-        .debug_selector(move || id.into())
-        .relative()
-        .children(drawn.probe(slot, [1.; 4]))
-        .on_hover(move |hovered, _, _| hover.pointer(slot, Some(*hovered), None))
-        .on_mouse_down(MouseButton::Left, move |_, _, _| {
-            down.pointer(slot, None, Some(true))
-        })
-        .on_mouse_up(MouseButton::Left, move |_, _, _| {
-            up.pointer(slot, None, Some(false))
-        })
-        .on_mouse_up_out(MouseButton::Left, move |_, _, _| {
-            outside.pointer(slot, None, Some(false))
-        })
-        .flex_none()
-        .flex()
-        .items_center()
-        .h(size.px(BUTTON_HEIGHT))
-        .px(size.px(BUTTON_SIDE))
-        .text_size(px(size.body))
-        .text_color(if available {
-            palette.foreground
-        } else {
-            palette.muted
-        })
-        .border_1()
-        .border_color(if lit {
-            palette.accent_frame
-        } else {
-            crate::presentation::frames::Frames::from_palette(palette, 0.).ink
-        })
-        .when(lit, |button| button.bg(palette.accent.opacity(WASH)))
-        .when(!available, |button| button.opacity(REFUSED))
-        .child(label)
-}
+#[path = "view_answer.rs"]
+mod answer;
+use answer::answer;
 
 impl Picker {
     // The labels the answer row draws now: Replace stands in for the answer while the asked review stands.
@@ -198,9 +150,12 @@ impl Render for Picker {
         self.read_control_focus(window);
         self.chrome.probe.clear();
         let focused = self.focus.is_focused(window) || self.find.owner.typing();
-        self.browse
-            .listing
-            .update(cx, |listing, _| listing.set_focused(focused));
+        let tips_blocked = self.chrome.menu_view.is_some()
+            || self.chrome.menu_closing.is_some()
+            || self.browse.path_view(cx).read(cx).jump.shown();
+        self.browse.listing.update(cx, |listing, _| {
+            listing.set_name_tip_focus(focused, tips_blocked)
+        });
         let theme = cx
             .try_global::<crate::palette::Theme>()
             .copied()
@@ -404,5 +359,6 @@ impl Render for Picker {
                     .child(menu)
             }))
             .children(self.drawn.probe(Slot::Window, [0.; 4]))
+            .map(|root| crate::name_tip::picker_keys(root, &self.browse.listing, cx))
     }
 }

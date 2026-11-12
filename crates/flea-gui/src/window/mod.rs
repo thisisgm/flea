@@ -27,6 +27,9 @@ mod list_join;
 pub mod locale;
 #[cfg(test)]
 mod locale_tests;
+#[cfg(test)]
+#[path = "../name_tip/shell_tests.rs"]
+mod name_tip_tests;
 pub mod navigate;
 pub mod network;
 pub(crate) mod open_with;

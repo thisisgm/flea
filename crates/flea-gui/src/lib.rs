@@ -17,6 +17,7 @@ pub mod ipc;
 pub mod leaf;
 pub mod list;
 pub mod locale_geometry;
+pub(crate) mod name_tip;
 pub mod navigation;
 pub mod palette;
 pub mod pane;
