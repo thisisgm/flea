@@ -69,7 +69,7 @@ ORACLE = {name: {"path": path, "sha256": digest} for name, path, digest in (
     ('netmark', 'tests/ui.sh', '6f4ccf12c879404b7e1862eb7b60ca334d3d8d91decc80a886404baea33161e8'),
     ('networkauth', 'tests/ui.sh', 'b746ed6a778741b02048108c859a172876a4b786a747a3b8101f8b405d8fbfc5'),
     ('networktimeout', 'tests/ui.sh', 'ad391b4206c25a8a53b6ba5ca16cb9b5bb9b9d5cf4794133792285c5c0951a75'),
-    ('gvfs', 'tests/ui.sh', '6f621fe825914b172c01f0d275b7d9c65a6dcc3858ebc44d345af714bdb162cb'),
+    ('gvfs', 'tests/ui.sh', '475d54cae8cc6d57ae43d55222756e8a39a3af63f89b14d6634f0813e3d3d528'),
     ('sharebrowser', 'tests/ui.sh', 'a83b586d31183def10330f3942e6936b5391390af1f88bc73fe8ad844f57198f'),
     ('unmount', 'tests/ui.sh', 'fe45769f83149f0b7351ca3f503a8f8deee03248767605c5033fad328be7062b'),
     ('phones', 'tests/ui.sh', '6e10956870ebbc1743cee06de10ae05cf4f543f24d10979b333357f5c506c39e'),
