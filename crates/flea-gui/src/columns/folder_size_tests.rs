@@ -47,7 +47,7 @@ fn rows(prefix: &str) -> Vec<RowFacts> {
 }
 
 // A backend that answers fsinfo and dirsize from the table and receipts every walk command it reads.
-fn backend() -> Backend {
+fn backend(cx: &mut TestAppContext) -> Backend {
     let script = r#"import json,sys
 table=json.loads(sys.argv[2])
 for line in sys.stdin:
@@ -69,11 +69,14 @@ for line in sys.stdin:
         .collect();
     let mut command = Command::new("python3");
     command.args(["-u", "-c", script, PATH, &format!("[{}]", table.join(","))]);
-    Backend::start_with(command, r#"{"c":"noop"}"#.into()).unwrap()
+    let backend = Backend::start_with(command, r#"{"c":"noop"}"#.into()).unwrap();
+    let _ = backend.test_own(cx);
+    backend
 }
 
 fn mount(cx: &mut TestAppContext) -> WindowHandle<Shell> {
     let (channel, _requests) = Backend::test_channel();
+    let backend = backend(cx);
     let handle = cx.open_window(size(px(1400.), px(700.)), |window, cx| {
         let mut shell = shell_with(channel, cx);
         shell.launch.settings.columns = 3;
@@ -96,7 +99,7 @@ fn mount(cx: &mut TestAppContext) -> WindowHandle<Shell> {
         host.changed(&shell.locale);
         host.nav
             .after_reply(&mut host.pane, PATH, &mut host.selected);
-        host.backend = Some(backend());
+        host.backend = Some(backend);
         shell.path_labels[0] = PATH.to_owned().into();
         shell.set_view(View::Columns, window, cx);
         shell

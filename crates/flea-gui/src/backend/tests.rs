@@ -1,5 +1,8 @@
 use super::*;
 
+#[path = "lifetime_tests.rs"]
+mod lifetime;
+
 #[test]
 fn u09_backend_pipe_preserves_peeked_replies_for_the_columns_owner() {
     let mut command = Command::new("/bin/bash");
@@ -8,6 +11,7 @@ printf '%s\n' '{"t":"peeked","path":"/files/child","first":320,"n":1,"rows":[{"n
 while IFS= read -r line; do :; done
 "#]);
     let backend = Backend::start_command(command, "/files".into(), None, 320).unwrap();
+    let _completion = backend.test_completion().unwrap();
     let event = backend.replies.recv_blocking().unwrap();
     let Event::Peeked(document) = event else {
         panic!("the backend discarded a watched peek: {event:?}")
@@ -76,6 +80,7 @@ while IFS= read -r line; do :; done
 "#,
     ]);
     let backend = Backend::start_command(command, "/files".into(), None, 320).unwrap();
+    let _completion = backend.test_completion().unwrap();
     let first = backend.replies.recv_blocking().unwrap();
     assert!(
         matches!(first, Event::ReloadChanged(2)),
@@ -105,6 +110,7 @@ while IFS= read -r line; do :; done
 "#,
     ]);
     let backend = Backend::start_command(command, "/files".into(), None, 320).unwrap();
+    let _completion = backend.test_completion().unwrap();
     let first = backend.replies.recv_blocking().unwrap();
     assert!(
         matches!(first, Event::Garbled(_)),
@@ -133,6 +139,7 @@ while IFS= read -r line; do :; done
 "#,
     ]);
     let backend = Backend::start_command(command, "/files".into(), None, 320).unwrap();
+    let _completion = backend.test_completion().unwrap();
     let first = backend.replies.recv_blocking().unwrap();
     assert!(
         matches!(first, Event::Garbled(_)),
@@ -159,6 +166,7 @@ sleep 10
 "#,
     ]);
     let backend = Backend::start_command(command, "/files".into(), None, 320).unwrap();
+    let _completion = backend.test_completion().unwrap();
     let started = Instant::now();
     backend.quit();
     backend.drained().recv_blocking().unwrap();

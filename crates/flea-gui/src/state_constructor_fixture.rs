@@ -27,10 +27,12 @@ pub(super) fn start_backend(
     listing: &crate::navigation::Listing,
     cx: &mut Context<Shell>,
 ) -> std::io::Result<Backend> {
-    match cx.try_global::<Services>().map(|services| services.backend) {
+    let backend = match cx.try_global::<Services>().map(|services| services.backend) {
         Some(start) => start(listing, cx),
         None => Backend::start_listing(listing),
-    }
+    }?;
+    let _ = backend.test_adopt(cx);
+    Ok(backend)
 }
 
 pub(super) fn configure_monitor(
