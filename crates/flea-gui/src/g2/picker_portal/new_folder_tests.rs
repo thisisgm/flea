@@ -126,15 +126,16 @@ fn picker_new_folder_names_the_folder_before_it_is_made(cx: &mut TestAppContext)
         save_focused(&mut f),
         "the Save As field takes the keyboard again"
     );
+
+    f.listing.say(Line::Reply(
+        r#"{"t":"listed","n":0,"path":"/d/Invoices"}"#.into(),
+    ));
+    f.cx.run_until_parked();
     assert_eq!(
         f.read(|picker| picker.chrome.history.clone()),
         ["/d"],
         "Back returns to the folder the card named into"
     );
-    f.listing.say(Line::Reply(
-        r#"{"t":"listed","n":0,"path":"/d/Invoices"}"#.into(),
-    ));
-    f.cx.run_until_parked();
     assert!(
         f.cx.debug_bounds("picker-empty-hero").is_some(),
         "the empty new folder draws the empty hero (0401-picker-new-folder-made)"

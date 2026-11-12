@@ -80,6 +80,8 @@ mod header_tests;
 #[cfg(test)]
 mod i50_fit_tests;
 #[cfg(test)]
+mod navigation_recovery_tests;
+#[cfg(test)]
 mod new_folder_tests;
 #[cfg(test)]
 mod parity_tests;
@@ -101,6 +103,10 @@ mod save_click_space_tests;
 mod save_enabled_tests;
 #[cfg(test)]
 mod save_field_pointer_tests;
+#[cfg(test)]
+mod side_button_owner_tests;
+#[cfg(test)]
+mod side_button_tests;
 #[cfg(test)]
 mod word_click_tests;
 

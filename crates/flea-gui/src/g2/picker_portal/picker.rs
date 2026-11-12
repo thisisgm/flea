@@ -170,8 +170,6 @@ impl Picker {
             .try_global::<super::settings::HiddenSeed>()
             .is_some_and(|seed| seed.0);
         picker.chrome.rail_focus = Some(picker.rail.focus.clone());
-        // Back to Recent lists it again, now that the rail can open it.
-        picker.chrome.recent_back = Some(|picker, cx| picker.open_folder(logic::RECENT, cx));
         picker.rebuild_rail(cx);
         picker.body = Some(picker.browse.body(cx));
         picker.filter = picker.browse.filename.clone().map(AnyView::from);

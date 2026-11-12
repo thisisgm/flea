@@ -69,7 +69,7 @@ fn m9_integ_picker_save_enter_transfers_name_and_selects_stem(cx: &mut TestAppCo
     assert_eq!(
         f.listing.sent(),
         [
-            r#"{"c":"list","path":"/d","first":128,"pickerGlobs":[],"pickerMimes":[],"hidden":false}"#
+            r#"{"c":"list","path":"/d","first":128,"pickerGlobs":[],"pickerMimes":[],"hidden":false,"pickerGen":1}"#
         ],
         "the start folder is asked of the listing child"
     );
@@ -247,7 +247,7 @@ fn a_typed_folder_lists_and_a_missing_path_says_so(cx: &mut TestAppContext) {
     assert_eq!(
         f.listing.sent().last().map(String::as_str),
         Some(
-            r#"{"c":"list","path":"/d/sub","first":110,"pickerGlobs":[],"pickerMimes":[],"hidden":false}"#
+            r#"{"c":"list","path":"/d/sub","first":110,"pickerGlobs":[],"pickerMimes":[],"hidden":false,"pickerGen":2}"#
         ),
         "a peeked folder lists through the picker's own open, asking for the visible window"
     );

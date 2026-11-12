@@ -1,18 +1,19 @@
 //! The existing answer row gains its leading actions without changing the IME-backed Filename.
+use super::drawn::Slot;
 use super::filename::WIDTH as FIELD;
 use super::size::Size;
 use super::view::{BUTTON_HEIGHT, BUTTON_SIDE, GAP, SIDE};
 use super::Picker;
 use crate::g2::file_ops::glyph::{Glyph, Paint};
 use crate::list::Palette;
-use gpui::{div, prelude::*, px, Context, Div, MouseButton, SharedString, Window};
+use gpui::{div, prelude::*, px, Context, Div, MouseButton, SharedString, Stateful, Window};
 
 // picker-filter: the trigger is as wide as the menu card it opens, with a 16 px chevron in 80% ink.
 const FILTER_WIDTH: f32 = flea::ui_logic_context_menus::fit::MENU_W;
 const CHEVRON: f32 = 16.;
 const CHEVRON_INK: f32 = 0.8;
 const FILTER_INSET: f32 = 8.;
-// A refused trigger dims as the path controls do, and hover lays the 8% foreground wash.
+// DialogButton.qml dims refused buttons to 55%; the trigger shares it and hover lays the 8% wash.
 const REFUSED: f32 = 0.55;
 const HOVER: f32 = 0.08;
 // A DialogButton's 1 px frame, outside its text padding.
@@ -205,4 +206,59 @@ pub(super) fn shaped_width(
             .shape_line(text, px(size), &[run], None)
             .width,
     )
+}
+
+// DialogButton.qml: the default answer carries a 14% accent wash.
+const WASH: f32 = 0.14;
+
+// DialogButton's recipe: every button framed, the default an accent frame on the wash; a refused default loses both.
+pub(super) fn answer(
+    id: &'static str,
+    label: SharedString,
+    default: bool,
+    available: bool,
+    (palette, size): (&Palette, Size),
+    drawn: &super::drawn::Drawn,
+    slot: Slot,
+) -> Stateful<Div> {
+    let lit = default && available;
+    let hover = drawn.clone();
+    let down = drawn.clone();
+    let up = drawn.clone();
+    let outside = drawn.clone();
+    div()
+        .id(id)
+        .debug_selector(move || id.into())
+        .relative()
+        .children(drawn.probe(slot, [1.; 4]))
+        .on_hover(move |hovered, _, _| hover.pointer(slot, Some(*hovered), None))
+        .on_mouse_down(MouseButton::Left, move |_, _, _| {
+            down.pointer(slot, None, Some(true))
+        })
+        .on_mouse_up(MouseButton::Left, move |_, _, _| {
+            up.pointer(slot, None, Some(false))
+        })
+        .on_mouse_up_out(MouseButton::Left, move |_, _, _| {
+            outside.pointer(slot, None, Some(false))
+        })
+        .flex_none()
+        .flex()
+        .items_center()
+        .h(size.px(BUTTON_HEIGHT))
+        .px(size.px(BUTTON_SIDE))
+        .text_size(px(size.body))
+        .text_color(if available {
+            palette.foreground
+        } else {
+            palette.muted
+        })
+        .border_1()
+        .border_color(if lit {
+            palette.accent_frame
+        } else {
+            crate::presentation::frames::Frames::from_palette(palette, 0.).ink
+        })
+        .when(lit, |button| button.bg(palette.accent.opacity(WASH)))
+        .when(!available, |button| button.opacity(REFUSED))
+        .child(label)
 }

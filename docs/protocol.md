@@ -47,6 +47,13 @@ field it resolved the old index against it, so `list A`, `list B`, `paths [0]` a
 
 ### list
 
+The picker may include an unsigned `pickerGen` request generation. Every JSON frame
+emitted for that listing (including initial rows and failures) echoes `pickerGen`.
+The picker drops any reply whose `pickerGen` is not its current generation: a superseded
+remote scan can finish without answering, so counting outstanding replies cannot identify
+the current list. Replies without the field, such as `window` rows, are handled as before.
+Requests without `pickerGen` retain their existing reply format.
+
 `{"c":"list","path":"<string>","first":<uint>,"hidden":<bool>}`
 
 Example: `{"c":"list","path":"/home/gm","first":350,"hidden":false}`
@@ -305,6 +312,10 @@ This does not replace the ordinary listing or its watch. Changes-view indices ne
 ordinary backend file-operation rows; clients resolve an existing entry against the reply's `root`.
 
 ### listpaths
+
+An optional `pickerGen` has the same request-generation echo as `list`, including
+the initial rows. It lets the picker distinguish an older Recent visit from its
+current request without changing replies to callers that omit the field.
 
 `{"c":"listpaths","paths":[<string>,...],"first":<uint>}`
 

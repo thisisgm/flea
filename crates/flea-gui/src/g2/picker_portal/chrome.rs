@@ -5,7 +5,6 @@ use gpui::{Context, Entity, FocusHandle};
 pub struct Chrome {
     pub keyboard: crate::window::input::Keyboard,
     pub preset: String,
-    pub recent_back: Option<fn(&mut Picker, &mut Context<Picker>)>,
     pub probe: crate::g2::settings_pages::probe::Probe,
     pub focused: Option<&'static str>,
     pub rail_focus: Option<FocusHandle>,
@@ -16,7 +15,8 @@ pub struct Chrome {
     pub answer: FocusHandle,
     pub new_folder: FocusHandle,
     pub history: Vec<String>,
-    pub backing: bool,
+    pub ahead: Vec<String>,
+    pub(super) navigation: super::navigation::Navigation,
     pub menu: Option<usize>,
     pub menu_view: Option<Entity<crate::g2::picker_listing::chrome::ChipMenu>>,
     // The last chip menu, kept drawn through its 140 ms close fade.
@@ -45,7 +45,6 @@ impl Chrome {
         Self {
             keyboard: Default::default(),
             preset: "default".into(),
-            recent_back: None,
             probe: Default::default(),
             focused: None,
             rail_focus: None,
@@ -56,7 +55,8 @@ impl Chrome {
             answer: cx.focus_handle(),
             new_folder: cx.focus_handle(),
             history: Vec::new(),
-            backing: false,
+            ahead: Vec::new(),
+            navigation: Default::default(),
             menu: None,
             menu_view: None,
             menu_closing: None,

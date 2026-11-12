@@ -132,6 +132,7 @@ impl Picker {
                 }
                 let paths: Vec<String> = visits.into_iter().map(|visit| visit.path).collect();
                 let line = view.listing().paths_line(&paths, view.window_size());
+                let line = picker.listing_request(line, cx);
                 if picker.send_listing(&line) {
                     picker.browse.in_flight += 1;
                 }

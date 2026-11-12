@@ -25,6 +25,13 @@ impl Picker {
         {
             return;
         }
+        let request_generation =
+            flea::json::field_usize(text, "pickerGen").map(|value| value as u64);
+        if let Some(generation) = request_generation {
+            if generation != self.browse.listing.read(cx).generation() {
+                return;
+            }
+        }
         let kind = document
             .get("t")
             .and_then(Json::as_str)
@@ -47,9 +54,9 @@ impl Picker {
             "filtered" => return self.find_line(text, cx),
             "peeked" => return self.peeked(&document, cx),
             "located" => return self.located(&document, cx),
-            "listed" => self.landing(&document, cx),
+            "listed" => self.landing(&document, request_generation, cx),
             "error" if document.get("where").and_then(Json::as_str) == Some("scan") => {
-                self.landing(&document, cx)
+                self.landing(&document, request_generation, cx)
             }
             _ => {}
         }
@@ -60,6 +67,7 @@ impl Picker {
             .update(cx, |view, _| view.receive(generation, text));
         self.sync_facts(cx);
         if taken && kind == "listed" {
+            self.navigation_landed();
             self.relocate();
         }
         if taken {
@@ -77,7 +85,7 @@ impl Picker {
     }
 
     // A listed or scan answer closes one request; it is current only when it answers the newest for the drawn folder.
-    fn landing(&mut self, document: &Json, cx: &mut Context<Self>) {
+    fn landing(&mut self, document: &Json, generation: Option<u64>, cx: &mut Context<Self>) {
         self.browse.in_flight = self.browse.in_flight.saturating_sub(1);
         let view = self.browse.listing.read(cx);
         // Recent's listing stands on the base "/" its paths are named under.
@@ -87,9 +95,13 @@ impl Picker {
             self.listing.location.as_str()
         };
         let current = view.listing().is_pending()
-            && self.browse.in_flight == 0
+            && (generation == Some(view.generation())
+                || (generation.is_none() && self.browse.in_flight == 0))
             && document.get("path").and_then(Json::as_str) == Some(listed);
         self.browse.reply_gen = if current { view.generation() } else { 0 };
+        if current && generation.is_some() {
+            self.browse.in_flight = 0;
+        }
     }
 
     // The listing child left: rows already drawn stay, and the footer says which failure it was.
