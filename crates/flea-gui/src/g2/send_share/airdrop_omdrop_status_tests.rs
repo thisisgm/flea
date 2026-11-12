@@ -1,4 +1,5 @@
 use super::*;
+use crate::g2::send_share::airdrop_omdrop::DirDone;
 
 #[test]
 fn a_failed_status_keeps_what_omdrop_last_confirmed_so_off_stays_possible() {
@@ -110,8 +111,10 @@ fn a_status_asked_before_or_during_a_new_folder_does_not_put_the_old_folder_back
         "the old answer is dropped"
     );
     assert_eq!(om.page("/d", "h").folder, "/home/u/New");
-    let fresh: Vec<u64> = om
-        .folder_done()
+    let DirDone::Asked(asked) = om.folder_done("/usr/bin/omdrop") else {
+        panic!("nothing was chosen meanwhile")
+    };
+    let fresh: Vec<u64> = asked
         .iter()
         .filter_map(|a| match a {
             Act::Doctor(generation, _) => Some(*generation),
@@ -190,4 +193,70 @@ fn a_retry_is_dropped_once_anything_else_asks_withdraws_or_replaces_omdrop() {
     let (mut om, token) = failed_with_off_waiting();
     om.folder_argv("/home/u/New");
     assert!(om.status_due(token).is_empty());
+}
+
+#[test]
+fn folders_chosen_while_omdrop_dir_runs_wait_and_only_the_latest_runs_next() {
+    let (mut om, _) = opened(ON);
+    assert!(om.folder_argv("/home/u/A").is_some());
+    assert!(om.folder_argv("/home/u/B").is_none(), "B waits for A");
+    assert!(om.folder_argv("/home/u/C").is_none(), "C replaces B");
+    assert_eq!(om.page("/d", "h").folder, "/home/u/C");
+    assert!(om.ask_status().is_empty());
+    // A run of an omdrop since replaced changes nothing.
+    assert!(matches!(om.folder_done("/opt/omdrop"), DirDone::Asked(ref a) if a.is_empty()));
+    let DirDone::Next(next) = om.folder_done("/usr/bin/omdrop") else {
+        panic!("the latest choice runs once A returns")
+    };
+    assert_eq!(next, ["/usr/bin/omdrop", "dir", "/home/u/C"]);
+    assert!(om.ask_status().is_empty(), "still none while C runs");
+    let DirDone::Asked(asked) = om.folder_done("/usr/bin/omdrop") else {
+        panic!()
+    };
+    assert!(
+        matches!(asked[..], [Act::Doctor(..)]),
+        "exactly one fresh status: {asked:?}"
+    );
+}
+
+// Omdrop off; Flea's `on` returns with nothing chosen meanwhile, and the status that would confirm it fails.
+fn failed_confirming_on() -> Omdrop {
+    let i18n = english();
+    let (mut om, _) = opened(OFF);
+    let (radio, _) = started(&om.turn_on(&i18n), Proc::Radio).unwrap();
+    let ended = om.ended(Proc::Radio, radio, 0, 0, &i18n);
+    let Some(Act::Doctor(failed, _)) = ended.into_iter().find(|a| matches!(a, Act::Doctor(..)))
+    else {
+        panic!()
+    };
+    let acts = om.status_done(failed, 124, "", 0);
+    assert!(
+        matches!(acts[..], [Act::Refresh, Act::StatusLater(..)]),
+        "a confirmation is retried whatever waits on it: {acts:?}"
+    );
+    om
+}
+
+#[test]
+fn an_off_chosen_after_the_confirming_status_failed_asks_for_one_at_once() {
+    let mut om = failed_confirming_on();
+    let asked = om.receiving_off();
+    assert!(
+        started(&confirm(&mut om, &asked, ON, 0), Proc::Radio).is_some(),
+        "the status it asks confirms on, and the Off runs"
+    );
+}
+
+#[test]
+fn on_chosen_again_over_a_waiting_off_asks_for_a_status_at_once() {
+    let i18n = english();
+    let (mut om, token) = failed_with_off_waiting();
+    let asked = om.turn_on(&i18n);
+    assert!(
+        om.status_due(token).is_empty(),
+        "the armed retry is dropped"
+    );
+    assert!(started(&confirm(&mut om, &asked, ON, 0), Proc::Radio).is_none());
+    assert_eq!(om.phase, Phase::On, "the status ended Confirming");
+    let _ = failed_confirming_on();
 }

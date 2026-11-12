@@ -7,7 +7,23 @@ use flea::ui_logic_send_share::omdrop;
 const RETRY_MS: u64 = 2_000;
 const RETRIES: u32 = 5;
 
-// Failed statuses in a row while an Off waits, and the token of the one retry timer still allowed to ask.
+// One `omdrop dir` runs at a time: a folder chosen meanwhile waits, the latest replacing any earlier one.
+#[derive(Default)]
+pub(super) enum Dir {
+    #[default]
+    Idle,
+    Running,
+    Queued(String),
+}
+
+// What follows an `omdrop dir` that returned: the folder chosen meanwhile, or the one fresh status.
+pub enum DirDone {
+    Next(Vec<String>),
+    Asked(Vec<Act>),
+}
+
+// Failed statuses in a row while an `on` or `off` awaits its confirmation, and the token of the one retry timer still
+// allowed to ask.
 #[derive(Default)]
 pub(super) struct Retry {
     failures: u32,
@@ -27,7 +43,8 @@ impl Omdrop {
     // Omdrop's state can change behind Flea, so its status is asked on every open, but not while on, off or dir runs.
     pub fn ask_status(&mut self) -> Vec<Act> {
         let running = matches!(self.phase, Phase::Starting | Phase::Stopping);
-        if !self.active() || self.status_wait.is_some() || running || self.dirs > 0 {
+        let dir = !matches!(self.dir, Dir::Idle);
+        if !self.active() || self.status_wait.is_some() || running || dir {
             return Vec::new();
         }
         self.retry.armed = None;
@@ -63,9 +80,8 @@ impl Omdrop {
         let Some(status) = omdrop::status(stdout, exit_code) else {
             self.adapter.readiness = Readiness::NotReady;
             let mut acts = vec![Act::Refresh];
-            // An Off chosen during `on` runs only on an answer, so one is asked again later, a bounded number of times.
-            let waiting = self.phase == Phase::Confirming && self.chosen.is_some();
-            if waiting && self.retry.failures < RETRIES {
+            // Only an answer ends Confirming and carries out an Off chosen during it, so one is asked again later.
+            if self.phase == Phase::Confirming && self.retry.failures < RETRIES {
                 self.retry.failures += 1;
                 self.retry.token += 1;
                 self.retry.armed = Some(self.retry.token);
@@ -112,18 +128,32 @@ impl Omdrop {
         self.ask_status()
     }
 
-    // Save received files to: Omdrop keeps its folder itself, so the choice becomes `omdrop dir`.
-    pub fn folder_argv(&mut self, folder: &str) -> Vec<String> {
+    // Save received files to: Omdrop keeps its folder itself, so the choice becomes `omdrop dir`, run now unless one
+    // still runs, when it waits for that one to return.
+    pub fn folder_argv(&mut self, folder: &str) -> Option<Vec<String>> {
         self.forget_status();
-        self.dirs += 1;
         self.status.dir = folder.to_string();
-        omdrop::dir_argv(&self.path, folder)
+        if matches!(self.dir, Dir::Idle) {
+            self.dir = Dir::Running;
+            return Some(omdrop::dir_argv(&self.path, folder));
+        }
+        self.dir = Dir::Queued(folder.to_string());
+        None
     }
 
-    // `omdrop dir` returned: every status asked before or during it is dropped, and one fresh status is asked.
-    pub fn folder_done(&mut self) -> Vec<Act> {
-        self.dirs = self.dirs.saturating_sub(1);
+    // The `omdrop dir` run on `path` returned: the folder chosen meanwhile runs next, else every status asked before or
+    // during the runs is dropped and one fresh one asked. A run of a replaced omdrop changes nothing.
+    pub fn folder_done(&mut self, path: &str) -> DirDone {
+        if path != self.path {
+            return DirDone::Asked(Vec::new());
+        }
         self.forget_status();
-        self.ask_status()
+        match std::mem::take(&mut self.dir) {
+            Dir::Queued(folder) => {
+                self.dir = Dir::Running;
+                DirDone::Next(omdrop::dir_argv(&self.path, &folder))
+            }
+            Dir::Idle | Dir::Running => DirDone::Asked(self.ask_status()),
+        }
     }
 }

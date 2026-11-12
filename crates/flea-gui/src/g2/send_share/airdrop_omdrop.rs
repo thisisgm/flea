@@ -8,7 +8,8 @@ use flea::ui_logic_context_menus::build::Peer;
 use flea::ui_logic_plugin_settings::airdrop::Page;
 use flea::ui_logic_send_share::airdrop::{self as owly, Adapter, Readiness};
 use flea::ui_logic_send_share::omdrop;
-use status::Retry;
+pub use status::DirDone;
+use status::{Dir, Retry};
 
 #[path = "airdrop_omdrop_status.rs"]
 mod status;
@@ -53,8 +54,8 @@ pub struct Omdrop {
     // A Receiving choice made while an `on` ran, carried out once its status is known: only Off waits.
     chosen: Option<Run>,
     retry: Retry,
-    // `omdrop dir` runs not yet returned: no status is asked until the last has.
-    dirs: u32,
+    // No status is asked while an `omdrop dir` runs.
+    dir: Dir,
     gens: [u64; Proc::ALL.len()],
     // Omdrop's own sentences from `on` and `off`, for the one said when either fails.
     said: String,
@@ -90,7 +91,7 @@ impl Omdrop {
             card: String::new(),
         };
         self.forget_status();
-        self.dirs = 0;
+        self.dir = Dir::Idle;
         self.status = omdrop::Status::default();
         // Nothing a run of the omdrop just replaced says lands: an on or off finishes by itself, a lookup is stopped.
         self.phase = Phase::Off;
@@ -168,7 +169,9 @@ impl Omdrop {
     pub fn turn_on(&mut self, i18n: &I18n) -> Vec<Act> {
         if self.chosen.take().is_some() {
             self.retry.disarm();
-            return vec![Act::Refresh];
+            let mut acts = self.ask_status();
+            acts.push(Act::Refresh);
+            return acts;
         }
         if self.busy() || (self.phase == Phase::On && self.status.receiving) {
             return Vec::new();
@@ -195,7 +198,9 @@ impl Omdrop {
             || (self.phase == Phase::Confirming && self.confirming == Run::On);
         if starting {
             self.chosen = Some(Run::Off);
-            return vec![Act::Refresh];
+            let mut acts = self.ask_status();
+            acts.push(Act::Refresh);
+            return acts;
         }
         if self.busy() {
             return Vec::new();

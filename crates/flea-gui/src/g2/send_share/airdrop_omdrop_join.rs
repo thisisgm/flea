@@ -1,5 +1,6 @@
 //! The window's AirDrop when Omdrop runs it: the menu, page and choices of airdrop_join.rs, carried out on Omdrop.
 use super::airdrop::Act;
+use super::airdrop_omdrop::DirDone;
 use super::airdrop_run::Origin;
 use super::join::now_ms;
 use crate::state::Shell;
@@ -158,15 +159,22 @@ impl Shell {
         self.airdrop_page(cx);
     }
 
-    // Omdrop keeps its folder itself, so the choice goes to `omdrop dir`, a refusal says why, and its status is read again after.
+    // Omdrop keeps its folder itself, so the choice goes to `omdrop dir`; one chosen while another runs waits for it.
     pub(super) fn omdrop_folder_chosen(
         &mut self,
         path: &str,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        let argv = self.menu.providers.omdrop.folder_argv(path);
+        if let Some(argv) = self.menu.providers.omdrop.folder_argv(path) {
+            self.omdrop_dir(argv, window, cx);
+        }
         self.airdrop_page(cx);
+    }
+
+    // One `omdrop dir`: a refusal says why, then the folder chosen meanwhile runs, or Omdrop's status is read again.
+    fn omdrop_dir(&mut self, argv: Vec<String>, window: &mut Window, cx: &mut Context<Self>) {
+        let omdrop_path = argv[0].clone();
         cx.spawn_in(window, async move |this, cx| {
             let run = cx.background_executor().spawn(async move {
                 Command::new(text_name(&argv[0]))
@@ -192,7 +200,10 @@ impl Shell {
                     })
                     .into_iter()
                     .collect();
-                acts.extend(shell.menu.providers.omdrop.folder_done());
+                match shell.menu.providers.omdrop.folder_done(&omdrop_path) {
+                    DirDone::Next(next) => shell.omdrop_dir(next, window, cx),
+                    DirDone::Asked(asked) => acts.extend(asked),
+                }
                 let side = shell.focus_side;
                 shell.stack_acts(Origin::omdrop(side), acts, window, cx);
             });
