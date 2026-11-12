@@ -15,9 +15,18 @@ use gpui::{Entity, Modifiers, TestAppContext, VisualTestContext};
 
 pub(super) type Lines = Box<dyn FnMut() -> Option<String>>;
 
+#[path = "quick_look_inactive_tests.rs"]
+mod inactive;
+
 // The window under its root with the pane's backend replaced by one that records each request line.
 pub(super) fn opened(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestContext, Lines) {
     let (shell, cx) = open_root(cx, "default");
+    cx.update(|window, _| window.activate_window());
+    cx.run_until_parked();
+    assert!(
+        cx.update(|window, _| window.is_window_active()),
+        "Quick Look frame fixture must be active before timed work"
+    );
     let (backend, requests) = Backend::test_lines();
     shell.update(cx, |shell, _| {
         shell.panes[0].as_mut().unwrap().backend = Some(backend)
