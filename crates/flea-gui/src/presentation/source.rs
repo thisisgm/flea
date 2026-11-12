@@ -22,20 +22,22 @@ impl Snapshot {
     }
 }
 
-pub(super) type Inputs = [Option<String>; 7];
+/// How many files a presentation reads: seven Omarchy and fontconfig inputs, then three GTK 4 stylesheets.
+pub(super) const INPUT_COUNT: usize = 10;
+pub(super) type Inputs = [Option<String>; INPUT_COUNT];
 /// The most bytes one input may hold; a larger file is refused, never cut.
 pub(super) const INPUT_CAP: usize = 65536;
-pub(super) type Stamps = [Option<(u64, u64, u64, i64, i64, i64, i64, u32)>; 7];
+pub(super) type Stamps = [Option<(u64, u64, u64, i64, i64, i64, i64, u32)>; INPUT_COUNT];
 
-/// The seven files a presentation reads, and where the resolved font family is cached.
+/// The files a presentation reads, and where the resolved font family is cached.
 pub(super) struct Sources {
-    inputs: [PathBuf; 7],
+    inputs: [PathBuf; INPUT_COUNT],
     cache: PathBuf,
 }
 
 impl Sources {
     #[cfg(test)]
-    pub fn at(inputs: [PathBuf; 7], cache: PathBuf) -> Self {
+    pub fn at(inputs: [PathBuf; INPUT_COUNT], cache: PathBuf) -> Self {
         Self { inputs, cache }
     }
 
@@ -59,6 +61,12 @@ impl Sources {
                 config.join("fontconfig/conf.d/50-omarchy-input-method.conf"),
                 state.join("omarchy/toggles/hypr/window-opaque.lua"),
                 state.join("omarchy/toggles/hypr/window-glassy.lua"),
+                // Without an Omarchy theme the palette comes from what GTK 4 apps are given:
+                // gtk.css, the colors.css a KDE or theme export imports into it, and the
+                // wallpaper palette DankMaterialShell writes beside them.
+                config.join("gtk-4.0/gtk.css"),
+                config.join("gtk-4.0/colors.css"),
+                config.join("gtk-4.0/dank-colors.css"),
             ],
             cache: state.join("flea/fc-match-monospace"),
         }
@@ -154,7 +162,17 @@ impl Sources {
         deadline: std::time::Duration,
     ) -> (Snapshot, Option<io::Error>) {
         let text = |at: usize| input[at].as_deref().unwrap_or("");
-        let (mut theme, parsed) = Theme::from_text_observed(text(0));
+        // An Omarchy theme names the palette; elsewhere the GTK sheets do, the imported colors.css
+        // first, gtk.css over it, and the DankMaterialShell palette last.
+        let desktop;
+        let colours = match input[0].as_deref() {
+            Some(omarchy) => omarchy,
+            None => {
+                desktop = flea::desktop_palette::colours_text(&[text(8), text(7), text(9)]);
+                &desktop
+            }
+        };
+        let (mut theme, parsed) = Theme::from_text_observed(colours);
         theme.glass = crate::window::glass::Inputs::resolve(
             text(0),
             text(1),
@@ -181,7 +199,7 @@ mod tests {
     use super::*;
     use std::process::Command;
 
-    fn sources(inputs: [PathBuf; 7]) -> Sources {
+    fn sources(inputs: [PathBuf; INPUT_COUNT]) -> Sources {
         Sources {
             inputs,
             cache: PathBuf::from("/proc/self/flea-u01-no-cache/entry"),
@@ -193,24 +211,39 @@ mod tests {
         let absent = sources(std::array::from_fn(|_| {
             PathBuf::from("/proc/self/flea-u01-absent-input")
         }));
-        assert_eq!(
-            absent.read().unwrap(),
-            [None, None, None, None, None, None, None]
-        );
+        assert_eq!(absent.read().unwrap(), std::array::from_fn(|_| None));
         let failed = sources(std::array::from_fn(|_| PathBuf::from("/proc/self")));
         assert_eq!(
             failed.read().unwrap_err().kind(),
             io::ErrorKind::InvalidInput
         );
         let (launch, failures) = failed.read_for_launch();
-        assert_eq!(launch, [None, None, None, None, None, None, None]);
-        assert_eq!(failures.len(), 7);
+        assert_eq!(launch, std::array::from_fn(|_| None));
+        assert_eq!(failures.len(), INPUT_COUNT);
         let valid = sources(std::array::from_fn(|_| PathBuf::from("/proc/self/status")));
         assert!(valid
             .read()
             .unwrap()
             .iter()
             .all(|value| value.as_ref().is_some_and(|text| !text.is_empty())));
+    }
+
+    #[test]
+    fn without_an_omarchy_theme_the_gtk_sheets_paint_and_dms_wins() {
+        let absent = sources(std::array::from_fn(|_| {
+            PathBuf::from("/proc/self/flea-absent")
+        }));
+        let mut input: Inputs = std::array::from_fn(|_| None);
+        input[8] = Some("@define-color theme_bg_color_breeze #202326;\n@define-color accent_color_breeze #3daee9;".into());
+        input[9] = Some("@define-color accent_bg_color #c4c0ff;".into());
+        let (snapshot, _) = absent.resolve(&input, "monospace");
+        let want = Theme::from_text("background = '#202326'\naccent = '#c4c0ff'\n");
+        assert!(snapshot.theme.background == want.background);
+        assert!(snapshot.theme.accent == want.accent);
+        // An Omarchy colors.toml, even one naming nothing, keeps the GTK sheets out.
+        input[0] = Some(String::new());
+        let (omarchy, _) = absent.resolve(&input, "monospace");
+        assert!(omarchy.theme.background == Theme::from_text("").background);
     }
 
     #[test]

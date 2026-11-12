@@ -144,6 +144,9 @@ mod tests {
             dir.join("fontconfig/conf.d/im.conf"),
             dir.join("toggles/window-opaque.lua"),
             dir.join("toggles/window-glassy.lua"),
+            dir.join("gtk-4.0/gtk.css"),
+            dir.join("gtk-4.0/colors.css"),
+            dir.join("gtk-4.0/dank-colors.css"),
         ];
         fixture.mkdir(&current.join("next"));
         let (wake, woken) = mpsc::channel();

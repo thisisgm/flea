@@ -180,7 +180,18 @@ impl Theme {
         }
     }
 }
+// The Omarchy palette, or, when that file is absent, the one GTK 4 apps are given (src/desktop_palette.rs).
 fn read(path: &std::path::Path) -> Option<String> {
+    read_file(path).or_else(desktop_palette)
+}
+// The same three sheets, in the same order, as the GUI's crates/flea-gui/src/presentation/source.rs.
+fn desktop_palette() -> Option<String> {
+    let gtk = crate::userfile::config_home().ok()?.join("gtk-4.0");
+    let sheets = ["colors.css", "gtk.css", "dank-colors.css"].map(|name| read_file(&gtk.join(name)).unwrap_or_default());
+    let text = flea::desktop_palette::colours_text(&sheets.each_ref().map(String::as_str));
+    (!text.is_empty()).then_some(text)
+}
+fn read_file(path: &std::path::Path) -> Option<String> {
     let file = crate::backend::regfile::open_if_regular(path, 0).ok()?;
     let mut bytes = Vec::new();
     file.take((THEME_BYTES + 1) as u64).read_to_end(&mut bytes).ok()?;
