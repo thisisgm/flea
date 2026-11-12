@@ -347,3 +347,6 @@ fn policy_identity_disconnected_drain_keeps_queued_request_identity_with_raw_emp
 
 #[path = "run_thumb_identity_stale_tests.rs"]
 mod stale_tests;
+
+#[path = "run_thumb_video_tests.rs"]
+mod video_tests;
