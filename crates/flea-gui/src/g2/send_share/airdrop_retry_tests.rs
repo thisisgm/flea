@@ -3,17 +3,15 @@ use super::super::airdrop_omdrop::Omdrop;
 use super::super::airdrop_run::Origin;
 use super::*;
 use gpui::Entity;
-use std::path::Path;
 
 // A stand-in omdrop logging each argv; its status prints `status.json` beside it, and fails while there is none.
-fn omdrop_with_status(tag: &str) -> (PathBuf, String) {
-    let root = std::env::temp_dir().join(format!("flea-omdrop-{tag}-{}", std::process::id()));
-    let _ = std::fs::create_dir_all(&root);
-    std::fs::write(root.join(".flea-test-sandbox"), "").unwrap();
+fn omdrop_with_status(tag: &str) -> (StandInDir, String) {
+    let root = StandInDir::fresh(tag);
     let script = "#!/bin/sh\nd=$(dirname \"$0\")\necho \"$*\" >> \"$d/argv.log\"\ncase \"$1\" in\n  status) cat \"$d/status.json\" 2>/dev/null || exit 1 ;;\n  dir) echo \"$2\" > \"$d/folder\" ;;\n  off) if [ -e \"$d/refuse\" ]; then echo 'Still sending to TestPhone. Cancel the send first.' >&2; exit 1; fi ;;\nesac\n";
     let omdrop = root.join("omdrop");
     flea::executable_file::write(&omdrop, script.as_bytes(), 0o755).unwrap();
-    (root, omdrop.to_string_lossy().into_owned())
+    let omdrop = omdrop.to_string_lossy().into_owned();
+    (root, omdrop)
 }
 
 const OFF: &str = r#"{"receiving": false, "visible": false, "name": "Omarchy", "dir": "/tmp", "visibility": "everyone"}"#;
@@ -48,7 +46,7 @@ fn off_waiting_on_a_failed_status(
     tag: &str,
     shell: &Entity<Shell>,
     cx: &mut VisualTestContext,
-) -> PathBuf {
+) -> StandInDir {
     let (root, omdrop) = omdrop_with_status(tag);
     std::fs::write(root.join("status.json"), OFF).unwrap();
     acts_from_omdrop(shell, cx, |om| {
@@ -215,7 +213,7 @@ fn off_queued_then_owly_takes_over(
     tag: &str,
     refuse: &str,
     cx: &mut TestAppContext,
-) -> (PathBuf, Vec<String>) {
+) -> (StandInDir, Vec<String>) {
     let (shell, cx) = window(cx);
     let (root, omdrop) = omdrop_with_status(tag);
     std::fs::write(root.join("status.json"), OFF).unwrap();
