@@ -13,8 +13,8 @@ use std::time::Duration;
 const POLL: Duration = Duration::from_millis(100);
 // How long a send's stderr is read on after it ends, for the last of its sentences.
 const TERM_GRACE: Duration = Duration::from_secs(3);
-// A cancelled `omdrop send` may wait 75 s for a start it began, then stop its radio, whose helper allows 60 s; this long,
-// then its session is killed.
+// A cancelled `omdrop send` waits for the `omdrop on` it began to undo its start, whose radio teardown alone may take 75 s;
+// twice that, then its session is killed.
 const CANCEL_GRACE: Duration = Duration::from_secs(150);
 // A shell reports a run killed by signal N as exit 128 + N.
 const SIGNAL_EXIT_BASE: i32 = 128;

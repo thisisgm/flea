@@ -3427,8 +3427,8 @@ When owly is not on PATH and `omdrop` is, the same request and reply run over
 discarded: exit 0 is `delivered`, the stderr line `They declined it.` is `declined`, and anything else is `failed` with
 Omdrop's last stderr sentence as its `reason`. The job reads stderr without blocking and at most 64 KiB a turn, so a writer that never stops cannot hold off a cancel;
 once the send ends it reads on until the pipe closes or 3 s pass, then closes it, keeping every line read. A cancel sends SIGTERM first, so Omdrop can
-stop its sender's process group; as soon as Omdrop exits, or after 150 s, longer than Omdrop's own undo of a cancelled start, every process left in the send's session gets
-SIGKILL, so a sender Omdrop started before it could handle the signal stops too. `omdrop` itself stays unreaped until
+stop its sender's process group, and pass the cancel to an `omdrop on` it began, which undoes its own start; as soon as Omdrop
+exits, or after 150 s, twice the radio teardown that undo waits for, every process left in the send's session gets SIGKILL, so a sender Omdrop started before it could handle the signal stops too. `omdrop` itself stays unreaped until
 then, so the session it leads can't be another's.
 
 Omdrop owns its radio, receiver, audience and download folder. The window runs `omdrop status --json` on each menu or
