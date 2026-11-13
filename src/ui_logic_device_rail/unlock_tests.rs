@@ -12,7 +12,7 @@ fn card_sentences_name_the_drive() {
     assert_eq!(title("Backup").english(), "Unlock Backup", "the dialog titles itself for the drive");
     assert_eq!(unlocking_note("Backup").english(), "Unlocking Backup…", "unlocking names the drive with an ellipsis");
     // Authorized change: wrongNote no longer names the drive; it reads the new text with no label.
-    assert_eq!(wrong_note().english(), "That passphrase did not work. Check Caps Lock.", "a wrong passphrase names the drive");
+    assert_eq!(wrong_note().english(), "That passphrase did not work.", "a wrong passphrase names the drive");
     assert_eq!(unlocked_note("Backup").english(), "Unlocked and mounted Backup.", "success names the drive");
     assert_eq!(lock_note("Backup").english(), "Backup was unmounted but could not be locked; close what is using it.", "a lock that fails names the drive");
     assert_eq!(mount_note("Backup").english(), "Backup was unlocked but could not be mounted.", "an unlock without a mount names the drive");
@@ -62,7 +62,7 @@ fn unlock_argv_takes_the_key_from_stdin() {
 #[test]
 #[rustfmt::skip]
 fn only_the_daemon_failed_error_reads_as_a_wrong_passphrase() {
-    assert_eq!(refusal_note("Error unlocking /dev/sda1: GDBus.Error:org.freedesktop.UDisks2.Error.Failed: Incorrect passphrase.", "Backup").english(), "That passphrase did not work. Check Caps Lock.", "only the daemon's Failed reads as a wrong passphrase");
+    assert_eq!(refusal_note("Error unlocking /dev/sda1: GDBus.Error:org.freedesktop.UDisks2.Error.Failed: Incorrect passphrase.", "Backup").english(), "That passphrase did not work.", "only the daemon's Failed reads as a wrong passphrase");
     assert_eq!(refusal_note("Error unlocking /dev/sda1: Failed to open file \u{201c}-\u{201d}: No such file or directory", "Backup").english(), "Backup could not be unlocked.", "a local failure with no daemon error is never called a wrong passphrase");
     assert_eq!(refusal_note("GDBus.Error:org.freedesktop.UDisks2.Error.NotAuthorized: z", "Backup").english(), "Backup could not be unlocked.", "a refused authorization could not unlock");
 }

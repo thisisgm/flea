@@ -1,13 +1,11 @@
 //! The unlock card as the board draws it: title and esc, a hairline, the drive line, the field, one note line and two buttons.
+pub use super::card_text::{note_shown, CardText};
 use super::ink::CardInk;
 use super::mark::{Mark, DRIVE, EYE};
 use super::probes::{observe, ButtonProbe, Probes};
 use super::unlock::{Card, Part, Phase};
-use super::words::say;
 use crate::g2::file_ops::glyph::Tracked;
-use crate::g2::status_feedback::caption::{heading_for, tracking_for};
-use flea::i18n::I18n;
-use flea::ui_logic_device_rail::unlock::{subtitle, title};
+use crate::g2::status_feedback::caption::tracking_for;
 use gpui::{div, prelude::*, px, App, ClickEvent, FontWeight, Hsla, SharedString, Window};
 
 /// The card's own width on the board, narrowed only by a narrow window.
@@ -21,55 +19,6 @@ pub const WASH_HOVER: f32 = 0.08;
 pub const WASH_PRESS: f32 = 0.14;
 /// Unlock unavailable draws at this opacity, the board's disabled button.
 pub const DISABLED_OPACITY: f32 = 0.55;
-
-/// The words the card shows, built once per card change or language change, never in paint.
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct CardText {
-    pub language: String,
-    pub title: String,
-    pub esc: String,
-    pub subtitle: String,
-    pub label: String,
-    pub note: String,
-    pub cancel: String,
-    pub unlock: String,
-}
-
-impl CardText {
-    pub fn of(card: &Card, catalog: &I18n) -> Self {
-        let size = if card.size > 0 {
-            catalog.locale().format_size(card.size)
-        } else {
-            String::new()
-        };
-        // BitLocker names its secrets as Windows does: a password, or the 48-digit recovery key.
-        let bitlocker = card.crypto == "BitLocker";
-        let label = if bitlocker {
-            catalog.tr("device.unlock.recovery_key")
-        } else {
-            catalog.tr("device.unlock.passphrase")
-        };
-        Self {
-            language: catalog.language().into(),
-            title: say(catalog, &title(&card.label)),
-            esc: "esc".into(),
-            subtitle: say(catalog, &subtitle(&card.label, &size, &card.crypto)),
-            label: heading_for(&label, catalog.language()),
-            note: card
-                .note
-                .as_ref()
-                .map(|(n, _)| match n.key {
-                    "device.unlock.wrong" if bitlocker => {
-                        catalog.tr("device.unlock.wrong_bitlocker")
-                    }
-                    _ => say(catalog, n),
-                })
-                .unwrap_or_default(),
-            cancel: catalog.tr("device.unlock.cancel"),
-            unlock: catalog.tr("device.unlock.button"),
-        }
-    }
-}
 
 /// Every size above is the board's at its 14 px body; the card multiplies by the live body over 14, as the other dialog cards do (#310).
 pub const BOARD_BODY: f32 = 14.;
@@ -97,6 +46,7 @@ pub fn card(
 pub(super) struct Mounted<'a> {
     pub input: Option<(gpui::Entity<super::view::UnlockView>, crate::list::Typeface)>,
     pub probes: &'a Probes,
+    pub caps_lock: bool,
 }
 
 pub(super) fn card_with_input(
@@ -108,9 +58,13 @@ pub(super) fn card_with_input(
     press: Press,
     mounted: Option<Mounted<'_>>,
 ) -> impl IntoElement {
-    let (input, probes) = match mounted {
-        Some(Mounted { input, probes }) => (input, Some(probes)),
-        None => (None, None),
+    let (input, probes, caps_lock) = match mounted {
+        Some(Mounted {
+            input,
+            probes,
+            caps_lock,
+        }) => (input, Some(probes), caps_lock),
+        None => (None, None, false),
     };
     let k = move |v: f32| px(v * scale);
     let note_error = card.note.as_ref().is_some_and(|(_, e)| *e);
@@ -241,7 +195,7 @@ pub(super) fn card_with_input(
                 .text_size(k(12.))
                 .overflow_hidden()
                 .text_color(if note_error { ink.error } else { ink.muted })
-                .child(text.note.clone()),
+                .child(note_shown(text, caps_lock).to_string()),
         )
         .child(
             div()

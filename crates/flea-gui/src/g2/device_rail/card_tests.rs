@@ -1,5 +1,5 @@
 //! The card's words against the unlock and unlock-empty boards, through the real catalog and its omarchy references.
-use super::card::CardText;
+use super::card::{note_shown, CardText};
 use super::process::Outcome;
 use super::unlock::{Card, Proc};
 use flea::i18n::{I18n, Paths};
@@ -84,7 +84,7 @@ fn unlock_wrong_board_words_and_seven_held_dots() {
     };
     card.exited(Proc::Unlock, &refused, 5);
     let text = CardText::of(&card, &catalog(&root));
-    assert_eq!(text.note, "That passphrase did not work. Check Caps Lock.");
+    assert_eq!(text.note, "That passphrase did not work.");
     assert_eq!(card.field.dots(), 7);
     assert!(card.field.error && card.unlock_available());
 }
@@ -230,4 +230,62 @@ fn a_bitlocker_card_asks_for_a_password_or_recovery_key() {
     card.exited(Proc::Unlock, &refused, 5);
     let text = CardText::of(&card, &catalog(&root));
     assert_eq!(text.note, "That password or recovery key did not work.");
+}
+
+fn refused_card(fstype: &str) -> Card {
+    let mut card = Card::new();
+    card.open_for("/dev/sdb1", "Backup", 0, fstype, "2");
+    card.type_text("1234567");
+    card.submit(0);
+    let refused = Outcome {
+        code: 1,
+        stdout: String::new(),
+        stderr: "GDBus.Error:org.freedesktop.UDisks2.Error.Failed: x".into(),
+    };
+    card.exited(Proc::Unlock, &refused, 5);
+    card
+}
+
+#[test]
+fn backspace_after_a_refusal_clears_the_held_dots() {
+    let mut card = refused_card("crypto_LUKS");
+    assert_eq!(card.field.dots(), 7, "the refused try stays drawn");
+    card.backspace();
+    assert_eq!(
+        card.field.dots(),
+        0,
+        "Backspace clears dots whose bytes already went to udisks"
+    );
+    assert!(!card.unlock_available(), "nothing is left to submit");
+    card.type_text("ab");
+    card.backspace();
+    assert_eq!(
+        card.field.dots(),
+        1,
+        "Backspace then deletes typed characters one at a time"
+    );
+}
+
+#[test]
+fn the_caps_lock_hint_shows_only_while_caps_lock_is_on() {
+    let root = Root::new("card-caps");
+    let text = CardText::of(&refused_card("crypto_LUKS"), &catalog(&root));
+    assert_eq!(note_shown(&text, false), "That passphrase did not work.");
+    assert_eq!(
+        note_shown(&text, true),
+        "That passphrase did not work. Check Caps Lock."
+    );
+    let text = CardText::of(&refused_card("BitLocker"), &catalog(&root));
+    assert_eq!(
+        note_shown(&text, false),
+        "That password or recovery key did not work."
+    );
+    assert_eq!(
+        note_shown(&text, true),
+        "That password or recovery key did not work. Check Caps Lock."
+    );
+    let mut card = Card::new();
+    card.open_for("/dev/sdb1", "Backup", 0, "crypto_LUKS", "2");
+    let text = CardText::of(&card, &catalog(&root));
+    assert_eq!(note_shown(&text, true), "", "an empty note gains no hint");
 }
