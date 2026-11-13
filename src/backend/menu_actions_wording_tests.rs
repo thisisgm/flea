@@ -43,7 +43,7 @@ fn a_stale_menu_selection_says_what_changed_and_what_to_do() {
     assert_eq!(menu.selected_path(6, &other).err().as_deref(), Some("That item is no longer selected; reopen the menu."));
     assert_eq!(menu.retain_survivors(0, &mut Vec::new()).err().as_deref(), Some("The items changed; select them again."));
     let items = menu.selection(6).unwrap();
-    assert_eq!(validate_sources(Some(&items), &[other.clone()]).err().as_deref(), Some(CHANGED));
+    assert_eq!(validate_sources(Some(&items), std::slice::from_ref(&other)).err().as_deref(), Some(CHANGED));
     assert_eq!(std::fs::read_to_string(other).unwrap(), "other");
 }
 

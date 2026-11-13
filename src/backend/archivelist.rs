@@ -151,9 +151,9 @@ drwxr-xr-x  0 gm     gm          0 Sep  1 12:10 ./sub/
         assert!(!c.failed);
         let names: Vec<&str> = c.names.iter().map(|e| e.name.as_str()).collect();
         assert_eq!(names, vec![".", "./name with spaces.txt", "./a.txt", "./sub", "./sub/b.txt"]);
-        assert_eq!(c.names[0].is_dir, true, "the mode column is what says directory");
-        assert_eq!(c.names[1].is_dir, false);
-        assert_eq!(c.names[3].is_dir, true);
+        assert!(c.names[0].is_dir, "the mode column is what says directory");
+        assert!(!c.names[1].is_dir);
+        assert!(c.names[3].is_dir);
     }
 
     #[test]
@@ -164,8 +164,8 @@ drwxr-xr-x  0 gm     gm          0 Sep  1 12:10 ./sub/
         let names: Vec<&str> = c.names.iter().map(|e| e.name.as_str()).collect();
         assert_eq!(names, vec!["arcfmt", "arcfmt/sub", "arcfmt/a.txt",
                               "arcfmt/name with spaces.txt", "arcfmt/sub/b.txt"]);
-        assert_eq!(c.names[0].is_dir, true, "the attribute column is what says directory");
-        assert_eq!(c.names[2].is_dir, false);
+        assert!(c.names[0].is_dir, "the attribute column is what says directory");
+        assert!(!c.names[2].is_dir);
     }
 
     // BufRead::lines() answers Err on a filename that is not UTF-8, and breaking there reported a

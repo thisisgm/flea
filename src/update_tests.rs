@@ -30,10 +30,10 @@ fn package_info_reads_the_version_and_whether_a_signature_validated_it() {
     assert_eq!(package_info(OPR_INFO), (Some("0.3.2-1".to_string()), true));
     assert_eq!(package_info(LOCAL_INFO), (Some("0.3.3-1".to_string()), false));
     // Two methods share one field, separated by two spaces.
-    assert_eq!(package_info("Validated By    : SHA-256 Sum  Signature\n").1, true);
-    assert_eq!(package_info("Validated By    : SHA-256 Sum\n").1, false);
+    assert!(package_info("Validated By    : SHA-256 Sum  Signature\n").1);
+    assert!(!package_info("Validated By    : SHA-256 Sum\n").1);
     // A description that happens to mention a signature is not the Validated By field.
-    assert_eq!(package_info("Description     : Signature\nValidated By    : None\n").1, false);
+    assert!(!package_info("Description     : Signature\nValidated By    : None\n").1);
     assert_eq!(package_info(""), (None, false));
 }
 

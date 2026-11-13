@@ -371,7 +371,7 @@ fn installed(registry: &Registry, cancel: &Cancellation) -> Result<Vec<Applicati
             }
         }
     }
-    apps.sort_by(|a, b| a.label.to_lowercase().cmp(&b.label.to_lowercase()));
+    apps.sort_by_key(|a| a.label.to_lowercase());
     Ok(apps)
 }
 

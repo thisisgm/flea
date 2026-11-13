@@ -118,7 +118,7 @@ mod tests {
     #[test]
     fn wrapped_io_errors_do_not_leak_the_os_display() {
         let denied = std::io::Error::from_raw_os_error(13);
-        let wrapped = std::io::Error::new(std::io::ErrorKind::Other, denied);
+        let wrapped = std::io::Error::other(denied);
         assert_eq!(io_message(&wrapped), "permission denied");
     }
 

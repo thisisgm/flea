@@ -668,7 +668,7 @@ mod tests {
         let cols: Vec<&str> = migrated.get("columns").and_then(Json::as_array).expect("columns").iter().filter_map(Json::as_str).collect();
         assert_eq!(cols, ["name", "size", "date"]);
         assert!(migrated.get("uiScale").is_none(), "uiScale is dropped, not carried");
-        assert_eq!(text(&from_view_json(r#"{"hiddenCols":[]}"#)).contains("\"kind\""), true);
+        assert!(text(&from_view_json(r#"{"hiddenCols":[]}"#)).contains("\"kind\""));
         let nothing_hidden = from_view_json(r#"{"hiddenCols":[]}"#);
         let all: Vec<&str> = nothing_hidden
             .get("columns").and_then(Json::as_array).expect("columns").iter().filter_map(Json::as_str).collect();

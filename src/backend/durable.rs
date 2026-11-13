@@ -110,7 +110,7 @@ pub fn dest_is_durable(dest: &Path) -> bool {
     if forced(dest) {
         return true;
     }
-    if crate::backend::extclass::classify(dest) != "" {
+    if !crate::backend::extclass::classify(dest).is_empty() {
         return true;
     }
     if let Ok(body) = std::fs::read_to_string("/proc/self/mountinfo") {
@@ -299,7 +299,7 @@ impl Durability {
         }
         if self.unsettled {
             self.release_held();
-            return Err(std::io::Error::new(std::io::ErrorKind::Other, "unconfirmed batch"));
+            return Err(std::io::Error::other("unconfirmed batch"));
         }
         if !self.batch_syncfs {
             self.release_held();
@@ -489,7 +489,7 @@ pub fn fsync_file(f: &std::fs::File) -> std::io::Result<()> {
     #[cfg(test)]
     RANGE_LOG.with(|v| v.borrow_mut().push("fsync".to_string()));
     if seam_flush(false) {
-        return Err(std::io::Error::new(std::io::ErrorKind::Other, "simulated fsync failure"));
+        return Err(std::io::Error::other("simulated fsync failure"));
     }
     f.sync_all()
 }
@@ -514,7 +514,7 @@ pub fn sync_range_write(f: &std::fs::File, offset: u64, len: u64) -> std::io::Re
         return Err(std::io::Error::from_raw_os_error(EINVAL));
     }
     if seam_flush(false) {
-        return Err(std::io::Error::new(std::io::ErrorKind::Other, "simulated fsync failure"));
+        return Err(std::io::Error::other("simulated fsync failure"));
     }
     use std::os::unix::io::AsRawFd;
     let rc = unsafe { sync_file_range(f.as_raw_fd(), offset as i64, len as i64, SYNC_FILE_RANGE_WRITE) };
@@ -537,7 +537,7 @@ pub fn sync_range(f: &std::fs::File, offset: u64, len: u64) -> std::io::Result<(
         }
     }
     if seam_flush(false) {
-        return Err(std::io::Error::new(std::io::ErrorKind::Other, "simulated fsync failure"));
+        return Err(std::io::Error::other("simulated fsync failure"));
     }
     use std::os::unix::io::AsRawFd;
     let flags = SYNC_FILE_RANGE_WAIT_BEFORE | SYNC_FILE_RANGE_WRITE | SYNC_FILE_RANGE_WAIT_AFTER;
@@ -561,7 +561,7 @@ pub fn range_unsupported(e: &std::io::Error) -> bool {
 
 pub fn fsync_dir(path: &Path) -> std::io::Result<()> {
     if seam_flush(true) {
-        return Err(std::io::Error::new(std::io::ErrorKind::Other, "simulated fsync failure"));
+        return Err(std::io::Error::other("simulated fsync failure"));
     }
     // Logged after the counting seam, so a failed flush never reads as confirmed.
     #[cfg(test)]

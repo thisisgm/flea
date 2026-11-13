@@ -32,7 +32,7 @@ pub fn parse_peers(text: &str) -> Vec<Peer> {
         let rest: String = bytes[close + 2..].iter().collect();
         // A device name can hold anything but a newline, so the address is taken from the last " ("
         // of the row and the name is everything before it.
-        let row = match rest.find(|c| c == '\n' || c == '│') {
+        let row = match rest.find(['\n', '│']) {
             Some(end) => rest[..end].to_string(),
             None => rest,
         };
