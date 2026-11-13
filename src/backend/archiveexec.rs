@@ -24,21 +24,16 @@ pub(crate) struct ArchiveRequest {
 #[cfg(test)]
 pub(crate) fn run_archive(
     id: usize,
-    compressing: bool,
-    paths: Vec<String>,
-    format: String,
-    archive: PathBuf,
-    dest: PathBuf,
+    request: ArchiveRequest,
     formats: &Formats,
     tx: Sender<OpMsg>,
     selection: Option<Vec<Selected>>,
     cancel: Arc<AtomicBool>,
-    password: String,
-    encrypt_names: bool,
 ) {
+    let compressing = request.compressing;
     let line = archive_line(
         id,
-        ArchiveRequest { compressing, paths, format, archive, dest, password, encrypt_names },
+        request,
         formats,
         selection.as_deref(),
         cancel,
@@ -140,14 +135,12 @@ fn with_field(line: String, key: &str, value: &str) -> String {
 
 pub(crate) fn run_convert(
     id: usize,
-    request_id: usize,
-    input: PathBuf,
-    dest: PathBuf,
-    strip: bool,
+    request: super::ConvertRequest,
     tx: Sender<OpMsg>,
     selection: Option<Vec<Selected>>,
     cancel: Arc<AtomicBool>,
 ) {
+    let super::ConvertRequest { request_id, input, dest, strip } = request;
     let result = validate_sources(selection.as_deref(), std::slice::from_ref(&input))
         .map_err(|error| op_err("convert", &input.to_string_lossy(), &error))
         .and_then(|()| convert_leaving(&input, &dest, strip, &cancel));

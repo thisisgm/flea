@@ -54,13 +54,8 @@ pub(crate) fn window_line(st: &mut State, tb: &Tables, metas: &[Meta], start: us
                     &session.body,
                     &st.listing,
                     metas,
-                    start,
-                    ms,
-                    &tb.mime,
-                    &tb.icons,
-                    &tb.aliases,
-                    &tb.thumbs,
-                    &mut tb.kinds.borrow_mut(),
+                    crate::backend::rows::Window { start, ms },
+                    crate::backend::rows::Services { mime: &tb.mime, icons: &tb.icons, aliases: &tb.aliases, thumbs: &tb.thumbs, kinds: &mut tb.kinds.borrow_mut() },
                     &mut session.row_cache,
                 );
             }

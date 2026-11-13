@@ -1755,3 +1755,7 @@ Joining the mount Trash contribution with FX-SEARCHKEEP records `src/backend/mod
 ## Search scope initialization
 
 Opening search in the current folder adds one scope assignment and its comment at the existing fresh-open boundary in `crates/flea-gui/src/window/search.rs`. Registering the separate regression module brings the file to 369 lines, measured with `wc -l`, so its recorded composition ceiling moves from 368 to 369, below the 400-line Rust hard cap. The navigation, scope-history and dual-pane regression bodies remain in separate test files. This ceiling covers only this initialization and test wiring.
+
+## Clippy argument grouping
+
+The clippy `too_many_arguments` and `type_complexity` grouping (RUST-PERFECT A2) adds each named type beside the function it serves, so four files already over the cap move their recorded ceilings, each re-derived with `wc -l`: `src/backend/run.rs` 1286 to 1289 for `RequestContext`, `src/backend/menu_registry.rs` 621 to 624 for the `IconCache` alias, `src/tui/preview.rs` 407 to 410 for the `RunningRead` alias, and `src/backend/movebatch_tests.rs` 783 to 789 for the `Staging` helper type. `src/backend/ordering.rs` would have crossed 400 with `SortKey`, so the struct has its own module, `src/backend/sortkey.rs`, and `src/backend/mod.rs` moves from 409 to 410 for its declaration.

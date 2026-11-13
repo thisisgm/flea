@@ -314,8 +314,8 @@ fn a_pre_cancelled_password_compress_answers_cancelled_and_names_no_secret() {
     let f = Formats::from_tools(true, true);
     let (tx, rx) = std::sync::mpsc::channel();
     let cancel = Arc::new(AtomicBool::new(true));
-    run_archive(44, true, paths, "7z".to_string(), PathBuf::from("/nonexistent"),
-        dest.clone(), &f, tx, None, Arc::clone(&cancel), "s3cret".to_string(), true);
+    run_archive(44, crate::backend::archivereq::ArchiveRequest { compressing: true, paths, format: "7z".to_string(), archive: PathBuf::from("/nonexistent"), dest: dest.clone(), password: "s3cret".to_string(), encrypt_names: true }, &f, tx, None,
+        Arc::clone(&cancel));
     let line = match rx.recv_timeout(Duration::from_secs(15)).unwrap() {
         OpMsg::DetachedDone { id, line } => { assert_eq!(id, 44, "the terminal message must carry the registry id"); line }
         other => panic!("a compress answers DetachedDone, got {:?}", std::mem::discriminant(&other)),
@@ -336,8 +336,7 @@ fn a_password_with_a_line_break_is_refused_before_7z_starts() {
         let dest = d.join("out.7z");
         let paths = vec![d.join("a.txt").to_string_lossy().to_string()];
         let (tx, rx) = std::sync::mpsc::channel();
-        run_archive(45, true, paths, "7z".to_string(), PathBuf::from("/nonexistent"), dest.clone(),
-            &Formats::from_tools(true, true), tx, None, Arc::new(AtomicBool::new(false)), secret.to_string(), true);
+        run_archive(45, crate::backend::archivereq::ArchiveRequest { compressing: true, paths, format: "7z".to_string(), archive: PathBuf::from("/nonexistent"), dest: dest.clone(), password: secret.to_string(), encrypt_names: true }, &Formats::from_tools(true, true), tx, None, Arc::new(AtomicBool::new(false)));
         let line = match rx.recv_timeout(Duration::from_secs(15)).unwrap() {
             OpMsg::DetachedDone { line, .. } => line,
             other => panic!("a compress answers DetachedDone, got {:?}", std::mem::discriminant(&other)),

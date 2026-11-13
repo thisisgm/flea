@@ -4,6 +4,7 @@ use super::listing::Listing;
 use super::meta::stat_all;
 use super::mime::Db;
 use super::sort::{cmp_extension, name_order, parse_sort_by, sort_listing};
+use super::sortkey::SortKey;
 use std::cmp::Ordering;
 use std::path::Path;
 use std::time::{Duration, Instant};
@@ -36,7 +37,7 @@ pub fn request(
     if by == "size" && value.get("foldersByName").and_then(|v| v.as_bool()) == Some(true) {
         return Ok(super::tuifolders::sort(l, base, desc, hidden_last));
     }
-    ordered(l, base, mime, by, desc, folders, groups, hidden_last)
+    ordered(l, base, mime, SortKey { by, desc }, folders, groups, hidden_last)
 }
 
 // The default retains the shipped fast path; explicit grouping needs only filename MIME lookup.
@@ -44,12 +45,12 @@ pub fn ordered(
     l: &mut Listing,
     base: &Path,
     mime: &Db,
-    by: &str,
-    desc: bool,
+    key: SortKey<'_>,
     folders: bool,
     groups: bool,
     hidden_last: bool,
 ) -> Result<(f64, f64, Vec<Option<DirSize>>), &'static str> {
+    let SortKey { by, desc } = key;
     let by = if by == "date" { "mtime" } else { by };
     if matches!(by, "btime" | "extension" | "random") {
         let (pass, sort) = super::paritysort::sort(l, base, by, desc, folders, hidden_last);
@@ -200,14 +201,14 @@ mod tests {
         l.push("b.txt", false);
         l.push("c.jpg", false);
         let db = Db::from_str("50:image/jpeg:*.jpg\n50:text/plain:*.txt\n");
-        ordered(&mut l, d.path(), &db, "name", false, false, false, false).unwrap();
+        ordered(&mut l, d.path(), &db, SortKey { by: "name", desc: false }, false, false, false).unwrap();
         assert_eq!(l.name(0), "b.txt");
-        ordered(&mut l, d.path(), &db, "name", false, true, true, false).unwrap();
+        ordered(&mut l, d.path(), &db, SortKey { by: "name", desc: false }, true, true, false).unwrap();
         assert_eq!(l.name(0), "z-folder");
         assert_eq!(l.name(1), "c.jpg");
-        ordered(&mut l, d.path(), &db, "kind", false, false, false, false).unwrap();
+        ordered(&mut l, d.path(), &db, SortKey { by: "kind", desc: false }, false, false, false).unwrap();
         assert_eq!(l.name(0), "c.jpg");
-        assert!(ordered(&mut l, d.path(), &db, "bad", false, false, false, false).is_err());
+        assert!(ordered(&mut l, d.path(), &db, SortKey { by: "bad", desc: false }, false, false, false).is_err());
     }
 
     #[test]
@@ -246,7 +247,7 @@ mod tests {
             ("mtime", false, false, false, "a.txt", 1, "[b.txt, a.txt, c.jpg, z-folder]"),
         ] {
             let mut l = pushed();
-            ordered(&mut l, d.path(), &db, by, desc, folders, groups, false).unwrap();
+            ordered(&mut l, d.path(), &db, SortKey { by, desc }, folders, groups, false).unwrap();
             assert_eq!(index_of(&l, anchor), want, "{by} desc={desc} folders={folders} groups={groups} should order {order}");
         }
         // Files alone by walked bytes, no folder to place: [c.jpg(1), b.txt(2), a.txt(4)].
@@ -254,12 +255,12 @@ mod tests {
         for (name, dir) in [("b.txt", false), ("a.txt", false), ("c.jpg", false)] {
             l.push(name, dir);
         }
-        ordered(&mut l, d.path(), &db, "size", false, false, false, false).unwrap();
+        ordered(&mut l, d.path(), &db, SortKey { by: "size", desc: false }, false, false, false).unwrap();
         assert_eq!((l.name(0), l.name(1), l.name(2)), ("c.jpg", "b.txt", "a.txt"));
         assert_eq!(index_of(&l, "b.txt"), 1);
         // Gone or foreign anchors answer -1, never a row.
         let mut l = pushed();
-        ordered(&mut l, d.path(), &db, "name", false, true, false, false).unwrap();
+        ordered(&mut l, d.path(), &db, SortKey { by: "name", desc: false }, true, false, false).unwrap();
         assert_eq!(index_of(&l, "gone.txt"), -1);
         assert!(l.index_of(d.path(), std::path::Path::new("/elsewhere/a.txt")).is_none());
         assert!(l.index_of(d.path(), std::path::Path::new("relative/a.txt")).is_none());
@@ -284,7 +285,7 @@ mod tests {
         l.push("mid", true);
         l.push("small.bin", false);
         let db = Db::from_str("50:application/octet-stream:*.bin\n");
-        let (_, _, seed) = ordered(&mut l, d.path(), &db, "size", false, false, false, false).unwrap();
+        let (_, _, seed) = ordered(&mut l, d.path(), &db, SortKey { by: "size", desc: false }, false, false, false).unwrap();
         // A build still keying folders at 0 answers mid first; walked it sits between the files.
         assert_eq!((l.name(0), l.name(1), l.name(2)), ("small.bin", "mid", "big.bin"));
         assert_eq!(seed.len(), 3, "the seed arrives in final row order");
@@ -331,12 +332,12 @@ mod tests {
                     // groups=true walks the group_rank arm, so the partition is pinned there too.
                     for groups in [false, true] {
                         let mut l = pushed();
-                        ordered(&mut l, d.path(), &db, by, desc, folders, groups, true).unwrap();
+                        ordered(&mut l, d.path(), &db, SortKey { by, desc }, folders, groups, true).unwrap();
                         let got = names(&l);
                         assert!(partitioned(&got),
                             "{by} desc={desc} folders={folders} groups={groups} keeps every dotfile last: {got:?}");
                         let mut off = pushed();
-                        ordered(&mut off, d.path(), &db, by, desc, folders, groups, false).unwrap();
+                        ordered(&mut off, d.path(), &db, SortKey { by, desc }, folders, groups, false).unwrap();
                         let old = names(&off);
                         // Only descending name without folders or groups already reads hidden-last, so only that arm asserts equality.
                         if by == "name" && desc && !folders && !groups {
@@ -353,23 +354,23 @@ mod tests {
         }
         // Folders first orders each block: visible folders, visible files, hidden folders, hidden files.
         let mut l = pushed();
-        ordered(&mut l, d.path(), &db, "name", false, true, false, true).unwrap();
+        ordered(&mut l, d.path(), &db, SortKey { by: "name", desc: false }, true, false, true).unwrap();
         assert_eq!(names(&l), ["Work", "notes.md", "photo.jpg", ".cache", ".bashrc", ".shot.jpg"]);
         // Both directions keep the partition; descending reverses only inside each block.
         let mut down = pushed();
-        ordered(&mut down, d.path(), &db, "name", true, true, false, true).unwrap();
+        ordered(&mut down, d.path(), &db, SortKey { by: "name", desc: true }, true, false, true).unwrap();
         assert_eq!(names(&down), ["Work", "photo.jpg", "notes.md", ".cache", ".shot.jpg", ".bashrc"]);
         // Without folders first the blocks still hold, ordered by name alone inside each.
         let mut flat = pushed();
-        ordered(&mut flat, d.path(), &db, "name", false, false, false, true).unwrap();
+        ordered(&mut flat, d.path(), &db, SortKey { by: "name", desc: false }, false, false, true).unwrap();
         assert_eq!(names(&flat), ["notes.md", "photo.jpg", "Work", ".bashrc", ".cache", ".shot.jpg"]);
         // Off keeps today's order, where a leading dot sorts first.
         let mut today = pushed();
-        ordered(&mut today, d.path(), &db, "name", false, true, false, false).unwrap();
+        ordered(&mut today, d.path(), &db, SortKey { by: "name", desc: false }, true, false, false).unwrap();
         assert_eq!(names(&today), [".cache", "Work", ".bashrc", ".shot.jpg", "notes.md", "photo.jpg"]);
         // Grouped keeps the partition first, then the group rank, then the name inside each.
         let mut grouped = pushed();
-        ordered(&mut grouped, d.path(), &db, "name", false, false, true, true).unwrap();
+        ordered(&mut grouped, d.path(), &db, SortKey { by: "name", desc: false }, false, true, true).unwrap();
         assert_eq!(names(&grouped), ["Work", "photo.jpg", "notes.md", ".cache", ".shot.jpg", ".bashrc"]);
     }
 

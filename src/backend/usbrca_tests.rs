@@ -65,8 +65,7 @@ impl Fixture {
         let src = self.source(n);
         std::fs::write(&src, vec![b'x'; FILE_BYTES]).unwrap();
         let source = ItemIdentity::inspect(&src).unwrap();
-        stage_copy(1, n, &format!("f{n}"), &src, &self.destination(n), source, &self.cancel,
-            &self.tx, &self.settled, &mut self.steps, &mut self.durability, &mut self.batch)
+        stage_copy(crate::backend::opsreq::TransferItem { id: 1, index: n, name: &format!("f{n}"), src: &src, dst: &self.destination(n), source }, &self.cancel, &self.tx, &self.settled, &mut self.steps, &mut self.durability, &mut self.batch)
     }
 
     fn land(&mut self, n: usize) {

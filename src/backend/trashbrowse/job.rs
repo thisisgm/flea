@@ -178,9 +178,7 @@ impl Progress {
         };
         let done = crate::backend::opsreq::transferdone_line(
             self.id,
-            ok,
-            failed,
-            skipped,
+            crate::backend::opsreq::TransferCounts { ok, failed, skipped },
             cancelled,
             &[],
             false,

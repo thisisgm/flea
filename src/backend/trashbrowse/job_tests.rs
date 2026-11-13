@@ -134,7 +134,7 @@ fn late_cancel_keeps_job_completion_and_legacy_replies_consistent() {
     let message = progress.finish(reply.into(), true);
     let expected = format!(
         "{}\n{reply}",
-        crate::backend::opsreq::transferdone_line(id, 2, 0, 0, false, &[], false, "", &[])
+        crate::backend::opsreq::transferdone_line(id, crate::backend::opsreq::TransferCounts { ok: 2, failed: 0, skipped: 0 }, false, &[], false, "", &[])
     );
     match &message {
         OpMsg::JobDone { line, error, .. } => {

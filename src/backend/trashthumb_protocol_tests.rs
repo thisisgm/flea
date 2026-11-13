@@ -20,17 +20,7 @@ fn wire(line: &str, st: &mut State, tb: &Tables, pool: &Pool, cache: &Cache) -> 
             line,
             &mut out,
             st,
-            tb,
-            pool,
-            cache,
-            &mut ops,
-            &mut flash,
-            &mut watch,
-            &mut peeks,
-            &mut fsinfo,
-            &poller,
-            &events,
-            &mut gate
+            RequestContext { tb, pool, cache, ops: &mut ops, flash: &mut flash, watch: &mut watch, peeks: &mut peeks, fsinfo: &mut fsinfo, poller: &poller, loop_tx: &events, gate: &mut gate }
         ) == Control::Continue
     );
     out

@@ -383,14 +383,14 @@ mod tests {
         };
         let names = |l: &Listing| (0..l.len()).map(|i| l.name(i).to_string()).collect::<Vec<_>>();
         let mut asc = pushed();
-        ordered(&mut asc, d.path(), &db, "kind", false, true, false, false).unwrap();
+        ordered(&mut asc, d.path(), &db, crate::backend::sortkey::SortKey { by: "kind", desc: false }, true, false, false).unwrap();
         assert_eq!(names(&asc), [".bashrc", "README", "a.lrf", "c.LRF", "b.MP4", "z.mp4"]);
         let mut desc = pushed();
-        ordered(&mut desc, d.path(), &db, "kind", true, true, false, false).unwrap();
+        ordered(&mut desc, d.path(), &db, crate::backend::sortkey::SortKey { by: "kind", desc: true }, true, false, false).unwrap();
         let mut rev = names(&asc); rev.reverse();
         assert_eq!(names(&desc), rev);
         let mut f = pushed(); f.push("zebra", true);
-        ordered(&mut f, d.path(), &db, "kind", false, true, false, false).unwrap();
+        ordered(&mut f, d.path(), &db, crate::backend::sortkey::SortKey { by: "kind", desc: false }, true, false, false).unwrap();
         assert_eq!(f.name(0), "zebra");
     }
 }

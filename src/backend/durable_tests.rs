@@ -1178,7 +1178,7 @@ fn clone_failure_keeps_every_batch_source_drained() {
         std::fs::write(&src, "body").unwrap();
         let source = crate::backend::undo::ItemIdentity::inspect(&src).expect("source recorded");
         let name = src.file_name().unwrap().to_string_lossy().to_string();
-        match crate::backend::movebatch::stage_copy(1, n, &name, &src, &out.join(format!("f{n}.txt")), source, &flag, &tx, &settled, &mut steps, &mut durability, &mut batch) {
+        match crate::backend::movebatch::stage_copy(crate::backend::opsreq::TransferItem { id: 1, index: n, name: &name, src: &src, dst: &out.join(format!("f{n}.txt")), source }, &flag, &tx, &settled, &mut steps, &mut durability, &mut batch) {
             crate::backend::movebatch::MoveOutcome::Deferred => {}
             crate::backend::movebatch::MoveOutcome::Done(r) => panic!("staging copies, got {:?}", r.map(|_| "ok")),
         }
@@ -1227,7 +1227,7 @@ fn clone_syncfs_failure_keeps_every_batch_source() {
         std::fs::write(&src, "body").unwrap();
         let source = crate::backend::undo::ItemIdentity::inspect(&src).expect("source recorded");
         let name = src.file_name().unwrap().to_string_lossy().to_string();
-        match crate::backend::movebatch::stage_copy(1, n, &name, &src, &out.join(format!("f{n}.txt")), source, &flag, &tx, &settled, &mut steps, &mut durability, &mut batch) {
+        match crate::backend::movebatch::stage_copy(crate::backend::opsreq::TransferItem { id: 1, index: n, name: &name, src: &src, dst: &out.join(format!("f{n}.txt")), source }, &flag, &tx, &settled, &mut steps, &mut durability, &mut batch) {
             crate::backend::movebatch::MoveOutcome::Deferred => {}
             crate::backend::movebatch::MoveOutcome::Done(r) => panic!("staging copies, got {:?}", r.map(|_| "ok")),
         }

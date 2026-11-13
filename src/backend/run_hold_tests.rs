@@ -56,7 +56,7 @@ impl Wire {
 
     fn ask(&mut self, line: &str) -> Vec<String> {
         let w = &mut *self;
-        let control = handle_line(line, &mut w.out, &mut w.st, &w.tb, &w.pool, &w.cache, &mut w.ops, &mut w.flash, &mut w.watch, &mut w.peeks, &mut w.fsinfo, &w.poller, &w.events, &mut Gate::new(w.events.clone()));
+        let control = handle_line(line, &mut w.out, &mut w.st, RequestContext { tb: &w.tb, pool: &w.pool, cache: &w.cache, ops: &mut w.ops, flash: &mut w.flash, watch: &mut w.watch, peeks: &mut w.peeks, fsinfo: &mut w.fsinfo, poller: &w.poller, loop_tx: &w.events, gate: &mut Gate::new(w.events.clone()) });
         assert!(control == Control::Continue);
         self.taken()
     }

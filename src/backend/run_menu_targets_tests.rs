@@ -43,17 +43,7 @@ fn ey379_wire_path_snapshot_tags_and_replacement_never_alias_the_active_row() {
                 line,
                 out,
                 st,
-                &tb,
-                &pool,
-                &cache,
-                ops,
-                &mut flash,
-                &mut watch,
-                &mut peeks,
-                &mut fsinfo,
-                &poller,
-                &events,
-                &mut gate
+                RequestContext { tb: &tb, pool: &pool, cache: &cache, ops, flash: &mut flash, watch: &mut watch, peeks: &mut peeks, fsinfo: &mut fsinfo, poller: &poller, loop_tx: &events, gate: &mut gate }
             ) == Control::Continue
         );
     };

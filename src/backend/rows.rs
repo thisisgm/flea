@@ -48,56 +48,58 @@ pub(crate) fn empty_line(start: usize, ms: f64) -> String {
     format!(r#"{{"t":"rows","start":{start},"rows":[],"kinds":[],"ms":{ms:.3}}}"#)
 }
 
+// The rows a window asks for: the first index, and the cost of their stat pass in milliseconds.
+pub(crate) struct Window {
+    pub start: usize,
+    pub ms: f64,
+}
+
+// The tables every row reads its type, icon and thumbnail from.
+pub(crate) struct Services<'a> {
+    pub mime: &'a Db,
+    pub icons: &'a Names,
+    pub aliases: &'a Aliases,
+    pub thumbs: &'a Thumbnailers,
+    pub kinds: &'a mut Kinds,
+}
+
 pub fn rows_line(
     base: &Path,
     l: &Listing,
     metas: &[Meta],
-    start: usize,
-    ms: f64,
-    mime: &Db,
-    icons: &Names,
-    aliases: &Aliases,
-    thumbs: &Thumbnailers,
-    kinds: &mut Kinds,
+    window: Window,
+    services: Services<'_>,
 ) -> String {
     // A gvfs path names its own class and reads no mount table; every other base reads it once, here.
     let body = if gvfs_class(base).is_some() { String::new() } else { mountinfo::read_body() };
-    rows_line_in(base, &body, l, metas, start, ms, mime, icons, aliases, thumbs, kinds)
+    rows_line_in(base, &body, l, metas, window, services)
 }
 
 // The window against a mount table the caller read, so a test can stand an exFAT or btrfs mount where it cannot make one.
-#[allow(clippy::too_many_arguments)]
 fn rows_line_in(
     base: &Path,
     body: &str,
     l: &Listing,
     metas: &[Meta],
-    start: usize,
-    ms: f64,
-    mime: &Db,
-    icons: &Names,
-    aliases: &Aliases,
-    thumbs: &Thumbnailers,
-    kinds: &mut Kinds,
+    window: Window,
+    services: Services<'_>,
 ) -> String {
-    rows_line_body(base, body, l, metas, start, ms, mime, icons, aliases, thumbs, kinds, None)
+    rows_line_body(base, body, l, metas, window, services, None)
 }
 
-#[allow(clippy::too_many_arguments)]
 pub(crate) fn rows_line_cached(
-    base: &Path, body: &str, l: &Listing, metas: &[Meta], start: usize, ms: f64,
-    mime: &Db, icons: &Names, aliases: &Aliases, thumbs: &Thumbnailers, kinds: &mut Kinds,
+    base: &Path, body: &str, l: &Listing, metas: &[Meta], window: Window, services: Services<'_>,
     cache: &mut super::searchrowcache::Cache,
 ) -> String {
-    rows_line_body(base, body, l, metas, start, ms, mime, icons, aliases, thumbs, kinds, Some(cache))
+    rows_line_body(base, body, l, metas, window, services, Some(cache))
 }
 
-#[allow(clippy::too_many_arguments)]
 fn rows_line_body(
-    base: &Path, body: &str, l: &Listing, metas: &[Meta], start: usize, ms: f64,
-    mime: &Db, icons: &Names, aliases: &Aliases, thumbs: &Thumbnailers, kinds: &mut Kinds,
+    base: &Path, body: &str, l: &Listing, metas: &[Meta], window: Window, services: Services<'_>,
     mut cache: Option<&mut super::searchrowcache::Cache>,
 ) -> String {
+    let Window { start, ms } = window;
+    let Services { mime, icons, aliases, thumbs, kinds } = services;
     let kind_revision = kinds.refresh();
     if let Some(cache) = cache.as_deref_mut() { cache.kind_revision(kind_revision); }
     // Field names stay one character: a window serialises on every scroll.

@@ -34,10 +34,10 @@ fn an_extensionless_program_draws_the_program_mark_only_where_its_mode_is_its_ow
     let exfat = format!("36 25 {} / /mnt/usb rw,relatime - exfat /dev/sdb1 rw\n", mountinfo::dev_majmin(dev));
     let btrfs = exfat.replace("exfat", "btrfs");
     let (mime, icons, aliases, thumbs, mut kinds) = dbs();
-    let on_exfat = rows_line_in(Path::new("/mnt/usb"), &exfat, &l, &metas, 0, 0.0, &mime, &icons, &aliases, &thumbs, &mut kinds);
+    let on_exfat = rows_line_in(Path::new("/mnt/usb"), &exfat, &l, &metas, crate::backend::rows::Window { start: 0, ms: 0.0 }, crate::backend::rows::Services { mime: &mime, icons: &icons, aliases: &aliases, thumbs: &thumbs, kinds: &mut kinds });
     assert!(on_exfat.contains(r#""p":33261,"i":"text-x-generic""#), "the mount's 0755 is not a program: {}", on_exfat);
     let (mime, icons, aliases, thumbs, mut kinds) = dbs();
-    let on_btrfs = rows_line_in(Path::new("/mnt/usb"), &btrfs, &l, &metas, 0, 0.0, &mime, &icons, &aliases, &thumbs, &mut kinds);
+    let on_btrfs = rows_line_in(Path::new("/mnt/usb"), &btrfs, &l, &metas, crate::backend::rows::Window { start: 0, ms: 0.0 }, crate::backend::rows::Services { mime: &mime, icons: &icons, aliases: &aliases, thumbs: &thumbs, kinds: &mut kinds });
     assert!(on_btrfs.contains(r#""p":33261,"i":"application-x-executable""#), "a btrfs file keeps its own bits: {}", on_btrfs);
 }
 
@@ -52,7 +52,7 @@ fn modeless_rows_mark_execute_bits_without_changing_modes_or_plain_window_bytes(
     for fstype in ["vfat", "exfat", "ext4"] {
         let body = format!("1 0 {} / / rw - {fstype} /dev/a rw\n", mountinfo::dev_majmin(dev));
         let (mime, icons, aliases, thumbs, mut kinds) = dbs();
-        let line = rows_line_in(d.path(), &body, &l, &metas, 0, 0.0, &mime, &icons, &aliases, &thumbs, &mut kinds);
+        let line = rows_line_in(d.path(), &body, &l, &metas, crate::backend::rows::Window { start: 0, ms: 0.0 }, crate::backend::rows::Services { mime: &mime, icons: &icons, aliases: &aliases, thumbs: &thumbs, kinds: &mut kinds });
         let parsed = crate::jsondoc::parse(&line).unwrap();
         let row = &parsed.get("rows").unwrap().as_array().unwrap()[0];
         assert_eq!(row.get("p").and_then(crate::jsondoc::Json::as_f64), Some(33261.0), "{fstype} keeps the reported 0755 mode");
@@ -73,7 +73,7 @@ fn a_row_window_reads_the_mount_table_once() {
     let metas = (0..2).map(|_| Meta { ino: None, birth: None, size: 1, mtime: 2, mode: 0o100755, target_is_dir: false, target: String::new(), dev: 0 }).collect::<Vec<_>>();
     let (mime, icons, aliases, thumbs, mut kinds) = dbs();
     crate::backend::mountinfo::test_reset();
-    rows_line(Path::new("/"), &l, &metas, 0, 0.0, &mime, &icons, &aliases, &thumbs, &mut kinds);
+    rows_line(Path::new("/"), &l, &metas, crate::backend::rows::Window { start: 0, ms: 0.0 }, crate::backend::rows::Services { mime: &mime, icons: &icons, aliases: &aliases, thumbs: &thumbs, kinds: &mut kinds });
     assert_eq!(crate::backend::mountinfo::test_reads(), 1);
 }
 
@@ -89,7 +89,7 @@ fn listpaths_rows_use_their_own_mount_modes() {
     let body = format!("1 0 {} / / rw - ext4 /dev/a rw\n2 1 {} / /mnt/usb rw - exfat /dev/sdb1 rw\n",
         mountinfo::dev_majmin(native_dev), mountinfo::dev_majmin(usb_dev));
     let (mime, icons, aliases, thumbs, mut kinds) = dbs();
-    let line = rows_line_in(Path::new("/"), &body, &l, &metas, 0, 0.0, &mime, &icons, &aliases, &thumbs, &mut kinds);
+    let line = rows_line_in(Path::new("/"), &body, &l, &metas, crate::backend::rows::Window { start: 0, ms: 0.0 }, crate::backend::rows::Services { mime: &mime, icons: &icons, aliases: &aliases, thumbs: &thumbs, kinds: &mut kinds });
     let parsed = crate::jsondoc::parse(&line).unwrap();
     let rows = parsed.get("rows").unwrap().as_array().unwrap();
     assert_eq!(rows[0].get("i").and_then(crate::jsondoc::Json::as_str), Some("text-x-generic"), "an exFAT Recent row has no real execute bits");
@@ -109,7 +109,7 @@ fn search_rows_on_an_ext4_mount_keep_modes_under_an_exfat_base() {
     let metas = vec![Meta { ino: None, birth: None, size: 1, mtime: 2, mode: 0o100755, target_is_dir: false, target: String::new(), dev }];
     let body = format!("1 0 0:0 / /mnt/usb rw - exfat /dev/sdb1 rw\n2 1 {} / /mnt/usb/native rw - ext4 /dev/a rw\n", mountinfo::dev_majmin(dev));
     let (mime, icons, aliases, thumbs, mut kinds) = dbs();
-    let line = rows_line_in(Path::new("/mnt/usb"), &body, &l, &metas, 1, 0.0, &mime, &icons, &aliases, &thumbs, &mut kinds);
+    let line = rows_line_in(Path::new("/mnt/usb"), &body, &l, &metas, crate::backend::rows::Window { start: 1, ms: 0.0 }, crate::backend::rows::Services { mime: &mime, icons: &icons, aliases: &aliases, thumbs: &thumbs, kinds: &mut kinds });
     assert!(line.contains(r#""n":"native/Launcher","d":false,"s":1,"m":2,"b":null,"p":33261,"i":"application-x-executable""#), "the nested ext4 file keeps its own mode: {line}");
 }
 
@@ -122,7 +122,7 @@ fn a_gvfs_row_window_never_reads_the_mount_table() {
     let metas = vec![Meta { ino: None, birth: None, size: 1, mtime: 2, mode: 0o100755, target_is_dir: false, target: String::new(), dev }];
     let (mime, icons, aliases, thumbs, mut kinds) = dbs();
     mountinfo::test_reset();
-    rows_line(Path::new("/run/user/1000/gvfs/smb-share:server=nas,share=files"), &l, &metas, 0, 0.0, &mime, &icons, &aliases, &thumbs, &mut kinds);
+    rows_line(Path::new("/run/user/1000/gvfs/smb-share:server=nas,share=files"), &l, &metas, crate::backend::rows::Window { start: 0, ms: 0.0 }, crate::backend::rows::Services { mime: &mime, icons: &icons, aliases: &aliases, thumbs: &thumbs, kinds: &mut kinds });
     assert_eq!(mountinfo::test_reads(), 0);
 }
 
@@ -145,7 +145,7 @@ fn smb_rows_keep_real_modes_only_with_mode_preserving_super_options() {
         ] {
             let body = format!("1 0 0:0 / / rw - ext4 /dev/a rw\n2 1 {} / /mnt/share rw - {fstype} //server/share {options}\n", mountinfo::dev_majmin(dev));
             let (mime, icons, aliases, thumbs, mut kinds) = dbs();
-            let line = rows_line_in(Path::new("/mnt/share"), &body, &l, &metas, 0, 0.0, &mime, &icons, &aliases, &thumbs, &mut kinds);
+            let line = rows_line_in(Path::new("/mnt/share"), &body, &l, &metas, crate::backend::rows::Window { start: 0, ms: 0.0 }, crate::backend::rows::Services { mime: &mime, icons: &icons, aliases: &aliases, thumbs: &thumbs, kinds: &mut kinds });
             let parsed = crate::jsondoc::parse(&line).unwrap();
             let rows = parsed.get("rows").unwrap().as_array().unwrap();
             assert_eq!(rows[0].get("i").and_then(crate::jsondoc::Json::as_str), Some(icon), "{fstype} super options {options}");
@@ -162,7 +162,7 @@ fn assert_program_icon(base: &Path, body: &str, names: &[&str], devs: &[u64], ex
     }
     let metas = devs.iter().map(|&dev| Meta { ino: None, birth: None, size: 1, mtime: 2, mode: 0o100755, target_is_dir: false, target: String::new(), dev }).collect::<Vec<_>>();
     let (mime, icons, aliases, thumbs, mut kinds) = dbs();
-    let line = rows_line_in(base, body, &l, &metas, 0, 0.0, &mime, &icons, &aliases, &thumbs, &mut kinds);
+    let line = rows_line_in(base, body, &l, &metas, crate::backend::rows::Window { start: 0, ms: 0.0 }, crate::backend::rows::Services { mime: &mime, icons: &icons, aliases: &aliases, thumbs: &thumbs, kinds: &mut kinds });
     let parsed = crate::jsondoc::parse(&line).unwrap();
     let rows = parsed.get("rows").unwrap().as_array().unwrap();
     assert_eq!(rows.len(), expected.len());

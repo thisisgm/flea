@@ -215,7 +215,7 @@ fn the_next_transfer_sweeps_a_dead_copys_siblings_and_nothing_else() {
     std::os::unix::fs::symlink("/nonexistent", &link_named).unwrap();
     let src = source(&d);
     let (tx, rx) = channel();
-    run_transfer_checked(1, false, owned(&[&src]), to.clone(), Arc::new(AtomicBool::new(false)), tx, None, None, Policy::default());
+    run_transfer_checked(1, false, owned(&[&src]), to.clone(), Arc::new(AtomicBool::new(false)), tx, crate::backend::opsreq::TransferChecks { selection: None, destination: None, collision: Policy::default() });
     let _ = sleeper.kill();
     let _ = sleeper.wait();
     assert!(rx.iter().any(|m| matches!(m, OpMsg::Item { ok: true, .. })), "the transfer itself landed");

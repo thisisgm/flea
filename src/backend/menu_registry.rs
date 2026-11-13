@@ -24,9 +24,12 @@ extern "C" {
 }
 struct Running { pid: i32, pidfd: OwnedFd, work: Work }
 
+// The icon theme read once, shared by every clone of the registry.
+type IconCache = Arc<Mutex<Option<Arc<HashMap<String, PathBuf>>>>>;
+
 #[derive(Clone, Default)]
 pub(crate) struct Registry { running: Arc<Mutex<Option<Running>>>,
-                             icons: Arc<Mutex<Option<Arc<HashMap<String, PathBuf>>>>> }
+                             icons: IconCache }
 
 impl Registry {
     pub fn cancel(&self) -> Result<(), String> {

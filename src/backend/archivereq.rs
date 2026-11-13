@@ -83,14 +83,11 @@ pub fn start_archive(
     ops: &mut Ops,
     formats: Arc<Formats>,
     op: &str,
-    paths: Vec<String>,
-    format: String,
-    archive: PathBuf,
-    dest: PathBuf,
+    request: ArchiveRequest,
     menu_id: usize,
-    password: String,
-    encrypt_names: bool,
 ) {
+    // The op string decides compressing below, after it is refused by name, as it did before the request was grouped.
+    let ArchiveRequest { paths, format, archive, dest, password, encrypt_names, .. } = request;
     // An op that names neither would otherwise fall through to extract, so it is refused by name.
     if op != "compress" && op != "extract" {
         writeln!(out, "{}", error_line(&op_err("archive", op, "op must be compress or extract"))).ok();
@@ -161,8 +158,16 @@ pub fn start_archive(
     );
 }
 
-pub fn start_convert(out: &mut impl Write, ops: &mut Ops, input: PathBuf, dest: PathBuf, strip: bool,
-                     menu_id: usize, request_id: usize, check: bool) {
+// A conversion's own fields: the file, where its result goes, whether metadata is stripped, and the request it answers.
+pub(crate) struct ConvertRequest {
+    pub input: PathBuf,
+    pub dest: PathBuf,
+    pub strip: bool,
+    pub request_id: usize,
+}
+
+pub fn start_convert(out: &mut impl Write, ops: &mut Ops, request: ConvertRequest, menu_id: usize, check: bool) {
+    let ConvertRequest { input, dest, strip, request_id } = request;
     let selection = menu_sources(ops, menu_id);
     // A source or target on a pending mount waits; a check only probes and never waits.
     if !check {
@@ -208,10 +213,7 @@ pub fn start_convert(out: &mut impl Write, ops: &mut Ops, input: PathBuf, dest: 
     thread::spawn(move || {
         run_convert(
             id,
-            request_id,
-            input,
-            dest,
-            strip,
+            ConvertRequest { request_id, input, dest, strip },
             tx,
             selection.unwrap(),
             cancel,
@@ -299,7 +301,7 @@ mod tests {
         let (tx, _) = std::sync::mpsc::channel();
         let mut ops = Ops::new(tx);
         let mut output = Vec::new();
-        start_convert(&mut output, &mut ops, source.clone(), destination.clone(), false, 0, 73, false);
+        start_convert(&mut output, &mut ops, ConvertRequest { input: source.clone(), dest: destination.clone(), strip: false, request_id: 73 }, 0, false);
         let reply = String::from_utf8(output).unwrap();
         assert_eq!(crate::json::field_str(&reply, "t").as_deref(), Some("convertdone"));
         assert_eq!(crate::json::field_usize(&reply, "requestId"), Some(73));
@@ -326,7 +328,7 @@ mod tests {
         let mut ops = Ops::new(tx);
         for check in [true, false] {
             let mut output = Vec::new();
-            start_convert(&mut output, &mut ops, source.clone(), destination.clone(), true, 9, 74, check);
+            start_convert(&mut output, &mut ops, ConvertRequest { input: source.clone(), dest: destination.clone(), strip: true, request_id: 74 }, 9, check);
             let reply = String::from_utf8(output).unwrap();
             assert_eq!(crate::json::field_usize(&reply, "requestId"), Some(74));
             assert_eq!(crate::json::field_str(&reply, "source").as_deref(), source.to_str());
@@ -354,7 +356,7 @@ mod tests {
         let mut ops = Ops::new(tx);
         for check in [true, false] {
             let mut output = Vec::new();
-            start_convert(&mut output, &mut ops, source.clone(), destination.clone(), false, 0, 75, check);
+            start_convert(&mut output, &mut ops, ConvertRequest { input: source.clone(), dest: destination.clone(), strip: false, request_id: 75 }, 0, check);
             let reply = String::from_utf8(output).unwrap();
             assert_eq!(crate::json::field_usize(&reply, "requestId"), Some(75));
             assert_eq!(crate::json::field_str(&reply, "source").as_deref(), source.to_str());

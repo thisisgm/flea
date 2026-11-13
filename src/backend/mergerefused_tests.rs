@@ -23,7 +23,7 @@ fn a_merge_onto_a_linkless_drive_names_the_refused_link_on_merge_done() {
     let (tx, rx) = channel();
     crate::backend::unheld::test_force_linkless(true);
     let _reset = Linkless;
-    run_transfer_checked(1, false, owned(&[&album]), to.clone(), AtomicBool::new(false).into(), tx, None, None, policy);
+    run_transfer_checked(1, false, owned(&[&album]), to.clone(), AtomicBool::new(false).into(), tx, crate::backend::opsreq::TransferChecks { selection: None, destination: None, collision: policy });
     let refused = rx.iter().find_map(|msg| match msg {
         OpMsg::MergeDone { refused, .. } => Some(refused),
         _ => None,

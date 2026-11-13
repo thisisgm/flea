@@ -39,7 +39,7 @@ fn a_dropbox_destination_replaced_before_worker_start_never_receives_the_source(
     sandbox.assert_contains(&source);
     sandbox.assert_contains(&destination);
     run_transfer_checked(1, true, vec![source.to_string_lossy().into()], destination.clone(),
-        Arc::new(AtomicBool::new(false)), tx, Some(vec![selected_source.clone()]), Some(captured.clone()), Policy::default());
+        Arc::new(AtomicBool::new(false)), tx, TransferChecks { selection: Some(vec![selected_source.clone()]), destination: Some(captured.clone()), collision: Policy::default() });
     let results: Vec<_> = rx.iter().collect();
     assert!(results.iter().any(|message| matches!(message, OpMsg::Item {ok: false, err, ..} if err.contains("Dropbox account folder changed"))));
     assert!(results.iter().any(|message| matches!(message, OpMsg::TransferDone {ok: 0, failed: 1, entry, retry, ..}
@@ -53,7 +53,7 @@ fn a_dropbox_destination_replaced_before_worker_start_never_receives_the_source(
     sandbox.assert_contains(&source);
     sandbox.assert_contains(&destination);
     run_transfer_checked(2, true, vec![source.to_string_lossy().into()], destination.clone(),
-        Arc::new(AtomicBool::new(false)), tx, Some(vec![selected_source]), Some(captured), Policy::default());
+        Arc::new(AtomicBool::new(false)), tx, TransferChecks { selection: Some(vec![selected_source]), destination: Some(captured), collision: Policy::default() });
     assert!(rx.iter().any(|message| matches!(message, OpMsg::TransferDone {ok: 0, failed: 1, retry, ..} if retry.is_empty())));
     assert_eq!(std::fs::read_to_string(source).unwrap(), "replacement");
     assert!(!destination.join("source").exists());
@@ -84,14 +84,12 @@ fn menu_workers_refuse_replacement_sources_before_helpers_or_mutations() {
     let destination = d.join("output.zip");
     assert!(destination.is_absolute() && destination.starts_with(d.path()));
     let (tx, rx) = channel();
-    crate::backend::archivereq::run_archive(1, true, vec![path.to_string_lossy().into()], "zip".into(), PathBuf::new(),
-        destination.clone(), &crate::backend::archive::Formats::from_tools(false, false), tx, Some(captured.clone()),
-        std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)), String::new(), false);
+    crate::backend::archivereq::run_archive(1, crate::backend::archivereq::ArchiveRequest { compressing: true, paths: vec![path.to_string_lossy().into()], format: "zip".into(), archive: PathBuf::new(), dest: destination.clone(), password: String::new(), encrypt_names: false }, &crate::backend::archive::Formats::from_tools(false, false), tx, Some(captured.clone()),
+        std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)));
     let OpMsg::DetachedDone { line, .. } = rx.recv().unwrap() else { panic!("archive terminal result"); };
     assert!(line.contains(r#""ok":false"#) && line.contains("changed"));
     let (tx, rx) = channel();
-    crate::backend::archivereq::run_convert(2, 0, path.clone(), destination.clone(), false, tx, Some(captured),
-        std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)));
+    crate::backend::archivereq::run_convert(2, crate::backend::archivereq::ConvertRequest { request_id: 0, input: path.clone(), dest: destination.clone(), strip: false }, tx, Some(captured), std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)));
     let OpMsg::DetachedDone { line, .. } = rx.recv().unwrap() else { panic!("convert terminal result"); };
     assert!(line.contains(r#""ok":false"#) && line.contains("changed"));
     assert!(!destination.exists());
@@ -114,9 +112,9 @@ fn every_operation_line_matches_the_shape_the_operations_design_names() {
     assert_eq!(transferprogress_line(12, 0, "a.txt", 40000000, 120000000, 0), r#"{"t":"transferprogress","id":12,"index":0,"name":"a.txt","bytes":40000000,"total":120000000,"scanned":0}"#);
     // Directive 45: the batch's own total once its sweep settles, which is what the card's time left needs.
     assert_eq!(transferprogress_line(12, 3, "photos", 40000000, 0, 8400000000), r#"{"t":"transferprogress","id":12,"index":3,"name":"photos","bytes":40000000,"total":0,"scanned":8400000000}"#);
-    assert_eq!(transferdone_line(12, 1, 1, 0, false, &[], false, "", &[]), r#"{"t":"transferdone","id":12,"ok":1,"failed":1,"skipped":0,"cancelled":false,"retryPaths":[],"durable":false,"note":""}"#);
-    assert_eq!(transferdone_line(12, 1, 0, 0, false, &[], true, "", &[]), r#"{"t":"transferdone","id":12,"ok":1,"failed":0,"skipped":0,"cancelled":false,"retryPaths":[],"durable":true,"note":""}"#);
-    assert_eq!(transferdone_line(12, 1, 0, 0, false, &[], false, crate::backend::durable::DIR_UNCONFIRMED, &[]), r#"{"t":"transferdone","id":12,"ok":1,"failed":0,"skipped":0,"cancelled":false,"retryPaths":[],"durable":false,"note":"copied, but the drive did not confirm the folder"}"#);
+    assert_eq!(transferdone_line(12, TransferCounts { ok: 1, failed: 1, skipped: 0 }, false, &[], false, "", &[]), r#"{"t":"transferdone","id":12,"ok":1,"failed":1,"skipped":0,"cancelled":false,"retryPaths":[],"durable":false,"note":""}"#);
+    assert_eq!(transferdone_line(12, TransferCounts { ok: 1, failed: 0, skipped: 0 }, false, &[], true, "", &[]), r#"{"t":"transferdone","id":12,"ok":1,"failed":0,"skipped":0,"cancelled":false,"retryPaths":[],"durable":true,"note":""}"#);
+    assert_eq!(transferdone_line(12, TransferCounts { ok: 1, failed: 0, skipped: 0 }, false, &[], false, crate::backend::durable::DIR_UNCONFIRMED, &[]), r#"{"t":"transferdone","id":12,"ok":1,"failed":0,"skipped":0,"cancelled":false,"retryPaths":[],"durable":false,"note":"copied, but the drive did not confirm the folder"}"#);
     assert_eq!(trashed_line(7, 1, 0, "", &["/a".to_string()]), r#"{"t":"trashed","id":7,"ok":1,"failed":0,"moved":["/a"]}"#);
     assert_eq!(trashed_line(7, 0, 1, "The Trash took too long to answer", &[]), r#"{"t":"trashed","id":7,"ok":0,"failed":1,"err":"The Trash took too long to answer","moved":[]}"#);
     assert_eq!(renamed_line(true, "/home/gm/new.txt"), r#"{"t":"renamed","ok":true,"path":"/home/gm/new.txt"}"#);
@@ -168,7 +166,7 @@ fn a_relative_source_is_refused_rather_than_read_from_the_working_directory() {
     let dest = d.dir("dest");
     let (tx, rx) = channel();
     run_transfer_checked(1, false, vec!["relative/a.txt".to_string()], dest.clone(),
-        Arc::new(AtomicBool::new(false)), tx, None, None, Policy::default());
+        Arc::new(AtomicBool::new(false)), tx, TransferChecks { selection: None, destination: None, collision: Policy::default() });
     let results: Vec<_> = rx.iter().collect();
     assert!(results.iter().any(|message| matches!(message, OpMsg::Item { ok: false, err, .. } if err == "a source must be an absolute path")));
     assert!(results.iter().any(|message| matches!(message, OpMsg::TransferDone { ok: 0, failed: 1, .. })));
@@ -184,7 +182,7 @@ fn a_selection_that_names_another_item_says_the_selection_changed() {
     let dest = d.dir("dest");
     let (tx, rx) = channel();
     run_transfer_checked(1, false, vec![source.to_string_lossy().into()], dest.clone(),
-        Arc::new(AtomicBool::new(false)), tx, Some(vec![Selected::inspect(other.to_str().unwrap()).unwrap()]), None, Policy::default());
+        Arc::new(AtomicBool::new(false)), tx, TransferChecks { selection: Some(vec![Selected::inspect(other.to_str().unwrap()).unwrap()]), destination: None, collision: Policy::default() });
     let results: Vec<_> = rx.iter().collect();
     assert!(results.iter().any(|message| matches!(message, OpMsg::Item { ok: false, err, .. } if err == "Selected items changed; reopen the menu.")));
     assert!(!dest.join("source.txt").exists(), "a source the menu no longer names is never copied");
@@ -425,7 +423,7 @@ fn failed_transfer_retry_retains_only_original_sources_after_permission_repair()
     let mut matches = vec![(failed_source.to_str().unwrap(), 3), (collision.to_str().unwrap(), 4), (good.to_str().unwrap(), 5)];
     retain_retry(&retry, &mut matches);
     assert_eq!(matches, vec![(failed_source.to_str().unwrap(), 3)]);
-    let line = transferdone_line(9, 1, 1, 0, false, &retry, false, "", &[]);
+    let line = transferdone_line(9, TransferCounts { ok: 1, failed: 1, skipped: 0 }, false, &retry, false, "", &[]);
     assert_eq!(crate::json::field_str_array(&line, "retryPaths"), [failed_source.to_string_lossy().into_owned()]);
     assert_eq!(std::fs::read_to_string(&collision).unwrap(), "occupied");
     assert_eq!(std::fs::read_to_string(dest.join("good.txt")).unwrap(), "copied");
@@ -454,7 +452,7 @@ fn a_cancel_on_the_last_item_answers_cancelled() {
     let _cancel_at = CancelAtGuard::hold(0);
     let (tx, rx) = channel();
     run_transfer_checked(1, true, vec![only.to_string_lossy().into_owned()], out.clone(),
-        Arc::new(AtomicBool::new(false)), tx, None, None, Policy::default());
+        Arc::new(AtomicBool::new(false)), tx, TransferChecks { selection: None, destination: None, collision: Policy::default() });
     let mut lines = Vec::new();
     let mut done = None;
     for msg in rx.iter() {

@@ -83,7 +83,7 @@ impl Tables {
         if metas.is_empty() {
             return super::rows::empty_line(start, ms);
         }
-        super::rows::rows_line(base, listing, metas, start, ms, &self.mime, &self.icons, &self.aliases, &self.thumbs, &mut self.kinds.borrow_mut())
+        super::rows::rows_line(base, listing, metas, crate::backend::rows::Window { start, ms }, crate::backend::rows::Services { mime: &self.mime, icons: &self.icons, aliases: &self.aliases, thumbs: &self.thumbs, kinds: &mut self.kinds.borrow_mut() })
     }
 
     pub fn load() -> Tables {

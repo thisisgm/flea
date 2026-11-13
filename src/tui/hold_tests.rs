@@ -12,7 +12,7 @@ fn paint_with(hold: &Hold, model: &Model, now: Instant, launched: Instant) -> bo
     let theme = theme::Theme::load();
     let map = keymap::Map::load();
     let mut frame = String::new();
-    render::draw(model, &theme, &map, 80, 24, None, now.duration_since(launched), &mut frame).unwrap()
+    render::draw(model, &theme, &map, render::TerminalSize { columns: 80, lines: 24 }, now.duration_since(launched), &mut frame).unwrap()
 }
 // A listing as the loop sees it: request observed, then listed drained, with the model noting its own peek send.
 fn listed_model(hold: &mut Hold, total: usize, launched: Instant) -> (Model, crate::tui::wire::Wire, std::thread::JoinHandle<()>) {
