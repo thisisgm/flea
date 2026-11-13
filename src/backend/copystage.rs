@@ -188,12 +188,12 @@ fn leaf(seq: u64) -> String {
 
 // Sample input: "3f2a9c1e-5b7d-4c1a-9e2f-0a1b2c3d4e5f\n" gives "3f2a9c1e"; a box without one still names its files uniquely by pid.
 pub(crate) fn boot() -> &'static str {
-    static BOOT: std::sync::OnceLock<String> = std::sync::OnceLock::new();
-    BOOT.get_or_init(|| {
+    static BOOT: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
         let id = std::fs::read_to_string("/proc/sys/kernel/random/boot_id").unwrap_or_default();
         let hex: String = id.chars().filter(char::is_ascii_hexdigit).take(8).collect();
         if hex.len() == 8 { hex.to_ascii_lowercase() } else { "00000000".to_string() }
-    })
+    });
+    &BOOT
 }
 
 fn failed_publish() -> Option<io::Error> {

@@ -298,7 +298,7 @@ fn label_contains(row: &Candidate, label: &str, needle: &str) -> bool {
     if row.action != "keymapSheet" {
         return label.contains(needle);
     }
-    label.match_indices(needle).any(|(at, _)| label[..at].chars().last().map_or(true, |before| !before.is_alphanumeric()))
+    label.match_indices(needle).any(|(at, _)| label[..at].chars().last().is_none_or(|before| !before.is_alphanumeric()))
 }
 
 // Ranks the candidates for one query line: exact name, exact label, substring label, then keys.

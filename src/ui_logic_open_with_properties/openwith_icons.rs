@@ -163,7 +163,7 @@ impl Icons {
                     if factor == scale && (min..=max).contains(&size) {
                         return Some(path);
                     }
-                    if nearest.as_ref().map_or(true, |(best, _)| distance < *best) {
+                    if nearest.as_ref().is_none_or(|(best, _)| distance < *best) {
                         nearest = Some((distance, path));
                     }
                 }

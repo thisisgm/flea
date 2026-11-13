@@ -15,7 +15,7 @@ pub enum Transport {
 }
 impl Transport {
     pub fn discover() -> Self {
-        if std::env::var_os("TMUX").map_or(true, |v| v.is_empty()) { return Self::Direct; }
+        if std::env::var_os("TMUX").is_none_or(|v| v.is_empty()) { return Self::Direct; }
         let mut command = Command::new("tmux");
         command.args(["display-message", "-p"]);
         if let Some(pane) = std::env::var_os("TMUX_PANE").filter(|v| !v.is_empty()) { command.arg("-t").arg(pane); }

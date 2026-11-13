@@ -619,6 +619,15 @@ impl Host {
         self.metadata["packages"].append({"name": "extra", "id": "extra", "source": "git+https://unknown/repo#abc"})
         self.assertTrue(check())
 
+    def test_a_workspace_package_table_is_no_dependency(self):
+        def check():
+            return source_checks(self.root, self.paths(), self.metadata, self.policy)
+        original = (self.root / "Cargo.toml").read_text()
+        self.write("Cargo.toml", original + '\n[workspace.package]\nrust-version = "1.99"\n')
+        self.assertEqual([], check())
+        self.write("Cargo.toml", original.replace(FORK["rev"], "b" * 40) + '\n[workspace.package]\nrust-version = "1.99"\n')
+        self.assertTrue(check())
+
     def test_symlink_native_source_is_rejected(self):
         self.assertEqual([], source_checks(self.root, self.paths(), self.metadata, self.policy))
         self.write("ui/boot/keep", "frozen reference\n")

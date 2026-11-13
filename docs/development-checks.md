@@ -9,7 +9,9 @@ every checker is stdlib-only Python 3; only the hook installer is POSIX shell.
 ## Matching versions
 
 hk 2.4.0, Pkl schema 2.4.0 (hk embeds its own package, so no Pkl CLI is fetched),
-Clippy 0.1.98 under rust 1.98.1, Git 2.47.3 with per-repo legacy shims
+Clippy 0.1.100 (0ef1bc3860 2026-11-09) from the Rust 1.100.0 toolchain selected by
+`rust-toolchain.toml` when using rustup (distribution Cargo ignores that file),
+Git 2.47.3 with per-repo legacy shims
 (config-based hooks need Git 2.54+, which this tree does not assume).
 `tools/flea-hooks-install` refuses any other hk version.
 

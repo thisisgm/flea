@@ -83,7 +83,7 @@ impl Reader<'_, '_> {
         self.at += 1;
         while let Some(&byte) = self.input.as_bytes().get(self.at) {
             if self.at - start > MAX_STRING { return Err(LIMITED); }
-            if (self.at - start) % CHECK_INTERVAL == 0 { self.check()?; }
+            if (self.at - start).is_multiple_of(CHECK_INTERVAL) { self.check()?; }
             self.at += 1;
             if byte == b'\\' { self.at += 1; }
             else if byte == b'"' {

@@ -212,7 +212,7 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
         let expired = action == "trashArm"
             && model
                 .trash_armed_at
-                .map_or(true, |at| at.elapsed() >= TRASH_ARM);
+                .is_none_or(|at| at.elapsed() >= TRASH_ARM);
         if armed != action || expired {
             if action == "trashArm" {
                 model.trash_armed_at = Some(std::time::Instant::now());

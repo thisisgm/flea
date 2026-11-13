@@ -6,8 +6,7 @@ use std::io::Write;
 
 // A request from a replaced numbering must neither start nor cancel a current row.
 pub fn current(st: &State, line: &str) -> bool {
-    crate::json::field_usize(line, "listing")
-        .map_or(true, |listing| listing as u64 == st.generation)
+    crate::json::field_usize(line, "listing").is_none_or(|listing| listing as u64 == st.generation)
 }
 
 pub fn cancel(st: &mut State, rows: &[usize], line: &str) {

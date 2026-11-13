@@ -15,7 +15,7 @@ use std::os::unix::fs::{DirBuilderExt, MetadataExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::mpsc::Sender;
-use std::sync::{Arc, Mutex, MutexGuard, OnceLock, PoisonError};
+use std::sync::{Arc, LazyLock, Mutex, MutexGuard, PoisonError};
 use std::time::{Duration, Instant, SystemTime};
 
 // Documents, spreadsheets and presentations, by canonical MIME name.
@@ -356,8 +356,9 @@ fn service(cache: &Path) -> Arc<Service> {
 }
 
 fn production() -> &'static Arc<Service> {
-    static SERVICE: OnceLock<Arc<Service>> = OnceLock::new();
-    SERVICE.get_or_init(|| service(&crate::userfile::cache_home()))
+    static SERVICE: LazyLock<Arc<Service>> =
+        LazyLock::new(|| service(&crate::userfile::cache_home()));
+    &SERVICE
 }
 
 // Sample input: {"c":"officepdf","id":4,"path":"/home/gm/Documents/report.docx"}; officesheets asks a spreadsheet's sheets.

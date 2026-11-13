@@ -6,7 +6,7 @@ use gpui::RenderImage;
 use image::{DynamicImage, ImageDecoder, ImageReader, RgbaImage};
 use std::ffi::{c_char, c_int, c_void, CStr};
 use std::io::Cursor;
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{Arc, LazyLock, Mutex};
 
 /// The soname libheif 1.x ships; a box without it shows AVIF as a file that could not be read.
 pub const LIBHEIF: &str = "libheif.so.1";
@@ -198,11 +198,8 @@ type Opened = Vec<(&'static str, Result<Heif, String>)>;
 
 // One open per soname for the process: a missing library is tried once, and its reason is kept for every job.
 fn heif(library: &'static str) -> Result<Heif, String> {
-    static OPENED: OnceLock<Mutex<Opened>> = OnceLock::new();
-    let mut opened = OPENED
-        .get_or_init(Default::default)
-        .lock()
-        .map_err(|_| "libheif table poisoned")?;
+    static OPENED: LazyLock<Mutex<Opened>> = LazyLock::new(Default::default);
+    let mut opened = OPENED.lock().map_err(|_| "libheif table poisoned")?;
     if let Some((_, found)) = opened.iter().find(|(name, _)| *name == library) {
         return found.clone();
     }

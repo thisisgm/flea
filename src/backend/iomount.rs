@@ -2,7 +2,7 @@
 use crate::error::FleaError;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, OnceLock};
+use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
 // One deadline for a single path call, well past a cold listing and under every rail bound.
 pub(crate) const CALL_DEADLINE: Duration = Duration::from_secs(5);
@@ -11,8 +11,9 @@ pub(crate) const BULK_DEADLINE: Duration = Duration::from_secs(15);
 // A stuck mount answers at once until this passes, then the next request probes it again.
 pub(super) const STUCK_TTL: Duration = Duration::from_secs(30);
 fn stuck_table() -> &'static Mutex<HashMap<PathBuf, Instant>> {
-    static STUCK: OnceLock<Mutex<HashMap<PathBuf, Instant>>> = OnceLock::new();
-    STUCK.get_or_init(|| Mutex::new(HashMap::new()))
+    static STUCK: LazyLock<Mutex<HashMap<PathBuf, Instant>>> =
+        LazyLock::new(|| Mutex::new(HashMap::new()));
+    &STUCK
 }
 // A mount marked stuck inside its TTL answers at once without a worker.
 pub(super) fn is_stuck(mount: &Path, ttl: Duration) -> bool {

@@ -33,7 +33,7 @@ fn mono_model_raster_uses_graphics_without_an_ansi_colour_mode() {
         assert!(!m.model3d.failed, "{protocol:?}: raster transport failed");
         let raster = &m.model3d.ready.as_ref().unwrap().rgba;
         let ground = flea::ui_logic_model_preview::color::to_bytes(m.model3d_palette.ground);
-        assert!(raster.chunks_exact(4).any(|p| p[..3] != ground));
+        assert!(raster.as_chunks::<4>().0.iter().any(|p| p[..3] != ground));
         assert!(!raster.is_empty());
         wire::finish(wire, reader);
     }

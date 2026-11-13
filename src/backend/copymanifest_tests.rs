@@ -169,7 +169,7 @@ fn a_tree_copy_records_each_file_once_and_each_directory_once() {
 
 #[test]
 fn a_directory_filled_after_the_copy_is_kept_with_its_reason() {
-    // ENOTEMPTY from Linux errno.h: ErrorKind::DirectoryNotEmpty needs Rust 1.83 over the 1.77 floor.
+    // ENOTEMPTY from Linux errno.h, the errno std reads as ErrorKind::DirectoryNotEmpty.
     const ENOTEMPTY: i32 = 39;
     let d = TestDir::new("manifestfilled");
     let handle = recorded(&d, &["sub/"]);

@@ -233,7 +233,7 @@ fn toolbar(control: usize, focused: bool, quicklook: bool, columns: usize) -> (R
     if overflow {
         let gap = columns.saturating_sub(shown * SLOT + 2);
         runs.push((ink, " ".repeat(gap)));
-        hits.extend(std::iter::repeat(None).take(gap));
+        hits.extend(std::iter::repeat_n(None, gap));
         runs.push((ink, if end < count { "→" } else { " " }.to_string()));
         hits.push((end < count).then_some((end, false)));
     }

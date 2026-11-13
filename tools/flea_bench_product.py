@@ -125,7 +125,8 @@ def locked_fork_pins(repo):
 def source_identity(repo):
     commit = output(['git', '-C', str(repo), 'rev-parse', 'HEAD'])
     status = subprocess.run(['git', '-C', str(repo), 'status', '--porcelain', '--', 'src', 'crates', 'ui',
-                             'tools', 'packaging', 'Cargo.toml', 'Cargo.lock', 'PKGBUILD'],
+                             'tools', 'packaging', 'Cargo.toml', 'Cargo.lock', 'rust-toolchain.toml', 'PKGBUILD',
+                             'keys.toml', 'i18n', 'docs/plugin-protocol.json', 'ci/visual/scenes'],
                             capture_output=True, text=True, timeout=10)
     if status.returncode:
         raise RuntimeError('source tree unreadable: ' + str(repo))

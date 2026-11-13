@@ -55,7 +55,7 @@ pub fn corners(m: &Model) -> [&'static str; 4] {
 // Asks Hyprland for decoration:rounding off the input path; the next frame draws whatever it answered.
 pub fn probe(rounded: &Arc<AtomicBool>) {
     if cfg!(test) { return; }
-    if std::env::var_os("HYPRLAND_INSTANCE_SIGNATURE").map_or(true, |value| value.is_empty()) {
+    if std::env::var_os("HYPRLAND_INSTANCE_SIGNATURE").is_none_or(|value| value.is_empty()) {
         rounded.store(false, Ordering::Relaxed);
         return;
     }

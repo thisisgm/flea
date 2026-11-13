@@ -298,7 +298,7 @@ fn choose(keys: &OwnedFd, seen: &Arc<Mutex<Screen>>, name: &str, deadline: Insta
         pressed = true;
         // One key per redraw, so a slow repaint is never mistaken for a key that was lost.
         let redrawn = Instant::now() + REDRAW;
-        while look(seen, |s| s.chosen()).map_or(true, |row| lit.as_deref() == Some(row.as_str())) && Instant::now() < redrawn {
+        while look(seen, |s| s.chosen()).is_none_or(|row| lit.as_deref() == Some(row.as_str())) && Instant::now() < redrawn {
             std::thread::sleep(GLANCE);
         }
     }
@@ -390,7 +390,7 @@ impl Watch {
         let Some(now) = now else { return };
         if self.waiting.is_none() {
             self.waiting = Some(now);
-        } else if self.waiting.as_ref() != Some(&now) && self.moved.as_ref().map_or(true, |(last, _)| *last != now) {
+        } else if self.waiting.as_ref() != Some(&now) && self.moved.as_ref().is_none_or(|(last, _)| *last != now) {
             self.moved = Some((now, Instant::now()));
         }
     }

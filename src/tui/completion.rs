@@ -198,7 +198,7 @@ fn directory(value: &str, current: &Path, home: &Path, cancel: &AtomicBool) -> S
             continue;
         };
         if name.starts_with(prefix)
-            && first.as_ref().map_or(true, |held| name < *held)
+            && first.as_ref().is_none_or(|held| name < *held)
             && entry.file_type().is_ok_and(|t| t.is_dir())
         {
             first = Some(name);

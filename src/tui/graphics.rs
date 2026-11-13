@@ -235,7 +235,7 @@ pub(crate) fn base64(bytes: &[u8]) -> String {
 }
 // The inverse of base64 for one kitty payload; None for a byte outside the alphabet or a length that is not whole.
 pub(crate) fn unbase64(text: &[u8]) -> Option<Vec<u8>> {
-    if text.len() % 4 != 0 {
+    if !text.len().is_multiple_of(4) {
         return None;
     }
     let mut out = Vec::with_capacity(text.len() / 4 * 3);

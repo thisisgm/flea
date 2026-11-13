@@ -11,7 +11,7 @@ use std::io;
 use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{mpsc, OnceLock};
+use std::sync::{mpsc, LazyLock};
 use std::thread;
 
 extern "C" {
@@ -63,10 +63,8 @@ impl Ancestry {
     pub fn follow(&mut self, base: &Path) {
         self.leaving = None;
         if let Some(events) = &self.events {
-            static ASKS: OnceLock<mpsc::Sender<Ask>> = OnceLock::new();
-            let follower = self
-                .follower
-                .get_or_insert_with(|| ASKS.get_or_init(start).clone());
+            static ASKS: LazyLock<mpsc::Sender<Ask>> = LazyLock::new(start);
+            let follower = self.follower.get_or_insert_with(|| ASKS.clone());
             let _ = follower.send(Ask::Follow(self.client, events.clone(), base.to_path_buf()));
         }
     }

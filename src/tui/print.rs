@@ -104,7 +104,7 @@ pub fn offered(m: &Model) -> bool {
             m.selected_rows
                 .get(index)
                 .or_else(|| m.rows.get(index))
-                .map_or(true, |row| kind(m, row).printable())
+                .is_none_or(|row| kind(m, row).printable())
         })
 }
 pub fn open(m: &mut Model, w: &mut Wire, from_menu: bool) -> io::Result<()> {

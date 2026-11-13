@@ -3,7 +3,7 @@ pub fn category(code: &str, count: i64) -> &'static str {
     let n = count.unsigned_abs();
     let n10 = n % 10;
     let n100 = n % 100;
-    let millions = n != 0 && n % 1_000_000 == 0;
+    let millions = n != 0 && n.is_multiple_of(1_000_000);
     match code {
         "ja" | "ko" | "zh-CN" | "zh-TW" | "th" | "vi" | "id" | "ms" => "other",
         "hi" | "bn" | "fa" | "si" if n <= 1 => "one",

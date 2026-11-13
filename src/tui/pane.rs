@@ -165,7 +165,7 @@ fn unshown_row(unshown: &super::pane_state::Unshown, mark: Option<super::pane_st
         Some(mark) => (mark.glyph, if mark.error { &theme.error } else { &theme.muted }),
         None => (ALERT, &theme.error),
     };
-    let label = if marks { glyph.to_string() } else if mark.map_or(true, |mark| mark.error) { "!".to_string() } else { String::new() };
+    let label = if marks { glyph.to_string() } else if mark.is_none_or(|mark| mark.error) { "!".to_string() } else { String::new() };
     match i.checked_sub(top) {
         Some(0) => format!("{tone}{}", cells::centered(&label, width)),
         Some(1) => format!("{}{}", theme.foreground, cells::centered(&unshown.sentence, width)),
@@ -241,7 +241,7 @@ fn header(kind: &str, size: &str, date: &str, width: usize, i18n: &crate::i18n::
     out
 }
 pub fn metadata_visible(m: &Model, index: usize, _line: &str) -> bool {
-    m.preview_state.facts.get(index).map_or(true, |fact| fact.key != "preview.fact.modified")
+    m.preview_state.facts.get(index).is_none_or(|fact| fact.key != "preview.fact.modified")
 }
 
 // The rows a body scrolls through, in the pane or the Quick Look card; Trash's head takes two rows more than a folder's.

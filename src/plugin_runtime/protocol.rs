@@ -76,7 +76,7 @@ pub fn operation(manifest: &Manifest, request: &Json) -> Result<&'static str, St
         if !manifest.access.iter().any(|a| a == "folder")
             || folder
                 .as_str()
-                .map_or(true, |p| !p.starts_with('/') || p.contains('\0'))
+                .is_none_or(|p| !p.starts_with('/') || p.contains('\0'))
         {
             return Err("plugin did not declare folder access".into());
         }
@@ -122,7 +122,7 @@ pub fn operation(manifest: &Manifest, request: &Json) -> Result<&'static str, St
             .ok_or("invalid plugin selection")?;
         if paths.iter().any(|p| {
             p.as_str()
-                .map_or(true, |p| !p.starts_with('/') || p.contains('\0'))
+                .is_none_or(|p| !p.starts_with('/') || p.contains('\0'))
         }) {
             return Err("invalid plugin selection path".into());
         }

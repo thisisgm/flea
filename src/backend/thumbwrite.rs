@@ -1,7 +1,7 @@
 use crate::backend::archivework::WORK_PREFIX;
 use crate::backend::thumbcache::TABLE_KEY;
 use std::path::{Path, PathBuf};
-use std::sync::OnceLock;
+use std::sync::LazyLock;
 
 // An exclusive create only loses to a name already on disk, so a handful of tries is already a certainty.
 const TEMP_TRIES: usize = 8;
@@ -83,8 +83,7 @@ fn random_suffix() -> Option<String> {
 
 // Sample input, one chunk without its length and CRC: the four type bytes "tEXt" followed by the payload "key\0value".
 fn crc32(bytes: &[u8]) -> u32 {
-    static TABLE: OnceLock<[u32; 256]> = OnceLock::new();
-    let table = TABLE.get_or_init(|| {
+    static TABLE: LazyLock<[u32; 256]> = LazyLock::new(|| {
         let mut built = [0u32; 256];
         for (i, entry) in built.iter_mut().enumerate() {
             let mut c = i as u32;
@@ -95,6 +94,7 @@ fn crc32(bytes: &[u8]) -> u32 {
         }
         built
     });
+    let table = &*TABLE;
     let mut crc = CRC32_SEED;
     for b in bytes {
         crc = table[((crc ^ *b as u32) & 0xFF) as usize] ^ (crc >> 8);

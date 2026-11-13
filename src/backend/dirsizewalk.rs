@@ -257,7 +257,7 @@ fn list_into(dir: &File, path: &Path, walk: &mut Walk<'_>, folders: &mut Vec<Fol
         let same_mount = walk
             .start_mount
             .zip(meta.mount)
-            .map_or(true, |(start, child)| start == child);
+            .is_none_or(|(start, child)| start == child);
         if meta.is_dir() && !meta.automount && same_device(walk.start_dev, child_dev) && same_mount
         {
             folders.push(Folder {

@@ -156,9 +156,9 @@ fn geometry(columns: usize, rows: usize) -> io::Result<()> {
         || rows == 0
         || columns > MAX_DIMENSION
         || rows > MAX_DIMENSION / 2
-        || columns.checked_mul(rows).map_or(true, |cells| {
-            cells > OUTPUT_LIMIT / std::mem::size_of::<Cell>()
-        })
+        || columns
+            .checked_mul(rows)
+            .is_none_or(|cells| cells > OUTPUT_LIMIT / std::mem::size_of::<Cell>())
     {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,

@@ -3,13 +3,16 @@ name = "flea"
 version = "0.4.3"
 edition = "2021"
 license = "MIT"
-# src/vulkan.rs uses c"..." literals, stabilised in 1.77; without this the error names rustc, not flea.
-rust-version = "1.77"
+rust-version.workspace = true
 
 [workspace]
 members = ["crates/flea-gui"]
 default-members = ["."]
 resolver = "2"
+
+[workspace.package]
+# One compiler floor for both crates, Arch's rust 1.99, which every std call that replaced a stand-in fits under.
+rust-version = "1.99"
 
 [workspace.dependencies]
 # Keep both fork revisions together here; members inherit these declarations.

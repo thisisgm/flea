@@ -1,9 +1,10 @@
 //! FLEA_TRACE_TABDRAG=1 stage lines, worded as TabBar.qml and WindowBody.qml print them, which tests/ui.sh xwtab reads.
-use std::sync::OnceLock;
+use std::sync::LazyLock;
 
 fn on() -> bool {
-    static ON: OnceLock<bool> = OnceLock::new();
-    *ON.get_or_init(|| std::env::var("FLEA_TRACE_TABDRAG").as_deref() == Ok("1"))
+    static ON: LazyLock<bool> =
+        LazyLock::new(|| std::env::var("FLEA_TRACE_TABDRAG").as_deref() == Ok("1"));
+    *ON
 }
 
 // Sample output: "TABDRAG drag-finished pid=101 action=0".

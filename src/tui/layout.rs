@@ -131,7 +131,7 @@ pub fn thumb(m: &Model, body: usize, now: Instant) -> Option<(usize, usize)> {
     let (first, total) = super::filter::lane(m);
     let first = first.saturating_mul(super::contents::row_height(m));
     let total = total.saturating_mul(super::contents::row_height(m));
-    if total <= body || body == 0 || m.scrolled_at.map_or(true, |at| now.saturating_duration_since(at) >= Duration::from_millis(700)) { return None; }
+    if total <= body || body == 0 || m.scrolled_at.is_none_or(|at| now.saturating_duration_since(at) >= Duration::from_millis(700)) { return None; }
     let height = (body.saturating_mul(body) / total).max(1).min(body);
     let top = first.min(total - body) * (body - height) / (total - body);
     Some((top, height))

@@ -98,7 +98,7 @@ pub fn entries(m: &Model, map: &Map) -> Vec<Option<Entry>> {
             let mut share = Vec::new();
             if target {
                 open.push(Entry::new("open", OPEN, tr("menu.open"), wait(Ink::Plain)));
-                if v.apps.as_ref().map_or(true, |apps| !apps.is_empty()) {
+                if v.apps.as_ref().is_none_or(|apps| !apps.is_empty()) {
                     open.push(Entry { chevron: true, ..Entry::new("openwith", WINDOW, tr("menu.openWith"), if one { wait(Ink::Plain) } else { Ink::Dim }) });
                 }
                 if !m.menu_directory && crate::tui::print::offered(m) {

@@ -34,7 +34,7 @@ const SCHEMES: [&str; 8] = ["smb://", "sftp://", "ftp://", "dav://", "davs://", 
 fn record_error(record: &Json) -> Text {
     let Json::Obj(_) = record else { return Text::Key("settings.favourite.invalid_record") };
     let label = record.get("label").and_then(Json::as_str);
-    if label.map_or(true, |l| l.trim().is_empty()) {
+    if label.is_none_or(|l| l.trim().is_empty()) {
         return Text::Key("settings.favourite.label_needs_text");
     }
     let Some(path) = record.get("path").and_then(Json::as_str).filter(|p| !p.chars().any(|c| c < ' ' || c == '\u{7f}')) else {

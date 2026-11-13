@@ -20,7 +20,7 @@ fn probe(d: &TestDir, what: &str, bytes: &[u8]) -> Option<Preview> {
 
 // A preview the walker names must lie wholly inside the file it was found in.
 fn inside(preview: &Option<Preview>, file_len: usize) -> bool {
-    preview.as_ref().map_or(true, |p| matches!(p.offset.checked_add(p.length), Some(end) if end <= file_len as u64))
+    preview.as_ref().is_none_or(|p| matches!(p.offset.checked_add(p.length), Some(end) if end <= file_len as u64))
 }
 
 #[test]

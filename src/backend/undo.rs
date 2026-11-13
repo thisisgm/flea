@@ -758,11 +758,9 @@ fn remove_link(path: &Path, identity: &ItemIdentity, source: &Path, kind: &super
 
 // Only ever an empty directory this operation made.
 fn remove_empty(path: &PathBuf) -> Result<(), FleaError> {
-    // ENOTEMPTY from Linux errno.h: ErrorKind::DirectoryNotEmpty needs Rust 1.83 over the 1.77 floor.
-    const ENOTEMPTY: i32 = 39;
     match std::fs::remove_dir(path) {
         Ok(()) => Ok(()),
-        Err(e) if e.raw_os_error() == Some(ENOTEMPTY) => Err(FleaError {
+        Err(e) if e.kind() == std::io::ErrorKind::DirectoryNotEmpty => Err(FleaError {
             where_: "undo".to_string(),
             path: path.to_string_lossy().to_string(),
             msg: "the new folder has been filled since, so undo left it in place".to_string(),

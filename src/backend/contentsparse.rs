@@ -93,7 +93,7 @@ pub(super) fn parse(line: &[u8]) -> Result<Record, String> {
 }
 
 fn base64(text: &str) -> Result<Vec<u8>, String> {
-    if text.len() % 4 != 0 {
+    if !text.len().is_multiple_of(4) {
         return Err("invalid ripgrep base64".into());
     }
     let mut out = Vec::with_capacity(text.len() / 4 * 3);
@@ -105,9 +105,9 @@ fn base64(text: &str) -> Result<Vec<u8>, String> {
         b'/' => Ok(63),
         _ => Err("invalid ripgrep base64".to_owned()),
     };
-    let chunks = text.as_bytes().chunks_exact(4);
+    let chunks = text.as_bytes().as_chunks::<4>().0;
     let count = chunks.len();
-    for (index, chunk) in chunks.enumerate() {
+    for (index, chunk) in chunks.iter().enumerate() {
         let a = digit(chunk[0])?;
         let b = digit(chunk[1])?;
         out.push(a << 2 | b >> 4);

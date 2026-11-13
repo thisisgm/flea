@@ -178,7 +178,7 @@ fn a_pin_can_be_taken_off_a_file_that_is_gone() {
     assert!(pinned.is_empty(), "the pin came off, {:?}", pinned);
 }
 
-// absolute() is the 1.77 spelling of std::path::absolute: join cwd, drop CurDir, keep // and one trailing slash, refuse empty.
+// absolute() is std::path::absolute that refuses empty: join cwd, drop CurDir, keep // and one trailing slash.
 #[test]
 fn absolute_keeps_the_std_contract_it_replaces() {
     use std::os::unix::ffi::OsStrExt;

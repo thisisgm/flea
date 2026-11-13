@@ -98,7 +98,7 @@ pub fn copy_name(original: &Path, word: &str, n: usize) -> Option<std::ffi::OsSt
     let room = room.min(stem.len());
     let starts = |end: &usize| {
         stem.get(*end)
-            .map_or(true, |byte| byte & CONTINUATION_MASK != CONTINUATION_BITS)
+            .is_none_or(|byte| byte & CONTINUATION_MASK != CONTINUATION_BITS)
     };
     let end = (room.saturating_sub(MAX_CONTINUATIONS)..=room)
         .rev()

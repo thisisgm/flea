@@ -137,7 +137,7 @@ fn tui_words_prompt_and_sheet_fit_display_cells() {
             cells::text_width(&render::frame_tests::plain(&line)),
             columns
         );
-        assert!(caret.map_or(true, |caret| caret < columns));
+        assert!(caret.is_none_or(|caret| caret < columns));
         m.columns = columns;
         let card = crate::tui::render::key_sheet::card(&m, &Map::load());
         if columns >= 12 {

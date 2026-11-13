@@ -61,10 +61,9 @@ impl Digest {
     }
     // Every call but the last must hand over a multiple of eight bytes.
     fn absorb(&mut self, chunk: &[u8]) {
-        let words = chunk.chunks_exact(WORD_BYTES);
-        let tail = words.remainder();
+        let (words, tail) = chunk.as_chunks::<WORD_BYTES>();
         for word in words {
-            let w = u64::from_le_bytes(word.try_into().expect("an exact word"));
+            let w = u64::from_le_bytes(*word);
             self.mix(w);
         }
         if !tail.is_empty() {

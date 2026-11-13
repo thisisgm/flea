@@ -35,7 +35,7 @@ fn tiff(little: bool, ifd0: Vec<Tag>, exif: Vec<Tag>) -> Vec<u8> {
             out.extend_from_slice(&put32(little, *count));
             if bytes.len() <= 4 {
                 out.extend_from_slice(bytes);
-                out.extend(std::iter::repeat(0).take(4 - bytes.len()));
+                out.extend(std::iter::repeat_n(0, 4 - bytes.len()));
             } else {
                 out.extend_from_slice(&put32(little, (data_at + data.len()) as u32));
                 data.extend_from_slice(bytes);

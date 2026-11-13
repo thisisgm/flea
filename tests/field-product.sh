@@ -461,6 +461,7 @@ def build(name, version, gui=None, ui=True, extra=''):
     (tree / 'tools').mkdir()
     (tree / 'tools/flea-udisks').write_text('helper\n')
     (tree / 'Cargo.lock').write_text('source = "git+https://github.com/thisisgm/gpui-omarchy?rev=%s#%s"\n' % (PIN, PIN))
+    (tree / 'keys.toml').write_text('# fixture keymap\n')
     subprocess.run(GIT + ['init', '-q', str(tree)], check=True)
     subprocess.run(GIT + ['-C', str(tree), 'add', '-A'], check=True)
     subprocess.run(GIT + ['-C', str(tree), 'commit', '-qm', 'fixture'], check=True)
@@ -485,6 +486,12 @@ assert got['helpers']['flea-udisks'] == hashlib.sha256(b'helper\n').hexdigest() 
 assert got['compiler'] == ['rustc version 1.92.0 (fixture 2026-10-01)']
 assert got['seams'] == [] and got['fork_pin'] == {'executed': [PIN[:7]], 'locked': PIN}
 assert got['source']['state'] == 'clean' and len(got['source']['commit']) == 40
+# The compiled keymap is part of the build identity, including edits to a tracked file.
+keymap = cand_tree / 'keys.toml'
+keymap.write_text('# edited fixture keymap\n')
+assert P.source_identity(cand_tree)['state'] == 'DIRTY'
+keymap.write_text('# fixture keymap\n')
+assert P.source_identity(cand_tree)['state'] == 'clean'
 anchor_got = P.build_identity(str(anchor), 'qml', str(anchor_tree))
 assert anchor_got['sibling'] == 'absent' and anchor_got['launcher']['version'] == '0.3.12'
 # A changed interface file changes the resource digest, and an override directory wins over the tree.

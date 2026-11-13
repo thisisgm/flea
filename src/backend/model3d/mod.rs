@@ -195,7 +195,7 @@ fn color(value: &str) -> Result<Color> {
         return Err("invalid 3D colour".into());
     }
     let mut out = [255; 4];
-    for (i, part) in value.as_bytes().chunks_exact(2).enumerate() {
+    for (i, part) in value.as_bytes().as_chunks::<2>().0.iter().enumerate() {
         out[i] = u8::from_str_radix(std::str::from_utf8(part).unwrap(), 16)
             .map_err(|_| "invalid 3D colour")?;
     }

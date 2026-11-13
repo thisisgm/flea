@@ -2,7 +2,7 @@
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{channel, Receiver, Sender};
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{Arc, LazyLock, Mutex};
 use std::time::Duration;
 
 // A hold lets go on its own after this, so a call wrongly made on the test's own thread fails instead of hanging.
@@ -24,8 +24,8 @@ struct Slot {
 type Table = Mutex<HashMap<(String, Stage), Arc<Slot>>>;
 
 fn table() -> &'static Table {
-    static HOLDS: OnceLock<Table> = OnceLock::new();
-    HOLDS.get_or_init(|| Mutex::new(HashMap::new()))
+    static HOLDS: LazyLock<Table> = LazyLock::new(|| Mutex::new(HashMap::new()));
+    &HOLDS
 }
 
 // The test's side of one hold: it learns when the stage is reached, lets go, and reads whether the call went on.

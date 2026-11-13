@@ -123,7 +123,7 @@ impl Progress {
             || self
                 .last
                 .get()
-                .map_or(true, |last| now.duration_since(last) >= PROGRESS_EVERY)
+                .is_none_or(|last| now.duration_since(last) >= PROGRESS_EVERY)
         {
             self.last.set(Some(now));
             let (name, size) = {

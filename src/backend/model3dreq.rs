@@ -271,7 +271,7 @@ fn ready(
     if plate.is_some_and(|p| {
         data.get("plates")
             .and_then(|v| v.as_array())
-            .map_or(true, |a| p >= a.len())
+            .is_none_or(|a| p >= a.len())
     }) {
         return Err("3D plate is out of range".into());
     }

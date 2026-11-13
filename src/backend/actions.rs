@@ -49,7 +49,7 @@ fn load_from(root: &Path) -> (Vec<Action>, Vec<(String, String)>) {
                 continue;
             };
             let path = entry.path();
-            if path.extension().map_or(true, |s| s != "toml") {
+            if path.extension().is_none_or(|s| s != "toml") {
                 continue;
             }
             let name = entry.file_name().exact_text().to_string();

@@ -23,7 +23,7 @@ pub(super) fn switch(env: &Env, found: &Installed, on: bool) -> Result<(), Inval
 fn omarchy(env: &Env, name: &str, on: bool) -> Result<(), String> {
     let mut command = Command::new(&env.plugin_manager);
     command.args(["plugin", if on { "enable" } else { "disable" }, name]);
-    if std::env::var_os("OMARCHY_PATH").map_or(true, |p| p.is_empty()) {
+    if std::env::var_os("OMARCHY_PATH").is_none_or(|p| p.is_empty()) {
         command.env("OMARCHY_PATH", "/usr/share/omarchy");
     }
     command

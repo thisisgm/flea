@@ -15,7 +15,7 @@ pub(crate) fn modes_are_real(path: &Path, body: &str) -> bool {
     if let Some(real) = super::gvfsroot::gvfs_modes_are_real(path) {
         return real;
     }
-    mount_type_in(path, body).map_or(true, |fstype| modes_for_mount(&fstype, &mount_options_in(path, body).unwrap_or_default()))
+    mount_type_in(path, body).is_none_or(|fstype| modes_for_mount(&fstype, &mount_options_in(path, body).unwrap_or_default()))
 }
 
 // Sample input: dev 0x811 finds a "8:17 ... - cifs ... rw,posix" entry and answers Some(true), with no path syscall.

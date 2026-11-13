@@ -93,8 +93,8 @@ pub(crate) fn count(doc: &Json, name: &str) -> bool {
 fn item(doc: &Json) -> bool {
     text(doc, "path")
         && doc.as_object().is_some()
-        && doc.get("folder").map_or(true, |v| v.as_bool().is_some())
-        && doc.get("pinned").map_or(true, |v| v.as_bool().is_some())
+        && doc.get("folder").is_none_or(|v| v.as_bool().is_some())
+        && doc.get("pinned").is_none_or(|v| v.as_bool().is_some())
 }
 
 pub(crate) fn shelf(doc: &Json) -> bool {
@@ -144,11 +144,11 @@ pub(crate) fn reply(doc: &Json) -> bool {
             .get("response")
             .and_then(Json::as_f64)
             .is_some_and(|n| n <= 2.0)
-        && doc.get("uris").map_or(true, |v| {
+        && doc.get("uris").is_none_or(|v| {
             v.as_array()
                 .is_some_and(|uris| uris.iter().all(|v| v.as_str().is_some()))
         })
-        && doc.get("filter").map_or(true, |filter| {
+        && doc.get("filter").is_none_or(|filter| {
             filter
                 .as_f64()
                 .is_some_and(|n| n.is_finite() && n >= -1.0 && n.fract() == 0.0)

@@ -190,3 +190,7 @@ mod tests {
         test_stand_folding(sandbox.path(), false);
     }
 }
+
+#[cfg(test)]
+#[path = "casefold_unicode_tests.rs"]
+mod casefold_unicode_tests;

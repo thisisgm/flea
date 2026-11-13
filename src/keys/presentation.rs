@@ -89,7 +89,7 @@ pub fn key_for(name: &str, action: &str) -> String {
 
 pub fn row_for(name: &str, action: &str, mods: Option<&str>) -> Option<&'static Binding> {
     binding_rows(name, Frontend::Gui)
-        .find(|row| row.action == action && mods.map_or(true, |mods| row.mods == mods))
+        .find(|row| row.action == action && mods.is_none_or(|mods| row.mods == mods))
 }
 
 pub fn key_of(name: &str, action: &str, mods: &str) -> String {

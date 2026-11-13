@@ -1,22 +1,22 @@
 //! Resolve the installed monospace once; a missing font leaves ImageMagick's default intact.
 use crate::backend::{printtool, regfile};
 use std::path::{Path, PathBuf};
-use std::sync::{atomic::AtomicBool, OnceLock};
+use std::sync::{atomic::AtomicBool, LazyLock};
 
-static MONOSPACE: OnceLock<Option<PathBuf>> = OnceLock::new();
+static MONOSPACE: LazyLock<Option<PathBuf>> = LazyLock::new(|| {
+    resolve(
+        &[
+            "fc-match".into(),
+            "-f".into(),
+            "%{file}".into(),
+            "monospace".into(),
+        ],
+        &AtomicBool::new(false),
+    )
+});
 
 pub(super) fn append(args: &mut Vec<String>, work: &Path, cancel: &AtomicBool) {
-    let font = MONOSPACE.get_or_init(|| {
-        resolve(
-            &[
-                "fc-match".into(),
-                "-f".into(),
-                "%{file}".into(),
-                "monospace".into(),
-            ],
-            &AtomicBool::new(false),
-        )
-    });
+    let font = &*MONOSPACE;
     if !cancel.load(std::sync::atomic::Ordering::Relaxed) {
         append_file(args, font.as_deref(), work);
     }

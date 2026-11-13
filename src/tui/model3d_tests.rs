@@ -257,7 +257,7 @@ fn tui_model3d_classifies_decodes_and_renders_every_parser_format() {
         let ppm = std::fs::read(&still.image.0).unwrap();
         assert!(ppm.starts_with(b"P6\n160 120\n255\n"));
         let header = b"P6\n160 120\n255\n".len();
-        assert!(ppm[header..].chunks_exact(3).any(|pixel| pixel != &ppm[header..header + 3]), "{format} rendered only its ground");
+        assert!(ppm[header..].as_chunks::<3>().0.iter().any(|pixel| pixel != &ppm[header..header + 3]), "{format} rendered only its ground");
         eprintln!("MEASURE tui_model3d {format}: {:?}, 160x120, one still", started.elapsed());
     }
 }
