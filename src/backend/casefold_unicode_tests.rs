@@ -134,7 +134,7 @@ fn the_strict_policy_rejects_a_future_version() {
 }
 
 #[test]
-#[ignore = "tests/unicode-tables.sh runs the flea-ci-only strict version check"]
+#[ignore = "tests/unicode-tables.sh runs the strict version check"]
 fn unicode_version_is_known() {
     require_known(std::char::UNICODE_VERSION);
 }

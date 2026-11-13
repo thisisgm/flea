@@ -33,7 +33,7 @@ west s8b suites listprebuild search-warm search-live  scroll-lanes permissions-a
 west s15 suites parity rclone rclone-ci tui-battery tui-cwd tui-detail tui-owner-stall
 east2 x1 suites g1-13
 east2 x2 suites preview-quality g2-pv2-md g2-pv2-web g2-pv2-office raw-corpus field-product field-localsearch ui-uish-inventory ui-uish-fixtures ui-uish-native-admission
-east2 x3 suites bench-fleet-contract bench-markdown-matrix strata-bench g2-dg1 g2-mn2 g2-op2 g2-sr2 search-fb5 gpui-theme-gate ui-gpui-headless ui-uish-common-observers
+east2 x3 suites bench-fleet-contract bench-markdown-matrix strata-bench g2-dg1 g2-mn2 g2-op2 g2-sr2 search-fb5 gpui-theme-gate ui-gpui-headless ui-uish-common-observers unicode-tables
 east2 x4 suites state-compat native-runtime legacy-upgrade legacy-helpers i18n-quality g1-14 g1-05 fs-instrument cli-contract cli-contract-mutations chooser-replies bench-gate-provenance bench-field-work
 west opr-rec suites opr-recipe
 west tools suites aur-versions bench-b3-capture bench-raw-corpus-contract prove-ci-runner tool-preflight

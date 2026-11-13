@@ -49,6 +49,7 @@ headless="$headless prove-ci-runner bench-raw-corpus-contract"
 headless="$headless tool-preflight opr-recipe slop-ratchet"
 headless="$headless bench-thumbs"
 headless="$headless nvidia-gpui"
+headless="$headless unicode-tables"
 fail_line='(^|[: ])FAIL[: ]'
 failed=0
 ran=0
@@ -80,7 +81,6 @@ done
 # Named, not run: each needs something this script cannot assume it has. One list, read twice: it
 # is printed here and it is what the audit below checks, so a suite cannot be quietly excluded.
 not_run="
-unicode-tables|is the flea-ci-only strict Unicode table version check; package tests accept newer Unicode versions
 native-transport-gpui|needs a native display or Xvfb and the stage native picker entry
 rename-timing|is a manual twenty-run protocol timing diagnosis through the host broker
 rename-cost-matrix|is a manual three-run comparison of the frozen rename-cost gate
