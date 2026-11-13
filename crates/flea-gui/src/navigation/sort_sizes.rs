@@ -98,17 +98,11 @@ impl DirSizes {
             .iter()
             .enumerate()
             .filter(|(_, row)| row.dir)
-            .map(|(index, row)| {
-                (
-                    identity(row),
-                    row.listing_index.unwrap_or(new_held + index),
-                )
-            })
+            .map(|(index, row)| (identity(row), row.listing_index.unwrap_or(new_held + index)))
             .collect();
         let mut next = Self::default();
         for row in self.order.iter().chain(self.previous.keys()) {
-            let (Some(answer), Some(old)) =
-                (self.size_for(*row), facts(old_rows, old_held, *row))
+            let (Some(answer), Some(old)) = (self.size_for(*row), facts(old_rows, old_held, *row))
             else {
                 continue;
             };
