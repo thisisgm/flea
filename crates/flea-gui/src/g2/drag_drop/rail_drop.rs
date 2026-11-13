@@ -158,7 +158,7 @@ impl Shell {
             .pane
             .held
             .row(row)
-            .filter(|facts| facts.dir)?
+            .filter(|facts| folder_row(facts))?
             .name
             .clone();
         let dest = row_spot(host, Some(row), &[]);
@@ -217,10 +217,11 @@ impl Shell {
             Place::Folder(dest) => Some(dest.clone()),
             Place::Trash => None,
         };
-        let first = drags
+        let sources = drags
             .lifts
             .get(&key)
-            .and_then(|lift| lift.paths.as_ref()?.first().cloned());
+            .and_then(|lift| lift.paths.clone())
+            .unwrap_or_default();
         drags.aims.insert(
             key,
             Aim {
@@ -239,7 +240,7 @@ impl Shell {
         if let Some(dest) = folder {
             let facts = cx
                 .background_executor()
-                .spawn(async move { facts::read(first.as_deref(), &dest) });
+                .spawn(async move { facts::read(&sources, &dest) });
             cx.spawn_in(window, async move |this, cx| {
                 let facts = facts.await;
                 let _ = this.update_in(cx, |shell, window, cx| {
@@ -295,6 +296,9 @@ impl Shell {
             }),
         };
         let spot = aim.spot;
+        // A folder still waiting for its facts, or one a link leads back to the sources' own, keeps the unnamed line.
+        let unnamed = matches!(aim.place, Place::Folder(_))
+            && aim.facts.is_none_or(|facts| facts.refused.is_some());
         if let Some(aim) = cx.global_mut::<Drags>().aims.get_mut(&key) {
             aim.label = said.as_ref().map(|(label, _)| label.clone().into());
         }
@@ -302,6 +306,9 @@ impl Shell {
             Spot::Rail(row) => Some(row),
             Spot::Row(_) | Spot::Tab(_) => None,
         };
+        if unnamed {
+            return self.say_held_drag(window, cx);
+        }
         self.show_rail_cue(key, rail, said, cx);
     }
 

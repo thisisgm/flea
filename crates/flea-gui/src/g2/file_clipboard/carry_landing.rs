@@ -146,11 +146,11 @@ impl Shell {
             granted: false,
         };
         let dest = dest.to_owned();
-        let first = lifted.paths.first().cloned();
+        let sources = lifted.paths.clone();
         let read_dest = dest.clone();
         let facts = cx
             .background_executor()
-            .spawn(async move { facts::read(first.as_deref(), &read_dest) });
+            .spawn(async move { facts::read(&sources, &read_dest) });
         cx.spawn_in(window, async move |this, cx| {
             let facts = facts.await;
             let _ = this.update_in(cx, |shell, window, cx| {

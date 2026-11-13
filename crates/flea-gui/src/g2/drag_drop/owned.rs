@@ -8,10 +8,10 @@ pub(super) enum Owned {
 }
 
 impl Owned {
-    pub(super) fn first_source(&self) -> Option<String> {
+    pub(super) fn sources(&self) -> Vec<String> {
         match self {
-            Self::Own { lift, .. } => lift.paths.as_ref()?.first().cloned(),
-            Self::Native(arrived) => arrived.urls.iter().find_map(|url| core::file_path(url)),
+            Self::Own { lift, .. } => lift.paths.clone().unwrap_or_default(),
+            Self::Native(arrived) => core::file_paths(&arrived.urls),
         }
     }
 
