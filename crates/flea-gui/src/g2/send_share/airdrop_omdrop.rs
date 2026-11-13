@@ -1,0 +1,376 @@
+//! One window's AirDrop when Omdrop runs it in place of owly. Omdrop owns its radio, receiver, audience and folder for
+//! the whole machine, so the window reads `omdrop status`, asks it to turn on or off, looks for devices and sends.
+use super::airdrop::{Act, Proc};
+use super::airdrop_outbox::Outbox;
+use super::seams::Wire;
+use flea::i18n::I18n;
+use flea::ui_logic_context_menus::build::Peer;
+use flea::ui_logic_plugin_settings::airdrop::Page;
+use flea::ui_logic_send_share::airdrop::{self as owly, Adapter, Readiness};
+use flea::ui_logic_send_share::omdrop;
+use status::{Dir, Retry};
+pub use status::{DirDone, DirJob};
+
+#[path = "airdrop_omdrop_status.rs"]
+mod status;
+
+// A device lookup that ends sooner than this is not run again until a later menu open.
+const LOOK_MIN_MS: u64 = 5_000;
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Phase {
+    #[default]
+    Off,
+    // `omdrop on` runs.
+    Starting,
+    // The radio is up: devices can be found and sent to.
+    On,
+    // `omdrop off` runs; Omdrop is still on until it returns.
+    Stopping,
+    // `omdrop on` or `off` returned and a fresh status will say what Omdrop did; its exit code does not.
+    Confirming,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+enum Run {
+    On,
+    #[default]
+    Off,
+}
+
+#[derive(Default)]
+pub struct Omdrop {
+    // omdrop's path, empty unless it runs AirDrop for this window.
+    path: String,
+    pub adapter: Adapter,
+    // Omdrop's last status: its receiver, audience, name and folder, which the page shows apart from the radio.
+    status: omdrop::Status,
+    status_gen: u64,
+    // The status generation whose answer is awaited, if one is.
+    status_wait: Option<u64>,
+    pub phase: Phase,
+    // Which of `on` and `off` the status being awaited confirms.
+    confirming: Run,
+    // A Receiving choice made while an `on` ran, carried out once its status is known: only Off waits.
+    chosen: Option<Run>,
+    retry: Retry,
+    // No status is asked while an `omdrop dir` runs.
+    dir: Dir,
+    // Numbers every `omdrop dir` this window runs, never reset, so a run from before a reset never matches a later one.
+    dir_jobs: u64,
+    gens: [u64; Proc::ALL.len()],
+    // Omdrop's own sentences from `on` and `off`, for the one said when either fails.
+    said: String,
+    browsing: bool,
+    look_at_ms: u64,
+    menu_open: bool,
+    // The plugin is switched off: no lookup starts, whatever answer comes in, until it is switched on.
+    disabled: bool,
+    devices: Vec<owly::Peer>,
+    // Addresses the running lookup reported: a lookup that succeeds drops every device it did not.
+    seen: Vec<String>,
+}
+
+impl Omdrop {
+    pub fn active(&self) -> bool {
+        !self.path.is_empty()
+    }
+
+    pub fn path(&self) -> &str {
+        &self.path
+    }
+
+    // An Off chosen while `on` ran, as the `omdrop off` that still carries it out once this omdrop is retired.
+    pub fn queued_off(&self) -> Option<Vec<String>> {
+        let waits = self.active() && self.chosen == Some(Run::Off);
+        waits.then(|| omdrop::off_argv(&self.path))
+    }
+
+    // The backend's facts or PATH name omdrop, or nothing when owly runs AirDrop or omdrop is missing.
+    pub fn facts(&mut self, path: &str) -> Vec<Act> {
+        if self.path == path {
+            return Vec::new();
+        }
+        self.path = path.to_string();
+        self.adapter = Adapter {
+            readiness: if path.is_empty() {
+                Readiness::Missing
+            } else {
+                Readiness::Checking
+            },
+            card: String::new(),
+        };
+        self.forget_status();
+        self.dir.drop_queued();
+        self.status = omdrop::Status::default();
+        // Nothing a run of the omdrop just replaced says lands: an on or off finishes by itself, a lookup is stopped.
+        self.phase = Phase::Off;
+        self.chosen = None;
+        self.next_gen(Proc::Radio);
+        self.drop_devices()
+    }
+
+    fn next_gen(&mut self, proc: Proc) -> u64 {
+        self.gens[proc as usize] += 1;
+        self.gens[proc as usize]
+    }
+
+    fn busy(&self) -> bool {
+        matches!(
+            self.phase,
+            Phase::Starting | Phase::Stopping | Phase::Confirming
+        )
+    }
+
+    fn browse(&mut self, now_ms: u64) -> Vec<Act> {
+        if !self.menu_open {
+            return Vec::new();
+        }
+        self.look(now_ms)
+    }
+
+    // One device lookup, whether or not a menu is open; browse() asks for one only while it is.
+    fn look(&mut self, now_ms: u64) -> Vec<Act> {
+        if self.browsing || self.phase != Phase::On || self.disabled || !self.active() {
+            return Vec::new();
+        }
+        self.browsing = true;
+        self.look_at_ms = now_ms;
+        self.seen.clear();
+        let generation = self.next_gen(Proc::Browse);
+        vec![Act::Start(
+            Proc::Browse,
+            generation,
+            omdrop::peers_argv(&self.path),
+        )]
+    }
+
+    pub fn menu_opened(&mut self, now_ms: u64) -> Vec<Act> {
+        self.menu_open = true;
+        let mut acts = self.ask_status();
+        acts.extend(self.browse(now_ms));
+        acts
+    }
+
+    // A lookup takes half a minute to name anyone, so a running one finishes behind a shut menu and is not restarted.
+    pub fn menu_closed(&mut self) {
+        self.menu_open = false;
+    }
+
+    fn drop_devices(&mut self) -> Vec<Act> {
+        self.browsing = false;
+        self.devices.clear();
+        self.next_gen(Proc::Browse);
+        vec![Act::Stop(Proc::Browse), Act::Refresh]
+    }
+
+    // The plugin switched off: Flea stops looking for good and Omdrop is left as the user set it; an on or off still finishes.
+    pub fn disable(&mut self) -> Vec<Act> {
+        if std::mem::replace(&mut self.disabled, true) {
+            return Vec::new();
+        }
+        self.drop_devices()
+    }
+
+    // Switched back on: a menu still open looks for devices again, as disable() stopped its lookup.
+    pub fn enable(&mut self, now_ms: u64) -> Vec<Act> {
+        if !std::mem::replace(&mut self.disabled, false) {
+            return Vec::new();
+        }
+        self.browse(now_ms)
+    }
+
+    // Turn On AirDrop, or Receiving set on: `omdrop on` unless the receiver already runs, even with the radio up.
+    pub fn turn_on(&mut self, i18n: &I18n) -> Vec<Act> {
+        if self.chosen.take().is_some() {
+            self.retry.disarm();
+            let mut acts = self.ask_status();
+            acts.push(Act::Refresh);
+            return acts;
+        }
+        if self.busy() || (self.phase == Phase::On && self.status.receiving) {
+            return Vec::new();
+        }
+        if !self.adapter.ready() {
+            return vec![
+                Act::Say(i18n.tr("send.providers.menu_stale"), true),
+                Act::Refresh,
+            ];
+        }
+        self.forget_status();
+        self.phase = Phase::Starting;
+        self.said.clear();
+        let generation = self.next_gen(Proc::Radio);
+        vec![
+            Act::Start(Proc::Radio, generation, omdrop::on_argv(&self.path)),
+            Act::Refresh,
+        ]
+    }
+
+    // Receiving set to Off: a receiver can run with the radio down, so either counts, whatever Omdrop's readiness.
+    pub fn receiving_off(&mut self) -> Vec<Act> {
+        let starting = self.phase == Phase::Starting
+            || (self.phase == Phase::Confirming && self.confirming == Run::On);
+        if starting {
+            self.chosen = Some(Run::Off);
+            let mut acts = self.ask_status();
+            acts.push(Act::Refresh);
+            return acts;
+        }
+        if self.busy() {
+            return Vec::new();
+        }
+        if !(self.phase == Phase::On || self.status.receiving) {
+            return Vec::new();
+        }
+        self.run_off()
+    }
+
+    // `omdrop off`, which also ends a start still running, whatever Omdrop's status said or failed to say.
+    fn run_off(&mut self) -> Vec<Act> {
+        let mut acts = self.drop_devices();
+        self.forget_status();
+        self.phase = Phase::Stopping;
+        self.said.clear();
+        let generation = self.next_gen(Proc::Radio);
+        acts.push(Act::Start(
+            Proc::Radio,
+            generation,
+            omdrop::off_argv(&self.path),
+        ));
+        acts
+    }
+
+    pub fn line(&mut self, proc: Proc, generation: u64, text: &str) -> Vec<Act> {
+        if generation != self.gens[proc as usize] {
+            return Vec::new();
+        }
+        match proc {
+            // `omdrop on` and `off` say why they failed in their own sentences, on stderr.
+            Proc::Radio => {
+                self.said.push_str(text);
+                self.said.push('\n');
+                Vec::new()
+            }
+            Proc::Browse => {
+                let Some(peer) = omdrop::peer_line(text) else {
+                    return Vec::new();
+                };
+                if !self.seen.contains(&peer.id) {
+                    self.seen.push(peer.id.clone());
+                }
+                match self.devices.iter_mut().find(|d| d.id == peer.id) {
+                    Some(known) if *known == peer => Vec::new(),
+                    Some(known) => {
+                        *known = peer;
+                        vec![Act::Refresh]
+                    }
+                    None => {
+                        self.devices.push(peer);
+                        vec![Act::Refresh]
+                    }
+                }
+            }
+            Proc::Receive => Vec::new(),
+        }
+    }
+
+    pub fn ended(
+        &mut self,
+        proc: Proc,
+        generation: u64,
+        code: i32,
+        at_ms: u64,
+        i18n: &I18n,
+    ) -> Vec<Act> {
+        if generation != self.gens[proc as usize] {
+            return Vec::new();
+        }
+        match proc {
+            Proc::Radio => self.on_or_off_ended(code, i18n),
+            // A lookup that ran its course looks again for an open menu; one that ended early waits for a later open.
+            Proc::Browse => {
+                self.browsing = false;
+                let mut acts = Vec::new();
+                if code == 0 {
+                    let before = self.devices.len();
+                    self.devices.retain(|d| self.seen.contains(&d.id));
+                    if self.devices.len() != before {
+                        acts.push(Act::Refresh);
+                    }
+                }
+                let whole = at_ms.saturating_sub(self.look_at_ms) >= LOOK_MIN_MS;
+                if code == 0 && whole {
+                    acts.extend(self.browse(at_ms));
+                }
+                acts
+            }
+            Proc::Receive => Vec::new(),
+        }
+    }
+
+    // Omdrop can exit 0 having stopped a start part way, so only a fresh status says what is on; a failure says why.
+    fn on_or_off_ended(&mut self, exit_code: i32, i18n: &I18n) -> Vec<Act> {
+        if !matches!(self.phase, Phase::Starting | Phase::Stopping) {
+            return Vec::new();
+        }
+        self.confirming = match self.phase {
+            Phase::Starting => Run::On,
+            _ => Run::Off,
+        };
+        self.phase = Phase::Confirming;
+        let mut acts = Vec::new();
+        if exit_code != 0 {
+            let said = match omdrop::reason(&self.said).as_str() {
+                "" => i18n.tr("send.providers.airdrop_radio_failed"),
+                why => i18n.tr_args("send.providers.airdrop_reason", &[why]),
+            };
+            acts.push(Act::Say(said, true));
+        }
+        acts.extend(self.ask_status());
+        acts.push(Act::Refresh);
+        acts
+    }
+
+    // A device leaf chosen: the backend runs the send as a job under the window's one numbering; nothing goes out while the radio is down.
+    pub fn send(
+        &self,
+        outbox: &mut Outbox,
+        wire: &dyn Wire,
+        peer: &str,
+        paths: &[String],
+        i18n: &I18n,
+    ) -> Vec<Act> {
+        let reachable: &[owly::Peer] = match self.phase {
+            Phase::On => &self.devices,
+            _ => &[],
+        };
+        outbox.send(reachable, wire, peer, paths, i18n)
+    }
+
+    // The flyout shows Turn On AirDrop only while Omdrop is off; an on or off still running looks for devices.
+    pub fn on(&self) -> bool {
+        self.phase != Phase::Off
+    }
+
+    pub fn devices(&self) -> Vec<(Peer, bool)> {
+        super::airdrop_outbox::listed(&self.devices)
+    }
+
+    // The page shows Omdrop's receiver, audience, name and folder; an on or off not yet confirmed shows as on.
+    pub fn page(&self, folder: &str, shown_as: &str) -> Page {
+        let own = |mine: &str, flea: &str| if mine.is_empty() { flea } else { mine }.to_string();
+        Page {
+            receiving: self.chosen.is_none() && (self.busy() || self.status.receiving),
+            folder: own(&self.status.dir, folder),
+            shown_as: own(&self.status.name, shown_as),
+            adapter: self.adapter.clone(),
+            omdrop: true,
+            contacts: self.status.contacts,
+        }
+    }
+}
+
+#[cfg(test)]
+#[path = "airdrop_omdrop_tests.rs"]
+mod tests;

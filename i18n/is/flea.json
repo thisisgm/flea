@@ -1614,6 +1614,8 @@
   "plugins.airdrop.receiving": "Móttaka",
   "plugins.airdrop.receiving.off": "Af",
   "plugins.airdrop.receiving.everyone": "Allir í 10 mínútur",
+  "plugins.airdrop.receiving.omdrop_everyone": "Allir",
+  "plugins.airdrop.receiving.omdrop_contacts": "Aðeins tengiliðir",
   "plugins.airdrop.folder": "Vista mótteknar skrár í",
   "plugins.airdrop.computer": "Þessi tölva",
   "plugins.airdrop.shown_as": "Birtist sem",

@@ -1674,6 +1674,8 @@
   "plugins.airdrop.receiving": "Recepție",
   "plugins.airdrop.receiving.off": "Dezactivat",
   "plugins.airdrop.receiving.everyone": "Toată lumea timp de 10 minute",
+  "plugins.airdrop.receiving.omdrop_everyone": "Toți",
+  "plugins.airdrop.receiving.omdrop_contacts": "Doar contacte",
   "plugins.airdrop.folder": "Salvează fișierele primite în",
   "plugins.airdrop.computer": "Acest calculator",
   "plugins.airdrop.shown_as": "Afișat ca",

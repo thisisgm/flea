@@ -3395,7 +3395,7 @@ as a `send` job headed by `name` (the service ID when `name` is absent or empty)
 `{"t":"airdropsent","id":1,"ok":true,"code":"delivered","reason":""}`
 
 `code` is `delivered`, `declined` (the device refused), `failed` (with owly's own `reason`), `cancelled`, `missing`
-(owly is not on PATH) or `stale` (a path is gone). The window owns the radio, the receiver and discovery: it runs
+(neither owly nor `omdrop` is on PATH) or `stale` (a path is gone). The window owns the radio, the receiver and discovery: it runs
 `owly doctor --json`, `owly radio up --for 600`, `owly receive --dir <folder>` and `owly browse` itself, and the
 backend's `providers` facts name `owly`'s path. The machine has one radio: the window that turns it on holds an
 exclusive lock on `$XDG_RUNTIME_DIR/flea/airdrop.lock` (with `FLEA_AIRDROP_DIR` set, the three files sit directly in that
@@ -3420,6 +3420,50 @@ and anything but Accept within 12 s declines; the window then closes that notifi
 each file the receiver saved (several within 2 s as one count) and each link it was sent (shown, never opened), and
 says when a transfer failed or the sender withdrew its request. [owly](https://github.com/t4t5/owly) is MIT, by
 Tristan (t4t5).
+
+When owly is not on PATH and `omdrop` is, the same request and reply run over
+[Omdrop](https://github.com/netmojo-systems/omdrop-plugin) (MIT, by Brent Kearney). `peer` is then the device address
+`omdrop peers -n --json --stream` printed, and the backend runs `setsid -w omdrop send --to=<peer> -- <paths>` with stdout
+discarded: exit 0 is `delivered`, the stderr line `They declined it.` is `declined`, and anything else is `failed` with
+Omdrop's last stderr sentence as its `reason`. The job reads stderr without blocking and at most 64 KiB a turn, so a writer that never stops cannot hold off a cancel;
+once the send ends it reads on until the pipe closes or 3 s pass, then closes it, keeping every line read. A cancel sends SIGTERM first, so Omdrop can
+stop its sender's process group, and pass the cancel to an `omdrop on` it began, which undoes its own start; as soon as Omdrop
+exits, or after 150 s, twice the radio teardown that undo waits for, every process left in the send's session gets SIGKILL, so a sender Omdrop started before it could handle the signal stops too. `omdrop` itself stays unreaped until
+then, so the session it leads can't be another's.
+
+Omdrop owns its radio, receiver, audience and download folder. The window runs `omdrop status --json` on each menu or
+page open and keeps its `visible` (discovery and sending) apart from `receiving` (the Receiving row) and `visibility`
+(the row's Everyone or Contacts Only label). It runs `setsid -w omdrop on` for Turn On AirDrop or Receiving set on while
+no receiver runs, even with the radio up; `omdrop off` for Receiving set to Off, which a running receiver allows even
+when Omdrop is not ready; and `omdrop dir <folder>` for Save received files to, whose refusal says Omdrop's reason. One runs at a time, even across a switch of omdrop and back: a folder chosen
+while one runs waits, the latest replacing any earlier one, and runs when it returns; a replaced omdrop drops the folder
+queued for it, and a completion counts only for the run current then. No status is asked while one runs, one asked before is dropped, and exactly
+one is asked once the last returns; a folder chosen while owly ran AirDrop is never sent to Omdrop, nor the reverse. One `on` or `off` runs at a
+time in a window, and Omdrop serializes those of several windows itself. Flea never signals them: they are held in no
+slot, so no Off, closed window, quit or signal reaches them. Starting one drops any status request already out; when it ends, a failure says Omdrop's
+reason, and only a fresh status, not the exit code, sets the radio and the receiver, since `omdrop on` can exit 0 after
+an off stopped its start. Receiving shows on until that status arrives, and Receiving set to Off while Flea's `on` runs or awaits that status is
+carried out once it says the receiver is up; an Off chosen once `on` has returned asks that status at once, and
+choosing on again withdraws the Off and asks it too. A status run that fails or prints no JSON
+is not an answer: the receiver, folder and name keep their last confirmed values, but the adapter reads not ready; while
+Flea's `on` or `off` awaits its confirming status, the status is asked again 2 s later, up to 5 times in a row, and a
+retry still waiting is dropped once another status is asked, on is chosen again, a folder is chosen or another omdrop
+takes over. After the fifth, an Off queued during `on` runs `omdrop off` without an answer; otherwise the window stays
+unconfirmed, with the adapter not ready, until a menu open, Settings, a Receiving choice or a folder change asks again. A device lookup starts once that status shows
+the radio up after Flea's `on`, or when a menu opens with Omdrop on; a closed menu lets a running lookup finish and does
+not start another, and one that ends within 5 s waits for a later menu open. Omdrop coordinates its own radio across
+windows and programs, so under Omdrop no window takes `airdrop.lock` or writes `airdrop.state`; each reads Omdrop's
+status. A switched-off plugin, a closed window, a quit or a Flea ended by a signal stops that window's lookup and leaves
+Omdrop as it was; a switched-off plugin starts no lookup again, from a menu or from a status or `on` that ends later,
+until it is switched back on. When owly appears or leaves PATH, or `omdrop` moves, the stack that no longer runs
+AirDrop is retired: its lookup and the window's owly runs stop as Off stops them, owly's lock goes back only once its
+radio has exited, another window's owly radio is left alone, and nothing either stack had already asked lands after.
+An Off chosen during Flea's `omdrop on` is the exception: when Omdrop is retired with it still queued, Flea runs that
+omdrop's `off` once, which also ends a start still running; nothing it says lands on the stack that took over,
+but a refusal is said in the footer with Omdrop's reason. `omdrop dir` runs under
+`timeout --signal=KILL 30`, so a hung one fails like a refused one and the next folder choice runs.
+Owly's and Omdrop's sends share one request numbering per window, so each reply finds the device it was sent to. The `providers` facts carry `omdrop` beside `owly`, each path in exact text so a PATH directory that is not UTF-8 still
+runs; owly wins when both are installed.
 
 ## Checked rclone sends (0.4.0)
 

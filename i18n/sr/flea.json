@@ -1715,6 +1715,8 @@
   "plugins.airdrop.receiving": "Пријем",
   "plugins.airdrop.receiving.off": "Искључено",
   "plugins.airdrop.receiving.everyone": "Сви током 10 минута",
+  "plugins.airdrop.receiving.omdrop_everyone": "Сви",
+  "plugins.airdrop.receiving.omdrop_contacts": "Само контакти",
   "plugins.airdrop.folder": "Сачувај примљене датотеке у",
   "plugins.airdrop.computer": "Овај рачунар",
   "plugins.airdrop.shown_as": "Приказује се као",

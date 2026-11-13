@@ -1614,6 +1614,8 @@
   "plugins.airdrop.receiving": "Mottak",
   "plugins.airdrop.receiving.off": "Av",
   "plugins.airdrop.receiving.everyone": "Alle i 10 minutter",
+  "plugins.airdrop.receiving.omdrop_everyone": "Alle",
+  "plugins.airdrop.receiving.omdrop_contacts": "Bare kontakter",
   "plugins.airdrop.folder": "Lagre mottatte filer i",
   "plugins.airdrop.computer": "Denne datamaskinen",
   "plugins.airdrop.shown_as": "Vises som",

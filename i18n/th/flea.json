@@ -1593,6 +1593,8 @@
   "plugins.airdrop.receiving": "การรับ",
   "plugins.airdrop.receiving.off": "ปิด",
   "plugins.airdrop.receiving.everyone": "ทุกคนเป็นเวลา 10 นาที",
+  "plugins.airdrop.receiving.omdrop_everyone": "ทุกคน",
+  "plugins.airdrop.receiving.omdrop_contacts": "ผู้ติดต่อเท่านั้น",
   "plugins.airdrop.folder": "บันทึกไฟล์ที่ได้รับไว้ที่",
   "plugins.airdrop.computer": "คอมพิวเตอร์นี้",
   "plugins.airdrop.shown_as": "แสดงเป็น",

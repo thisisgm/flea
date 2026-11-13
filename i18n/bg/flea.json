@@ -1654,6 +1654,8 @@
   "plugins.airdrop.receiving": "Получаване",
   "plugins.airdrop.receiving.off": "Изкл.",
   "plugins.airdrop.receiving.everyone": "Всички за 10 минути",
+  "plugins.airdrop.receiving.omdrop_everyone": "Всички",
+  "plugins.airdrop.receiving.omdrop_contacts": "Само контакти",
   "plugins.airdrop.folder": "Запазване на получените файлове в",
   "plugins.airdrop.computer": "Този компютър",
   "plugins.airdrop.shown_as": "Показва се като",

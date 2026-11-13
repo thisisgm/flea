@@ -1614,6 +1614,8 @@
   "plugins.airdrop.receiving": "प्राप्त करना",
   "plugins.airdrop.receiving.off": "बंद",
   "plugins.airdrop.receiving.everyone": "10 मिनट के लिए सभी",
+  "plugins.airdrop.receiving.omdrop_everyone": "सभी",
+  "plugins.airdrop.receiving.omdrop_contacts": "केवल संपर्क",
   "plugins.airdrop.folder": "प्राप्त फ़ाइलें यहाँ सहेजें",
   "plugins.airdrop.computer": "यह कंप्यूटर",
   "plugins.airdrop.shown_as": "इस रूप में दिखेगा",

@@ -3,6 +3,7 @@ pub mod airdrop;
 pub mod airdrop_ask;
 pub mod dropbox;
 pub mod localsend;
+pub mod omdrop;
 pub mod providers;
 pub mod send;
 pub mod share;

@@ -46,6 +46,8 @@ pub enum Act {
     Refresh,
     // Another window owns the radio: its owner is asked to stop, off the window's thread.
     AskStop,
+    // Omdrop's status asked again once the delay, in ms, has passed, unless its token is stale by then.
+    StatusLater(u64, u64),
 }
 
 #[derive(Default)]
@@ -83,8 +85,8 @@ pub struct AirDrop {
     received: Option<(u64, usize)>,
     folder: String,
     devices: Vec<owly::Peer>,
-    next: u64,
-    sends: Vec<(u64, String)>,
+    // The window's sends, Omdrop's too: one numbering, so no answer reaches the wrong device.
+    pub(super) outbox: super::airdrop_outbox::Outbox,
 }
 
 fn slot(proc: Proc) -> usize {
@@ -106,6 +108,11 @@ impl AirDrop {
         } else if self.adapter.readiness == Readiness::Missing {
             self.adapter = Adapter::default();
         }
+    }
+
+    // owly's path, empty while it does not run AirDrop.
+    pub(super) fn tool(&self) -> &str {
+        &self.owly
     }
 
     fn next_gen(&mut self, proc: Proc) -> u64 {
@@ -149,7 +156,7 @@ impl AirDrop {
 
     // Any window browses while the machine's radio is up, its own or another window's.
     fn browse(&mut self, now_ms: u64) -> Vec<Act> {
-        if self.browsing || !self.menu_open || self.machine() != Radio::On {
+        if self.browsing || !self.menu_open || self.machine() != Radio::On || self.owly.is_empty() {
             return Vec::new();
         }
         self.browsing = true;
@@ -320,55 +327,21 @@ impl AirDrop {
 
     // A device leaf chosen: the backend runs the send as a job; nothing goes out while the radio is down.
     pub fn send(&mut self, wire: &dyn Wire, peer: &str, paths: &[String], i18n: &I18n) -> Vec<Act> {
-        let stale = vec![Act::Say(i18n.tr("send.providers.menu_stale"), true)];
-        let Some(name) = self
-            .devices
-            .iter()
-            .find(|d| d.id == peer)
-            .map(|d| d.name.clone())
-        else {
-            return stale;
+        let reachable: &[owly::Peer] = match self.machine() {
+            Radio::On => &self.devices,
+            _ => &[],
         };
-        if self.machine() != Radio::On || paths.is_empty() {
-            return stale;
-        }
-        self.next += 1;
-        // A pane whose backend is gone cannot run the job, so its menu is out of date.
-        if !wire.send(owly::send_line(self.next, peer, &name, paths)) {
-            return stale;
-        }
-        let said = owly::sending(i18n, &name, paths);
-        self.sends.push((self.next, name));
-        vec![Act::Say(said, false)]
+        (self.outbox).send(reachable, wire, peer, paths, i18n)
     }
 
     // One backend line; only this window's own sends answer.
     pub fn backend_line(&mut self, text: &str, i18n: &I18n) -> Vec<Act> {
-        let Some((id, code, reason)) = owly::sent(text) else {
-            return Vec::new();
-        };
-        let Some(at) = self.sends.iter().position(|(request, _)| *request == id) else {
-            return Vec::new();
-        };
-        let (_, peer) = self.sends.remove(at);
-        owly::sent_said(i18n, &peer, &code, &reason)
-            .map_or_else(Vec::new, |said| vec![Act::Say(said, code != "delivered")])
+        self.outbox.answered(text, i18n)
     }
 
     // The flyout's devices in the order they answered, each with its phone mark.
     pub fn devices(&self) -> Vec<(Peer, bool)> {
-        self.devices
-            .iter()
-            .map(|d| {
-                (
-                    Peer {
-                        id: d.id.clone(),
-                        label: d.name.clone(),
-                    },
-                    d.phone,
-                )
-            })
-            .collect()
+        super::airdrop_outbox::listed(&self.devices)
     }
 
     pub fn page(&self, folder: &str, shown_as: &str) -> Page {
@@ -377,6 +350,7 @@ impl AirDrop {
             folder: folder.into(),
             shown_as: shown_as.into(),
             adapter: self.adapter.clone(),
+            ..Page::default()
         }
     }
 }

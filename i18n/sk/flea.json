@@ -1715,6 +1715,8 @@
   "plugins.airdrop.receiving": "Príjem",
   "plugins.airdrop.receiving.off": "Vypnuté",
   "plugins.airdrop.receiving.everyone": "Všetci na 10 minút",
+  "plugins.airdrop.receiving.omdrop_everyone": "Všetci",
+  "plugins.airdrop.receiving.omdrop_contacts": "Iba kontakty",
   "plugins.airdrop.folder": "Ukladať prijaté súbory do",
   "plugins.airdrop.computer": "Tento počítač",
   "plugins.airdrop.shown_as": "Zobrazuje sa ako",

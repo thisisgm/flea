@@ -1654,6 +1654,8 @@
   "plugins.airdrop.receiving": "Kupokea",
   "plugins.airdrop.receiving.off": "Imezimwa",
   "plugins.airdrop.receiving.everyone": "Kila mtu kwa dakika 10",
+  "plugins.airdrop.receiving.omdrop_everyone": "Kila mtu",
+  "plugins.airdrop.receiving.omdrop_contacts": "Anwani pekee",
   "plugins.airdrop.folder": "Hifadhi faili zilizopokelewa kwenye",
   "plugins.airdrop.computer": "Kompyuta hii",
   "plugins.airdrop.shown_as": "Inaonyeshwa kama",

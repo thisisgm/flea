@@ -1614,6 +1614,8 @@
   "plugins.airdrop.receiving": "دریافت",
   "plugins.airdrop.receiving.off": "خاموش",
   "plugins.airdrop.receiving.everyone": "همه برای 10 دقیقه",
+  "plugins.airdrop.receiving.omdrop_everyone": "همه",
+  "plugins.airdrop.receiving.omdrop_contacts": "فقط مخاطبین",
   "plugins.airdrop.folder": "ذخیرهٔ فایل‌های دریافتی در",
   "plugins.airdrop.computer": "این رایانه",
   "plugins.airdrop.shown_as": "نمایش به‌عنوان",

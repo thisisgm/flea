@@ -1593,6 +1593,8 @@
   "plugins.airdrop.receiving": "Nhận",
   "plugins.airdrop.receiving.off": "Tắt",
   "plugins.airdrop.receiving.everyone": "Mọi người trong 10 phút",
+  "plugins.airdrop.receiving.omdrop_everyone": "Mọi người",
+  "plugins.airdrop.receiving.omdrop_contacts": "Chỉ danh bạ",
   "plugins.airdrop.folder": "Lưu tệp đã nhận vào",
   "plugins.airdrop.computer": "Máy tính này",
   "plugins.airdrop.shown_as": "Hiển thị là",

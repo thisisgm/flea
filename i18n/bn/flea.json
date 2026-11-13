@@ -1654,6 +1654,8 @@
   "plugins.airdrop.receiving": "গ্রহণ",
   "plugins.airdrop.receiving.off": "বন্ধ",
   "plugins.airdrop.receiving.everyone": "10 মিনিটের জন্য সবাই",
+  "plugins.airdrop.receiving.omdrop_everyone": "সবাই",
+  "plugins.airdrop.receiving.omdrop_contacts": "শুধু পরিচিতি",
   "plugins.airdrop.folder": "প্রাপ্ত ফাইল সংরক্ষণের স্থান",
   "plugins.airdrop.computer": "এই কম্পিউটার",
   "plugins.airdrop.shown_as": "যে নামে দেখানো হবে",
