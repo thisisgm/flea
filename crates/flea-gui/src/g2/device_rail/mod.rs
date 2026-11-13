@@ -3,6 +3,7 @@ pub mod card;
 pub mod card_text;
 pub mod devices;
 pub mod eject;
+pub mod eye;
 pub mod field;
 pub mod host;
 pub mod ink;
