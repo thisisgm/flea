@@ -128,9 +128,13 @@ fn ey391_a_relist_of_the_same_folder_walks_its_folders_again(cx: &mut TestAppCon
             let host = shell.panes[0].as_ref().unwrap();
             assert_eq!(
                 host.sizes.sizes.size_for(1),
-                None,
-                "v0.3.12 PaneSwap.applyListed empties DirSizes, so a re-list walks full again"
+                Some(Size {
+                    bytes: 120,
+                    partial: false
+                }),
+                "the prior display survives while a re-list walks full again"
             );
+            assert_eq!(host.sizes.sizes.plan(&host.pane.held.rows, 0, 1, 1), [1]);
         })
     });
 }

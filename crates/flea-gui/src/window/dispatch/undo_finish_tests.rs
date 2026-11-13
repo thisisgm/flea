@@ -114,8 +114,8 @@ fn a_watched_undo_keeps_its_rows_cursor_and_scroll_during_the_following_reread(
         Step::Land(false),
         Step::Wait(1000),
         Step::Undo,
-        Step::Changed,
         Step::Undone,
+        Step::Changed,
         Step::Land(true),
     ] {
         run.step(step);
@@ -141,6 +141,30 @@ fn a_watched_undo_keeps_its_rows_cursor_and_scroll_during_the_following_reread(
     run.quiesce();
     assert_eq!(lists(&run), 3, "no repeating watch or polling");
     run.agree("watched undo settled");
+    run.shell
+        .update(run.cx, |shell, _| shell.stop_for_app_quit());
+}
+
+#[gpui::test]
+fn an_undo_refresh_covers_the_watch_notice_that_preceded_its_request(cx: &mut TestAppContext) {
+    let mut run = ready(cx);
+    for step in [
+        Step::Delete,
+        Step::Trashed,
+        Step::Land(false),
+        Step::Wait(1000),
+        Step::Undo,
+        Step::Changed,
+        Step::Undone,
+        Step::Land(true),
+    ] {
+        run.step(step);
+    }
+    let restored = position(&run);
+    run.quiesce();
+    assert_eq!(lists(&run), 2, "the undo read covers the earlier notice");
+    assert_eq!(position(&run), restored);
+    run.agree("the earlier undo notice is covered");
     run.shell
         .update(run.cx, |shell, _| shell.stop_for_app_quit());
 }
@@ -182,8 +206,8 @@ fn undo_and_the_watch_swap_keep_a_scrolled_viewport(cx: &mut TestAppContext) {
     run.step(Step::Wait(1000));
     let scroll = position(&run).2;
     run.step(Step::Undo);
-    run.step(Step::Changed);
     run.step(Step::Undone);
+    run.step(Step::Changed);
     land_rows(&mut run, rows.clone());
     let restored = position(&run);
     assert_eq!(restored.2, scroll, "undo keeps the viewport");

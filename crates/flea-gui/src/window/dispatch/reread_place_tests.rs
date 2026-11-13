@@ -127,3 +127,6 @@ fn a_transfer_ending_during_a_reread_is_read_after_it(cx: &mut TestAppContext) {
     );
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
+
+#[path = "sizeblink_reread_tests.rs"]
+mod sizeblink;
