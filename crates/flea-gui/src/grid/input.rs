@@ -56,11 +56,12 @@ impl Shell {
             .map_or(Shown::All(listing_total), Shown::Only);
         let total = shown.total();
         let cursor = host.pane.cursor;
-        // Shown rows are sorted listing rows, so a binary search finds the cursor's view without a scan.
-        let cursor_view = match host.input.shown.as_deref() {
-            Some(rows) => rows.binary_search(&cursor).ok(),
-            None => (cursor < total).then_some(cursor),
-        };
+        // Close matches retain rank order; the input's inverse keeps arrows in drawn coordinates.
+        let cursor_view = host
+            .input
+            .shown
+            .view_of(cursor)
+            .filter(|&view| view < total);
         let wrap_rows = flea::ui_logic_settings_pages::pages::is_true(
             &self.launch.settings.data,
             &["gridWrapRows"],
@@ -128,7 +129,7 @@ impl Shell {
                         cursor,
                         next,
                         pulled,
-                        host.input.shown.as_deref(),
+                        &host.input.shown,
                     );
                     host.nav.landed = None;
                     host.pane.cursor = next;

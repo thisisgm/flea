@@ -88,7 +88,12 @@ impl Shown<'_> {
     pub fn span(&self, first: usize, last: usize) -> Option<RangeInclusive<usize>> {
         let end = self.total().checked_sub(1)?;
         let (lo, hi) = (first.min(end), last.min(end));
-        Some(self.at(lo)?..=self.at(hi)?)
+        let filter = match self {
+            Self::All(_) => None,
+            Self::Only(rows) => Some(*rows),
+        };
+        let (lo, hi) = flea::ui_logic_listing_filter::span(filter, lo, hi)?;
+        Some(lo..=hi)
     }
     pub fn narrowed(&self) -> bool {
         matches!(self, Self::Only(_))

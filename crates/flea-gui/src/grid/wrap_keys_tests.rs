@@ -160,7 +160,7 @@ fn issue_434_default_off_filter_keys_follow_visible_order(cx: &mut TestAppContex
                 let host = shell.panes[0].as_mut().unwrap();
                 let page = page_items(host.pane.visible_rows());
                 host.filter.shown = Some(Rc::clone(&shown));
-                host.input.shown = Some(Rc::clone(&shown));
+                host.input.set_shown(Some(Rc::clone(&shown)));
                 host.pane.cursor = shown[start];
                 match chord {
                     "home" => 0,

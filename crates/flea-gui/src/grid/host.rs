@@ -307,6 +307,7 @@ impl PaneHost {
                     .collect();
             }
         }
+        focus.selected.sort_unstable();
         focus.grey = !focused;
         let element = GridElement::new(
             Rc::clone(

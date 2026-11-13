@@ -277,13 +277,7 @@ impl Shell {
                     None
                 }
                 Some("extendSelect") if press.event.click_count == 1 => {
-                    selection.extend(
-                        &mut host.selected,
-                        from,
-                        row,
-                        pulled,
-                        host.input.shown.as_deref(),
-                    );
+                    selection.extend(&mut host.selected, from, row, pulled, &host.input.shown);
                     None
                 }
                 Some("toggleSelect" | "extendSelect") => {

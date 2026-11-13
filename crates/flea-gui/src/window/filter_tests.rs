@@ -13,6 +13,9 @@ type Handle = WindowHandle<Root>;
 #[path = "filter_grid_keys_tests.rs"]
 mod grid_keys;
 
+#[path = "filter_ranked_tests.rs"]
+mod ranked;
+
 fn open(cx: &mut TestAppContext) -> (Handle, impl FnMut() -> Option<String>) {
     let (backend, read) = Backend::test_lines();
     let handle = cx.add_window(|window, cx| Root {
