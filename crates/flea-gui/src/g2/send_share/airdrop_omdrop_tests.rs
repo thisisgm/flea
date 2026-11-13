@@ -390,3 +390,6 @@ fn an_omdrop_send_is_answered_through_the_windows_one_numbering() {
 
 #[path = "airdrop_omdrop_status_tests.rs"]
 mod status;
+
+#[path = "airdrop_omdrop_lookup_tests.rs"]
+mod lookup;
