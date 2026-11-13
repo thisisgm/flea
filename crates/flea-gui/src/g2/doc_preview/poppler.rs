@@ -66,6 +66,7 @@ struct Api {
 unsafe impl Send for Api {}
 unsafe impl Sync for Api {}
 
+// SAFETY: load only resolves symbols; their signatures are the libraries' documented C API.
 static API: LazyLock<Result<Api, String>> = LazyLock::new(|| unsafe { load() });
 
 unsafe fn library(name: &CStr) -> Result<*mut c_void, String> {
@@ -113,7 +114,6 @@ unsafe fn load() -> Result<Api, String> {
 }
 
 fn api() -> Result<&'static Api, Failure> {
-    // SAFETY: load only resolves symbols; their signatures are the libraries' documented C API.
     API.as_ref()
         .map_err(|reason| Failure::Library(reason.clone()))
 }
