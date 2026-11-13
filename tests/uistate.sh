@@ -74,7 +74,7 @@ check "a read ships Open folders while dragging off" "1" "$(echo "$out" | grep -
 check "a read ships tabsAsIcons off" "1" "$(echo "$out" | grep -c '"tabsAsIcons": false')"
 check "a read ships emptyFolderOmi on" "1" "$(echo "$out" | grep -c '"emptyFolderOmi": true')"
 check "a read ships emptyFolderRotate on" "1" "$(echo "$out" | grep -c '"emptyFolderRotate": true')"
-# 651d3f115 adds highlightHover=false to the complete default document.
+# 651d3f115 adds highlightHover=false and 0402-settings-cursor adds gridWrapRows=false to the complete default document.
 check "a read answers every top-level key" "49" "$(echo "$out" | grep -c '^  "')"
 check "a fresh read answers empty plugin state" "{}" "$(printf '%s\n' "$out" | plugins_value)"
 check "a read leaves no state file behind" "0" "$([ -e "$UI" ] && echo 1 || echo 0)"
