@@ -38,7 +38,7 @@ impl Shell {
                 // The snapshot names listing rows, and the held window starts at its own row of the listing.
                 .map(|at| {
                     (
-                        host.pane.held.start + at,
+                        host.pane.held.index_at(at),
                         host.pane.held.listing,
                         host.pane.held.rows[at].name.clone(),
                     )

@@ -69,9 +69,7 @@ pub(super) fn folder(host: &PaneHost, catalog: &I18n) -> Snapshot {
         let mut walked = Vec::with_capacity(selected);
         let mut dirs = Vec::with_capacity(selected);
         for &index in &host.selected {
-            let row = index
-                .checked_sub(held.start)
-                .and_then(|at| held.rows.get(at));
+            let row = held.row(index);
             let dir = row.is_some_and(|row| row.dir);
             let walk = dir
                 .then(|| host.sizes.walked(held.listing, index))

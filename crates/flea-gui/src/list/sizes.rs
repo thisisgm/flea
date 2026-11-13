@@ -233,7 +233,7 @@ impl Shell {
             state.held = Rc::clone(current);
             let mut list = host.list.borrow_mut();
             for (at, _) in current.rows.iter().enumerate() {
-                let row = current.start + at;
+                let row = current.index_at(at);
                 if let Some(size) = state.sizes.size_for(row) {
                     list.view.folder_size(current.listing, row, size);
                 }

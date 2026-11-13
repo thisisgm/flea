@@ -152,3 +152,68 @@ fn preview_quality_grid_own_pixels_only_for_whole_originals() {
     pictures.map.borrow_mut().class = Some((String::new(), "network".into()));
     assert_eq!(own(&pictures), [true; 4], "a cache-only picture is final");
 }
+
+#[test]
+fn fx477_record_eviction_keeps_visible_matches_and_pending_cancellation() {
+    let mut map = Map {
+        drawn: Some(super::surface::Want {
+            span: (0, 894),
+            only: Some(((0..150).map(|row| row * 6).collect(), 0, 150)),
+        }),
+        ..Default::default()
+    };
+    for row in 0..150 {
+        map.remember(row, ready(row, 1, 1));
+    }
+    for row in (150..900).step_by(6) {
+        map.remember(row, ready(row, 1, 1));
+    }
+    for row in (0..900).step_by(6) {
+        assert!(
+            matches!(map.slots.get(&row), Some(Slot::Ready { .. })),
+            "visible row {row}"
+        );
+    }
+    assert_eq!(map.order.len(), super::CAP);
+    let pending = 1000;
+    map.remember(
+        pending,
+        Slot::Asked {
+            identity: Identity {
+                name: "pending.png".into(),
+                size: 1,
+                mtime: 1,
+            },
+            image: true,
+            cache: false,
+        },
+    );
+    evict(&mut map, &[], 0);
+    assert_eq!(
+        map.pending().collect::<Vec<_>>(),
+        [pending],
+        "pixel eviction cannot lose a backend cancellation"
+    );
+}
+
+#[test]
+fn fx477_a_viewport_larger_than_the_record_cap_keeps_every_visible_picture() {
+    let mut map = Map {
+        drawn: Some(super::surface::Want {
+            span: (0, super::CAP),
+            only: None,
+        }),
+        ..Default::default()
+    };
+    for row in 0..=super::CAP {
+        map.remember(row, ready(row, 1, 1));
+    }
+    assert_eq!(map.order.len(), super::CAP + 1);
+    map.drawn = Some(super::surface::Want {
+        span: (1, super::CAP),
+        only: None,
+    });
+    map.trim();
+    assert!(!map.slots.contains_key(&0));
+    assert_eq!(map.order.len(), super::CAP);
+}

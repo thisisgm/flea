@@ -181,7 +181,7 @@ impl PaneHost {
             return;
         };
         if let Some(at) = self.pane.held.rows.iter().position(|row| row.name == name) {
-            self.pane.cursor = self.pane.held.start + at;
+            self.pane.cursor = self.pane.held.index_at(at);
             self.pane.reveal_cursor();
             self.selected.clear();
             self.selected.push(self.pane.cursor);

@@ -71,11 +71,7 @@ pub(super) fn visible(host: &PaneHost, columns: bool) -> Vec<usize> {
                 .as_ref()
                 .map_or(position, |rows| rows[position])
         })
-        .filter(|row| {
-            row.checked_sub(held.start)
-                .and_then(|at| held.rows.get(at))
-                .is_some_and(|row| row.dir)
-        })
+        .filter(|row| held.row(*row).is_some_and(|row| row.dir))
         .collect()
 }
 

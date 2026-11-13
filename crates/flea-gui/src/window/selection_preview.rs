@@ -215,7 +215,7 @@ impl Subject {
                 .enumerate()
                 .filter(|(offset, _)| {
                     host.selected
-                        .binary_search(&(host.pane.held.start + offset))
+                        .binary_search(&host.pane.held.index_at(*offset))
                         .is_ok()
                 })
                 .map(|(_, row)| row.clone())

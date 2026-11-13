@@ -42,6 +42,7 @@ fn landed() -> Listing {
         0,
         vec![
             RowFacts {
+                listing_index: None,
                 source: None,
                 depth: 0,
                 open: false,
@@ -59,6 +60,7 @@ fn landed() -> Listing {
                 tags: None,
             },
             RowFacts {
+                listing_index: None,
                 source: None,
                 depth: 0,
                 open: false,

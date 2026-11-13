@@ -63,7 +63,7 @@ pub(crate) enum Ask {
     Resolve {
         listing: usize,
         rows: Vec<usize>,
-        mark: Option<RowFacts>,
+        mark: Option<Box<RowFacts>>,
         kinds: Option<Vec<u32>>,
     },
 }

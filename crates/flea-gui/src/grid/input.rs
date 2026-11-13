@@ -309,12 +309,13 @@ impl Shell {
                 if grid.next_view.is_some() {
                     return true;
                 }
-                grid.view.wheel_by(
-                    Shown::All(host.pane.held.total),
-                    &GridHost::focus(&host.pane),
-                    delta,
-                    glide_at,
-                );
+                let shown = host
+                    .filter
+                    .shown
+                    .as_deref()
+                    .map_or(Shown::All(host.pane.held.total), Shown::Only);
+                grid.view
+                    .wheel_by(shown, &GridHost::focus(&host.pane), delta, glide_at);
                 cx.notify();
             }
         }
