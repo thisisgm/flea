@@ -20,6 +20,10 @@ mod ime_tests;
 pub(crate) mod input;
 mod input_host;
 #[cfg(test)]
+mod key_preview_atomic_tests;
+#[cfg(test)]
+mod key_preview_height_tests;
+#[cfg(test)]
 mod keymap_sheet_activation_tests;
 #[cfg(test)]
 mod keymap_sheet_menu_tests;

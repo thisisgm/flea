@@ -24,6 +24,8 @@ pub const HERO_H: f32 = 121.;
 pub const RULER_H: f32 = 39.;
 pub const CHIP_H: f32 = 24.;
 pub const CHIP_GAP: f32 = 4.;
+// A key preview draws its examples in this many columns, as the board does at every width.
+pub const KEY_COLUMNS: usize = 2;
 pub const CHECK: f32 = 18.;
 pub const FIELD_H: f32 = 30.;
 // The pane stops 8px above the card's foot.
@@ -115,7 +117,7 @@ pub fn row_height(row: &Row, first: bool, lines: usize, s: Scale) -> f32 {
         Kind::Hint => s.of(4.) + s.of(HINT_LINE) * lines + s.of(2.),
         Kind::Ruler => s.of(RULER_H),
         Kind::KeyPreview => {
-            let pairs = row.items.len().div_ceil(2) as f32;
+            let pairs = row.items.len().div_ceil(KEY_COLUMNS) as f32;
             2. * s.of(7.) + s.of(CHIP_H) * pairs + s.of(GAP) * (pairs - 1.).max(0.)
         }
         Kind::Hero => s.of(HERO_H),
