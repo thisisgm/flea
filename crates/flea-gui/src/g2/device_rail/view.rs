@@ -307,7 +307,8 @@ impl Render for UnlockView {
             .absolute()
             .size_full()
             .track_focus(&self.focus)
-            .on_key_down(cx.listener(Self::key));
+            .on_key_down(cx.listener(Self::key))
+            .on_modifiers_changed(cx.listener(|_, _, _, cx| cx.notify()));
         let Some(state) = self.host.card.as_ref().filter(|c| c.opened) else {
             self.probes.clear();
             return root;
@@ -350,6 +351,7 @@ impl Render for UnlockView {
                 Some(super::card::Mounted {
                     input,
                     probes: &self.probes,
+                    caps_lock: window.capslock().on,
                 }),
             ))
     }

@@ -1,5 +1,6 @@
 //! pl1: devices, phones, eject and power-off, and the encrypted-drive unlock card.
 pub mod card;
+pub mod card_text;
 pub mod devices;
 pub mod eject;
 pub mod field;

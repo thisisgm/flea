@@ -20,6 +20,11 @@ impl Field {
     }
 
     pub fn backspace(&mut self) {
+        // Held dots after a refused try stand for bytes already handed to udisks, so Backspace clears them whole.
+        if self.text.is_empty() && self.held_mask > 0 {
+            self.held_mask = 0;
+            return;
+        }
         if !self.entry.editing {
             self.begin();
         }
