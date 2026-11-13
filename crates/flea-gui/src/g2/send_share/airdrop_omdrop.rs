@@ -67,6 +67,8 @@ pub struct Omdrop {
     // The plugin is switched off: no lookup starts, whatever answer comes in, until it is switched on.
     disabled: bool,
     devices: Vec<owly::Peer>,
+    // Addresses the running lookup reported: a lookup that succeeds drops every device it did not.
+    seen: Vec<String>,
 }
 
 impl Omdrop {
@@ -134,6 +136,7 @@ impl Omdrop {
         }
         self.browsing = true;
         self.look_at_ms = now_ms;
+        self.seen.clear();
         let generation = self.next_gen(Proc::Browse);
         vec![Act::Start(
             Proc::Browse,
@@ -249,13 +252,25 @@ impl Omdrop {
                 self.said.push('\n');
                 Vec::new()
             }
-            Proc::Browse => match omdrop::peer_line(text) {
-                Some(peer) if !self.devices.iter().any(|d| d.id == peer.id) => {
-                    self.devices.push(peer);
-                    vec![Act::Refresh]
+            Proc::Browse => {
+                let Some(peer) = omdrop::peer_line(text) else {
+                    return Vec::new();
+                };
+                if !self.seen.contains(&peer.id) {
+                    self.seen.push(peer.id.clone());
                 }
-                _ => Vec::new(),
-            },
+                match self.devices.iter_mut().find(|d| d.id == peer.id) {
+                    Some(known) if *known == peer => Vec::new(),
+                    Some(known) => {
+                        *known = peer;
+                        vec![Act::Refresh]
+                    }
+                    None => {
+                        self.devices.push(peer);
+                        vec![Act::Refresh]
+                    }
+                }
+            }
             Proc::Receive => Vec::new(),
         }
     }
@@ -276,12 +291,19 @@ impl Omdrop {
             // A lookup that ran its course looks again for an open menu; one that ended early waits for a later open.
             Proc::Browse => {
                 self.browsing = false;
+                let mut acts = Vec::new();
+                if code == 0 {
+                    let before = self.devices.len();
+                    self.devices.retain(|d| self.seen.contains(&d.id));
+                    if self.devices.len() != before {
+                        acts.push(Act::Refresh);
+                    }
+                }
                 let whole = at_ms.saturating_sub(self.look_at_ms) >= LOOK_MIN_MS;
                 if code == 0 && whole {
-                    self.browse(at_ms)
-                } else {
-                    Vec::new()
+                    acts.extend(self.browse(at_ms));
                 }
+                acts
             }
             Proc::Receive => Vec::new(),
         }
