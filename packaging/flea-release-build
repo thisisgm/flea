@@ -13,10 +13,10 @@ case "${1:-}" in
     [ "$(id -u)" -eq 0 ] || elevate=(sudo)
     "${elevate[@]}" apt-get update -o Acquire::Retries=3
     "${elevate[@]}" apt-get install -y -o Acquire::Retries=3 \
-      build-essential ca-certificates curl fontconfig git pkg-config \
+      build-essential ca-certificates curl fontconfig git jq pkg-config \
       libfontconfig1-dev libfreetype6-dev libwayland-dev libxcb1-dev \
       libxkbcommon-dev libxkbcommon-x11-dev libx11-dev libegl1-mesa-dev libvulkan-dev \
-      libarchive-tools libglib2.0-bin libvulkan1 bubblewrap zstd libpng-dev libjpeg-dev libtiff-dev libwebp-dev poppler-utils \
+      libarchive-tools libglib2.0-bin libvulkan1 bubblewrap zstd ffmpeg libpng-dev libjpeg-dev libtiff-dev libwebp-dev poppler-utils \
       libpoppler-glib8t64
     "$here/flea-ci-tools" fonts "$HOME/.local/share/fonts/flea-ci"
     "$here/flea-ci-tools" imagemagick "$ci_tools"
