@@ -191,7 +191,7 @@ fn footer_status(cx: &mut TestAppContext, handle: Handle) -> String {
 }
 
 #[gpui::test]
-fn pb_clipboard_ey169_keep_both_refreshes_without_selection(cx: &mut TestAppContext) {
+fn pb_clipboard_ey169_keep_both_refreshes_and_keeps_the_place(cx: &mut TestAppContext) {
     let (handle, mut lines) = open(cx);
     let sent = keep_both_completes(cx, handle, &mut lines);
     assert!(
@@ -207,8 +207,8 @@ fn pb_clipboard_ey169_keep_both_refreshes_without_selection(cx: &mut TestAppCont
     edit(cx, handle, |shell, _, _| {
         let host = shell.panes[0].as_ref().unwrap();
         assert!(!host.pane.busy());
-        assert_eq!(host.pane.cursor, 0, "EY-169 refresh lands at the first row");
-        assert!(host.selected.is_empty(), "EY-169 no retained selection");
+        assert_eq!(host.pane.cursor, 2, "the cursor stays on b.txt");
+        assert_eq!(host.selected, vec![2], "b.txt stays marked");
         assert_eq!(host.state_text.status, "4 items");
     });
 }

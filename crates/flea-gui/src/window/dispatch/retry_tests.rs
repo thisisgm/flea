@@ -6,6 +6,9 @@ use crate::{
 };
 use gpui::{Entity, TestAppContext, VisualTestContext};
 
+#[path = "transfer_keep_tests.rs"]
+mod transfer_keep;
+
 const DONE: &str = r#"{"t":"transferdone","id":7,"ok":1,"failed":2,"skipped":0,"cancelled":false,"retryPaths":["/files/beta","/files/notes.txt"],"durable":false,"note":""}"#;
 
 fn home() -> Vec<flea::protocol::RowFacts> {
