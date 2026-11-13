@@ -294,7 +294,7 @@ mod tests {
         let source = d.file("photo.png", "source");
         let destination = d.join("photo (converted).jpg");
         let selected = vec![Selected::inspect(source.to_str().unwrap()).unwrap()];
-        assert_eq!(check_convert(&source, &destination, Some(&selected)).unwrap(), false);
+        assert!(!check_convert(&source, &destination, Some(&selected)).unwrap());
         d.file("photo (converted).jpg", "collision");
         let (tx, _) = std::sync::mpsc::channel();
         let mut ops = Ops::new(tx);

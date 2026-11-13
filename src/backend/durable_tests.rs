@@ -613,7 +613,7 @@ fn a_durable_copy_confirms_slices_while_it_writes() {
     let mut p = quiet(&flag, &mut sink, &mut durability);
     crate::backend::copyfile::copy_any(&src, &out.join("big.bin"), &mut p).expect("copy");
     drop(p);
-    let mib = 1024 * 1024 as u64;
+    let mib = 1024 * 1024_u64;
     assert_eq!(seen.len(), 5, "four ramped mids plus the final, got {:?}", seen);
     assert_eq!((seen[0].0, seen[1].0, seen[2].0, seen[3].0), (mib, mib * 3, mib * 7, mib * 15), "the ramped mids, got {:?}", seen);
     assert!(seen.windows(2).all(|w| w[1].0 > w[0].0), "confirmed counts only ever rise, got {:?}", seen);
@@ -693,7 +693,7 @@ fn every_mid_file_report_follows_a_completed_wait() {
     let d = TestDir::new("durable-reports-waits");
     let out = d.dir("out");
     test_mark_durable(&out);
-    let confirm = crate::backend::copyfile::CONFIRM_BYTES as u64;
+    let confirm = crate::backend::copyfile::CONFIRM_BYTES;
     let total: usize = confirm as usize * 3 + 1024 * 1024;
     let src = d.join("big.bin");
     std::fs::write(&src, vec![b'a'; total]).expect("test sandbox file");
@@ -707,7 +707,7 @@ fn every_mid_file_report_follows_a_completed_wait() {
     crate::backend::copyfile::copy_any(&src, &out.join("big.bin"), &mut p).expect("copy");
     drop(p);
     let waits = crate::backend::durable::test_range_waits();
-    let mib = 1024 * 1024 as u64;
+    let mib = 1024 * 1024_u64;
     assert_eq!(waits, 4, "four pipelined waits for five ramp slices, got {}", waits);
     assert_eq!(seen.len(), waits + 1, "mids plus the final, got {:?}", seen);
     assert_eq!((seen[0].0, seen[0].2), (mib, 1), "the first mid follows one wait, got {:?}", seen);
@@ -802,7 +802,7 @@ fn slices_start_with_write_alone_before_the_previous_waits() {
     drop(p);
     let mib: u64 = 1024 * 1024;
     assert_eq!(crate::backend::durable::test_range_log(), vec![
-        format!("write 0"),
+        "write 0".to_string(),
         format!("write {mib}"),
         "wait 0".to_string(),
         format!("write {}", mib * 3),

@@ -64,13 +64,10 @@ pub fn percent_decode(segment: &str) -> String {
         if bytes[i] == b'%' && i + 2 < bytes.len() {
             let hi = (bytes[i + 1] as char).to_digit(16);
             let lo = (bytes[i + 2] as char).to_digit(16);
-            match (hi, lo) {
-                (Some(h), Some(l)) => {
-                    out.push((h * 16 + l) as u8);
-                    i += 3;
-                    continue;
-                }
-                _ => {}
+            if let (Some(h), Some(l)) = (hi, lo) {
+                out.push((h * 16 + l) as u8);
+                i += 3;
+                continue;
             }
         }
         out.push(bytes[i]);
@@ -88,13 +85,10 @@ fn unescape_target(raw: &str) -> String {
         if bytes[i] == b'\\' && i + 3 < bytes.len() && bytes[i + 1] == b'x' {
             let hi = (bytes[i + 2] as char).to_digit(16);
             let lo = (bytes[i + 3] as char).to_digit(16);
-            match (hi, lo) {
-                (Some(h), Some(l)) => {
-                    out.push((h * 16 + l) as u8);
-                    i += 4;
-                    continue;
-                }
-                _ => {}
+            if let (Some(h), Some(l)) = (hi, lo) {
+                out.push((h * 16 + l) as u8);
+                i += 4;
+                continue;
             }
         }
         out.push(bytes[i]);
@@ -152,7 +146,7 @@ pub fn parse_line(line: &str, hidden: bool) -> Result<Option<GvfsRow>, String> {
     let mtime_key = "time::modified=";
     let mtime_at = keys.find(mtime_key).ok_or_else(|| format!("gio attrs name no mtime: {}", attrs))?;
     let mtime_rest = &keys[mtime_at + mtime_key.len()..];
-    let mtime_end = mtime_rest.find(' ').map(|at| at).unwrap_or(mtime_rest.len());
+    let mtime_end = mtime_rest.find(' ').unwrap_or(mtime_rest.len());
     let mtime: i64 =
         mtime_rest[..mtime_end].parse().map_err(|_| format!("gio mtime is not a number: {}", mtime_rest))?;
     // corner: only a parsed decimal unix::mode replaces the fallback; absent or garbled keeps it.

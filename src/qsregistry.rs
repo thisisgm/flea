@@ -104,7 +104,7 @@ fn prune_shell(base: &Path, id: &str, by_pid: &[(PathBuf, PathBuf)], uid: u32) {
         dead.push(Dead { by_id, link, log_mtime });
     }
     // Newest first, so the truncation keeps the entries `qs log` can still reach.
-    dead.sort_by(|a, b| b.log_mtime.cmp(&a.log_mtime));
+    dead.sort_by_key(|a| std::cmp::Reverse(a.log_mtime));
     for victim in dead.iter().skip(KEEP_DEAD) {
         // The by-pid links first, then the by-shell link, then the verified by-id dir.
         for (link, target) in by_pid {

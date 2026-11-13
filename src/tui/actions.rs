@@ -157,10 +157,8 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
                         player.seek(-5)?;
                     }
                 }
-                "seekForward" | "pageForward" => {
-                    if player.control == 1 {
-                        player.seek(5)?;
-                    }
+                "seekForward" | "pageForward" if player.control == 1 => {
+                    player.seek(5)?;
                 }
                 _ => {}
             }

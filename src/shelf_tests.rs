@@ -22,7 +22,7 @@ fn only_what_moved_leaves_the_pile() {
         format!(r#"{{"items":[{{"path":"{}"}},{{"path":"{}"}}]}}"#, one, two),
     )
     .unwrap();
-    shelf.settle(&[one.clone()]).unwrap();
+    shelf.settle(std::slice::from_ref(&one)).unwrap();
     assert_eq!(shelf.pile(), vec![two.clone()], "the moved reference leaves and the other stays");
     // Rule 3: a copy reports nothing moved, so the pile is not touched at all.
     shelf.settle(&[]).unwrap();
@@ -69,7 +69,7 @@ fn the_row_x_takes_the_reference_off_and_leaves_the_file() {
         format!(r#"{{"items":[{{"path":"{}"}},{{"path":"{}"}}]}}"#, one, two),
     )
     .unwrap();
-    shelf.settle(&[one.clone()]).unwrap();
+    shelf.settle(std::slice::from_ref(&one)).unwrap();
     assert_eq!(shelf.pile(), vec![two], "the reference leaves the pile");
     assert!(std::fs::metadata(&one).is_ok(), "and the file it named is still there");
 }
@@ -79,7 +79,7 @@ fn a_reference_is_added_once_and_a_folder_says_it_is_one() {
     let (dir, shelf) = shelf("shelfadd");
     let one = file(&dir, "one.txt");
     let tree = dir.dir("tree").to_string_lossy().to_string();
-    shelf.add(&[one.clone()]).unwrap();
+    shelf.add(std::slice::from_ref(&one)).unwrap();
     shelf.add(&[one.clone(), tree.clone()]).unwrap();
     assert_eq!(shelf.pile(), vec![one, tree.clone()], "the second add of a held path changes nothing");
     let text = std::fs::read_to_string(shelf.pile_file()).unwrap();
@@ -101,7 +101,7 @@ fn a_pin_rides_the_pile_entry_and_a_pinned_row_survives_its_own_move() {
     let one = file(&dir, "one.txt");
     let two = file(&dir, "two.txt");
     shelf.add(&[one.clone(), two.clone()]).unwrap();
-    shelf.pin(&[two.clone()], true).unwrap();
+    shelf.pin(std::slice::from_ref(&two), true).unwrap();
     let text = std::fs::read_to_string(shelf.pile_file()).unwrap();
     assert!(text.contains("\"pinned\": true"), "the flag rides the entry: {}", text);
     assert_eq!(shelf.pinned_among(&[one.clone(), two.clone()]), vec![two.clone()]);
@@ -118,9 +118,9 @@ fn a_pin_rides_the_pile_entry_and_a_pinned_row_survives_its_own_move() {
 fn pinning_a_path_the_shelf_is_not_holding_puts_it_on_the_shelf() {
     let (dir, shelf) = shelf("shelfpinnew");
     let one = file(&dir, "one.txt");
-    shelf.pin(&[one.clone()], true).unwrap();
+    shelf.pin(std::slice::from_ref(&one), true).unwrap();
     assert_eq!(shelf.pile(), vec![one.clone()], "Flea's own menu row pins a path the shelf never held");
-    shelf.pin(&[one.clone()], false).unwrap();
+    shelf.pin(std::slice::from_ref(&one), false).unwrap();
     assert_eq!(shelf.pile(), vec![one], "unpinning leaves the row on the shelf, loose");
     let text = std::fs::read_to_string(shelf.pile_file()).unwrap();
     assert!(text.contains("\"pinned\": false"), "{}", text);
@@ -146,7 +146,7 @@ fn order_moves_a_pin_among_the_pins_only() {
 fn order_ignores_a_path_that_is_not_pinned_and_a_place_that_is_not_there() {
     let (dir, shelf) = shelf("shelforderbad");
     let one = file(&dir, "one.txt");
-    shelf.pin(&[one.clone()], true).unwrap();
+    shelf.pin(std::slice::from_ref(&one), true).unwrap();
     shelf.order("/nowhere", 0).unwrap();
     shelf.order(&one, 9).unwrap();
     assert_eq!(shelf.pile().len(), 1);
@@ -158,7 +158,7 @@ fn order_ignores_a_path_that_is_not_pinned_and_a_place_that_is_not_there() {
 fn a_pile_that_cannot_be_parsed_is_never_written_over() {
     let (dir, shelf) = shelf("shelfbadjson");
     let one = file(&dir, "one.txt");
-    shelf.add(&[one.clone()]).unwrap();
+    shelf.add(std::slice::from_ref(&one)).unwrap();
     std::fs::write(shelf.pile_file(), b"{\"items\": [ truncated").unwrap();
     let refused = shelf.add(&[file(&dir, "two.txt")]);
     assert!(refused.is_err(), "a pile this cannot read is not an empty pile");
@@ -171,9 +171,9 @@ fn a_pile_that_cannot_be_parsed_is_never_written_over() {
 fn a_pin_can_be_taken_off_a_file_that_is_gone() {
     let (dir, shelf) = shelf("shelfghostpin");
     let one = file(&dir, "one.txt");
-    shelf.pin(&[one.clone()], true).unwrap();
+    shelf.pin(std::slice::from_ref(&one), true).unwrap();
     std::fs::remove_file(&one).unwrap();
-    shelf.pin(&[one.clone()], false).unwrap();
+    shelf.pin(std::slice::from_ref(&one), false).unwrap();
     let pinned = shelf.pinned_among(&[one]);
     assert!(pinned.is_empty(), "the pin came off, {:?}", pinned);
 }
@@ -215,7 +215,7 @@ fn an_item_that_is_not_there_is_refused_with_its_reason() {
     let (dir, shelf) = shelf("shelfaddgone");
     let gone = dir.path().join("never-written").to_string_lossy().to_string();
     let expected = format!("{} could not be read: {}", gone, reason(std::io::ErrorKind::NotFound));
-    assert_eq!(shelf.add(&[gone.clone()]).unwrap_err(), expected);
+    assert_eq!(shelf.add(std::slice::from_ref(&gone)).unwrap_err(), expected);
     assert_eq!(size_of(&gone).unwrap_err(), expected);
 }
 
