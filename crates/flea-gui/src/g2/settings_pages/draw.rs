@@ -1,5 +1,5 @@
 //! One Settings pane row per kind, as ui/SettingsRow.qml draws it at the settings boards' measures.
-use super::geometry::{self as g, Scale, CHIP_GAP, CHIP_H, GAP, MARK_SLOT, PAD_X};
+use super::geometry::{self as g, Scale, CHIP_GAP, CHIP_H, GAP, KEY_COLUMNS, MARK_SLOT, PAD_X};
 use super::marks::{mark, washed};
 use super::panel::Press;
 use super::seams::Ink;
