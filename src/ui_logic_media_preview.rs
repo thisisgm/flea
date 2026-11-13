@@ -5,6 +5,7 @@ pub mod player;
 pub mod session;
 pub mod strip;
 pub mod tonemap;
+pub mod tonemap_pace;
 pub mod transport;
 
 #[cfg(test)]
@@ -19,6 +20,15 @@ mod sound_tests;
 #[cfg(test)]
 #[path = "ui_logic_media_preview/strip_tests.rs"]
 mod strip_tests;
+#[cfg(test)]
+#[path = "ui_logic_media_preview/tonemap_fixture_tests.rs"]
+mod tonemap_fixture_tests;
+#[cfg(test)]
+#[path = "ui_logic_media_preview/tonemap_pace_tests.rs"]
+mod tonemap_pace_tests;
+#[cfg(test)]
+#[path = "ui_logic_media_preview/tonemap_step_tests.rs"]
+mod tonemap_step_tests;
 #[cfg(test)]
 #[path = "ui_logic_media_preview/tonemap_tests.rs"]
 mod tonemap_tests;

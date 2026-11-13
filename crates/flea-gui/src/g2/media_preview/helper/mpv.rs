@@ -25,7 +25,7 @@ use properties::property;
 
 #[path = "mpv_filter.rs"]
 mod filter;
-use filter::{drop_filter, moving, set_filter};
+use filter::{drop_filter, moving, pace, set_filter};
 
 #[cfg(test)]
 #[path = "mpv_tests.rs"]
@@ -43,6 +43,8 @@ const GAMMA: u64 = 8;
 const SOURCE_WIDTH: u64 = 9;
 const SOURCE_HEIGHT: u64 = 10;
 const ROTATE: u64 = 11;
+const PEAK: u64 = 12;
+const FPS: u64 = 13;
 // The clock the strip draws moves in steps no finer than this.
 const POSITION_STEP_MS: i64 = 100;
 // A frame released before the clip's size is known renders into a 2x2 RGBA scrap nobody shows.
@@ -143,6 +145,8 @@ pub fn run(
             (SOURCE_WIDTH, "video-dec-params/dw", FORMAT_INT64),
             (SOURCE_HEIGHT, "video-dec-params/dh", FORMAT_INT64),
             (ROTATE, "video-dec-params/rotate", FORMAT_INT64),
+            (PEAK, "video-dec-params/sig-peak", FORMAT_DOUBLE),
+            (FPS, "container-fps", FORMAT_DOUBLE),
         ] {
             let name = text(name);
             // SAFETY: a live handle and a NUL-terminated name.
@@ -189,6 +193,7 @@ fn play(
     loop {
         for command in commands.try_iter() {
             progress = Instant::now();
+            state.pace.restart();
             match command {
                 Command::Play => {
                     if state.transport.play() {
@@ -261,6 +266,7 @@ fn play(
                 }
                 EVENT_PLAYBACK_RESTART => {
                     progress = Instant::now();
+                    state.pace.restart();
                     if let Some(target) = state.seeking {
                         if let Some((paused, eof, at_end)) = completed_seek(api, handle, target) {
                             state.seeking = None;
@@ -275,6 +281,7 @@ fn play(
                 EVENT_PROPERTY_CHANGE => {
                     if event.userdata == PAUSE {
                         progress = Instant::now();
+                        state.pace.restart();
                     }
                     let before = (state.size, state.rotation);
                     property(api, handle, event, &mut state, out)?;
@@ -283,6 +290,7 @@ fn play(
                 _ => {}
             }
         }
+        pace(&mut state);
         if let Some(filter) = state.tonemap.update(state.box_size.0, state.box_size.1) {
             progress = Instant::now();
             set_filter(api, handle, &mut state, &filter);
@@ -322,6 +330,7 @@ fn play(
             opaque(&mut buffer);
             let pixels = state.rotation.apply(width, height, &buffer, &mut rotated);
             io(out.frame(state.size.0, state.size.1, pixels))?;
+            state.presented += 1;
             continue;
         }
         let _ = notified.recv_timeout(Duration::from_millis(10));
