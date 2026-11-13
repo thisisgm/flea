@@ -104,6 +104,7 @@ js/DragOut.js
 js/DropDev.js
 js/Dropbox.js
 js/Eject.js
+js/Encrypted.js
 js/Errors.js
 js/ExtThumbs.js
 js/Filter.js
@@ -180,4 +181,5 @@ js/UiState.js
 js/Update.js
 js/UserDirs.js
 # Re-derived for 0.4.3 with the same 180 units: js/Keymap.js grew by the Extend left and Extend right rows and their sheet mirror (+626 bytes).
-bytes 1785110
+# Re-derived for 0.4.3 with 181 units: js/Devices.js imports js/Encrypted.js, the shared encrypted-container predicate (+232 bytes), and Devices.js shrank by 67 bytes.
+bytes 1785275

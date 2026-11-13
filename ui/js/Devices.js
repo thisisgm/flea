@@ -2,6 +2,7 @@
 
 .import "Format.js" as Format
 .import "Mounts.js" as Mounts
+.import "Encrypted.js" as Encrypted
 
 // The DEVICES half of the rail: one lsblk listing turned into the rows ui/DeviceMounts.qml draws.
 // Split out of ui/js/Mounts.js, which keeps the rail's shared vocabulary and the NETWORK half; a
@@ -115,8 +116,8 @@ function hidden(n) {
     var fs = String(n.fstype || "").toLowerCase()
     if (fs === "swap" || fs.slice(-7) === "_member" || fs === "bcache" || fs === "ceph" || fs === "drbd")
         return true // H2: swap, LVM and RAID members, and other non-filesystem types.
-    if (fs.indexOf("crypto_") === 0)
-        return false // The Unlock board keeps a locked LUKS container as a row.
+    if (Encrypted.isContainer(fs))
+        return false // The Unlock board keeps a locked encrypted container as a row.
     if (isFirmwarePart(n) && !isIsohybridKeep(n))
         return true // H3: ESP, MSR, BIOS boot, WinRE GUID or MBR type, except an installer ISO part.
     if (isRecoveryLabel(n))
@@ -262,13 +263,12 @@ function isLockedNode(n) {
         return false
     if (mountOf(n).length > 0)
         return false
-    return String(n.fstype || "").toLowerCase().indexOf("crypto_") === 0
+    return Encrypted.isContainer(n.fstype)
 }
 
 // RailAdditions rule 1 gate (old lsblk without PARTTYPE): empty-fs and swap die in hidden() ahead; only crypto and efi decide here.
 function browsable(n) {
-    var fs = String(n.fstype || "").toLowerCase()
-    if (fs.indexOf("crypto_") === 0)
+    if (Encrypted.isContainer(n.fstype))
         return false
     return String(n.parttypename || "").toLowerCase().indexOf("efi") < 0
 }
@@ -417,7 +417,7 @@ function devicePath(node) {
 
 // Sample input: {"name":"sdb1","label":"Backup","fstype":"crypto_LUKS"}, a container its owner named; "" for any other node.
 function containerName(n) {
-    return String(n.fstype || "").toLowerCase().indexOf("crypto_") === 0 && n.label ? String(n.label) : ""
+    return Encrypted.isContainer(n.fstype) && n.label ? String(n.label) : ""
 }
 
 // Labelled by the filesystem label, then the drive's product name, then the kernel name; a crypt keeps its named container's.

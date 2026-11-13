@@ -103,8 +103,11 @@ pub fn naming_row<'a>(primary: &'a [RailEntry], fallback: &'a [RailEntry], devic
     locked_row(primary, device).or_else(|| locked_row(fallback, device))
 }
 
-/// The container format as the card names it: LUKS1, LUKS2, LUKS, or the crypto type uppercased.
+/// The container format as the card names it, preserving the proper name BitLocker.
 pub fn crypto_name(fstype: &str, fsver: &str) -> String {
+    if fstype.eq_ignore_ascii_case("bitlocker") {
+        return "BitLocker".into();
+    }
     if fstype.to_lowercase() == "crypto_luks" {
         return match fsver {
             "2" => "LUKS2",
