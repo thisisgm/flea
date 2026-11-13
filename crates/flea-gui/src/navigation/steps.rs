@@ -241,13 +241,18 @@ impl Navigator {
         self.reload(pane, selected)
     }
 
-    // PaneWire.qml onTransferDone: the folder a transfer finished in is read again in place, its cursor back at the top; a search keeps its rows.
-    pub fn refresh_after_transfer(&mut self, pane: &mut Pane) -> Result<bool, Refusal> {
+    // The re-read PaneWire.qml onTransferDone asks for, taken here as a watch notice due at once, so the anchored re-read keeps the cursor's file, the marks and the view, and whatever owns the rows holds the debt; a search keeps its rows.
+    pub fn refresh_after_transfer(
+        &mut self,
+        pane: &mut Pane,
+        selected: &[usize],
+        now: u64,
+    ) -> bool {
         if pane.state.search {
-            return Ok(false);
+            return false;
         }
-        let path = pane.path().to_owned();
-        self.open_without_history(pane, &path, Options::default(), None, false)
+        self.watch.owe(now);
+        self.fire_watch(pane, selected, now)
     }
 
     // The owed re-read: the anchor rides the list so its first rows hold the cursor's file.

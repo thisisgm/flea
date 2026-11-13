@@ -59,6 +59,12 @@ impl Watch {
         true
     }
 
+    // The pane's own finished write: the re-read is owed now, and it pays any notice still waiting with it.
+    pub fn owe(&mut self, now: u64) {
+        self.stale = true;
+        self.due = Some(now);
+    }
+
     // True when the owed re-read is due and nothing holds the rows; a held debt is kept, not dropped.
     pub fn fire(&mut self, now: u64, busy: bool) -> bool {
         match self.due {
