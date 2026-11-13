@@ -60,6 +60,27 @@ impl Secret {
     pub fn expose(&self) -> &[u8] {
         &self.0
     }
+
+    /// The bytes udisks gets: a BitLocker recovery key typed as Windows takes it, 48 digits among any spaces
+    /// or dashes, regrouped into the dashed form cryptsetup alone reads. Any other secret passes unchanged.
+    pub fn keyed_for(self, crypto: &str) -> Secret {
+        let digits = || self.0.iter().filter(|b| b.is_ascii_digit());
+        let key_shaped = self
+            .0
+            .iter()
+            .all(|b| b.is_ascii_digit() || *b == b'-' || b.is_ascii_whitespace());
+        if crypto != "BitLocker" || !key_shaped || digits().count() != 48 {
+            return self;
+        }
+        let mut grouped = Secret::new();
+        for (at, digit) in digits().enumerate() {
+            if at > 0 && at % 6 == 0 {
+                grouped.extend(b"-");
+            }
+            grouped.extend(std::slice::from_ref(digit));
+        }
+        grouped
+    }
 }
 
 fn wipe(bytes: &mut Vec<u8>) {

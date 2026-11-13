@@ -357,6 +357,8 @@
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.subtitle_two": "%1 · %2",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "Pasfhocal nó eochair athshlánaithe",
+  "device.unlock.wrong_bitlocker": "Níor oibrigh an pasfhocal nó an eochair athshlánaithe sin.",
   "device.unlock.button": "Díghlasáil",
   "device.menu.open": "omarchy:shell.dock.open",
   "device.menu.unlock": "Díghlasáil",

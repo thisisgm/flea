@@ -241,6 +241,8 @@
   "device.unlock.lock_failed": "%1 ayrıldı ancak kilitlenemedi; onu kullanan uygulamaları kapatın.",
   "device.unlock.mount_failed": "%1 kilidi açıldı ancak bağlanamadı.",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "Parola veya kurtarma anahtarı",
+  "device.unlock.wrong_bitlocker": "Bu parola veya kurtarma anahtarı işe yaramadı.",
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.subtitle_two": "%1 · %2",
   "device.unlock.title": "%1 kilidini aç",

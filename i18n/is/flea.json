@@ -241,6 +241,8 @@
   "device.unlock.lock_failed": "%1 var aftengt en ekki tókst að læsa því; lokaðu því sem notar það.",
   "device.unlock.mount_failed": "%1 var aflæst en ekki tókst að tengja það við skráakerfið.",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "Aðgangsorð eða endurheimtarlykill",
+  "device.unlock.wrong_bitlocker": "Þetta aðgangsorð eða endurheimtarlykill virkaði ekki.",
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.subtitle_two": "%1 · %2",
   "device.unlock.title": "Aflæsa %1",

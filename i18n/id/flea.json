@@ -405,6 +405,8 @@
   "device.unlock.failed": "Kunci %1 tidak dapat dibuka.",
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "Kata sandi atau kunci pemulihan",
+  "device.unlock.wrong_bitlocker": "Kata sandi atau kunci pemulihan itu tidak berhasil.",
   "device.unlock.button": "Buka kunci",
   "device.menu.unlock": "Buka kunci",
   "menu.row.unlock": "Buka kunci",

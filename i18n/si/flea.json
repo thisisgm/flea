@@ -241,6 +241,8 @@
   "device.unlock.lock_failed": "%1 ගලවන ලදි නමුත් අගුලු දැමිය නොහැකි විය; එය භාවිත කරන දෑ වසන්න.",
   "device.unlock.mount_failed": "%1 අගුලු හරින ලදි නමුත් සවි කළ නොහැකි විය.",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "මුරපදය හෝ ප්‍රතිසාධන යතුර",
+  "device.unlock.wrong_bitlocker": "එම මුරපදය හෝ ප්‍රතිසාධන යතුර ක්‍රියා කළේ නැත.",
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.subtitle_two": "%1 · %2",
   "device.unlock.title": "%1 අගුලු හරින්න",

@@ -261,6 +261,8 @@
   "device.unlock.lock_failed": "%1 отключён от файловой системы, но заблокировать его не удалось. Закройте программы, использующие его.",
   "device.unlock.mount_failed": "%1 разблокирован, но подключить его не удалось.",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "Пароль или ключ восстановления",
+  "device.unlock.wrong_bitlocker": "Пароль или ключ восстановления не подошёл.",
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.subtitle_two": "%1 · %2",
   "device.unlock.title": "Разблокировать %1",

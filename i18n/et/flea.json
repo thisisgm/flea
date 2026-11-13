@@ -333,6 +333,8 @@
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.subtitle_two": "%1 · %2",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "Parool või taastevõti",
+  "device.unlock.wrong_bitlocker": "See parool või taastevõti ei toiminud.",
   "device.unlock.button": "Ava lukk",
   "device.menu.open": "omarchy:shell.dock.open",
   "device.menu.unlock": "Ava lukk",

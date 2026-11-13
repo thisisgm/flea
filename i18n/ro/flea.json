@@ -251,6 +251,8 @@
   "device.unlock.lock_failed": "%1 a fost demontat, dar nu a putut fi blocat; închide aplicațiile care îl folosesc.",
   "device.unlock.mount_failed": "%1 a fost deblocat, dar nu a putut fi montat.",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "Parolă sau cheie de recuperare",
+  "device.unlock.wrong_bitlocker": "Această parolă sau cheie de recuperare nu a funcționat.",
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.subtitle_two": "%1 · %2",
   "device.unlock.title": "Deblochează %1",

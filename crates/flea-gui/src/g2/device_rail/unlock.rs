@@ -291,7 +291,7 @@ impl Card {
         self.running[Proc::Unlock as usize] = true;
         self.deadline = Some(now + self.timeout_ms);
         let mut job = Job::c_locale(unlock_argv(&self.device));
-        job.stdin = Some(self.secret.take());
+        job.stdin = Some(self.secret.take().keyed_for(&self.crypto));
         Effect::Start(Proc::Unlock, job)
     }
 

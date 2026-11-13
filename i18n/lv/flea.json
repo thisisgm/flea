@@ -251,6 +251,8 @@
   "device.unlock.lock_failed": "%1 tika atmontēts, bet to nevarēja bloķēt; aizveriet programmas, kas to izmanto.",
   "device.unlock.mount_failed": "%1 tika atbloķēts, bet to nevarēja piemontēt.",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "Parole vai atkopšanas atslēga",
+  "device.unlock.wrong_bitlocker": "Šī parole vai atkopšanas atslēga nedarbojās.",
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.subtitle_two": "%1 · %2",
   "device.unlock.title": "Atbloķēt %1",

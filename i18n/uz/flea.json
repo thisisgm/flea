@@ -241,6 +241,8 @@
   "device.unlock.lock_failed": "%1 fayl tizimidan ajratildi, lekin qulflanmadi; uni ishlatayotgan dasturni yoping.",
   "device.unlock.mount_failed": "%1 qulfi ochildi, lekin ulanmay qoldi.",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "Parol yoki tiklash kaliti",
+  "device.unlock.wrong_bitlocker": "Bu parol yoki tiklash kaliti ishlamadi.",
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.subtitle_two": "%1 · %2",
   "device.unlock.title": "%1 qulfini ochish",

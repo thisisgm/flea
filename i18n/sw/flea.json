@@ -241,6 +241,8 @@
   "device.unlock.lock_failed": "Upachikaji wa %1 umeondolewa lakini haikuweza kufungwa; funga kinachoitumia.",
   "device.unlock.mount_failed": "Kufuli ya %1 imefunguliwa lakini haikuweza kupachikwa.",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "Nenosiri au ufunguo wa urejeshaji",
+  "device.unlock.wrong_bitlocker": "Nenosiri au ufunguo huo wa urejeshaji haukufanya kazi.",
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.subtitle_two": "%1 · %2",
   "device.unlock.title": "Fungua kufuli ya %1",

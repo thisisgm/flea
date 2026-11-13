@@ -241,6 +241,8 @@
   "device.unlock.lock_failed": "%1 இறக்கப்பட்டது, ஆனால் பூட்ட முடியவில்லை; அதைப் பயன்படுத்துவதை மூடவும்.",
   "device.unlock.mount_failed": "%1 இன் பூட்டு திறக்கப்பட்டது, ஆனால் ஏற்ற முடியவில்லை.",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "கடவுச்சொல் அல்லது மீட்பு விசை",
+  "device.unlock.wrong_bitlocker": "அந்தக் கடவுச்சொல் அல்லது மீட்பு விசை வேலை செய்யவில்லை.",
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.subtitle_two": "%1 · %2",
   "device.unlock.title": "%1 இன் பூட்டைத் திற",

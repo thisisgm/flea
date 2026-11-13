@@ -325,6 +325,8 @@
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.subtitle_two": "%1 · %2",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "Kata laluan atau kunci pemulihan",
+  "device.unlock.wrong_bitlocker": "Kata laluan atau kunci pemulihan itu tidak berfungsi.",
   "device.unlock.button": "Buka kunci",
   "device.menu.open": "omarchy:shell.dock.open",
   "device.menu.unlock": "Buka kunci",

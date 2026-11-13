@@ -231,6 +231,8 @@
   "device.unlock.lock_failed": "Đã bỏ gắn kết %1 nhưng không thể khóa; hãy đóng ứng dụng đang sử dụng thiết bị.",
   "device.unlock.mount_failed": "Đã mở khóa %1 nhưng không thể gắn kết.",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "Mật khẩu hoặc khóa khôi phục",
+  "device.unlock.wrong_bitlocker": "Mật khẩu hoặc khóa khôi phục đó không đúng.",
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.subtitle_two": "%1 · %2",
   "device.unlock.title": "Mở khóa %1",

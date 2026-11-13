@@ -251,6 +251,8 @@
   "device.unlock.lock_failed": "העיגון של ⁨%1⁩ נותק, אך לא ניתן היה לנעול אותו; סגרו את מה שמשתמש בו.",
   "device.unlock.mount_failed": "הנעילה של ⁨%1⁩ בוטלה, אך לא ניתן היה לעגן אותו.",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "סיסמה או מפתח שחזור",
+  "device.unlock.wrong_bitlocker": "הסיסמה או מפתח השחזור לא עבדו.",
   "device.unlock.subtitle_three": "⁨%1⁩ · ⁨%2⁩ · ⁨%3⁩",
   "device.unlock.subtitle_two": "⁨%1⁩ · ⁨%2⁩",
   "device.unlock.title": "ביטול הנעילה של ⁨%1⁩",

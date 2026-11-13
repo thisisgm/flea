@@ -209,3 +209,25 @@ fn a_focused_primary_on_a_hued_accent_keeps_one_foreground_hairline() {
         "RING wide only where the rest frame is the foreground"
     );
 }
+
+#[test]
+fn a_bitlocker_card_asks_for_a_password_or_recovery_key() {
+    let root = Root::new("card-bitlocker");
+    let mut card = Card::new();
+    card.open_for("/dev/nvme1n1p5", "Games", 0, "BitLocker", "2");
+    let text = CardText::of(&card, &catalog(&root));
+    assert_eq!(
+        text.label, "PASSWORD OR RECOVERY KEY",
+        "BitLocker names its secrets as Windows does"
+    );
+    card.type_text("1234567");
+    card.submit(0);
+    let refused = Outcome {
+        code: 1,
+        stdout: String::new(),
+        stderr: "GDBus.Error:org.freedesktop.UDisks2.Error.Failed: x".into(),
+    };
+    card.exited(Proc::Unlock, &refused, 5);
+    let text = CardText::of(&card, &catalog(&root));
+    assert_eq!(text.note, "That password or recovery key did not work.");
+}

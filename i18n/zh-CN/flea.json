@@ -324,6 +324,8 @@
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.subtitle_two": "%1 · %2",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "密码或恢复密钥",
+  "device.unlock.wrong_bitlocker": "该密码或恢复密钥无效。",
   "device.unlock.button": "解锁",
   "device.menu.open": "omarchy:shell.dock.open",
   "device.menu.unlock": "解锁",

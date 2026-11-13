@@ -331,6 +331,8 @@
   "device.unlock.lock_failed": "%1 is afgekoppeld maar kon niet worden vergrendeld; sluit alles wat het apparaat gebruikt.",
   "device.unlock.mount_failed": "%1 is ontgrendeld maar kon niet worden aangekoppeld.",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "Wachtwoord of herstelsleutel",
+  "device.unlock.wrong_bitlocker": "Dat wachtwoord of die herstelsleutel werkte niet.",
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.title": "%1 ontgrendelen",
   "device.unlock.unlocked": "%1 ontgrendeld en aangekoppeld.",

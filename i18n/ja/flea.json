@@ -225,6 +225,8 @@
   "device.unlock.lock_failed": "%1 をアンマウントしましたが、ロックできませんでした。使用中のアプリを閉じてください。",
   "device.unlock.mount_failed": "%1 のロックを解除しましたが、マウントできませんでした。",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "パスワードまたは回復キー",
+  "device.unlock.wrong_bitlocker": "そのパスワードまたは回復キーでは解除できませんでした。",
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.subtitle_two": "%1 · %2",
   "device.unlock.title": "%1 のロックを解除",

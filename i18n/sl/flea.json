@@ -261,6 +261,8 @@
   "device.unlock.lock_failed": "%1 je odklopljen, vendar ga ni bilo mogoče zakleniti; zaprite programe, ki ga uporabljajo.",
   "device.unlock.mount_failed": "%1 je odklenjen, vendar ga ni bilo mogoče priklopiti.",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "Geslo ali obnovitveni ključ",
+  "device.unlock.wrong_bitlocker": "To geslo ali obnovitveni ključ ni deloval.",
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.subtitle_two": "%1 · %2",
   "device.unlock.title": "Odkleni %1",

@@ -261,6 +261,8 @@
   "device.unlock.lock_failed": "%1 демонтовано, але не вдалося заблокувати; закрийте програми, що його використовують.",
   "device.unlock.mount_failed": "%1 розблоковано, але не вдалося змонтувати.",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "Пароль або ключ відновлення",
+  "device.unlock.wrong_bitlocker": "Цей пароль або ключ відновлення не підійшов.",
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.subtitle_two": "%1 · %2",
   "device.unlock.title": "Розблокувати %1",

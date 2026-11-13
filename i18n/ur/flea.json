@@ -241,6 +241,8 @@
   "device.unlock.lock_failed": "⁨%1⁩ ان ماؤنٹ ہو گیا لیکن لاک نہیں ہو سکا؛ اسے استعمال کرنے والی ایپ بند کریں۔",
   "device.unlock.mount_failed": "⁨%1⁩ ان لاک ہو گیا لیکن ماؤنٹ نہیں ہو سکا۔",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "پاس ورڈ یا بازیابی کلید",
+  "device.unlock.wrong_bitlocker": "وہ پاس ورڈ یا بازیابی کلید درست نہیں۔",
   "device.unlock.subtitle_three": "⁨%1⁩ · ⁨%2⁩ · ⁨%3⁩",
   "device.unlock.subtitle_two": "⁨%1⁩ · ⁨%2⁩",
   "device.unlock.title": "⁨%1⁩ ان لاک کریں",

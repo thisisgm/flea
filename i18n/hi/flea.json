@@ -241,6 +241,8 @@
   "device.unlock.lock_failed": "%1 अनमाउंट हुआ लेकिन लॉक नहीं हो सका; इसका उपयोग करने वाले प्रोग्राम बंद करें।",
   "device.unlock.mount_failed": "%1 अनलॉक हुआ लेकिन माउंट नहीं हो सका।",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "पासवर्ड या पुनर्प्राप्ति कुंजी",
+  "device.unlock.wrong_bitlocker": "वह पासवर्ड या पुनर्प्राप्ति कुंजी काम नहीं आई।",
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.subtitle_two": "%1 · %2",
   "device.unlock.title": "%1 अनलॉक करें",

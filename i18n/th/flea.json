@@ -231,6 +231,8 @@
   "device.unlock.lock_failed": "เลิกเมานต์ %1 แล้วแต่ล็อกไม่ได้ ปิดสิ่งที่ใช้อยู่",
   "device.unlock.mount_failed": "ปลดล็อก %1 แล้วแต่เมานต์ไม่ได้",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "รหัสผ่านหรือคีย์การกู้คืน",
+  "device.unlock.wrong_bitlocker": "รหัสผ่านหรือคีย์การกู้คืนนั้นใช้ไม่ได้",
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.subtitle_two": "%1 · %2",
   "device.unlock.title": "ปลดล็อก %1",

@@ -42,16 +42,28 @@ impl CardText {
         } else {
             String::new()
         };
+        // BitLocker names its secrets as Windows does: a password, or the 48-digit recovery key.
+        let bitlocker = card.crypto == "BitLocker";
+        let label = if bitlocker {
+            catalog.tr("device.unlock.recovery_key")
+        } else {
+            catalog.tr("device.unlock.passphrase")
+        };
         Self {
             language: catalog.language().into(),
             title: say(catalog, &title(&card.label)),
             esc: "esc".into(),
             subtitle: say(catalog, &subtitle(&card.label, &size, &card.crypto)),
-            label: heading_for(&catalog.tr("device.unlock.passphrase"), catalog.language()),
+            label: heading_for(&label, catalog.language()),
             note: card
                 .note
                 .as_ref()
-                .map(|(n, _)| say(catalog, n))
+                .map(|(n, _)| match n.key {
+                    "device.unlock.wrong" if bitlocker => {
+                        catalog.tr("device.unlock.wrong_bitlocker")
+                    }
+                    _ => say(catalog, n),
+                })
                 .unwrap_or_default(),
             cancel: catalog.tr("device.unlock.cancel"),
             unlock: catalog.tr("device.unlock.button"),

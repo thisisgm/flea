@@ -251,6 +251,8 @@
   "device.unlock.lock_failed": "%1 a été démonté mais n’a pas pu être verrouillé ; fermez ce qui l’utilise.",
   "device.unlock.mount_failed": "%1 a été déverrouillé mais n’a pas pu être monté.",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "Mot de passe ou clé de récupération",
+  "device.unlock.wrong_bitlocker": "Ce mot de passe ou cette clé de récupération n’a pas fonctionné.",
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.subtitle_two": "%1 · %2",
   "device.unlock.title": "Déverrouiller %1",

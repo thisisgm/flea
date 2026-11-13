@@ -261,6 +261,8 @@
   "device.unlock.lock_failed": "Odmontowano %1, ale nie udało się go zablokować. Zamknij programy, które z niego korzystają.",
   "device.unlock.mount_failed": "Odblokowano %1, ale nie udało się go zamontować.",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "Hasło lub klucz odzyskiwania",
+  "device.unlock.wrong_bitlocker": "To hasło lub ten klucz odzyskiwania nie zadziałał.",
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.subtitle_two": "%1 · %2",
   "device.unlock.title": "Odblokuj %1",

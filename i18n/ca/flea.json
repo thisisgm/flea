@@ -251,6 +251,8 @@
   "device.unlock.lock_failed": "S'ha desmuntat %1, però no s'ha pogut bloquejar; tanca el que el fa servir.",
   "device.unlock.mount_failed": "S'ha desbloquejat %1, però no s'ha pogut muntar.",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "Contrasenya o clau de recuperació",
+  "device.unlock.wrong_bitlocker": "Aquesta contrasenya o clau de recuperació no ha funcionat.",
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.subtitle_two": "%1 · %2",
   "device.unlock.title": "Desbloqueja %1",

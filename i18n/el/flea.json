@@ -241,6 +241,8 @@
   "device.unlock.lock_failed": "Έγινε αποπροσάρτηση του %1, αλλά δεν ήταν δυνατό το κλείδωμά του. Κλείσε ό,τι το χρησιμοποιεί.",
   "device.unlock.mount_failed": "Το %1 ξεκλειδώθηκε, αλλά δεν ήταν δυνατή η προσάρτησή του.",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "Κωδικός πρόσβασης ή κλειδί αποκατάστασης",
+  "device.unlock.wrong_bitlocker": "Αυτός ο κωδικός πρόσβασης ή το κλειδί αποκατάστασης δεν λειτούργησε.",
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.subtitle_two": "%1 · %2",
   "device.unlock.title": "Ξεκλείδωμα του %1",

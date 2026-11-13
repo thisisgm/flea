@@ -403,6 +403,8 @@
   "device.unlock.failed": "%1의 잠금을 해제할 수 없습니다.",
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "암호 또는 복구 키",
+  "device.unlock.wrong_bitlocker": "암호 또는 복구 키가 맞지 않습니다.",
   "device.unlock.button": "잠금 해제",
   "device.menu.unlock": "잠금 해제",
   "menu.row.unlock": "잠금 해제",

@@ -241,6 +241,8 @@
   "device.unlock.lock_failed": "⁨%1⁩ پیاده شد، اما قفل نشد؛ برنامه‌ای را که از آن استفاده می‌کند ببندید.",
   "device.unlock.mount_failed": "قفل ⁨%1⁩ باز شد، اما سوار کردن آن ممکن نشد.",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "گذرواژه یا کلید بازیابی",
+  "device.unlock.wrong_bitlocker": "آن گذرواژه یا کلید بازیابی کار نکرد.",
   "device.unlock.subtitle_three": "⁨%1⁩ · ⁨%2⁩ · ⁨%3⁩",
   "device.unlock.subtitle_two": "⁨%1⁩ · ⁨%2⁩",
   "device.unlock.title": "باز کردن قفل ⁨%1⁩",

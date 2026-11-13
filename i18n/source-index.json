@@ -1,9 +1,9 @@
 {
-  "catalog_file_sha256": "37e8c290fbf78ccaff1c5d4010338d438b1759f233fbaba38b6ee5abc569e5a8",
-  "catalog_sha256": "22177ad724b68468d4dc1fdde0c59fc26e61a05d67c10502269316c0afd09345",
+  "catalog_file_sha256": "460a610aef5c1c5bb63b6c2d3de3234100e70c3e3a08c21024650365ae2ef633",
+  "catalog_sha256": "5269b1d10d68f4d6a224f9dc390a1e2fe1aecb0223c1fe6759692c2edb8df7d4",
   "counts": {
     "direct_references": 0,
-    "keys": 2325,
+    "keys": 2327,
     "plurals": 114
   },
   "direct_references": {},
@@ -23431,7 +23431,7 @@
       "call_sites": [
         {
           "excerpt": "\"device.blocked\",",
-          "line": 187,
+          "line": 189,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -23734,7 +23734,7 @@
       "call_sites": [
         {
           "excerpt": "(\"device.menu.eject\", \"Eject\"),",
-          "line": 181,
+          "line": 183,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -23763,7 +23763,7 @@
       "call_sites": [
         {
           "excerpt": "(\"device.menu.flash_image\", \"Flash Image\"),",
-          "line": 182,
+          "line": 184,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -23792,7 +23792,7 @@
       "call_sites": [
         {
           "excerpt": "(\"device.menu.mount\", \"Mount\"),",
-          "line": 179,
+          "line": 181,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -23828,7 +23828,7 @@
         },
         {
           "excerpt": "(\"device.menu.open\", \"Open\"),",
-          "line": 177,
+          "line": 179,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -23857,7 +23857,7 @@
       "call_sites": [
         {
           "excerpt": "(\"device.menu.unlock\", \"Unlock\"),",
-          "line": 178,
+          "line": 180,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -23893,7 +23893,7 @@
         },
         {
           "excerpt": "(\"device.menu.unmount\", \"Unmount\"),",
-          "line": 180,
+          "line": 182,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -24570,14 +24570,14 @@
       "call_sites": [
         {
           "excerpt": "unlock: catalog.tr(\"device.unlock.button\"),",
-          "line": 57,
+          "line": 69,
           "path": "crates/flea-gui/src/g2/device_rail/card.rs",
           "surface": "gui",
           "usage": "translated-call"
         },
         {
           "excerpt": "(\"device.unlock.button\", \"Unlock\"),",
-          "line": 175,
+          "line": 177,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -24599,14 +24599,14 @@
       "call_sites": [
         {
           "excerpt": "cancel: catalog.tr(\"device.unlock.cancel\"),",
-          "line": 56,
+          "line": 68,
           "path": "crates/flea-gui/src/g2/device_rail/card.rs",
           "surface": "gui",
           "usage": "translated-call"
         },
         {
           "excerpt": "(\"device.unlock.cancel\", \"Cancel\"),",
-          "line": 176,
+          "line": 178,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -24720,7 +24720,7 @@
     "device.unlock.passphrase": {
       "call_sites": [
         {
-          "excerpt": "label: heading_for(&catalog.tr(\"device.unlock.passphrase\"), catalog.language()),",
+          "excerpt": "catalog.tr(\"device.unlock.passphrase\")",
           "line": 50,
           "path": "crates/flea-gui/src/g2/device_rail/card.rs",
           "surface": "gui",
@@ -24746,6 +24746,35 @@
       "resolved_source_hash": "e7611f0537df",
       "source_hash": "4d03a13c7c39"
     },
+    "device.unlock.recovery_key": {
+      "call_sites": [
+        {
+          "excerpt": "catalog.tr(\"device.unlock.recovery_key\")",
+          "line": 48,
+          "path": "crates/flea-gui/src/g2/device_rail/card.rs",
+          "surface": "gui",
+          "usage": "translated-call"
+        },
+        {
+          "excerpt": "(\"device.unlock.recovery_key\", \"Password or recovery key\"),",
+          "line": 175,
+          "path": "src/ui_logic_device_rail.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "device.unlock.recovery_key: crates/flea-gui/src/g2/device_rail/card.rs:48",
+      "coverage": "existing-translated-call",
+      "english": "Password or recovery key",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "Password or recovery key",
+      "resolved_sha256": "ce67bb629dc6463bc8d9a2e240944007f5add320f1587d2073e2c76ec76c77f1",
+      "resolved_source_hash": "7737c46ec11e",
+      "source_hash": "7737c46ec11e"
+    },
     "device.unlock.subtitle_three": {
       "call_sites": [
         {
@@ -24757,7 +24786,7 @@
         },
         {
           "excerpt": "(false, false) => Note::new(\"device.unlock.subtitle_three\", &[label, size_text, crypto]),",
-          "line": 124,
+          "line": 127,
           "path": "src/ui_logic_device_rail/unlock.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -24790,14 +24819,14 @@
         },
         {
           "excerpt": "(false, true) => Note::new(\"device.unlock.subtitle_two\", &[label, size_text]),",
-          "line": 125,
+          "line": 128,
           "path": "src/ui_logic_device_rail/unlock.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
         },
         {
           "excerpt": "(true, false) => Note::new(\"device.unlock.subtitle_two\", &[label, crypto]),",
-          "line": 126,
+          "line": 129,
           "path": "src/ui_logic_device_rail/unlock.rs",
           "surface": "core/backend",
           "usage": "key-declaration"
@@ -24914,6 +24943,13 @@
     "device.unlock.wrong": {
       "call_sites": [
         {
+          "excerpt": "\"device.unlock.wrong\" if bitlocker => {",
+          "line": 62,
+          "path": "crates/flea-gui/src/g2/device_rail/card.rs",
+          "surface": "gui",
+          "usage": "key-declaration"
+        },
+        {
           "excerpt": "(\"device.unlock.wrong\", \"That passphrase did not work. Check Caps Lock.\"),",
           "line": 167,
           "path": "src/ui_logic_device_rail.rs",
@@ -24939,6 +24975,35 @@
       "resolved_sha256": "19c343a42036b8a2a718c05891098ef3c0148c1b694cdb3893f2d53e5eef5474",
       "resolved_source_hash": "5d8da1b2fc6d",
       "source_hash": "5d8da1b2fc6d"
+    },
+    "device.unlock.wrong_bitlocker": {
+      "call_sites": [
+        {
+          "excerpt": "catalog.tr(\"device.unlock.wrong_bitlocker\")",
+          "line": 63,
+          "path": "crates/flea-gui/src/g2/device_rail/card.rs",
+          "surface": "gui",
+          "usage": "translated-call"
+        },
+        {
+          "excerpt": "(\"device.unlock.wrong_bitlocker\", \"That password or recovery key did not work.\"),",
+          "line": 176,
+          "path": "src/ui_logic_device_rail.rs",
+          "surface": "core/backend",
+          "usage": "key-declaration"
+        }
+      ],
+      "context": "device.unlock.wrong_bitlocker: crates/flea-gui/src/g2/device_rail/card.rs:62",
+      "coverage": "existing-translated-call",
+      "english": "That password or recovery key did not work.",
+      "kind": "text",
+      "omarchy_reference": null,
+      "placeholders": [],
+      "plural_categories": [],
+      "resolved_english": "That password or recovery key did not work.",
+      "resolved_sha256": "e3a6ddbf8a3ac0e82a6da07f6e80a9ad408efb5fe6b52ce991961720d067e55d",
+      "resolved_source_hash": "2dbd5c00eedb",
+      "source_hash": "2dbd5c00eedb"
     },
     "device.unmount_failed": {
       "call_sites": [
@@ -114904,7 +114969,7 @@
     },
     {
       "excerpt": "esc: \"esc\".into(),",
-      "line": 48,
+      "line": 55,
       "literal": "esc",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/device_rail/card.rs",
@@ -183105,8 +183170,26 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "(\"device.unlock.button\", \"Unlock\"),",
+      "excerpt": "(\"device.unlock.recovery_key\", \"Password or recovery key\"),",
       "line": 175,
+      "literal": "Password or recovery key",
+      "owner": "controller",
+      "path": "src/ui_logic_device_rail.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "(\"device.unlock.wrong_bitlocker\", \"That password or recovery key did not work.\"),",
+      "line": 176,
+      "literal": "That password or recovery key did not work.",
+      "owner": "controller",
+      "path": "src/ui_logic_device_rail.rs",
+      "reason": "untranslated-literal-candidate-needs-owner-verification",
+      "surface": "core/backend"
+    },
+    {
+      "excerpt": "(\"device.unlock.button\", \"Unlock\"),",
+      "line": 177,
       "literal": "Unlock",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -183115,7 +183198,7 @@
     },
     {
       "excerpt": "(\"device.unlock.cancel\", \"Cancel\"),",
-      "line": 176,
+      "line": 178,
       "literal": "Cancel",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -183124,7 +183207,7 @@
     },
     {
       "excerpt": "(\"device.menu.open\", \"Open\"),",
-      "line": 177,
+      "line": 179,
       "literal": "Open",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -183133,7 +183216,7 @@
     },
     {
       "excerpt": "(\"device.menu.unlock\", \"Unlock\"),",
-      "line": 178,
+      "line": 180,
       "literal": "Unlock",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -183142,7 +183225,7 @@
     },
     {
       "excerpt": "(\"device.menu.mount\", \"Mount\"),",
-      "line": 179,
+      "line": 181,
       "literal": "Mount",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -183151,7 +183234,7 @@
     },
     {
       "excerpt": "(\"device.menu.unmount\", \"Unmount\"),",
-      "line": 180,
+      "line": 182,
       "literal": "Unmount",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -183160,7 +183243,7 @@
     },
     {
       "excerpt": "(\"device.menu.eject\", \"Eject\"),",
-      "line": 181,
+      "line": 183,
       "literal": "Eject",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -183169,7 +183252,7 @@
     },
     {
       "excerpt": "(\"device.menu.flash_image\", \"Flash Image\"),",
-      "line": 182,
+      "line": 184,
       "literal": "Flash Image",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -183178,7 +183261,7 @@
     },
     {
       "excerpt": "\"%2 could not be ejected because %3 on the same drive is still mounted. Eject that instead.\",",
-      "line": 188,
+      "line": 190,
       "literal": "%2 could not be ejected because %3 on the same drive is still mounted. Eject that instead.",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -183187,7 +183270,7 @@
     },
     {
       "excerpt": "\"%2 could not be ejected because %3 on the same drive are still mounted. Eject those instead.\",",
-      "line": 189,
+      "line": 191,
       "literal": "%2 could not be ejected because %3 on the same drive are still mounted. Eject those instead.",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
@@ -183484,7 +183567,7 @@
     },
     {
       "excerpt": "\"2\" => \"LUKS2\",",
-      "line": 110,
+      "line": 113,
       "literal": "2",
       "owner": "controller",
       "path": "src/ui_logic_device_rail/unlock.rs",
@@ -253648,7 +253731,7 @@
     },
     {
       "excerpt": "if (String(fsver || \"\") === \"2\")",
-      "line": 99,
+      "line": 101,
       "literal": "2",
       "owner": "controller",
       "path": "ui/js/Unlock.js",
@@ -253657,7 +253740,7 @@
     },
     {
       "excerpt": "return \"%1 · %2 · %3\".arg(name).arg(size).arg(kind)",
-      "line": 115,
+      "line": 117,
       "literal": "%1 · %2 · %3",
       "owner": "controller",
       "path": "ui/js/Unlock.js",
@@ -253666,7 +253749,7 @@
     },
     {
       "excerpt": "return \"%1 · %2\".arg(name).arg(size)",
-      "line": 117,
+      "line": 119,
       "literal": "%1 · %2",
       "owner": "controller",
       "path": "ui/js/Unlock.js",
@@ -253675,7 +253758,7 @@
     },
     {
       "excerpt": "return \"%1 · %2\".arg(name).arg(kind)",
-      "line": 119,
+      "line": 121,
       "literal": "%1 · %2",
       "owner": "controller",
       "path": "ui/js/Unlock.js",
@@ -254059,7 +254142,7 @@
     "crates/flea-gui/src/g2/custom_actions/launch.rs": "0fc60b13efaa5db540a7c29268fe98ef9824764e6859c1c05662933626b14830",
     "crates/flea-gui/src/g2/custom_actions/mod.rs": "95143fcf3d0f2561fc17eaef87b98f06cecf6e3ab008dc41c806f2f93d357563",
     "crates/flea-gui/src/g2/custom_actions/model.rs": "10aa6624e54cbd44f69b2bd18aae63437cc406c8abc0451bf58dc63128c06609",
-    "crates/flea-gui/src/g2/device_rail/card.rs": "a1dc65bff99fe99679da6ca240ed652e8226f4adbcc59f326c89a7ebd12c3ec0",
+    "crates/flea-gui/src/g2/device_rail/card.rs": "96a9bf1acfb8362470665f1881b5e07faaa852435848e70129e82d29a4a55b20",
     "crates/flea-gui/src/g2/device_rail/devices.rs": "77ec15f312dc2ea9dcf53a00d9a6f3050dfa864e096b0510212db5ecc1218d20",
     "crates/flea-gui/src/g2/device_rail/eject.rs": "abc6218f02ebf9eaf6d81baffa119bba0d083b9c2d341d238f838673b0adeaa0",
     "crates/flea-gui/src/g2/device_rail/field.rs": "08e40140c43f8a6f4927514b8a1262caac7619b545279069ae2e1e2c2ac2314c",
@@ -254070,7 +254153,7 @@
     "crates/flea-gui/src/g2/device_rail/listing.rs": "73f2138875770049a9a37239b90bd165161887b9d2cd85f7594b9c9ce1f2a9d3",
     "crates/flea-gui/src/g2/device_rail/lock.rs": "df71bd5e140bbe4afb66292d26fdd2377469c2797a17d2edd3f97fe43695583d",
     "crates/flea-gui/src/g2/device_rail/mark.rs": "edbdad7eab5211945c43bfacb33ddbce6de3c2fa7d0efd6acf7c925437a3df2a",
-    "crates/flea-gui/src/g2/device_rail/mod.rs": "2b18670ce579e4e170f8dcf02ff3f2b8e6c785e904f88b9a0bcceb399b5b1ce5",
+    "crates/flea-gui/src/g2/device_rail/mod.rs": "c4d426a74fe97d21c387a0619c0075ccbe4807e5a79ef8951f0a2ae13603a760",
     "crates/flea-gui/src/g2/device_rail/phones.rs": "4284b292c378de0d13c197a2f2884e0e938f52e30303fedf9c7d862964afcbcd",
     "crates/flea-gui/src/g2/device_rail/private_entry.rs": "c28bd583b13b6e362f12b419bbaa12f805b56f698176ebfac543897b8bc5e7a2",
     "crates/flea-gui/src/g2/device_rail/probes.rs": "8a1f3ea97e464062e839eadf102486912c71541a5f3a77fce1a2cbacb19e1a00",
@@ -254079,13 +254162,13 @@
     "crates/flea-gui/src/g2/device_rail/process_io.rs": "e5c9e991588e06fb78679cbc671c062e3aac05414f67b30535ab7f8c578528ad",
     "crates/flea-gui/src/g2/device_rail/rail_events.rs": "c5e7e13aa618637991a121965f7e1cc73182acb7e7433815312820ccae907b2d",
     "crates/flea-gui/src/g2/device_rail/seams.rs": "6e0210c27d4bf100d60a78d3ce59d63bd3c7a8fe9aa73a76f24c84d5f308ec64",
-    "crates/flea-gui/src/g2/device_rail/secret.rs": "2b8f8bcc0ff7b71adec2fa5ff09a203ff0b021947f6fc949d853a0185a59c30e",
+    "crates/flea-gui/src/g2/device_rail/secret.rs": "4ee5aaa1ce57bd31bcdb8f885a46f62c3c558235b7cd92e62d32642c6622a702",
     "crates/flea-gui/src/g2/device_rail/source.rs": "3e6deda408d6f328713dbbf0ffbc6176bc1f98d8dda0f32f9d641c37712aa5b3",
     "crates/flea-gui/src/g2/device_rail/source_fixture.rs": "5b8537e7ded65855c17810a2e249d89c6c3e3975b39ce085e6c96ef26baf000c",
     "crates/flea-gui/src/g2/device_rail/source_jobs.rs": "b4048b655f791ec7c278fd584cf6c5a40728c16d1c17b417102e82a01a2bc20a",
     "crates/flea-gui/src/g2/device_rail/source_release.rs": "5d142619f0f6389806714eac72117f57358584a19cc9f6a95109266d9aa11012",
     "crates/flea-gui/src/g2/device_rail/source_seed.rs": "fca9b89c5fd01eb2d43ddd1c43c116351d83ffb982fa0844777b61e9f4182e81",
-    "crates/flea-gui/src/g2/device_rail/unlock.rs": "d5fc78da1cdcc0b8dd0f45b7aeb1c7068fd31f3f21af0311870cb6e0ff4ce44e",
+    "crates/flea-gui/src/g2/device_rail/unlock.rs": "ec431510c51a6951630cd9967c9a4f6a121b8a2fe8a7553bc8d947668f413fb4",
     "crates/flea-gui/src/g2/device_rail/view.rs": "c5c6ec693e7eb479fda90f67844960ed12951a30851d84f9ef9a74d93e6b43eb",
     "crates/flea-gui/src/g2/device_rail/view_reading.rs": "49d249dce9fd593a32c85518f7c1554c17a218afafbb85ebee144d838cc3ab1d",
     "crates/flea-gui/src/g2/device_rail/words.rs": "e88e7901fe274f976b06cde44c4b8d455a0a547e16a2767ed4bbde0b1a30b96e",
@@ -255775,8 +255858,8 @@
     "src/ui_logic_custom_actions/rows.rs": "d02e7f3b57a845867cc05498ab4d0894287276edd127fcc2f047edc088c6b3d8",
     "src/ui_logic_custom_actions/scripts.rs": "a68e9d879831a81abe155f5b4da59374a6e1027083651fc4c43ef2ec0181cc8a",
     "src/ui_logic_custom_actions/wire.rs": "009e0a5f7434abfe5a0044fbb2cac04be483d0936700ff14603175283019e87f",
-    "src/ui_logic_device_rail.rs": "670d52a8faf4a833442c6913b483d19b4a1a09310518ec068d1983da179a8d64",
-    "src/ui_logic_device_rail/devices.rs": "e26b2eae31714e944843dc2d86be5146b2a54653cf3dbf14663f063c3d3c4665",
+    "src/ui_logic_device_rail.rs": "e1a3acd215568498e0e5ff036df584a9ea1bb35d114116f62f06f35157bec8f7",
+    "src/ui_logic_device_rail/devices.rs": "1326e32d325ad6a58840e71d85a634451fd5a9c14f6092135865f0479e614057",
     "src/ui_logic_device_rail/eject.rs": "97b14f8861f2718f0692c45a7f3ddb7be3f5debec5b2b9c8d0cb8409a0ab1911",
     "src/ui_logic_device_rail/lsblk.rs": "af0eafca7db0afe3d98e7af8705557ac8aa414f3c2a919fa78f271fdec7a98f4",
     "src/ui_logic_device_rail/menu.rs": "13b8ce11ba1d19322bf3e5cd35867164715c000e38ad92151bf39a53715a62de",
@@ -255785,7 +255868,7 @@
     "src/ui_logic_device_rail/power.rs": "27a242472f5130aba6aa7cceea3ff3dcdbfe9bc2c4d9a830d2570256c1b514a6",
     "src/ui_logic_device_rail/protocols.rs": "cba14ac4983909e58fcd5ced5011e1c5e482e2196ae5b8fcc7b052ff9b970ccd",
     "src/ui_logic_device_rail/rail.rs": "c86cf23f41d931edf4775fb4b33b27038b8aa24d8f6eeb0af70e90e31e62f0bb",
-    "src/ui_logic_device_rail/unlock.rs": "086294f9f36e748b664714c0ea67e378b069065ec2d58ae0e19a7f809976a7cd",
+    "src/ui_logic_device_rail/unlock.rs": "f21750852455e0832117ad6e8d859d851b291e42207710fc66af05fb23c34c87",
     "src/ui_logic_doc_preview.rs": "7adbd368eb3c001dd33b9b24389b403aff23af81296e7f1a499584204b210d46",
     "src/ui_logic_doc_preview/archive.rs": "5f672f75c032ddbf34740d56cd87a39b0cf98ea14dd15abce2a1ac97e3588241",
     "src/ui_logic_doc_preview/code.rs": "500687d2b9b03eb11442906919e98bb48ac7693789908ad3078b870ba287e7f0",
@@ -256530,7 +256613,7 @@
     "ui/js/Crumbs.js": "bce0f6b3e3e35e344ca0da9a5367c98cf9d28dd15f97099dccfd2be616653410",
     "ui/js/Csv.js": "b68d0eaee519197c99049d8460499d98eda7dd344f33a9143f6c95ce352bb40b",
     "ui/js/Density.js": "7833f41f21a57607061a0e9318c00115036a7f17cb886d3c71e3a790e35738aa",
-    "ui/js/Devices.js": "d79fc0bcecac797e3626356d8731ef24296b937eb39308d5a41eafc4e82db314",
+    "ui/js/Devices.js": "0129cbf059bf2704ee21a9a77729510cf6817ef03847113b8b7bcbfe3ba91b32",
     "ui/js/DirSizes.js": "0e8ef68f443bfa0055296a4a48d860b4180cbd4760b43de3b40680dd8f50fc18",
     "ui/js/Drag.js": "b7cb6d5d2eca3d171d0678fac5065c1d226056ab1fd9aeaa27231645c612e9f3",
     "ui/js/DragOut.js": "32310d10864547fbc1b2acb4fc3fc55a6416c226e4005ba9d23cd969e6d6647a",
@@ -256671,17 +256754,17 @@
     "ui/js/TrashDates.js": "d7346da3323be212ed6d90aacb7e058c4d479ce27aae041e41b24c1ca6819e46",
     "ui/js/TrashDrop.js": "ab05a8d8f8d7dfd37b137358e832734041ef12389a943a002be5ac6249dd8085",
     "ui/js/UiState.js": "5aba9267e12e952d151657095342168b16b148601e6f0462c3ecafd02186cc39",
-    "ui/js/Unlock.js": "ba600b1dec83f99b16fe0acbe5e364ac41407aacd03e9426cefe0b69b39c17ad",
+    "ui/js/Unlock.js": "7482384f1a63b43f2fa8e61240decf1d5aedd1fbe526656d07b7aa6e9139869c",
     "ui/js/Update.js": "fa8f12147afb77b5e36b59a6a4480fe813f2d027c5859dc54e61f23b189b204e",
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
   "source_ref_sha": "a8d0e86e7452abbe25fc50c90fe8067bf8f55164",
-  "source_sha": "a8d0e86e7452abbe25fc50c90fe8067bf8f55164",
+  "source_sha": "acdce7058b5ad68244f6e984f1980b8d1997899b",
   "surface_coverage": {
     "core/backend": {
-      "keys_with_occurrences": 1377,
-      "missing_literal_candidates": 5772,
+      "keys_with_occurrences": 1379,
+      "missing_literal_candidates": 5774,
       "source_files": 882
     },
     "generated/tooling": {
@@ -256690,7 +256773,7 @@
       "source_files": 161
     },
     "gui": {
-      "keys_with_occurrences": 566,
+      "keys_with_occurrences": 569,
       "missing_literal_candidates": 2310,
       "source_files": 1212
     },

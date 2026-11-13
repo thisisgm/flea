@@ -241,6 +241,8 @@
   "device.unlock.lock_failed": "Na-unmount ang %1 pero hindi ma-lock; isara ang gumagamit dito.",
   "device.unlock.mount_failed": "Na-unlock ang %1 pero hindi ma-mount.",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "Password o recovery key",
+  "device.unlock.wrong_bitlocker": "Hindi gumana ang password o recovery key na iyon.",
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.subtitle_two": "%1 · %2",
   "device.unlock.title": "I-unlock ang %1",

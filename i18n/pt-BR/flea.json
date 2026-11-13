@@ -251,6 +251,8 @@
   "device.unlock.lock_failed": "%1 foi desmontado, mas não foi possível bloqueá-lo; feche o que está usando o volume.",
   "device.unlock.mount_failed": "%1 foi desbloqueado, mas não foi possível montá-lo.",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "Senha ou chave de recuperação",
+  "device.unlock.wrong_bitlocker": "Essa senha ou chave de recuperação não funcionou.",
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.subtitle_two": "%1 · %2",
   "device.unlock.title": "Desbloquear %1",

@@ -251,6 +251,8 @@
   "device.unlock.lock_failed": "%1 je odmontirano, ali ga nije moguće zaključati; zatvorite sve što ga koristi.",
   "device.unlock.mount_failed": "%1 je otključano, ali ga nije moguće montirati.",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "Lozinka ili ključ za oporavak",
+  "device.unlock.wrong_bitlocker": "Ta lozinka ili ključ za oporavak nije uspio.",
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.subtitle_two": "%1 · %2",
   "device.unlock.title": "Otključaj %1",

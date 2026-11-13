@@ -281,6 +281,8 @@
   "device.unlock.lock_failed": "فُصل ⁨%1⁩ لكن تعذّر قفله؛ أغلق ما يستخدمه.",
   "device.unlock.mount_failed": "فُتح قفل ⁨%1⁩ لكن تعذّر وصله.",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "كلمة المرور أو مفتاح الاسترداد",
+  "device.unlock.wrong_bitlocker": "لم تنجح كلمة المرور أو مفتاح الاسترداد ذلك.",
   "device.unlock.subtitle_three": "⁨%1⁩ · ⁨%2⁩ · ⁨%3⁩",
   "device.unlock.subtitle_two": "⁨%1⁩ · ⁨%2⁩",
   "device.unlock.title": "فتح قفل ⁨%1⁩",

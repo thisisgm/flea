@@ -172,6 +172,8 @@ pub const ENGLISH: &[(&str, &str)] = &[
     ("device.unlock.subtitle_three", "%1 · %2 · %3"),
     ("device.unlock.subtitle_two", "%1 · %2"),
     ("device.unlock.passphrase", "Passphrase"),
+    ("device.unlock.recovery_key", "Password or recovery key"),
+    ("device.unlock.wrong_bitlocker", "That password or recovery key did not work."),
     ("device.unlock.button", "Unlock"),
     ("device.unlock.cancel", "Cancel"),
     ("device.menu.open", "Open"),

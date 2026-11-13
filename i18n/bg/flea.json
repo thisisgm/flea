@@ -241,6 +241,8 @@
   "device.unlock.lock_failed": "%1 бе демонтирано, но не може да бъде заключено. Затвори това, което го използва.",
   "device.unlock.mount_failed": "%1 бе отключено, но не може да бъде монтирано.",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "Парола или ключ за възстановяване",
+  "device.unlock.wrong_bitlocker": "Тази парола или ключ за възстановяване не сработи.",
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.subtitle_two": "%1 · %2",
   "device.unlock.title": "Отключи %1",

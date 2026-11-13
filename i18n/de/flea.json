@@ -333,6 +333,8 @@
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.subtitle_two": "%1 · %2",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "Kennwort oder Wiederherstellungsschlüssel",
+  "device.unlock.wrong_bitlocker": "Dieses Kennwort bzw. dieser Wiederherstellungsschlüssel hat nicht funktioniert.",
   "device.unlock.button": "Entsperren",
   "device.menu.open": "omarchy:shell.dock.open",
   "device.menu.unlock": "Entsperren",

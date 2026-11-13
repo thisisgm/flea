@@ -251,6 +251,8 @@
   "device.unlock.lock_failed": "%1 è stato smontato ma non bloccato; chiudi ciò che lo sta usando.",
   "device.unlock.mount_failed": "%1 è stato sbloccato ma non montato.",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "Password o chiave di ripristino",
+  "device.unlock.wrong_bitlocker": "Questa password o chiave di ripristino non ha funzionato.",
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.subtitle_two": "%1 · %2",
   "device.unlock.title": "Sblocca %1",

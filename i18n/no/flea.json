@@ -241,6 +241,8 @@
   "device.unlock.lock_failed": "%1 ble avmontert, men kunne ikke låses. Lukk det som bruker den.",
   "device.unlock.mount_failed": "%1 ble låst opp, men kunne ikke monteres.",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "Passord eller gjenopprettingsnøkkel",
+  "device.unlock.wrong_bitlocker": "Passordet eller gjenopprettingsnøkkelen fungerte ikke.",
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.subtitle_two": "%1 · %2",
   "device.unlock.title": "Lås opp %1",

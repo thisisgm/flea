@@ -251,6 +251,8 @@
   "device.unlock.lock_failed": "%1 atjungtas nuo failų sistemos, bet nepavyko jo užrakinti. Uždarykite tai, kas jį naudoja.",
   "device.unlock.mount_failed": "%1 atrakintas, bet nepavyko jo prijungti.",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "Slaptažodis arba atkūrimo raktas",
+  "device.unlock.wrong_bitlocker": "Šis slaptažodis arba atkūrimo raktas netiko.",
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.subtitle_two": "%1 · %2",
   "device.unlock.title": "Atrakinti %1",

@@ -241,6 +241,8 @@
   "device.unlock.lock_failed": "Kohteen %1 liitos irrotettiin, mutta sitä ei voitu lukita. Sulje sitä käyttävä ohjelma.",
   "device.unlock.mount_failed": "Kohteen %1 lukitus avattiin, mutta sitä ei voitu liittää.",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "Salasana tai palautusavain",
+  "device.unlock.wrong_bitlocker": "Salasana tai palautusavain ei toiminut.",
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.subtitle_two": "%1 · %2",
   "device.unlock.title": "Avaa kohteen %1 lukitus",

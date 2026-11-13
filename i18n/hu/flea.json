@@ -333,6 +333,8 @@
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.subtitle_two": "%1 · %2",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "Jelszó vagy helyreállítási kulcs",
+  "device.unlock.wrong_bitlocker": "Ez a jelszó vagy helyreállítási kulcs nem működött.",
   "device.unlock.button": "Feloldás",
   "device.menu.open": "omarchy:shell.dock.open",
   "device.menu.unlock": "Feloldás",

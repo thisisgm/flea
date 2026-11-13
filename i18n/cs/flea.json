@@ -251,6 +251,8 @@
   "device.unlock.lock_failed": "%1 bylo odpojeno, ale nelze ho zamknout. Zavřete vše, co zařízení používá.",
   "device.unlock.mount_failed": "%1 bylo odemčeno, ale nelze ho připojit.",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "Heslo nebo obnovovací klíč",
+  "device.unlock.wrong_bitlocker": "Toto heslo nebo obnovovací klíč nefunguje.",
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.subtitle_two": "%1 · %2",
   "device.unlock.title": "Odemknout %1",

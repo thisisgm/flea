@@ -231,6 +231,8 @@
   "device.unlock.lock_failed": "%1 已卸載，但無法鎖定；請關閉使用它的程式。",
   "device.unlock.mount_failed": "%1 已解鎖，但無法掛載。",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "密碼或修復金鑰",
+  "device.unlock.wrong_bitlocker": "密碼或修復金鑰不正確。",
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.subtitle_two": "%1 · %2",
   "device.unlock.title": "解鎖 %1",

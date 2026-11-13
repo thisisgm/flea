@@ -241,6 +241,8 @@
   "device.unlock.lock_failed": "%1 আনমাউন্ট হয়েছে তবে লক করা যায়নি; এটি ব্যবহার করছে এমন অ্যাপ বন্ধ করুন।",
   "device.unlock.mount_failed": "%1 আনলক হয়েছে তবে মাউন্ট করা যায়নি।",
   "device.unlock.passphrase": "omarchy:shell.network.passphrase",
+  "device.unlock.recovery_key": "পাসওয়ার্ড বা পুনরুদ্ধার কী",
+  "device.unlock.wrong_bitlocker": "ওই পাসওয়ার্ড বা পুনরুদ্ধার কী কাজ করেনি।",
   "device.unlock.subtitle_three": "%1 · %2 · %3",
   "device.unlock.subtitle_two": "%1 · %2",
   "device.unlock.title": "%1 আনলক করুন",
