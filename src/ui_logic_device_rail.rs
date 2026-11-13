@@ -1,6 +1,7 @@
 //! Device, phone and unlock rules for the DEVICES rail, shared by every front end; no I/O here.
 pub mod devices;
 pub mod eject;
+pub mod encrypted;
 pub mod lsblk;
 pub mod menu;
 pub mod mounts;
@@ -30,6 +31,8 @@ mod release_tests;
 mod unlock_tests;
 #[cfg(test)]
 mod unlock_b_tests;
+#[cfg(test)]
+mod bitlocker_tests;
 
 /// Which rail section a row sits in.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
