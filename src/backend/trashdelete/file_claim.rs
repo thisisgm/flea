@@ -183,9 +183,9 @@ impl FileClaim {
     }
 
     pub(super) fn unchanged(&self) -> bool {
-        self.original.as_ref().map_or(true, |original| {
-            location(&self.held).ok().as_ref() == Some(original)
-        })
+        self.original
+            .as_ref()
+            .is_none_or(|original| location(&self.held).ok().as_ref() == Some(original))
     }
 
     pub(super) fn remove(self, quarantine: &File) -> Result<(), Refusal> {
