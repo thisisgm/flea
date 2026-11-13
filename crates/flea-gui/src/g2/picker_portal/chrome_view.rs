@@ -119,7 +119,7 @@ impl Render for ChromeView {
                     .min_w_0()
                     .h_full()
                     .debug_selector(|| "picker-path-slot".into())
-                    // Capture runs before the strip's breadcrumb press, so one click opens the entry instead of navigating.
+                    // Capture runs before the strip's own press, so the picker decides: a parent crumb navigates, any other click opens the entry.
                     .capture_any_mouse_down(move |event, window, cx| {
                         picker.update(cx, |picker, cx| picker.path_press(event, window, cx));
                     })

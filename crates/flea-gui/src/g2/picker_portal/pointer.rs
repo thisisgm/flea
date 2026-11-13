@@ -95,6 +95,16 @@ impl Picker {
         if path.read(cx).editing() {
             return;
         }
+        // With a breadcrumb address bar a parent crumb opens its folder, as the main window's strip does (issue 354); every other press opens the entry.
+        if self.preferences.followed.address == super::settings::Address::Crumbs {
+            let tap = path.update(cx, |path, _| path.tap_at(0, event));
+            if let crate::path::strip::Tap::Open(folder) = tap {
+                window.focus(&self.focus, cx);
+                self.open_folder(&folder, cx);
+                cx.stop_propagation();
+                return;
+            }
+        }
         self.browse.window = Some(window.window_handle());
         path.update(cx, |path, cx| path.open(window, cx));
         cx.stop_propagation();

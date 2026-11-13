@@ -166,6 +166,19 @@ impl PathView {
         }
     }
 
+    /// What a press at position asks of strip slot, for a host that captures the press before the strip sees it.
+    pub fn tap_at(&mut self, slot: usize, event: &MouseDownEvent) -> Tap {
+        let Some(bounds) = self.paint.borrow().strips[slot] else {
+            return Tap::Nothing;
+        };
+        if !bounds.contains(&event.position) {
+            return Tap::Nothing;
+        }
+        let pad = super::paint::strip_pad(slot > 0, &self.paint.borrow().scale());
+        let hit = self.strips[slot].hit(f32::from(event.position.x - bounds.origin.x) - pad);
+        self.strips[slot].press(hit, event.click_count, modifiers(event.modifiers))
+    }
+
     pub fn hover_strip(&mut self, slot: usize, x: Option<f32>, cx: &mut Context<Self>) {
         let hit: Option<Hit> = x.map(|x| self.strips[slot].hit(x));
         if self.strips[slot].hover(hit) {

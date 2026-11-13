@@ -54,6 +54,8 @@ mod cohesion_tests;
 #[cfg(test)]
 mod corner_tests;
 #[cfg(test)]
+mod crumb_click_tests;
+#[cfg(test)]
 mod ey200_chrome_tests;
 #[cfg(test)]
 mod ey263_field_tests;
