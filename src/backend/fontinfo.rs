@@ -78,7 +78,7 @@ fn directory<R: Read + Seek>(r: &mut R, len: u64) -> Option<Vec<u8>> {
 
 // One table's offset and size from the directory.
 fn table_in(dir: &[u8], tag: &[u8; 4]) -> Option<(u64, u64)> {
-    let rec = dir.chunks_exact(16).find(|rec| rec[..4] == tag[..])?;
+    let rec = dir.as_chunks::<16>().0.iter().find(|rec| rec[..4] == tag[..])?;
     Some((u64::from(be32(rec, 8)?), u64::from(be32(rec, 12)?)))
 }
 
@@ -109,7 +109,7 @@ fn name_for(table: &[u8], id: u16) -> Option<String> {
         let text = if platform == 1 {
             raw.is_ascii().then(|| String::from_utf8_lossy(raw).into_owned())
         } else if raw.len() % 2 == 0 {
-            String::from_utf16(&raw.chunks_exact(2).map(|c| u16::from_be_bytes([c[0], c[1]])).collect::<Vec<_>>()).ok()
+            String::from_utf16(&raw.as_chunks::<2>().0.iter().map(|c| u16::from_be_bytes(*c)).collect::<Vec<_>>()).ok()
         } else {
             None
         };

@@ -109,8 +109,9 @@ pub fn process(delims: &mut [Delim], from: usize) {
                 && cand.n > 0
                 && cand.ch == closer.ch
                 && !((closer.open || cand.close)
-                    && (cand.orig + closer.orig) % RULE_OF_THREE == 0
-                    && !(cand.orig % RULE_OF_THREE == 0 && closer.orig % RULE_OF_THREE == 0))
+                    && (cand.orig + closer.orig).is_multiple_of(RULE_OF_THREE)
+                    && !(cand.orig.is_multiple_of(RULE_OF_THREE)
+                        && closer.orig.is_multiple_of(RULE_OF_THREE)))
             {
                 break;
             }

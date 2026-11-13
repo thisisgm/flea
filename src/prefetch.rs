@@ -205,8 +205,10 @@ fn present_pages(pagemap: &fs::File, start: u64, count: u64, page: u64) -> Vec<b
         return Vec::new();
     }
     bytes
-        .chunks_exact(PAGEMAP_ENTRY_BYTES as usize)
-        .map(|entry| u64::from_le_bytes(entry.try_into().unwrap_or_default()) & PAGEMAP_PRESENT != 0)
+        .as_chunks::<{ PAGEMAP_ENTRY_BYTES as usize }>()
+        .0
+        .iter()
+        .map(|entry| u64::from_le_bytes(*entry) & PAGEMAP_PRESENT != 0)
         .collect()
 }
 

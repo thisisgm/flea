@@ -70,7 +70,7 @@ fn heading_line(text: &str) -> bool {
     let i = text.bytes().take(3).take_while(|b| *b == b' ').count();
     let hashes = text[i..].bytes().take_while(|b| *b == b'#').count();
     (1..=6).contains(&hashes)
-        && super::markdown_text::char_at(text, i + hashes).map_or(true, is_space)
+        && super::markdown_text::char_at(text, i + hashes).is_none_or(is_space)
 }
 
 // "  ===" read lazily keeps its mark as text: a backslash goes before the first "=" or "-" after the leading whitespace.
@@ -160,7 +160,7 @@ impl Sender<'_, '_, '_> {
         // A pass carrying the heartbeat proves it is moving every few thousand sends or every half second.
         self.since += 1;
         if self.since >= PROGRESS_EVENTS
-            || (self.since % CLOCK_EVENTS == 0
+            || (self.since.is_multiple_of(CLOCK_EVENTS)
                 && (watch.clock)().saturating_sub(self.beat_at) >= PROGRESS_MS)
         {
             self.since = 0;

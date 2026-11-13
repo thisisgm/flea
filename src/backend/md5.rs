@@ -54,10 +54,10 @@ fn digest(bytes: &[u8]) -> [u8; DIGEST_BYTES] {
     let mut c0: u32 = 0x98badcfe;
     let mut d0: u32 = 0x10325476;
 
-    for chunk in msg.chunks_exact(BLOCK_BYTES) {
+    for chunk in msg.as_chunks::<BLOCK_BYTES>().0 {
         let mut m = [0u32; BLOCK_WORDS];
-        for (i, word) in chunk.chunks_exact(WORD_BYTES).enumerate() {
-            m[i] = u32::from_le_bytes([word[0], word[1], word[2], word[3]]);
+        for (i, word) in chunk.as_chunks::<WORD_BYTES>().0.iter().enumerate() {
+            m[i] = u32::from_le_bytes(*word);
         }
         let (mut a, mut b, mut c, mut d) = (a0, b0, c0, d0);
         for i in 0..ROUNDS {

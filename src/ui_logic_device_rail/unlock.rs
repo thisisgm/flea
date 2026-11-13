@@ -54,7 +54,7 @@ pub fn parse_unlocked(output: &str) -> String {
 pub fn parse_mounted(output: &str) -> String {
     for line in output.split(['\n', '\r', '\u{2028}', '\u{2029}']) {
         for (at, _) in line.match_indices("at") {
-            let boundary = line[..at].chars().last().map_or(true, |c| !(c.is_ascii_alphanumeric() || c == '_'));
+            let boundary = line[..at].chars().last().is_none_or(|c| !(c.is_ascii_alphanumeric() || c == '_'));
             let after = &line[at + 2..];
             let gap = after.len() - after.trim_start().len();
             if boundary && gap > 0 && after[gap..].starts_with('/') {

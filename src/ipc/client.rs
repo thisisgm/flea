@@ -99,7 +99,7 @@ pub fn execute(root: &Path, options: &Options) -> Reply {
     };
     let mut matching = sockets
         .iter()
-        .filter(|(pid, _)| options.pid.map_or(true, |wanted| wanted == *pid));
+        .filter(|(pid, _)| options.pid.is_none_or(|wanted| wanted == *pid));
     for (_, path) in &mut matching {
         match exchange(path, &options.request) {
             Ok(reply) => return reply,

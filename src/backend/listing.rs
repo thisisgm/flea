@@ -106,7 +106,7 @@ impl Listing {
     // The first row that is a plain file, never a folder, symlink or special file a gvfs row names by its mode.
     pub fn first_plain_file(&self) -> Option<&str> {
         (0..self.len())
-            .find(|&i| !self.spans[i].is_dir && !self.spans[i].is_symlink && self.gio_for(i).map_or(true, |m| m.mode & S_IFMT == S_IFREG))
+            .find(|&i| !self.spans[i].is_dir && !self.spans[i].is_symlink && self.gio_for(i).is_none_or(|m| m.mode & S_IFMT == S_IFREG))
             .map(|i| self.name(i))
     }
 

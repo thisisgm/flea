@@ -220,7 +220,7 @@ impl Favourites {
             .filter(|index| {
                 self.statuses
                     .get(index)
-                    .map_or(true, |status| !status.is_empty())
+                    .is_none_or(|status| !status.is_empty())
             })
             .take(INSPECT_MAX)
             .map(|index| num(*index))

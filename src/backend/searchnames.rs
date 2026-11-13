@@ -75,7 +75,7 @@ impl Names {
         }
         if id % GROUP_NAMES == 0 { self.groups.try_reserve(1).map_err(|_| "allocation")?; }
         self.refs.try_reserve(1).map_err(|_| "allocation")?;
-        if self.slabs.last().map_or(true, |slab| slab.len() + bytes.len() > SLAB) {
+        if self.slabs.last().is_none_or(|slab| slab.len() + bytes.len() > SLAB) {
             self.slabs.try_reserve(1).map_err(|_| "allocation")?;
             let mut slab = Vec::new();
             slab.try_reserve_exact(SLAB).map_err(|_| "allocation")?;

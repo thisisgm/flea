@@ -79,7 +79,7 @@ fn remote(table: &str, path: &Path) -> bool {
                 .then(|| (point.components().count(), kind.to_owned()))
         })
         .max_by_key(|(depth, _)| *depth)
-        .map_or(true, |(_, kind)| slow(&kind))
+        .is_none_or(|(_, kind)| slow(&kind))
 }
 
 /// Every symlink followed one component at a time, each step checked against the mount table first, so a link into a remote mount is refused.

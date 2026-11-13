@@ -8,7 +8,7 @@ pub(super) fn stl(bytes: &[u8], model: &mut Model) -> Result<()> {
         let count = super::zip::u32_at(bytes,80)? as usize;
         if count.checked_mul(50).and_then(|n| n.checked_add(84)) == Some(bytes.len()) {
             if count > super::MAX_TRIANGLES { return Err("STL triangle count exceeds its bound".into()) }
-            for face in bytes[84..].chunks_exact(50) {
+            for face in bytes[84..].as_chunks::<50>().0 {
                 let mut vertices = [0; 3];
                 for (corner,index) in vertices.iter_mut().enumerate() {
                     let mut position = [0.; 3];
@@ -123,7 +123,7 @@ pub(super) fn polygon(model: &mut Model, indices: &[u32], material: Option<u32>)
     let position = |i: u32| model.vertices[i as usize].position;
     let mut unique: Vec<u32> = Vec::new();
     for &index in indices {
-        if unique.last().map_or(true,|&last| position(last) != position(index)) { unique.push(index) }
+        if unique.last().is_none_or(|&last| position(last) != position(index)) { unique.push(index) }
     }
     while unique.len() > 1 && position(unique[0]) == position(unique[unique.len()-1]) { unique.pop(); }
     if unique.len() < 3 { return Ok(()) }

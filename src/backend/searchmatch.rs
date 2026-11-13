@@ -42,7 +42,7 @@ pub(crate) fn fold(bytes: &[u8], into: &mut Vec<Letter>) {
     if bytes.is_ascii() {
         let mut before: Option<u8> = None;
         into.extend(bytes.iter().map(|&c| {
-            let boundary = before.map_or(true, |p| separator(p as char) || (c.is_ascii_uppercase() && !p.is_ascii_uppercase()));
+            let boundary = before.is_none_or(|p| separator(p as char) || (c.is_ascii_uppercase() && !p.is_ascii_uppercase()));
             before = Some(c);
             Letter { lower: c.to_ascii_lowercase() as char, boundary }
         }));
@@ -50,7 +50,7 @@ pub(crate) fn fold(bytes: &[u8], into: &mut Vec<Letter>) {
     }
     let mut before: Option<char> = None;
     for c in String::from_utf8_lossy(bytes).chars() {
-        let boundary = before.map_or(true, |p| separator(p) || (c.is_uppercase() && !p.is_uppercase()));
+        let boundary = before.is_none_or(|p| separator(p) || (c.is_uppercase() && !p.is_uppercase()));
         into.push(Letter { lower: c.to_lowercase().next().unwrap_or(c), boundary });
         before = Some(c);
     }

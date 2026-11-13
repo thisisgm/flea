@@ -26,7 +26,7 @@ pub(super) fn switch(env: &Env, plugin: &str, on: bool) -> Result<(String, Strin
             .plugin
             .failure
             .as_ref()
-            .map_or(true, |f| f.code == "start")
+            .is_none_or(|f| f.code == "start")
     {
         super::pluginruntime::stop(env, plugin);
         check_start(env, &found);

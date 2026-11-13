@@ -140,7 +140,7 @@ pub fn hides(m: &Model) -> bool { m.prompts.trash.is_some() }
 // Trash's disk facts are the folder's it was opened from.
 pub fn opened_from(m: &Model) -> Option<&PathBuf> { m.prompts.trash.as_ref().map(|view| &view.back) }
 // Until Trash answers, the pane stays empty instead of showing an empty folder's notice.
-pub fn settled(m: &Model) -> bool { m.prompts.trash.as_ref().map_or(true, |view| view.loaded) }
+pub fn settled(m: &Model) -> bool { m.prompts.trash.as_ref().is_none_or(|view| view.loaded) }
 pub fn place(m: &Model) -> Option<String> { m.prompts.trash.as_ref().map(|_| m.prompts.i18n.tr("trash.place")) }
 pub fn sort(m: &Model) -> Option<String> { m.prompts.trash.as_ref().map(|_| m.prompts.i18n.tr("trash.sort")) }
 // A Trash row's detail column is the date it went in.

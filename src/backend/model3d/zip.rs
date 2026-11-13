@@ -52,7 +52,7 @@ pub(super) fn unpack(bytes: &[u8]) -> Result<BTreeMap<String,Vec<u8>>> {
         if bytes.get(local..local+4) != Some(b"PK\x03\x04") || u16_at(bytes,local+8)? != method { return Err("invalid local ZIP header".into()) }
         let local_name = usize::from(u16_at(bytes,local+26)?);
         let start = local.checked_add(LOCAL_HEADER_BYTES+local_name+usize::from(u16_at(bytes,local+28)?)).ok_or("invalid ZIP offset")?;
-        if bytes.get(local+LOCAL_HEADER_BYTES..local+LOCAL_HEADER_BYTES+local_name) != Some(name.as_bytes()) || start.checked_add(packed).map_or(true, |n| n > end-size) {
+        if bytes.get(local+LOCAL_HEADER_BYTES..local+LOCAL_HEADER_BYTES+local_name) != Some(name.as_bytes()) || start.checked_add(packed).is_none_or(|n| n > end-size) {
             return Err("ZIP payload exceeds its bound".into());
         }
         let source = bytes.get(start..start+packed).ok_or("truncated ZIP payload")?;

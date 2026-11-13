@@ -31,7 +31,7 @@ impl Default for Locale {
 pub(super) fn valid_code(code: &str) -> bool {
     let (language, region) = code.split_once('-').map_or((code, None), |(a, b)| (a, Some(b)));
     (2..=3).contains(&language.len()) && language.bytes().all(|b| b.is_ascii_lowercase())
-        && region.map_or(true, |r| r.len() == 2 && r.bytes().all(|b| b.is_ascii_alphabetic()))
+        && region.is_none_or(|r| r.len() == 2 && r.bytes().all(|b| b.is_ascii_alphabetic()))
 }
 
 // Sample input: {"de":{"name":"Deutsch","formatLocale":"de-DE","locale":"de_DE.UTF-8","decimal":","}}.

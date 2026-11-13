@@ -32,7 +32,7 @@ impl Matcher {
             }
             // A start that cannot finish means no later start can either, the greedy scan's own guarantee.
             let Some(score) = self.align_from(i, base, None) else { break };
-            if best.map_or(true, |(top, _)| score > top) {
+            if best.is_none_or(|(top, _)| score > top) {
                 best = Some((score, i));
             }
             starts += 1;

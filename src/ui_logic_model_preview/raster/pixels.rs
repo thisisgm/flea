@@ -88,7 +88,7 @@ impl Raster {
         let n = self.w * self.h;
         if self.ss == 1 {
             out.resize(n * 4, 0);
-            for (o, p) in out.chunks_exact_mut(4).zip(self.color[..n * 4].chunks_exact(4)) {
+            for (o, p) in out.as_chunks_mut::<4>().0.iter_mut().zip(self.color[..n * 4].as_chunks::<4>().0) {
                 o.copy_from_slice(&[p[0], p[1], p[2], 255]);
             }
             return;
@@ -107,7 +107,7 @@ impl Raster {
     fn resolve(&self, out: &mut Vec<u8>, order: Order) {
         let alpha = order == Order::Rgba;
         if self.ss == 1 && order == Order::Rgb {
-            out.extend(self.color[..self.w * self.h * 4].chunks_exact(4).flat_map(|p| [p[2], p[1], p[0]]));
+            out.extend(self.color[..self.w * self.h * 4].as_chunks::<4>().0.iter().flat_map(|p| [p[2], p[1], p[0]]));
             return;
         }
         let (ss, sw) = (self.ss, self.w * self.ss);

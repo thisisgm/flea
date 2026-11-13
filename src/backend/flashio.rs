@@ -98,7 +98,7 @@ pub(crate) fn full_pread(fd: c_int, buf: &mut [u8], offset: u64) -> std::io::Res
 // One write at an offset: whole blocks go down as they are, a ragged tail goes through the buffered flag.
 pub(crate) fn write_at(dest: &std::fs::File, buf: &[u8], offset: u64) -> std::io::Result<()> {
     let fd = dest.as_raw_fd();
-    if buf.len() % DIRECT_ALIGN == 0 || !direct_on(dest) {
+    if buf.len().is_multiple_of(DIRECT_ALIGN) || !direct_on(dest) {
         return full_pwrite(fd, buf, offset);
     }
     set_direct(dest, false);

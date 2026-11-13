@@ -76,7 +76,7 @@ fn arguments(text: &str) -> io::Result<Vec<String>> {
     }
     if quote.is_some() || escaped { return Err(super::words::error("tui.external_editor.the_editor_command_has_an_unfinished_quote_or_escape")); }
     if started { args.push(word); }
-    if args.first().map_or(true, String::is_empty) { return Err(super::words::error("tui.external_editor.the_editor_command_needs_a_program")); }
+    if args.first().is_none_or(String::is_empty) { return Err(super::words::error("tui.external_editor.the_editor_command_needs_a_program")); }
     Ok(args)
 }
 

@@ -63,7 +63,7 @@ pub fn with_timeout(path: &Path, timeout: Duration) -> io::Result<UnixStream> {
         };
         if error
             .as_ref()
-            .map_or(true, |error| error.raw_os_error() == Some(EISCONN))
+            .is_none_or(|error| error.raw_os_error() == Some(EISCONN))
         {
             let stream = UnixStream::from(socket);
             stream.set_nonblocking(false)?;

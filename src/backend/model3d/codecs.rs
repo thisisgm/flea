@@ -13,7 +13,7 @@ struct Bits<'a> { bytes: &'a [u8], bit: usize }
 
 impl Bits<'_> {
     fn get(&mut self, count: usize) -> Result<usize> {
-        if self.bit.checked_add(count).map_or(true, |end| end > self.bytes.len() * 8) { return Err("truncated compressed stream".into()) }
+        if self.bit.checked_add(count).is_none_or(|end| end > self.bytes.len() * 8) { return Err("truncated compressed stream".into()) }
         let mut value = 0;
         for shift in 0..count {
             value |= usize::from((self.bytes[self.bit / 8] >> (self.bit % 8)) & 1) << shift;
@@ -91,7 +91,7 @@ pub(crate) fn inflate(bytes: &[u8], expected: usize, zlib: bool) -> Result<Vec<u
     if expected > MAX_EXPANDED { return Err("expanded stream exceeds its bound".into()) }
     let source = if zlib {
         if bytes.len() < 6 || bytes[0] & 15 != 8 || bytes[0] >> 4 > 7 || bytes[1] & 32 != 0
-            || u16::from_be_bytes([bytes[0],bytes[1]]) % 31 != 0 { return Err("invalid zlib stream".into()) }
+            || !u16::from_be_bytes([bytes[0],bytes[1]]).is_multiple_of(31) { return Err("invalid zlib stream".into()) }
         &bytes[2..bytes.len()-4]
     } else { bytes };
     let mut bits = Bits { bytes: source, bit: 0 };

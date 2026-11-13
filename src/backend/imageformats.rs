@@ -87,7 +87,7 @@ fn tiff(file: &mut File) -> Option<(u32, u32, u8)> {
     let mut table = vec![0u8; count * 12];
     file.read_exact(&mut table).ok()?;
     let (mut w, mut h, mut orientation) = (None, None, 1u8);
-    for entry in table.chunks_exact(12) {
+    for entry in table.as_chunks::<12>().0 {
         let tag = u16_of([entry[0], entry[1]]);
         // SHORT holds its value in the first two bytes of the value field, LONG in all four.
         let value = match u16_of([entry[2], entry[3]]) {
@@ -161,8 +161,10 @@ fn heif_brand(head: &[u8]) -> bool {
         || head
             .get(16..size.min(head.len()))
             .unwrap_or(&[])
-            .chunks_exact(4)
-            .any(supported)
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .any(|brand| supported(brand))
 }
 
 // Sample input: size(4) type(4) [largesize(8)] body; answers each child's type and body.

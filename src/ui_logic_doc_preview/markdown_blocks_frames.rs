@@ -51,7 +51,7 @@ impl<'p> Pass<'p, '_, '_, '_> {
                     if i > 0 && frame.bare_at == Some(i - 1) {
                         frame.sealed = true;
                     }
-                    if last_quote.map_or(true, |quote| matched > quote) {
+                    if last_quote.is_none_or(|quote| matched > quote) {
                         matched = frames.len();
                         break;
                     }
@@ -150,9 +150,7 @@ impl<'p> Pass<'p, '_, '_, '_> {
                     take_list(raw, &mut view, &marker);
                 }
                 if lead.n == frames.len()
-                    && frames
-                        .first()
-                        .map_or(true, |first| next.quote == first.quote)
+                    && frames.first().is_none_or(|first| next.quote == first.quote)
                 {
                     lead.n += 1;
                     lead.here = lead.n;

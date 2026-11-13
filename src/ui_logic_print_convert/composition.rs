@@ -50,7 +50,8 @@ impl Background {
 }
 
 pub fn background_enabled(layout: Layout, spacing: Spacing, count: usize, columns: usize) -> bool {
-    spacing != Spacing::None || (layout == Layout::Grid && (columns == 0 || count % columns != 0))
+    spacing != Spacing::None
+        || (layout == Layout::Grid && (columns == 0 || !count.is_multiple_of(columns)))
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

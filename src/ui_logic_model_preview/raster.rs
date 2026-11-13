@@ -194,9 +194,9 @@ impl Raster {
         let ground = style.ground.map_or(0, |g| pack(g, 1.)).to_le_bytes();
         // Sixteen samples a store, which the compiler keeps in vector registers; a sample at a time is twice as slow.
         let block: [u8; 64] = std::array::from_fn(|i| ground[i % 4]);
-        let mut blocks = self.color.chunks_exact_mut(64);
-        blocks.by_ref().for_each(|b| b.copy_from_slice(&block));
-        for sample in blocks.into_remainder().chunks_exact_mut(4) {
+        let (blocks, samples) = self.color.as_chunks_mut::<64>();
+        blocks.iter_mut().for_each(|b| b.copy_from_slice(&block));
+        for sample in samples.as_chunks_mut::<4>().0 {
             sample.copy_from_slice(&ground);
         }
         self.opaque = style.ground.is_some();

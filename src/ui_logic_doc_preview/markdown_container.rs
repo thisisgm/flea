@@ -162,7 +162,7 @@ pub fn expand_lead(text: &str, column: usize) -> String {
         } else {
             1
         };
-        out.extend(std::iter::repeat(' ').take(step));
+        out.extend(std::iter::repeat_n(' ', step));
         col += step;
         i += 1;
     }

@@ -155,7 +155,7 @@ pub(super) fn serve(requests: &OwnedFd, decoder: &Decoder, abi: i64) -> i32 {
         // Children first, so a verdict is never held behind a request.
         let now = Instant::now();
         let mut still = Vec::with_capacity(running.len());
-        for (mut job, polled) in running.into_iter().zip(fds[1..].chunks_exact(2)) {
+        for (mut job, polled) in running.into_iter().zip(fds[1..].as_chunks::<2>().0) {
             if polled[1].revents != 0 {
                 let cancel = match fdpass::recv(job.reply.as_raw_fd()) {
                     Ok(None) => true,
