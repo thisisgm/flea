@@ -2,9 +2,13 @@ use super::{ListState, RowCache};
 
 impl ListState {
     pub(crate) fn retain_folder_sizes(&mut self, sizes: &crate::navigation::sort::DirSizes) {
+        let before = self.view.walked.len();
         self.view
             .walked
             .retain(|row, _| sizes.size_for(*row).is_some());
+        if before != self.view.walked.len() {
+            self.view.walked_revision += 1;
+        }
     }
 
     /// State surfaces still occupy a measured body, but no row from the previous frame is drawn.

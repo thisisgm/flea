@@ -80,6 +80,32 @@ pub(super) fn visible(host: &PaneHost, columns: bool) -> Vec<usize> {
 }
 
 impl State {
+    pub(crate) fn cancel(&mut self, backend: &crate::backend::Backend) {
+        self.pause(backend);
+        self.forget();
+    }
+
+    pub(super) fn forget(&mut self) {
+        self.task = None;
+        self.key = None;
+        self.waiting.clear();
+        self.paint_dirty |= self.sizes.clear_previous();
+        self.sizes.cancelled();
+    }
+
+    // An in-place read suspends walks, retaining display bytes for its next listing.
+    pub(super) fn pause(&mut self, backend: &crate::backend::Backend) {
+        self.task = None;
+        self.key = None;
+        if !self.waiting.is_empty() {
+            if backend.list_details(r#"{"c":"dirsizecancel"}"#).is_ok() {
+                self.cancels += 1;
+            }
+            self.waiting.clear();
+            self.sizes.pause();
+        }
+    }
+
     pub(super) fn retain_visible(
         &mut self,
         backend: &crate::backend::Backend,
@@ -107,7 +133,7 @@ impl State {
         )?;
         self.cancels += 1;
         self.waiting.retain(|row| !dropped.contains(row));
-        self.sizes.cancel_rows(&dropped);
+        self.paint_dirty |= self.sizes.cancel_rows(&dropped);
         Ok(())
     }
 }
