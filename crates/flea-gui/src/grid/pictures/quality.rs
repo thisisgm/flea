@@ -102,6 +102,7 @@ pub(super) fn evict(map: &mut Map, wanted: &[usize], budget: u64) {
     let used = |map: &Map| -> u64 {
         map.slots
             .values()
+            .chain(map.carried.iter())
             .filter_map(|slot| match slot {
                 Slot::Ready { picture, .. } => Some(picture.decoded()),
                 _ => None,
@@ -110,7 +111,12 @@ pub(super) fn evict(map: &mut Map, wanted: &[usize], budget: u64) {
             .sum()
     };
     while used(map) > budget {
-        let Some(row) = map.order.iter().copied().find(|row| !wanted.contains(row)) else {
+        if map.evict_carried() {
+            continue;
+        }
+        let Some(row) = map.order.iter().copied().find(|row| {
+            !wanted.contains(row) && matches!(map.slots.get(row), Some(Slot::Ready { .. }))
+        }) else {
             break;
         };
         map.forget(row);

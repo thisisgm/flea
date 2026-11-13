@@ -19,9 +19,29 @@ pub struct Held {
 
 impl Held {
     pub fn row(&self, index: usize) -> Option<&RowFacts> {
-        index
-            .checked_sub(self.start)
-            .and_then(|at| self.rows.get(at))
+        row_at(&self.rows, self.start, index)
+    }
+
+    pub(crate) fn indexed(&self) -> bool {
+        self.rows
+            .first()
+            .is_some_and(|row| row.listing_index.is_some())
+    }
+
+    pub(crate) fn index_at(&self, offset: usize) -> usize {
+        self.rows[offset]
+            .listing_index
+            .unwrap_or(self.start + offset)
+    }
+}
+
+pub(crate) fn row_at(rows: &[RowFacts], start: usize, index: usize) -> Option<&RowFacts> {
+    if rows.first().is_some_and(|row| row.listing_index.is_some()) {
+        rows.binary_search_by_key(&Some(index), |row| row.listing_index)
+            .ok()
+            .and_then(|at| rows.get(at))
+    } else {
+        index.checked_sub(start).and_then(|at| rows.get(at))
     }
 }
 

@@ -337,6 +337,9 @@ mod centering;
 #[path = "pictures_relist_tests.rs"]
 mod relist;
 
+#[path = "pictures_query_tests.rs"]
+mod query;
+
 // ui.sh nosweep: a folder of text files sends no thumb line in either view, as v0.3.12 Thumbs.allowed reads "t":false.
 #[gpui::test]
 fn a_folder_of_text_files_sends_no_thumb_request_in_list_or_grid(cx: &mut TestAppContext) {

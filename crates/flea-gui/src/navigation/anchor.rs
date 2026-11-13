@@ -57,7 +57,7 @@ pub fn index_of(pane: &Pane, name: &str) -> Option<usize> {
         .rows
         .iter()
         .position(|row| row.name == name)
-        .map(|at| pane.held.start + at)
+        .map(|at| pane.held.index_at(at))
 }
 
 pub fn cursor_name(pane: &Pane) -> String {
@@ -248,7 +248,7 @@ pub fn apply_select(pane: &mut Pane, target: &str, selected: &mut Vec<usize>) ->
     let Some(at) = select_match(names, target, &path) else {
         return false;
     };
-    pane.cursor = pane.held.start + at;
+    pane.cursor = pane.held.index_at(at);
     // Nav.js applyPendingSelect lands through setCursor, which keeps ScrollOff's three rows of context (EY-363).
     pane.reveal_cursor_keeping(3);
     pane.requests.initial_first = Some((pane.scroll_y / pane.row_height()).floor() as usize);

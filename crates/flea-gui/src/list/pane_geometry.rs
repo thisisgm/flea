@@ -62,23 +62,20 @@ impl Pane {
         self.reveal_cursor();
         true
     }
-    /// A filtered window: the listing run the drawn rows on screen span, cut to a few windows when matches lie far apart.
+    /// Fetch at most one dense window's reach from the first missing match, retaining only drawn matches.
     pub fn wanted_filtered_window(&mut self, shown: &[usize]) -> Option<(usize, usize)> {
-        if self.swap.pending.is_some() || shown.is_empty() {
+        if self.swap.pending.is_some() {
             return None;
         }
-        let visible = self.visible_rows();
+        if shown.is_empty() {
+            self.requests.wanted_sparse(&self.held, shown);
+            return None;
+        }
         let first = ((self.scroll_y / self.row_height).floor() as usize).min(shown.len() - 1);
-        let last = (first + visible).min(shown.len() - 1);
-        let drawn = &shown[first..=last];
-        let (lo, hi) = (*drawn.iter().min()?, *drawn.iter().max()?);
-        let span = (hi - lo + 1).min(4 * super::window_size(visible));
-        // Only the capped run is owed, so a held capped answer never asks the same window again.
-        if lo >= self.held.start && lo + span <= self.held.start + self.held.rows.len() {
-            return None;
-        }
+        let end =
+            (((self.scroll_y + self.height) / self.row_height).ceil() as usize).min(shown.len());
         self.requests
-            .wanted(&self.held, lo, span)
+            .wanted_sparse(&self.held, &shown[first..end])
             .map(|request| (request.start, request.count))
     }
     /// Scroll so a view position is on screen, the filter's showRow.

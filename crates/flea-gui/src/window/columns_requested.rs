@@ -16,7 +16,8 @@ pub(crate) fn requested(host: &mut PaneHost, listing: &Listing) {
     let (folders_first, group_by_kind) = (folders.folders_first, folders.group_by_kind);
     drop(folders);
     let held = host.pane.held.clone();
-    let narrowed = host.pane.state.search || !host.list.borrow().view.query.is_empty();
+    let narrowed =
+        held.indexed() || host.pane.state.search || !host.list.borrow().view.query.is_empty();
     with_area(host, |columns, pane, _| {
         columns.area.listing_requested(
             Leaving {

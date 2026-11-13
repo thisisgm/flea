@@ -45,6 +45,22 @@ impl Backend {
         (backend, receive)
     }
 
+    pub(crate) fn test_window_lines() -> (Self, impl FnMut() -> Option<String>) {
+        let (backend, receiver) = Self::test_controls();
+        let receive = move || loop {
+            match receiver.try_recv().ok()? {
+                Control::Window { start, count } => {
+                    return Some(format!(
+                        r#"{{"c":"window","start":{start},"count":{count}}}"#
+                    ))
+                }
+                Control::Line(line) => return Some(line),
+                _ => {}
+            }
+        };
+        (backend, receive)
+    }
+
     pub(super) fn test_controls() -> (Self, mpsc::Receiver<Control>) {
         let (requests, receiver) = mpsc::channel();
         let (wake, _) = UnixStream::pair().unwrap();

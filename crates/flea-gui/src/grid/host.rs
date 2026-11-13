@@ -79,7 +79,12 @@ impl GridHost {
         }
         let focus = Self::focus(pane);
         let narrowed = shown.narrowed();
-        if narrowed && pane.held.row(pane.cursor).is_some() {
+        if !narrowed {
+            let drawn = self.view.layout(shown).drawn(self.view.drawn_scroll());
+            pane.requests
+                .keep_sparse_span(&pane.held, drawn.start, drawn.len());
+        }
+        if narrowed {
             self.view.end_landing(shown, &focus, true);
             let identity = (pane.held.listing, pane.cursor);
             if self.followed != Some(identity) {

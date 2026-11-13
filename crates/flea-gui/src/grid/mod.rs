@@ -219,7 +219,7 @@ impl GridView {
             layout.viewport(self.scroll).0,
             held.total,
             held.start,
-            held.rows.len(),
+            if held.indexed() { 0 } else { held.rows.len() },
         );
         let owes = self.can_ask(pane, shown) && held.row(focus.cursor()).is_none();
         self.landing_wait = need.is_some() && owes;
@@ -312,7 +312,11 @@ impl GridView {
             first,
             last,
             pane.held.start,
-            pane.held.rows.len(),
+            if pane.held.indexed() {
+                0
+            } else {
+                pane.held.rows.len()
+            },
             pane.held.total,
         )?;
         let asked = Self::ask(pane, need);
@@ -320,7 +324,7 @@ impl GridView {
         asked
     }
 
-    /// The list's filtered window for tiles: the listing run the drawn view positions span, capped at one window.
+    /// Fetch at most one dense window's reach from the first missing match, retaining only drawn matches.
     pub fn wanted_filtered_window(
         &mut self,
         pane: &mut Pane,
@@ -331,14 +335,13 @@ impl GridView {
             return None;
         }
         let layout = self.layout(shown);
-        let (first, last) = layout.viewport(self.drawn_scroll());
-        let drawn = shown.span(first.max(0) as usize, last.max(0) as usize)?;
-        let size = self.plan(&layout).size;
-        let (lo, span) = (*drawn.start(), (drawn.end() - drawn.start() + 1).min(size));
-        if lo >= pane.held.start && lo + span <= pane.held.start + pane.held.rows.len() {
+        let Shown::Only(rows) = shown else {
             return None;
-        }
-        let asked = Self::ask(pane, (lo, size));
+        };
+        let request = pane
+            .requests
+            .wanted_sparse(&pane.held, &rows[layout.drawn(self.drawn_scroll())]);
+        let asked = request.map(|request| (request.start, request.count));
         self.counters.drift_asks += asked.is_some() as usize;
         asked
     }

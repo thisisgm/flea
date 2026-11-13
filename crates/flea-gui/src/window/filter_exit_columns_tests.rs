@@ -141,6 +141,28 @@ fn gh315_columns_one_escape_replaces_the_filtered_scroll_extent() {
         );
     });
     frame(&mut cx, handle);
+    edit(&mut cx, handle, |shell, window, cx| {
+        let pane = &shell.panes[0].as_ref().unwrap().pane;
+        let request = pane
+            .requests
+            .outstanding
+            .expect("clearing the filter refills its unfiltered viewport");
+        assert!(
+            pane.held.row(299).is_some(),
+            "the cursor keeps its filtered facts until the refill lands"
+        );
+        shell.receive(
+            0,
+            Event::Reply(Reply::Rows {
+                start: request.start,
+                listing: 2,
+                rows: facts(request.start..(request.start + request.count).min(TOTAL)),
+            }),
+            window,
+            cx,
+        );
+    });
+    frame(&mut cx, handle);
     edit(&mut cx, handle, |shell, _, _| {
         let pane = shell.panes[0].as_ref().unwrap();
         let paint = pane

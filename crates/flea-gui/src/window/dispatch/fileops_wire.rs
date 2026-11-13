@@ -191,7 +191,7 @@ impl Shell {
         let Some(at) = select_match(names, &target, host.pane.path()) else {
             return;
         };
-        host.pane.cursor = host.pane.held.start + at;
+        host.pane.cursor = host.pane.held.index_at(at);
         let rename = ActionEvent::bare("rename", flea::keys::Context::Listing);
         self.focus_pane(side, cx);
         self.dispatch(Order::Action(rename), window, cx);
