@@ -64,21 +64,32 @@ fn version_row(version: Version) -> Option<usize> {
     }
 }
 
-fn stable_facts() {
-    assert_eq!(key("ASCII.TXT", true), "ascii.txt");
-    assert_eq!(key("ASCII.TXT", false), "ASCII.TXT");
-    assert_eq!(
-        key("\u{C0}\u{C4}\u{D6}\u{DC}\u{C6}\u{D8}\u{DF}.TXT", true),
-        "\u{E0}\u{E4}\u{F6}\u{FC}\u{E6}\u{F8}\u{DF}.txt"
-    );
-    assert_eq!('\u{E9}'.to_uppercase().collect::<String>(), "\u{C9}");
-    assert_eq!('\u{DF}'.to_uppercase().collect::<String>(), "SS");
+const STABLE_FACTS: usize = 5;
+
+fn stable_facts() -> usize {
+    let facts: [(String, &str); STABLE_FACTS] = [
+        (key("ASCII.TXT", true), "ascii.txt"),
+        (key("ASCII.TXT", false), "ASCII.TXT"),
+        (
+            key("\u{C0}\u{C4}\u{D6}\u{DC}\u{C6}\u{D8}\u{DF}.TXT", true),
+            "\u{E0}\u{E4}\u{F6}\u{FC}\u{E6}\u{F8}\u{DF}.txt",
+        ),
+        ('\u{E9}'.to_uppercase().collect(), "\u{C9}"),
+        ('\u{DF}'.to_uppercase().collect(), "SS"),
+    ];
+    let mut checked = 0;
+    for (seen, expected) in &facts {
+        assert_eq!(seen, expected);
+        checked += 1;
+    }
+    checked
 }
 
-fn validate(version: Version) -> bool {
-    stable_facts();
+/// The number of checks that ran: the stable facts, plus the nine probes when the version has a row.
+fn validate(version: Version) -> usize {
+    let mut checked = stable_facts();
     let Some(row) = version_row(version) else {
-        return false;
+        return checked;
     };
     for probe in PROBES {
         assert_eq!(
@@ -87,8 +98,9 @@ fn validate(version: Version) -> bool {
             "{} with Unicode {version:?}",
             probe.name
         );
+        checked += 1;
     }
-    true
+    checked
 }
 
 fn require_known(version: Version) {
@@ -98,9 +110,12 @@ fn require_known(version: Version) {
 #[test]
 fn unicode_tables_match_the_compiler_version() {
     let version = std::char::UNICODE_VERSION;
-    if validate(version) {
+    let checked = validate(version);
+    if version_row(version).is_some() {
+        assert_eq!(checked, STABLE_FACTS + PROBES.len());
         println!("casefold Unicode {version:?}: checked nine golden probes");
     } else {
+        assert_eq!(checked, STABLE_FACTS);
         println!(
             "casefold Unicode {version:?}: unknown table, checked ASCII and Latin-1 folds only"
         );
@@ -109,7 +124,7 @@ fn unicode_tables_match_the_compiler_version() {
 
 #[test]
 fn a_future_version_checks_only_stable_folds() {
-    assert!(!validate((255, 0, 0)));
+    assert_eq!(validate((255, 0, 0)), STABLE_FACTS);
 }
 
 #[test]
