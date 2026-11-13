@@ -26,6 +26,7 @@ function run(check) {
     check("a LUKS1 container names its version", Unlock.cryptoName("crypto_LUKS", "1"), "LUKS1")
     check("a LUKS container without a version reads as LUKS", Unlock.cryptoName("crypto_LUKS", ""), "LUKS")
     check("another crypto type keeps its name", Unlock.cryptoName("crypto_plain", "2"), "PLAIN")
+    check("the card names BitLocker as Windows does", Unlock.cryptoName("BitLocker", "2"), "BitLocker")
     check("the D-Bus error name is read off the daemon line",
         Unlock.parseDbusError("Error unlocking /dev/sdb1: GDBus.Error:org.freedesktop.UDisks2.Error.Failed: x"), "org.freedesktop.UDisks2.Error.Failed")
     check("translated prose around the name changes nothing",
@@ -58,6 +59,13 @@ function run(check) {
     check("the locked row reads as locked", rows[1].locked, true)
     check("the locked row carries lsblk's FSVER", rows[1].fsver, "2")
     check("the locked row is not mounted", rows[1].mounted, false)
+
+    // A BitLocker partition on an internal drive: lsblk reports fstype BitLocker, not crypto_*.
+    var bitlocker = '{"blockdevices":[{"name":"nvme1n1","path":"/dev/nvme1n1","label":null,"mountpoints":[null],"rm":false,"size":4000787030016,"type":"disk","model":"Samsung SSD 990 PRO 4TB",'
+        + '"children":[{"name":"nvme1n1p3","path":"/dev/nvme1n1p3","label":"Windows","mountpoints":[],"rm":false,"size":242872221696,"type":"part","model":null,'
+        + '"fstype":"BitLocker","fsver":"2","parttypename":"Microsoft basic data","parttype":"ebd0a0a2-b9e5-4433-87c0-68b6b72699c7"}]}]}'
+    var bitRows = Devices.parseDevices(bitlocker).filter(function (r) { return r.device === "/dev/nvme1n1p3" })
+    check("a BitLocker partition reads as locked", bitRows.length === 1 && bitRows[0].locked, true)
 
     // tests/ui-captures-unlock.sh's lsblk shim: the lane's loop container as cap-loop0 with rm set, since any loop* name is skipped.
     var loopLocked = '{"blockdevices":[{"name":"%N","path":"/dev/loop0","label":null,"mountpoints":[null],"rm":%R,'

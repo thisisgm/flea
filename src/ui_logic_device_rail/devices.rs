@@ -93,7 +93,7 @@ pub fn hidden(n: &Json) -> bool {
     if fs == "swap" || fs.ends_with("_member") || fs == "bcache" || fs == "ceph" || fs == "drbd" {
         return true;
     }
-    if fs.starts_with("crypto_") {
+    if is_crypto(&fs) {
         return false;
     }
     (is_firmware_part(n) && !is_isohybrid_keep(n)) || is_recovery_label(n) || is_system_mount_only(n)
@@ -215,13 +215,18 @@ pub fn dedupe(rows: Vec<RailEntry>) -> Vec<RailEntry> {
     head
 }
 
+/// An encrypted container's lowercased fstype: any crypto_ type udisks unlocks, or BitLocker.
+fn is_crypto(fs: &str) -> bool {
+    fs.starts_with("crypto_") || fs == "bitlocker"
+}
+
 /// A crypto container leaf with nothing mounted on it.
 pub fn is_locked_node(n: &Json) -> bool {
-    children(n).is_empty() && mount_of(n).is_empty() && text(n, "fstype").to_lowercase().starts_with("crypto_")
+    children(n).is_empty() && mount_of(n).is_empty() && is_crypto(&text(n, "fstype").to_lowercase())
 }
 
 fn browsable(n: &Json) -> bool {
-    !text(n, "fstype").to_lowercase().starts_with("crypto_") && !text(n, "parttypename").to_lowercase().contains("efi")
+    !is_crypto(&text(n, "fstype").to_lowercase()) && !text(n, "parttypename").to_lowercase().contains("efi")
 }
 
 /// A drive somebody can pull out: removable media or a USB transport.
@@ -236,7 +241,7 @@ pub fn mount_timer_start(exit_code: i32) -> bool {
 
 /// The name a crypto container's owner gave it, "" for any other node.
 pub fn container_name(n: &Json) -> String {
-    if text(n, "fstype").to_lowercase().starts_with("crypto_") && has(n, "label") {
+    if is_crypto(&text(n, "fstype").to_lowercase()) && has(n, "label") {
         return text(n, "label");
     }
     String::new()

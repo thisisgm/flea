@@ -150,3 +150,19 @@ fn hidden_rail_finds_the_locked_row_in_the_fallback_list() {
     let rail_row = [RailEntry { label: "Backup".into(), device: "/dev/sdb1".into(), locked: true, size: Some(1), fstype: "crypto_LUKS".into(), fsver: "2".into(), ..RailEntry::default() }];
     assert_eq!(naming_row(&rail_row, &fallback, "/dev/sdb1").map(|r| r.label.as_str()), Some("Backup"), "the rail row still wins when both lists name the device");
 }
+
+#[test]
+#[rustfmt::skip]
+fn bitlocker_partition_is_a_locked_row() {
+    let bitlocker = [
+        r#"{"blockdevices":[{"name":"nvme1n1","path":"/dev/nvme1n1","label":null,"mountpoints":[null],"rm":false,"size":4000787030016,"type":"disk","model":"Samsung SSD 990 PRO 4TB","#,
+        r#""children":[{"name":"nvme1n1p3","path":"/dev/nvme1n1p3","label":"Windows","mountpoints":[],"rm":false,"ro":false,"tran":"nvme","size":242872221696,"type":"part","model":null,"#,
+        r#""fstype":"BitLocker","fsver":"2","parttypename":"Microsoft basic data","parttype":"ebd0a0a2-b9e5-4433-87c0-68b6b72699c7"}]}]}"#,
+    ]
+    .concat();
+    let rows = parse_devices(&bitlocker, false);
+    let row = rows.iter().find(|r| r.device == "/dev/nvme1n1p3").expect("the BitLocker partition is a rail row");
+    assert!(row.locked, "a BitLocker partition reads as locked, so a click asks for its passphrase");
+    assert_eq!(row.label, "Windows", "the locked BitLocker row carries its label");
+    assert_eq!(crypto_name("BitLocker", "2"), "BitLocker", "the card names BitLocker as Windows does");
+}
