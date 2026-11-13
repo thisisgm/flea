@@ -144,10 +144,10 @@ fn vf4_r1_band_rebuilds_when_the_grid_reflows_mid_drag() {
 fn vf4_r1_a_new_filter_answer_mid_band_rebuilds_from_the_starting_marks() {
     let (frame, band, mut selected) = fixture(1);
     let mut input = PaneInput {
-        shown: Some((0..10_000).collect()),
         band: Some(band),
         ..Default::default()
     };
+    input.set_shown(Some((0..10_000).collect()));
     let step = |input: &mut PaneInput, selected: &mut Vec<usize>| {
         let PaneInput { band, shown, .. } = input;
         update_band(frame, band.as_mut().unwrap(), selected, shown.as_deref());

@@ -271,7 +271,7 @@ impl Shell {
                 from,
                 host.pane.cursor,
                 pulled,
-                host.input.shown.as_deref(),
+                &host.input.shown,
             );
         } else {
             follow_cursor(host, from);

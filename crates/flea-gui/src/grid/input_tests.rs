@@ -86,7 +86,7 @@ fn issue_434_grid_horizontal_wrap_obeys_setting_filter_and_listing_ends(cx: &mut
         .update(cx, |shell, _, cx| {
             let host = shell.panes[0].as_mut().unwrap();
             let shown: Vec<usize> = (0..=columns).map(|view| view * 2).collect();
-            host.input.shown = Some(shown.clone().into());
+            host.input.set_shown(Some(shown.clone().into()));
             host.pane.cursor = shown[columns - 1];
             assert!(shell.grid_key("cursorRight", cx));
         })

@@ -78,7 +78,7 @@ impl Selection {
         from: usize,
         to: usize,
         pulled: Option<usize>,
-        shown: Option<&[usize]>,
+        shown: &super::positions::Rows,
     ) {
         if self.shift.as_ref().is_none_or(|(_, last, _)| *last != from) {
             self.anchor = pulled.unwrap_or(from);
@@ -87,10 +87,16 @@ impl Selection {
         let (anchor, last, base) = self.shift.as_mut().expect("range began");
         rows.clone_from(base);
         let range = (*anchor).min(to)..=(*anchor).max(to);
-        if let Some(shown) = shown {
-            let first = shown.partition_point(|row| *row < *range.start());
-            let end = shown.partition_point(|row| *row <= *range.end());
-            rows.extend_from_slice(&shown[first..end]);
+        if let Some(list) = shown.as_deref() {
+            if shown.ascending() {
+                let first = list.partition_point(|row| *row < *range.start());
+                let end = list.partition_point(|row| *row <= *range.end());
+                rows.extend_from_slice(&list[first..end]);
+            } else if let Some(end) = shown.view_of(to) {
+                // A ranked range runs in drawn order; a hidden anchor stands before view 0, as the arrows treat it.
+                let first = shown.view_of(*anchor).unwrap_or(0);
+                rows.extend_from_slice(&list[first.min(end)..=first.max(end)]);
+            }
         } else {
             rows.extend(range);
         }
@@ -122,6 +128,8 @@ impl Selection {
         } else {
             rows.extend((0..total).filter(|row| !invert || before.binary_search(row).is_err()));
         }
+        rows.sort_unstable();
+        rows.dedup();
         self.lone = false;
         self.shift = None;
         self.changed(rows);

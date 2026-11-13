@@ -118,7 +118,7 @@ fn issue_434_filtered_wrap_extends_only_visible_rows_and_reveals_the_target(
             let shown: Rc<[usize]> = (0..100).map(|i| i * 3 + 1).collect::<Vec<_>>().into();
             let at = columns * 8 - 1;
             host.filter.shown = Some(Rc::clone(&shown));
-            host.input.shown = Some(Rc::clone(&shown));
+            host.input.set_shown(Some(Rc::clone(&shown)));
             host.pane.cursor = shown[at];
             // The backend's sorted order assigns listing positions; hidden entries never enter it.
             let mut rows = host.pane.held.rows.clone();
@@ -168,7 +168,7 @@ fn filtered_grid_scroll_asks_the_rows_its_viewport_draws(cx: &mut TestAppContext
         .update(cx, |shell, _, _| {
             let host = shell.panes[0].as_mut().unwrap();
             host.filter.shown = Some(Rc::clone(&shown));
-            host.input.shown = Some(Rc::clone(&shown));
+            host.input.set_shown(Some(Rc::clone(&shown)));
             host.pane.cursor = shown[0];
         })
         .unwrap();
@@ -208,7 +208,7 @@ fn filtered_arrow_from_a_hidden_cursor_lands_on_the_filter_like_the_list(cx: &mu
             for (hidden, action) in [(5, "cursorLeft"), (5, "cursorRight"), (500, "cursorRight")] {
                 let host = shell.panes[0].as_mut().unwrap();
                 host.filter.shown = Some(Rc::clone(&shown));
-                host.input.shown = Some(Rc::clone(&shown));
+                host.input.set_shown(Some(Rc::clone(&shown)));
                 host.pane.cursor = hidden;
                 assert!(shell.grid_key(action, cx));
                 let cursor = shell.panes[0].as_ref().unwrap().pane.cursor;
