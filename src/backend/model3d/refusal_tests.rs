@@ -40,14 +40,11 @@ fn an_oversized_document_requires_a_typed_refusal() {
         .env(CHILD, &root)
         .output()
         .unwrap();
-    assert!(
-        output.status.success(),
-        "refusal worker failed: {:?}\n{}\n{}",
-        output.status,
-        String::from_utf8_lossy(&output.stdout),
-        String::from_utf8_lossy(&output.stderr)
+    super::memory_tests::assert_child_finished(
+        &output,
+        "refusal worker failed",
+        "FX467 typed refusal",
     );
-    assert!(String::from_utf8_lossy(&output.stdout).contains("FX467 typed refusal"));
 }
 
 fn fixture(root: &Path) {

@@ -31,14 +31,29 @@ fn large_bambu_parts_preview_without_aborting() {
         .env(CHILD, &root)
         .output()
         .unwrap();
-    assert!(
-        output.status.success(),
-        "worker aborted under its production memory cap: {:?}\n{}\n{}",
-        output.status,
-        String::from_utf8_lossy(&output.stdout),
-        String::from_utf8_lossy(&output.stderr)
+    assert_child_finished(
+        &output,
+        "worker aborted under its production memory cap",
+        "FX467 next preview ready",
     );
-    assert!(String::from_utf8_lossy(&output.stdout).contains("FX467 next preview ready"));
+}
+
+// Both failure paths retain the child status and captured diagnostics.
+pub(super) fn assert_child_finished(output: &std::process::Output, context: &str, marker: &str) {
+    let details = || {
+        format!(
+            "{context}: {}\n{}\n{}",
+            output.status,
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        )
+    };
+    assert!(output.status.success(), "{}", details());
+    assert!(
+        String::from_utf8_lossy(&output.stdout).contains(marker),
+        "child omitted {marker}; {}",
+        details()
+    );
 }
 
 pub(super) fn fixture_root(tag: &str) -> (TestDir, PathBuf) {
