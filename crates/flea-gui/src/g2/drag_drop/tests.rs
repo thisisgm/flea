@@ -42,6 +42,7 @@ fn facts(src_dev: u64, dest_dev: u64) -> Facts {
         src_dev,
         dest_dev,
         deletable: true,
+        refused: None,
     }
 }
 
@@ -331,11 +332,14 @@ fn m9_dg2_facts_read_devices_and_writability_from_disk() {
     std::fs::create_dir_all(root.join("src")).unwrap();
     std::fs::write(root.join("src/a"), b"x").unwrap();
     let read = facts::read(
-        Some(&root.join("src/a").to_string_lossy()),
+        &[root.join("src/a").to_string_lossy().into_owned()],
         &root.to_string_lossy(),
     );
     assert!(read.src_dev != 0 && read.src_dev == read.dest_dev && read.deletable);
-    let missing = facts::read(Some("/nonexistent/flea-dg2/a"), "/nonexistent/flea-dg2");
+    let missing = facts::read(
+        &["/nonexistent/flea-dg2/a".to_owned()],
+        "/nonexistent/flea-dg2",
+    );
     assert_eq!(
         (missing.src_dev, missing.dest_dev, missing.deletable),
         (0, 0, false)

@@ -31,7 +31,7 @@ pub const SLOP: f32 = 10.;
 pub trait Rows {
     fn folder(&self) -> &str;
     fn listing(&self) -> usize;
-    /// A row's name and whether it is a folder.
+    /// A row's name and whether it takes a drop as a folder.
     fn row(&self, index: usize) -> Option<(&str, bool)>;
     /// Ascending selected rows.
     fn selected(&self) -> &[usize];
@@ -272,10 +272,11 @@ pub fn decide(dropping: &Dropping<'_>, dest: &str, facts: Facts) -> Landing {
         ctrl: seen(dropping.ctrl, keys_observed),
         shift: seen(dropping.shift, keys_observed),
     };
-    match core::drop_into(&input, dest, facts.dest_dev) {
-        Ok(ask) => Landing::Ask(ask),
-        Err(Some(refused)) => Landing::Refused(refused),
-        Err(None) => Landing::Silent,
+    // A drop the texts allow is still refused when the read found its destination, resolved, to be one they refuse.
+    match (core::drop_into(&input, dest, facts.dest_dev), facts.refused) {
+        (Ok(_), Some(refused)) | (Err(Some(refused)), _) => Landing::Refused(refused),
+        (Ok(ask), None) => Landing::Ask(ask),
+        (Err(None), _) => Landing::Silent,
     }
 }
 #[cfg(test)]
@@ -331,3 +332,8 @@ mod u_drag_drop_recent_tests;
 
 #[cfg(test)]
 mod native_start_tests;
+
+#[cfg(test)]
+mod link_refusal_tests;
+#[cfg(test)]
+mod link_target_tests;
