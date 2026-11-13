@@ -289,3 +289,56 @@ fn the_caps_lock_hint_shows_only_while_caps_lock_is_on() {
     let text = CardText::of(&card, &catalog(&root));
     assert_eq!(note_shown(&text, true), "", "an empty note gains no hint");
 }
+
+#[test]
+fn the_eye_shows_the_typed_secret_only_while_held() {
+    let mut card = Card::new();
+    card.open_for("/dev/sdb1", "Backup", 0, "BitLocker", "2");
+    card.type_text("12ab-é");
+    let hidden = card.field.entry.text.clone();
+    assert_eq!(
+        hidden.len(),
+        "12ab-é".len(),
+        "the shadow keeps the secret's byte length"
+    );
+    assert_ne!(hidden, "12ab-é", "typing draws a mask, not the secret");
+    card.eye_press();
+    assert!(card.revealed());
+    assert_eq!(
+        card.field.entry.text, "12ab-é",
+        "holding the eye shows what was typed"
+    );
+    card.eye_release();
+    assert!(!card.revealed());
+    assert_eq!(card.field.entry.text, hidden, "letting go hides it again");
+}
+
+#[test]
+fn a_submit_or_close_while_the_eye_is_held_leaves_no_secret_in_the_entry() {
+    let mut card = Card::new();
+    card.open_for("/dev/sdb1", "Backup", 0, "crypto_LUKS", "2");
+    card.type_text("S3cr3t-canary");
+    card.eye_press();
+    card.submit(0);
+    assert!(!card.revealed(), "submitting lets go of the eye");
+    assert!(!format!("{card:?}").contains("S3cr3t-canary"));
+    assert!(!card.field.entry.text.contains("S3cr3t"));
+    let mut card = Card::new();
+    card.open_for("/dev/sdb1", "Backup", 0, "crypto_LUKS", "2");
+    card.type_text("S3cr3t-canary");
+    card.eye_press();
+    card.close();
+    assert!(
+        !card.revealed() && card.field.entry.text.is_empty(),
+        "closing lets go and empties the entry"
+    );
+}
+
+#[test]
+fn the_eye_does_nothing_on_an_empty_field() {
+    let mut card = Card::new();
+    card.open_for("/dev/sdb1", "Backup", 0, "crypto_LUKS", "2");
+    card.eye_press();
+    assert_eq!(card.field.entry.text, "");
+    card.eye_release();
+}

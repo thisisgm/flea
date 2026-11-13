@@ -145,6 +145,9 @@ impl FieldView for UnlockView {
     fn field_focus(&self) -> Option<FocusHandle> {
         Some(self.focus_handle().clone())
     }
+    fn field_revealed(&self) -> bool {
+        self.host.card.as_ref().is_some_and(|card| card.revealed())
+    }
     fn field_held(&self) -> usize {
         self.host
             .card

@@ -66,6 +66,7 @@ pub(super) fn card_with_input(
         }) => (input, Some(probes), caps_lock),
         None => (None, None, false),
     };
+    let eye = press.eye.clone();
     let k = move |v: f32| px(v * scale);
     let note_error = card.note.as_ref().is_some_and(|(_, e)| *e);
     let field_frame = if card.field.error {
@@ -182,6 +183,22 @@ pub(super) fn card_with_input(
                         .child(observe(
                             div()
                                 .flex_none()
+                                .cursor_pointer()
+                                .on_mouse_down(gpui::MouseButton::Left, {
+                                    let eye = eye.clone();
+                                    move |_, window, cx| {
+                                        cx.stop_propagation();
+                                        eye(true, window, cx)
+                                    }
+                                })
+                                .on_mouse_up(gpui::MouseButton::Left, {
+                                    let eye = eye.clone();
+                                    move |_, window, cx| eye(false, window, cx)
+                                })
+                                .on_mouse_up_out(gpui::MouseButton::Left, {
+                                    let eye = eye.clone();
+                                    move |_, window, cx| eye(false, window, cx)
+                                })
                                 .child(Mark::new(EYE, 13. * scale, ink.frame)),
                             probes.map(|p| p.eye.clone()),
                         )),
@@ -235,6 +252,8 @@ pub(super) fn card_with_input(
 pub struct Press {
     pub cancel: Click,
     pub unlock: Click,
+    /// True while the eye is held down, false when it is let go.
+    pub eye: std::rc::Rc<dyn Fn(bool, &mut Window, &mut App)>,
 }
 
 pub type Click = Box<dyn Fn(&ClickEvent, &mut Window, &mut App) + 'static>;

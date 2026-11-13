@@ -329,9 +329,22 @@ impl Render for UnlockView {
             .then(|| (cx.entity(), crate::list::Typeface::for_window(window, cx)));
         let cancel = cx.listener(|view: &mut Self, _, _, cx| view.close(cx));
         let unlock = cx.listener(|view: &mut Self, _, _, cx| view.submit(cx));
+        let view = cx.entity();
         let press = Press {
             cancel: Box::new(cancel),
             unlock: Box::new(unlock),
+            eye: std::rc::Rc::new(move |held, _, cx| {
+                view.update(cx, |view, cx| {
+                    if let Some(card) = view.host.card.as_mut() {
+                        if held {
+                            card.eye_press();
+                        } else {
+                            card.eye_release();
+                        }
+                    }
+                    cx.notify();
+                })
+            }),
         };
         // The board's scrim: the window under the card at half the ground, its pointer held by the card.
         root.occlude()
