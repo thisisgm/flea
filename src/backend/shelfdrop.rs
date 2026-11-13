@@ -65,21 +65,21 @@ fn start_from(
     .ok();
     out.flush().ok();
     let tx = ops.tx.clone();
-    thread::spawn(move || run_and_settle(id, redeemed.moving, redeemed.paths, dest, cancel, tx, shelf, policy));
+    thread::spawn(move || run_and_settle(id, redeemed, dest, cancel, tx, shelf, policy));
 }
 
 // The pile is updated from what the engine reported, not from what the drag asked for: an item that
 // failed or was skipped stays on the shelf, and a copy leaves every reference where it was.
 fn run_and_settle(
     id: usize,
-    moving: bool,
-    paths: Vec<String>,
+    redeemed: crate::shelfdrag::Redeemed,
     dest: PathBuf,
     cancel: Arc<AtomicBool>,
     tx: Sender<OpMsg>,
     shelf: Shelf,
     policy: Policy,
 ) {
+    let crate::shelfdrag::Redeemed { moving, paths } = redeemed;
     // The engine's own channel, watched on the way past: the client still sees every line unchanged.
     let (mine, watch) = channel::<OpMsg>();
     let watched = paths.clone();
@@ -111,7 +111,7 @@ fn run_and_settle(
     });
     // The guard owns the join, because a JoinHandle dropped any other way only detaches its thread.
     let _terminal = Terminal { tx: done_tx, held: Arc::clone(&held), forward: Some(forward), id, total, moving };
-    run_transfer_checked(id, moving, paths, dest, cancel, mine, None, None, policy);
+    run_transfer_checked(id, moving, paths, dest, cancel, mine, crate::backend::opsreq::TransferChecks { selection: None, destination: None, collision: policy });
 }
 
 // A guard, because the engine runs on this thread and a panic there unwinds past any send after it.

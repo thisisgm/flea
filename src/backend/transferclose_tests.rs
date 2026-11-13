@@ -14,7 +14,7 @@ type Wire = (Vec<(usize, String, u64, u64)>, Vec<usize>);
 // Every progress line and item line of one transfer, in the order the wire carries them.
 fn wire(paths: &[&Path], to: &Path, policy: Policy) -> Wire {
     let (tx, rx) = channel();
-    run_transfer_checked(1, false, owned(paths), to.to_path_buf(), Arc::new(AtomicBool::new(false)), tx, None, None, policy);
+    run_transfer_checked(1, false, owned(paths), to.to_path_buf(), Arc::new(AtomicBool::new(false)), tx, crate::backend::opsreq::TransferChecks { selection: None, destination: None, collision: policy });
     let (mut lines, mut items) = (Vec::new(), Vec::new());
     for msg in rx.iter() {
         match msg {

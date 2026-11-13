@@ -233,7 +233,7 @@ fn a_cancelled_replace_whose_put_back_fails_is_a_failure_and_its_own_error_stops
     let _trash = unrestorable_trash(&d, Arc::clone(&cancel), true);
     let (tx, rx) = channel();
     let policy = chosen("replace", asked(1, &[&photo, &later], &to), &to);
-    run_transfer_checked(1, false, owned(&[&photo, &later]), to.clone(), Arc::clone(&cancel), tx, None, None, policy);
+    run_transfer_checked(1, false, owned(&[&photo, &later]), to.clone(), Arc::clone(&cancel), tx, crate::backend::opsreq::TransferChecks { selection: None, destination: None, collision: policy });
     let mut errors = Vec::new();
     let mut done = None;
     for msg in rx.iter() {
@@ -264,7 +264,7 @@ fn a_cancelled_replace_whose_put_back_fails_under_a_standing_cancel_counts_once_
     let _trash = unrestorable_trash(&d, Arc::clone(&cancel), false);
     let (tx, rx) = channel();
     let policy = chosen("replace", asked(1, &[&photo], &to), &to);
-    run_transfer_checked(1, false, owned(&[&photo]), to.clone(), Arc::clone(&cancel), tx, None, None, policy);
+    run_transfer_checked(1, false, owned(&[&photo]), to.clone(), Arc::clone(&cancel), tx, crate::backend::opsreq::TransferChecks { selection: None, destination: None, collision: policy });
     let mut errors = Vec::new();
     let mut done = None;
     for msg in rx.iter() {

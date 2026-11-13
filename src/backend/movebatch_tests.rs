@@ -5,21 +5,27 @@ use std::io::Write;
 use std::os::unix::fs::MetadataExt;
 use std::sync::mpsc::channel;
 
-fn staged(
+// The test batch's own state, passed whole so each staged item names only what differs.
+struct Staging<'a> {
     id: usize,
-    batch: &mut MoveBatch,
-    durability: &mut Durability,
-    flag: &AtomicBool,
-    tx: &std::sync::mpsc::Sender<OpMsg>,
-    settled: &AtomicU64,
-    steps: &mut Vec<Step>,
+    batch: &'a mut MoveBatch,
+    durability: &'a mut Durability,
+    flag: &'a AtomicBool,
+    tx: &'a std::sync::mpsc::Sender<OpMsg>,
+    settled: &'a AtomicU64,
+    steps: &'a mut Vec<Step>,
+}
+
+fn staged(
+    staging: Staging<'_>,
     index: usize,
     src: &Path,
     dst: &Path,
 ) {
+    let Staging { id, batch, durability, flag, tx, settled, steps } = staging;
     let source = ItemIdentity::inspect(src).expect("source recorded before its copy");
     let name = src.file_name().unwrap().to_string_lossy().to_string();
-    match stage_copy(id, index, &name, src, dst, source, flag, tx, settled, steps, durability, batch) {
+    match stage_copy(crate::backend::opsreq::TransferItem { id, index, name: &name, src, dst, source }, flag, tx, settled, steps, durability, batch) {
         MoveOutcome::Deferred => {}
         MoveOutcome::Done(r) => panic!("staging copies, got {}", r.map(|_| "ok").unwrap_err().msg),
     }
@@ -54,7 +60,7 @@ fn a_batch_of_sixty_four_confirms_its_folder_once() {
     for n in 0..64 {
         let src = srcdir.join(format!("f{n}.txt"));
         std::fs::write(&src, "body").unwrap();
-        staged(1, &mut batch, &mut durability, &flag, &tx, &settled, &mut steps, n, &src, &out.join(format!("f{n}.txt")));
+        staged(Staging { id: 1, batch: &mut batch, durability: &mut durability, flag: &flag, tx: &tx, settled: &settled, steps: &mut steps }, n, &src, &out.join(format!("f{n}.txt")));
     }
     assert!(batch.full(), "64 staged items fill the batch");
     let (counts, retry) = close_normal(&mut batch, 1, &tx, &mut steps, &mut durability);
@@ -92,7 +98,7 @@ fn a_failed_batch_confirm_keeps_every_source_and_journals_partials() {
     for (n, body) in ["first", "second"].iter().enumerate() {
         let src = srcdir.join(format!("f{n}.txt"));
         std::fs::write(&src, body).unwrap();
-        staged(1, &mut batch, &mut durability, &flag, &tx, &settled, &mut steps, n, &src, &out.join(format!("f{n}.txt")));
+        staged(Staging { id: 1, batch: &mut batch, durability: &mut durability, flag: &flag, tx: &tx, settled: &settled, steps: &mut steps }, n, &src, &out.join(format!("f{n}.txt")));
     }
     durable::test_set_fail_dirs(true);
     let (counts, retry) = close_normal(&mut batch, 1, &tx, &mut steps, &mut durability);
@@ -130,7 +136,7 @@ fn a_cancelled_batch_completes_its_landed_moves() {
     for n in 0..2 {
         let src = srcdir.join(format!("f{n}.txt"));
         std::fs::write(&src, "body").unwrap();
-        staged(1, &mut batch, &mut durability, &flag, &tx, &settled, &mut steps, n, &src, &out.join(format!("f{n}.txt")));
+        staged(Staging { id: 1, batch: &mut batch, durability: &mut durability, flag: &flag, tx: &tx, settled: &settled, steps: &mut steps }, n, &src, &out.join(format!("f{n}.txt")));
     }
     let (counts, retry) = close_cancelled(&mut batch, 1, &tx, &mut steps, &mut durability);
     assert!(counts.cancelled);
@@ -166,7 +172,7 @@ fn batched_moves_undo_like_single_item_moves() {
     for n in 0..2 {
         let src = srcdir.join(format!("f{n}.txt"));
         std::fs::write(&src, "body").unwrap();
-        staged(1, &mut batch, &mut durability, &flag, &tx, &settled, &mut steps, n, &src, &out.join(format!("f{n}.txt")));
+        staged(Staging { id: 1, batch: &mut batch, durability: &mut durability, flag: &flag, tx: &tx, settled: &settled, steps: &mut steps }, n, &src, &out.join(format!("f{n}.txt")));
     }
     let (counts, _) = close_normal(&mut batch, 1, &tx, &mut steps, &mut durability);
     assert_eq!(counts.ok, 2);
@@ -197,10 +203,10 @@ fn a_replaced_batch_source_survives_close_with_both_copies_kept() {
     let mut steps = Vec::new();
     let first = srcdir.join("f0.txt");
     std::fs::write(&first, "old").unwrap();
-    staged(1, &mut batch, &mut durability, &flag, &tx, &settled, &mut steps, 0, &first, &out.join("f0.txt"));
+    staged(Staging { id: 1, batch: &mut batch, durability: &mut durability, flag: &flag, tx: &tx, settled: &settled, steps: &mut steps }, 0, &first, &out.join("f0.txt"));
     let second = srcdir.join("f1.txt");
     std::fs::write(&second, "body").unwrap();
-    staged(1, &mut batch, &mut durability, &flag, &tx, &settled, &mut steps, 1, &second, &out.join("f1.txt"));
+    staged(Staging { id: 1, batch: &mut batch, durability: &mut durability, flag: &flag, tx: &tx, settled: &settled, steps: &mut steps }, 1, &second, &out.join("f1.txt"));
     // Atomically replaced after its copy landed, so a new inode sits at the staged name.
     let repl = srcdir.join("replacement.txt");
     std::fs::write(&repl, "new").unwrap();
@@ -245,7 +251,7 @@ fn an_unverifiable_batch_source_keeps_both_names() {
     let mut steps = Vec::new();
     let src = srcdir.join("f0.txt");
     std::fs::write(&src, "body").unwrap();
-    staged(1, &mut batch, &mut durability, &flag, &tx, &settled, &mut steps, 0, &src, &out.join("f0.txt"));
+    staged(Staging { id: 1, batch: &mut batch, durability: &mut durability, flag: &flag, tx: &tx, settled: &settled, steps: &mut steps }, 0, &src, &out.join("f0.txt"));
     let _inspect = InspectFailGuard::hold();
     let (counts, retry) = close_normal(&mut batch, 1, &tx, &mut steps, &mut durability);
     assert_eq!((counts.ok, counts.failed, counts.skipped), (0, 1, 0));
@@ -284,7 +290,7 @@ fn a_vanished_batch_source_keeps_its_copy_and_journals_nothing() {
     let mut steps = Vec::new();
     let src = srcdir.join("f0.txt");
     std::fs::write(&src, "body").unwrap();
-    staged(1, &mut batch, &mut durability, &flag, &tx, &settled, &mut steps, 0, &src, &out.join("f0.txt"));
+    staged(Staging { id: 1, batch: &mut batch, durability: &mut durability, flag: &flag, tx: &tx, settled: &settled, steps: &mut steps }, 0, &src, &out.join("f0.txt"));
     std::fs::remove_file(&src).unwrap();
     let (counts, _) = close_normal(&mut batch, 1, &tx, &mut steps, &mut durability);
     assert_eq!((counts.ok, counts.failed, counts.skipped), (0, 1, 0));
@@ -315,7 +321,7 @@ fn a_stale_handle_at_close_counts_as_gone_and_journals_nothing() {
     let mut steps = Vec::new();
     let src = srcdir.join("f0.txt");
     std::fs::write(&src, "body").unwrap();
-    staged(1, &mut batch, &mut durability, &flag, &tx, &settled, &mut steps, 0, &src, &out.join("f0.txt"));
+    staged(Staging { id: 1, batch: &mut batch, durability: &mut durability, flag: &flag, tx: &tx, settled: &settled, steps: &mut steps }, 0, &src, &out.join("f0.txt"));
     let (counts, _) = {
         let _stale = InspectFailGuard::hold_errno(super::ESTALE);
         close_normal(&mut batch, 1, &tx, &mut steps, &mut durability)
@@ -346,10 +352,10 @@ fn a_batch_source_edited_in_place_survives_close_with_both_copies_kept() {
     let mut steps = Vec::new();
     let first = srcdir.join("f0.txt");
     std::fs::write(&first, "old").unwrap();
-    staged(1, &mut batch, &mut durability, &flag, &tx, &settled, &mut steps, 0, &first, &out.join("f0.txt"));
+    staged(Staging { id: 1, batch: &mut batch, durability: &mut durability, flag: &flag, tx: &tx, settled: &settled, steps: &mut steps }, 0, &first, &out.join("f0.txt"));
     let second = srcdir.join("f1.txt");
     std::fs::write(&second, "body").unwrap();
-    staged(1, &mut batch, &mut durability, &flag, &tx, &settled, &mut steps, 1, &second, &out.join("f1.txt"));
+    staged(Staging { id: 1, batch: &mut batch, durability: &mut durability, flag: &flag, tx: &tx, settled: &settled, steps: &mut steps }, 1, &second, &out.join("f1.txt"));
     // Appended after its copy landed, so the same inode holds new bytes.
     let ino = first.symlink_metadata().unwrap().ino();
     std::fs::OpenOptions::new().append(true).open(&first).unwrap().write_all(b"more").unwrap();
@@ -392,7 +398,7 @@ fn same_filesystem_moves_answer_at_once_and_never_stage() {
     let src = d.file("a.txt", "body");
     let source = ItemIdentity::inspect(&src).unwrap();
     let dst = out.join("a.txt");
-    match land_move(1, 0, "a.txt", &src, &dst, source, &flag, &tx, &settled, &mut steps, &mut durability, &mut batch) {
+    match land_move(crate::backend::opsreq::TransferItem { id: 1, index: 0, name: "a.txt", src: &src, dst: &dst, source }, &flag, &tx, &settled, &mut steps, &mut durability, &mut batch) {
         MoveOutcome::Done(Ok(())) => {}
         other => panic!("a rename answers at once, got {}", if matches!(other, MoveOutcome::Deferred) { "deferred" } else { "an error" }),
     }
@@ -403,7 +409,7 @@ fn same_filesystem_moves_answer_at_once_and_never_stage() {
     let src = d.file("b.txt", "source");
     std::fs::write(&dst, "taken").unwrap();
     let source = ItemIdentity::inspect(&src).unwrap();
-    let err = match land_move(1, 1, "b.txt", &src, &dst, source, &flag, &tx, &settled, &mut steps, &mut durability, &mut batch) {
+    let err = match land_move(crate::backend::opsreq::TransferItem { id: 1, index: 1, name: "b.txt", src: &src, dst: &dst, source }, &flag, &tx, &settled, &mut steps, &mut durability, &mut batch) {
         MoveOutcome::Done(Err(e)) => e,
         _ => panic!("a clobbering move must refuse"),
     };
@@ -460,7 +466,7 @@ fn a_cancelled_move_transfer_reports_cancelled_with_landed_complete() {
     let _cancel_at = crate::backend::opsreq::CancelAtGuard::hold(2);
     let (tx, rx) = channel();
     crate::backend::opsreq::run_transfer_checked(1, true, paths, out.clone(), Arc::new(AtomicBool::new(false)), tx,
-        None, None, crate::backend::collide::Policy::default());
+        crate::backend::opsreq::TransferChecks { selection: None, destination: None, collision: crate::backend::collide::Policy::default() });
     let got = collect(rx);
     assert!(got.cancelled, "a pressed cancel answers cancelled whatever the last item hit");
     assert_eq!((got.ok, got.failed, got.skipped), (2, 0, 2));
@@ -509,7 +515,7 @@ fn non_regular_items_close_the_batch_and_move_alone() {
     let paths = [a, tree, link, b].iter().map(|p| p.to_string_lossy().into_owned()).collect::<Vec<_>>();
     let (tx, rx) = channel();
     crate::backend::opsreq::run_transfer_checked(1, true, paths, out.clone(),
-        std::sync::Arc::new(AtomicBool::new(false)), tx, None, None, crate::backend::collide::Policy::default());
+        std::sync::Arc::new(AtomicBool::new(false)), tx, crate::backend::opsreq::TransferChecks { selection: None, destination: None, collision: crate::backend::collide::Policy::default() });
     let got = collect(rx);
     assert_eq!((got.ok, got.failed, got.skipped, got.cancelled), (4, 0, 0, false));
     assert_eq!(out.join("tree").symlink_metadata().unwrap().ino(), tree_ino, "a directory moves by rename, not by copy");
@@ -547,7 +553,7 @@ fn a_sixty_four_batch_on_a_block_vfat_stick_skips_file_fsyncs() {
     for n in 0..64 {
         let src = srcdir.join(format!("f{n}.txt"));
         std::fs::write(&src, "body").unwrap();
-        staged(1, &mut batch, &mut durability, &flag, &tx, &settled, &mut steps, n, &src, &out.join(format!("f{n}.txt")));
+        staged(Staging { id: 1, batch: &mut batch, durability: &mut durability, flag: &flag, tx: &tx, settled: &settled, steps: &mut steps }, n, &src, &out.join(format!("f{n}.txt")));
     }
     assert_eq!(durability.held_len(), 0, "the 64th hold already released the batch");
     assert_eq!(durable::test_releases(), 64, "64 closes on scoped threads: {:?}", durable::test_order());
@@ -594,7 +600,7 @@ fn a_failed_syncfs_keeps_every_source_and_journals_partials() {
     for n in 0..4 {
         let src = srcdir.join(format!("f{n}.txt"));
         std::fs::write(&src, "body").unwrap();
-        staged(1, &mut batch, &mut durability, &flag, &tx, &settled, &mut steps, n, &src, &out.join(format!("f{n}.txt")));
+        staged(Staging { id: 1, batch: &mut batch, durability: &mut durability, flag: &flag, tx: &tx, settled: &settled, steps: &mut steps }, n, &src, &out.join(format!("f{n}.txt")));
     }
     durable::test_set_syncfs_errno(durable::EIO);
     let (counts, retry) = close_normal(&mut batch, 1, &tx, &mut steps, &mut durability);
@@ -633,7 +639,7 @@ fn a_cancelled_batch_syncfs_close_leaves_nothing_held() {
     for n in 0..2 {
         let src = srcdir.join(format!("f{n}.txt"));
         std::fs::write(&src, "body").unwrap();
-        staged(1, &mut batch, &mut durability, &flag, &tx, &settled, &mut steps, n, &src, &out.join(format!("f{n}.txt")));
+        staged(Staging { id: 1, batch: &mut batch, durability: &mut durability, flag: &flag, tx: &tx, settled: &settled, steps: &mut steps }, n, &src, &out.join(format!("f{n}.txt")));
     }
     assert_eq!(durability.held_len(), 2, "two small files held");
     let (counts, _) = close_cancelled(&mut batch, 1, &tx, &mut steps, &mut durability);
@@ -660,14 +666,14 @@ fn a_copy_error_mid_batch_still_closes_with_nothing_held() {
     let mut steps = Vec::new();
     let first = srcdir.join("f0.txt");
     std::fs::write(&first, "body").unwrap();
-    staged(1, &mut batch, &mut durability, &flag, &tx, &settled, &mut steps, 0, &first, &out.join("f0.txt"));
+    staged(Staging { id: 1, batch: &mut batch, durability: &mut durability, flag: &flag, tx: &tx, settled: &settled, steps: &mut steps }, 0, &first, &out.join("f0.txt"));
     assert_eq!(durability.held_len(), 1, "one file held");
     // A destination already taken refuses the second copy before it holds anything.
     let second = srcdir.join("f1.txt");
     std::fs::write(&second, "body").unwrap();
     std::fs::write(out.join("f1.txt"), "taken").unwrap();
     let source = ItemIdentity::inspect(&second).expect("source recorded");
-    match stage_copy(1, 1, "f1.txt", &second, &out.join("f1.txt"), source, &flag, &tx, &settled, &mut steps, &mut durability, &mut batch) {
+    match stage_copy(crate::backend::opsreq::TransferItem { id: 1, index: 1, name: "f1.txt", src: &second, dst: &out.join("f1.txt"), source }, &flag, &tx, &settled, &mut steps, &mut durability, &mut batch) {
         MoveOutcome::Done(Err(_)) => {}
         _ => panic!("a taken destination must refuse"),
     }
@@ -698,7 +704,7 @@ fn a_non_block_durable_batch_keeps_per_file_fsyncs_and_no_syncfs() {
     for n in 0..4 {
         let src = srcdir.join(format!("f{n}.txt"));
         std::fs::write(&src, "body").unwrap();
-        staged(1, &mut batch, &mut durability, &flag, &tx, &settled, &mut steps, n, &src, &out.join(format!("f{n}.txt")));
+        staged(Staging { id: 1, batch: &mut batch, durability: &mut durability, flag: &flag, tx: &tx, settled: &settled, steps: &mut steps }, n, &src, &out.join(format!("f{n}.txt")));
     }
     let (counts, _) = close_normal(&mut batch, 1, &tx, &mut steps, &mut durability);
     assert_eq!((counts.ok, counts.failed), (4, 0));
@@ -728,13 +734,13 @@ fn a_failed_cap_syncfs_keeps_all_sixty_four_sources_and_journals_partials() {
     for n in 0..63 {
         let src = srcdir.join(format!("f{n}.txt"));
         std::fs::write(&src, "body").unwrap();
-        staged(1, &mut batch, &mut durability, &flag, &tx, &settled, &mut steps, n, &src, &out.join(format!("f{n}.txt")));
+        staged(Staging { id: 1, batch: &mut batch, durability: &mut durability, flag: &flag, tx: &tx, settled: &settled, steps: &mut steps }, n, &src, &out.join(format!("f{n}.txt")));
     }
     // Only the cap settle fails; the 64th copy still lands, then every confirm must fail sticky.
     durable::test_set_syncfs_errno(durable::EIO);
     let src = srcdir.join("f63.txt");
     std::fs::write(&src, "body").unwrap();
-    staged(1, &mut batch, &mut durability, &flag, &tx, &settled, &mut steps, 63, &src, &out.join("f63.txt"));
+    staged(Staging { id: 1, batch: &mut batch, durability: &mut durability, flag: &flag, tx: &tx, settled: &settled, steps: &mut steps }, 63, &src, &out.join("f63.txt"));
     durable::test_set_syncfs_errno(0);
     let (counts, retry) = close_normal(&mut batch, 1, &tx, &mut steps, &mut durability);
     assert_eq!((counts.ok, counts.failed), (0, 64), "every source stays when the cap syncfs failed");
@@ -766,7 +772,7 @@ fn a_batch_copy_shown_short_keeps_the_source_and_journals_the_copy() {
     let mut steps = Vec::new();
     let src = srcdir.join("f0.txt");
     std::fs::write(&src, "body").unwrap();
-    staged(1, &mut batch, &mut durability, &flag, &tx, &settled, &mut steps, 0, &src, &out.join("f0.txt"));
+    staged(Staging { id: 1, batch: &mut batch, durability: &mut durability, flag: &flag, tx: &tx, settled: &settled, steps: &mut steps }, 0, &src, &out.join("f0.txt"));
     std::fs::OpenOptions::new().write(true).open(out.join("f0.txt")).unwrap().set_len(2).unwrap();
     let (counts, retry) = close_normal(&mut batch, 1, &tx, &mut steps, &mut durability);
     assert_eq!((counts.ok, counts.failed, retry.len()), (0, 1, 1));

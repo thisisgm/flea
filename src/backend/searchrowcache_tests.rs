@@ -17,7 +17,7 @@ fn render(cache: &mut Cache, base: &Path, listing: &Listing, start: usize, count
     let (metas, _) = cache.window(base, listing, start, count, body);
     let aliases = Aliases::load();
     let thumbs = Thumbnailers::load(&aliases);
-    rows::rows_line_cached(base, body, listing, &metas, start, 0.0, &Db::load(), &Names::load(), &aliases, &thumbs, &mut Kinds::new(), cache)
+    rows::rows_line_cached(base, body, listing, &metas, crate::backend::rows::Window { start, ms: 0.0 }, crate::backend::rows::Services { mime: &Db::load(), icons: &Names::load(), aliases: &aliases, thumbs: &thumbs, kinds: &mut Kinds::new() }, cache)
 }
 
 #[test]
@@ -192,10 +192,10 @@ fn search_fb5_probe_rich_rows_latency() {
             let before = cache.misses;
             let _line = if label == "baseline" {
                 let (metas, _) = super::super::meta::stat_range(d.path(), &l, offset, 350);
-                rows::rows_line(d.path(), &l, &metas, offset, 0.0, &mime, &icons, &aliases, &thumbs, &mut kinds)
+                rows::rows_line(d.path(), &l, &metas, crate::backend::rows::Window { start: offset, ms: 0.0 }, crate::backend::rows::Services { mime: &mime, icons: &icons, aliases: &aliases, thumbs: &thumbs, kinds: &mut kinds })
             } else {
                 let (metas, _) = cache.window(d.path(), &l, offset, 350, &body);
-                rows::rows_line_cached(d.path(), &body, &l, &metas, offset, 0.0, &mime, &icons, &aliases, &thumbs, &mut kinds, &mut cache)
+                rows::rows_line_cached(d.path(), &body, &l, &metas, crate::backend::rows::Window { start: offset, ms: 0.0 }, crate::backend::rows::Services { mime: &mime, icons: &icons, aliases: &aliases, thumbs: &thumbs, kinds: &mut kinds }, &mut cache)
             };
             let elapsed = start.elapsed().as_secs_f64() * 1e6;
             let work = counts();

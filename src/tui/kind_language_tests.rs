@@ -116,13 +116,14 @@ fn surfaces(code: &str) {
         std::path::Path::new("/nonexistent"),
         &listing,
         &vec![meta; 4],
-        0,
-        0.0,
-        &mime,
-        &icons,
-        &aliases,
-        &thumbs,
-        &mut kinds,
+        crate::backend::rows::Window { start: 0, ms: 0.0 },
+        crate::backend::rows::Services {
+            mime: &mime,
+            icons: &icons,
+            aliases: &aliases,
+            thumbs: &thumbs,
+            kinds: &mut kinds,
+        },
     );
     let reply = jsondoc::parse(&line).unwrap();
     let dictionary = reply.get("kinds").and_then(Json::as_array).unwrap();
@@ -225,13 +226,14 @@ fn kind_lang_ten_thousand_rows_read_each_mime_once() {
             std::path::Path::new("/nonexistent"),
             &listing,
             &metas,
-            start,
-            0.0,
-            &mime,
-            &icons,
-            &aliases,
-            &thumbs,
-            &mut kinds,
+            crate::backend::rows::Window { start, ms: 0.0 },
+            crate::backend::rows::Services {
+                mime: &mime,
+                icons: &icons,
+                aliases: &aliases,
+                thumbs: &thumbs,
+                kinds: &mut kinds,
+            },
         );
     }
     assert_eq!(

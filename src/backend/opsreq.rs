@@ -54,6 +54,30 @@ fn cancel_at_fires(index: usize) -> bool {
 mod opmsg;
 pub use opmsg::OpMsg;
 
+// A transfer's three tallies, named so the done line cannot take one for another.
+pub(crate) struct TransferCounts {
+    pub ok: usize,
+    pub failed: usize,
+    pub skipped: usize,
+}
+
+// What a menu transfer re-checks before it runs: the selection, the destination, and the collision answer.
+pub(crate) struct TransferChecks<P> {
+    pub selection: Option<Vec<super::menu_actions::Selected>>,
+    pub destination: Option<super::menu_actions::Selected>,
+    pub collision: P,
+}
+
+// One item of a transfer: where it sits in the request, and which file goes where.
+pub(crate) struct TransferItem<'a> {
+    pub id: usize,
+    pub index: usize,
+    pub name: &'a str,
+    pub src: &'a Path,
+    pub dst: &'a Path,
+    pub source: ItemIdentity,
+}
+
 // One link request's whole answer: its counts, its journal steps and the first failure's words.
 pub struct LinkOutcome {
     pub ok: usize,
@@ -97,8 +121,9 @@ pub fn transferitem_line(id: usize, index: usize, name: &str, ok: bool, err: &st
 }
 
 // refused rides only when a drive refused an entry, so every other transfer's line is byte-identical to before.
-pub fn transferdone_line(id: usize, ok: usize, failed: usize, skipped: usize, cancelled: bool,
-                         retry: &[(PathBuf, ItemIdentity)], durable: bool, note: &str, refused: &[(String, String)]) -> String {
+pub fn transferdone_line(id: usize, counts: TransferCounts, cancelled: bool, retry: &[(PathBuf, ItemIdentity)], durable: bool,
+                         note: &str, refused: &[(String, String)]) -> String {
+    let TransferCounts { ok, failed, skipped } = counts;
     let paths: Vec<_> = retry.iter().map(|(path, _)| format!("\"{}\"", escape(&path.exact_text()))).collect();
     format!(
         r#"{{"t":"transferdone","id":{},"ok":{},"failed":{},"skipped":{},"cancelled":{},"retryPaths":[{}],"durable":{},"note":"{}"{}}}"#,
@@ -193,7 +218,7 @@ pub fn run_transfer(
     cancel: Arc<AtomicBool>,
     tx: Sender<OpMsg>,
 ) {
-    run_transfer_checked(id, moving, paths, dest, cancel, tx, None, None, Policy::default())
+    run_transfer_checked(id, moving, paths, dest, cancel, tx, TransferChecks { selection: None, destination: None, collision: Policy::default() })
 }
 
 // The sweep's own lifetime: it walks while the transfer is in this function and stops when it leaves.
@@ -260,9 +285,9 @@ fn counted(raw: &str, dest: &Path, skipping: Option<&Skipping>) -> bool {
 
 pub(crate) fn run_transfer_checked(
     id: usize, moving: bool, paths: Vec<String>, dest: PathBuf,
-    cancel: Arc<AtomicBool>, tx: Sender<OpMsg>, selection: Option<Vec<super::menu_actions::Selected>>,
-    destination: Option<super::menu_actions::Selected>, policy: Policy,
+    cancel: Arc<AtomicBool>, tx: Sender<OpMsg>, checks: TransferChecks<Policy>,
 ) {
+    let TransferChecks { selection, destination, collision: policy } = checks;
     // Directive 45: a batch gets a time left once it knows what it is copying, and a tree's size is
     // not known without a walk. This is that walk, beside the copy rather than before it.
     let settled = Arc::new(AtomicU64::new(0));
@@ -399,7 +424,7 @@ pub(crate) fn run_transfer_checked(
             }
         };
         if merging { kept_top = super::merge::kept_name(&dst, &name); }
-        let mut land = |steps: &mut Vec<Step>| transferitem::one_item(id, index, &name, moving, &src, &dst, source.clone(), &cancel, &tx, (&settled, &pace, &table), steps, &mut durability);
+        let mut land = |steps: &mut Vec<Step>| transferitem::one_item(TransferItem { id, index, name: &name, src: &src, dst: &dst, source: source.clone() }, moving, &cancel, &tx, (&settled, &pace, &table), steps, &mut durability);
         // A replace trashes through the batch's deferred session, so its copy still follows its own trash.
         if replace {
             let slot = deferred.get_or_insert_with(super::mergeapply::Deferred::begin);
@@ -409,13 +434,13 @@ pub(crate) fn run_transfer_checked(
             if batch.full() { let closed = close_open(&mut batch, id, &tx, &mut steps, &mut durability, [&mut ok, &mut failed, &mut skipped], &mut retry); close_merged(&closed, merging, &mut merged_total, &mut kept_total); }
             // Only regular files wait on a batch; anything else closes it first and moves alone.
             if metadata.is_file() {
-                match super::movebatch::land_move(id, index, &name, &src, &dst, source.clone(), &cancel, &tx, &settled, &mut steps, &mut durability, &mut batch) {
+                match super::movebatch::land_move(TransferItem { id, index, name: &name, src: &src, dst: &dst, source: source.clone() }, &cancel, &tx, &settled, &mut steps, &mut durability, &mut batch) {
                     super::movebatch::MoveOutcome::Done(r) => Landed::Now(r),
                     super::movebatch::MoveOutcome::Deferred => Landed::Later,
                 }
             } else {
                 if !batch.is_empty() { let closed = close_open(&mut batch, id, &tx, &mut steps, &mut durability, [&mut ok, &mut failed, &mut skipped], &mut retry); close_merged(&closed, merging, &mut merged_total, &mut kept_total); }
-                Landed::Now(transferitem::one_item(id, index, &name, moving, &src, &dst, source.clone(), &cancel, &tx, (&settled, &pace, &table), &mut steps, &mut durability))
+                Landed::Now(transferitem::one_item(TransferItem { id, index, name: &name, src: &src, dst: &dst, source: source.clone() }, moving, &cancel, &tx, (&settled, &pace, &table), &mut steps, &mut durability))
             }
         } else {
             Landed::Now(land(&mut steps))
@@ -554,3 +579,6 @@ pub(crate) fn run_duplicate_requested(path: String, tx: Sender<OpMsg>, selection
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+#[path = "transfer_group_tests.rs"]
+mod group_tests;

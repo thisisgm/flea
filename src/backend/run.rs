@@ -181,7 +181,7 @@ fn dispatch_inner<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tabl
         Event::Contents(done) => super::contentsreq::done(out, st, tb, pool, loop_tx, done, (watch, poller)),
         Event::Request(line) => {
             if super::nearby::is_request(&line) {
-                return handle_line(&line, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate);
+                return handle_line(&line, out, st, RequestContext { tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate });
             }
             // A list for another folder takes the place of a plain list scan still out, after the requests that waited replay against the listing still current.
             while gate.holds() && listwork::list_path(&line).is_some_and(|path| gate.let_go(&path)) {
@@ -375,25 +375,31 @@ fn handle_with_jobs(line: &str, out: &mut impl Write, st: &mut State, tb: &Table
             return Control::Continue;
         }
     }
-    handle_line(line, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate)
+    handle_line(line, out, st, RequestContext { tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate })
+}
+
+// The loop's own state a request reads and changes, passed whole from the dispatch to the handler.
+struct RequestContext<'a> {
+    tb: &'a Tables,
+    pool: &'a Pool,
+    cache: &'a Cache,
+    ops: &'a mut Ops,
+    flash: &'a mut flashslot::Ctx,
+    watch: &'a mut Watch,
+    peeks: &'a mut PeekWatch,
+    fsinfo: &'a mut FsInfo,
+    poller: &'a super::watchpoll::Poller,
+    loop_tx: &'a Sender<Event>,
+    gate: &'a mut Gate,
 }
 
 fn handle_line(
     line: &str,
     out: &mut impl Write,
     st: &mut State,
-    tb: &Tables,
-    pool: &Pool,
-    cache: &Cache,
-    ops: &mut Ops,
-    flash: &mut flashslot::Ctx,
-    watch: &mut Watch,
-    peeks: &mut PeekWatch,
-    fsinfo: &mut FsInfo,
-    poller: &super::watchpoll::Poller,
-    loop_tx: &Sender<Event>,
-    gate: &mut Gate,
+    context: RequestContext<'_>,
 ) -> Control {
+    let RequestContext { tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate } = context;
     // Rows read from a numbering this listing has already replaced name other files, so they are refused.
     if let Some(refused) = super::rowguard::refusal(line, st.generation) {
         say(out, &refused);
@@ -485,7 +491,7 @@ fn handle_line(
                 return Control::Continue;
             }
             match super::outline::request(st, &rows, anchor, open, enabled, first) {
-                Ok(line) => return handle_line(&line, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate),
+                Ok(line) => return handle_line(&line, out, st, RequestContext { tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate }),
                 Err(msg) => say(out, &error_line(&FleaError { where_: "outline".into(), path: flea::bytename::path_text(&st.base).into_owned(), msg })),
             }
         }
@@ -785,9 +791,9 @@ fn handle_line(
         // The password leaves this wire only on the tool's own stdin pipe, never in argv or a log.
         Request::Archive { op, paths, path, dest, format, menu_id, password, encrypt_names } => start_archive(
             out, ops, Arc::clone(&tb.formats), &op,
-            paths, format, flea::bytename::exact(&path), flea::bytename::exact(&dest), menu_id, password, encrypt_names),
+            crate::backend::archivereq::ArchiveRequest { compressing: op == "compress", paths, format, archive: flea::bytename::exact(&path), dest: flea::bytename::exact(&dest), password, encrypt_names }, menu_id),
         Request::Convert { path, dest, strip, menu_id, request_id, check } =>
-            start_convert(out, ops, flea::bytename::exact(&path), flea::bytename::exact(&dest), strip, menu_id, request_id, check),
+            start_convert(out, ops, crate::backend::archivereq::ConvertRequest { input: flea::bytename::exact(&path), dest: flea::bytename::exact(&dest), strip, request_id }, menu_id, check),
         Request::PrintConvert(ask) => super::printreq::serve(out, ops, ask, Arc::clone(&tb.mime), Arc::clone(&tb.aliases)),
         Request::Formats { id } => {
             let mut line = formats_line(&tb.formats, convert::available());
@@ -1139,8 +1145,7 @@ mod tests {
         let _stuck = super::super::iomount::test_hold_stuck(mount);
         let calls_before = super::super::iomount::test_calls();
         assert!(handle_line(r#"{"c":"window","start":0,"count":1}"#, &mut out,
-            &mut st, &tb, &pool, &cache, &mut ops, &mut flash, &mut watch, &mut peeks, &mut fsinfo, &poller,
-            &events, &mut Gate::new(events.clone())) == Control::Continue);
+            &mut st, RequestContext { tb: &tb, pool: &pool, cache: &cache, ops: &mut ops, flash: &mut flash, watch: &mut watch, peeks: &mut peeks, fsinfo: &mut fsinfo, poller: &poller, loop_tx: &events, gate: &mut Gate::new(events.clone()) }) == Control::Continue);
         assert!(super::super::iomount::test_calls() > calls_before, "the window reaches the real mount bound");
         let response = String::from_utf8(out).expect("the error wire is UTF-8");
         let mut lines = response.lines();
@@ -1184,8 +1189,7 @@ mod tests {
             let link = format!(r#"{{"c":"link","rows":[0,1],"dest":"{}","op":"relative"}}"#, crate::json::escape(&dest_path.to_string_lossy()));
             let mut out = Vec::new();
             for line in [&link, r#"{"c":"paths","rows":[0,1]}"#, &link] {
-                assert!(handle_line(line, &mut out, &mut st, &tb, &pool, &cache, &mut ops, &mut flash,
-                    &mut watch, &mut peeks, &mut fsinfo, &poller, &events, &mut Gate::new(events.clone())) == Control::Continue);
+                assert!(handle_line(line, &mut out, &mut st, RequestContext { tb: &tb, pool: &pool, cache: &cache, ops: &mut ops, flash: &mut flash, watch: &mut watch, peeks: &mut peeks, fsinfo: &mut fsinfo, poller: &poller, loop_tx: &events, gate: &mut Gate::new(events.clone()) }) == Control::Continue);
             }
             answered.send((std::mem::take(&mut out), ops.live.running().is_some(), ops.journal.is_empty(), ops.pending.is_empty())).unwrap();
             let landed = rx.recv_timeout(REPLY_DEADLINE).expect("the released link reports through the op channel");

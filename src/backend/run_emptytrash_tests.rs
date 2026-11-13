@@ -27,17 +27,7 @@ fn empty_trash_responds_before_review_validation() {
         r#"{"c":"trashbrowse","op":"delete","id":321,"token":999}"#,
         &mut out,
         &mut st,
-        &tb,
-        &pool,
-        &Cache::new(),
-        &mut ops,
-        &mut flashslot::Ctx::new(channel().0),
-        &mut watch,
-        &mut peeks,
-        &mut fsinfo,
-        &poller,
-        &events,
-        &mut Gate::new(events.clone()),
+        RequestContext { tb: &tb, pool: &pool, cache: &Cache::new(), ops: &mut ops, flash: &mut flashslot::Ctx::new(channel().0), watch: &mut watch, peeks: &mut peeks, fsinfo: &mut fsinfo, poller: &poller, loop_tx: &events, gate: &mut Gate::new(events.clone()) },
     );
     let text = String::from_utf8(out).unwrap();
     let lines = text

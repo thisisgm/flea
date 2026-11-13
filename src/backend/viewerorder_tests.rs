@@ -44,17 +44,7 @@ fn image_paths_follow_the_held_listing_and_refuse_stale_numbering() {
                 line,
                 &mut out,
                 &mut st,
-                &tb,
-                &pool,
-                &cache,
-                &mut ops,
-                &mut flash,
-                &mut watch,
-                &mut peeks,
-                &mut fsinfo,
-                &poller,
-                &events,
-                &mut gate
+                RequestContext { tb: &tb, pool: &pool, cache: &cache, ops: &mut ops, flash: &mut flash, watch: &mut watch, peeks: &mut peeks, fsinfo: &mut fsinfo, poller: &poller, loop_tx: &events, gate: &mut gate }
             ) == Control::Continue
         );
         String::from_utf8(out).unwrap()

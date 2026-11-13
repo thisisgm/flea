@@ -12,6 +12,8 @@ const TARGETS: [&str; 5] = ["r", "re", "render", "render_fra", "archive/2"];
 // Seven samples a batch and two batches, so drift between batches shows beside each median.
 const SAMPLES: usize = 7;
 const BATCHES: usize = 2;
+// One timed query: its phases, its milliseconds, its total, the rows it scored, and the hash of its answer.
+type PhaseSample = (Phases, f64, usize, usize, u64);
 const MS_PER_SECOND: f64 = 1e3;
 const PERCENT: f64 = 100.0;
 
@@ -44,7 +46,7 @@ fn search_q3_loaded_phase_probe() {
     session.priors = Some(priors);
     let mut gen = 0;
     for batch in 0..BATCHES {
-        let mut samples: [Vec<(Phases, f64, usize, usize, u64)>; TARGETS.len()] = std::array::from_fn(|_| Vec::new());
+        let mut samples: [Vec<PhaseSample>; TARGETS.len()] = std::array::from_fn(|_| Vec::new());
         for _ in 0..SAMPLES {
             for chain in ["render_fra", "archive/2"] {
                 session.last_query.clear();

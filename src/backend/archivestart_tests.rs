@@ -8,8 +8,8 @@ fn an_iso_extract_answers_archivedone_and_starts_nothing() {
     let (tx, _rx) = std::sync::mpsc::channel();
     let mut ops = Ops::new(tx);
     let mut out = Vec::new();
-    start_archive(&mut out, &mut ops, Arc::new(Formats::from_tools(true, true)), "extract", Vec::new(),
-        "7z".into(), d.join("debian-13.iso"), d.join("debian-13"), 0, String::new(), false);
+    start_archive(&mut out, &mut ops, Arc::new(Formats::from_tools(true, true)), "extract", crate::backend::archivereq::ArchiveRequest { compressing: false, paths: Vec::new(), format: "7z".into(), archive: d.join("debian-13.iso"), dest: d.join("debian-13"), password: String::new(), encrypt_names: false },
+        0);
     let text = String::from_utf8(out).unwrap();
     assert_eq!(text.lines().count(), 1, "one terminal line and nothing before it: {}", text);
     assert!(text.contains(r#""t":"archivedone""#) && text.contains(r#""ok":false"#), "{}", text);
@@ -36,8 +36,8 @@ fn items_from_two_folders_are_refused_in_plain_words() {
     let first = d.file("one/a.txt", "a");
     let second = d.file("two/b.txt", "b");
     let (tx, rx) = std::sync::mpsc::channel();
-    run_archive(7, true, vec![first.to_string_lossy().to_string(), second.to_string_lossy().to_string()], "zip".into(),
-        PathBuf::new(), d.join("out.zip"), &Formats::from_tools(true, true), tx, None, Arc::new(AtomicBool::new(false)), String::new(), false);
+    run_archive(7, crate::backend::archivereq::ArchiveRequest { compressing: true, paths: vec![first.to_string_lossy().to_string(), second.to_string_lossy().to_string()], format: "zip".into(), archive: PathBuf::new(), dest: d.join("out.zip"), password: String::new(), encrypt_names: false }, &Formats::from_tools(true, true), tx,
+        None, Arc::new(AtomicBool::new(false)));
     match rx.recv().unwrap() {
         OpMsg::DetachedDone { line, .. } => assert!(line.contains(r#""err":"the items to compress must be in one folder""#), "{}", line),
         _ => panic!("a compress answers through DetachedDone"),

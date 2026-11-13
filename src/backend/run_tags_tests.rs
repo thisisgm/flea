@@ -25,8 +25,7 @@ fn ask_fsinfo(sandbox: &TestDir, base: &Path, asks: usize) -> (String, usize) {
     let mut out = Vec::new();
     PROBES.with(|probes| probes.set(0));
     for _ in 0..asks {
-        assert!(handle_line(r#"{"c":"fsinfo"}"#, &mut out, &mut st, &tb, &pool, &cache, &mut ops, &mut flash,
-            &mut watch, &mut peeks, &mut fsinfo, &poller, &events, &mut Gate::new(events.clone())) == Control::Continue);
+        assert!(handle_line(r#"{"c":"fsinfo"}"#, &mut out, &mut st, RequestContext { tb: &tb, pool: &pool, cache: &cache, ops: &mut ops, flash: &mut flash, watch: &mut watch, peeks: &mut peeks, fsinfo: &mut fsinfo, poller: &poller, loop_tx: &events, gate: &mut Gate::new(events.clone()) }) == Control::Continue);
     }
     (String::from_utf8(out).expect("the fsinfo wire is UTF-8"), PROBES.with(|probes| probes.get()))
 }

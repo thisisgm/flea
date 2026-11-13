@@ -130,7 +130,7 @@ pub(crate) fn resolve_rows(paths: Vec<String>, rows: &[usize], base: &Path, list
 }
 
 pub(crate) fn start_transfer(out: &mut impl Write, ops: &mut Ops, op: &str, paths: Vec<String>, dest: &str, collide: super::collide::Ask) {
-    start_transfer_checked(out, ops, op, paths, dest, None, None, collide)
+    start_transfer_checked(out, ops, op, paths, dest, crate::backend::opsreq::TransferChecks { selection: None, destination: None, collision: collide })
 }
 
 pub(crate) fn request_menu_action(out: &mut impl Write, ops: &mut Ops, line: String, paths: Vec<String>, cursor: Option<String>) {
@@ -157,7 +157,7 @@ pub(crate) fn start_menu_transfer(out: &mut impl Write, ops: &mut Ops, op: &str,
     match super::collide::menu_sources(ops, id, dest, &collide) {
         Ok((items, destination)) => {
             let paths = items.iter().map(|item| item.path.exact_text().into()).collect();
-            start_transfer_checked(out, ops, op, paths, dest, Some(items), destination, collide);
+            start_transfer_checked(out, ops, op, paths, dest, crate::backend::opsreq::TransferChecks { selection: Some(items), destination, collision: collide });
         }
         Err(message) => {
             writeln!(out, "{}", error_line(&op_err("transfer", "", &message))).ok();
@@ -829,7 +829,7 @@ pub(crate) fn report_op(out: &mut impl Write, ops: &mut Ops, mut msg: OpMsg) {
         } => {
             ops.live.finished_if(id);
             ops.transfer_retry = (id, retry);
-            writeln!(out, "{}", transferdone_line(id, ok, failed, skipped, cancelled, &ops.transfer_retry.1, durable, &note, &refused)).ok();
+            writeln!(out, "{}", transferdone_line(id, crate::backend::opsreq::TransferCounts { ok, failed, skipped }, cancelled, &ops.transfer_retry.1, durable, &note, &refused)).ok();
         }
         done @ OpMsg::MergeDone { .. } => {
             let line = super::merge::transferdone_merge_line(&done);
@@ -2214,7 +2214,7 @@ mod tests {
         let mut busy = out();
         let formats = std::sync::Arc::new(crate::backend::archive::Formats::from_tools(true, true));
         crate::backend::archivereq::start_archive(&mut busy, &mut o, std::sync::Arc::clone(&formats), "compress",
-            vec![remote_compress.to_string_lossy().to_string()], "tar".into(), PathBuf::new(), remote.join("out.tar"), 0, String::new(), false);
+            crate::backend::archivereq::ArchiveRequest { compressing: true, paths: vec![remote_compress.to_string_lossy().to_string()], format: "tar".into(), archive: PathBuf::new(), dest: remote.join("out.tar"), password: String::new(), encrypt_names: false }, 0);
         assert!(text(&busy).contains("already running"), "a compress on a pending mount waits: {}", text(&busy));
         assert!(!text(&busy).contains("archivestarted"), "the refused compress starts nothing: {}", text(&busy));
         assert_eq!(o.journal.len(), journaled, "the refused compress journals nothing");
@@ -2223,7 +2223,7 @@ mod tests {
         let local_compress = local.file("c.txt", "c");
         let mut started = out();
         crate::backend::archivereq::start_archive(&mut started, &mut o, std::sync::Arc::clone(&formats), "compress",
-            vec![local_compress.to_string_lossy().to_string()], "tar".into(), PathBuf::new(), local.join("out.tar"), 0, String::new(), false);
+            crate::backend::archivereq::ArchiveRequest { compressing: true, paths: vec![local_compress.to_string_lossy().to_string()], format: "tar".into(), archive: PathBuf::new(), dest: local.join("out.tar"), password: String::new(), encrypt_names: false }, 0);
         assert!(text(&started).contains("archivestarted"), "a compress elsewhere starts: {}", text(&started));
         for _ in 0..LAND_ROUNDS {
             let msg = rx.recv_timeout(LAND_BOUND).expect("the compress reports through the op channel");
@@ -2243,7 +2243,7 @@ mod tests {
         let local_divergent = local.file("c2.txt", "c");
         let mut busy = out();
         crate::backend::archivereq::start_archive(&mut busy, &mut o, std::sync::Arc::clone(&formats), "compress",
-            vec![local_divergent.to_string_lossy().to_string()], "tar".into(), PathBuf::new(), local.join("out2.tar"), 5, String::new(), false);
+            crate::backend::archivereq::ArchiveRequest { compressing: true, paths: vec![local_divergent.to_string_lossy().to_string()], format: "tar".into(), archive: PathBuf::new(), dest: local.join("out2.tar"), password: String::new(), encrypt_names: false }, 5);
         assert!(text(&busy).contains("already running"), "a divergent selection on a pending mount waits: {}", text(&busy));
         assert!(!text(&busy).contains("archivestarted"), "the refused compress starts nothing: {}", text(&busy));
         // An extract of the held mount waits before any tool runs.
@@ -2252,7 +2252,7 @@ mod tests {
         let journaled = o.journal.len();
         let mut busy = out();
         crate::backend::archivereq::start_archive(&mut busy, &mut o, std::sync::Arc::clone(&formats), "extract",
-            Vec::new(), "tar".into(), remote_archive.clone(), remote_exdest.clone(), 0, String::new(), false);
+            crate::backend::archivereq::ArchiveRequest { compressing: false, paths: Vec::new(), format: "tar".into(), archive: remote_archive.clone(), dest: remote_exdest.clone(), password: String::new(), encrypt_names: false }, 0);
         assert!(text(&busy).contains("already running"), "an extract on a pending mount waits: {}", text(&busy));
         assert!(!text(&busy).contains("archivestarted"), "the refused extract starts nothing: {}", text(&busy));
         assert_eq!(o.journal.len(), journaled, "the refused extract journals nothing");
@@ -2262,7 +2262,7 @@ mod tests {
         let fresh = local.join("exdest-fresh");
         let mut started = out();
         crate::backend::archivereq::start_archive(&mut started, &mut o, std::sync::Arc::clone(&formats), "extract",
-            Vec::new(), "tar".into(), bogus, fresh, 0, String::new(), false);
+            crate::backend::archivereq::ArchiveRequest { compressing: false, paths: Vec::new(), format: "tar".into(), archive: bogus, dest: fresh, password: String::new(), encrypt_names: false }, 0);
         assert!(text(&started).contains("archivestarted"), "an extract elsewhere starts: {}", text(&started));
         for _ in 0..LAND_ROUNDS {
             let msg = rx.recv_timeout(LAND_BOUND).expect("the extract reports through the op channel");
@@ -2283,7 +2283,7 @@ mod tests {
         let remote_convert = remote.file("in.png", "pixels");
         let journaled = o.journal.len();
         let mut busy = out();
-        crate::backend::archivereq::start_convert(&mut busy, &mut o, remote_convert.clone(), remote.join("out.jpg"), false, 0, 71, false);
+        crate::backend::archivereq::start_convert(&mut busy, &mut o, crate::backend::archivereq::ConvertRequest { input: remote_convert.clone(), dest: remote.join("out.jpg"), strip: false, request_id: 71 }, 0, false);
         assert!(text(&busy).contains("already running"), "a convert on a pending mount waits: {}", text(&busy));
         assert!(!text(&busy).contains("convertstarted"), "the refused convert starts nothing: {}", text(&busy));
         assert_eq!(o.journal.len(), journaled, "the refused convert journals nothing");
@@ -2291,7 +2291,7 @@ mod tests {
         // The same convert elsewhere passes the gate, and a divergent selection still waits.
         let local_convert = local.file("in.png", "pixels");
         let mut past = out();
-        crate::backend::archivereq::start_convert(&mut past, &mut o, local_convert.clone(), local.join("out.jpg"), false, 0, 72, false);
+        crate::backend::archivereq::start_convert(&mut past, &mut o, crate::backend::archivereq::ConvertRequest { input: local_convert.clone(), dest: local.join("out.jpg"), strip: false, request_id: 72 }, 0, false);
         assert!(!text(&past).contains("already running"), "a convert elsewhere passes the gate: {}", text(&past));
         if text(&past).contains("convertstarted") {
             let landed = rx.recv_timeout(LAND_BOUND).expect("the convert reports through the op channel");
@@ -2301,11 +2301,11 @@ mod tests {
         }
         let local_in2 = local.file("in2.png", "pixels");
         let mut busy = out();
-        crate::backend::archivereq::start_convert(&mut busy, &mut o, local_in2, local.join("out2.jpg"), false, 5, 73, false);
+        crate::backend::archivereq::start_convert(&mut busy, &mut o, crate::backend::archivereq::ConvertRequest { input: local_in2, dest: local.join("out2.jpg"), strip: false, request_id: 73 }, 5, false);
         assert!(text(&busy).contains("already running"), "a divergent selection on a pending mount waits: {}", text(&busy));
         // A convert probe only reads, so it never waits on the gate.
         let mut probe = out();
-        crate::backend::archivereq::start_convert(&mut probe, &mut o, remote_convert, remote.join("out.jpg"), false, 0, 74, true);
+        crate::backend::archivereq::start_convert(&mut probe, &mut o, crate::backend::archivereq::ConvertRequest { input: remote_convert, dest: remote.join("out.jpg"), strip: false, request_id: 74 }, 0, true);
         assert!(text(&probe).contains("convertchecked"), "a probe answers past the gate: {}", text(&probe));
         assert!(!text(&probe).contains("already running"), "a probe is never the gate: {}", text(&probe));
         // A permissions batch on the held mount waits, and the mode stays.

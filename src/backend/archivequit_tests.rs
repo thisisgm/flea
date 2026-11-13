@@ -31,8 +31,8 @@ fn a_pre_cancelled_compress_answers_cancelled_and_leaves_no_work_folder() {
     let (tx, rx) = std::sync::mpsc::channel();
     let cancel = Arc::new(AtomicBool::new(true));
     let began = Instant::now();
-    run_archive(41, true, paths, "zip".to_string(), PathBuf::from("/nonexistent"),
-        dest.clone(), &f, tx, None, Arc::clone(&cancel), String::new(), false);
+    run_archive(41, crate::backend::archivereq::ArchiveRequest { compressing: true, paths, format: "zip".to_string(), archive: PathBuf::from("/nonexistent"), dest: dest.clone(), password: String::new(), encrypt_names: false }, &f, tx, None,
+        Arc::clone(&cancel));
     let line = match rx.recv_timeout(Duration::from_secs(15)).unwrap() {
         OpMsg::DetachedDone { id, line } => { assert_eq!(id, 41, "the terminal message must carry the registry id"); line }
         other => panic!("a compress answers DetachedDone, got {:?}", std::mem::discriminant(&other)),
@@ -55,8 +55,8 @@ fn a_compress_without_a_cancel_is_never_answered_cancelled() {
     let paths = vec![d.join("a.txt").to_string_lossy().to_string()];
     let f = Formats::from_tools(false, false);
     let (tx, rx) = std::sync::mpsc::channel();
-    run_archive(42, true, paths, "zip".to_string(), PathBuf::from("/nonexistent"),
-        dest.clone(), &f, tx, None, Arc::new(AtomicBool::new(false)), String::new(), false);
+    run_archive(42, crate::backend::archivereq::ArchiveRequest { compressing: true, paths, format: "zip".to_string(), archive: PathBuf::from("/nonexistent"), dest: dest.clone(), password: String::new(), encrypt_names: false }, &f, tx, None,
+        Arc::new(AtomicBool::new(false)));
     let line = match rx.recv_timeout(Duration::from_secs(15)).unwrap() {
         OpMsg::DetachedDone { id, line } => { assert_eq!(id, 42, "the terminal message must carry the registry id"); line }
         other => panic!("a compress answers DetachedDone, got {:?}", std::mem::discriminant(&other)),
@@ -183,7 +183,7 @@ fn a_pre_cancelled_convert_answers_cancelled_and_leaves_no_work_folder() {
     let input = d.file("a.png", "pixels");
     let dest = d.join("a.jpg");
     let (tx, rx) = std::sync::mpsc::channel();
-    run_convert(51, 9, input, dest.clone(), false, tx, None, Arc::new(AtomicBool::new(true)));
+    run_convert(51, crate::backend::archivereq::ConvertRequest { request_id: 9, input, dest: dest.clone(), strip: false }, tx, None, Arc::new(AtomicBool::new(true)));
     let line = match rx.recv_timeout(Duration::from_secs(15)).unwrap() {
         OpMsg::DetachedDone { id, line } => { assert_eq!(id, 51, "the terminal message must carry the registry id"); line }
         other => panic!("a convert answers DetachedDone, got {:?}", std::mem::discriminant(&other)),
@@ -202,7 +202,7 @@ fn a_convert_without_a_cancel_is_never_answered_cancelled() {
     let input = d.file("a.png", "pixels");
     let dest = d.file("a.jpg", "taken");
     let (tx, rx) = std::sync::mpsc::channel();
-    run_convert(52, 9, input, dest, false, tx, None, Arc::new(AtomicBool::new(false)));
+    run_convert(52, crate::backend::archivereq::ConvertRequest { request_id: 9, input, dest, strip: false }, tx, None, Arc::new(AtomicBool::new(false)));
     let line = match rx.recv_timeout(Duration::from_secs(15)).unwrap() {
         OpMsg::DetachedDone { id, line } => { assert_eq!(id, 52, "the terminal message must carry the registry id"); line }
         other => panic!("a convert answers DetachedDone, got {:?}", std::mem::discriminant(&other)),

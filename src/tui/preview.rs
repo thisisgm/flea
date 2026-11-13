@@ -11,10 +11,13 @@ pub mod words;
 use words::Text;
 
 const TEXT_BYTES: u64 = 1024 * 1024;
+// The read in flight: its generation, its cancel flag, and the channel its text or refusal arrives on.
+type RunningRead = (usize, Arc<AtomicBool>, Receiver<Result<String, &'static str>>);
+
 #[derive(Default)]
 pub struct Reader {
     pending: Option<(PathBuf, usize)>,
-    running: Option<(usize, Arc<AtomicBool>, Receiver<Result<String, &'static str>>)>,
+    running: Option<RunningRead>,
 }
 impl Reader {
     fn request(&mut self, path: PathBuf, generation: usize) {
