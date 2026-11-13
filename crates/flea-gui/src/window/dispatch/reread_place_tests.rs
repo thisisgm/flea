@@ -3,6 +3,9 @@ use super::{deep, finish, lists, name, place, receive, serve, without, Place, DO
 use crate::{backend::Event as BackendEvent, state::Shell, window::navigate::Step};
 use gpui::{Entity, TestAppContext, VisualTestContext};
 
+#[path = "delete_slot_tests.rs"]
+mod delete_slot;
+
 fn after(cx: &mut TestAppContext, step: Step) -> (Place, Place) {
     let (shell, cx, before) = deep(cx, "list");
     cx.update(|window, cx| {

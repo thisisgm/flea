@@ -266,15 +266,19 @@ impl Navigator {
         if pane.busy() {
             return false;
         }
-        let mut anchor = self
+        let deleted = self
             .deletion_anchor
             .take()
-            .filter(|anchor| anchor.path == pane.path())
-            .unwrap_or_else(|| {
-                let mut anchor = Anchor::capture(pane, selected, select, want_changed);
-                anchor.grid_offset = self.viewport.as_ref().map(|view| view.offset(pane.cursor));
-                anchor
-            });
+            .filter(|anchor| anchor.path == pane.path());
+        // Anchor.js afterDelete: the cursor stands on the first deleted slot before the re-read, so a kept viewport lands on that slot and not on the row the cursor had.
+        if let Some(slot) = deleted.as_ref().map(|anchor| anchor.index) {
+            pane.cursor = slot.min(pane.held.total.saturating_sub(1));
+        }
+        let mut anchor = deleted.unwrap_or_else(|| {
+            let mut anchor = Anchor::capture(pane, selected, select, want_changed);
+            anchor.grid_offset = self.viewport.as_ref().map(|view| view.offset(pane.cursor));
+            anchor
+        });
         let need = anchor.unnamed();
         if !need.is_empty() && !self.gate.paths_pending {
             if let Some(action) = pane.row_action(need.clone()) {
