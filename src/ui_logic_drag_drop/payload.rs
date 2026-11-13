@@ -95,8 +95,7 @@ impl Marker {
 
 /// Whether a marker text is absent or well formed; a malformed one refuses every drop (Drag.canDropInto).
 pub fn marker_ok(marker: Option<&str>) -> bool {
-    // map_or because is_none_or needs Rust 1.82 over the 1.77 floor.
-    marker.map_or(true, |text| Marker::parse(text).is_some())
+    marker.is_none_or(|text| Marker::parse(text).is_some())
 }
 
 // encodeURIComponent: unreserved ASCII and !'()*~ stay, every other byte is %XX.

@@ -17,10 +17,11 @@ const SIGTERM: c_int = 15;
 const WNOHANG: c_int = 1;
 
 // A mapped pid is alive or unreaped: the waiter removes it under this lock before reaping.
-static OWNERS: std::sync::OnceLock<std::sync::Mutex<HashMap<String, u32>>> = std::sync::OnceLock::new();
+static OWNERS: std::sync::LazyLock<std::sync::Mutex<HashMap<String, u32>>> =
+    std::sync::LazyLock::new(|| std::sync::Mutex::new(HashMap::new()));
 
 fn owners() -> &'static std::sync::Mutex<HashMap<String, u32>> {
-    OWNERS.get_or_init(|| std::sync::Mutex::new(HashMap::new()))
+    &OWNERS
 }
 
 fn remember(token: &str, pid: u32) {

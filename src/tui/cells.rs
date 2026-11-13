@@ -7,9 +7,10 @@ use crate::cellwidth::wcwidth;
 pub mod visual;
 
 pub fn mirrors(role: &str) -> bool {
-    static POLICY: std::sync::OnceLock<Option<crate::jsondoc::Json>> = std::sync::OnceLock::new();
+    static POLICY: std::sync::LazyLock<Option<crate::jsondoc::Json>> = std::sync::LazyLock::new(|| {
+        crate::jsondoc::parse(include_str!("../../i18n/rtl-policy.json")).ok()
+    });
     POLICY
-        .get_or_init(|| crate::jsondoc::parse(include_str!("../../i18n/rtl-policy.json")).ok())
         .as_ref()
         .and_then(|doc| doc.get("roles"))
         .and_then(|roles| roles.get(role))
@@ -72,10 +73,9 @@ fn runs_from(policy: &str) -> Option<Runs> {
     })
 }
 pub(super) fn markers(run: Run) -> Option<(char, char)> {
-    static RUNS: std::sync::OnceLock<Option<Runs>> = std::sync::OnceLock::new();
-    let runs = RUNS
-        .get_or_init(|| runs_from(include_str!("../../i18n/rtl-policy.json")))
-        .as_ref()?;
+    static RUNS: std::sync::LazyLock<Option<Runs>> =
+        std::sync::LazyLock::new(|| runs_from(include_str!("../../i18n/rtl-policy.json")));
+    let runs = RUNS.as_ref()?;
     Some(match run {
         Run::Name => runs.name,
         Run::Number => runs.number,

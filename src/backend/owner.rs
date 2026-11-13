@@ -2,14 +2,14 @@
 // through NSS and can wait on a network directory, and the meta thread must never hang the column on one.
 use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
-use std::{collections::HashSet, sync::{Mutex, OnceLock}};
+use std::{collections::HashSet, sync::{LazyLock, Mutex}};
 
 const PASSWD: &str = "/etc/passwd";
 // A timed-out stat keeps its slot until it returns: one per mount, eight across all mounts.
 const MAX_REMOTE_READS: usize = 8;
 fn active_mounts() -> &'static Mutex<HashSet<PathBuf>> {
-    static ACTIVE: OnceLock<Mutex<HashSet<PathBuf>>> = OnceLock::new();
-    ACTIVE.get_or_init(|| Mutex::new(HashSet::new()))
+    static ACTIVE: LazyLock<Mutex<HashSet<PathBuf>>> = LazyLock::new(|| Mutex::new(HashSet::new()));
+    &ACTIVE
 }
 struct ReadSlot(PathBuf);
 impl ReadSlot {

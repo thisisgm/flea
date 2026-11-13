@@ -1,7 +1,7 @@
 //! Optional per-composition census of tracks that actually painted, including missing and empty tracks.
 use crate::columns::{geometry::Slot, paint::Painters, TrackRows, TrackView};
 use gpui::{canvas, prelude::*, px, AnyElement, IntoElement};
-use std::sync::OnceLock;
+use std::sync::LazyLock;
 
 #[cfg(test)]
 thread_local! {
@@ -13,8 +13,9 @@ fn enabled() -> bool {
     if RECORDS.with(|records| records.borrow().is_some()) {
         return true;
     }
-    static ENABLED: OnceLock<bool> = OnceLock::new();
-    *ENABLED.get_or_init(|| std::env::var("FLEA_COLUMNS_CENSUS").is_ok_and(|value| value == "1"))
+    static ENABLED: LazyLock<bool> =
+        LazyLock::new(|| std::env::var("FLEA_COLUMNS_CENSUS").is_ok_and(|value| value == "1"));
+    *ENABLED
 }
 
 pub(super) fn surface(path: &str, painters: &Painters, tracks: &[TrackView]) -> Option<AnyElement> {

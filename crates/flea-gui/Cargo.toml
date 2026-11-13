@@ -2,6 +2,7 @@
 name = "flea-gui"
 version = "0.4.3"
 edition = "2021"
+rust-version.workspace = true
 license = "MIT"
 
 [dependencies]

@@ -2,7 +2,7 @@
 use std::ffi::{c_char, c_double, c_int, c_void, CStr};
 use std::os::unix::io::IntoRawFd;
 use std::path::Path;
-use std::sync::OnceLock;
+use std::sync::LazyLock;
 
 // std already links the system libc, so the loader's two symbols are declared here rather than taking a crate.
 extern "C" {
@@ -66,7 +66,7 @@ struct Api {
 unsafe impl Send for Api {}
 unsafe impl Sync for Api {}
 
-static API: OnceLock<Result<Api, String>> = OnceLock::new();
+static API: LazyLock<Result<Api, String>> = LazyLock::new(|| unsafe { load() });
 
 unsafe fn library(name: &CStr) -> Result<*mut c_void, String> {
     let handle = dlopen(name.as_ptr(), RTLD_NOW);
@@ -114,8 +114,7 @@ unsafe fn load() -> Result<Api, String> {
 
 fn api() -> Result<&'static Api, Failure> {
     // SAFETY: load only resolves symbols; their signatures are the libraries' documented C API.
-    API.get_or_init(|| unsafe { load() })
-        .as_ref()
+    API.as_ref()
         .map_err(|reason| Failure::Library(reason.clone()))
 }
 

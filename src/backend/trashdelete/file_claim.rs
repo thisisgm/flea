@@ -10,14 +10,12 @@ static HELD_REVIEW_HANDLES: AtomicUsize = AtomicUsize::new(0);
 
 struct ReviewHold;
 impl ReviewHold {
-    // try_update needs Rust 1.95, newer than the workspace rust-version 1.77, so fetch_update stays.
-    #[allow(deprecated)]
     fn take() -> Option<Self> {
         let limit = MAX_REVIEW_HANDLES;
         #[cfg(test)]
         let limit = hold_tests::limit(limit);
         HELD_REVIEW_HANDLES
-            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |held| {
+            .try_update(Ordering::Relaxed, Ordering::Relaxed, |held| {
                 (held < limit).then_some(held + 1)
             })
             .ok()

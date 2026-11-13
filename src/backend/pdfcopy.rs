@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{RecvTimeoutError, channel};
-use std::sync::{Arc, Mutex, Once, OnceLock};
+use std::sync::{Arc, LazyLock, Mutex, Once};
 use std::time::Duration;
 
 // How long one fetch waits for the filesystem without progress before the viewer says the file is not responding.
@@ -14,10 +14,11 @@ pub const PDF_COPY_WAIT: Duration = Duration::from_secs(8);
 const PDF_CACHE_LEAF: &str = "flea/pdf";
 static SWEEP: Once = Once::new();
 // One copy on screen per viewer slot, so a newer fetch supersedes only its own viewer.
-static LAST_COPY: OnceLock<Mutex<HashMap<String, PathBuf>>> = OnceLock::new();
+static LAST_COPY: LazyLock<Mutex<HashMap<String, PathBuf>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
 // The per-slot table, made once because a static cannot call HashMap::new.
 fn last_copy() -> &'static Mutex<HashMap<String, PathBuf>> {
-    LAST_COPY.get_or_init(|| Mutex::new(HashMap::new()))
+    &LAST_COPY
 }
 
 fn cache_root() -> PathBuf {

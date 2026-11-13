@@ -1,7 +1,7 @@
 //! B7's opt-in output receipt: decoded pixels painted in an exactly presented frame.
 use crate::preview_trace::{now, CLOCK_MONOTONIC};
 use gpui::{App, Bounds, FrameFeedbackEvent, FrameOutcome, Pixels, Subscription, Window};
-use std::{cell::RefCell, collections::VecDeque, sync::OnceLock, time::Duration};
+use std::{cell::RefCell, collections::VecDeque, sync::LazyLock, time::Duration};
 
 const KEPT: usize = 512;
 /// Quick Look's marked raster edge, independent of monitor dimensions.
@@ -13,23 +13,21 @@ pub(crate) fn enabled() -> bool {
 }
 
 fn token() -> Option<&'static str> {
-    static TOKEN: OnceLock<Option<String>> = OnceLock::new();
-    TOKEN
-        .get_or_init(|| {
-            std::env::var("FLEA_B7_BENCH")
-                .ok()
-                .filter(|s| !s.is_empty())
-        })
-        .as_deref()
+    static TOKEN: LazyLock<Option<String>> = LazyLock::new(|| {
+        std::env::var("FLEA_B7_BENCH")
+            .ok()
+            .filter(|s| !s.is_empty())
+    });
+    TOKEN.as_deref()
 }
 
 fn delay_ms() -> Option<u64> {
-    static DELAY: OnceLock<Option<u64>> = OnceLock::new();
-    *DELAY.get_or_init(|| {
+    static DELAY: LazyLock<Option<u64>> = LazyLock::new(|| {
         std::env::var("FLEA_B7_DELAY_MS")
             .ok()
             .and_then(|s| s.parse().ok())
-    })
+    });
+    *DELAY
 }
 
 #[derive(Clone)]

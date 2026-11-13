@@ -441,8 +441,7 @@ fn keep_mtime(w: &std::fs::File, src_meta: &std::fs::Metadata) {
 // Sample input, one line of /proc/self/status: "Umask:	0022". Read once, because a copy asks per file
 // and per directory and this process cannot change its own umask while one runs.
 fn umask() -> u32 {
-    static READ: std::sync::OnceLock<u32> = std::sync::OnceLock::new();
-    *READ.get_or_init(|| {
+    static READ: std::sync::LazyLock<u32> = std::sync::LazyLock::new(|| {
         let status = std::fs::read_to_string("/proc/self/status").unwrap_or_default();
         for line in status.lines() {
             if let Some(value) = line.strip_prefix("Umask:") {
@@ -452,7 +451,8 @@ fn umask() -> u32 {
             }
         }
         0o022
-    })
+    });
+    *READ
 }
 
 // A failure after the destination was created, and not a cancel: the partial stays, and is reported for the journal.

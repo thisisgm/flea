@@ -1,7 +1,7 @@
 // Test-only observation pauses one real tag read per owned fixture without replacing its I/O.
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::{mpsc, Arc, Mutex, OnceLock};
+use std::sync::{mpsc, Arc, LazyLock, Mutex};
 use std::time::Duration;
 
 struct Hook {
@@ -12,8 +12,8 @@ struct Hook {
 }
 
 fn hooks() -> &'static Mutex<Vec<Arc<Hook>>> {
-    static HOOKS: OnceLock<Mutex<Vec<Arc<Hook>>>> = OnceLock::new();
-    HOOKS.get_or_init(Default::default)
+    static HOOKS: LazyLock<Mutex<Vec<Arc<Hook>>>> = LazyLock::new(Default::default);
+    &HOOKS
 }
 
 pub(crate) struct Hold {

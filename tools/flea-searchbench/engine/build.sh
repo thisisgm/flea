@@ -111,9 +111,12 @@ python3 - "$BUILD/project/flea-engine/Cargo.toml" "$BUILD/flea-source/src/main.r
 import pathlib, re, sys, tomllib
 manifest = pathlib.Path(sys.argv[1])
 text = manifest.read_text()
-package = tomllib.loads(pathlib.Path(sys.argv[3]).read_text())['package']
+root = tomllib.loads(pathlib.Path(sys.argv[3]).read_text())
+package = root['package']
 for key in ['version', 'edition', 'rust-version']:
-    text = re.sub(r'^' + re.escape(key) + r' = "[^"]+"', key + ' = "' + package[key] + '"', text, count=1, flags=re.MULTILINE)
+    # A key the package inherits ({workspace = true}) takes the workspace's value.
+    value = root['workspace']['package'][key] if package[key] == {'workspace': True} else package[key]
+    text = re.sub(r'^' + re.escape(key) + r' = "[^"]+"', key + ' = "' + value + '"', text, count=1, flags=re.MULTILINE)
 text = text.replace('path = "../../../../src/main.rs"', 'path = "' + sys.argv[2] + '"')
 library = pathlib.Path(sys.argv[2]).with_name('lib.rs')
 if library.is_file():
@@ -127,9 +130,12 @@ python3 - "$BUILD/anchor-engine/Cargo.toml" "$BUILD/anchor-source/src/main.rs" "
 import pathlib, re, sys, tomllib
 manifest = pathlib.Path(sys.argv[1])
 text = manifest.read_text()
-package = tomllib.loads(pathlib.Path(sys.argv[3]).read_text())['package']
+root = tomllib.loads(pathlib.Path(sys.argv[3]).read_text())
+package = root['package']
 for key in ['version', 'edition', 'rust-version']:
-    text = re.sub(r'^' + re.escape(key) + r' = "[^"]+"', key + ' = "' + package[key] + '"', text, count=1, flags=re.MULTILINE)
+    # A key the package inherits ({workspace = true}) takes the workspace's value.
+    value = root['workspace']['package'][key] if package[key] == {'workspace': True} else package[key]
+    text = re.sub(r'^' + re.escape(key) + r' = "[^"]+"', key + ' = "' + value + '"', text, count=1, flags=re.MULTILINE)
 text = text.replace('path = "../../../../src/main.rs"', 'path = "' + sys.argv[2] + '"')
 library = pathlib.Path(sys.argv[2]).with_name('lib.rs')
 if library.is_file():

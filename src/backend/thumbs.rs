@@ -11,7 +11,7 @@ use crate::backend::{rawpreview, sandbox, thumbbind};
 use std::collections::VecDeque;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::Sender;
-use std::sync::{Arc, Condvar, Mutex, OnceLock};
+use std::sync::{Arc, Condvar, LazyLock, Mutex};
 use std::time::{Duration, Instant};
 
 // A viewport holds about 35 rows, so a queue twice that absorbs one fast scroll without unbounded growth.
@@ -44,8 +44,9 @@ pub struct Trace {
 
 // The environment is read once for the process, because the queue path must not pay a lookup per row.
 pub fn trace(row: usize) -> Option<Trace> {
-    static ON: OnceLock<bool> = OnceLock::new();
-    if !*ON.get_or_init(|| std::env::var_os("FLEA_THUMB_TRACE").is_some_and(|v| !v.is_empty())) {
+    static ON: LazyLock<bool> =
+        LazyLock::new(|| std::env::var_os("FLEA_THUMB_TRACE").is_some_and(|v| !v.is_empty()));
+    if !*ON {
         return None;
     }
     let zero = Duration::ZERO;

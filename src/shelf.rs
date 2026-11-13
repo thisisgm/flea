@@ -5,8 +5,7 @@ use crate::error::io_message;
 use crate::jsondoc::{self, Json};
 use crate::uistore;
 use std::fs;
-use std::os::unix::ffi::OsStrExt;
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 const DIR: &str = "omarchy/flea-shelf";
@@ -256,28 +255,12 @@ fn rebuilt(item: &Json, keep: impl Fn(&str) -> bool, mut added: Vec<(String, Jso
     Json::Obj(fields)
 }
 
-// std::path::absolute needs Rust 1.79 over the 1.77 floor; this joins cwd, drops CurDir, and keeps // and one trailing slash.
+// std::path::absolute, with Flea's own sentence for an empty path.
 pub(crate) fn absolute(path: &str) -> std::io::Result<PathBuf> {
-    let joined = Path::new(path);
-    if joined.as_os_str().is_empty() {
+    if path.is_empty() {
         return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "an empty path has no absolute form"));
     }
-    let joined = if joined.is_absolute() { joined.to_path_buf() } else { std::env::current_dir()?.join(joined) };
-    let raw = joined.as_os_str().as_bytes();
-    let double_slash = raw.starts_with(b"//") && raw.get(2) != Some(&b'/');
-    let trailing_slash = raw.last() == Some(&b'/');
-    let mut out = if double_slash { PathBuf::from("//") } else { PathBuf::new() };
-    for component in joined.components() {
-        match component {
-            Component::CurDir => {}
-            Component::RootDir if double_slash => {}
-            other => out.push(other),
-        }
-    }
-    if trailing_slash && !out.as_os_str().as_bytes().ends_with(b"/") {
-        out.as_mut_os_string().push("/");
-    }
-    Ok(out)
+    std::path::absolute(path)
 }
 
 // A pile entry: the path the shelf holds and whether the card draws it as a folder. The size is not
@@ -315,3 +298,7 @@ pub fn size_of(path: &str) -> Result<(u64, bool), String> {
 #[cfg(test)]
 #[path = "shelf_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "shelf_absolute_tests.rs"]
+mod absolute_tests;
