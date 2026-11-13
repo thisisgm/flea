@@ -1,3 +1,43 @@
+# Flea 0.4.3
+
+- A touchscreen works again on Wayland: a tap clicks, a double tap opens, and a moving finger scrolls every list, the preview, menus and Settings (#479, @nicolasfalesy).
+- A window left open and idle no longer climbs in CPU and memory (#478, @Imacx-maria).
+- A window whose graphics device was lost, by a driver reset or a GPU fault, draws again on its own instead of staying blank until it is closed (#478, @Imacx-maria).
+- The first file or folder drag of a session shows its drag image at once instead of freezing the window, and a folder under a drag no longer says "copy here" for a moment before "move here" (#463, @nicolasfalesy).
+- Thumbnails no longer go missing in Grid under a filter or a search, and a switch from a filtered Grid to List or Columns lands with the cursor row fully in view (#477, @muellan).
+- After a delete the cursor stays on the place of the first deleted file in List, Grid and Columns, instead of following a row far away in a long folder (#476, @muellan).
+- After a drop, a paste or a move the listing keeps its scroll position and cursor instead of jumping to the top.
+- Folder sizes stay on screen while a folder is read again after a move, a paste or a change inside it, instead of blinking to the pending dot.
+- In Settings > Keys the Keyboard Shortcuts hint no longer draws over the key rows at a fractional display scale (#482, @atomicol).
+- A BitLocker partition shows as a locked drive and opens the unlock card, as a LUKS one does (#480, #481, @JonathanPitre).
+- HDR video previews (HLG and PQ) keep their highlights instead of drawing overexposed (#474, @sixers).
+- A 3MF project with many parts previews instead of ending the preview worker (#467, @ids444).
+- Delete Permanently works on rclone mounts that renumber a file when it is renamed, for files and folders, and a refused delete no longer renames every object on the mount (#464, @lzm3, @jekitf).
+- Folder sizes no longer cross into, or mount, autofs and network mounts below the folder being measured (#458, @hachre).
+- A favourite whose folder comes back opens again without restarting Flea (#462, @nicolasfalesy).
+- A phone folder that stops answering shows Reload in its not-responding state (#144, @mfilm77).
+- A file dropped on a symlink that points at a folder lands in that folder, as on a folder row.
+- Settings > View offers Wrap at row ends, off by default: in Grid, Right on a row's last tile moves to the next row's first and Left on a row's first tile to the previous row's last (#434, #433, @letargopausado-byte; #447, @manish0467; #439, @reverb256).
+- Shift+Left and Shift+Right extend the selection in Grid. Both are new default keys in the listing, so a custom binding of either key no longer acts in List and Columns; the terminal interface and the sidebar are unchanged.
+- With a filter on, Home, End, Page Up, Page Down, Left and Right follow the files being shown, whether Wrap at row ends is on or off.
+- Under a filter that shows close matches, Shift with the arrows, Select All, and reveal after a click or a rename follow the order on screen.
+- A filename too long for its row or tile shows whole in a tip while the pointer rests on it, in List, Columns and Grid (#352, @dyedfox; #214, @AksharP5).
+- Ctrl+Left and Ctrl+Right move by word, Ctrl+Home and Ctrl+End reach the ends, and Shift extends the selection, in the address bar, Search, Filter, the rename field and the file chooser's name field (#466, @jotapesse).
+- The file chooser goes Back and Forward with the mouse side buttons (#455, @chrizbee).
+- The file chooser shows an application's own button label without its mnemonic underscore (#457, @derekroper).
+- Folder size answers that repeat the size already shown no longer redraw their rows, and a small scroll keeps the size walks of rows still on screen (#400, @iccodes, @Loafer19).
+- Leaving a folder stops a video thumbnail that is still decoding (#403, @k-kostin).
+- Restore all in Trash finishes sooner on large selections, with the same recovery guarantees.
+- A rename refused on the last visible row scrolls its message into view, in List, Columns and Grid.
+- A click that ends a rename selects the row under the pointer even when the rename lands first.
+- A click in Grid no longer pulls the cursor back to where List was scrolled.
+- Print, Convert and Combine handle a path that holds a percent sign on ImageMagick 7.1.1.
+- About > Updates names the package manager on every packaged install, and a keyboard rename that is refused says so in the rename sentence.
+- The source builds on Rust 1.99 and later and is clean under Clippy on Rust 1.100.0. A source build through rustup selects Rust 1.100.0 from `rust-toolchain.toml`; a distribution cargo keeps its own compiler.
+- The GUI library tests pass under default test parallelism, and the tools run on Python 3.15 (#456, #413, @reeseroyster).
+
+Thanks to @AksharP5, @atomicol, @chrizbee, @derekroper, @dyedfox, @hachre, @iccodes, @ids444, @Imacx-maria, @jekitf, @JonathanPitre, @jotapesse, @k-kostin, @letargopausado-byte, @Loafer19, @lzm3, @manish0467, @mfilm77, @muellan, @nicolasfalesy, @reeseroyster, @reverb256 and @sixers.
+
 # Flea 0.4.2
 
 - A new search starts in the current folder (#451, @muellan).
