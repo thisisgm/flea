@@ -155,8 +155,9 @@ impl Pictures {
             }
             return Vec::new();
         };
-        // The frame has drawn since the key was taken, so the plan covers exactly the rows on screen now; none drawn cancels what waits.
-        let wanted = want.map_or_else(Vec::new, |want| want.rows());
+        // The settle's fresh viewport owns its requests and their answer admission; the frame that armed it may be older.
+        map.drawn = want;
+        let wanted = map.drawn.as_ref().map_or_else(Vec::new, |want| want.rows());
         // A row whose facts changed under its record is forgotten, so it is asked again for what it is now.
         let changed: Vec<usize> = map
             .order
@@ -215,7 +216,14 @@ impl Pictures {
     ) {
         let mut map = self.map.borrow_mut();
         // While a new listing is in flight the held rows are still the ones asked, so the answer counts until it lands.
-        if map.listing != listing || !map.drawn.as_ref().is_some_and(|want| want.contains(row)) {
+        if map.listing != listing {
+            return;
+        }
+        // An answer for a row the viewport has left is not decoded; the row returns to unasked so its return asks again.
+        if !map.drawn.as_ref().is_some_and(|want| want.contains(row)) {
+            if matches!(map.slots.get(&row), Some(Slot::Asked { .. })) {
+                map.forget(row);
+            }
             return;
         }
         let Some(Slot::Asked {

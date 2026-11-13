@@ -152,7 +152,10 @@ fn fx477_late_answer_for_a_removed_match_never_starts_a_decode(cx: &mut TestAppC
     deliver(cx, handle, &thumbed(6, PICTURE));
     cx.run_until_parked();
     settle(cx, handle, 120);
-    assert_eq!(rows(&drained(&mut lines), "thumbcancel"), [6]);
+    // Row 6's one answer ended its job, so the settle neither cancels nor asks it.
+    let after = drained(&mut lines);
+    assert!(rows(&after, "thumbcancel").is_empty(), "{after:?}");
+    assert!(rows(&after, "thumb").is_empty(), "{after:?}");
     let counters = read(cx, handle, |shell| pictures(shell).counters());
     assert_eq!(
         (
@@ -161,7 +164,7 @@ fn fx477_late_answer_for_a_removed_match_never_starts_a_decode(cx: &mut TestAppC
             counters.answered,
             counters.decoded
         ),
-        (3, 1, 1, 1)
+        (3, 0, 1, 1)
     );
     assert!(read(cx, handle, |shell| drawn(shell, 18).1).is_some());
     eprintln!("FX477 removed-match-late-answer: {counters:?}");
