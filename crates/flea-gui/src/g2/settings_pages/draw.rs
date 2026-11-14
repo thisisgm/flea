@@ -451,7 +451,7 @@ impl Rows<'_> {
     ) -> gpui::Stateful<Div> {
         div()
             .id((id, index.unwrap_or(0)))
-            .size(self.px(24.))
+            .size(self.px(g::ICON_BUTTON))
             .flex_none()
             .flex()
             .items_center()
