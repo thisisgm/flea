@@ -45,7 +45,7 @@ const ROWS: &[Row] = &[
     ("change", &["deletePermanently"], "keys.deletePermanently", &["shift-delete"]),
     ("change", &["undo"], "keys.undo", &["z", "ctrl-z"]),
     ("change", &["redo"], "keys.redo", &["ctrl-shift-z", "ctrl-y"]),
-    ("change", &["newFolder"], "keys.newFolder", &["ctrl-shift-n", "N"]),
+    ("change", &["newFolder"], "keys.create", &["ctrl-shift-n", "N"]),
     ("change", &["toggleSelect"], "keys.toggleSelect", &["v"]),
     ("change", &["menu"], "keys.menu", &["m", "menu"]),
     ("change", &["openTerminal"], "keys.openTerminal", &["ctrl-t"]),
@@ -78,6 +78,7 @@ const ROWS: &[Row] = &[
     ("change", &["killForward"], "keys.tui17.killForward", &["alt-d", "ctrl-delete"]),
 
 ];
+/// The keymap context a row resolves in: the editor for word and kill keys, else the listing
 fn context(actions: &[&str]) -> &'static str {
     if actions.iter().any(|a| a.starts_with("word") || a.starts_with("kill")) { "editor" } else { "listing" }
 }
@@ -87,6 +88,7 @@ const COLUMNS: usize = 3;
 const GAP: usize = 4;
 
 // Sample input: "ctrl-shift-z", "shift-delete", "G", "space" or "enter", the window's key spellings.
+/// The keys a window spelling stands for, read with the modifier prefix it carries
 fn keys(spelled: &str) -> Vec<Key> {
     let (mods, name) = [("ctrl-shift-", "ctrlshift"), ("ctrl-", "ctrl"), ("shift-", "shift"), ("alt-", "alt")].iter()
         .find_map(|(prefix, mods)| spelled.strip_prefix(prefix).map(|rest| (*mods, rest))).unwrap_or(("", spelled));
@@ -102,7 +104,7 @@ fn keys(spelled: &str) -> Vec<Key> {
         }
     }
 }
-// The spelling as this preset binds it to one of the row's actions: a letter that arms its action prints doubled, "dd" prints "d" where one press acts.
+/// The spelling as this preset binds it to one of the row's actions: a letter that arms its action prints doubled, "dd" prints "d" where one press acts.
 fn bound(map: &Map, preset: &str, actions: &[&str], spelled: &str) -> Option<String> {
     if let Some((first, tail)) = spelled.split_once(' ') {
         return keys(first).iter().find_map(|first| {
@@ -122,15 +124,16 @@ fn bound(map: &Map, preset: &str, actions: &[&str], spelled: &str) -> Option<Str
             else { None })
     })
 }
-// The keymap's own spelling, "Ctrl+Shift+N" or "Return", in the sheet's lowercase form.
+/// The keymap's own spelling, "Ctrl+Shift+N" or "Return", in the sheet's lowercase form.
 pub(crate) fn lowercase(chord: &str) -> String {
     if chord.contains(' ') { return chord.split(' ').map(lowercase).collect::<Vec<_>>().join(" "); }
     let (mods, name) = chord.rsplit_once('+').filter(|(_, name)| !name.is_empty()).unwrap_or(("", chord));
     let name = if mods.is_empty() && name.chars().count() == 1 { name.to_owned() } else { name.to_lowercase().replace("return", "enter") };
     if mods.is_empty() { name } else { format!("{}-{}", mods.to_lowercase().replace('+', "-"), name) }
 }
-// The keys a row prints: the window's spellings this preset binds, else the preset's own first key for the row.
+/// The keys a row prints: the window's spellings this preset binds, else the preset's own first key for the row.
 fn listed(row: &Row, preset: &str) -> bool { preset == "yazi" || !row.2.starts_with("keys.tui17.") }
+/// The keys a row prints, joined as alternatives, empty when this preset does not list the row
 fn spelling(map: &Map, preset: &str, row: &Row) -> String {
     if !listed(row, preset) { return String::new(); }
     if row.1 == ["tab1"] { return if bound(map, preset, row.1, "1").is_some() { "1–9".into() } else { String::new() }; }
@@ -141,7 +144,7 @@ fn spelling(map: &Map, preset: &str, row: &Row) -> String {
     if keys.is_empty() { keys.extend(row.1.iter().find_map(|action| map.chord(action, preset, context(row.1))).map(|chord| lowercase(&chord))); }
     keys.join(" / ")
 }
-// A menu row's key hint: the first key the row's action answers to without Ctrl or Alt.
+/// A menu row's key hint: the first key the row's action answers to without Ctrl or Alt.
 pub fn hint(map: &Map, preset: &str, action: &str) -> String {
     ROWS.iter().find(|row| row.1.contains(&action)).and_then(|row| row.3.iter()
         .filter(|spelled| !spelled.starts_with("ctrl-") && !spelled.starts_with("alt-"))
@@ -150,6 +153,7 @@ pub fn hint(map: &Map, preset: &str, action: &str) -> String {
 // A sheet line: a group heading, a key beside its words, or, on a screen too narrow for that, a key or its words on a line of their own.
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum Line { Heading(String), Binding(String, String), Key(String), Words(String) }
+/// The sheet's groups, each a heading and the bindings this preset answers, a group with no rows dropped
 fn groups(m: &Model, map: &Map) -> Vec<Vec<Line>> {
     GROUPS.iter().map(|group| {
         // The catalog keeps headings as the key table generator writes them; the sheet draws them in capitals, as the GUI sheet does.
@@ -163,7 +167,7 @@ fn groups(m: &Model, map: &Map) -> Vec<Vec<Line>> {
         lines
     }).filter(|lines| lines.len() > 1).collect()
 }
-// Resolve a complete display epoch before replacing any held key labels.
+/// Resolve a complete display epoch before replacing any held key labels.
 #[allow(dead_code, reason = "called by the retained I50-11 snapshot consumer")]
 pub fn resolve(m: &Model, map: &Map, snapshot: &flea::keys::display::KeycapSnapshot) -> Result<std::collections::HashMap<String, String>, flea::keys::display::KeycapError> {
     let mut labels = std::collections::HashMap::new();
@@ -177,7 +181,7 @@ pub fn resolve(m: &Model, map: &Map, snapshot: &flea::keys::display::KeycapSnaps
     }
     Ok(labels)
 }
-// New editor chords compose existing immutable keycap atoms; an ambiguous atom keeps its canonical legend, an unavailable one still fails the epoch.
+/// New editor chords compose existing immutable keycap atoms; an ambiguous atom keeps its canonical legend, an unavailable one still fails the epoch.
 fn label(canonical: &str, snapshot: &flea::keys::display::KeycapSnapshot) -> Result<String, flea::keys::display::KeycapError> {
     canonical.split(" / ").map(|alternative| alternative.split(' ').map(|part| {
         match snapshot.legend(part) {
@@ -190,7 +194,7 @@ fn label(canonical: &str, snapshot: &flea::keys::display::KeycapSnapshot) -> Res
         }
     }).collect::<Result<Vec<_>, _>>().map(|parts| parts.join(" "))).collect::<Result<Vec<_>, _>>().map(|parts| parts.join(" / "))
 }
-// Groups fill a column in order and the next group starts a new one when it would not fit whole.
+/// Groups fill a column in order and the next group starts a new one when it would not fit whole.
 fn pack(groups: &[Vec<Line>], capacity: usize) -> Vec<Vec<Line>> {
     let mut columns: Vec<Vec<Line>> = Vec::new();
     for group in groups {
@@ -199,7 +203,7 @@ fn pack(groups: &[Vec<Line>], capacity: usize) -> Vec<Vec<Line>> {
     }
     columns
 }
-// A column's key width and label width; a heading or a line of its own wider than both spills into the label width.
+/// A column's key width and label width; a heading or a line of its own wider than both spills into the label width.
 fn widths(column: &[Line]) -> (usize, usize) {
     let key = column.iter().map(|line| if let Line::Binding(keys, _) = line { text_width(keys) } else { 0 }).max().unwrap_or(0);
     let label = column.iter().map(|line| match line {
@@ -208,12 +212,13 @@ fn widths(column: &[Line]) -> (usize, usize) {
     }).max().unwrap_or(0);
     (key, label)
 }
+/// The cells the columns take side by side, their gaps included
 fn total(columns: &[Vec<Line>]) -> usize {
     columns.iter().map(|column| { let (key, label) = widths(column); key + 2 + label }).sum::<usize>() + GAP * columns.len().saturating_sub(1)
 }
 // The columns and the rows the card shows; the last row inside the frame stays blank whenever two rows fit.
 struct Sheet { columns: Vec<Vec<Line>>, rows: usize, height: usize }
-// The most columns, up to three, that fit the screen with the fewest rows; a screen too narrow for one column of keys beside their words wraps each on lines of its own.
+/// The most columns, up to three, that fit the screen with the fewest rows; a screen too narrow for one column of keys beside their words wraps each on lines of its own.
 fn sheet(m: &Model, map: &Map) -> Sheet {
     let groups = groups(m, map);
     let height = m.height.saturating_sub(2).max(1);
@@ -238,6 +243,7 @@ fn sheet(m: &Model, map: &Map) -> Sheet {
     }).collect();
     Sheet { columns: vec![stacked], rows, height }
 }
+/// The sheet's card: centred, as wide as its widest line, scrolled to the model's top
 pub fn card(m: &Model, map: &Map) -> Card {
     let sheet = sheet(m, map);
     let need = total(&sheet.columns).max(text_width(&m.i18n.tr("keys.title")) + 2 + text_width(&m.i18n.tr("card.esc")));
@@ -246,11 +252,12 @@ pub fn card(m: &Model, map: &Map) -> Card {
     Card { x: m.columns.saturating_sub(width + 2) / 2, y: crate::tui::layout::BODY_ROW - 1, width, height: sheet.height,
         air, top: m.sheet_top.min(limit(m, map)), shown: sheet.rows, buttons: Vec::new() }
 }
-// How far the sheet scrolls when its columns are taller than the card.
+/// How far the sheet scrolls when its columns are taller than the card.
 pub fn limit(m: &Model, map: &Map) -> usize {
     let sheet = sheet(m, map);
     sheet.columns.iter().map(Vec::len).max().unwrap_or(0).saturating_sub(sheet.rows)
 }
+/// Draws the sheet's frame and its columns, mirrored when the locale reads right to left
 pub fn draw(out: &mut String, m: &Model, theme: &Theme, map: &Map) {
     let sheet = sheet(m, map);
     let card = card(m, map);

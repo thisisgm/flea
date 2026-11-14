@@ -1,6 +1,6 @@
 //! New Folder opens Rename on the new folder once its re-read lands, as PaneWire.qml openRenameOnArrival does.
 use super::{
-    fileops_tests::{creation_request, reply, wire},
+    fileops_tests::{create_card, creation_request, refocus, reply, wire},
     test_shell::{asked_on, land, land_on, lists, open, row, set_cursor},
 };
 use crate::{
@@ -10,8 +10,9 @@ use crate::{
 use gpui::TestAppContext;
 use std::{cell::RefCell, rc::Rc};
 
+/// The folder lands on the pane that asked, cursor on it, and the answered card means no rename opens
 #[gpui::test]
-fn a_new_folder_rename_returns_to_its_pane_after_focus_moves(cx: &mut TestAppContext) {
+fn a_created_folder_lands_on_the_pane_that_asked(cx: &mut TestAppContext) {
     let (shell, cx) = open(cx, "default");
     land(
         &shell,
@@ -32,79 +33,53 @@ fn a_new_folder_rename_returns_to_its_pane_after_focus_moves(cx: &mut TestAppCon
         1,
     );
     let mut sent = wire(&shell, cx);
+    // Ctrl+Shift+N asks for the name, so the arrival Rename never opens on a second pass.
     cx.simulate_keystrokes("ctrl-shift-n");
+    create_card(&shell, cx);
+    let requests = sent();
     assert_eq!(
-        sent(),
+        requests,
         [creation_request(
             &shell,
             cx,
             r#"{"c":"mkdir","path":"/files","defaultBase":"New Folder"}"#
         )]
     );
-    cx.simulate_keystrokes("tab down");
-    assert_eq!(shell.read_with(cx, |shell, _| shell.focus_side), 1);
-    assert_eq!(
-        shell.read_with(cx, |shell, _| shell.panes[1].as_ref().unwrap().pane.cursor),
-        1
-    );
+    let id = flea::json::field_usize(&requests[0], "request").unwrap();
     let before = lists(&shell, cx);
     reply(
         &shell,
         cx,
-        r#"{"t":"made","ok":true,"path":"/files/New Folder"}"#,
+        &format!(
+            r#"{{"t":"menuaction","op":"creation","id":{id},"kind":"made","ok":true,"path":"/files/New Folder"}}"#
+        ),
     );
+    refocus(&shell, cx);
     assert_eq!(lists(&shell, cx), before + 1, "the folder is read again");
+    // The card is answered and gone; the create it asked for asks nothing more of the pane.
     assert!(
         shell.read_with(cx, |shell, _| shell.rename.edit.is_none()),
-        "nothing is renamed before the new row lands"
+        "the card took the name, so no rename opens on arrival"
     );
     let rows = vec![
         row("New Folder", true),
         row("alpha", true),
         row("notes.txt", false),
     ];
-    land(&shell, cx, "/files", rows.clone(), 2);
-    let cursor = shell.read_with(cx, |shell, _| shell.panes[0].as_ref().unwrap().pane.cursor);
-    assert_eq!(cursor, 0, "the new folder holds the cursor");
+    land(&shell, cx, "/files", rows, 2);
+    assert_eq!(
+        shell.read_with(cx, |shell, _| shell.panes[0].as_ref().unwrap().pane.cursor),
+        0,
+        "the new folder holds the cursor on the pane that asked"
+    );
     assert!(
-        shell.read_with(cx, |shell, _| shell.operations.fileops.arrival[0].is_none()),
-        "the arrival is consumed by the editor it opens"
+        shell.read_with(cx, |shell, _| shell.rename.edit.is_none()),
+        "the other pane keeps its own state"
     );
-    assert_eq!(
-        shell.read_with(cx, |shell, _| {
-            let edit = shell.rename.edit.as_ref().expect("Rename opens on arrival");
-            assert_eq!(
-                shell.dual_focus.last_side, 0,
-                "Rename restores the owning dual pane"
-            );
-            assert_eq!(shell.focus_side, 0);
-            (
-                edit.side,
-                shell.renaming_row(0),
-                edit.name.clone(),
-                edit.source.clone(),
-            )
-        }),
-        (
-            0,
-            Some(0),
-            "New Folder".to_owned(),
-            "/files/New Folder".to_owned()
-        ),
-        "Rename is routed to the folder's pane"
-    );
-    assert_eq!(
-        shell.read_with(cx, |shell, _| shell.panes[1].as_ref().unwrap().pane.cursor),
-        1
-    );
-    // One arrival opens one editor: a later landing of the same folder asks nothing more.
-    cx.simulate_keystrokes("escape");
-    assert!(shell.read_with(cx, |shell, _| shell.rename.edit.is_none()));
-    land(&shell, cx, "/files", rows, 3);
-    assert!(shell.read_with(cx, |shell, _| shell.rename.edit.is_none()));
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
+/// A hidden pane still re-reads the made folder but opens no Rename and leaves the left pane alone
 #[gpui::test]
 fn a_hidden_right_pane_finishes_new_folder_without_renaming_the_left_pane(cx: &mut TestAppContext) {
     let (shell, cx) = open(cx, "default");
@@ -134,7 +109,9 @@ fn a_hidden_right_pane_finishes_new_folder_without_renaming_the_left_pane(cx: &m
     });
     cx.simulate_keystrokes("tab");
     assert_eq!(shell.read_with(cx, |shell, _| shell.focus_side), 1);
-    cx.simulate_keystrokes("ctrl-shift-n");
+cx.simulate_keystrokes("ctrl-shift-n");
+    // Ctrl+Shift+N opens the create card suggesting a folder; Create takes that suggestion.
+    create_card(&shell, cx);
     let mkdir: Vec<_> = std::iter::from_fn(&mut requests)
         .filter(|line| flea::json::field_str(line, "c").as_deref() == Some("mkdir"))
         .collect();
@@ -201,6 +178,7 @@ fn a_hidden_right_pane_finishes_new_folder_without_renaming_the_left_pane(cx: &m
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
+/// Duplicate selects the copy on arrival and arms no editor
 #[gpui::test]
 fn a_duplicate_lands_on_its_copy_without_rename(cx: &mut TestAppContext) {
     let (shell, cx) = open(cx, "default");

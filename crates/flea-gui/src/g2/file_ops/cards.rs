@@ -10,12 +10,19 @@ use flea::ui_logic_file_ops::{
 };
 
 impl Operations {
-    pub fn new_file(&mut self, catalog: &I18n, id: u64, folder: &str) {
+    /// Opens the create card, pre-filled with the suggested name when the menu had one.
+    pub fn new_file(&mut self, catalog: &I18n, id: u64, folder: &str, suggestion: Option<&str>) {
         self.clear_card();
+        // A folder suggestion arrives with the slash that makes Enter create a folder, as the TUI's New Folder does.
+        let (name, suggested) = match suggestion {
+            Some(base) => (format!("{base}/"), base.to_string()),
+            None => (catalog.tr("jobs.newfile.default"), String::new()),
+        };
         self.dialog = Some(Dialog::NewFile {
             id,
             folder: folder.into(),
-            name: catalog.tr("jobs.newfile.default"),
+            name,
+            suggested,
             focus: CopyFocus::Field,
             busy: false,
             error: String::new(),
@@ -23,6 +30,7 @@ impl Operations {
     }
 
     // A card another card replaces is answered as dismissed, so no session is left waiting on it.
+    /// Ends the open card and answers its session as a dismissed, so nothing is left waiting on it
     pub(super) fn clear_card(&mut self) {
         self.detach_rclone();
         if let Some(token) = self.external_delete.take() {
@@ -43,6 +51,7 @@ impl Operations {
     }
 
     // A confirmation with no delete out ends with its card, drawn or still waiting on a fresh review; a delete out is held aside in its own channel's slot.
+    /// Settles the confirmation: a delete already out is held aside per channel, otherwise its cancel line goes out
     fn end_review(&mut self) {
         let Some(c) = self.confirm.take() else {
             return;
@@ -60,6 +69,7 @@ impl Operations {
     }
 
     // A menu's refresh keeps the card drawn and busy, as v0.3.12's refreshDeletion does; another card open ends the review instead.
+    /// Redraws the polled review as a busy Delete card, unless another card is open, which ends the review instead
     fn hold_delete_card(&mut self, review: Review, scope: Scope) {
         if matches!(self.dialog, None | Some(Dialog::Delete { .. })) {
             self.dialog = Some(Dialog::Delete {
@@ -75,6 +85,7 @@ impl Operations {
     }
 
     // Delete sends the reviewed token once and hides the card; Cancel, the default, tells the session it was dismissed.
+    /// Applies a Trash card button: Delete sends the reviewed token once, Cancel dismisses the session
     pub fn press_delete(&mut self, button: trash::Button) {
         if !matches!(self.dialog, Some(Dialog::Delete { .. })) {
             return;
@@ -106,6 +117,7 @@ impl Operations {
         }
     }
 
+    /// Moves the create card's focus along the controls the current name allows, leaving Confirm out while the name is empty
     pub(super) fn walk_new_file_focus(&mut self, key: Key) {
         let Some(Dialog::NewFile {
             focus, busy, name, ..
@@ -125,18 +137,24 @@ impl Operations {
     }
 
     // Escape and Cancel close the card unless its create is out, as v0.3.12 keeps it open until the reply.
+    /// Closes the create card when its request is not out
+    /// Closing is always allowed: a create the backend has not answered yet still lands through the
+    /// pane's queued origin, so a held share cannot hold the window with a card.
     pub(super) fn close_new_file(&mut self) {
-        if matches!(self.dialog, Some(Dialog::NewFile { busy: false, .. })) {
+        if matches!(self.dialog, Some(Dialog::NewFile { .. })) {
             self.dialog = None;
+            self.changed = true;
         }
     }
 
-    // Create sends v0.3.12's newfile request once the name is a plain filename; a bad name says so in the card.
+    /// Create sends v0.3.12's newfile request once the name is a plain filename, and one trailing slash
+    /// asks the same mkdir the TUI's create prompt does; a bad name says so in the card.
     pub(super) fn confirm_new_file(&mut self, catalog: &I18n) {
         let Some(Dialog::NewFile {
             id,
             folder,
             name,
+            suggested,
             busy: false,
             ..
         }) = self.dialog.clone()
@@ -146,8 +164,11 @@ impl Operations {
         if name.is_empty() {
             return;
         }
-        // MenuActionDialog.qml:170 gives "." and ".." the slash sentence too.
-        let slash = name == "." || name == ".." || name.contains('/');
+        // The slash that decides the request is the last one, never part of a name.
+        let folder_request = name.ends_with('/');
+        let bare = name.strip_suffix('/').unwrap_or(&name);
+        // MenuActionDialog.qml:170 gives "." and ".." the slash sentence too, and a lone slash names nothing.
+        let slash = bare.is_empty() || bare == "." || bare == ".." || bare.contains('/');
         if let Some(Dialog::NewFile { busy, error, .. }) = &mut self.dialog {
             if slash {
                 *error = catalog.tr("jobs.newfile.slash");
@@ -157,14 +178,31 @@ impl Operations {
             error.clear();
         }
         self.changed = true;
-        self.outbox.push(format!(
-            "{{\"c\":\"newfile\",\"op\":\"newFile\",\"id\":{id},\"path\":{},\"name\":{}}}",
-            collide::text(&folder),
-            collide::text(&name)
-        ));
+        let line = if folder_request && bare == suggested {
+            // An untouched suggestion names the base only, so the backend numbers a second New Folder itself.
+            format!(
+                "{{\"c\":\"mkdir\",\"path\":{},\"defaultBase\":{},\"request\":{id}}}",
+                collide::text(&folder),
+                collide::text(bare)
+            )
+        } else if folder_request {
+            // The card's own request id correlates the receipt back to this card, not to a menu creation.
+            format!(
+                "{{\"c\":\"mkdir\",\"path\":{},\"name\":{},\"request\":{id}}}",
+                collide::text(&folder),
+                collide::text(bare)
+            )
+        } else {
+            format!(
+                "{{\"c\":\"newfile\",\"op\":\"newFile\",\"id\":{id},\"path\":{},\"name\":{}}}",
+                collide::text(&folder),
+                collide::text(&name)
+            )
+        };
+        self.outbox.push(line);
     }
 
-    // The create's reply: ok ends the card and hands the path to the window; a refusal keeps the card with its sentence.
+    /// The create's reply, from either request it sent: ok ends the card and hands the path to the window; a refusal keeps the card with its sentence.
     fn new_file_reply(&mut self, catalog: &I18n, reply: &Reply) {
         let Some(Dialog::NewFile { id, busy: true, .. }) = self.dialog else {
             return;
@@ -192,7 +230,7 @@ impl Operations {
         }
     }
 
-    // A Trash or menu reply: the Copy To card's validate, or the permanent card's delete, check or fresh review.
+    /// A Trash or menu reply: the Copy To card's validate, or the permanent card's delete, check or fresh review.
     pub(super) fn card_reply(
         &mut self,
         catalog: &I18n,
@@ -205,7 +243,7 @@ impl Operations {
             self.validated(catalog, reply);
             return false;
         }
-        if !trash_reply && reply.op == "newFile" {
+        if !trash_reply && (reply.op == "newFile" || reply.op == "creation" && reply.kind == "made") {
             self.new_file_reply(catalog, reply);
             return false;
         }
@@ -262,6 +300,7 @@ impl Operations {
     }
 
     // A reply to a delete held aside: its start and its refusal land here, nothing is drawn for it.
+    /// Offers a reply to each channel's held delete and applies the outcome, drawing nothing for it
     fn held_reply(&mut self, catalog: &I18n, trash_reply: bool, reply: &Reply, now: u64) -> bool {
         // Each channel's slot reads the reply; the channel check in Confirm::reply keeps the other quiet.
         for trash in [true, false] {
@@ -300,6 +339,7 @@ impl Operations {
         false
     }
 
+    /// Hides the Delete card if that is the card drawn
     fn drop_delete_card(&mut self) {
         if matches!(self.dialog, Some(Dialog::Delete { .. })) {
             self.dialog = None;
@@ -307,6 +347,7 @@ impl Operations {
     }
 }
 
+/// The menuaction close line that answers the menu a Copy To card was opened from
 fn menu_close(menu: u64) -> String {
     format!("{{\"c\":\"menuaction\",\"op\":\"close\",\"id\":{menu}}}")
 }

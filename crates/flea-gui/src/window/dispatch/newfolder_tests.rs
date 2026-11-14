@@ -1,7 +1,9 @@
 use super::*;
+use crate::window::dispatch::fileops_tests::create_card;
 
 struct CatalogRoot(std::path::PathBuf);
 impl Drop for CatalogRoot {
+    /// Removes the temp catalog root once, and only while the test still owns it
     fn drop(&mut self) {
         assert!(
             self.0.is_absolute()
@@ -12,6 +14,7 @@ impl Drop for CatalogRoot {
     }
 }
 
+/// Ctrl+Shift+N sends the loaded catalog's folder name as the explicit base, whatever the script
 #[gpui::test]
 fn newfolder_gui_key_sends_the_explicit_catalog_base(cx: &mut TestAppContext) {
     let out = std::process::Command::new("mktemp")
@@ -36,9 +39,7 @@ fn newfolder_gui_key_sends_the_explicit_catalog_base(cx: &mut TestAppContext) {
         .starts_with("flea-newfolder-gui."));
     std::fs::write(root.0.join(".newfolder-root"), "owned").unwrap();
     std::fs::create_dir_all(root.0.join("en")).unwrap();
-    let (shell, cx) = open(cx, "default");
-    land(&shell, cx, "/files", home(), 1);
-    let mut sent = wire(&shell, cx);
+    // A card holds the keyboard until it is answered, so every base asks on a shell of its own.
     for base in [
         "Nouveau dossier",
         "新建文件夹",
@@ -57,12 +58,18 @@ fn newfolder_gui_key_sends_the_explicit_catalog_base(cx: &mut TestAppContext) {
             language_file: root.0.join("language"),
             catalogs: vec![root.0.clone()],
         });
+        let (shell, cx) = open(cx, "default");
+        let cx = cx;
+        land(&shell, cx, "/files", home(), 1);
         shell.update(cx, |shell, _| {
             shell.locale.catalog = std::sync::Arc::new(catalog)
         });
+        let mut sent = wire(&shell, cx);
         cx.simulate_keystrokes("ctrl-shift-n");
+        // Ctrl+Shift+N opens the create card suggesting a folder; Create takes that suggestion.
+        create_card(&shell, cx);
         let lines = sent();
-        assert_eq!(lines.len(), 1);
+        assert_eq!(lines.len(), 1, "base={base:?} lines={lines:?}");
         assert_eq!(
             flea::json::field_str(&lines[0], "defaultBase").as_deref(),
             Some(base)
@@ -71,6 +78,6 @@ fn newfolder_gui_key_sends_the_explicit_catalog_base(cx: &mut TestAppContext) {
             flea::json::field_str(&lines[0], "path").as_deref(),
             Some("/files")
         );
+        shell.update(cx, |shell, _| shell.stop_for_app_quit());
     }
-    shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }

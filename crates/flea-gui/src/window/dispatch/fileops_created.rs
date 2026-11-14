@@ -17,17 +17,39 @@ struct Origin {
 pub(super) struct Targets([VecDeque<Origin>; 2]);
 
 impl Targets {
+    /// Drops every pending creation origin on the side
     pub(super) fn clear(&mut self, side: usize) {
         self.0[side].clear();
     }
 
+    /// Forgets the one origin a failed reply named, leaving its neighbours pending
     pub(super) fn failed(&mut self, side: usize, kind: &str, request: u64) {
         self.0[side].retain(|origin| origin.kind != kind || origin.request != request);
     }
+
+    /// A receipt this pane asked for; one it did not belongs to the card that did. The kind counts
+    /// too: a New File card's mkdir carries the card's own id, which its pending newFile origin holds.
+    /// Takes the origin a request id names, whatever kind it was recorded under: the create card's
+    /// own request answers under the kind the backend sends, and it never wanted a rename.
+    pub(super) fn retag(&mut self, side: usize, request: u64, kind: &'static str) {
+        for origin in self.0[side].iter_mut() {
+            if origin.request == request {
+                origin.kind = kind;
+            }
+        }
+    }
+
+    pub(super) fn owns(&self, side: usize, kind: &str, request: u64) -> bool {
+        self.0[side]
+            .iter()
+            .any(|origin| origin.kind == kind && origin.request == request)
+    }
+
 }
 
 impl Shell {
     // Sample inputs: {"c":"duplicate","path":"/a/f"}, {"c":"mkdir","path":"/b"}.
+    /// Stamps a mkdir or duplicate line with a fresh request token and records its origin
     pub(super) fn fileops_creation_request(
         &mut self,
         side: usize,
@@ -49,6 +71,7 @@ impl Shell {
         Some(format!("{prefix},\"request\":{request}}}"))
     }
 
+    /// Reserves the next request token and records what the created item should land on
     pub(crate) fn fileops_creation_requested(
         &mut self,
         side: usize,
@@ -81,11 +104,13 @@ impl Shell {
         Some(request)
     }
 
+    /// Lands a created item by re-read or by opening its parent, selecting it while the origin still matches
     pub(super) fn fileops_created_target(
         &mut self,
         side: usize,
         kind: &str,
         request: Option<u64>,
+        rename: bool,
         path: String,
         window: &mut Window,
         cx: &mut Context<Self>,
@@ -114,7 +139,7 @@ impl Shell {
             return false;
         }
         if host.path == parent {
-            let arrived = (kind == "made")
+            let arrived = (kind == "made" && rename)
                 .then(|| self.operations.fileops.arrival[side].replace(path.clone()));
             let landed = self.step(side, Step::Refresh(Some(path)), window, cx) == Ok(true);
             if !landed {
@@ -124,8 +149,8 @@ impl Shell {
             }
             return landed;
         }
-        let arrived =
-            (kind == "made").then(|| self.operations.fileops.arrival[side].replace(path.clone()));
+        let arrived = (kind == "made" && rename)
+            .then(|| self.operations.fileops.arrival[side].replace(path.clone()));
         let previous = self.panes[side]
             .as_mut()
             .and_then(|host| host.nav.pending_select.replace(path));

@@ -39,6 +39,7 @@ pub struct Overlay {
 }
 
 impl Overlay {
+    /// The overlay with an empty model for the preset, no card open and no timer armed
     pub fn new(catalog: Arc<I18n>, palette: CardPalette, preset: &str) -> Self {
         Self {
             editor: Default::default(),
@@ -58,11 +59,13 @@ impl Overlay {
         }
     }
 
+    /// The overlay's clock, in milliseconds since it was built
     pub fn now(&self, cx: &App) -> u64 {
         self.epoch.elapsed(cx.background_executor().now())
     }
 
     // Seam: the window's transport forwards each backend line here before its own readers.
+    /// Offers a backend line to the model, redraws when it changed something and re-arms the timer
     pub fn line(&mut self, text: &str, cx: &mut Context<Self>) -> bool {
         let now = self.now(cx);
         let taken = self.model.line(&self.catalog, text, now);
@@ -74,6 +77,7 @@ impl Overlay {
     }
 
     // One timer for the held items' beat and the open confirmation's check, re-armed whenever the earliest due moves.
+    /// Arms one timer for the earliest due of the held beat and the confirmation's check
     pub fn schedule(&mut self, cx: &mut Context<Self>) {
         let now = self.now(cx);
         self.progress.observe(&self.model, now);
@@ -106,6 +110,7 @@ impl Overlay {
     }
 
     // Seam: the menu's Delete permanently or the Trash view's prepare reply opens the card on the host's clock and arms its check.
+    /// Opens the Delete card for a review on the host's clock and arms its check
     pub fn confirm_delete(
         &mut self,
         review: Review,
@@ -120,6 +125,7 @@ impl Overlay {
     }
 
     // Seam: the menu's Copy To or Move To row, with the menu snapshot id it was opened from.
+    /// Opens the Copy To or Move To card for the menu it came from and resets the editor
     pub fn copy_to(&mut self, menu: u64, moving: bool, path: &str, cx: &mut Context<Self>) {
         self.model.copy_to(menu, moving, path);
         self.editor.restart();
@@ -127,15 +133,16 @@ impl Overlay {
         self.schedule(cx);
     }
 
-    // Seam: the folder's background New File row, with the menu snapshot id its request carries.
-    pub fn new_file(&mut self, id: u64, folder: &str, cx: &mut Context<Self>) {
-        self.model.new_file(&self.catalog, id, folder);
+    /// Seam: the folder's background New File row, with the menu snapshot id its request carries.
+    pub fn new_file(&mut self, id: u64, folder: &str, suggestion: Option<&str>, cx: &mut Context<Self>) {
+        self.model.new_file(&self.catalog, id, folder, suggestion);
         self.editor.restart();
         cx.notify();
         self.schedule(cx);
     }
 
     // Seam: the Trash view says when its own request is out; the check waits for it, then a full interval runs again.
+    /// Records the Trash view's busy flag, restarting a Trash check once it clears
     pub fn trash_busy(&mut self, busy: bool, cx: &mut Context<Self>) {
         if self.model.trash_busy && !busy {
             let now = self.now(cx);
@@ -148,6 +155,7 @@ impl Overlay {
     }
 
     // Seam: the Trash view closed; its confirmation ends unless a delete is already out.
+    /// Ends a Trash confirmation that the closed Trash view leaves behind
     pub fn trash_closed(&mut self, cx: &mut Context<Self>) {
         self.model.trash_closed();
         cx.notify();
@@ -155,6 +163,7 @@ impl Overlay {
     }
 
     // Seam: the status bar's click on the strip's count folds the Jobs card away and brings it back.
+    /// Folds or unfolds the Jobs card from the status bar's count click
     pub fn fold_jobs(&mut self, cx: &mut Context<Self>) {
         self.model.jobs.toggle_fold();
         let now = self.now(cx);
@@ -164,6 +173,7 @@ impl Overlay {
     }
 
     // The destination handles editing first; the card swallows other modified keys, Escape excepted.
+    /// Routes a key down through the overlay's input handling
     pub fn key(&mut self, event: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
         self.dispatch_key(event, window, cx);
     }
@@ -171,6 +181,7 @@ impl Overlay {
 
 impl Overlay {
     // A button takes hover, holds its press while the left button is down, and activates on a release over it.
+    /// The closure binding a button's hover, press and release to the overlay's pointer state
     fn wire(
         &self,
         cx: &mut Context<Self>,
@@ -252,6 +263,7 @@ impl Overlay {
     }
 
     // A press outside the card answers as Escape does, so a collision is cancelled on the wire too.
+    /// Answers a press outside the card as Escape does
     fn dismiss(&mut self, cx: &mut Context<Self>) {
         if self.progress.dialog.holding(self.now(cx)) {
             self.cancel_held(cx);
@@ -264,6 +276,7 @@ impl Overlay {
         self.schedule(cx);
     }
 
+    /// Clears the held press and notes the release for the spiral's phase
     fn release(&mut self, press: Press, at: Instant, cx: &mut Context<Self>) {
         if self.pointer.pressed == Some(press) {
             self.pointer.pressed = None;
@@ -274,18 +287,22 @@ impl Overlay {
 }
 
 impl Overlay {
+    /// Re-syncs the editor's focus with the card that is open
     pub(crate) fn sync_focus(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.sync_editor(window, cx);
     }
+    /// The editor's focus handle, once a card has made one
     pub(crate) fn focus_handle(&self) -> Option<gpui::FocusHandle> {
         self.editor.focus.clone()
     }
+    /// Gives the keyboard back to the focus the card took it from
     pub(crate) fn release_focus(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.release_mount_focus(window, cx);
     }
 }
 
 impl Render for Overlay {
+    /// Draws the Jobs card and the open dialog over the window, syncing the editor's focus and the timer
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         self.frame.clear();
         if let Some(theme) = cx.try_global::<crate::palette::Theme>() {

@@ -79,6 +79,11 @@ impl Shell {
             // PaneWire.qml onMade and onDuplicated: the line, then a re-read with the new item under the cursor.
             kind @ ("made" | "duplicated") => {
                 let path = text("path").to_owned();
+                let request = flea::json::field_usize(line, "request").unwrap_or(0) as u64;
+                // Not this pane's creation: the New File card's folder draft answers its own receipt.
+                if request > 0 && !self.operations.fileops.creations.owns(side, kind, request) {
+                    return false;
+                }
                 if document.get("ok").and_then(Json::as_bool) != Some(true) || path.is_empty() {
                     return true;
                 }
@@ -96,7 +101,7 @@ impl Shell {
                     return true;
                 }
                 // Shell::step says its own refusal in the pane status, so its result is spent here.
-                self.fileops_created_target(side, kind, None, path, window, cx);
+                self.fileops_created_target(side, kind, None, true, path, window, cx);
                 true
             }
             // PaneWire.qml onTrashed clears the marks unless the reply names no rows; the operations overlay says the line.
@@ -113,20 +118,47 @@ impl Shell {
             }
             "menuaction" if text("op") == "creation" => {
                 let request = flea::json::field_usize(line, "id").unwrap_or(0) as u64;
-                let kind = text("kind");
-                if request == 0 || !matches!(kind, "made" | "duplicated") {
+                // Owned, so the reply's borrow of the parsed document never outlives it.
+                let kind = text("kind").to_owned();
+                if request == 0 || !matches!(kind.as_str(), "made" | "duplicated") {
                     return true;
                 }
-                if document.get("ok").and_then(Json::as_bool) != Some(true) {
-                    self.operations
-                        .fileops
-                        .creations
-                        .failed(side, kind, request);
+                // This pane asked for it: the usual created path, and a folder still gets its Rename.
+                if self.operations.fileops.creations.owns(side, &kind, request) {
+                    if document.get("ok").and_then(Json::as_bool) != Some(true) {
+                        self.operations
+                            .fileops
+                            .creations
+                            .failed(side, &kind, request);
+                        return true;
+                    }
+                    let path = text("path").to_owned();
+                    self.fileops_created_target(side, &kind, Some(request), true, path, window, cx);
                     return true;
                 }
-                let path = text("path").to_owned();
-                self.fileops_created_target(side, kind, Some(request), path, window, cx);
-                true
+                // The create card's own request. While the card is open it answers this receipt itself;
+                // once the card was dismissed the pane still lands it, and never arms Rename: the card
+                // already asked for the name, so a land here is not an unnamed folder to fix up.
+                if self.operations.fileops.creations.owns(side, "newFile", request) {
+                    // A refusal leaves the card open to retry under the same id, so the origin stays
+                    // until an answer it did ask for replaces it.
+                    if document.get("ok").and_then(Json::as_bool) != Some(true) {
+                        return false;
+                    }
+                    // The created target matches on the kind the receipt carries, and Rename is off
+                    // below, so the tag moves without arming a rename the card never wanted.
+                    let receipt: &'static str = if kind == "made" { "made" } else { "duplicated" };
+                    self.operations.fileops.creations.retag(side, request, receipt);
+                    let path = text("path").to_owned();
+                    let catalog = self.locale.catalog.clone();
+                    let preset = self.fileops_preset();
+                    let said = lines::made(&catalog, &preset, &path);
+                    self.fileops_say(side, &said, false, cx);
+                    self.fileops_retire_new_file_card(side, window, cx);
+                    self.fileops_created_target(side, &kind, Some(request), false, path, window, cx);
+                    return true;
+                }
+                false
             }
             "menuaction" if text("op") == "delete" => {
                 let id = document
@@ -140,6 +172,29 @@ impl Shell {
                     self.deletion_landed(side, anchor, landed, window, cx);
                 }
                 false
+            }
+            // A file create whose card was dismissed before the answer still lands here, with no
+            // rename: the card asked for the name.
+            "menuaction" if text("op") == "newFile" => {
+                let request = flea::json::field_usize(line, "id").unwrap_or(0) as u64;
+                if request == 0 || !self.operations.fileops.creations.owns(side, "newFile", request) {
+                    return false;
+                }
+                // An open card answers this reply itself.
+                if self.operations.card_request(side, cx) == Some(request) {
+                    return false;
+                }
+                if document.get("ok").and_then(Json::as_bool) != Some(true) {
+                    let said = text("msg").to_owned();
+                    if !said.is_empty() {
+                        self.fileops_say(side, &said, true, cx);
+                    }
+                    self.operations.fileops.creations.failed(side, "newFile", request);
+                    return true;
+                }
+                let path = text("path").to_owned();
+                self.fileops_created_target(side, "newFile", Some(request), false, path, window, cx);
+                true
             }
             "menuaction" => self.fileops_delete_reply(side, line, window, cx),
             _ => false,
@@ -158,7 +213,7 @@ impl Shell {
         let preset = self.fileops_preset();
         let said = lines::made(&catalog, &preset, &path);
         self.fileops_say(side, &said, false, cx);
-        self.fileops_created_target(side, "newFile", None, path, window, cx);
+        self.fileops_created_target(side, "newFile", None, false, path, window, cx);
     }
 
     /// PaneWire.qml openRenameOnArrival: once the re-read lands, the new folder's own row takes the cursor and Rename runs on it.
@@ -198,6 +253,7 @@ impl Shell {
     }
 
     // The Delete permanently snapshot this family sent, then its review, which opens the permanent-delete card.
+    /// Advances Delete permanently from snapshot to prepareDelete, opening its card, or refuses
     fn fileops_delete_reply(
         &mut self,
         side: usize,
@@ -250,6 +306,7 @@ impl Shell {
     }
 
     // A refused review says why and closes the snapshot it was taken on.
+    /// Reports what a refused review said and closes its snapshot
     fn fileops_delete_refused(&mut self, side: usize, reply: &Reply, cx: &mut Context<Self>) {
         self.operations.fileops.deleting[side] = None;
         let close = format!(

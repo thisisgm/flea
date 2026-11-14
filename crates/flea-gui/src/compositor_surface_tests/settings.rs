@@ -14,6 +14,7 @@ impl plugin_settings::seam::PluginsWire for Wire {
     }
 }
 
+/// Frames every settings section, the search field, the sheet and the plugins pane
 pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
     let (shell, _, vcx) = mounted(cx, corner, |shell, window, cx| {
         shell.open_settings(window, cx);
@@ -49,6 +50,22 @@ pub(super) fn check(cx: &mut TestAppContext, corner: f32) {
                 cx.notify();
             });
         });
+        if section.id == "about" {
+            // The census pins the uninstalled state: the default switch is inert there, and its
+            // frames draw disabled. The host's own package and handler must not decide a census.
+            shell.update(vcx, |shell, _| {
+                shell.settings.claim.handler.clear();
+                shell.settings.claim.packaged = false;
+                shell.settings.claim.probed = true;
+                shell.settings.claim.revision += 1;
+            });
+            let rows = shell.read_with(vcx, |shell, _| shell.settings.claim.rows());
+            view.update(vcx, |view, cx| {
+                view.panel.make_default = rows;
+                view.panel.rebuild();
+                cx.notify();
+            });
+        }
         frames(
             &format!("settings-{}", section.id),
             &shell,

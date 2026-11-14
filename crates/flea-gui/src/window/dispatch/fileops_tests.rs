@@ -12,6 +12,7 @@ use flea::{
 use gpui::{Entity, TestAppContext, VisualTestContext};
 use std::time::Duration;
 
+/// Three rows of a home folder for the family's tests
 fn home() -> Vec<flea::protocol::RowFacts> {
     vec![
         row("alpha", true),
@@ -21,6 +22,7 @@ fn home() -> Vec<flea::protocol::RowFacts> {
 }
 
 // The pane's backend becomes a line recorder; the requests this family sends are read back in order.
+/// Swaps in a recording backend and returns the reader for this family's requests
 pub(super) fn wire(
     shell: &Entity<Shell>,
     cx: &mut VisualTestContext,
@@ -39,15 +41,20 @@ pub(super) fn wire(
     }
 }
 
+/// Feeds one backend line to the shell and draws the frame a closed card hands back on
 pub(super) fn reply(shell: &Entity<Shell>, cx: &mut VisualTestContext, line: &str) {
     cx.update(|window, cx| {
         shell.update(cx, |shell, cx| {
             shell.receive(0, Backend::test_reply_line(line), window, cx)
-        })
+        });
+        // A closed card hands the keyboard back on the frame after its receipt.
+        window.refresh();
+        window.draw(cx).clear(cx);
     });
     cx.run_until_parked();
 }
 
+/// The line a creation sends, stamped with the shell's current request token
 pub(crate) fn creation_request(
     shell: &Entity<Shell>,
     cx: &mut VisualTestContext,
@@ -61,7 +68,51 @@ pub(crate) fn creation_request(
     )
 }
 
+// Ctrl+Shift+N opens the create card; pressing Create takes the folder it suggested.
+/// Presses Create on the open card, taking the folder it suggested
+pub(super) fn create_card(shell: &Entity<Shell>, cx: &mut VisualTestContext) {
+    shell.update(cx, |shell, cx| {
+        let view = shell.overlay.clone().expect("the create card");
+        let catalog = shell.locale.catalog.clone();
+        view.update(cx, |overlay, cx| {
+            overlay
+                .model
+                .press(&catalog, crate::g2::file_ops::press::Press::NewFileConfirm);
+            cx.notify();
+        });
+    });
+    cx.run_until_parked();
+}
+
+// The keyboard the listing had before a card took it; a real window restores this on its next paint.
+/// Gives the listing back the keyboard a card took
+pub(super) fn refocus(shell: &Entity<Shell>, cx: &mut VisualTestContext) {
+    cx.update(|window, cx| {
+        let focus = shell.read(cx).focus.clone();
+        window.focus(&focus, cx);
+    });
+    cx.run_until_parked();
+}
+
+// The card's Cancel, so a test can put the keyboard back on the listing.
+/// Presses the card's Cancel, so the test can put the keyboard back on the listing
+pub(super) fn dismiss_card(shell: &Entity<Shell>, cx: &mut VisualTestContext) {
+    shell.update(cx, |shell, cx| {
+        if let Some(view) = shell.overlay.clone() {
+            let catalog = shell.locale.catalog.clone();
+            view.update(cx, |overlay, cx| {
+                overlay
+                    .model
+                    .press(&catalog, crate::g2::file_ops::press::Press::NewFileCancel);
+                cx.notify();
+            });
+        }
+    });
+    cx.run_until_parked();
+}
+
 // The keystroke a preset binds to an action, as the platform delivers it.
+/// Sends the key the preset binds to the action
 fn hit(cx: &mut VisualTestContext, preset: &str, action: &str) {
     let binding = keys::binding_rows(preset, Frontend::Gui)
         .find(|binding| binding.action == action && binding.context.contains("listing"))
@@ -71,6 +122,7 @@ fn hit(cx: &mut VisualTestContext, preset: &str, action: &str) {
 }
 
 // The footer's notice, the line a finished operation says.
+/// The footer's last notice sentence
 fn notice(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> String {
     shell.update(cx, |shell, cx| {
         let catalog = shell.locale.catalog.clone();
@@ -78,10 +130,12 @@ fn notice(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> String {
     })
 }
 
+/// The shell's locale catalog
 fn catalog(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> std::sync::Arc<flea::i18n::I18n> {
     shell.read_with(cx, |shell, _| shell.locale.catalog.clone())
 }
 
+/// New Folder and Trash send their requests and the replies land in the pane
 #[gpui::test]
 fn new_folder_and_trash_keys_send_their_requests_and_the_replies_land(cx: &mut TestAppContext) {
     let (shell, cx) = open(cx, "default");
@@ -89,9 +143,12 @@ fn new_folder_and_trash_keys_send_their_requests_and_the_replies_land(cx: &mut T
     let mut sent = wire(&shell, cx);
     let catalog = catalog(&shell, cx);
     // New Folder supplies the catalog base; the backend resolves collisions.
-    cx.simulate_keystrokes("ctrl-shift-n");
+cx.simulate_keystrokes("ctrl-shift-n");
+    // Ctrl+Shift+N opens the create card suggesting a folder; Create takes that suggestion.
+    create_card(&shell, cx);
+    let requests = sent();
     assert_eq!(
-        sent(),
+        requests,
         [creation_request(
             &shell,
             cx,
@@ -99,10 +156,14 @@ fn new_folder_and_trash_keys_send_their_requests_and_the_replies_land(cx: &mut T
         )]
     );
     let before = lists(&shell, cx);
+    // The card owns this receipt, so the answer carries the request that closes it.
+    let id = flea::json::field_usize(&requests[0], "request").unwrap();
     reply(
         &shell,
         cx,
-        r#"{"t":"made","ok":true,"path":"/files/New Folder"}"#,
+        &format!(
+            r#"{{"t":"menuaction","op":"creation","id":{id},"kind":"made","ok":true,"path":"/files/New Folder"}}"#
+        ),
     );
     assert_eq!(
         notice(&shell, cx),
@@ -118,6 +179,7 @@ fn new_folder_and_trash_keys_send_their_requests_and_the_replies_land(cx: &mut T
         Some("/files/New Folder"),
         "the new folder lands under the cursor"
     );
+    refocus(&shell, cx);
     land(&shell, cx, "/files", home(), 2);
     // Ops.js trash: the marked rows, cleared once the backend answers.
     shell.update(cx, |shell, _| {
@@ -168,6 +230,7 @@ fn new_folder_and_trash_keys_send_their_requests_and_the_replies_land(cx: &mut T
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
+/// Duplicate sends the cursor row and lands on the copy
 #[gpui::test]
 fn duplicate_sends_the_cursor_row_and_lands_on_the_copy(cx: &mut TestAppContext) {
     let (shell, cx) = open(cx, "mac");
@@ -199,6 +262,7 @@ fn duplicate_sends_the_cursor_row_and_lands_on_the_copy(cx: &mut TestAppContext)
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
+/// The dd pair arms then trashes, and a move or the clock ends the arm
 #[gpui::test]
 fn the_dd_pair_arms_then_trashes_and_a_move_or_the_clock_ends_the_arm(cx: &mut TestAppContext) {
     let (shell, cx) = open(cx, "default");
@@ -248,6 +312,7 @@ fn the_dd_pair_arms_then_trashes_and_a_move_or_the_clock_ends_the_arm(cx: &mut T
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
+/// A key-only handler or an unbound key between the presses ends the dd pair
 #[gpui::test]
 fn a_key_only_handler_or_an_unbound_key_between_the_presses_ends_the_dd_pair(
     cx: &mut TestAppContext,
@@ -273,6 +338,7 @@ fn a_key_only_handler_or_an_unbound_key_between_the_presses_ends_the_dd_pair(
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
+/// A new listing between the presses ends the dd pair
 #[gpui::test]
 fn a_new_listing_between_the_presses_ends_the_dd_pair(cx: &mut TestAppContext) {
     let (shell, cx) = open(cx, "default");
@@ -323,6 +389,7 @@ fn a_new_listing_between_the_presses_ends_the_dd_pair(cx: &mut TestAppContext) {
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
+/// A stopped backend ends the Delete permanently in flight
 #[gpui::test]
 fn a_stopped_backend_ends_the_delete_in_flight(cx: &mut TestAppContext) {
     let (shell, cx) = open(cx, "default");
@@ -353,21 +420,26 @@ fn a_stopped_backend_ends_the_delete_in_flight(cx: &mut TestAppContext) {
 #[path = "fileops_review_tests.rs"]
 mod review;
 
+/// A created filename ending in undo words keeps its name whole
 #[gpui::test]
 fn ey421_a_created_filename_ending_in_undo_words_stays_whole(cx: &mut TestAppContext) {
     let (shell, cx) = open(cx, "default");
     land(&shell, cx, "/files", home(), 1);
     let mut sent = wire(&shell, cx);
-    cx.simulate_keystrokes("ctrl-shift-n");
+cx.simulate_keystrokes("ctrl-shift-n");
+    // Ctrl+Shift+N opens the create card suggesting a folder; Create takes that suggestion.
+    create_card(&shell, cx);
     assert_eq!(
         sent(),
         [r#"{"c":"mkdir","path":"/files","defaultBase":"New Folder","request":1}"#]
     );
+    // The card owns this receipt, so it names the card's request and the card closes on it.
     reply(
         &shell,
         cx,
-        r#"{"t":"made","request":1,"ok":true,"path":"/files/notes · z undoes"}"#,
+        r#"{"t":"menuaction","op":"creation","id":1,"kind":"made","ok":true,"path":"/files/notes · z undoes"}"#,
     );
+    refocus(&shell, cx);
     let catalog = catalog(&shell, cx);
     let receipt = lines::made(&catalog, "default", "/files/notes · z undoes");
     assert_eq!(notice(&shell, cx), receipt, "wire receipt stays whole");

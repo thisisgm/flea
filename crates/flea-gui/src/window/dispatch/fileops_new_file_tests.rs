@@ -14,6 +14,7 @@ use flea::ui_logic_file_ops::lines;
 use gpui::{point, px, Entity, Modifiers, MouseButton, TestAppContext, VisualTestContext};
 
 // Every line the pane's backend is asked for, in the order it was asked.
+/// The pane's backend becomes a recorder the test reads back in order
 fn asked(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> impl FnMut() -> Vec<String> {
     let (backend, mut read) = Backend::test_lines();
     shell.update(cx, |shell, _| {
@@ -22,8 +23,8 @@ fn asked(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> impl FnMut() -> V
     move || std::iter::from_fn(&mut read).collect()
 }
 
-// Right click on the folder's blank space, where the background menu opens.
-fn background_menu(shell: &Entity<Shell>, cx: &mut VisualTestContext) {
+/// Right click on the folder's blank space, where the background menu opens.
+pub(super) fn background_menu(shell: &Entity<Shell>, cx: &mut VisualTestContext) {
     let centre = read(shell, cx, "rowCentre", &["2"]);
     let mut values = centre
         .split_whitespace()
@@ -38,6 +39,7 @@ fn background_menu(shell: &Entity<Shell>, cx: &mut VisualTestContext) {
 }
 
 // The card on the window's operations overlay, if one is open.
+/// The dialog the operations overlay is showing, if any
 fn card(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> Option<Dialog> {
     shell.read_with(cx, |shell, cx| {
         shell
@@ -47,6 +49,7 @@ fn card(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> Option<Dialog> {
 }
 
 // The created line the notice shows, as the operation sentences publish it.
+/// The notice the footer shows for the last operation
 fn notice(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> String {
     shell.update(cx, |shell, cx| {
         let catalog = shell.locale.catalog.clone();
@@ -54,12 +57,14 @@ fn notice(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> String {
     })
 }
 
+/// Opens the New File card from the folder's background menu
 fn open_card(shell: &Entity<Shell>, cx: &mut VisualTestContext) {
     background_menu(shell, cx);
     choose(shell, cx, "newFile");
     frame(cx);
 }
 
+/// The row opens its card with the name prefilled and sends nothing until Create
 #[gpui::test]
 fn new_file_row_opens_its_card_with_the_name_prefilled_and_sends_nothing(cx: &mut TestAppContext) {
     let (shell, mut cx) = opened(cx);
@@ -101,6 +106,7 @@ fn new_file_row_opens_its_card_with_the_name_prefilled_and_sends_nothing(cx: &mu
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
+/// Create makes the file and selects it once, with no rename armed
 #[gpui::test]
 fn new_file_create_makes_the_file_and_selects_it_without_a_rename(cx: &mut TestAppContext) {
     let (shell, mut cx) = opened(cx);
@@ -164,6 +170,7 @@ fn new_file_create_makes_the_file_and_selects_it_without_a_rename(cx: &mut TestA
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
+/// Escape and Cancel close the card without a request
 #[gpui::test]
 fn new_file_escape_and_cancel_close_without_a_request(cx: &mut TestAppContext) {
     let (shell, mut cx) = opened(cx);
@@ -181,6 +188,7 @@ fn new_file_escape_and_cancel_close_without_a_request(cx: &mut TestAppContext) {
 }
 
 // Pane.qml act: Recent is a history, so New File refuses there before any card opens.
+/// Recent refuses New File before any card opens
 #[gpui::test]
 fn new_file_in_recent_refuses_before_any_card(cx: &mut TestAppContext) {
     let (shell, mut cx) = opened(cx);
@@ -222,6 +230,7 @@ fn new_file_in_recent_refuses_before_any_card(cx: &mut TestAppContext) {
 }
 
 // MenuActionDialog.qml:170 refuses "." and ".." with the slash sentence, so the card does too.
+/// A dot name refuses in the card with the slash sentence
 #[gpui::test]
 fn new_file_dot_names_refuse_in_the_card_with_the_slash_sentence(cx: &mut TestAppContext) {
     let (shell, mut cx) = opened(cx);
@@ -251,6 +260,7 @@ fn new_file_dot_names_refuse_in_the_card_with_the_slash_sentence(cx: &mut TestAp
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
+/// A refused create keeps the card open with its sentence
 #[gpui::test]
 fn new_file_refusal_keeps_the_card_open_with_its_sentence(cx: &mut TestAppContext) {
     let (shell, mut cx) = opened(cx);
@@ -287,6 +297,7 @@ fn new_file_refusal_keeps_the_card_open_with_its_sentence(cx: &mut TestAppContex
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
+/// A name with a slash is refused in the card
 #[gpui::test]
 fn new_file_name_with_a_slash_is_refused_in_the_card(cx: &mut TestAppContext) {
     let (shell, mut cx) = opened(cx);
@@ -311,5 +322,281 @@ fn new_file_name_with_a_slash_is_refused_in_the_card(cx: &mut TestAppContext) {
         }
         other => panic!("the slash refusal stays in the card: {other:?}"),
     }
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+// The TUI's create rule in the card: one trailing slash asks mkdir for the folder it names.
+/// One trailing slash asks mkdir for the folder it names
+#[gpui::test]
+fn new_file_trailing_slash_makes_a_folder_through_mkdir(cx: &mut TestAppContext) {
+    let (shell, mut cx) = opened(cx);
+    let cx = &mut cx;
+    let mut sent = asked(&shell, cx);
+    open_card(&shell, cx);
+    cx.simulate_input("photos/");
+    cx.simulate_keystrokes("enter");
+    let requests = sent();
+    assert_eq!(requests.len(), 1, "{requests:?}");
+    // A mkdir carries its correlation as request, never the newFile reply's id.
+    let id = flea::json::field_usize(&requests[0], "request").unwrap();
+    assert_eq!(
+        requests,
+        [format!(
+            r#"{{"c":"mkdir","path":"/files","name":"photos","request":{id}}}"#
+        )],
+        "the slash decides the request and never reaches the name"
+    );
+    assert!(matches!(
+        card(&shell, cx),
+        Some(Dialog::NewFile { busy: true, .. })
+    ));
+    let before = lists(&shell, cx);
+    // A correlated made line is the card's: the pane says nothing and re-reads nothing for it.
+    reply(
+        &shell,
+        cx,
+        &format!(r#"{{"t":"made","ok":true,"path":"/files/photos","request":{id}}}"#),
+    );
+    assert!(
+        matches!(card(&shell, cx), Some(Dialog::NewFile { busy: true, .. })),
+        "the made line alone keeps the card waiting for its receipt"
+    );
+    assert_eq!(lists(&shell, cx), before, "the pane leaves it to the card");
+    reply(
+        &shell,
+        cx,
+        &format!(
+            r#"{{"t":"menuaction","op":"creation","id":{id},"kind":"made","ok":true,"path":"/files/photos"}}"#
+        ),
+    );
+    assert!(card(&shell, cx).is_none(), "the receipt closes the card");
+    let catalog = shell.read_with(cx, |shell, _| shell.locale.catalog.clone());
+    assert_eq!(
+        notice(&shell, cx),
+        lines::made(&catalog, "default", "/files/photos")
+    );
+    assert_eq!(lists(&shell, cx), before + 1, "the folder is read again");
+    let select = shell.read_with(cx, |shell, _| {
+        shell.panes[0].as_ref().unwrap().nav.pending_select.clone()
+    });
+    assert_eq!(
+        select.as_deref(),
+        Some("/files/photos"),
+        "the new folder lands under the cursor"
+    );
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+/// A refused folder keeps the card open with its sentence
+#[gpui::test]
+fn new_file_folder_refusal_keeps_the_card_open_with_its_sentence(cx: &mut TestAppContext) {
+    let (shell, mut cx) = opened(cx);
+    let cx = &mut cx;
+    let mut sent = asked(&shell, cx);
+    open_card(&shell, cx);
+    cx.simulate_input("photos/");
+    cx.simulate_keystrokes("enter");
+    let requests = sent();
+    assert_eq!(requests.len(), 1, "{requests:?}");
+    let id = flea::json::field_usize(&requests[0], "request").unwrap();
+    let sentence = "a folder or file with that name already exists";
+    reply(
+        &shell,
+        cx,
+        &format!(
+            r#"{{"t":"menuaction","op":"creation","id":{id},"kind":"made","ok":false,"error":"{sentence}"}}"#
+        ),
+    );
+    match card(&shell, cx) {
+        Some(Dialog::NewFile {
+            busy: false, error, ..
+        }) => assert_eq!(error, sentence),
+        other => panic!("a refused folder keeps its card open: {other:?}"),
+    }
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+// A second slash and a lone one still name nothing the rule can file.
+/// A second slash and a lone slash still refuse in the card
+#[gpui::test]
+fn new_file_folder_drafts_refuse_a_second_or_a_lone_slash(cx: &mut TestAppContext) {
+    let (shell, mut cx) = opened(cx);
+    let cx = &mut cx;
+    let mut sent = asked(&shell, cx);
+    for draft in ["photos//", "/"] {
+        open_card(&shell, cx);
+        cx.simulate_input(draft);
+        cx.simulate_keystrokes("enter");
+        assert!(sent().is_empty(), "{draft} never reaches the backend");
+        match card(&shell, cx) {
+            Some(Dialog::NewFile {
+                busy: false,
+                name,
+                error,
+                ..
+            }) => {
+                assert_eq!(name, draft);
+                assert_eq!(error, "Enter a name without a /.");
+            }
+            other => panic!("{draft} stays in the card: {other:?}"),
+        }
+        cx.simulate_keystrokes("escape");
+    }
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+// A dismissed card's create still lands on its pane, and never arms a rename the card did not want.
+/// A dismissed create card still lands its late receipt, without arming a rename
+#[gpui::test]
+fn a_dismissed_create_card_still_lands_its_late_receipt_without_a_rename(cx: &mut TestAppContext) {
+    let (shell, mut cx) = opened(cx);
+    let cx = &mut cx;
+    let mut sent = asked(&shell, cx);
+    open_card(&shell, cx);
+    cx.simulate_input("photos/");
+    cx.simulate_keystrokes("enter");
+    let requests = sent();
+    // A slash asks mkdir, whose identifier is the request token, not the card's own id.
+    let id = flea::json::field_usize(&requests[0], "request").unwrap();
+    assert!(
+        matches!(card(&shell, cx), Some(Dialog::NewFile { busy: true, .. })),
+        "the card holds while the write is out"
+    );
+    // A held share can no longer trap the window: the card closes on Escape.
+    cx.simulate_keystrokes("escape");
+    assert!(card(&shell, cx).is_none(), "Escape closes a busy card");
+    let before = lists(&shell, cx);
+    reply(
+        &shell,
+        cx,
+        &format!(
+            r#"{{"t":"menuaction","op":"creation","id":{id},"kind":"made","ok":true,"path":"/files/photos"}}"#
+        ),
+    );
+    assert_eq!(
+        lists(&shell, cx),
+        before + 1,
+        "the late receipt reads the folder again"
+    );
+    let select = shell.read_with(cx, |shell, _| {
+        shell.panes[0].as_ref().unwrap().nav.pending_select.clone()
+    });
+    assert_eq!(
+        select.as_deref(),
+        Some("/files/photos"),
+        "and selects the folder that landed"
+    );
+    assert!(
+        shell.read_with(cx, |shell, _| shell.operations.fileops.arrival[0].is_none()),
+        "the card already named the folder, so no rename arms on the arrival"
+    );
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+// A slow notice belongs to whoever asked for it: it must never close a card that asked for something else.
+/// A slow notice leaves a card it did not ask for open, with its draft and sentence intact
+#[gpui::test]
+fn a_slow_notice_never_closes_a_card_it_did_not_ask_for(cx: &mut TestAppContext) {
+    let (shell, mut cx) = opened(cx);
+    let cx = &mut cx;
+    let mut sent = asked(&shell, cx);
+    open_card(&shell, cx);
+    cx.simulate_input("notes.txt");
+    cx.simulate_keystrokes("enter");
+    let requests = sent();
+    assert_eq!(requests.len(), 1, "{requests:?}");
+    reply(
+        &shell,
+        cx,
+        r#"{"t":"slow","op":"mkdir","msg":"The new folder will finish on its own."}"#,
+    );
+    match card(&shell, cx) {
+        Some(Dialog::NewFile { busy: true, name, .. }) => {
+            assert_eq!(name, "notes.txt", "the draft survives the unrelated notice")
+        }
+        other => panic!("a slow notice for another create leaves this card open: {other:?}"),
+    }
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+// A file create dismissed before its answer still lands on its pane.
+/// A dismissed file card still lands its reply
+#[gpui::test]
+fn a_dismissed_file_card_still_lands_its_reply(cx: &mut TestAppContext) {
+    let (shell, mut cx) = opened(cx);
+    let cx = &mut cx;
+    let mut sent = asked(&shell, cx);
+    open_card(&shell, cx);
+    cx.simulate_input("notes");
+    cx.simulate_keystrokes("enter");
+    let id = id_of(&sent()[0]);
+    cx.simulate_keystrokes("escape");
+    assert!(card(&shell, cx).is_none(), "Escape closes a busy file card");
+    let before = lists(&shell, cx);
+    reply(
+        &shell,
+        cx,
+        &format!(
+            r#"{{"t":"menuaction","id":{id},"op":"newFile","ok":true,"path":"/files/notes"}}"#
+        ),
+    );
+    assert_eq!(
+        lists(&shell, cx),
+        before + 1,
+        "the dismissed card's reply still reads the folder again"
+    );
+    let select = shell.read_with(cx, |shell, _| {
+        shell.panes[0].as_ref().unwrap().nav.pending_select.clone()
+    });
+    assert_eq!(
+        select.as_deref(),
+        Some("/files/notes"),
+        "and selects the file that landed"
+    );
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+// A refusal keeps the card open to retry, so the origin it will answer under must survive it.
+/// A refused folder keeps the card and its origin, so a retry can still land
+#[gpui::test]
+fn a_refused_folder_keeps_the_origin_its_retry_answers_under(cx: &mut TestAppContext) {
+    let (shell, mut cx) = opened(cx);
+    let cx = &mut cx;
+    let mut sent = asked(&shell, cx);
+    open_card(&shell, cx);
+    cx.simulate_input("photos/");
+    cx.simulate_keystrokes("enter");
+    let request = flea::json::field_usize(&sent()[0], "request").unwrap() as u64;
+    reply(
+        &shell,
+        cx,
+        &format!(
+            r#"{{"t":"menuaction","op":"creation","id":{request},"kind":"made","ok":false,"msg":"An item named photos already exists."}}"#
+        ),
+    );
+    assert!(
+        matches!(card(&shell, cx), Some(Dialog::NewFile { .. })),
+        "a refusal keeps the card for a retry"
+    );
+    assert!(
+        shell.read_with(cx, |shell, _| shell
+            .operations
+            .fileops
+            .creations
+            .owns(0, "newFile", request)),
+        "the refused request still has its origin, so a retry can land"
+    );
+    // Dismissed after the refusal, the retry's own receipt still lands.
+    cx.simulate_keystrokes("escape");
+    assert!(card(&shell, cx).is_none());
+    let before = lists(&shell, cx);
+    reply(
+        &shell,
+        cx,
+        &format!(
+            r#"{{"t":"menuaction","op":"creation","id":{request},"kind":"made","ok":true,"path":"/files/photos"}}"#
+        ),
+    );
+    assert_eq!(lists(&shell, cx), before + 1, "the retried folder is read again");
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }

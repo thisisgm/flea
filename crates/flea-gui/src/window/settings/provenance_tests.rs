@@ -6,6 +6,7 @@ use flea::ui_logic_settings_pages::{
 };
 
 // The About rows for a build whose owner query answered owner, with the updater's answer for an unowned build.
+/// The About rows for `owner`, with the updater's answer an unowned build gets
 fn drawn(owner: &str) -> Vec<Row> {
     let mut facts = about::Facts {
         version: "0.4.0".into(),
@@ -17,6 +18,7 @@ fn drawn(owner: &str) -> Vec<Row> {
     about::rows(&facts, true, "English", Vec::new())
 }
 
+/// The row labelled `label`, panicking if the card drew none
 fn row<'a>(rows: &'a [Row], label: &'static str) -> &'a Row {
     rows.iter()
         .find(|row| row.label == Text::Key(label))
@@ -24,6 +26,7 @@ fn row<'a>(rows: &'a [Row], label: &'static str) -> &'a Row {
 }
 
 #[test]
+/// An unowned build names its source and its package as not owned
 fn settings_about_unowned_build_names_its_source_and_package() {
     let rows = drawn("");
     assert_eq!(
@@ -37,6 +40,7 @@ fn settings_about_unowned_build_names_its_source_and_package() {
 }
 
 #[test]
+/// An owned build whose package query failed reads local and not reported
 fn settings_about_owned_build_with_failed_query_names_source_and_unknown_package() {
     let rows = drawn("flea-bin");
     assert_eq!(
@@ -50,6 +54,7 @@ fn settings_about_owned_build_with_failed_query_names_source_and_unknown_package
 }
 
 #[test]
+/// The unowned update row is inert and reads built from source
 fn settings_about_unowned_update_row_reads_built_from_source() {
     let rows = drawn("");
     let flea = row(&rows, "settings.about.update_flea");
@@ -60,6 +65,7 @@ fn settings_about_unowned_update_row_reads_built_from_source() {
 }
 
 #[test]
+/// An unset auto-check preference draws ticked
 fn settings_about_check_automatically_is_ticked_when_unset() {
     let rows = about::rows(
         &about::Facts::default(),
@@ -73,6 +79,7 @@ fn settings_about_check_automatically_is_ticked_when_unset() {
 // The About panel and updater before and after claim.rs's owner step, seeded in one update so the window's own pacman probe cannot decide.
 type Drawn = (Vec<Row>, update::Status);
 
+/// The panel's rows and the updater status either side of an owner probe
 fn probed(owner: &str, answer: &str, cx: &mut gpui::TestAppContext) -> (Drawn, Drawn) {
     let (backend, _requests) = crate::backend::Backend::test_channel();
     let (entity, cx) = cx.add_window_view(|window, cx| {
@@ -114,6 +121,7 @@ fn probed(owner: &str, answer: &str, cx: &mut gpui::TestAppContext) -> (Drawn, D
 }
 
 #[gpui::test]
+/// An unowned probe redraws the open panel as unowned, unchecked and built from source
 fn settings_about_an_unowned_probe_redraws_the_open_panel(cx: &mut gpui::TestAppContext) {
     let (_, (rows, status)) = probed("", "", cx);
     assert_eq!(status.state, update::State::Unchecked);
@@ -133,6 +141,7 @@ fn settings_about_an_unowned_probe_redraws_the_open_panel(cx: &mut gpui::TestApp
 }
 
 #[gpui::test]
+/// An owned probe redraws the panel from the opr package facts, keeping the updater's answer
 fn settings_about_an_owned_probe_redraws_the_open_panel(cx: &mut gpui::TestAppContext) {
     let (before, after) = probed("flea", super::package_tests::OPR_INFO, cx);
     assert_eq!(
@@ -150,6 +159,7 @@ fn settings_about_an_owned_probe_redraws_the_open_panel(cx: &mut gpui::TestAppCo
 }
 
 #[gpui::test]
+/// A local probe redraws the panel from the local package facts
 fn settings_about_a_local_probe_redraws_the_open_panel(cx: &mut gpui::TestAppContext) {
     let (before, after) = probed("flea", super::package_tests::LOCAL_INFO, cx);
     assert_eq!(
@@ -167,6 +177,7 @@ fn settings_about_a_local_probe_redraws_the_open_panel(cx: &mut gpui::TestAppCon
 }
 
 #[gpui::test]
+/// A failed package probe keeps the local source and the unknown rows
 fn settings_about_a_failed_package_probe_keeps_unknown_rows(cx: &mut gpui::TestAppContext) {
     let (before, after) = probed("flea", "", cx);
     assert_eq!(after.1, before.1);

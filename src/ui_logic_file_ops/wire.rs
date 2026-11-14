@@ -81,6 +81,8 @@ pub struct Reply {
     pub paths: Vec<String>,
     // The new file's path, from a newFile reply.
     pub path: String,
+    // A creation receipt's own word: "made" or "duplicated". Empty on every other reply.
+    pub kind: String,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -166,6 +168,7 @@ pub enum Event {
     MenuAction(Reply),
 }
 
+/// A number field's digits, if the value is a number at all
 fn uint(value: Option<&Json>) -> Option<u64> {
     match value {
         Some(Json::Num(text)) => text.parse().ok(),
@@ -173,18 +176,22 @@ fn uint(value: Option<&Json>) -> Option<u64> {
     }
 }
 
+/// A string field, or empty when it is missing or not a string
 fn text(doc: &Json, key: &str) -> String {
     doc.get(key).and_then(Json::as_str).unwrap_or("").to_owned()
 }
 
+/// A boolean field, false when it is missing or not a boolean
 fn flag(doc: &Json, key: &str) -> bool {
     doc.get(key).and_then(Json::as_bool).unwrap_or(false)
 }
 
+/// A number field the line must carry, so the whole event is refused without it
 fn need(doc: &Json, key: &str) -> Option<u64> {
     uint(doc.get(key))
 }
 
+/// A string array, dropping anything that is not a string
 fn strings(doc: &Json, key: &str) -> Vec<String> {
     doc.get(key)
         .and_then(Json::as_array)
@@ -196,6 +203,7 @@ fn strings(doc: &Json, key: &str) -> Vec<String> {
         })
 }
 
+/// The collisions a names array holds, refused when an entry loses its name
 fn names(doc: &Json) -> Option<Vec<Collision>> {
     doc.get("names")?
         .as_array()?
@@ -210,6 +218,7 @@ fn names(doc: &Json) -> Option<Vec<Collision>> {
         .collect()
 }
 
+/// One job row; its id is the only field the line must carry
 fn job(doc: &Json) -> Option<JobRow> {
     Some(JobRow {
         id: need(doc, "id")?,
@@ -238,6 +247,7 @@ fn job(doc: &Json) -> Option<JobRow> {
 }
 
 // Sample input: {"t":"trashbrowse","id":3,"op":"prepare","ok":true,"token":9,"all":false,"count":2,"bytes":10,"partial":false}
+/// A trashbrowse or menuaction reply; its id is the only field the line must carry
 fn reply(doc: &Json) -> Option<Reply> {
     Some(Reply {
         id: need(doc, "id")?,
@@ -260,10 +270,12 @@ fn reply(doc: &Json) -> Option<Reply> {
         dest: text(doc, "dest"),
         paths: strings(doc, "paths"),
         path: text(doc, "path"),
+        kind: text(doc, "kind"),
     })
 }
 
 // Sample input: {"t":"collisions","id":7,"total":1,"names":[{"n":"a.png","d":false,"i":"image-x-generic"}],"mergeable":false}
+/// The event a backend line carries, or none for a line this surface does not read
 pub fn parse(line: &str) -> Option<Event> {
     let doc = jsondoc::parse(line).ok()?;
     let kind = doc.get("t")?.as_str()?;

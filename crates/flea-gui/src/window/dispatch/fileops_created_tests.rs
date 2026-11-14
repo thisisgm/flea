@@ -5,7 +5,7 @@ use crate::{
     window::{
         dispatch::{
             fileops_menu_tests::opened,
-            fileops_tests::reply,
+            fileops_tests::{create_card, reply},
             test_shell::{land, row, set_cursor},
             Order,
         },
@@ -15,6 +15,7 @@ use crate::{
 };
 use gpui::{Entity, TestAppContext, VisualTestContext};
 
+/// The pane's backend becomes a line recorder the test reads back
 fn asked(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> impl FnMut() -> Vec<String> {
     let (backend, mut read) = Backend::test_lines();
     shell.update(cx, |shell, _| {
@@ -23,6 +24,7 @@ fn asked(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> impl FnMut() -> V
     move || std::iter::from_fn(&mut read).collect()
 }
 
+/// A failed creation reply cannot erase another creation's pending origin
 #[gpui::test]
 fn ey379_failed_creation_keeps_another_pending_origin(cx: &mut TestAppContext) {
     for kind in ["made", "duplicated"] {
@@ -65,12 +67,14 @@ fn ey379_failed_creation_keeps_another_pending_origin(cx: &mut TestAppContext) {
     }
 }
 
+/// The menuaction creation reply a card or a pane answers
 fn creation(kind: &str, request: u64, ok: bool, path: &str) -> String {
     format!(
         r#"{{"t":"menuaction","op":"creation","kind":"{kind}","id":{request},"ok":{ok},"path":"{path}"}}"#
     )
 }
 
+/// A failed sibling cannot let a stale creation result navigate or select
 #[gpui::test]
 fn ey379_failed_sibling_cannot_bypass_stale_creation_guard(cx: &mut TestAppContext) {
     let (shell, mut view) = opened(cx);
@@ -119,6 +123,7 @@ fn ey379_failed_sibling_cannot_bypass_stale_creation_guard(cx: &mut TestAppConte
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
+/// A request token leaves the mkdir line's other fields untouched
 #[gpui::test]
 fn ey379_creation_token_preserves_independent_mkdir_fields(cx: &mut TestAppContext) {
     let (shell, mut view) = opened(cx);
@@ -137,6 +142,7 @@ fn ey379_creation_token_preserves_independent_mkdir_fields(cx: &mut TestAppConte
     shell.update(&mut view, |shell, _| shell.stop_for_app_quit());
 }
 
+/// New File, made and duplicated all read the result's parent and select it
 #[gpui::test]
 fn ey379_created_neighbour_item_adopts_its_parent_and_selects_the_result(cx: &mut TestAppContext) {
     for kind in ["newFile", "made", "duplicated"] {
@@ -197,6 +203,7 @@ fn ey379_created_neighbour_item_adopts_its_parent_and_selects_the_result(cx: &mu
     }
 }
 
+/// A late creation result leaves the pane's later navigation alone
 #[gpui::test]
 fn ey379_delayed_creation_result_preserves_later_navigation(cx: &mut TestAppContext) {
     for (action, command, reply_kind, target) in [
@@ -221,6 +228,10 @@ fn ey379_delayed_creation_result_preserves_later_navigation(cx: &mut TestAppCont
                 );
             })
         });
+        // New Folder now asks for the name in a card, so Create is what puts the request on the wire.
+        if action == "newFolder" {
+            create_card(&shell, cx);
+        }
         let request = sent()
             .iter()
             .find(|line| flea::json::field_str(line, "c").as_deref() == Some(command))

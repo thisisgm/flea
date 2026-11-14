@@ -35,6 +35,7 @@ pub(crate) struct Drawn {
 }
 
 impl Editor {
+    /// Forgets the editor's menu session and clears the draft
     pub fn restart(&mut self) {
         self.menu = None;
         self.text_menu.close();
@@ -43,7 +44,8 @@ impl Editor {
 }
 
 impl Overlay {
-    pub(super) fn acquire_mount_focus(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+    /// Puts the keyboard on the card that just mounted, once its layer is in front.
+    pub(crate) fn acquire_mount_focus(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if self
             .editor
             .focus
@@ -61,6 +63,7 @@ impl Overlay {
         window.focus(focus, cx);
     }
 
+    /// Hands focus back to whatever held it before the card, or blurs when nothing did
     pub(super) fn release_mount_focus(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let restore = self.editor.restore.take();
         if self
@@ -77,6 +80,7 @@ impl Overlay {
         }
     }
 
+    /// Points the shared entry at the open card's draft and moves the keyboard focus with the modal
     pub(super) fn sync_editor(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if self.modal(cx) {
             self.acquire_mount_focus(window, cx);
@@ -107,6 +111,7 @@ impl Overlay {
     }
 
     // Whether the focused field owns the editor; each dialog field the editor serves is listed in Dialog::typing_session.
+    /// Whether this card's field is the one focused, mounted and not held mid-progress
     pub(super) fn editing_copy(&self, window: &Window, cx: &gpui::App) -> bool {
         let Some(session) = self.model.dialog.as_ref().and_then(Dialog::typing_session) else {
             return false;
@@ -122,10 +127,12 @@ impl Overlay {
     }
 
     // Platform callbacks reach the last registered handler, so they also need its session to be this one.
+    /// Whether a platform text callback still belongs to the card's field and its shaped run
     pub(super) fn ime_field(&self, window: &Window, cx: &gpui::App) -> bool {
         self.editing_copy(window, cx) && self.editor.drawn.borrow().line.accepts(&self.editor.entry)
     }
 
+    /// Copies the entry's text back into the open card's draft and redraws
     pub(super) fn edited_copy(&mut self, cx: &mut Context<Self>) {
         if let Some(draft) = self.model.dialog.as_mut().and_then(Dialog::draft_mut) {
             draft.clone_from(&self.editor.entry.text);
@@ -134,6 +141,7 @@ impl Overlay {
     }
 
     // Text keys reach the platform handler; navigation and clipboard operations use the same Entry.
+    /// Routes a key to the entry: the composition first, then cursor movement, erasing and the clipboard
     pub(super) fn copy_key(
         &mut self,
         event: &KeyDownEvent,
@@ -205,6 +213,7 @@ impl Overlay {
         true
     }
 
+    /// Places the caret, or extends the selection, at the press point, with double and triple clicks taking a word or all
     // A right press in the editing field opens its text menu over the line as it stands.
     pub(super) fn copy_menu(
         &mut self,
@@ -287,6 +296,7 @@ impl Overlay {
         cx.notify();
     }
 
+    /// Extends the selection to the pointer while the left button is dragged
     pub(super) fn copy_drag(
         &mut self,
         event: &MouseMoveEvent,
@@ -301,6 +311,7 @@ impl Overlay {
         }
     }
 
+    /// The text index a window x falls on, from the last drawn line's bounds and scroll
     pub(super) fn copy_index(&self, x: gpui::Pixels) -> usize {
         let drawn = self.editor.drawn.borrow();
         let origin = drawn.bounds.map_or(gpui::px(0.), |b| b.left());

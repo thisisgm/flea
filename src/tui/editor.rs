@@ -17,6 +17,7 @@ pub struct Editor {
     identity: Option<(u64, u64, u32)>,
 }
 impl Editor {
+    /// Opens an editor on value with the caret at the end
     pub fn new(kind: &'static str, value: String, path: PathBuf) -> Self {
         let cursor = value.len();
         Self {
@@ -35,12 +36,14 @@ impl Editor {
         }
     }
     // New Folder and New File open with their whole suggested name selected, so typing replaces it.
+    /// Opens the editor with the whole suggested name selected
     pub fn named(kind: &'static str, value: String, path: PathBuf) -> Self {
         let mut editor = Self::new(kind, value, path);
         editor.anchor = 0;
         editor.default_base = (kind == "mkdir").then(|| editor.value.clone());
         editor
     }
+    /// Builds a rename editor, keeping the caret before the extension for files
     pub fn rename(value: String, path: PathBuf, directory: bool) -> std::io::Result<Self> {
         let meta = path.symlink_metadata()?;
         let mut editor = Self::new("rename", value, path);
@@ -59,10 +62,12 @@ impl Editor {
         editor.full_name = editor.cursor == editor.value.len();
         Ok(editor)
     }
+    /// Shows a raw message as the editor's error
     pub fn fail_data(&mut self, error: String) {
         self.error_text = None;
         self.error = error;
     }
+    /// Re-renders a localized error after a locale change
     pub fn refresh_locale(&mut self, i18n: &crate::i18n::I18n) {
         if let Some((text, before)) = &mut self.error_text {
             if self.error == *before {
@@ -73,6 +78,7 @@ impl Editor {
             }
         }
     }
+    /// Shows the message for key and remembers it for a later re-render
     fn fail_key(&mut self, key: &'static str, i18n: &crate::i18n::I18n) {
         self.fail_text(super::words::Text::Key(key), i18n);
     }
@@ -84,26 +90,34 @@ impl Editor {
         self.error = text.render(i18n);
         self.error_text = Some((text, self.error.clone()));
     }
+    /// Validates with the English catalogue, for tests
     #[cfg(test)]
     pub fn valid(&mut self) -> bool {
         self.valid_localized(&crate::i18n::test_catalogs::english())
     }
+    /// Checks the draft names something valid, or that a rename target is unchanged
     pub fn valid_localized(&mut self, i18n: &crate::i18n::I18n) -> bool {
         if !self.full_name && self.editable_end == 0 {
             self.fail_key("tui.editor.enter_a_filename_before_the_extension", i18n);
             return false;
         }
-        if matches!(self.kind, "rename" | "mkdir" | "newfile")
-            && crate::backend::ops::name_refusal(&self.value).is_some()
-        {
+        // One prompt makes a file or a folder: a trailing slash names a folder, so the name the
+        // shared validator reads drops that one slash and nothing else. A slash anywhere else is
+        // still refused, which is why the name, not the draft, is what gets validated.
+        let made = matches!(self.kind, "rename" | "mkdir" | "newfile");
+        let name = match self.value.strip_suffix('/') {
+            Some(name) if made && self.kind != "rename" => name,
+            _ => self.value.as_str(),
+        };
+        if made && crate::backend::ops::name_refusal(name).is_some() {
             // The shared validator decides refusal; input facts select only its presentation key.
-            let key = if self.value.is_empty() {
+            let key = if name.is_empty() {
                 "tui.editor.name_empty"
-            } else if matches!(self.value.as_str(), "." | "..") {
+            } else if matches!(name, "." | "..") {
                 "tui.editor.name_dots"
             } else if self.value.contains('/') {
                 "tui.editor.name_slash"
-            } else if self.value.contains('\0') {
+            } else if name.contains('\0') {
                 "tui.editor.name_nul"
             } else {
                 "tui.editor.invalid_name"
@@ -123,6 +137,7 @@ impl Editor {
         }
         true
     }
+    /// Replaces the draft and puts the caret at its end
     pub fn replace(&mut self, value: String) {
         self.value = value;
         self.cursor = self.value.len();
@@ -130,6 +145,7 @@ impl Editor {
         self.editable_end = self.cursor;
         self.full_name = true;
     }
+    /// Applies a key to the draft: movement, deletion, selection or typing
     pub fn update(&mut self, key: &Key) {
         let shift = key.mods.contains("shift");
         let command = matches!(key.mods.as_str(), "ctrl" | "super");
@@ -208,6 +224,7 @@ impl Editor {
         self.error.clear();
         self.error_text = None;
     }
+    /// Handles word-wise motion and killing, returning whether the key was one
     fn word_command(&mut self, key: &Key) -> bool {
         use super::editor_words::{backward, forward, kill_length};
         let mods = key.mods.as_str();

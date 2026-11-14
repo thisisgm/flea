@@ -31,6 +31,7 @@ impl Row {
     pub fn shown(&self) -> std::borrow::Cow<'_, str> {
         flea::bytename::display(&self.name)
     }
+    /// True for a plain, non-link file whose name ends in .pdf
     pub fn is_pdf(&self) -> bool {
         !self.directory && self.link.is_empty()
             && std::path::Path::new(&*self.shown()).extension()
@@ -38,6 +39,7 @@ impl Row {
                 .is_some_and(|extension| extension.eq_ignore_ascii_case("pdf"))
     }
 
+    /// Builds a row from a listing entry, resolving its kind index against kinds
     pub fn parse(row: &Json, kinds: &[Json]) -> Self {
         Self {
             name: text(row, "n").into(),
@@ -234,11 +236,13 @@ pub struct Model {
     pub prompts: super::prompts::Prompts,
 }
 // "Renamed 1 item · Undo reverts one", the bulk completion line next_rename reports.
+/// Formats the bulk rename completion line, for a stopped or a finished run
 #[cfg(test)]
 fn bulk_done_line(completed: usize, cancelled: bool) -> String {
     super::words::Text::Plural(if cancelled { "tui.model.bulk_stopped" } else { "tui.model.bulk_done" }, completed, vec![]).to_string()
 }
 impl Model {
+    /// Builds a model at path, seeding its preferences from the settings document
     pub fn new(path: PathBuf, settings: &Json) -> Self {
         let preview = settings.get("preview").unwrap_or(&Json::Null);
         #[cfg(not(test))]
@@ -436,6 +440,7 @@ impl Model {
         model.taildrop.refresh_locale(&model.i18n);
         model
     }
+    /// Requests a listing for path, dropping a stale clipboard and any taildrop menu
     pub fn open(&mut self, path: PathBuf, wire: &mut Wire) -> io::Result<()> {
         if self.pending.is_some() {
             return Ok(());
@@ -478,13 +483,16 @@ impl Model {
         }
         result
     }
+    /// Whether glyph marks can be drawn rather than text characters
     pub fn marks(&self) -> bool {
         !self.force_text_marks && (self.font_marks || self.capabilities.graphics == super::capabilities::Protocol::Kitty)
     }
+    /// The formatted size for a row, marked > while a folder total is still partial
     pub fn row_size(&self, index: usize, row: &Row) -> String {
         let (bytes, partial) = self.folder_sizes.get(&index).copied().unwrap_or((row.size, row.directory));
         format!("{}{}", if partial { ">" } else { "" }, self.i18n.locale().format_size(bytes as u64))
     }
+    /// Asks for disk info and the folder sizes of the visible rows, cancelling stale requests
     pub fn request_sizes(&mut self, wire: &mut Wire, now: std::time::Instant) -> io::Result<()> {
         if self.pending.is_none() && self.search.is_empty() && self.fs_requested.as_ref() != Some(&self.path) {
             wire.send(vec![("c", word("fsinfo"))])?;
@@ -508,15 +516,19 @@ impl Model {
         self.size_pending.extend(rows);
         Ok(())
     }
+    /// Sets the body height from a resize, never below one row
     pub(super) fn resize_body(&mut self, cells: usize) {
         self.height = cells.max(1);
     }
+    /// How many rows the body fits at the current row height
     pub(super) fn file_capacity(&self) -> usize {
         (self.height / super::contents::row_height(self)).max(1)
     }
+    /// Rows to request per search page, halved for contents matches that draw two lines
     pub(super) fn search_count(&self, contents: bool) -> usize {
         (self.height / if contents { 2 } else { 1 }).clamp(1, 4096)
     }
+    /// Points the listing at the searched folder and asks for its parent
     pub(super) fn search_path(&mut self, path: PathBuf, wire: &mut Wire) -> io::Result<()> {
         if self.path == path { return Ok(()); }
         self.path = path;
@@ -529,16 +541,19 @@ impl Model {
         }
         Ok(())
     }
+    /// Re-locates the remembered path and the restored selection once a search settles
     pub(super) fn search_settled(&mut self, wire: &mut Wire) -> io::Result<()> {
         if let Some(path) = &self.restore_path {
             wire.send(vec![("c", word("locate")), ("path", word(&path.exact_text()))])?;
         }
         self.locate_survivors(wire)
     }
+    /// Row indices the body shows: the window range, or the filter's matches
     pub fn visible(&self) -> Vec<usize> {
         if self.filter.is_empty() { self.rows.range(self.top..self.top.saturating_add(self.file_capacity())).map(|(i, _)| *i).collect() }
         else { super::filter::visible(self) }
     }
+    /// Puts back the tab and history stacks saved before a navigation
     pub fn restore_navigation(&mut self) {
         if let Some((back, forward, tab)) = self.navigation_before.take() {
             self.back = back;
@@ -548,6 +563,7 @@ impl Model {
         self.restore_cursor = None;
         self.restore_path = None;
     }
+    /// Repeats the active find, restarts the search, or re-lists the folder
     pub fn refresh(&mut self, wire: &mut Wire) -> io::Result<()> {
         if let Some(active) = &self.find.active {
             self.find.mode = active.contents;
@@ -569,6 +585,7 @@ impl Model {
                 ("query", word(&self.search_query)), ("hidden", Json::Bool(self.hidden))])
         } else { self.open(self.path.clone(), wire) }
     }
+    /// Slides the scroll window to hold the cursor and asks for that slice of rows
     pub fn window(&mut self, wire: &mut Wire) -> io::Result<()> {
         if !self.filter.is_empty() { return super::filter::window(self, wire); }
         if self.prompts.trash.is_some() { return super::trashview::window(self, wire); }
@@ -587,13 +604,16 @@ impl Model {
             ("count", number(capacity)),
         ])
     }
+    /// The full path of a row in this listing
     pub fn row_path(&self, row: &Row) -> PathBuf {
         self.path.join(flea::bytename::text_path(&row.name))
     }
     // The displayed safe identity also feeds previews; actions separately refuse a held Find snapshot.
+    /// The cursor row's path, unless trash hides it or Find holds an inoperable snapshot
     pub fn current_path(&self) -> Option<PathBuf> {
         self.rows.get(&self.cursor).filter(|_| !super::trashview::hides(self) && super::contents::displayed_operable(self, self.cursor)).map(|row| self.row_path(row))
     }
+    /// The single row to act on: the cursor row, or the only selection
     pub fn single_row(&self) -> Option<(usize, Row)> {
         match self.selected.len() {
             0 => self.rows.get(&self.cursor).cloned().map(|row| (self.cursor, row)),
@@ -604,6 +624,7 @@ impl Model {
             _ => None,
         }
     }
+    /// Sends the next bulk rename, then clears the transfer and refreshes when the run ends
     pub fn next_rename(&mut self, wire: &mut Wire) -> io::Result<()> {
         let Some(batch) = self.bulk.take() else { return Ok(()); };
         if batch.send_next(wire, self.action_id)? {
@@ -621,12 +642,14 @@ impl Model {
         }
         Ok(())
     }
+    /// Asks the backend to locate the restored paths after a delete
     fn locate_survivors(&mut self, wire: &mut Wire) -> io::Result<()> {
         if self.menu_action != "deleteRestore" { return Ok(()); }
         self.restore_id = self.restore_id.wrapping_add(1).max(1);
         wire.send(vec![("c", word("locate")), ("id", number(self.restore_id)), ("menuId", number(self.action_id)),
             ("paths", Json::Arr(self.restore_selection.iter().map(|path| word(&path.exact_text())).collect()))])
     }
+    /// Applies a located reply to the selection, returning whether it was ours
     fn restore_survivors(&mut self, value: &Json) -> bool {
         if self.menu_action != "deleteRestore" || self.pending.is_some() || self.searching
             || count(value, "id") != self.restore_id || text(value, "directory") != self.path.exact_text() { return false; }
@@ -645,12 +668,14 @@ impl Model {
         self.menu_action.clear();
         true
     }
+    /// Resets the deletion view and asks the backend to list what is left
     fn refresh_deletion(&mut self, wire: &mut Wire) -> io::Result<()> {
         self.deletion = Some(Deletion::default());
         self.delete_marks.clear();
         self.menu_action = "deleteRefresh".into();
         wire.send(vec![("c", word("menuaction")), ("op", word("refreshDelete")), ("id", number(self.action_id))])
     }
+    /// Drops a pending taildrop target, returning whether one was set
     fn cancel_taildrop(&mut self) -> bool {
         if self.taildrop_target.take().is_none() { return false; }
         self.menu_action.clear();
@@ -659,6 +684,7 @@ impl Model {
         self.fail_key("tui.model.taildrop_cancelled_selection_changed");
         true
     }
+    /// Validates the chosen taildrop peer, closing the menu when it is unreachable
     pub fn advance_taildrop(&mut self, wire: &mut Wire) -> io::Result<()> {
         if self.menu_action != "taildropRefresh" || self.taildrop.loading() { return Ok(()); }
         let current = self.taildrop_target.as_ref().and_then(|peer| self.taildrop.current_peer(peer));
@@ -675,12 +701,14 @@ impl Model {
         self.menu_action = "taildrop".into();
         wire.send(vec![("c", word("menuaction")), ("op", word("validate")), ("id", number(self.action_id)), ("action", word("taildrop"))])
     }
+    /// Sets a plain message in tests, bypassing the word catalogue
     #[cfg(test)]
     pub fn say(&mut self, message: String) {
         self.words.clear_message();
         self.message = message;
         self.message_at = std::time::Instant::now();
     }
+    /// Clears the message after its timeout, unless a prompt or taildrop keeps it
     pub fn expire_message(&mut self, now: std::time::Instant) {
         let time = if super::prompts::lasting(self) { super::footer_errors::ERROR_TIME } else { MESSAGE_TIME };
         if !matches!(self.menu_action.as_str(), "taildropRefresh" | "taildrop")
@@ -689,9 +717,13 @@ impl Model {
         }
         self.expire_error(now);
     }
+    /// Indices the filter shows
     pub fn shown(&self) -> Vec<usize> { super::filter::shown(self) }
+    /// How many rows the filter matches
     pub fn filter_count(&self) -> usize { super::filter::count_shown(self) }
+    /// Sets the filter query and restarts the listing for it
     pub fn apply_filter(&mut self, query: String, wire: &mut Wire) -> io::Result<()> { super::filter::change(self, query, wire) }
+    /// The indices to act on as JSON: the selection, or the cursor
     pub fn indices(&self) -> Json {
         Json::Arr(if self.selected.is_empty() {
             vec![number(self.cursor)]
@@ -699,6 +731,7 @@ impl Model {
             self.selected.iter().copied().map(number).collect()
         })
     }
+    /// Refreshes the kept selection rows from the current listing
     pub fn remember_selection(&mut self) {
         self.selected_rows.retain(|i, _| self.selected.contains(i));
         for (&i, row) in &self.rows {
@@ -707,6 +740,7 @@ impl Model {
             }
         }
     }
+    /// Drops the listing, preview and selection state before a fresh listing lands
     pub fn invalidate_rows(&mut self) {
         self.parity17.follow = None;
         self.name_filter.reset();
@@ -735,6 +769,7 @@ impl Model {
         self.player = None;
         self.pdf = None;
     }
+    /// Moves the cursor by delta within the filter or the listing, extending the selection
     pub fn move_by(&mut self, delta: isize, extend: bool, wire: &mut Wire) -> io::Result<()> {
         if self.total == 0 || self.pending.is_some() {
             return Ok(());
@@ -772,9 +807,11 @@ impl Model {
         self.window(wire)
     }
     // True while this listing's parent peek is still unanswered.
+    /// Whether a parent peek is already out, so another is not sent
     pub fn peek_out(&self) -> bool {
         matches!((&self.peek_sent, self.path.parent()), (Some(sent), Some(parent)) if sent.as_path() == parent)
     }
+    /// The job or transfer id currently on the footer
     pub fn active_operation(&self) -> usize {
         if self.job_status.id > 0 {
             self.job_status.id
@@ -782,12 +819,14 @@ impl Model {
             self.transfer_id
         }
     }
+    /// Handles one backend reply, then releases preview focus if the listing emptied
     pub fn receive(&mut self, value: Json, wire: &mut Wire) -> io::Result<()> {
         let replied = self.receive_reply(value, wire);
         // Any reply that empties the listing (a re-list, a search with no results) stops drawing the preview as focused.
         super::layout::release_preview_focus(self);
         replied.and_then(|()| super::editor_input::enter_once::landed(self, wire))
     }
+    /// Routes a reply to the subsystem that owns its type
     fn receive_reply(&mut self, value: Json, wire: &mut Wire) -> io::Result<()> {
         if super::claims::receive(self, &value, wire)? { return Ok(()); }
         match text(&value, "t") {
@@ -1118,10 +1157,13 @@ impl Model {
                 self.refresh(wire)?;
             }
             "menuaction" if text(&value, "op") == "newFile" => {
+                // Either create kind can have asked for a file: `N` types a file name over the
+                // folder suggestion and `a` (yazi) opens the file prompt, and both receive this
+                // reply, so the pending draft of either kind owns it.
                 if count(&value, "id") != self.action_id || !self
                     .editor
                     .as_ref()
-                    .is_some_and(|e| e.kind == "newfile" && e.pending)
+                    .is_some_and(|e| matches!(e.kind, "newfile" | "mkdir") && e.pending)
                 {
                     return Ok(());
                 }
@@ -1248,7 +1290,13 @@ impl Model {
             "trashbrowse" => super::trashview::receive(self, &value),
             "collisions" | "fatnames" => super::prompts::collided(self, &value, wire)?,
             "error" => {
-                let held = self.editor.as_mut().filter(|editor| editor.kind == text(&value, "where")).map(|editor| { editor.pending = false; editor.fail_said(text(&value, "msg"), &self.i18n); }).is_some();
+                // The one create prompt sends either request from either kind, so a refusal from
+                // either one names the draft that asked for it and releases that draft.
+                let opened = text(&value, "where");
+                let create = matches!(opened, "mkdir" | "newfile");
+                let held = self.editor.as_mut().filter(|editor| {
+                    editor.kind == opened || (create && matches!(editor.kind, "mkdir" | "newfile"))
+                }).map(|editor| { editor.pending = false; editor.fail_said(text(&value, "msg"), &self.i18n); }).is_some();
                 if !held {
                     if text(&value, "where") == "scan" && text(&value, "msg") == "permission denied" {
                         self.fail_key("pane.locked");

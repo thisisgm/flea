@@ -3,6 +3,7 @@ use super::*;
 
 impl Shell {
     // The folder's background New File row opens its card; the menu's own check finds the row claimed and nothing refuses.
+    /// Opens the New File card for a background row, refusing Recent and unbacked panes before any request goes out
     fn open_new_file(
         &mut self,
         chosen: &crate::g2::context_menus::join::Chosen,
@@ -36,11 +37,12 @@ impl Shell {
         let Some(id) = self.fileops_creation_requested(side, "newFile", &folder, cx) else {
             return;
         };
-        view.update(cx, |overlay, cx| overlay.new_file(id, &folder, cx));
+        view.update(cx, |overlay, cx| overlay.new_file(id, &folder, None, cx));
         self.show_operation(&view, cx);
         self.flush_operations(side, cx);
     }
 
+    /// Subscribes the shell to chosen menu actions and to operation status updates, once per shell
     pub(crate) fn observe_operations(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if self.operations.chosen_subscription.is_some() {
             return;

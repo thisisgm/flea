@@ -9,6 +9,7 @@ use super::{
 use flea::ui_logic_file_ops::card::{self, Kind};
 use gpui::{div, prelude::*, px, Div};
 
+/// The New File card: the name field under its label, the rule or refusal beneath, and Cancel and Create
 pub(super) fn card(
     scene: &Scene,
     window: (f32, f32),
@@ -71,6 +72,9 @@ pub(super) fn card(
         body.push(
             caption(scene, catalog.tr("jobs.newfile.working"), palette.muted).into_any_element(),
         );
+    } else {
+        // The rule the TUI's prompt states, in the card's own line under the field.
+        body.push(caption(scene, catalog.tr("prompt.create"), palette.muted).into_any_element());
     }
     let buttons = vec![
         button(
