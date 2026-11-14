@@ -42,6 +42,7 @@ fn the_defaults_are_the_shipped_shape_key_for_key() {
             "openMode",
             "clickRename",
             "openFoldersWhileDragging",
+            "outline",
             "keyHints",
             "startIn",
             "startFolder",

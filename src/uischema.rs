@@ -33,6 +33,7 @@ pub const DEFAULTS: &str = r#"{
   "openMode": "double",
   "clickRename": true,
   "openFoldersWhileDragging": false,
+  "outline": true,
   "keyHints": false,
   "startIn": "home",
   "startFolder": "",
@@ -245,6 +246,8 @@ pub const SCHEMA: &[(&str, Rule)] = &[
     ("openMode", Rule::Word(&["double", "single"])),
     ("clickRename", Rule::Bool),
     ("openFoldersWhileDragging", Rule::Bool),
+    // The List view opens a folder in place from its chevron and Ctrl+Right; on unless switched off.
+    ("outline", Rule::Bool),
     // The Menus section's "Show keyboard hints" row: every menu's key column and the empty
     // directory's own tip, off until it is switched on.
     ("keyHints", Rule::Bool),
