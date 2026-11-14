@@ -141,8 +141,8 @@ pub fn sort_by_name(l: &mut Listing, desc: bool, hidden_last: bool) -> f64 {
     // Take the buffer out so the comparator can borrow it while spans are moved.
     let names = std::mem::take(&mut l.names);
     l.spans.sort_by(|a, b| {
-        let an = &names[a.off as usize..(a.off + a.len) as usize];
-        let bn = &names[b.off as usize..(b.off + b.len) as usize];
+        let an = &names[a.off as usize..a.off as usize + a.len as usize];
+        let bn = &names[b.off as usize..b.off as usize + b.len as usize];
         // Hidden entries follow every visible one in both directions; only names inside each block reverse.
         if hidden_last {
             match (is_hidden(an), is_hidden(bn)) {

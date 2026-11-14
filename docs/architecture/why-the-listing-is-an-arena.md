@@ -1,13 +1,15 @@
 ## Why the listing is an arena
 
 `Listing` (`listing.rs`) holds one `String` with every entry's name written back to
-back, plus a `Vec<Span>` of `{off: u32, len: u32, is_dir: bool}` indexing into it. A
-100,000-entry directory then costs one allocation for the names and one for the spans,
-instead of 100,000 individual `String` allocations. Sorting moves 12-byte `Span` values
-(the compiler pads the struct to 12 bytes for `u32` alignment), never the name bytes
-themselves, so `sort_by_name` never touches the arena at all. Offsets are `u32`, so the
-arena tops out at 4 GiB of names, which no directory reaches but a later search phase
-reusing this arena could.
+back, plus a `Vec<Span>` of `{off: u32, len: u16, is_dir: bool, is_symlink: bool}`
+indexing into it. A 100,000-entry directory then costs one allocation for the names and
+one for the spans, instead of 100,000 individual `String` allocations. Sorting moves
+8-byte `Span` values (the `u16` length leaves room for both flags inside the `u32`
+alignment), never the name bytes themselves, so `sort_by_name` never touches the arena at
+all. `len` is a `u16` because a search hit and a gvfs row carry a whole path, not one
+component; see "A finished listing keeps no slack" for the layout's own measurement.
+Offsets are `u32`, so the arena tops out at 4 GiB of names, which no directory reaches but a
+later search phase reusing this arena could.
 
 **The comparator is macOS Finder's, not a byte compare, and it costs about 2.3x.** Three properties
 apply per segment as two names are walked together: a run of digits compares by value so `file_2`

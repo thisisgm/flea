@@ -253,7 +253,7 @@ pub fn ordered(
         let row = append(group, listing, i, "");
         let span = &mut group.spans[row];
         span.off += (name.len() - leaf.len()) as u32;
-        span.len = leaf.len() as u32;
+        span.len = leaf.len() as u16;
         // Offsets remain stable for cached GIO metadata while the span names only its leaf.
         for meta in &mut group.gio_meta {
             if meta.name_off == before as u32 {

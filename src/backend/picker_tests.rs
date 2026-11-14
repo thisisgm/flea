@@ -162,6 +162,7 @@ fn filters_keep_directories_and_matches_beyond_the_first_window() {
     filter_listing(&mut listing, &Db::from_str(""), r#"{"pickerGlobs":["*.png"]}"#);
     assert_eq!(listing.len(), 2);
     assert_eq!(listing.name(1), "last.PNG");
+    assert_eq!(listing.spans.capacity(), listing.spans.len(), "the 149 filtered rows leave no slots behind");
 }
 
 #[test]

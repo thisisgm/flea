@@ -24,10 +24,11 @@ pub struct GioTarget {
 const NAME_RESERVE_BYTES: usize = 1 << 20;
 const SPAN_RESERVE: usize = 4096;
 
+// corner: a name is at most NAME_MAX (255) bytes, but a search hit and a gvfs row can carry a whole path, so len is u16 and not u8. Two flags fill the padding the u32 offset and the u16 length leave, which is the whole 8 bytes.
 #[derive(Clone, Copy, Debug)]
 pub struct Span {
     pub off: u32,
-    pub len: u32,
+    pub len: u16,
     pub is_dir: bool,
     pub is_symlink: bool,
 }
@@ -69,17 +70,24 @@ impl Listing {
         self.names.push_str(name);
         self.spans.push(Span {
             off,
-            len: (self.names.len() as u32) - off,
+            len: ((self.names.len() as u32) - off) as u16,
             is_dir,
             is_symlink,
         });
+        debug_assert_eq!(self.name(self.spans.len() - 1), name, "a name past 65,535 bytes truncates its span");
         self.spans.len() - 1
+    }
+
+    // Both fields stop growing here, so the doubling that got them here is dead capacity for the rest of the listing's life: 2.0 MiB of slack on 100,000 rows, measured 2026-11-14. Above the pinned 128 KiB threshold both blocks are mmap'd, so glibc shrinks them with mremap rather than a copy; see docs/architecture/the-listing-arena-returns-to-the-os.md.
+    pub fn trim(&mut self) {
+        self.names.shrink_to_fit();
+        self.spans.shrink_to_fit();
     }
 
     // The row's wire text: its name, or for a name that is not UTF-8 the exact spelling src/bytename.rs writes.
     pub fn name(&self, i: usize) -> &str {
         let s = &self.spans[i];
-        &self.names[s.off as usize..(s.off + s.len) as usize]
+        &self.names[s.off as usize..s.off as usize + s.len as usize]
     }
 
     // The exact file a row names under base; every filesystem call on a row goes through here, never base.join(name).
@@ -214,11 +222,14 @@ fn decide(dev: u64, body: &str) -> bool {
 mod tests {
     use super::*;
 
+    // The old Span's own two u32 fields and two flags padded it to 12 bytes; the relative shape is now the whole of it.
     #[test]
-    fn symlink_type_uses_the_existing_span_padding() {
+    fn a_span_is_eight_bytes_and_the_symlink_flag_costs_none() {
+        // The pre-0.4.3 layout, kept so a rounded-up field shows as a difference rather than as an unchanged test.
         #[allow(dead_code)]
-        struct OriginalSpan { off: u32, len: u32, is_dir: bool }
-        assert_eq!(std::mem::size_of::<Span>(), std::mem::size_of::<OriginalSpan>());
+        struct PaddedSpan { off: u32, len: u32, is_dir: bool, is_symlink: bool }
+        assert_eq!(std::mem::size_of::<Span>(), 8);
+        assert!(std::mem::size_of::<Span>() < std::mem::size_of::<PaddedSpan>(), "the flags ride in the padding");
     }
 
     #[test]
