@@ -304,35 +304,23 @@ impl Shell {
         self.flush_operations(side, cx);
     }
 
-    /// A slow mkdir belongs to the create card: the card lets go so the window answers again, and the
-    /// pane's queued origin keeps the receipt the backend answers when the held write lands.
-    pub(crate) fn fileops_slow_create(
+    /// A card that asked for a create its pane now lands itself, so nothing keeps drawing "Working…".
+    pub(crate) fn fileops_retire_new_file_card(
         &mut self,
         side: usize,
-        line: &str,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        if flea::json::field_str(line, "op").as_deref() != Some("mkdir") {
-            return;
-        }
         let Some(view) = self.operation_overlay(side, window, cx) else {
             return;
         };
-        let taken = view.update(cx, |overlay, cx| {
-            let taken = overlay.model.slow_new_file();
-            if taken.is_some() {
+        view.update(cx, |overlay, cx| {
+            if matches!(overlay.model.dialog, Some(crate::g2::file_ops::model::Dialog::NewFile { .. })) {
+                overlay.model.dialog = None;
+                overlay.model.changed = true;
                 cx.notify();
             }
-            taken
         });
-        let Some(request) = taken else {
-            return;
-        };
-        // The backend answers a held mkdir with a "made" receipt, so the pane claims that one.
-        self.operations.fileops.creations.adopt(side, request, "made");
-        let shell_focus = self.focus.clone();
-        window.focus(&shell_focus, cx);
     }
 
     // The backend takes the first free name from the client catalog's suggestion.

@@ -138,21 +138,13 @@ impl Operations {
 
     // Escape and Cancel close the card unless its create is out, as v0.3.12 keeps it open until the reply.
     /// Closes the create card when its request is not out
+    /// Closing is always allowed: a create the backend has not answered yet still lands through the
+    /// pane's queued origin, so a held share cannot hold the window with a card.
     pub(super) fn close_new_file(&mut self) {
-        if matches!(self.dialog, Some(Dialog::NewFile { busy: false, .. })) {
+        if matches!(self.dialog, Some(Dialog::NewFile { .. })) {
             self.dialog = None;
+            self.changed = true;
         }
-    }
-
-    /// A create the backend called slow: the card lets go so the window answers again, and the pane's
-    /// own origin keeps the receipt the backend answers by itself when the held write lands.
-    pub(crate) fn slow_new_file(&mut self) -> Option<u64> {
-        let Some(Dialog::NewFile { id, busy: true, .. }) = self.dialog.clone() else {
-            return None;
-        };
-        self.dialog = None;
-        self.changed = true;
-        Some(id)
     }
 
     /// Create sends v0.3.12's newfile request once the name is a plain filename, and one trailing slash

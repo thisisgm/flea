@@ -101,7 +101,7 @@ impl Shell {
                     return true;
                 }
                 // Shell::step says its own refusal in the pane status, so its result is spent here.
-                self.fileops_created_target(side, kind, None, path, window, cx);
+                self.fileops_created_target(side, kind, None, true, path, window, cx);
                 true
             }
             // PaneWire.qml onTrashed clears the marks unless the reply names no rows; the operations overlay says the line.
@@ -118,24 +118,49 @@ impl Shell {
             }
             "menuaction" if text("op") == "creation" => {
                 let request = flea::json::field_usize(line, "id").unwrap_or(0) as u64;
-                let kind = text("kind");
-                if request == 0 || !matches!(kind, "made" | "duplicated") {
+                // Owned, so the reply's borrow of the parsed document never outlives it.
+                let kind = text("kind").to_owned();
+                if request == 0 || !matches!(kind.as_str(), "made" | "duplicated") {
                     return true;
                 }
-                // A receipt this pane did not ask for is the New File card's, which closes on it.
-                if !self.operations.fileops.creations.owns(side, kind, request) {
-                    return false;
-                }
-                if document.get("ok").and_then(Json::as_bool) != Some(true) {
-                    self.operations
-                        .fileops
-                        .creations
-                        .failed(side, kind, request);
+                // This pane asked for it: the usual created path, and a folder still gets its Rename.
+                if self.operations.fileops.creations.owns(side, &kind, request) {
+                    if document.get("ok").and_then(Json::as_bool) != Some(true) {
+                        self.operations
+                            .fileops
+                            .creations
+                            .failed(side, &kind, request);
+                        return true;
+                    }
+                    let path = text("path").to_owned();
+                    self.fileops_created_target(side, &kind, Some(request), true, path, window, cx);
                     return true;
                 }
-                let path = text("path").to_owned();
-                self.fileops_created_target(side, kind, Some(request), path, window, cx);
-                true
+                // The create card's own request. While the card is open it answers this receipt itself;
+                // once the card was dismissed the pane still lands it, and never arms Rename: the card
+                // already asked for the name, so a land here is not an unnamed folder to fix up.
+                if self.operations.fileops.creations.owns(side, "newFile", request) {
+                    if document.get("ok").and_then(Json::as_bool) != Some(true) {
+                        self.operations
+                            .fileops
+                            .creations
+                            .failed(side, "newFile", request);
+                        return false;
+                    }
+                    // The created target matches on the kind the receipt carries, and Rename is off
+                    // below, so the tag moves without arming a rename the card never wanted.
+                    let receipt: &'static str = if kind == "made" { "made" } else { "duplicated" };
+                    self.operations.fileops.creations.retag(side, request, receipt);
+                    let path = text("path").to_owned();
+                    let catalog = self.locale.catalog.clone();
+                    let preset = self.fileops_preset();
+                    let said = lines::made(&catalog, &preset, &path);
+                    self.fileops_say(side, &said, false, cx);
+                    self.fileops_retire_new_file_card(side, window, cx);
+                    self.fileops_created_target(side, &kind, Some(request), false, path, window, cx);
+                    return true;
+                }
+                false
             }
             "menuaction" if text("op") == "delete" => {
                 let id = document
@@ -167,7 +192,7 @@ impl Shell {
         let preset = self.fileops_preset();
         let said = lines::made(&catalog, &preset, &path);
         self.fileops_say(side, &said, false, cx);
-        self.fileops_created_target(side, "newFile", None, path, window, cx);
+        self.fileops_created_target(side, "newFile", None, false, path, window, cx);
     }
 
     /// PaneWire.qml openRenameOnArrival: once the re-read lands, the new folder's own row takes the cursor and Rename runs on it.

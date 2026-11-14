@@ -445,10 +445,10 @@ fn new_file_folder_drafts_refuse_a_second_or_a_lone_slash(cx: &mut TestAppContex
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
 
-// A held mkdir answers slow, the card lets go, and the late receipt still lands on the pane.
-/// A slow create dismisses its card and the eventual receipt still selects the folder
+// A dismissed card's create still lands on its pane, and never arms a rename the card did not want.
+/// A dismissed create card still lands its late receipt, without arming a rename
 #[gpui::test]
-fn a_slow_create_lets_the_card_go_and_the_late_receipt_still_lands(cx: &mut TestAppContext) {
+fn a_dismissed_create_card_still_lands_its_late_receipt_without_a_rename(cx: &mut TestAppContext) {
     let (shell, mut cx) = opened(cx);
     let cx = &mut cx;
     let mut sent = asked(&shell, cx);
@@ -462,17 +462,9 @@ fn a_slow_create_lets_the_card_go_and_the_late_receipt_still_lands(cx: &mut Test
         matches!(card(&shell, cx), Some(Dialog::NewFile { busy: true, .. })),
         "the card holds while the write is out"
     );
+    // A held share can no longer trap the window: the card closes on Escape.
     cx.simulate_keystrokes("escape");
-    assert!(
-        matches!(card(&shell, cx), Some(Dialog::NewFile { busy: true, .. })),
-        "a busy card ignores Escape on its own"
-    );
-    reply(
-        &shell,
-        cx,
-        r#"{"t":"slow","op":"mkdir","msg":"The new folder will finish on its own."}"#,
-    );
-    assert!(card(&shell, cx).is_none(), "the slow notice lets the card go");
+    assert!(card(&shell, cx).is_none(), "Escape closes a busy card");
     let before = lists(&shell, cx);
     reply(
         &shell,
@@ -494,5 +486,35 @@ fn a_slow_create_lets_the_card_go_and_the_late_receipt_still_lands(cx: &mut Test
         Some("/files/photos"),
         "and selects the folder that landed"
     );
+    assert!(
+        shell.read_with(cx, |shell, _| shell.operations.fileops.arrival[0].is_none()),
+        "the card already named the folder, so no rename arms on the arrival"
+    );
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+// A slow notice belongs to whoever asked for it: it must never close a card that asked for something else.
+/// A slow notice leaves a card it did not ask for open, with its draft and sentence intact
+#[gpui::test]
+fn a_slow_notice_never_closes_a_card_it_did_not_ask_for(cx: &mut TestAppContext) {
+    let (shell, mut cx) = opened(cx);
+    let cx = &mut cx;
+    let mut sent = asked(&shell, cx);
+    open_card(&shell, cx);
+    cx.simulate_input("notes.txt");
+    cx.simulate_keystrokes("enter");
+    let requests = sent();
+    assert_eq!(requests.len(), 1, "{requests:?}");
+    reply(
+        &shell,
+        cx,
+        r#"{"t":"slow","op":"mkdir","msg":"The new folder will finish on its own."}"#,
+    );
+    match card(&shell, cx) {
+        Some(Dialog::NewFile { busy: true, name, .. }) => {
+            assert_eq!(name, "notes.txt", "the draft survives the unrelated notice")
+        }
+        other => panic!("a slow notice for another create leaves this card open: {other:?}"),
+    }
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
