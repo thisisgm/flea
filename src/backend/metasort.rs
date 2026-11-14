@@ -27,7 +27,7 @@ fn sort_by_stat_as(l: &mut Listing, base: &Path, class: &str, by: SortBy, desc: 
         _ => Vec::new(),
     };
     let t = Instant::now();
-    // An index is sorted and the spans gathered after it, so Span stays the 12 bytes every listing pays.
+    // An index is sorted and the spans gathered after it, so Span stays the 8 bytes every listing pays.
     let mut order: Vec<u32> = (0..l.len() as u32).collect();
     order.sort_by(|&a, &b| {
         let (a, b) = (a as usize, b as usize);

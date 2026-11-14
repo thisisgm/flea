@@ -117,6 +117,8 @@ pub(crate) fn scan_dir(
             if !l.outline_open.is_empty() {
                 sized.clear();
             }
+            // Last write to the arena: the filter removed rows and the outline added them, so this is the one place the final shape is known.
+            l.trim();
             let dev = crate::backend::fsinfo::dev_of(&base);
             let writable = crate::backend::ops::dir_writable(&base);
             let first_start = l.first_start(

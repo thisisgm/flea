@@ -1,12 +1,12 @@
-// The arena keeps its shape: a UTF-8 row costs its name and one Span as before 0.4.2, a raw row adds its exact tail.
+// The arena keeps its shape: a UTF-8 row costs its name and one Span, a raw row adds its exact tail.
 use super::*;
 use crate::backend::listing::{Listing, Span};
 use crate::backend::testdir::TestDir;
 use std::ffi::OsStr;
 use std::os::unix::ffi::OsStrExt;
 
-// The Span before 0.4.2: two u32 fields and two flags, padded to 12 bytes.
-const SPAN_BYTES_BEFORE: usize = 12;
+// The Span as 0.4.3 ships it: a u32 offset, a u16 length and the two flags in the padding. It was 12 bytes, two u32 fields rounding the flags up to a third word.
+const SPAN_BYTES: usize = 8;
 
 fn arena(l: &Listing) -> usize {
     l.names.len() + l.spans.len() * std::mem::size_of::<Span>()
@@ -29,8 +29,8 @@ fn a_utf8_row_costs_what_it_always_did_and_a_raw_row_adds_its_exact_tail() {
     );
     assert_eq!(
         (std::mem::size_of::<Span>(), l.spans.len()),
-        (SPAN_BYTES_BEFORE, utf8.len()),
-        "one Span per file, the same size as before"
+        (SPAN_BYTES, utf8.len()),
+        "one Span per file, at the 8 bytes the layout gives it"
     );
 
     let r = TestDir::new("scan-exact-raw");
@@ -67,4 +67,24 @@ fn a_utf8_row_costs_what_it_always_did_and_a_raw_row_adds_its_exact_tail() {
         lr.names.len() as f64 / lr.len() as f64,
         lossy as f64 / lr.len() as f64,
     );
+}
+
+// A finished listing keeps no room it no longer needs: before the trim both seeds survived a short read and
+// the 1 MiB names block was mapped under glibc's 128 KiB threshold for the life of the listing.
+#[test]
+fn a_finished_listing_holds_no_capacity_past_its_rows() {
+    let d = TestDir::new("scan-trim");
+    for i in 0..40 {
+        d.file(&format!("kept-{i}.txt"), "");
+    }
+    d.file(&"café.txt".to_string(), "");
+    let (l, _) = scan(d.path().to_str().unwrap(), false).unwrap();
+    // readdir order, so the names are checked as a set and not by row.
+    let mut names: Vec<&str> = (0..l.len()).map(|row| l.name(row)).collect();
+    names.sort_unstable();
+    assert_eq!(names.len(), 41);
+    assert!(names.contains(&"café.txt"), "{names:?}");
+    assert_eq!(l.names.len(), (0..40).map(|i| format!("kept-{i}.txt").len()).sum::<usize>() + "café.txt".len(), "the trim keeps every byte it still indexes");
+    assert_eq!(l.names.capacity(), l.names.len(), "names keep no slack");
+    assert_eq!(l.spans.capacity(), l.spans.len(), "spans keep no slack");
 }

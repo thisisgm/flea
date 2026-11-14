@@ -347,7 +347,9 @@ pub fn filter_listing(listing: &mut Listing, db: &Db, line: &str) {
     if globs.is_empty() && mimes.is_empty() { return; }
     let names = &listing.names;
     // Keep every symlink: d_type identifies links without statting their targets outside the viewport.
-    listing.spans.retain(|span| span.is_dir || span.is_symlink || matches(&names[span.off as usize..(span.off + span.len) as usize], &globs, &mimes, db));
+    listing.spans.retain(|span| span.is_dir || span.is_symlink || matches(&names[span.off as usize..span.off as usize + span.len as usize], &globs, &mimes, db));
+    // retain leaves the removed slots' room behind; the names stay, since the kept spans index into them.
+    listing.trim();
 }
 
 #[cfg(test)]

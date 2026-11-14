@@ -10,7 +10,7 @@ Phase 2 (`meta.rs`) calls
 sorting by size or modification time runs `stat_all()`, one `lstat` per row split across
 `available_parallelism()` scoped threads, and `metasort.rs` then orders an index against
 the result and gathers the spans behind it. Those stats live for the one request and are
-dropped with it, so a listing in name order carries nothing extra and `Span` stays 12
+dropped with it, so a listing in name order carries nothing extra and `Span` stays 8
 bytes. `kind` orders by MIME group after phase 1, `date` is an alias for `mtime`, and any
 other key, `mode` included, reaches neither phase: `ordering.rs` refuses it with the one
 sentence that names the four it accepts. A size sort on a listing

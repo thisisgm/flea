@@ -36,6 +36,7 @@
 - About > Updates names the package manager on every packaged install, and a keyboard rename that is refused says so in the rename sentence.
 - The source builds on Rust 1.99 and later and is clean under Clippy on Rust 1.100.0. A source build through rustup selects Rust 1.100.0 from `rust-toolchain.toml`; a distribution cargo keeps its own compiler.
 - The GUI library tests pass under default test parallelism, and the tools run on Python 3.15 (#456, #413, @reeseroyster).
+- A folder read keeps only the room its rows need: the 2 MiB a 100,000-file listing reserved and never used is released when the read ends, and again after a picker filter drops rows. Each row of that read also costs 4 bytes less, 400 KiB over the same folder, because the span behind a row went from 12 bytes to 8.
 
 Thanks to @AksharP5, @atomicol, @chrizbee, @derekroper, @dyedfox, @hachre, @iccodes, @ids444, @Imacx-maria, @jekitf, @JonathanPitre, @jotapesse, @k-kostin, @letargopausado-byte, @Loafer19, @lzm3, @manish0467, @mfilm77, @muellan, @nicolasfalesy, @reeseroyster, @reverb256 and @sixers.
 

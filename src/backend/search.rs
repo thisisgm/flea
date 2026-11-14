@@ -102,8 +102,8 @@ impl Search {
         let scores = &self.scores;
         let mut order: Vec<usize> = (0..spans.len()).collect();
         order.sort_by(|&a, &b| {
-            let an = &names[spans[a].off as usize..(spans[a].off + spans[a].len) as usize];
-            let bn = &names[spans[b].off as usize..(spans[b].off + spans[b].len) as usize];
+            let an = &names[spans[a].off as usize..spans[a].off as usize + spans[a].len as usize];
+            let bn = &names[spans[b].off as usize..spans[b].off as usize + spans[b].len as usize];
             rank_order(scores[a], an, scores[b], bn)
         });
         let ranked: Vec<_> = order.iter().map(|&i| spans[i]).collect();

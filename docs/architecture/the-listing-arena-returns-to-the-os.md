@@ -147,6 +147,51 @@ would reclaim at a moment we choose what pinning the threshold already reclaims 
 does call it, through `heap::give_back` after a picture is sent, for the reason given earlier in
 this section.
 
+## A finished listing keeps no slack, but the slack was never resident
+
+`Listing::trim` shrinks the name arena and the span vector to their lengths, called from
+`scan::scan_in` once readdir ends, from `picker::filter_listing` after its `retain`, and from
+`iomount_listing::scan_dir` after `outline::expand` has added the child rows. Cloning and growing
+are over by all three points, so what each discard leaves behind is room nothing will use again.
+
+**Why bother, when the pin above already returns an arena to the OS.** The pin decides where a
+block lives, and both blocks cross 128 KiB on a large directory, so they are `mmap`'d and their
+untouched tail is not resident. Trimming them therefore does not move `Pss`: 27.4 MiB against
+27.4 MiB over three cold runs per arm on the 100,000-file fixture, distributions overlapping. What
+it moves is address space. `smaps` on a live backend holding that listing reads the arena at
+`4100 KiB size, 2336 KiB rss` and the spans at `1028 KiB size, 784 KiB rss` untrimmed, against
+`2336 KiB size, 2336 KiB rss` and `784 KiB size, 784 KiB rss` trimmed: 2.0 MiB of mapped region
+gone, at identical `Rss`.
+
+**The sequence where that becomes resident is the unpinned one**, behind any caller that lists
+without `backend::run`'s pin, or any build that loses it: a second large listing after the first was
+freed, served from the heap because the first free ratcheted `mmap_threshold` past the arena's own
+size. Standalone, building, freeing, building again and reading `VmRSS` three times per arm: the
+trimmed arm holds 5796 KiB, which is its used bytes, on all three runs, and the untrimmed one ranges
+5692, 5796 and 7636 as the allocator does or does not hand it back freed pages. With the threshold
+pinned both arms read 3120. The backend binary that `tests/protocol.sh` drives pins, so it collects
+nothing from this; a caller that lists in its own process does.
+
+**The trim does not cost the read it sits in.** Eight cold runs per arm through the real wire on a
+quiet box, medians: read 116.7 ms trimmed against 118.95 untrimmed, sort 22.77 against 22.52, and
+both distributions overlap each other across their whole range. Both blocks stay above the
+threshold after shrinking, so glibc serves the shrink with `mremap` rather than a copy.
+
+**Two tests, both proven red by deleting one call each.** `scan::exact_tests`'
+`a_finished_listing_holds_no_capacity_past_its_rows` fails with `names keep no slack, left 1048576,
+right 439`; `picker::tests`' `filters_keep_directories_and_matches_beyond_the_first_window` fails
+with `the 149 filtered rows leave no slots behind, left 4096, right 2`. The names a removed row
+leaves in the arena stay, because the kept spans index into them.
+
+**The span itself is the larger half of the same waste, at 4 bytes a row.** A `Span` was two `u32`
+fields and two `bool`s, which the alignment rounds to 12 bytes; the length now rides in a `u16` and
+the two flags fill the padding, for 8. That is 400 KiB of the span vector gone at 100,000 rows.
+`len` cannot be a `u8`: a name is at most `NAME_MAX`, but a search hit and a gvfs row carry a whole
+path, and `push_entry` asserts in debug that the name it stored reads back whole. Three call sites
+summed `off` and `len` in `u32` and now cast to `usize` instead (`sort.rs`, `search.rs`,
+`picker.rs`). `listing.rs`' `a_span_is_eight_bytes_and_the_symlink_flag_costs_none` goes red on the
+old layout, and `scan::exact_tests`' `SPAN_BYTES` pins the 8 with it.
+
 ---
 
 Navigation: [architecture index](README.md),

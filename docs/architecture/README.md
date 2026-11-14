@@ -20,6 +20,7 @@ extracted top-level sections lead to their section routes.
 - [The preview swap](the-preview-swap.md#the-preview-swap)
 - [Why the listing is an arena](why-the-listing-is-an-arena.md#why-the-listing-is-an-arena)
 - [The listing arena returns to the OS](the-listing-arena-returns-to-the-os.md#the-listing-arena-returns-to-the-os)
+- [A finished listing keeps no slack, but the slack was never resident](the-listing-arena-returns-to-the-os.md#a-finished-listing-keeps-no-slack-but-the-slack-was-never-resident)
 - [A name that is not UTF-8 is carried exactly](exact-names.md#a-name-that-is-not-utf-8-is-carried-exactly)
 - [Prewarm](prewarm.md#prewarm)
 - [The first window](the-first-window.md#the-first-window)

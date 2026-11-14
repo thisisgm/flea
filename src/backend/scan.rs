@@ -49,6 +49,7 @@ pub(crate) fn scan_in(
     let t = Instant::now();
     let mut l = Listing::new();
     scan_raw(path, hidden, &mut l)?;
+    l.trim();
     Ok((l, t.elapsed().as_secs_f64() * 1000.0))
 }
 
