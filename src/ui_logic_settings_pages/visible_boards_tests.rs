@@ -19,6 +19,8 @@ pub(super) const BOARDS: &[super::Board] = &[
             "Address bar",
             "Path",
             "Breadcrumb",
+            "Window bar",
+            "As shipped",
             "Columns view limit",
             "2",
             "3",

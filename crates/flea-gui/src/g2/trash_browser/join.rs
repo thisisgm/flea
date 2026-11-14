@@ -300,22 +300,31 @@ impl Shell {
             return;
         }
         let rect = geometry.panes[host.side];
-        let height = if self.view == crate::window::startup::View::Dual {
-            rect.height
-        } else {
-            geometry.status.y
-        };
+        let dual = self.view == crate::window::startup::View::Dual;
+        let height = if dual { rect.height } else { geometry.status.y };
+        // The rows' own width: a strip drawn from the window's left edge keeps them beside the places.
+        let inset = if dual { 0. } else { geometry.cover_inset };
+        let rows_width = (rect.width - inset).max(0.);
+        let unified =
+            flea::ui_logic_settings_pages::pages::word(&self.launch.settings.data, &["windowBar"], "mixed")
+                != "mixed";
         let face = self.active_typeface();
         let board = super::board::Board::at(&face);
         let pane = host.pane.read(cx);
-        if pane.width != rect.width
+        if pane.width != rows_width
+            || pane.inset != inset
+            || pane.unified != unified
             || pane.height != height
             || pane.board() != board
             || pane.view().height != (height - board.top()).max(0.)
         {
             host.pane.update(cx, |pane, cx| {
                 pane.set_face(&face, cx);
-                pane.resize(rect.width, height, cx);
+                pane.inset = inset;
+                pane.unified = unified;
+                pane.paint.borrow_mut().unified = unified;
+                cx.notify();
+                pane.resize(rows_width, height, cx);
             });
         }
     }

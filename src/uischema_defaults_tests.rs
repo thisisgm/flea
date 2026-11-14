@@ -19,6 +19,7 @@ fn the_defaults_are_the_shipped_shape_key_for_key() {
             "columnsLimit",
             "columnWidths",
             "addressBar",
+            "windowBar",
             "sort",
             "rememberSort",
             "folderSorts",
@@ -80,6 +81,7 @@ fn the_defaults_are_the_shipped_shape_key_for_key() {
         d.get("addressBar").and_then(Json::as_str),
         Some("breadcrumb")
     );
+    assert_eq!(d.get("windowBar").and_then(Json::as_str), Some("mixed"));
     assert_eq!(d.get("keys").and_then(Json::as_str), Some("default"));
     assert_eq!(d.get("foldersFirst").and_then(Json::as_bool), Some(true));
     assert_eq!(d.get("groupByKind").and_then(Json::as_bool), Some(false));
