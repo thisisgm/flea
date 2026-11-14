@@ -203,6 +203,12 @@ pub fn view_rows(state: &State<'_>) -> Vec<Row> {
                 is_true(data, &["escapeUp"]),
             )
         },
+        check(
+            "scrollKeepsCursor",
+            "settings.row.scroll_keeps_cursor",
+            "",
+            is_true(data, &["scrollKeepsCursor"]),
+        ),
         Row::group("settings.group.opening"),
         choice(
             "startIn",

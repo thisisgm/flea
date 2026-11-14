@@ -238,6 +238,8 @@ impl Shell {
         let mut settings = Settings::from_json(data.clone());
         settings.newest = newest.clone();
         self.launch.settings = settings;
+        // A wheel event before the next frame already reads the new choice.
+        self.sync_scroll_keeps_cursor();
         if let Some(host) = &self.quick_look {
             let languages = data.get("langMarks").and_then(Json::as_bool) != Some(false);
             host.view

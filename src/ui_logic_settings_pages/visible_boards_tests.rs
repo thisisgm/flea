@@ -67,6 +67,8 @@ pub(super) const BOARDS: &[super::Board] = &[
             "Escape goes up a folder",
             "with nothing to close",
             "[off]",
+            "Scrolling leaves the cursor in place",
+            "[off]",
             "Opening",
             "Flea opens in",
             "Home",
