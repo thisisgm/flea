@@ -362,7 +362,8 @@ impl Render for TrashPane {
                     .ml(px(self.inset))
                     .flex()
                     .flex_col()
-                    .bg(ink.background)
+                    // Unified, the window's own body ground shows through, glass included, as under every folder.
+                    .when(!self.unified, |body| body.bg(ink.background))
                     .child(self.header(
                         glassy,
                         theme.background,
