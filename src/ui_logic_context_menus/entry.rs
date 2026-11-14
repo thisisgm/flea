@@ -1,6 +1,6 @@
 //! One menu row as data: what it says, which mark it wears, whether it can act, and the flyout it opens.
 use crate::i18n::I18n;
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
 pub type Id = Cow<'static, str>;
 
@@ -43,6 +43,13 @@ pub enum Brand {
     AirDrop,
 }
 
+/// A plugin's own SVG mark, read from its manifest's `mark` path; the path keys the raster.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PluginMark {
+    pub path: String,
+    pub svg: Arc<[u8]>,
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Entry {
     pub separator: bool,
@@ -51,6 +58,8 @@ pub struct Entry {
     pub label: Option<Text>,
     pub glyph: Option<&'static str>,
     pub brand: Option<Brand>,
+    // A plugin's own mark, painted in the row's ink in place of its named glyph.
+    pub mark: Option<PluginMark>,
     // An application's own Icon= name or path, drawn in the mark slot by Open With rows.
     pub icon: Option<String>,
     // A tag flyout row's colour, 1 to 7, drawn as the filled square.

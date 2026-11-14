@@ -44,4 +44,4 @@ mod s2_tests;
 pub(crate) mod testkit;
 
 pub use build::{Context, Kind};
-pub use entry::{Brand, Entry, Text};
+pub use entry::{Brand, Entry, PluginMark, Text};

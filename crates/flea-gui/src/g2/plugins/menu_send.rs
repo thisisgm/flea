@@ -8,7 +8,7 @@ use crate::{
 };
 use flea::{
     jsondoc::Json,
-    ui_logic_context_menus::{entry::Text, Entry},
+    ui_logic_context_menus::{entry::Text, Entry, PluginMark},
     ui_logic_custom_actions::rows,
     ui_logic_plugin_settings::wire::Source,
     ui_logic_send_share::providers::Role,
@@ -143,6 +143,17 @@ impl Shell {
                         .and_then(Json::as_str)
                         .unwrap_or("network"),
                 );
+                row.mark = self
+                    .menu
+                    .plugin_runtime
+                    .marks
+                    .get(&p.mark_path)
+                    .cloned()
+                    .flatten()
+                    .map(|svg| PluginMark {
+                        path: p.mark_path.clone(),
+                        svg,
+                    });
                 let targets = self
                     .menu
                     .plugin_runtime
@@ -190,6 +201,32 @@ impl Shell {
             })
             .collect::<Vec<_>>();
         super::layout::insert_sends(entries, rows);
+    }
+
+    // A provider's own SVG is read once, off the UI thread, and an open menu redraws its row when it lands.
+    pub(super) fn load_send_marks(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let wanted: Vec<String> = self
+            .declared_menu_plugins("send-target")
+            .filter(|p| p.source != Source::Builtin)
+            .map(|p| p.mark_path.clone())
+            .filter(|path| !path.is_empty() && !self.menu.plugin_runtime.marks.contains_key(path))
+            .collect();
+        for path in wanted {
+            self.menu.plugin_runtime.marks.insert(path.clone(), None);
+            let read = path.clone();
+            cx.spawn_in(window, async move |this, cx| {
+                let data = cx
+                    .background_executor()
+                    .spawn(async move { crate::g2::plugin_settings::load::read_mark(&read) })
+                    .await;
+                let Some(data) = data else { return };
+                let _ = this.update_in(cx, |shell, window, cx| {
+                    shell.menu.plugin_runtime.marks.insert(path, Some(data));
+                    shell.provider_refresh(window, cx);
+                });
+            })
+            .detach();
+        }
     }
 
     pub(super) fn ask_plugin_targets(&mut self, cx: &mut Context<Self>) {

@@ -7,7 +7,7 @@ use crate::list::Typeface;
 use flea::i18n::I18n;
 use flea::ui_logic_context_menus::{
     fit::{self, RowParts},
-    Brand, Entry,
+    Brand, Entry, PluginMark,
 };
 use gpui::{point, px, GlyphRun, Hsla, Pixels, TextRun, Window};
 use std::cell::Cell;
@@ -28,6 +28,8 @@ pub enum Lead {
     Check(bool),
     // An application's own icon name, which the icon theme unit resolves.
     Icon(String),
+    // A plugin's own SVG, painted as a mask in the row's ink like a cut glyph.
+    Plugin(PluginMark),
     // The busy row's 22px Omi in its thinking mode, centred on the slot.
     Busy,
 }
@@ -247,6 +249,9 @@ pub(super) fn lead(entry: &Entry) -> Lead {
     }
     if let Some(icon) = &entry.icon {
         return Lead::Icon(icon.clone());
+    }
+    if let Some(mark) = &entry.mark {
+        return Lead::Plugin(mark.clone());
     }
     entry
         .glyph

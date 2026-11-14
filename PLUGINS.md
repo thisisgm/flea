@@ -153,6 +153,7 @@ A menu row's mark name, listed under menu-action below, also draws on the Settin
 An unknown glyph draws no mark. Glyph names are not manifest validation errors.
 A plugin can instead set the top-level `mark` path to its own SVG.
 The Settings view loads the file once, in the background, with a 65,536-byte limit.
+A send-target's file-menu row uses the same file; see send-target below.
 It paints the SVG as an alpha mask in the row's ink, at 16 pixels inside a 19-pixel slot.
 The plugin's rail rows, from `place` and `rail-section`, paint the same file the same way in the rail's 15-pixel icon
 square, in place of their named glyph.
@@ -355,7 +356,9 @@ flea plugin enable example.checksums
 Flea asks for targets when a file menu opens, at most once per `refreshSec` seconds, and draws one row per target
 under the provider's own row. A `refreshSec` outside 1 to 3,600 is clamped; the default is 10. The provider row appears
 in the file menu only, never in the background menu. Its `glyph` takes a menu mark name (see menu-action) and defaults
-to `network`. Each target needs `id`, `label` and `state` strings. A missing one, one longer than 4,096 bytes or
+to `network`. A plugin with a `mark` SVG draws that mark on the provider row instead, in the row's ink, once Flea
+has read the file. Until then, and if the file cannot be read, the row draws its `glyph`.
+Each target needs `id`, `label` and `state` strings. A missing one, one longer than 4,096 bytes or
 holding a NUL, or an empty or repeated `id` fails the whole answer as described under Runtime protocol. Flea drops a
 target whose `label` or `state` is empty, or whose `id`, `label` or `state` is longer than 512 characters or holds
 another control character, and keeps the others. `state` is `ready` or any other word; a target that is not `ready` draws as

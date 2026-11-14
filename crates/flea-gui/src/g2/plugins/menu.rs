@@ -42,6 +42,8 @@ type Dispatch = Box<dyn FnMut(&str, Json) -> Result<Json, String>>;
 pub(crate) struct Menus {
     pub(super) plugins: Vec<Plugin>,
     pub(super) targets: HashMap<String, Json>,
+    // Each send provider's own SVG by mark path: None while it is read, or after it could not be.
+    pub(super) marks: HashMap<String, Option<Arc<[u8]>>>,
     pub(super) pending: HashMap<u64, usize>,
     errors: HashMap<verdict::Owner, Vec<u64>>,
     attempts: verdict::Attempts,
@@ -168,6 +170,7 @@ impl Shell {
                         .collect();
                     shell.plugin_provider_states();
                     shell.airdrop_plugin_off(window, cx);
+                    shell.load_send_marks(window, cx);
                     shell.ask_plugin_targets(cx);
                     shell.provider_refresh(window, cx);
                 },
@@ -284,6 +287,7 @@ impl Shell {
             }
         });
         self.menu.plugin_runtime.target_due.clear();
+        self.load_send_marks(window, cx);
         self.ask_plugin_targets(cx);
         self.load_menu_mimes(window, cx);
         let id = self.menu.captured.as_ref().map(|c| c.id);

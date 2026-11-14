@@ -33,6 +33,8 @@ mod menured_tests;
 mod notice;
 mod owners;
 mod place_host;
+#[cfg(test)]
+mod plugin_mark_tests;
 pub(crate) mod presentation;
 #[cfg(test)]
 mod rclone_tests;
