@@ -65,7 +65,9 @@ fn ascii_and_binary_stl_render_visible_bounded_pngs() {
         assert_eq!(info.color_type, png::ColorType::Rgba);
         let pixels = &pixels[..info.buffer_size()];
         let visible = pixels
-            .chunks_exact(4)
+            .as_chunks::<4>()
+            .0
+            .iter()
             .filter(|p| p[3] > 0 && p[..3].iter().any(|c| *c > 0))
             .count();
         assert!(
@@ -73,7 +75,7 @@ fn ascii_and_binary_stl_render_visible_bounded_pngs() {
             "the model must be visible"
         );
         assert!(
-            pixels.chunks_exact(4).any(|p| p[3] == 0),
+            pixels.as_chunks::<4>().0.iter().any(|p| p[3] == 0),
             "the background stays transparent"
         );
     }

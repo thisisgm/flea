@@ -100,7 +100,7 @@ pub fn run(args: impl Iterator<Item = OsString>) -> Result<(), Box<dyn std::erro
     );
     let mut rgba = Vec::new();
     raster.rgba_into(&mut rgba);
-    if !rgba.chunks_exact(4).any(|pixel| pixel[3] > 0) {
+    if !rgba.as_chunks::<4>().0.iter().any(|pixel| pixel[3] > 0) {
         return Err("the model produced an empty thumbnail".into());
     }
 
