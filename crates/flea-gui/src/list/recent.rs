@@ -95,6 +95,8 @@ pub(super) fn layout(
         &geometry,
         [set.location, set.size, set.date, false],
         [LOCATION_WIDTH, size, date, 0.],
+        // Recent draws its fixed Location, Size, Date set in its own order.
+        Column::ALL,
     );
     layout.recent_location = true;
     layout

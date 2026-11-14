@@ -64,6 +64,31 @@ fn stored_size(data: &Json) -> Stored {
 }
 
 // Enter and Space. A choice steps forward rather than opening a menu, since a walk reaches every value.
+/// A shown column's grip dragged this many rows: it leaves its place and lands that many shown columns away, held
+/// at either end, and the stored order is the order the list draws them in. A hidden column has no place to move to.
+pub fn move_column(row: &Row, data: &Json, rows: isize) -> Edit {
+    let Some(column) = row.id.strip_prefix("column:") else {
+        return Edit::None;
+    };
+    let mut shown = columns(data);
+    // The name is always shown and always first; only the metadata columns trade places.
+    let mut movable: Vec<String> = shown.iter().filter(|key| *key != "name").cloned().collect();
+    let Some(from) = movable.iter().position(|key| key == column) else {
+        return Edit::None;
+    };
+    let to = (from as isize + rows).clamp(0, movable.len() as isize - 1) as usize;
+    if to == from {
+        return Edit::None;
+    }
+    let key = movable.remove(from);
+    movable.insert(to, key);
+    let mut rest = movable.into_iter();
+    for slot in shown.iter_mut().filter(|key| *key != "name") {
+        *slot = rest.next().unwrap_or_default();
+    }
+    Edit::Patch(object(vec![("columns", strings(&shown))]))
+}
+
 pub fn activate(section: &str, row: &Row, data: &Json, base: u32) -> Edit {
     if !focusable(row) {
         return Edit::None;

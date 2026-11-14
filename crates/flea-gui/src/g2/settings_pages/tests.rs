@@ -27,7 +27,7 @@ pub(super) fn panel(document: &str) -> Panel {
     Panel::new(Box::new(store), Facts::default(), english())
 }
 
-fn press(panel: &mut Panel, keys: &[&str]) {
+pub(super) fn press(panel: &mut Panel, keys: &[&str]) {
     for key in keys {
         let text = if key.chars().count() == 1 { *key } else { "" };
         panel.key(key, text, false);

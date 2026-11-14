@@ -29,6 +29,22 @@ fn action(value: &str) -> Row {
 }
 
 #[test]
+fn a_shown_columns_grip_comes_out_of_its_labels_room() {
+    let s = Scale::default();
+    let column = |on: bool| Row {
+        kind: Kind::Check,
+        id: "column:size".into(),
+        label: Text::data("Size"),
+        on,
+        ..Row::default()
+    };
+    let shown = control_room(&column(true), false, PANE, s, 0., width, width);
+    let hidden = control_room(&column(false), false, PANE, s, 0., width, width);
+    let grip = s.of(super::geometry::ICON_BUTTON) + s.of(super::geometry::GAP);
+    assert!((hidden.label - shown.label - grip).abs() < 0.01, "{shown:?} against {hidden:?}");
+}
+
+#[test]
 fn i50_fit_room_value_yields_to_the_longest_word() {
     let s = Scale::default();
     let word = width(&Text::data("Spalten"));

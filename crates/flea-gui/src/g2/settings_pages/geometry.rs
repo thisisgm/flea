@@ -27,6 +27,8 @@ pub const CHIP_GAP: f32 = 4.;
 // A key preview draws its examples in this many columns, as the board does at every width.
 pub const KEY_COLUMNS: usize = 2;
 pub const CHECK: f32 = 18.;
+// A favourite's or a shown column's grip and remove control: a square the pointer can take.
+pub const ICON_BUTTON: f32 = 24.;
 pub const FIELD_H: f32 = 30.;
 // The pane stops 8px above the card's foot.
 pub const PANE_FOOT: f32 = 8.;
@@ -163,6 +165,10 @@ pub fn control_room(
     }
     if steps || (row.kind == Kind::Action && !row.inert) || row.kind == Kind::Lock {
         fixed.push(s.of(MARK_SLOT));
+    }
+    // A shown column draws its grip before the box, so the label gives up that square too.
+    if row.kind == Kind::Check && row.on && row.id.starts_with("column:") {
+        fixed.push(s.of(ICON_BUTTON));
     }
     if row.kind == Kind::Check {
         fixed.push(s.of(CHECK));
