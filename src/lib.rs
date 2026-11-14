@@ -4,6 +4,7 @@ extern crate self as flea;
 pub mod bytename;
 pub mod chooser_startup;
 pub mod colours;
+pub mod desktop_font;
 pub mod error;
 pub mod executable_file;
 pub mod favourites;
