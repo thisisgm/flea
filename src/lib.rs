@@ -58,6 +58,7 @@ pub mod userfile;
 
 // The catalog and locale API shares the backend's regular-file and wall-clock primitives.
 pub mod backend {
+    pub mod blockdev;
     #[cfg(test)]
     pub mod fifotest;
     #[cfg(test)]

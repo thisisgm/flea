@@ -16,6 +16,8 @@ use crate::{
 use gpui::{Context, FocusHandle, SharedString, Task, Window};
 
 pub struct Shell {
+    /// The list preview's share while its edge is held in this window (window/list_side.rs).
+    pub(crate) list_side_live: std::cell::Cell<Option<f32>>,
     pub(crate) capture: crate::capture::Capture,
     pub(crate) visual: crate::visual::Visual,
     pub(crate) name_tip: crate::name_tip::Owner,
@@ -116,6 +118,7 @@ impl Shell {
                 == Some(1.),
         );
         let mut shell = Self {
+            list_side_live: Default::default(),
             capture,
             visual: crate::visual::Visual::default(),
             name_tip: Default::default(),

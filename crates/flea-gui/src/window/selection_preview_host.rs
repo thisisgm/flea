@@ -11,6 +11,17 @@ pub(crate) fn settings(data: &Json) -> crate::columns::preview_host::PreviewSett
         manual_hold: false,
     }
 }
+/// Whether a preview loads by itself in a folder of this storage class: Load: manual holds every one, and a
+/// class whose thumbnails are off holds it, unless thumbnails are off altogether.
+pub(crate) fn loads(preview: &Json, automatic: bool, class: &str) -> bool {
+    let class_on = match class {
+        "network" => preview.get("thumbNetwork").and_then(Json::as_bool) == Some(true),
+        "phone" => preview.get("thumbPhone").and_then(Json::as_bool) == Some(true),
+        "usb" => preview.get("thumbUsb").and_then(Json::as_bool) != Some(false),
+        _ => true,
+    };
+    automatic && (class_on || preview.get("thumbnails").and_then(Json::as_str) == Some("off"))
+}
 pub(crate) fn share(data: &Json) -> f32 {
     data.get("preview")
         .and_then(|v| v.get("width"))
@@ -55,7 +66,8 @@ impl Shell {
             };
             let visible = setting.column
                 && side == 0
-                && self.view == View::Columns
+                && (self.view == View::Columns
+                    || (self.view == View::List && geometry.side.is_some()))
                 && self.slots.covers[side].is_none()
                 && !host.stopped
                 && host.backend.is_some();
@@ -93,6 +105,11 @@ impl Shell {
             };
             let strip = self.slots.strip_height_for(side) + search;
             let height = geometry.content_height_for(side, self.view, strip);
+            // beside the List view the preview takes the rect the geometry cut for it.
+            let (width, height) = match geometry.side.filter(|_| self.view == View::List) {
+                Some(rect) => (rect.width, rect.height),
+                None => (width, height),
+            };
             let folder_wait = self.view == View::Columns
                 && entity.read(cx).drawn.is_some()
                 && host.columns.as_ref().is_some_and(|columns| {
@@ -133,7 +150,9 @@ impl Shell {
                     view.follow(None, false, false, window, cx);
                     return;
                 }
-                if subject.is_none() && !folder_wait {
+                // Beside the List view a folder row draws its own entries, which read the folder's storage class.
+                let peeks = subject.is_none() && mode == View::List;
+                if subject.is_none() && !folder_wait && !peeks {
                     view.hide(window, cx);
                     return;
                 }
@@ -145,19 +164,15 @@ impl Shell {
                     view.class = Some((path.clone(), "?".into()));
                     view.outbox.borrow_mut().push(r#"{"c":"fsinfo"}"#.into());
                 }
+                if peeks {
+                    view.hide(window, cx);
+                    return;
+                }
                 let class = view.class.as_ref().map_or("?", |(_, class)| class.as_str());
                 if class == "?" && setting.automatic {
                     return;
                 }
-                let class_on = match class {
-                    "network" => preview.get("thumbNetwork").and_then(Json::as_bool) == Some(true),
-                    "phone" => preview.get("thumbPhone").and_then(Json::as_bool) == Some(true),
-                    "usb" => preview.get("thumbUsb").and_then(Json::as_bool) != Some(false),
-                    _ => true,
-                };
-                let manual = !setting.automatic
-                    || (!class_on
-                        && preview.get("thumbnails").and_then(Json::as_str) != Some("off"));
+                let manual = !loads(preview, setting.automatic, class);
                 view.follow(subject, manual, false, window, cx);
             });
             let published = readers::Reader {
