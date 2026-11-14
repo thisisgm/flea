@@ -1,15 +1,16 @@
 # Flea 0.4.3
 
-- Use a touchscreen again on Wayland: tap to click, double tap to open, and scroll every list, the preview, menus and Settings with a moving finger (#479, @nicolasfalesy).
+- Use a touchscreen again on Wayland: tap to click, double tap to open, and scroll List, Grid and the preview with a moving finger (#479, @nicolasfalesy).
 - Leave a window open and idle without its CPU and memory climbing (#478, @Imacx-maria).
 - Keep working after the graphics device is lost to a driver reset or a GPU fault: the window draws again on its own instead of staying blank until it is closed (#478, @Imacx-maria).
-- See the drag image at once on the first file or folder drag of a session instead of a frozen window, with no "copy here" shown for a moment before "move here" over a folder (#463, @nicolasfalesy).
+- See the drag image at once on the first file or folder drag of a session instead of a frozen window (#463, @nicolasfalesy).
+- Drag over a folder without "copy here" showing for a moment before "move here".
 - Keep thumbnails in Grid under a filter or a search, and land with the cursor row fully in view after switching from a filtered Grid to List or Columns (#477, @muellan).
 - Stay at the place of the first deleted file after a delete in List, Grid and Columns, instead of following a row far away in a long folder (#476, @muellan).
 - Keep the scroll position and cursor after a drop, a paste or a move instead of jumping to the top.
 - Keep folder sizes on screen while a folder is read again after a move, a paste or a change inside it, instead of a blink to the pending dot.
 - Read the Keyboard Shortcuts hint in Settings > Keys below the key rows at a fractional display scale, where it drew over them (#482, @atomicol).
-- Unlock a BitLocker partition from its locked drive row and unlock card, as with a LUKS one (#480, #481, @JonathanPitre).
+- See a BitLocker partition as a locked drive that opens the unlock card, as a LUKS one does (#480, #481, @JonathanPitre).
 - Preview HDR video (HLG and PQ) with its highlights kept instead of overexposed (#474, @sixers).
 - Preview a 3MF project with many parts instead of ending the preview worker (#467, @ids444).
 - Delete Permanently on rclone mounts that renumber a file when it is renamed, for files and folders, without a refused delete renaming every object on the mount (#464, @lzm3, @jekitf).
@@ -27,7 +28,7 @@
 - See an application's own button label in the file chooser without its mnemonic underscore (#457, @derekroper).
 - Scroll with fewer redraws: folder size answers that repeat the size already shown no longer redraw their rows, and a small scroll keeps the size walks of rows still on screen (#400, @iccodes, @Loafer19).
 - Leave a folder and have a video thumbnail that is still decoding stop (#403, @k-kostin).
-- Finish Restore all in Trash sooner on large selections, with the same recovery guarantees.
+- Finish Restore All in Trash sooner on large selections, with the same recovery guarantees.
 - See the message of a rename refused on the last visible row scrolled into view, in List, Columns and Grid.
 - End a rename with a click and have the row under the pointer selected even when the rename lands first.
 - Click in Grid without the cursor being pulled back to where List was scrolled.

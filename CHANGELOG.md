@@ -1,9 +1,10 @@
 # Flea 0.4.3
 
-- A touchscreen works again on Wayland: a tap clicks, a double tap opens, and a moving finger scrolls every list, the preview, menus and Settings (#479, @nicolasfalesy).
+- A touchscreen works again on Wayland: a tap clicks, a double tap opens, and a moving finger scrolls List, Grid and the preview (#479, @nicolasfalesy).
 - A window left open and idle no longer climbs in CPU and memory (#478, @Imacx-maria).
 - A window whose graphics device was lost, by a driver reset or a GPU fault, draws again on its own instead of staying blank until it is closed (#478, @Imacx-maria).
-- The first file or folder drag of a session shows its drag image at once instead of freezing the window, and a folder under a drag no longer says "copy here" for a moment before "move here" (#463, @nicolasfalesy).
+- The first file or folder drag of a session shows its drag image at once instead of freezing the window (#463, @nicolasfalesy).
+- A folder under a drag no longer says "copy here" for a moment before "move here".
 - Thumbnails no longer go missing in Grid under a filter or a search, and a switch from a filtered Grid to List or Columns lands with the cursor row fully in view (#477, @muellan).
 - After a delete the cursor stays on the place of the first deleted file in List, Grid and Columns, instead of following a row far away in a long folder (#476, @muellan).
 - After a drop, a paste or a move the listing keeps its scroll position and cursor instead of jumping to the top.
@@ -27,7 +28,7 @@
 - The file chooser shows an application's own button label without its mnemonic underscore (#457, @derekroper).
 - Folder size answers that repeat the size already shown no longer redraw their rows, and a small scroll keeps the size walks of rows still on screen (#400, @iccodes, @Loafer19).
 - Leaving a folder stops a video thumbnail that is still decoding (#403, @k-kostin).
-- Restore all in Trash finishes sooner on large selections, with the same recovery guarantees.
+- Restore All in Trash finishes sooner on large selections, with the same recovery guarantees.
 - A rename refused on the last visible row scrolls its message into view, in List, Columns and Grid.
 - A click that ends a rename selects the row under the pointer even when the rename lands first.
 - A click in Grid no longer pulls the cursor back to where List was scrolled.
