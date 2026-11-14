@@ -284,3 +284,63 @@ fn plugin_menu_runtime_send_disabled_and_failed_plugins_remove_the_choice(cx: &m
         .is_none());
     runtime.shutdown();
 }
+
+// The row is already open on its glyph when the mark read starts, so only a redraw can change it.
+fn send_row_before_and_after_its_mark_read(
+    cx: &mut TestAppContext,
+    svg: Option<&[u8]>,
+) -> (Entry, Entry) {
+    let root = scratch();
+    let (mut plugin, runtime) = plugin("send-target", &root);
+    runtime.shutdown();
+    plugin.mark_path = root.join("send-target/mark.svg").to_string_lossy().into();
+    if let Some(svg) = svg {
+        std::fs::write(&plugin.mark_path, svg).unwrap();
+    }
+    let mut fixture = open(cx, root, plugin);
+    fixture.menu(cx, 0, vec![0]);
+    let row = |fixture: &Fixture, cx: &mut TestAppContext| {
+        fixture
+            .entries(cx)
+            .into_iter()
+            .find(|r| r.action == "plugin-send:example.send-target")
+            .expect("declared send row on the open card")
+    };
+    let before = row(&fixture, cx);
+    update(cx, fixture.handle, |shell, window, cx| {
+        shell.load_send_marks(window, cx)
+    });
+    cx.run_until_parked();
+    (before, row(&fixture, cx))
+}
+
+#[gpui::test]
+fn plugin_menu_runtime_send_row_switches_to_its_mark_once_the_open_menu_reads_it(
+    cx: &mut TestAppContext,
+) {
+    let svg = b"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'/>";
+    let (before, after) = send_row_before_and_after_its_mark_read(cx, Some(svg));
+    assert!(before.mark.is_none(), "the row opens on its glyph");
+    assert_eq!(before.glyph, Some("network"));
+    let mark = after.mark.expect("the open row redraws with the read mark");
+    assert!(mark.path.ends_with("send-target/mark.svg"));
+    assert_eq!(&*mark.svg, &svg[..]);
+}
+
+#[gpui::test]
+fn plugin_menu_runtime_send_row_keeps_its_glyph_when_the_mark_file_is_missing(
+    cx: &mut TestAppContext,
+) {
+    let (_, after) = send_row_before_and_after_its_mark_read(cx, None);
+    assert!(after.mark.is_none());
+    assert_eq!(after.glyph, Some("network"));
+}
+
+#[gpui::test]
+fn plugin_menu_runtime_send_row_keeps_its_glyph_when_the_mark_is_over_64_kib(
+    cx: &mut TestAppContext,
+) {
+    let (_, after) = send_row_before_and_after_its_mark_read(cx, Some(&[b' '; 64 * 1024 + 1]));
+    assert!(after.mark.is_none());
+    assert_eq!(after.glyph, Some("network"));
+}

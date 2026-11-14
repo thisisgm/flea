@@ -34,6 +34,17 @@ pub(super) fn attach(
     example: &str,
     plugin: &Plugin,
 ) -> PathBuf {
+    attach_with_mark(cx, fixture, root, example, plugin, None)
+}
+
+pub(super) fn attach_with_mark(
+    cx: &mut TestAppContext,
+    fixture: &mut Fixture,
+    root: &Path,
+    example: &str,
+    plugin: &Plugin,
+    mark: Option<&[u8]>,
+) -> PathBuf {
     let folder = root.join("config/flea/plugins").join(&plugin.manifest.id);
     std::fs::create_dir_all(&folder).unwrap();
     let script = std::fs::read_to_string(root.join(example).join("plugin.py")).unwrap().replace(
@@ -51,7 +62,15 @@ pub(super) fn attach(
         .join("../../examples/plugins")
         .join(example)
         .join("manifest.json");
-    std::fs::copy(source, folder.join("manifest.json")).unwrap();
+    let manifest = std::fs::read_to_string(source).unwrap();
+    let manifest = match mark {
+        None => manifest,
+        Some(svg) => {
+            std::fs::write(folder.join("mark.svg"), svg).unwrap();
+            manifest.replacen("\"kinds\"", "\"mark\": \"mark.svg\",\n  \"kinds\"", 1)
+        }
+    };
+    std::fs::write(folder.join("manifest.json"), manifest).unwrap();
     std::fs::create_dir_all(root.join("state/flea")).unwrap();
     std::fs::write(
         root.join("state/flea/ui.json"),
@@ -378,3 +397,31 @@ fn plugin_menu_runtime_host_send_uses_real_target_discovery_and_failed_plugin_re
 
 #[path = "menu_key_tests.rs"]
 mod key_tests;
+
+#[gpui::test]
+fn plugin_menu_runtime_host_send_row_draws_the_mark_its_manifest_declares(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let root = scratch();
+    let (plugin, runtime) = plugin("send-target", &root);
+    runtime.shutdown();
+    drop(runtime);
+    let svg = b"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'/>";
+    let mut fixture = open(cx, root.clone(), plugin.clone());
+    attach_with_mark(cx, &mut fixture, &root, "send-target", &plugin, Some(svg));
+    fixture.menu(cx, 1, vec![0]);
+    wait(cx, |cx| {
+        fixture
+            .entries(cx)
+            .iter()
+            .any(|r| r.action == "plugin-send:example.send-target" && r.mark.is_some())
+    });
+    let row = fixture
+        .entries(cx)
+        .into_iter()
+        .find(|r| r.action == "plugin-send:example.send-target")
+        .unwrap();
+    let mark = row.mark.unwrap();
+    assert!(mark.path.ends_with("example.send-target/mark.svg"));
+    assert_eq!(&*mark.svg, &svg[..]);
+    stop(cx, &fixture);
+}
