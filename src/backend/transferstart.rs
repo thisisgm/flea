@@ -2,7 +2,8 @@
 use super::*;
 
 pub(super) fn start_transfer_checked(out: &mut impl Write, ops: &mut Ops, op: &str, paths: Vec<String>, dest: &str,
-                          selection: Option<Vec<crate::backend::menu_actions::Selected>>, destination: Option<crate::backend::menu_actions::Selected>, collide: crate::backend::collide::Ask) {
+                          checks: crate::backend::opsreq::TransferChecks<crate::backend::collide::Ask>) {
+    let crate::backend::opsreq::TransferChecks { selection, destination, collision: collide } = checks;
     if ops.live.running().is_some() {
         busy(out, "transfer");
         return;
@@ -101,9 +102,7 @@ mod tests {
             "copy",
             vec![source.to_string_lossy().into()],
             dest.to_str().unwrap(),
-            None,
-            None,
-            crate::backend::collide::Ask::parse("{}"),
+            crate::backend::opsreq::TransferChecks { selection: None, destination: None, collision: crate::backend::collide::Ask::parse("{}") },
         );
         assert!(
             String::from_utf8_lossy(&out).contains("\"t\":\"transferstarted\""),
@@ -168,9 +167,7 @@ mod tests {
                 kind,
                 named,
                 dest.to_str().unwrap(),
-                None,
-                None,
-                ask,
+                crate::backend::opsreq::TransferChecks { selection: None, destination: None, collision: ask },
             );
             let both = vec![
                 dest.to_string_lossy().into_owned(),
@@ -315,9 +312,7 @@ mod tests {
                 "copy",
                 Vec::new(),
                 &destination,
-                None,
-                None,
-                crate::backend::collide::Ask::parse("{}"),
+                crate::backend::opsreq::TransferChecks { selection: None, destination: None, collision: crate::backend::collide::Ask::parse("{}") },
             );
             assert!(ops.jobs.rows.is_empty());
             assert_eq!(String::from_utf8_lossy(&out).lines().count(), 1);

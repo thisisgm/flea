@@ -12,7 +12,7 @@ use std::path::Path;
 use std::process::{ExitStatus, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::mpsc::Sender;
-use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
+use std::sync::{Arc, LazyLock, Mutex, MutexGuard};
 use std::time::Duration;
 
 #[path = "csvrange.rs"]
@@ -86,10 +86,10 @@ enum Run {
 }
 
 type Table = Mutex<HashMap<String, (u64, Arc<Mutex<Run>>)>>;
-static SLOTS: OnceLock<Table> = OnceLock::new();
+static SLOTS: LazyLock<Table> = LazyLock::new(Default::default);
 
 fn table() -> &'static Table {
-    SLOTS.get_or_init(Default::default)
+    &SLOTS
 }
 
 fn held<T>(lock: &Mutex<T>) -> MutexGuard<'_, T> {

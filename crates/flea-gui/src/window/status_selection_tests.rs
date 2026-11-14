@@ -197,3 +197,32 @@ fn a_walk_from_an_older_listing_states_no_size(cx: &mut TestAppContext) {
         "1 of 4 selected"
     );
 }
+
+#[gpui::test]
+fn fx477_sparse_selection_keeps_the_selected_files_size(cx: &mut TestAppContext) {
+    let handle = open(cx, None, "{}");
+    cx.run_until_parked();
+    list(cx, handle);
+    handle
+        .update(cx, |shell, _, _| {
+            let host = shell.panes[0].as_mut().unwrap();
+            let mut selected = row("far.png", false, 243);
+            selected.listing_index = Some(60);
+            host.pane.held = std::rc::Rc::new(crate::list::pane::Held {
+                listing: host.pane.held.listing,
+                total: 3000,
+                start: 0,
+                rows: vec![
+                    RowFacts {
+                        name: "first.png".into(),
+                        listing_index: Some(0),
+                        ..Default::default()
+                    },
+                    selected,
+                ],
+            });
+            host.selected = vec![60];
+        })
+        .unwrap();
+    assert_eq!(counts(cx, handle), "1 of 3,000 selected · 243 B");
+}

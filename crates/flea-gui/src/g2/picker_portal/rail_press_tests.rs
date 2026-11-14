@@ -142,13 +142,16 @@ fn a_folder_opened_meanwhile_ends_the_drive_wait(cx: &mut TestAppContext) {
 #[gpui::test]
 fn back_from_a_folder_opened_out_of_recent_lists_recent_again(cx: &mut TestAppContext) {
     let mut f = fixture(cx, r#"{"folder":"/d"}"#, None);
+    super::side_button_tests::landed(&mut f, "/d");
     let history = f.root.0.join("recently-used.xbel");
     f.update(|picker, cx| {
         picker.rail.history = history.to_string_lossy().into_owned();
         picker.rail_choose(0, cx);
-        picker.open_folder("/srv/docs", cx);
     });
     f.cx.run_until_parked();
+    super::side_button_tests::landed(&mut f, "/");
+    f.update(|picker, cx| picker.open_folder("/srv/docs", cx));
+    super::side_button_tests::landed(&mut f, "/srv/docs");
     let sent = f.listing.sent().len();
     f.update(|picker, cx| picker.go_back(cx));
     f.cx.run_until_parked();

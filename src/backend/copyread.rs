@@ -32,10 +32,8 @@ extern "C" {
 struct WorkerSlot;
 
 impl WorkerSlot {
-    // try_update needs Rust 1.95, newer than the workspace rust-version 1.77, so fetch_update stays.
-    #[allow(deprecated)]
     fn claim() -> Option<WorkerSlot> {
-        LIVE_READ_WORKERS.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |live| {
+        LIVE_READ_WORKERS.try_update(Ordering::Relaxed, Ordering::Relaxed, |live| {
             if live < MAX_READ_WORKERS { Some(live + 1) } else { None }
         }).ok().map(|_| WorkerSlot)
     }

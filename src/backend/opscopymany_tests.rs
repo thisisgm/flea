@@ -22,7 +22,7 @@ fn paste(files: usize) -> (opsprobe::Counts, usize) {
     assert!(src.is_dir());
     let watch = opsprobe::watch(d.path());
     let (tx, rx) = channel();
-    run_transfer_checked(1, false, paths, dst.clone(), Arc::new(AtomicBool::new(false)), tx, None, None, Policy::default());
+    run_transfer_checked(1, false, paths, dst.clone(), Arc::new(AtomicBool::new(false)), tx, crate::backend::opsreq::TransferChecks { selection: None, destination: None, collision: Policy::default() });
     let counts = watch.snapshot();
     let (mut ok, mut journaled) = (0, 0);
     for msg in rx.iter() {
@@ -60,7 +60,7 @@ fn a_pasted_file_journals_the_step_the_plain_copy_constructor_builds() {
     let dst = d.dir("dst");
     let source = ItemIdentity::inspect(&src).unwrap();
     let (tx, rx) = channel();
-    run_transfer_checked(1, false, vec![src.to_string_lossy().into()], dst.clone(), Arc::new(AtomicBool::new(false)), tx, None, None, Policy::default());
+    run_transfer_checked(1, false, vec![src.to_string_lossy().into()], dst.clone(), Arc::new(AtomicBool::new(false)), tx, crate::backend::opsreq::TransferChecks { selection: None, destination: None, collision: Policy::default() });
     let steps = rx.iter().find_map(|msg| if let OpMsg::TransferDone { entry, .. } = msg { Some(entry.steps) } else { None }).unwrap();
     let want = undo::copied(&src, &dst.join("one.bin"), source).unwrap();
     assert_eq!(steps, vec![want], "the journal step is the one undo::copied builds for that file");

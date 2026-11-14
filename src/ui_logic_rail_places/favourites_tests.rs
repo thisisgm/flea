@@ -13,6 +13,30 @@ fn two() -> Favourites {
 }
 
 #[test]
+fn fx462_unavailable_inspections_retry_without_discarding_the_diagnostic() {
+    let mut favs = two();
+    favs.statuses.insert(0, "unavailable (NotFound)".into());
+    favs.statuses.insert(1, String::new());
+    assert_eq!(
+        favs.inspect(&[0, 1]).as_deref(),
+        Some(r#"{"op":"inspect","indices":[0]}"#),
+        "a failed availability check must not cache out the next explicit retry",
+    );
+    assert_eq!(favs.statuses[&0], "unavailable (NotFound)");
+    assert!(favs.inspect(&[0]).is_none(), "one inspection at a time");
+    let answer = format!(
+        r#"{{"statuses":[{{"index":0,"record":{},"error":""}}]}}"#,
+        stringify(&favs.records[0])
+    );
+    assert_eq!(favs.inspected(Some(0), &answer), None);
+    assert!(favs.statuses[&0].is_empty());
+    assert!(
+        favs.inspect(&[0, 1]).is_none(),
+        "healthy rows keep their cache"
+    );
+}
+
+#[test]
 fn every_edit_but_add_names_the_records_it_was_decided_against() {
     let records = two().records;
     let add = Operation::Add {

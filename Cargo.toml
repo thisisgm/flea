@@ -1,20 +1,23 @@
 [package]
 name = "flea"
-version = "0.4.2"
+version = "0.4.3"
 edition = "2021"
 license = "MIT"
-# src/vulkan.rs uses c"..." literals, stabilised in 1.77; without this the error names rustc, not flea.
-rust-version = "1.77"
+rust-version.workspace = true
 
 [workspace]
 members = ["crates/flea-gui"]
 default-members = ["."]
 resolver = "2"
 
+[workspace.package]
+# One compiler floor for both crates, Arch's rust 1.99, which every std call that replaced a stand-in fits under.
+rust-version = "1.99"
+
 [workspace.dependencies]
 # Keep both fork revisions together here; members inherit these declarations.
-gpui = { package = "gpui-pre", git = "https://github.com/thisisgm/gpui-omarchy", rev = "c1643efcf27498cb516c0831fd15f66ff9b1c811" }
-gpui_platform = { package = "gpui-pre-platform", git = "https://github.com/thisisgm/gpui-omarchy", rev = "c1643efcf27498cb516c0831fd15f66ff9b1c811", features = ["font-kit", "x11", "wayland", "runtime_shaders"] }
+gpui = { package = "gpui-pre", git = "https://github.com/thisisgm/gpui-omarchy", rev = "9b2f11b9e3abfdaa6ac68e8b57f9a598b835a3c9" }
+gpui_platform = { package = "gpui-pre-platform", git = "https://github.com/thisisgm/gpui-omarchy", rev = "9b2f11b9e3abfdaa6ac68e8b57f9a598b835a3c9", features = ["font-kit", "x11", "wayland", "runtime_shaders"] }
 
 [lib]
 path = "src/lib.rs"

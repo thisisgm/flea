@@ -110,11 +110,11 @@ pub fn takes_many(exec: &str) -> bool {
                 let before = exec[..at]
                     .chars()
                     .next_back()
-                    .map_or(true, char::is_whitespace);
+                    .is_none_or(char::is_whitespace);
                 let after = exec[end + 1..]
                     .chars()
                     .next()
-                    .map_or(true, char::is_whitespace);
+                    .is_none_or(char::is_whitespace);
                 if quoted || !before || !after {
                     return false;
                 }

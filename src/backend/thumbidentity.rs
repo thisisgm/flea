@@ -6,6 +6,7 @@ use crate::{
 };
 use std::{
     io::Write,
+    os::fd::OwnedFd,
     path::{Path, PathBuf},
     sync::{Arc, Mutex, MutexGuard, PoisonError},
 };
@@ -100,6 +101,14 @@ pub struct Replies {
     replies: Vec<Reply>,
     refused: Vec<Reply>,
     finished: bool,
+    video: VideoControl,
+}
+
+enum VideoControl {
+    Disabled,
+    Pending,
+    Armed(Arc<OwnedFd>),
+    Cancelled,
 }
 pub type Shared = Arc<Mutex<Replies>>;
 pub type Registry = Vec<std::sync::Weak<Mutex<Replies>>>;
@@ -119,7 +128,10 @@ pub fn attach(st: &State, path: &Path, mtime: i64, reply: &Reply) -> bool {
         .filter_map(std::sync::Weak::upgrade)
     {
         let mut replies = lock(&shared);
-        if replies.finished || replies.path != path {
+        if replies.finished
+            || matches!(replies.video, VideoControl::Cancelled)
+            || replies.path != path
+        {
             continue;
         }
         // Already answered refusals are terminal, so a retry cannot publish or subscribe again.
@@ -152,9 +164,71 @@ pub fn start(st: &mut State, path: PathBuf, mtime: i64, reply: Option<Reply>) ->
         replies: reply.into_iter().collect(),
         refused: Vec::new(),
         finished: false,
+        video: VideoControl::Disabled,
     }));
     st.thumb_replies.push(Arc::downgrade(&shared));
     shared
+}
+
+// The pool marks eligibility while it still holds the queue lock, closing the take/cancel race.
+pub(crate) fn begin_video(shared: &Shared) {
+    lock(shared).video = VideoControl::Pending;
+}
+
+pub(crate) fn video_cancelled(shared: &Shared) -> bool {
+    matches!(lock(shared).video, VideoControl::Cancelled)
+}
+
+pub(crate) fn arm_video(shared: &Shared, reply: &Arc<OwnedFd>) -> bool {
+    let mut context = lock(shared);
+    if matches!(context.video, VideoControl::Cancelled) {
+        return false;
+    }
+    context.video = VideoControl::Armed(Arc::clone(reply));
+    true
+}
+
+// Closing the socket and settling cancellation precedes any publish, failure marker or exec retry.
+pub(crate) fn finish_video(shared: &Shared) -> bool {
+    let mut context = lock(shared);
+    if matches!(context.video, VideoControl::Cancelled) {
+        return true;
+    }
+    context.video = VideoControl::Disabled;
+    false
+}
+
+pub(crate) fn cancel_video(st: &State, path: &Path) -> bool {
+    for shared in st
+        .thumb_replies
+        .iter()
+        .rev()
+        .filter_map(std::sync::Weak::upgrade)
+    {
+        let mut context = lock(&shared);
+        if context.path != path
+            || context.listing != st.generation
+            || st.thumb_mtimes.get(path) != Some(&context.mtime)
+            || context.finished
+            || !context.replies.is_empty()
+        {
+            continue;
+        }
+        if !matches!(
+            context.video,
+            VideoControl::Pending | VideoControl::Armed(_)
+        ) {
+            continue;
+        }
+        if let VideoControl::Armed(reply) = &context.video {
+            // A broken worker still leaves this job cancelled, never eligible for an exec retry.
+            let _ =
+                crate::backend::fdpass::send_byte(reply, crate::backend::thumbworker::CANCEL_VIDEO);
+        }
+        context.video = VideoControl::Cancelled;
+        return true;
+    }
+    false
 }
 
 pub fn retire_row(st: &State, row: usize) {

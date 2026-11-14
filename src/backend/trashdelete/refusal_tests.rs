@@ -254,7 +254,10 @@ fn a_quarantine_that_still_holds_items_names_where_they_are_kept() {
     let (path, reviewed) = fixture(&d, &d.join("restored"));
     let quarantine = d.dir("files/.flea-delete-remains");
     let (files, held) = (open_dir(&d.join("files")).unwrap(), open_dir(&quarantine).unwrap());
-    let mut journal = Recovery::begin(&d.dir("recovery"), &path, &files, &reviewed.payload, None, &quarantine, &held, None, None).unwrap();
+    let mut journal = Recovery::begin(&d.dir("recovery"), recovery::RecordInput {
+        source: &path, parent: &files, payload: &reviewed.payload, paired: None,
+        quarantine_path: &quarantine, quarantine: &held, tree: None, destination: None,
+    }).unwrap();
     d.file("files/.flea-delete-remains/stray", "x");
     let refused = journal.remove_empty(&quarantine, &held, &files).unwrap_err();
     assert_eq!(refused.shown(), format!("Flea found an interrupted Trash operation; its items are kept at {}.", quarantine.display()));

@@ -64,8 +64,10 @@ pub(super) fn property(
         GAMMA => {
             // SAFETY: a string property's data points at one NUL-terminated string mpv owns for this event.
             let gamma = unsafe { CStr::from_ptr(*(changed.data as *const *const c_char)) };
-            state.tonemap.source.pq = tonemap::pq(&gamma.to_string_lossy());
+            state.tonemap.source.hdr = tonemap::hdr(&gamma.to_string_lossy());
         }
+        PEAK => state.tonemap.source.observe_peak(double()),
+        FPS => state.tonemap.set_rate(double()),
         SOURCE_WIDTH => state.tonemap.source.width = int().clamp(0, MAX_SIDE) as u32,
         SOURCE_HEIGHT => state.tonemap.source.height = int().clamp(0, MAX_SIDE) as u32,
         ROTATE => {

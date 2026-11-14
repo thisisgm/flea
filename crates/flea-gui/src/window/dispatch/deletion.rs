@@ -81,3 +81,7 @@ impl Shell {
         cx.notify();
     }
 }
+
+#[cfg(test)]
+#[path = "deletion_grid_tests.rs"]
+mod tests;

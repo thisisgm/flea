@@ -36,7 +36,7 @@ fn fix_picker_2a_ey355_space_on_parent_folder_goes_up_one_folder(cx: &mut TestAp
 fn fix_picker_2a_ey355_space_on_back_steps_back_one_folder(cx: &mut TestAppContext) {
     for key in ["space", "enter"] {
         let mut f = fixture(cx, r#"{"folder":"/d/sub/deep"}"#, None);
-        f.cx.run_until_parked();
+        super::side_button_tests::landed(&mut f, "/d/sub/deep");
         f.update(|picker, cx| {
             picker.chrome.history = vec!["/a".into(), "/a/b".into()];
             cx.notify();

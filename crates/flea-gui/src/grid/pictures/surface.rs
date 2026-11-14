@@ -11,13 +11,20 @@ pub(super) enum Surface {
     Columns,
 }
 
-// The rows one surface draws: a listing span, and for a List filter its shown rows with the drawn view positions, end exclusive.
+// The rows one surface draws: a listing span, or a filter's shown rows with the drawn view positions, end exclusive.
 pub(crate) struct Want {
     pub span: (usize, usize),
     pub only: Option<(Rc<[usize]>, usize, usize)>,
 }
 
 impl Want {
+    pub(super) fn contains(&self, row: usize) -> bool {
+        match &self.only {
+            Some((shown, first, end)) => shown[*first..*end].contains(&row),
+            None => (self.span.0..=self.span.1).contains(&row),
+        }
+    }
+
     // The listing rows a settle may ask: the span, or a filter's drawn rows only, Filter.cut.
     pub fn rows(&self) -> Vec<usize> {
         match &self.only {
@@ -32,13 +39,14 @@ pub(super) fn drawn_rows(host: &PaneHost, surface: Surface) -> Option<Want> {
     match surface {
         Surface::Grid => {
             let grid = host.grid.as_ref()?;
-            let span = grid
-                .view
-                .wanted_thumbnails(&host.pane, crate::grid::Shown::All(host.pane.held.total))?;
-            Some(Want {
-                span: (*span.start(), *span.end()),
-                only: None,
-            })
+            if !grid.view.visible || host.pane.busy() {
+                return None;
+            }
+            let shown = host.filter.shown.as_ref();
+            let total = shown.map_or(host.pane.held.total, |rows| rows.len());
+            let positions = crate::grid::Shown::All(total);
+            let drawn = grid.view.layout(positions).drawn(grid.view.drawn_scroll());
+            drawn_want(drawn.start, drawn.end, shown)
         }
         Surface::List => list_rows(host),
         Surface::Columns => columns_rows(host),
@@ -111,7 +119,7 @@ fn columns_rows(host: &PaneHost) -> Option<Want> {
     let scroll = host.pane.scroll_y.max(0.);
     let first = (scroll / row).floor() as usize;
     // The track draws a standing filter's rows, so its pictures are asked for those rows, as the List's are (SW-14).
-    let shown = drawn.shown.as_ref();
+    let shown = host.filter.shown.as_ref();
     let total = shown.map_or(host.pane.held.total, |rows| rows.len());
     let end = (((scroll + height) / row).ceil() as usize).min(total);
     drawn_want(first, end, shown)

@@ -29,7 +29,9 @@ pub(super) fn rows_needed(request: &Request) -> usize {
             .map_or(usize::MAX, |rows| rows_end(rows))
             .max(ask.start.saturating_add(1)),
         Request::Meta { row, .. } | Request::Owner { row, .. } => row.saturating_add(1),
-        Request::Outline { rows, anchor, .. } => rows_end(rows).max(anchor.map_or(0, |row| row.saturating_add(1))),
+        Request::Outline { rows, anchor, .. } => {
+            rows_end(rows).max(anchor.map_or(0, |row| row.saturating_add(1)))
+        }
         // Tags apply to and read held rows; the bulk rename names paths, never rows.
         Request::SetTags { rows, .. } | Request::TagStates { rows, .. } => rows_end(rows),
         Request::BulkRename { .. } => 0,
@@ -49,7 +51,7 @@ pub(super) fn rows_needed(request: &Request) -> usize {
         | Request::SearchQuery { .. }
         | Request::SearchClose => 0,
         // A viewport map, not the listing: these rows index work already queued.
-        Request::ThumbCancel { .. } | Request::DirSizeCancel => 0,
+        Request::ThumbCancel { .. } | Request::DirSizeCancel { .. } => 0,
         // Operations carry paths or no rows; their rows were resolved by their own earlier ask.
         Request::Rclone { .. }
         | Request::Jobs { .. }

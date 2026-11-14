@@ -19,9 +19,18 @@ pub struct ListingView {
     pub(super) last_tap: String,
     pub(super) picture_policy: crate::grid::element::pictures::Policy,
     pub(super) bars: crate::g2::quick_look_overlay::scroller::overlay::Overlay,
+    pub(crate) name_tips_blocked: bool,
+    pub(crate) name_tip: crate::name_tip::Owner,
 }
 
 impl ListingView {
+    pub(crate) fn set_name_tip_focus(&mut self, focused: bool, blocked: bool) {
+        self.set_focused(focused);
+        self.name_tips_blocked = blocked;
+    }
+    pub(crate) fn name_tip_state(&self) -> &Rc<RefCell<ListState>> {
+        &self.state
+    }
     pub fn apply_settings(&mut self, data: &flea::jsondoc::Json, cx: &mut Context<Self>) -> bool {
         let changed = self.listing.apply_settings(data);
         self.picture_policy = crate::grid::element::pictures::Policy::read(data);
@@ -59,6 +68,8 @@ impl ListingView {
                 &flea::jsondoc::Json::Null,
             ),
             bars: Default::default(),
+            name_tips_blocked: false,
+            name_tip: Default::default(),
         }
     }
 
@@ -219,6 +230,10 @@ impl Render for ListingView {
             .when(!failure.is_empty(), |view| {
                 view.child(div().debug_selector(|| "pk2-failure".into()).child(failure))
             })
+            .child(gpui::deferred(crate::name_tip::picker(
+                cx.entity(),
+                self.name_tip.clone(),
+            )))
     }
 }
 

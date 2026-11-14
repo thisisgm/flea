@@ -167,7 +167,7 @@ impl Work {
     pub fn failed_line(&self, id: usize, total: usize, error: &str) -> String {
         match self {
             Self::Transfer { .. } => {
-                super::opsreq::transferdone_line(id, 0, total, 0, false, &[], false, error, &[])
+                super::opsreq::transferdone_line(id, crate::backend::opsreq::TransferCounts { ok: 0, failed: total, skipped: 0 }, false, &[], false, error, &[])
             }
             Self::Archive { .. } => super::archivereq::archivedone_line(id, false, true, error),
             _ => String::new(),
@@ -181,7 +181,7 @@ impl Work {
                 id, send.request
             ),
             Self::Transfer { .. } => {
-                super::opsreq::transferdone_line(id, 0, 0, total, true, &[], false, "", &[])
+                super::opsreq::transferdone_line(id, crate::backend::opsreq::TransferCounts { ok: 0, failed: 0, skipped: total }, true, &[], false, "", &[])
             }
             Self::Archive { compressing, .. } => super::archivereq::archivedone_line(
                 id,
@@ -227,9 +227,7 @@ impl Work {
                         dest,
                         cancel,
                         tx,
-                        selection,
-                        destination,
-                        policy,
+                        crate::backend::opsreq::TransferChecks { selection, destination, collision: policy },
                     )
                 });
             }

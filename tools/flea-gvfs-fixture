@@ -1,91 +1,66 @@
 #!/bin/bash
-# Builds a real GVFS mount to test the NETWORK rail against, at zero privilege. Self-documenting below.
-set -u
-# Hard rule 9's guard owns FIXTURE_ROOT and every absolute, root and containment check below, and
-# sandbox_remove's own marker is what stands between this directory and rm -rf. Unlike the media and
-# matched fixtures this one never deletes anything itself, so it carries no second marker of its own.
-. "$(dirname "$0")/../tools/flea-sandbox-guard"
+# Builds a real, read-only GVFS mount with an owned loopback DAV endpoint.
+set -euo pipefail
+. "$(dirname "$0")/flea-sandbox-guard"
 
-# A zip mounted through gvfsd-archive is a genuine GVFS mount: it lists in "gio mount -l" as a real
-# Mount() line, "gio info" answers a real "local path:" under /run/user/<uid>/gvfs, and "gio mount -u"
-# releases it. So ui/NetworkMounts.qml cannot tell it from a share, which is what makes the whole
-# NETWORK group drivable with no privilege, no credential prompt, no network and no real NAS.
-# It replaces the old belief that mount refresh could only be tested against the operator's own box.
-#
-#   tools/flea-gvfs-fixture make            builds the zip and prints its archive uri
-#   tools/flea-gvfs-fixture mount           mounts it
-#   tools/flea-gvfs-fixture uri             prints the uri without building
-#   tools/flea-gvfs-fixture unmount         releases it
-#   tools/flea-gvfs-fixture clean           releases it and removes the sandbox
-#
-# A bookmarks line for it, which is what puts an unmounted row on the rail to activate:
-#   printf '%s FixShare\n' "$(tools/flea-gvfs-fixture uri)" > "$HOME/.config/gtk-3.0/bookmarks"
-#
-# To drive the wedge that ui/MountListing.qml's timeoutMs exists for, put a gio on PATH ahead of
-# the real one that sleeps on "mount -li" and execs /usr/bin/gio for everything else. The same shape
-# with lsblk drives ui/DeviceMounts.qml. A stub that cannot hang cannot catch a hang, which is why
-# tests/ui.sh case_sharebrowser, whose stub prints nothing for "mount -li", never caught either.
+# This tool reads machine output and launches no application for the user.
+export LC_ALL=C.UTF-8
+unset LANGUAGE
 
+# DAV replaces the archive backend, which GVFS 1.62 removed; actions: make, uri, mount, unmount, clean.
 dir=${DIR:-$FIXTURE_ROOT/flea-gvfs-fixture}
-# gio reports the archive host double-encoded, and only that form round trips through mount and
-# unmount, so the uri is built the way gio prints it rather than the way it is first accepted.
-zip_name=share.zip
+helper="$(dirname "$0")/flea-gvfs-dav.py"
+fail() { printf 'flea-gvfs-fixture: %s\n' "$*" >&2; exit 1; }
 
-fail() {
-    printf 'flea-gvfs-fixture: %s\n' "$*" >&2
-    exit 1
-}
-
-command -v zip >/dev/null || fail "no zip on PATH"
+sandbox_require "$dir"
+dir=$SANDBOX_PATH
 command -v gio >/dev/null || fail "no gio on PATH"
+command -v python3 >/dev/null || fail "no python3 on PATH"
 
-uri_for() {
-    LC_ALL=C.UTF-8 LANGUAGE= python3 - "$1" <<'PY'
-import sys, urllib.parse
-inner = "file://" + sys.argv[1]
-print("archive://" + urllib.parse.quote(urllib.parse.quote(inner, safe=""), safe="") + "/")
-PY
-}
-
-archive="$dir/$zip_name"
-
-make_fixture() {
-    sandbox_make "$dir"
-    mkdir -p "$dir/src"
-    printf 'alpha\n' > "$dir/src/alpha.txt"
-    printf 'beta\n' > "$dir/src/beta.txt"
-    ( cd "$dir/src" && zip -q "$archive" alpha.txt beta.txt ) || fail "could not build $archive"
-    uri_for "$archive"
-}
-
-live_uri() {
-    LC_ALL=C.UTF-8 LANGUAGE= gio mount -l 2>/dev/null | LC_ALL=C.UTF-8 LANGUAGE= sed -n 's/^Mount([0-9]*): [^>]*-> //p' | LC_ALL=C.UTF-8 LANGUAGE= grep -F "$zip_name" | head -1
+unmount_fixture() {
+    [ -f "$dir/uri" ] || return 0
+    local uri mounts
+    uri=$(python3 "$helper" uri "$dir")
+    mounts=$(gio mount -l) || fail "could not list mounts"
+    # Sample input: Mount(0): share.zip on 127.0.0.1 -> dav://127.0.0.1:2222/share.zip
+    if printf '%s\n' "$mounts" | sed -n 's/^Mount([0-9]*): .* -> //p' | sed 's:/$::' | grep -Fx -- "${uri%/}" >/dev/null; then
+        gio mount -u "$uri" || fail "could not unmount $uri"
+    fi
 }
 
 case "${1:-make}" in
     make)
-        make_fixture
+        if [ -e "$dir" ]; then
+            sandbox_owned "$dir" || fail "fixture directory is not owned: $dir"
+            unmount_fixture
+            python3 "$helper" stop "$dir"
+        fi
+        sandbox_make "$dir"
+        chmod 700 "$dir"
+        mkdir "$dir/src"
+        printf 'alpha\n' > "$dir/src/alpha.txt"
+        printf 'beta\n' > "$dir/src/beta.txt"
+        python3 "$helper" start "$dir"
         ;;
-    uri)
-        [ -f "$archive" ] || fail "no fixture at $archive, run make first"
-        uri_for "$archive"
+    uri|mount|unmount|clean)
+        if [ ! -d "$dir" ]; then
+            case "$1" in clean|unmount) exit 0 ;; esac
+            fail "no fixture at $dir, run make first"
+        fi
+        sandbox_owned "$dir" || fail "fixture directory is not owned: $dir"
+        case "$1" in
+            uri) python3 "$helper" uri "$dir" ;;
+            mount)
+                uri=$(python3 "$helper" uri "$dir")
+                gio mount "$uri" || fail "could not mount $uri"
+                ;;
+            unmount) unmount_fixture ;;
+            clean)
+                unmount_fixture
+                python3 "$helper" stop "$dir"
+                sandbox_remove "$dir"
+                ;;
+        esac
         ;;
-    mount)
-        [ -f "$archive" ] || fail "no fixture at $archive, run make first"
-        gio mount "$(uri_for "$archive")" || fail "could not mount the fixture"
-        ;;
-    unmount)
-        u=$(live_uri)
-        # Nothing mounted is a success: this is what every test's exit path calls.
-        [ -n "$u" ] || exit 0
-        gio mount -u "$u" || fail "could not unmount $u"
-        ;;
-    clean)
-        u=$(live_uri)
-        [ -n "$u" ] && gio mount -u "$u" >/dev/null 2>&1
-        sandbox_remove "$dir"
-        ;;
-    *)
-        fail "unknown action '$1', expected make, uri, mount, unmount or clean"
-        ;;
+    *) fail "unknown action '$1', expected make, uri, mount, unmount or clean" ;;
 esac

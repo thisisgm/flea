@@ -1,7 +1,48 @@
-//! Rail editor and keyboard actions, dispatched by the window focus owner.
+//! Rail activation, editor and keyboard actions, dispatched by the window focus owner.
 use super::*;
+use flea::ui_logic_rail_places::rail::FavouriteError;
 
 impl Producer {
+    pub(super) fn retry_availability(&mut self, entry: &RailEntry, cx: &mut Context<Self>) {
+        if let Some(index) = entry
+            .favourite_index
+            .filter(|_| matches!(entry.error, Some(FavouriteError::Status(_))))
+        {
+            if self.places.read(cx).favourites.inspecting {
+                // The running check may predate this press; retry its error on the next painted frame.
+                self.inspected_visible.clear();
+                return;
+            }
+            self.places
+                .update(cx, |places, cx| places.inspect(&[index], cx));
+        }
+    }
+
+    pub fn activate(&mut self, index: usize, cx: &mut Context<Self>) {
+        let Some(entry) = self.entry(index) else {
+            return;
+        };
+        if entry.invalid_record() {
+            return;
+        }
+        self.retry_availability(&entry, cx);
+        self.model.borrow_mut().cursor = Some(index);
+        match entry.kind {
+            Kind::Recent => {
+                let path = self.history_file();
+                self.read_recent(path, cx);
+            }
+            Kind::Trash => self.queue(Event::Trash),
+            Kind::Share | Kind::Volume | Kind::Disk | Kind::Phone | Kind::Tag | Kind::PluginRow => {
+                self.queue(Event::Activate(entry))
+            }
+            _ if !entry.path.starts_with('/') => self.queue(Event::Activate(entry)),
+            _ if !entry.path.is_empty() => self.queue(Event::Open(entry.path.clone())),
+            _ => {}
+        }
+        cx.notify();
+    }
+
     /// F2 only starts on a network share, the rows Sidebar.qml gives a rail editor.
     pub fn start_rename(&mut self, index: usize, cx: &mut Context<Self>) -> bool {
         let Some(entry) = self.entry(index) else {

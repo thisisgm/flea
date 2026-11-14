@@ -243,7 +243,7 @@ impl Shell {
             if let Command::List(listing) | Command::ListPaths(listing, _) = command {
                 super::columns::requested(host, listing);
                 listed = true;
-                host.waiting = false;
+                super::state_reload::requested(host);
                 host.changed(&self.locale);
             }
             let Some(sent) = super::outline::send_navigation(host, command) else {

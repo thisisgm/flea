@@ -54,7 +54,7 @@ pub fn next(m: &mut Model, previous: bool, wire: &mut Wire) -> io::Result<()> {
         .rows
         .iter()
         .copied()
-        .filter(|i| shown.map_or(true, |shown| shown.binary_search(i).is_ok()))
+        .filter(|i| shown.is_none_or(|shown| shown.binary_search(i).is_ok()))
         .collect();
     let row = if previous {
         rows.iter()

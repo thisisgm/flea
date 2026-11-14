@@ -70,7 +70,7 @@ pub fn pairs(runs: &[(i64, &str)]) -> Vec<(i64, String)> {
             for c in raw.chars() {
                 if c == '\t' {
                     let fill = TAB - column % TAB;
-                    text.extend(std::iter::repeat(' ').take(fill));
+                    text.extend(std::iter::repeat_n(' ', fill));
                     column += fill;
                 } else {
                     text.push(c);

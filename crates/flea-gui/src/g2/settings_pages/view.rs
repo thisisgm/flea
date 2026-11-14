@@ -234,6 +234,9 @@ impl SettingsView {
     ) -> Vec<usize> {
         rows.into_iter()
             .map(|(row, bold)| {
+                if row.kind == Kind::KeyPreview {
+                    return row.items.len().div_ceil(g::KEY_COLUMNS);
+                }
                 if matches!(
                     row.kind,
                     Kind::Fact | Kind::Lock | Kind::Check | Kind::Choice | Kind::Action

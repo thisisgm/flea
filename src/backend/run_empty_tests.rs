@@ -24,8 +24,7 @@ fn run_search_empty_windows_leave_tables_unloaded_and_preserve_rich_rows() {
     let aliases = super::super::aliases::Aliases::load();
     let thumbs = super::super::thumbspec::Thumbnailers::load(&aliases);
     let mut kinds = super::super::kind::Kinds::new();
-    let expected = super::super::rows::rows_line(&st.base, &st.listing, &metas, 0, 0.0,
-        &mime, &icons, &aliases, &thumbs, &mut kinds);
+    let expected = super::super::rows::rows_line(&st.base, &st.listing, &metas, crate::backend::rows::Window { start: 0, ms: 0.0 }, crate::backend::rows::Services { mime: &mime, icons: &icons, aliases: &aliases, thumbs: &thumbs, kinds: &mut kinds });
     let actual = tb.rows_line(&st.base, &st.listing, &metas, 0, 0.0);
     assert_eq!(actual, expected, "lazy tables preserve every complete row field");
     assert!(tb.mime.get().is_some() && tb.icons.get().is_some());

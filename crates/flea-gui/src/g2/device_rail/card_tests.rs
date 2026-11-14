@@ -99,6 +99,19 @@ fn a_known_size_joins_the_drive_line() {
 }
 
 #[test]
+fn bitlocker_card_keeps_the_label_size_and_proper_container_name() {
+    let root = Root::new("card-bitlocker");
+    for fstype in ["BitLocker", "bitlocker", "bItLoCkEr"] {
+        let mut card = Card::new();
+        card.open_for("/dev/nvme1n1p3", "Backup", 500_000_000_000, fstype, "");
+        let text = CardText::of(&card, &catalog(&root));
+        assert_eq!(text.title, "Unlock Backup");
+        assert_eq!(text.subtitle, "Backup \u{b7} 500.0 GB \u{b7} BitLocker");
+        assert!(!card.unlock_available());
+    }
+}
+
+#[test]
 fn the_pointer_washes_are_the_oracle_dialog_buttons() {
     // v0.3.12 ui/js/Buttons.js:14-16: hover 8%, press 14%, the primary rests at the press weight.
     assert_eq!(super::card::WASH_HOVER, 0.08);

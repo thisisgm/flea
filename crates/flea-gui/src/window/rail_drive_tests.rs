@@ -76,8 +76,13 @@ fn root_devices<'a>(
         shell: cx.new(|cx| Shell::new(launch, locale, events, window, cx)),
     });
     let shell = root.read_with(cx, |root, _| root.shell.clone());
+    cx.update(|window, _| window.activate_window());
     cx.update(|window, cx| shell.update(cx, |shell, cx| window.focus(&shell.focus, cx)));
     cx.run_until_parked();
+    assert!(
+        cx.update(|window, _| window.is_window_active()),
+        "drive frame fixture must be active before timed work"
+    );
     service.answer("lsblk", 0, blocks);
     service.answer("gio", 0, phone);
     frame(cx);
@@ -93,9 +98,11 @@ fn root_devices<'a>(
     (shell, service, cx)
 }
 
+const NATIVE_FRAMES: u64 = 3;
+
 // Only the native frame callback draws, and it draws only a window something marked dirty.
 fn native_frames(cx: &mut VisualTestContext) {
-    for _ in 0..3 {
+    for _ in 0..NATIVE_FRAMES {
         cx.run_until_parked();
         cx.simulate_frame_request(RequestFrameOptions::default());
     }
@@ -236,6 +243,9 @@ fn raildrive_device_menu_eject_runs_on_the_stick(cx: &mut TestAppContext) {
 
 #[path = "rail_drive_menu_tests.rs"]
 mod menu;
+
+#[path = "rail_inactive_tests.rs"]
+mod inactive;
 
 #[path = "rail_drive_rows_tests.rs"]
 mod rows;

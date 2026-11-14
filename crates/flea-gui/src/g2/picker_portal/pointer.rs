@@ -9,12 +9,15 @@ use gpui::{
 
 impl Picker {
     fn pointer_blocked(&self) -> bool {
+        self.pointer_owner_blocked() || !self.browse.route.asked.is_empty()
+    }
+
+    fn pointer_owner_blocked(&self) -> bool {
         self.answered()
             || self.backend_unavailable()
             || self.accept_state().submitting()
             || self.folder_busy()
             || self.chrome.menu.is_some()
-            || !self.browse.route.asked.is_empty()
     }
 
     // Single-click mode suppresses repeat taps on one row but activates a different row; double-click mode requires the same target twice.
@@ -95,6 +98,40 @@ impl Picker {
         self.browse.window = Some(window.window_handle());
         path.update(cx, |path, cx| path.open(window, cx));
         cx.stop_propagation();
+    }
+
+    pub(super) fn side_button(
+        &mut self,
+        event: &MouseDownEvent,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if !matches!(event.button, MouseButton::Navigate(_)) {
+            return;
+        }
+        let Some(binding) = crate::window::input::pointer("window", "any", event) else {
+            return;
+        };
+        if !matches!(binding.effect, "backOrParent" | "forward") {
+            return;
+        }
+        // A history press belongs to the chooser, including while another input owner refuses it.
+        cx.stop_propagation();
+        if self.pointer_owner_blocked()
+            || self.accept_state().collision_review()
+            || self.browse.path_view(cx).read(cx).holds_keyboard(window)
+            || (binding.effect == "forward"
+                && (self.browse.listing.read(cx).listing().is_pending()
+                    || !self.browse.route.asked.is_empty()))
+        {
+            return;
+        }
+        match binding.effect {
+            "backOrParent" if !self.can_go_back() => self.go_up(cx),
+            "backOrParent" => self.go_back(cx),
+            "forward" => self.go_forward(cx),
+            _ => unreachable!(),
+        }
     }
 
     pub(super) fn listing_wheel(&mut self, event: &ScrollWheelEvent, cx: &mut Context<Self>) {

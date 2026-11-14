@@ -108,7 +108,9 @@ fn convert_codec_real_outputs_match_the_requested_encoder_or_refuse() {
                     ]
                 };
                 assert!(brands
-                    .chunks_exact(4)
+                    .as_chunks::<4>()
+                    .0
+                    .iter()
                     .any(|brand| expected.iter().any(|v| brand == v)));
             }
             "tiff" => assert!(bytes.starts_with(b"II*\0") || bytes.starts_with(b"MM\0*")),

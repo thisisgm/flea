@@ -59,10 +59,9 @@ impl Pictures {
             }
             let window_now = Rc::downgrade(held);
             if !map.seen.ptr_eq(&window_now) {
-                // Rows replaced in place: a changed row is re-planned at once, its old picture already refused by the paint guard.
-                if map.order.iter().any(|&row| map.stale(held, row)) {
-                    map.key = None;
-                }
+                // Re-plan newly held facts as well as changed rows; the viewport can stay still while its sparse window fills.
+                map.key = None;
+                map.restore(held);
                 map.seen = window_now;
             }
             let cache = map.class_for(path).map(|class| policy.cache_only(class));
@@ -90,6 +89,20 @@ impl Pictures {
                         map.forget(row);
                     }
                 }
+                map.drawn = want;
+                let decoding: Vec<_> = map
+                    .order
+                    .iter()
+                    .copied()
+                    .filter(|row| {
+                        !map.drawn.as_ref().is_some_and(|want| want.contains(*row))
+                            && matches!(map.slots.get(row), Some(Slot::Decoding { .. }))
+                    })
+                    .collect();
+                for row in decoding {
+                    map.forget(row);
+                }
+                map.trim();
                 map.key = key;
                 map.settle = None;
                 if let Some(key) = key {
@@ -107,12 +120,16 @@ impl Pictures {
                 }
             }
         }
-        let retired = std::mem::take(&mut map.retired);
         drop(map);
+        self.flush_retired(window, cx);
+        lines
+    }
+
+    pub(super) fn flush_retired<T: 'static>(&self, window: &mut Window, cx: &mut Context<T>) {
+        let retired = std::mem::take(&mut self.map.borrow_mut().retired);
         for image in retired {
             cx.drop_image(image, Some(window));
         }
-        lines
     }
 
     pub(crate) fn class(&self, path: &str, class: &str) {
@@ -138,8 +155,9 @@ impl Pictures {
             }
             return Vec::new();
         };
-        // The frame has drawn since the key was taken, so the plan covers exactly the rows on screen now; none drawn cancels what waits.
-        let wanted = want.map_or_else(Vec::new, |want| want.rows());
+        // The settle's fresh viewport owns its requests and their answer admission; the frame that armed it may be older.
+        map.drawn = want;
+        let wanted = map.drawn.as_ref().map_or_else(Vec::new, |want| want.rows());
         // A row whose facts changed under its record is forgotten, so it is asked again for what it is now.
         let changed: Vec<usize> = map
             .order
@@ -199,6 +217,13 @@ impl Pictures {
         let mut map = self.map.borrow_mut();
         // While a new listing is in flight the held rows are still the ones asked, so the answer counts until it lands.
         if map.listing != listing {
+            return;
+        }
+        // An answer for a row the viewport has left is not decoded; the row returns to unasked so its return asks again.
+        if !map.drawn.as_ref().is_some_and(|want| want.contains(row)) {
+            if matches!(map.slots.get(&row), Some(Slot::Asked { .. })) {
+                map.forget(row);
+            }
             return;
         }
         let Some(Slot::Asked {

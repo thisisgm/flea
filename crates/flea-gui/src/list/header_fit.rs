@@ -44,7 +44,8 @@ pub fn fitted_width(
     current: f32,
     mut measure: impl FnMut(&str) -> f32,
 ) -> Option<u32> {
-    let widths: Vec<f32> = (held.start..held.start + held.rows.len())
+    let widths: Vec<f32> = (0..held.rows.len())
+        .map(|at| held.index_at(at))
         .filter_map(|index| cell_text(column, held, index, view))
         .map(|text| measure(&text).ceil())
         .collect();

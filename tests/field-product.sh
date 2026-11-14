@@ -15,15 +15,16 @@ import socket
 from pathlib import Path
 import subprocess
 import sys
-from importlib.machinery import SourceFileLoader
 from unittest.mock import patch
 
 root = Path(sys.argv[1])
 sys.path.insert(0, str(Path('tools').resolve()))
-S = SourceFileLoader('product_search', 'tools/flea-field-search').load_module()
-N = SourceFileLoader('product_nav', 'tools/flea-field-nav').load_module()
-I = SourceFileLoader('product_instant', 'tools/flea-field-instant').load_module()
-R = SourceFileLoader('product_readme', 'tools/flea-bench-readme').load_module()
+from flea_import import load_source
+
+S = load_source('product_search', 'tools/flea-field-search')
+N = load_source('product_nav', 'tools/flea-field-nav')
+I = load_source('product_instant', 'tools/flea-field-instant')
+R = load_source('product_readme', 'tools/flea-bench-readme')
 S.ENV = dict(os.environ)
 S.STATE_ROOT = str(root / 'harness-state')
 
@@ -422,11 +423,13 @@ import socket
 from pathlib import Path
 import subprocess
 import sys
-from importlib.machinery import SourceFileLoader
 from unittest.mock import patch
 
 root = Path(sys.argv[1])
-P = SourceFileLoader('bench_product', 'tools/flea_bench_product.py').load_module()
+sys.path.insert(0, str(Path('tools').resolve()))
+from flea_import import load_source
+
+P = load_source('bench_product', 'tools/flea_bench_product.py')
 MANIFEST = str(Path('tools/flea-bench-manifest').resolve())
 PIN = 'ac631dc8b9ef612b875edcc5dd9cfa5870dc77cc'
 GIT = ['git', '-c', 'user.name=t', '-c', 'user.email=t@t', '-c', 'init.defaultBranch=main']
@@ -458,6 +461,7 @@ def build(name, version, gui=None, ui=True, extra=''):
     (tree / 'tools').mkdir()
     (tree / 'tools/flea-udisks').write_text('helper\n')
     (tree / 'Cargo.lock').write_text('source = "git+https://github.com/thisisgm/gpui-omarchy?rev=%s#%s"\n' % (PIN, PIN))
+    (tree / 'keys.toml').write_text('# fixture keymap\n')
     subprocess.run(GIT + ['init', '-q', str(tree)], check=True)
     subprocess.run(GIT + ['-C', str(tree), 'add', '-A'], check=True)
     subprocess.run(GIT + ['-C', str(tree), 'commit', '-qm', 'fixture'], check=True)
@@ -482,6 +486,12 @@ assert got['helpers']['flea-udisks'] == hashlib.sha256(b'helper\n').hexdigest() 
 assert got['compiler'] == ['rustc version 1.92.0 (fixture 2026-10-01)']
 assert got['seams'] == [] and got['fork_pin'] == {'executed': [PIN[:7]], 'locked': PIN}
 assert got['source']['state'] == 'clean' and len(got['source']['commit']) == 40
+# The compiled keymap is part of the build identity, including edits to a tracked file.
+keymap = cand_tree / 'keys.toml'
+keymap.write_text('# edited fixture keymap\n')
+assert P.source_identity(cand_tree)['state'] == 'DIRTY'
+keymap.write_text('# fixture keymap\n')
+assert P.source_identity(cand_tree)['state'] == 'clean'
 anchor_got = P.build_identity(str(anchor), 'qml', str(anchor_tree))
 assert anchor_got['sibling'] == 'absent' and anchor_got['launcher']['version'] == '0.3.12'
 # A changed interface file changes the resource digest, and an override directory wins over the tree.

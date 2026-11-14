@@ -10,10 +10,17 @@ mod fix3_tests;
 pub mod geometry;
 mod glide;
 pub use glide::Glide;
+mod arrows;
+pub use arrows::{arrow, arrow_with_wrap, Arrow};
 mod zoom;
 pub use zoom::{zoom_travel, ZoomInput};
+#[cfg(test)]
+#[path = "arrow_tests.rs"]
+mod arrow_tests;
 pub(crate) mod host;
 mod input;
+#[cfg(test)]
+mod input_tests;
 #[cfg(test)]
 mod join_landing_tests;
 #[cfg(test)]
@@ -37,6 +44,12 @@ mod tile;
 mod transition;
 #[cfg(test)]
 mod wheel_tests;
+#[cfg(test)]
+mod wrap_keys_tests;
+#[cfg(test)]
+mod wrap_scope_tests;
+#[cfg(test)]
+mod wrap_tests;
 
 use crate::pane::{requests::WindowRequest, Pane};
 use geometry::{window_for, Density, Metrics, ThumbSize, WindowPlan};
@@ -75,7 +88,12 @@ impl Shown<'_> {
     pub fn span(&self, first: usize, last: usize) -> Option<RangeInclusive<usize>> {
         let end = self.total().checked_sub(1)?;
         let (lo, hi) = (first.min(end), last.min(end));
-        Some(self.at(lo)?..=self.at(hi)?)
+        let filter = match self {
+            Self::All(_) => None,
+            Self::Only(rows) => Some(*rows),
+        };
+        let (lo, hi) = flea::ui_logic_listing_filter::span(filter, lo, hi)?;
+        Some(lo..=hi)
     }
     pub fn narrowed(&self) -> bool {
         matches!(self, Self::Only(_))
@@ -84,30 +102,6 @@ impl Shown<'_> {
 
 mod focus;
 pub use focus::{FocusFacts, FocusSnapshot};
-
-/// The four grid arrows of keys.toml; Page, Home and End are the shared cursor moves.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Arrow {
-    Up,
-    Down,
-    Left,
-    Right,
-    ExtendUp,
-    ExtendDown,
-}
-
-/// Grid.js arrow: the view position an arrow lands on, None when it is held at a row edge or a listing end, where the key is still taken.
-pub fn arrow(columns: usize, view: Option<usize>, total: usize, step: Arrow) -> Option<usize> {
-    let (view, columns) = (view?, columns.max(1));
-    let next = match step {
-        Arrow::Down | Arrow::ExtendDown => view.checked_add(columns)?,
-        Arrow::Up | Arrow::ExtendUp => view.checked_sub(columns)?,
-        Arrow::Left if view % columns == 0 => return None,
-        Arrow::Left => view - 1,
-        Arrow::Right => view + 1,
-    };
-    (next < total && !(step == Arrow::Right && next % columns == 0)).then_some(next)
-}
 
 /// Why the view moved or asked, counted so tests and the IPC seam can read the policy back.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -225,7 +219,7 @@ impl GridView {
             layout.viewport(self.scroll).0,
             held.total,
             held.start,
-            held.rows.len(),
+            if held.indexed() { 0 } else { held.rows.len() },
         );
         let owes = self.can_ask(pane, shown) && held.row(focus.cursor()).is_none();
         self.landing_wait = need.is_some() && owes;
@@ -318,10 +312,36 @@ impl GridView {
             first,
             last,
             pane.held.start,
-            pane.held.rows.len(),
+            if pane.held.indexed() {
+                0
+            } else {
+                pane.held.rows.len()
+            },
             pane.held.total,
         )?;
         let asked = Self::ask(pane, need);
+        self.counters.drift_asks += asked.is_some() as usize;
+        asked
+    }
+
+    /// Fetch at most one dense window's reach from the first missing match, retaining only drawn matches.
+    pub fn wanted_filtered_window(
+        &mut self,
+        pane: &mut Pane,
+        shown: Shown,
+    ) -> Option<(usize, usize)> {
+        if self.landing_wait || !self.visible || pane.held.total == 0 || pane.swap.pending.is_some()
+        {
+            return None;
+        }
+        let layout = self.layout(shown);
+        let Shown::Only(rows) = shown else {
+            return None;
+        };
+        let request = pane
+            .requests
+            .wanted_sparse(&pane.held, &rows[layout.drawn(self.drawn_scroll())]);
+        let asked = request.map(|request| (request.start, request.count));
         self.counters.drift_asks += asked.is_some() as usize;
         asked
     }

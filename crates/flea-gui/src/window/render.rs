@@ -10,24 +10,11 @@ use crate::{
 use gpui::{div, prelude::*, AnyElement, Context, IntoElement, MouseButton, Render, Window};
 use std::rc::Rc;
 
-// The opt-in test probe counts entry to the actual cached pane renderer.
 #[cfg(test)]
-#[derive(Default)]
-struct EmptyOmiShellRenders(std::cell::Cell<usize>);
+#[path = "render_probe.rs"]
+mod probe;
 #[cfg(test)]
-impl gpui::Global for EmptyOmiShellRenders {}
-
-#[cfg(test)]
-impl Shell {
-    pub(crate) fn observe_empty_omi_shell_renders(cx: &mut gpui::App) {
-        assert!(cx.try_global::<EmptyOmiShellRenders>().is_none());
-        cx.set_global(EmptyOmiShellRenders::default());
-    }
-
-    pub(crate) fn empty_omi_shell_renders(cx: &gpui::App) -> usize {
-        cx.global::<EmptyOmiShellRenders>().0.get()
-    }
-}
+use probe::EmptyOmiShellRenders;
 
 #[path = "render_footer.rs"]
 mod footer;
@@ -139,6 +126,7 @@ impl Render for Shell {
         self.sync_output_thumbnails(cx);
         for side in 0..2 {
             self.sync_surfaces(side, cx);
+            self.sync_state_reload(side, window, cx);
         }
         let drop_cues = [0, 1].map(|side| self.file_grid_cue(side, window, cx));
         let mut panes: [Option<AnyElement>; 2] = [None, None];
@@ -327,19 +315,22 @@ impl Render for Shell {
         }
         self.remember_paint(window, cx);
         if let Some(viewport) = viewport {
-            return Self::file_drag_events(div(), cx)
-                .size_full()
-                .body_ground(background, window, cx)
-                .track_focus(&self.focus)
-                .on_key_down(cx.listener(Self::key_with_preview))
-                .on_modifiers_changed(cx.listener(Self::root_modifiers_changed))
-                .capture_any_mouse_down(cx.listener(Self::capture_press))
-                .child(
-                    div()
-                        .w(viewport.width)
-                        .h(viewport.height)
-                        .children(panes[0].take()),
-                );
+            return self.name_tips(
+                Self::file_drag_events(div(), cx)
+                    .size_full()
+                    .body_ground(background, window, cx)
+                    .track_focus(&self.focus)
+                    .on_key_down(cx.listener(Self::key_with_preview))
+                    .on_modifiers_changed(cx.listener(Self::root_modifiers_changed))
+                    .capture_any_mouse_down(cx.listener(Self::capture_press))
+                    .child(
+                        div()
+                            .w(viewport.width)
+                            .h(viewport.height)
+                            .children(panes[0].take()),
+                    ),
+                cx,
+            );
         }
         self.sync_footer(geometry.status.width, cx);
         let paths = self.path_labels.clone();
@@ -385,11 +376,14 @@ impl Render for Shell {
             .child(Self::list_header_input(cx)),
             cx,
         );
-        Self::file_drag_events(body, cx)
-            .children(self.settings_surface())
-            .children(self.trash_menu_layer(cx))
-            .children(self.network_layers(cx))
-            .children(self.carry_flock(window, cx))
-            .children(self.unlock_layer(cx))
+        self.name_tips(
+            Self::file_drag_events(body, cx)
+                .children(self.settings_surface())
+                .children(self.trash_menu_layer(cx))
+                .children(self.network_layers(cx))
+                .children(self.carry_flock(window, cx))
+                .children(self.unlock_layer(cx)),
+            cx,
+        )
     }
 }

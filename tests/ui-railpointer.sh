@@ -167,58 +167,7 @@ dual_list_width() {
     [[ "$w" =~ ^[0-9]+$ ]] || fail "dualautohidereveal: pane $1 list area '$area' has no whole width"
     printf '%s\n' "$w"
 }
-case_dualautohidereveal() {
-    local dir="$fixture_root/dualautohidereveal" dstate="$fixture_root/dualautohidereveal-state" suite_home="$XDG_STATE_HOME"
-    sandbox_scratch "$dir"
-    mkdir -p "$dir/left" "$dir/right"
-    local i
-    for i in $(seq -f '%02g' 1 6); do : > "$dir/left/l$i.txt"; : > "$dir/right/r$i.txt"; done
-    seed_ui_state "$dstate" "$(jq -cn --arg l "$dir/left" --arg r "$dir/right" '{view:"dual",places:{autoHide:true},dual:{paths:[$l,$r],focus:0}}')"
-    launch "$dir/left"
-    local dual_ready=false dual_json
-    for _attempt in $(seq 1 100); do
-        dual_json=$(ipc dualState)
-        [[ "$(jq -r '(.panes | length == 2) and all(.panes[]; . != null and .loading == false)' 2>/dev/null <<< "$dual_json")" == "true" ]] && { dual_ready=true; break; }
-        sleep 0.05
-    done
-    [[ "$dual_ready" == true ]] || fail "dualautohidereveal: two listed dual panes never appeared in 5 s (dualState=$dual_json)"
-    local hid=false hid_json
-    for _attempt in $(seq 1 60); do
-        hid_json=$(ipc railState)
-        [[ "$(jq -r '.hidden' 2>/dev/null <<< "$hid_json")" == "true" ]] && { hid=true; break; }
-        sleep 0.05
-    done
-    [[ "$hid" == true ]] || fail "dualautohidereveal: the rail never hid before the reveal (railState=$hid_json)"
-    local hidden0 hidden1 shown0 shown1 d
-    hidden0=$(dual_list_width 0) || exit 1
-    hidden1=$(dual_list_width 1) || exit 1
-    d=$(( hidden0 > hidden1 ? hidden0 - hidden1 : hidden1 - hidden0 ))
-    (( d <= 1 )) || fail "dualautohidereveal: hidden listing widths differ ($hidden0 vs $hidden1)"
-    command -v ydotool >/dev/null || fail "dualautohidereveal: no ydotool on PATH, so the auto-hide rail cannot be revealed"
-    [[ -S "${XDG_RUNTIME_DIR:-}/.ydotool_socket" ]] || fail "dualautohidereveal: no ydotool socket at ${XDG_RUNTIME_DIR:-}/.ydotool_socket, so the auto-hide rail cannot be revealed"
-    local wx wy wh
-    read -r wx wy _ww wh < <(window_box) || fail "dualautohidereveal: native window coordinates unavailable"
-    omarchy-drive move "$((wx + 1))" "$((wy + wh / 2))" >/dev/null || fail "dualautohidereveal: the pointer move to the left edge failed"
-    # Hyprland's cursor move sends no pointer frame, so a one pixel seat nudge makes Qt hear the hover.
-    YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool mousemove -x 1 -y 0 >/dev/null || fail "dualautohidereveal: ydotool mousemove failed"
-    settle
-    local revealed=false rail_json
-    for _attempt in $(seq 1 60); do
-        rail_json=$(ipc railState)
-        [[ "$(jq -r '.hidden' 2>/dev/null <<< "$rail_json")" == "false" ]] && { revealed=true; break; }
-        sleep 0.05
-    done
-    [[ "$revealed" == true ]] || fail "dualautohidereveal: the auto-hide rail never revealed (railState=$rail_json)"
-    shown0=$(dual_list_width 0) || exit 1
-    shown1=$(dual_list_width 1) || exit 1
-    d=$(( shown0 > shown1 ? shown0 - shown1 : shown1 - shown0 ))
-    (( d <= 1 )) || fail "dualautohidereveal: revealed listing widths differ ($shown0 vs $shown1)"
-    d=$(( shown0 > hidden0 ? shown0 - hidden0 : hidden0 - shown0 ))
-    (( d <= 1 )) || fail "dualautohidereveal: the reveal moved the left listing ($hidden0 to $shown0)"
-    printf 'DUALAUTOHIDEREVEAL hidden=%s/%s revealed=%s/%s\n' "$hidden0" "$hidden1" "$shown0" "$shown1"
-    export XDG_STATE_HOME="$suite_home"
-    kill_flea
-}
+
 # Dual view Tab walks the left pane's rail, the bar, the left list and the right list, Shift+Tab walks it back, and Tab reaching an auto-hide rail reveals it.
 dual_tab_at() {
     local label=$1 side=$2 view=$3
@@ -316,64 +265,7 @@ dualdivider_equal() {
     (( d <= 1 )) || fail "dualdivider: $1: the listings are not equal ($a vs $b)"
     printf '%s %s\n' "$a" "$b"
 }
-# Dual divider: the 9 px zone drags, the split is remembered, a double click restores equal; the zone is proved by its drag (no native cursor reader).
-case_dualdivider() {
-    local dir="$fixture_root/dualdivider" suite_home="$XDG_STATE_HOME" rail
-    sandbox_scratch "$dir"
-    mkdir -p "$dir/left" "$dir/right"
-    local i
-    for i in $(seq -f '%02g' 1 40); do : > "$dir/left/l$i.txt"; : > "$dir/right/r$i.txt"; done
-    command -v ydotool >/dev/null || fail "dualdivider: no ydotool on PATH"
-    [[ -S "${XDG_RUNTIME_DIR:-}/.ydotool_socket" ]] || fail "dualdivider: no ydotool socket at ${XDG_RUNTIME_DIR:-}/.ydotool_socket"
-    local drag=120
-    # No IPC read names the divider's begin, move, end and cancel counts, so the handle logs each event it hears to the flea log when this is set (ui/ResizeHandle.qml trace).
-    export FLEA_TRACE_RESIZE=1
-    for rail in shown hidden; do
-        seed_ui_state "$fixture_root/dualdivider-state-$rail" "$(jq -cn --arg l "$dir/left" --arg r "$dir/right" --arg rail "$rail" '{view:"dual",places:{rail:$rail},dual:{paths:[$l,$r],focus:0}}')"
-        dualdivider_launch "$dir/left"
-        local w0 w1 wx wy ww wh div y moved0 moved1 stored
-        read -r w0 w1 <<< "$(dualdivider_equal "$rail default")"
-        read -r wx wy ww wh < <(window_box) || fail "dualdivider: native window coordinates unavailable"
-        div=$(dual_divider_x) || exit 1
-        y=$(( wy + wh / 2 ))
-        # The zone starts on the divider pixel and runs 9 px right, so its middle is 4 px past it.
-        omarchy-drive move "$(( wx + div + 4 ))" "$y" >/dev/null || fail "dualdivider: $rail: the move onto the divider failed"
-        YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool mousemove -x 1 -y 0 >/dev/null || fail "dualdivider: $rail: ydotool mousemove failed"
-        YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool click 0x40 >/dev/null 2>&1 || fail "dualdivider: $rail: the press failed"
-        column_drag_absolute "$(( wx + div + 4 ))" "$y" "$drag" 4
-        # Nothing re-lays while the pointer is down; the handle log says whether a press, move, release or cancel reached the divider.
-        local trace="" event
-        for event in press move release cancel; do trace+=" $event=$(grep -acw "RESIZE divider $event" "$flea_log" || true)"; done
-        printf 'DUALDIVIDER %s events%s\n' "$rail" "$trace"
-        read -r moved0 moved1 <<< "$(dual_list_width 0) $(dual_list_width 1)"
-        (( moved0 == w0 && moved1 == w1 )) || fail "dualdivider: $rail: the listings moved during the drag ($w0/$w1 to $moved0/$moved1), divider events:$trace"
-        YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool click 0x80 >/dev/null 2>&1 || fail "dualdivider: $rail: the release failed"
-        settle
-        read -r moved0 moved1 <<< "$(dual_list_width 0) $(dual_list_width 1)"
-        (( moved0 - w0 >= drag - 3 && moved0 - w0 <= drag + 3 && w1 - moved1 >= drag - 3 && w1 - moved1 <= drag + 3 )) \
-            || fail "dualdivider: $rail: a $drag px drag moved the listings $w0/$w1 to $moved0/$moved1"
-        stored=$(jq -er '.dual.split' "$XDG_STATE_HOME/flea/ui.json") || fail "dualdivider: $rail: ui.json holds no dual.split"
-        (( stored > 5000 )) || fail "dualdivider: $rail: ui.json remembers split $stored"
-        printf 'DUALDIVIDER %s drag=%s/%s split=%s\n' "$rail" "$moved0" "$moved1" "$stored"
-        dualdivider_launch "$dir/left"
-        local r0 r1 d
-        read -r r0 r1 <<< "$(dual_list_width 0) $(dual_list_width 1)"
-        d=$(( r0 > moved0 ? r0 - moved0 : moved0 - r0 ))
-        (( d <= 1 )) || fail "dualdivider: $rail: the relaunch lays the left listing at $r0, the drag left it at $moved0"
-        read -r wx wy ww wh < <(window_box) || fail "dualdivider: native window coordinates unavailable"
-        div=$(dual_divider_x) || exit 1
-        omarchy-drive click "$(( wx + div + 4 ))" "$(( wy + wh / 2 ))" left --double >/dev/null || fail "dualdivider: $rail: the double click failed"
-        settle
-        read -r r0 r1 <<< "$(dualdivider_equal "$rail double click")"
-        d=$(( r0 > w0 ? r0 - w0 : w0 - r0 ))
-        (( d <= 1 )) || fail "dualdivider: $rail: the double click lays the listings at $r0/$r1, the default was $w0/$w1"
-        [[ "$(jq -er '.dual.split' "$XDG_STATE_HOME/flea/ui.json")" == 5000 ]] || fail "dualdivider: $rail: the double click left split $(jq -r '.dual.split' "$XDG_STATE_HOME/flea/ui.json")"
-        printf 'DUALDIVIDER %s double=%s/%s\n' "$rail" "$r0" "$r1"
-    done
-    unset FLEA_TRACE_RESIZE
-    export XDG_STATE_HOME="$suite_home"
-    kill_flea
-}
+
 # The auto-hidden rail's slide, driven for a recording: dwell, leave, re-enter mid-hide, Tab in and Tab out, single view then Dual (runs by name only).
 railmotion_state() { printf 'RAILMOTION %s %s: %s\n' "$1" "$2" "$(ipc railState)"; sleep "${railmotion_pause:-1}"; }
 # A railmotion failure names the rail and the pointer, so a log shows whether the pointer rested on the reveal edge.

@@ -2083,6 +2083,7 @@
   "settings.caption.group_by_kind": "carpetes, fotos, fitxers",
   "settings.caption.permanently": "permanentment",
   "settings.caption.wrap": "a dalt de tot",
+  "settings.caption.grid_wrap_rows": "esquerra i dreta a la graella",
   "settings.choice.automatic": "Automàtic",
   "settings.choice.breadcrumb": "Fil d'Ariadna",
   "settings.choice.chosen": "Carpeta triada",
@@ -2291,6 +2292,7 @@
   "settings.row.use_this_folder": "Fes servir aquesta carpeta",
   "settings.row.view": "Última vista utilitzada",
   "settings.row.wrap": "Torna a l'inici o al final de la llista",
+  "settings.row.grid_wrap_rows": "Continua als extrems de les files",
   "settings.section.about": "Quant a",
   "settings.section.display": "Pantalla",
   "settings.section.keys": "Tecles",
@@ -2778,5 +2780,7 @@
     "many": "No s'han pogut moure %1 elements de dins; el primer és %2: %3",
     "one": "No s'ha pogut moure %1 element de dins; el primer és %2: %3",
     "other": "No s'han pogut moure %1 elements de dins; el primer és %2: %3"
-  }
+  },
+  "keys.action.extendLeft": "Amplia cap a l’esquerra",
+  "keys.action.extendRight": "Amplia cap a la dreta"
 }

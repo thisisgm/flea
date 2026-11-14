@@ -133,7 +133,7 @@ pub fn cut_after<S: AsRef<str>>(lines: &[S]) -> Vec<bool> {
                 i = tag + 4;
                 continue;
             }
-            let found = if no_close.map_or(true, |stop| tag <= stop) {
+            let found = if no_close.is_none_or(|stop| tag <= stop) {
                 read_tag(&text, tag, None)
             } else {
                 None
@@ -158,7 +158,7 @@ pub fn cut_after<S: AsRef<str>>(lines: &[S]) -> Vec<bool> {
         let last_lt = text.rfind('<');
         let last_gt = text.rfind('>');
         if let Some(lt) = last_lt {
-            if last_gt.map_or(true, |gt| lt > gt) && text.len() - lt <= MAX_TAG_LENGTH {
+            if last_gt.is_none_or(|gt| lt > gt) && text.len() - lt <= MAX_TAG_LENGTH {
                 carry = text[lt..].to_string();
             }
         }

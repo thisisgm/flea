@@ -98,7 +98,7 @@ fn noto_serif_georgian_gets_a_georgian_sample() {
 #[test]
 fn crafted_groups_are_clamped_and_joined() {
     let mut groups = vec![(0x11_0000, u32::MAX), (0x50, 0x40), (0x10_FFF0, u32::MAX)];
-    groups.extend(std::iter::repeat((0xE000, 0xF8FF)).take(1000));
+    groups.extend(std::iter::repeat_n((0xE000, 0xF8FF), 1000));
     groups.push((0xF900, 0xF9FF));
     assert_eq!(
         merged(groups),

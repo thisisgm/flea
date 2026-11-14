@@ -77,14 +77,14 @@ pub(super) fn detail_with(
         return Err(damaged("The mount Trash entry changed while reading it."));
     }
     let directory = meta.is_dir();
-    static TYPES: std::sync::OnceLock<(crate::backend::mime::Db, crate::backend::icons::Names)> =
-        std::sync::OnceLock::new();
-    let (types, icons) = TYPES.get_or_init(|| {
-        (
-            crate::backend::mime::Db::load(),
-            crate::backend::icons::Names::load(),
-        )
-    });
+    static TYPES: std::sync::LazyLock<(crate::backend::mime::Db, crate::backend::icons::Names)> =
+        std::sync::LazyLock::new(|| {
+            (
+                crate::backend::mime::Db::load(),
+                crate::backend::icons::Names::load(),
+            )
+        });
+    let (types, icons) = &*TYPES;
     let name = record
         .entry
         .original

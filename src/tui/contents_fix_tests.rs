@@ -190,8 +190,10 @@ fn tui_contents_fix1_scope_matches_shared_cycle_and_words() {
         press(&mut m, &mut wire, Key::character('g', "ctrl"));
         m.find.session.scope = Scope::Folder;
         m.find.session.wire.everywhere = everywhere;
-        let mut shared = Session::default();
-        shared.scope = Scope::Folder;
+        let mut shared = Session {
+            scope: Scope::Folder,
+            ..Session::default()
+        };
         shared.wire.everywhere = everywhere;
         for _ in 0..4 {
             let home = std::env::var("HOME").unwrap();

@@ -1942,6 +1942,7 @@
   "settings.caption.group_by_kind": "thư mục, ảnh, tệp",
   "settings.caption.permanently": "vĩnh viễn",
   "settings.caption.wrap": "lên khi ở đầu danh sách",
+  "settings.caption.grid_wrap_rows": "trái và phải trong Lưới",
   "settings.choice.automatic": "Tự động",
   "settings.choice.breadcrumb": "Đường dẫn phân cấp",
   "settings.choice.chosen": "Đã chọn",
@@ -2150,6 +2151,7 @@
   "settings.row.use_this_folder": "Dùng thư mục này",
   "settings.row.view": "Chế độ xem gần nhất",
   "settings.row.wrap": "Quay vòng ở hai đầu danh sách",
+  "settings.row.grid_wrap_rows": "Tiếp tục ở hai đầu hàng",
   "settings.section.about": "Giới thiệu",
   "settings.section.display": "Hiển thị",
   "settings.section.keys": "Phím",
@@ -2550,5 +2552,7 @@
   },
   "feedback.unheld.move_many": {
     "other": "Không thể di chuyển %1 mục bên trong; mục đầu tiên là %2: %3"
-  }
+  },
+  "keys.action.extendLeft": "Mở rộng sang trái",
+  "keys.action.extendRight": "Mở rộng sang phải"
 }

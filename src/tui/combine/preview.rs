@@ -245,12 +245,13 @@ fn render(
     }
     let output = work.dir.join("encoded");
     let (width, height) = ticket.pixels;
-    let mut args = vec![
-        "magick".into(),
+    let mut args: Vec<String> = vec!["magick".into()];
+    args.extend(flea::ui_logic_print_convert::output::MAGICK_LITERAL.map(String::from));
+    args.extend([
         "-size".into(),
         format!("{width}x{height}"),
         "xc:none".into(),
-    ];
+    ]);
     font::append(&mut args, &work.dir, cancel);
     let fitted = composition.fitted(width as f64, height as f64, 0.);
     let color = |rgb: [u8; 3]| format!("rgb({},{},{})", rgb[0], rgb[1], rgb[2]);
@@ -273,7 +274,8 @@ fn render(
         std::fs::write(&input, &ordered[i].png).map_err(|e| crate::error::io_message(&e))?;
         args.extend([
             "(".into(),
-            input.to_string_lossy().into_owned(),
+            "-read".into(),
+            flea::ui_logic_print_convert::output::magick_input(&input),
             "-resize".into(),
             format!("{}x{}!", rect.width as usize, rect.height as usize),
             ")".into(),
@@ -330,7 +332,7 @@ fn render(
         } else {
             "sixel"
         },
-        output.display()
+        flea::ui_logic_print_convert::output::magick_output(&output)
     ));
     printtool::boxed(args, &mut work, cancel)?;
     let file = crate::backend::regfile::open_if_regular(&output, 0)

@@ -34,7 +34,7 @@ pub fn put_string(out: &mut Vec<u8>, s: &str) {
     put_u32(out, (s.len() + 1) as u32);
     out.extend_from_slice(s.as_bytes());
     out.push(0);
-    while out.len() % 4 != 0 {
+    while !out.len().is_multiple_of(4) {
         out.push(0);
     }
 }

@@ -41,7 +41,7 @@ fn fxuish2b_menu_rename_opens_before_validation_and_keeps_snapshot_for_commit(
         })
     });
     assert_eq!(read(&shell, cx, "renameEditorLive", &[]), "true");
-    assert!(read(&shell, cx, "renameState", &[]).contains("Selected item changed"));
+    assert!(read(&shell, cx, "renameState", &[]).contains("Item changed; reopen Rename."));
     cx.simulate_keystrokes("escape");
     assert_eq!(read(&shell, cx, "renameEditorLive", &[]), "false");
     assert!(test_shell::sent()

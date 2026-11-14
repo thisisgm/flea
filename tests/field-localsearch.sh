@@ -22,11 +22,13 @@ import signal
 import subprocess
 import sys
 import time
-from importlib.machinery import SourceFileLoader
 from pathlib import Path
 from unittest.mock import patch
 
 root, tool = Path(sys.argv[1]), str(Path(sys.argv[2]).resolve())
+TOOLS = str(Path('tools').resolve())
+sys.path.insert(0, TOOLS)
+from flea_import import load_source
 bindir = root / 'bin'
 bindir.mkdir()
 for name in ('localsearch-3', 'localsearch-ext'):
@@ -37,8 +39,9 @@ for name in ('localsearch-3', 'localsearch-ext'):
 driver = root / 'driver.py'
 driver.write_text('''
 import os, subprocess, sys, time
-from importlib.machinery import SourceFileLoader
-S = SourceFileLoader('search_under_test', sys.argv[1]).load_module()
+sys.path.insert(0, sys.argv[6])
+from flea_import import load_source
+S = load_source('search_under_test', sys.argv[1])
 S.LEDGER = sys.argv[2]
 S.KILL_TARGETS = [("localsearch-3", ""), ("localsearch-ext", "")]
 mode, bindir, pidfile = sys.argv[3:6]
@@ -68,7 +71,7 @@ def alive(pid):
 def run(mode, ledger, wait_signal=None):
     pidfile = root / (mode + '.pids')
     pidfile.unlink(missing_ok=True)
-    proc = subprocess.Popen(['python3', '-B', str(driver), tool, str(ledger), mode, str(bindir), str(pidfile)],
+    proc = subprocess.Popen(['python3', '-B', str(driver), tool, str(ledger), mode, str(bindir), str(pidfile), TOOLS],
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     if wait_signal:
         for _ in range(100):
@@ -168,7 +171,7 @@ stray.wait()
 assert rc != 0 and 'this harness did not start it' in err and 'this harness started it' not in err, err
 
 # 7. A killed newest run ends at its last alive mark plus ALIVE_S, so an indexer started later is not its own.
-S = SourceFileLoader('search_windows', tool).load_module()
+S = load_source('search_windows', tool)
 ledger = root / 'ledger-newest.jsonl'
 reap_orphans()
 rc, err, pids = run('kill', ledger)

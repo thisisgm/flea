@@ -350,8 +350,8 @@ impl QueryScratch {
             let bytes = index.names.get(name);
             matcher.advance(state, bytes, &mut self.letters, false);
             // An ASCII part may skip fold, so its last byte decides; any other part was folded into letters.
-            let boundary = if bytes.is_ascii() { bytes.last().map_or(true, |&byte| separator(byte as char)) }
-                else { self.letters.last().map_or(true, |letter| separator(letter.lower)) };
+            let boundary = if bytes.is_ascii() { bytes.last().is_none_or(|&byte| separator(byte as char)) }
+                else { self.letters.last().is_none_or(|letter| separator(letter.lower)) };
             state.advance(&matcher.needle, &[Letter { lower: '/', boundary }], false);
             self.dirs[id as usize].state = slot;
             self.dirs[id as usize].state_ready = true;
@@ -366,7 +366,7 @@ impl QueryScratch {
         let start = self.texts.len();
         for &name in self.pending.iter().rev() {
             fold(index.names.get(name), &mut self.letters);
-            let boundary = self.letters.last().map_or(true, |letter| separator(letter.lower));
+            let boundary = self.letters.last().is_none_or(|letter| separator(letter.lower));
             self.texts.extend_from_slice(&self.letters);
             self.texts.push(Letter { lower: '/', boundary });
         }

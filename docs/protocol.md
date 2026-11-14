@@ -47,6 +47,13 @@ field it resolved the old index against it, so `list A`, `list B`, `paths [0]` a
 
 ### list
 
+The picker may include an unsigned `pickerGen` request generation. Every JSON frame
+emitted for that listing (including initial rows and failures) echoes `pickerGen`.
+The picker drops any reply whose `pickerGen` is not its current generation: a superseded
+remote scan can finish without answering, so counting outstanding replies cannot identify
+the current list. Replies without the field, such as `window` rows, are handled as before.
+Requests without `pickerGen` retain their existing reply format.
+
 `{"c":"list","path":"<string>","first":<uint>,"hidden":<bool>}`
 
 Example: `{"c":"list","path":"/home/gm","first":350,"hidden":false}`
@@ -305,6 +312,10 @@ This does not replace the ordinary listing or its watch. Changes-view indices ne
 ordinary backend file-operation rows; clients resolve an existing entry against the reply's `root`.
 
 ### listpaths
+
+An optional `pickerGen` has the same request-generation echo as `list`, including
+the initial rows. It lets the picker distinguish an older Recent visit from its
+current request without changing replies to callers that omit the field.
 
 `{"c":"listpaths","paths":[<string>,...],"first":<uint>}`
 
@@ -972,10 +983,16 @@ names only the directory rows currently visible and not already known.
 
 `{"c":"dirsizecancel"}`
 
-Drops every directory row still queued and cancels the running walk cooperatively. Unlike `thumbcancel`, there is no rows
-form: the walker is one at a time, so a stale row left over from a scrolled-past viewport would
-delay the row the new viewport actually wants, and the client always means "everything" when it
-sends this. A row already answered is untouched; queued and unfinished work is discarded. No response line.
+Drops every directory row still queued and cancels the running walk cooperatively. An optional
+non-empty `rows` array cancels only those rows, leaving pending walks for directories still in
+the viewport running. For example, `{"c":"dirsizecancel","listing":7,"rows":[4,9]}` drops only
+rows 4 and 9. Missing or empty `rows` retains the full-cancellation behavior. A row already
+answered is untouched. No response line.
+
+An optional `listing` field names the numbering the rows were read from. A `dirsize` or
+`dirsizecancel`, in either form, whose `listing` is not the current one is ignored with no
+response line, since its rows may name other folders now. A request without `listing` always
+applies.
 
 A directory a `dirsizecancel` dropped can be asked for again straight away: cancelling forgets
 the row, so a later `dirsize` for it queues fresh work.
@@ -2490,9 +2507,9 @@ every row still unanswered is answered with an empty `file` before the process e
 
 ### dirsized
 
-`{"t":"dirsized","row":<uint>,"bytes":<uint>,"partial":<bool>,"ms":<float>}`
+`{"t":"dirsized","row":<uint>,"bytes":<uint>,"partial":<bool>,"ms":<float>,"listing":<uint>}`
 
-Example: `{"t":"dirsized","row":4,"bytes":1048576,"partial":false,"ms":12.500}`
+Example: `{"t":"dirsized","row":4,"bytes":1048576,"partial":false,"ms":12.500,"listing":7}`
 
 Answers one row of one `dirsize` request. `row` is the index that was asked for, `bytes` is the
 recursive apparent size (every entry's own `st_size`, symlinks not followed and counted at their
@@ -2507,6 +2524,8 @@ shipped client renders a partial answer with a leading `>`.
 **A result for a superseded listing is dropped, never reported against the current one.** A
 `list` or a `sort` clears the answered-row cache and cancels the queue, the same rule and the
 same reason `thumbed` follows: both change which row an index names.
+The `listing` stamp also lets the client reject a reply that was buffered before its listing
+changed. Older clients may ignore this additional field.
 
 ### settagged
 

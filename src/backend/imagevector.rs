@@ -10,7 +10,7 @@ const PROBE: usize = 65_536;
 // Sample input: 1F 8B 08 flags mtime(4) xfl os [extra] [name\0] [comment\0] [crc16] deflate | crc32 isize.
 pub(crate) fn gunzip(head: &[u8], file: &mut File) -> Option<Vec<u8>> {
     let len = file.metadata().ok()?.len();
-    if len > MAX_SVG_BYTES || len < 18 || *head.get(2)? != 8 {
+    if !(18..=MAX_SVG_BYTES).contains(&len) || *head.get(2)? != 8 {
         return None;
     }
     let mut all = head.to_vec();

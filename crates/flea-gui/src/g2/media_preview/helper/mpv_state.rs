@@ -1,7 +1,8 @@
 use super::{rotation::Rotation, DURATION, MAX_SIDE, VIDEO};
 use flea::ui_logic_media_preview::{
-    frame::Event, picture::decode_size, tonemap::Tonemap, transport::Transport,
+    frame::Event, picture::decode_size, tonemap::Tonemap, tonemap_pace::Pace, transport::Transport,
 };
+use std::time::Instant;
 
 /// What the loop knows about the open file.
 pub(super) struct State {
@@ -17,6 +18,17 @@ pub(super) struct State {
     pub(super) size: (u32, u32),
     pub(super) rotation: Rotation,
     pub(super) tonemap: Tonemap,
+    /// Frames sent since the helper started, which the tone map's pace counts against the clip's own.
+    pub(super) presented: u64,
+    pub(super) pace: Pace,
+    /// The pace's wall clock starts here.
+    pub(super) origin: Instant,
+    /// The CPUs the helper may use, as available_parallelism reports them inside the jail.
+    pub(super) cpus: u32,
+    /// A short window not caused by the map was logged once.
+    pub(super) pace_noted: bool,
+    /// The level whose floor was logged, so each floor is logged once.
+    pub(super) floor_logged: Option<u32>,
 }
 
 impl State {
@@ -34,6 +46,12 @@ impl State {
             rotation: Rotation::None,
             box_size: (0, 0),
             tonemap: Tonemap::default(),
+            presented: 0,
+            pace: Pace::default(),
+            origin: Instant::now(),
+            cpus: std::thread::available_parallelism().map_or(1, |n| n.get() as u32),
+            pace_noted: false,
+            floor_logged: None,
         }
     }
 
@@ -46,6 +64,11 @@ impl State {
 
     /// Fit upright dimensions so the wire bounds and the host's box apply after rotation.
     pub(super) fn update_size(&mut self) {
+        // Under the tone map mpv's dwidth and dheight are the mapped size, and they can arrive one event apart.
+        if let Some(size) = self.tonemap.size() {
+            self.size = size;
+            return;
+        }
         let source = (
             self.clip.0.clamp(0, MAX_SIDE) as u32,
             self.clip.1.clamp(0, MAX_SIDE) as u32,

@@ -508,7 +508,7 @@ menus_rename_after_replacement() {
     menus_expect renameState '.index >= 0 and .index == .cursor and .cursorName == "target.txt" and .focused and (.pending | not)' 'rename opens the editor over target.txt at menu activation'
     menus_guard "$directory/renamed.txt"
     key -M ctrl -k a -m ctrl renamed.txt -k Return >/dev/null
-    menus_expect renameState '.focused and (.pending | not) and .text == "renamed.txt" and (.error | contains("Selected item changed"))' 'rename refuses the replaced source at commit, in the editor'
+    menus_expect renameState '.focused and (.pending | not) and .text == "renamed.txt" and .error == "Item changed; reopen Rename."' 'rename refuses the replaced source at commit, in the editor'
     [[ ! -e "$directory/renamed.txt" ]] || fail "menus: rename committed the replacement"
     menus_equal 'menu rename refusal leaves replacement identity untouched' "$replacement" "$(stat -c '%d:%i' "$directory/target.txt")"
     menus_equal 'menu rename refusal leaves replacement bytes untouched' 'replacement' "$(cat "$directory/target.txt")"
@@ -596,7 +596,7 @@ menus_stale_rename_commit() {
     menus_replace "$directory/target.txt" "$retained"
     menus_guard "$directory/renamed.txt"
     key -M ctrl -k a -m ctrl renamed.txt -k Return >/dev/null
-    menus_expect renameState '.focused and (.pending | not) and .text == "renamed.txt" and (.error | contains("Selected item changed"))' 'Rename commit retains the draft after replaced-source refusal'
+    menus_expect renameState '.focused and (.pending | not) and .text == "renamed.txt" and .error == "Item changed; reopen Rename."' 'Rename commit retains the draft after replaced-source refusal'
     [[ ! -e "$directory/renamed.txt" ]] || fail "menus: stale Rename committed the replacement"
     menus_equal 'Rename refusal preserves replacement' replacement "$(cat "$directory/target.txt")"
     menus_equal 'Rename refusal preserves captured original' originalone "$(cat "$retained")"

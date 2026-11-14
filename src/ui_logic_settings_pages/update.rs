@@ -36,12 +36,19 @@ pub fn idle() -> Status {
 }
 
 pub fn checking(status: &Status) -> Status {
-    Status { state: State::Checking, ..status.clone() }
+    Status {
+        state: State::Checking,
+        ..status.clone()
+    }
 }
 
 // A dash is an empty field, never a version.
 fn field(word: &str) -> String {
-    if word == "-" { String::new() } else { word.to_owned() }
+    if word == "-" {
+        String::new()
+    } else {
+        word.to_owned()
+    }
 }
 
 // Sample input: "available opr 0.3.2-1 0.3.3-1\n", the one line src/update.rs prints.
@@ -52,7 +59,11 @@ pub fn answered(status: &Status, text: &str, now: u64) -> Status {
     }
     let words: Vec<&str> = text.trim().split(' ').collect();
     if words.len() != 4 || !ANSWERS.contains(&words[0]) {
-        return Status { state: State::Failed, checked_at: now, ..Status::default() };
+        return Status {
+            state: State::Failed,
+            checked_at: now,
+            ..Status::default()
+        };
     }
     let state = match words[0] {
         "available" => State::Available,
@@ -71,7 +82,14 @@ pub fn answered(status: &Status, text: &str, now: u64) -> Status {
 
 // A launch hands the machine to Omarchy until Flea restarts; one that failed leaves the row as it was.
 pub fn launched_from(status: &Status, started: bool) -> Status {
-    if started { Status { state: State::Launched, ..status.clone() } } else { status.clone() }
+    if started {
+        Status {
+            state: State::Launched,
+            ..status.clone()
+        }
+    } else {
+        status.clone()
+    }
 }
 
 // What the About row's Enter does: check, launch Omarchy's updater, or nothing while a check or an update runs.
@@ -98,7 +116,10 @@ pub fn due(status: &Status, now: u64, automatic: bool) -> bool {
     if !automatic || matches!(status.state, State::Checking | State::Launched) {
         return false;
     }
-    let settled = matches!(status.state, State::Available | State::Current | State::Unchecked);
+    let settled = matches!(
+        status.state,
+        State::Available | State::Current | State::Unchecked
+    );
     !settled || now.saturating_sub(status.checked_at) >= INTERVAL_MS
 }
 
@@ -112,7 +133,11 @@ pub fn poll_asks(status: &Status, now: u64, automatic: bool, first: bool) -> boo
 
 // How long the poll waits before its next beat.
 pub fn poll_wait(first: bool) -> u64 {
-    if first { FIRST_CHECK_MS } else { INTERVAL_MS }
+    if first {
+        FIRST_CHECK_MS
+    } else {
+        INTERVAL_MS
+    }
 }
 
 // The part before the first dash, which is the pkgver of a package version.
@@ -122,27 +147,35 @@ fn pkgver(version: &str) -> &str {
 
 // pkgver alone, unless that is what is installed and only the package release moved.
 fn shown_version(latest: &str, installed: &str) -> String {
-    if pkgver(latest) == pkgver(installed) { latest.to_owned() } else { pkgver(latest).to_owned() }
+    if pkgver(latest) == pkgver(installed) {
+        latest.to_owned()
+    } else {
+        pkgver(latest).to_owned()
+    }
 }
 
 pub fn value(status: &Status) -> Text {
     match status.state {
         State::Idle => Text::Key("settings.update.check"),
         State::Checking => Text::Key("settings.update.checking"),
-        State::Available => {
-            Text::args("settings.update.available", vec![Text::data(shown_version(&status.latest, &status.installed))])
-        }
-        State::Current => Text::args("settings.update.current", vec![Text::data(pkgver(&status.installed))]),
+        State::Available => Text::args(
+            "settings.update.available",
+            vec![Text::data(shown_version(&status.latest, &status.installed))],
+        ),
+        State::Current => Text::args(
+            "settings.update.current",
+            vec![Text::data(pkgver(&status.installed))],
+        ),
         State::Failed => Text::Key("settings.update.failed"),
         State::Launched => Text::Key("settings.update.launched"),
-        State::Unchecked if is_release(status) => Text::Key("settings.update.release"),
+        State::Unchecked if is_packaged(status) => Text::Key("settings.update.release"),
         State::Unchecked => Text::Key("settings.update.source"),
     }
 }
 
-// The prebuilt flea-bin package, which src/update.rs prints as the "release" kind.
-fn is_release(status: &Status) -> bool {
-    status.kind == "release"
+// Every pacman-owned kind is a packaged install, including a local makepkg build.
+fn is_packaged(status: &Status) -> bool {
+    matches!(status.kind.as_str(), "opr" | "release" | "local")
 }
 
 // The value's colour role in ui/SettingsRow.qml: accent for an update, muted while checking, foreground otherwise.
@@ -159,7 +192,7 @@ pub fn note(status: &Status) -> Option<(Text, Role)> {
     match status.state {
         State::Launched => Some((Text::Key("settings.update.note_launched"), Role::Accent)),
         State::Failed => Some((Text::Key("settings.update.note_failed"), Role::Foreground)),
-        State::Unchecked if is_release(status) => {
+        State::Unchecked if is_packaged(status) => {
             Some((Text::Key("settings.update.note_release"), Role::Foreground))
         }
         State::Unchecked => Some((Text::Key("settings.update.note_source"), Role::Foreground)),
@@ -169,7 +202,11 @@ pub fn note(status: &Status) -> Option<(Text, Role)> {
 
 // The background menu's row exists only while a newer build is known, and its hint is that version.
 pub fn menu_version(status: &Status) -> String {
-    if status.state == State::Available { shown_version(&status.latest, &status.installed) } else { String::new() }
+    if status.state == State::Available {
+        shown_version(&status.latest, &status.installed)
+    } else {
+        String::new()
+    }
 }
 
 // What the footer says after a launch, as (sentence, is_error).
@@ -184,3 +221,7 @@ pub fn launch_sentence(started: bool) -> (Text, bool) {
 #[cfg(test)]
 #[path = "update_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "update_wording_tests.rs"]
+mod wording_tests;

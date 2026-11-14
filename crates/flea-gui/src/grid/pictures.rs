@@ -1,4 +1,6 @@
 //! A pane's production pictures and the Grid's marks: Thumbs.js's viewport asks from the Grid, the List or the active Columns track, the thumbed answers decoded off the UI thread, and LangMarks.js's slugs.
+#[path = "pictures/carried.rs"]
+mod carried;
 #[path = "pictures/decor.rs"]
 mod decor;
 #[path = "pictures/demand.rs"]
@@ -18,6 +20,9 @@ mod quality;
 mod quality_tests;
 #[path = "pictures/readers.rs"]
 mod readers;
+#[cfg(test)]
+#[path = "pictures/settle_tests.rs"]
+mod settle_tests;
 #[cfg(test)]
 #[path = "pictures/slot_tests.rs"]
 mod slot_tests;
@@ -41,7 +46,7 @@ use std::{
     sync::Arc,
 };
 
-// Pane.qml settleMs, firstSettleMs and thumbCap; only viewport rows are recorded, so the cap bounds a policy bug.
+// Pane.qml settleMs, firstSettleMs and thumbCap; undrawn records give way first.
 const SETTLE_MS: u64 = 120;
 const FIRST_SETTLE_MS: u64 = 70;
 const CAP: usize = 240;
@@ -100,7 +105,7 @@ impl Slot {
 pub(crate) struct Key {
     listing: usize,
     span: (usize, usize),
-    // A List filter's drawn view positions and the identity of its shown rows, Filter.cut; None asks the whole span.
+    // A filter's drawn view positions and the identity of its shown rows, Filter.cut; None asks the whole span.
     only: Option<(usize, usize, usize)>,
     mode: Mode,
     // None until fsinfo names the folder's class.
@@ -120,7 +125,9 @@ struct Map {
     path: String,
     slots: HashMap<usize, Slot>,
     order: VecDeque<usize>,
+    carried: VecDeque<Slot>,
     key: Option<Key>,
+    drawn: Option<surface::Want>,
     settle: Option<Task<()>>,
     settled: bool,
     class: Option<(String, String)>,
@@ -190,7 +197,7 @@ impl Map {
         }
     }
 
-    // Thumbs.remember: the oldest record goes once the cap is passed.
+    // Thumbs.remember: retain drawn rows and backend jobs until the demand owner cancels them.
     fn remember(&mut self, row: usize, slot: Slot) {
         match self.slots.insert(row, slot) {
             None => self.order.push_back(row),
@@ -204,9 +211,21 @@ impl Map {
             }
             Some(_) => {}
         }
-        while self.order.len() > CAP {
-            let oldest = self.order[0];
-            self.forget(oldest);
+        self.trim();
+    }
+
+    fn trim(&mut self) {
+        while self.order.len() + self.carried.len() > CAP {
+            if self.evict_carried() {
+                continue;
+            }
+            let Some(row) = self.order.iter().copied().find(|row| {
+                !self.drawn.as_ref().is_some_and(|want| want.contains(*row))
+                    && !matches!(self.slots.get(row), Some(Slot::Asked { .. }))
+            }) else {
+                break;
+            };
+            self.forget(row);
         }
     }
 
@@ -224,52 +243,6 @@ impl Map {
             .filter(|row| matches!(self.slots.get(row), Some(Slot::Asked { .. })))
     }
 
-    // A new listing: the backend forgot every ask, and on the same folder each finished picture follows its row by its source facts, Thumbs.carried.
-    fn follow(&mut self, held: &Held, path: &str) {
-        let mut carried = Vec::new();
-        if path == self.path {
-            let at: HashMap<&str, usize> = held
-                .rows
-                .iter()
-                .enumerate()
-                .map(|(at, row)| (row.name.as_str(), held.start + at))
-                .collect();
-            for row in std::mem::take(&mut self.order) {
-                if let Some(Slot::Ready {
-                    picture,
-                    image,
-                    file,
-                }) = self.slots.remove(&row)
-                {
-                    let moved = at
-                        .get(picture.identity.name.as_str())
-                        .copied()
-                        .filter(|&to| held.row(to).is_some_and(|facts| picture.identity.is(facts)));
-                    match moved {
-                        Some(to) => carried.push((
-                            to,
-                            Slot::Ready {
-                                picture,
-                                image,
-                                file,
-                            },
-                        )),
-                        None => self.retire(&picture),
-                    }
-                }
-            }
-        } else {
-            self.names.clear();
-        }
-        self.clear();
-        for (row, slot) in carried {
-            self.remember(row, slot);
-        }
-        self.sweep_faded();
-        self.listing = held.listing;
-        self.path = path.to_owned();
-    }
-
     // Forgets every record and every faded copy, and returns the rows the backend still holds jobs for.
     fn release(&mut self) -> Vec<usize> {
         let pending = self.clear();
@@ -278,6 +251,7 @@ impl Map {
     }
 
     fn clear(&mut self) -> Vec<usize> {
+        while self.evict_carried() {}
         self.traces.clear();
         self.bases.clear();
         for (_, mut refinement) in self.refinements.drain() {
@@ -289,6 +263,7 @@ impl Map {
         }
         self.slots.clear();
         self.key = None;
+        self.drawn = None;
         self.settle = None;
         self.settled = false;
         pending

@@ -13,7 +13,7 @@ use flea::{
         color::Palette,
         control::{action, Action, Surface},
         facts::{self, FileFacts, Row},
-        wire::{self, Data, State},
+        wire::{self, Data, Failure, Refusal, State},
     },
 };
 use gpui::{div, img, prelude::*, Context, Render, SharedString, Task, Window};
@@ -25,8 +25,8 @@ pub enum Phase {
     Idle,
     Loading,
     Ready,
-    /// The view says the shared cannot-preview sentence; the reason is kept for diagnostics only.
-    Failed(String),
+    /// Diagnostic text and the refusal category remain separate.
+    Failed(Failure),
 }
 
 /// What the host's bar shows for the model: its one fact and the plate words with the chosen one.
@@ -205,7 +205,7 @@ impl Model3dView {
                 thumbnail,
                 data,
             } => self.build(file, thumbnail, *data, cx),
-            State::Failed { reason } => self.fail(reason),
+            State::Failed(failure) => self.fail(failure),
             State::Cancelled => self.phase = Phase::Idle,
         }
         cx.notify();
@@ -242,7 +242,7 @@ impl Model3dView {
                         view.data = Some(data);
                         view.phase = Phase::Ready;
                     }
-                    Err(reason) => view.fail(reason),
+                    Err(reason) => view.fail(reason.into()),
                 }
                 cx.notify();
             });
@@ -250,9 +250,9 @@ impl Model3dView {
     }
 
     // A failure never leaves the previous plate on screen.
-    fn fail(&mut self, reason: String) {
+    fn fail(&mut self, failure: Failure) {
         self.clear();
-        self.phase = Phase::Failed(reason);
+        self.phase = Phase::Failed(failure);
     }
 
     // The plates the reply describes one by one; its bare count is a fact to show, never a size to allocate.
@@ -316,9 +316,15 @@ impl Model3dView {
         })
     }
 
-    /// The shared sentence a failed preview says, for the host's no-preview state.
+    /// The host's failure sentence, selected by the typed refusal category.
     pub fn failed(&self) -> Option<String> {
-        matches!(self.phase, Phase::Failed(_)).then(|| facts::cannot_preview(&self.i18n))
+        match &self.phase {
+            Phase::Failed(failure) if failure.refusal == Some(Refusal::TooLarge) => {
+                Some(self.i18n.tr("preview.too_large"))
+            }
+            Phase::Failed(_) => Some(facts::cannot_preview(&self.i18n)),
+            _ => None,
+        }
     }
 
     fn layer_label(&self) -> Option<String> {

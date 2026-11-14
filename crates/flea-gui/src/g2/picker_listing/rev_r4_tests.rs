@@ -7,6 +7,7 @@ use flea::ui_logic_picker_listing::SaveCheck;
 
 fn row(name: &str, dir: bool) -> RowFacts {
     RowFacts {
+        listing_index: None,
         source: None,
         depth: 0,
         open: false,

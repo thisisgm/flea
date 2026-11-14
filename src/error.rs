@@ -42,46 +42,38 @@ pub fn io_message(error: &std::io::Error) -> String {
         ErrorKind::Unsupported => "operation is not supported",
         ErrorKind::UnexpectedEof => "file ended unexpectedly",
         ErrorKind::OutOfMemory => "not enough memory",
-        _ => linux_io_message(error.raw_os_error()),
+        _ => linux_io_message(error),
     }.to_string()
 }
 
-// ponytail: Linux errno fills Rust 1.77's ErrorKind gaps; use named variants when the minimum compiler advances.
-fn linux_io_message(code: Option<i32>) -> &'static str {
+// An OS error keeps its sentence: by its ErrorKind where Linux has a stable one, by errno where it has none.
+fn linux_io_message(error: &std::io::Error) -> &'static str {
+    use std::io::ErrorKind;
     const EIO: i32 = 5;
-    const EBUSY: i32 = 16;
-    const EXDEV: i32 = 18;
     const ENODEV: i32 = 19;
-    const ENOTDIR: i32 = 20;
-    const EISDIR: i32 = 21;
     const ENFILE: i32 = 23;
     const EMFILE: i32 = 24;
-    const ETXTBSY: i32 = 26;
-    const EFBIG: i32 = 27;
-    const ENOSPC: i32 = 28;
-    const EROFS: i32 = 30;
-    const ENAMETOOLONG: i32 = 36;
-    const ENOTEMPTY: i32 = 39;
     const ELOOP: i32 = 40;
-    const ESTALE: i32 = 116;
-    const EDQUOT: i32 = 122;
-    match code {
-        Some(EIO) => "the drive could not read or write the data",
-        Some(EBUSY | ETXTBSY) => "file or device is busy",
-        Some(EXDEV) => "the source and destination are on different drives",
-        Some(ENODEV) => "the drive is unavailable",
-        Some(ENOTDIR) => "part of the path is not a folder",
-        Some(EISDIR) => "item is a folder",
-        Some(ENFILE | EMFILE) => "too many files are open",
-        Some(EFBIG) => "file is too large",
-        Some(ENOSPC) => "the drive is full",
-        Some(EROFS) => "the drive is read-only",
-        Some(ENAMETOOLONG) => "that name is too long",
-        Some(ENOTEMPTY) => "folder is not empty",
-        Some(ELOOP) => "the path has too many links",
-        Some(ESTALE) => "file is no longer available",
-        Some(EDQUOT) => "storage quota exceeded",
-        _ => "the operation could not finish",
+    let Some(code) = error.raw_os_error() else { return "the operation could not finish" };
+    match error.kind() {
+        ErrorKind::ResourceBusy | ErrorKind::ExecutableFileBusy => "file or device is busy",
+        ErrorKind::CrossesDevices => "the source and destination are on different drives",
+        ErrorKind::NotADirectory => "part of the path is not a folder",
+        ErrorKind::IsADirectory => "item is a folder",
+        ErrorKind::FileTooLarge => "file is too large",
+        ErrorKind::StorageFull => "the drive is full",
+        ErrorKind::ReadOnlyFilesystem => "the drive is read-only",
+        ErrorKind::InvalidFilename => "that name is too long",
+        ErrorKind::DirectoryNotEmpty => "folder is not empty",
+        ErrorKind::StaleNetworkFileHandle => "file is no longer available",
+        ErrorKind::QuotaExceeded => "storage quota exceeded",
+        _ => match code {
+            EIO => "the drive could not read or write the data",
+            ENODEV => "the drive is unavailable",
+            ENFILE | EMFILE => "too many files are open",
+            ELOOP => "the path has too many links",
+            _ => "the operation could not finish",
+        },
     }
 }
 
@@ -118,7 +110,7 @@ mod tests {
     #[test]
     fn wrapped_io_errors_do_not_leak_the_os_display() {
         let denied = std::io::Error::from_raw_os_error(13);
-        let wrapped = std::io::Error::new(std::io::ErrorKind::Other, denied);
+        let wrapped = std::io::Error::other(denied);
         assert_eq!(io_message(&wrapped), "permission denied");
     }
 
@@ -154,3 +146,7 @@ mod tests {
         assert_eq!(silent, io_message(&Error::from(ErrorKind::TimedOut)));
     }
 }
+
+#[cfg(test)]
+#[path = "error_errno_tests.rs"]
+mod errno_tests;

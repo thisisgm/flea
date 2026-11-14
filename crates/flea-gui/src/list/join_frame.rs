@@ -39,7 +39,9 @@ impl Shell {
         let viewport = self.seam.viewport();
         // One refusal band and one Grow per side for this render, so every list frame and the rename readers agree with the paint.
         let bands = [0, 1].map(|side| self.rename_band(side, window));
+        let previous_bands = self.bands;
         self.bands = bands;
+        let previous_grows = self.grows;
         self.grows = [0, 1].map(|side| self.frame_grow(side, bands[side]));
         let grows = self.grows;
         #[cfg(test)]
@@ -67,7 +69,7 @@ impl Shell {
             if matches!(view, View::List | View::Dual) && host.pane.scroll_extent.is_some() {
                 let metrics = host.list.borrow().file_metrics();
                 let total = host.filter.shown_total(host.pane.held.total);
-                let extent = total as f32 * metrics.row + metrics.header;
+                let extent = grows[side].content(total, metrics.row) + metrics.header;
                 host.pane.scroll_extent = Some(extent);
             }
             host.pane.set_height(height);
@@ -94,6 +96,15 @@ impl Shell {
                 );
                 let mut frame =
                     crate::input::Frame::list(bounds, &metrics, &host.pane, grows[side]);
+                if grows[side].band > 0. && grows[side] != previous_grows[side] {
+                    frame.content = grows[side]
+                        .content(host.filter.shown_total(host.pane.held.total), metrics.row)
+                        + metrics.header;
+                    host.pane.scroll_extent = Some(frame.content);
+                    host.pane
+                        .scroll_to(crate::input::scroll::reveal(frame, grows[side].at, 0));
+                    frame.scroll = host.pane.scroll_y;
+                }
                 // Invalidate old geometry before an edge step can move the current viewport.
                 host.input
                     .prepare(frame, &mut host.selected, &mut host.pane.cursor);
@@ -127,6 +138,12 @@ impl Shell {
             {
                 window.request_animation_frame();
             }
+        }
+        if view == View::Columns && grows != previous_grows {
+            self.reveal_rename_column(previous_grows);
+        }
+        if view == View::Grid && bands != previous_bands {
+            self.reveal_rename_grid(previous_bands);
         }
         if let (Some((cursor, selection)), Some(host)) =
             (self.visual_marks(), self.panes[self.focus_side].as_mut())

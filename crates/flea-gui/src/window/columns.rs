@@ -301,16 +301,12 @@ impl Shell {
             return;
         };
         if visible {
-            // An entry held on the List keeps the List's rows height, so its asks and the held rows share one window size.
-            let holding = host
-                .columns
-                .as_ref()
-                .is_none_or(|columns| columns.entering || columns.arm_entry);
-            host.pane.set_height(if holding {
-                geometry.content_height(View::List, self.slots.strip_height)
-            } else {
-                height
-            });
+            let landing = host.landing_height(
+                View::Columns,
+                geometry.content_height(View::List, self.slots.strip_height),
+                height,
+            );
+            host.pane.set_height(landing);
         }
         if host.columns.is_none() && visible {
             host.columns = Some(Columns::new(width, height, &self.launch.settings));

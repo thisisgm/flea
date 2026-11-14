@@ -30,6 +30,7 @@ fn open(cx: &mut TestAppContext, backend: Backend) -> WindowHandle<Root> {
 fn open_startup(cx: &mut TestAppContext) -> WindowHandle<Root> {
     // The real constructor starts the backend thread, whose failure lands from that thread.
     cx.executor().allow_parking();
+    Backend::test_scope(cx);
     cx.add_window(|window, cx| {
         let (_events_tx, events) = async_channel::bounded(1);
         let locale = Snapshot {

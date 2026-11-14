@@ -27,6 +27,9 @@ mod list_join;
 pub mod locale;
 #[cfg(test)]
 mod locale_tests;
+#[cfg(test)]
+#[path = "../name_tip/shell_tests.rs"]
+mod name_tip_tests;
 pub mod navigate;
 pub mod network;
 pub(crate) mod open_with;
@@ -57,6 +60,7 @@ pub mod settings;
 pub(crate) mod sidebar_edge;
 mod sniff;
 pub mod startup;
+mod state_reload;
 pub(crate) mod status;
 mod status_undo;
 pub(crate) mod surfaces;

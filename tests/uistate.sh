@@ -74,8 +74,8 @@ check "a read ships Open folders while dragging off" "1" "$(echo "$out" | grep -
 check "a read ships tabsAsIcons off" "1" "$(echo "$out" | grep -c '"tabsAsIcons": false')"
 check "a read ships emptyFolderOmi on" "1" "$(echo "$out" | grep -c '"emptyFolderOmi": true')"
 check "a read ships emptyFolderRotate on" "1" "$(echo "$out" | grep -c '"emptyFolderRotate": true')"
-# 651d3f115 adds highlightHover=false to the complete default document.
-check "a read answers every top-level key" "48" "$(echo "$out" | grep -c '^  "')"
+# 651d3f115 adds highlightHover=false and 0402-settings-cursor adds gridWrapRows=false to the complete default document.
+check "a read answers every top-level key" "49" "$(echo "$out" | grep -c '^  "')"
 check "a fresh read answers empty plugin state" "{}" "$(printf '%s\n' "$out" | plugins_value)"
 check "a read leaves no state file behind" "0" "$([ -e "$UI" ] && echo 1 || echo 0)"
 
@@ -124,7 +124,7 @@ check "a patch writes the file" "1" "$([ -f "$UI" ] && echo 1 || echo 0)"
 # 240 is not a stop, so src/uistate.rs Rule::SidebarWidth snaps it down to 224: this asserted the
 # raw number and had been failing since the snap was written, which is why it pins the snap now.
 check "the stored file carries the patched width, snapped to a stop" "1" "$(grep -c '"sidebarWidth": 224' "$UI")"
-check "the stored file keeps every other key" "48" "$(grep -c '^  "' "$UI")"
+check "the stored file keeps every other key" "49" "$(grep -c '^  "' "$UI")"
 check "a view patch keeps empty plugin state" "{}" "$(plugins_value < "$UI")"
 check "the state file is owner only" "600" "$(stat -c '%a' "$UI")"
 check "the state directory is owner only" "700" "$(stat -c '%a' "$STATE/flea")"
@@ -430,7 +430,7 @@ out=$(flea_ui '{"hidden":true}' 2>&1); rc=$?
 check "a patch onto that same file exits 0" "0" "$rc"
 check "the operator's bytes are kept as ui.json.broken" "$broken_sha" "$(sha256sum "$STATE/flea/ui.json.broken" | cut -d' ' -f1)"
 check "and does not leave the operator's bytes" "1" "$([ "$(sha256sum "$UI" | cut -d' ' -f1)" != "$broken_sha" ] && echo 1 || echo 0)"
-check "it writes the full default document instead" "48" "$(grep -c '^  "' "$UI")"
+check "it writes the full default document instead" "49" "$(grep -c '^  "' "$UI")"
 check "so the hand-written key is gone" "1" "$(grep -c '"density": "compact"' "$UI")"
 check "and the patch itself landed" "1" "$(grep -c '"hidden": true' "$UI")"
 
@@ -473,7 +473,7 @@ out=$(flea_ui '{"hidden":true}' 2>&1); rc=$?
 check "a patch onto a ui.json that is not text exits 0" "0" "$rc"
 check "and keeps those bytes as ui.json.broken, byte for byte" "$notext_sha" "$(sha256sum "$STATE/flea/ui.json.broken" | cut -d' ' -f1)"
 check "as the same file, linked rather than read and copied" "$notext_ino" "$(stat -c '%i' "$STATE/flea/ui.json.broken")"
-check "it writes the full default document instead" "48" "$(grep -c '^  "' "$UI")"
+check "it writes the full default document instead" "49" "$(grep -c '^  "' "$UI")"
 check "and the patch itself landed" "1" "$(grep -c '"hidden": true' "$UI")"
 check "and view.json is still not read into it" "1" "$(flea_ui 2>&1 | tr -d ' \n' | grep -c '"columns":\["name","size","date"\]')"
 

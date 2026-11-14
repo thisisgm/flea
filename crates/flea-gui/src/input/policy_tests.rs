@@ -114,9 +114,11 @@ fn u03_cut_row_reveals_only_the_cut_and_wheel_exposes_footer(cx: &mut TestAppCon
 fn u03_narrowed_selection_skips_hidden_indices_and_shrinks_its_own_range() {
     let mut selection = crate::input::selection::Selection::default();
     let mut rows = vec![2];
-    selection.extend(&mut rows, 2, 9, None, Some(&[2, 4, 9]));
+    let mut input = crate::input::PaneInput::default();
+    input.set_shown(Some([2, 4, 9].into()));
+    selection.extend(&mut rows, 2, 9, None, &input.shown);
     assert_eq!(rows, [2, 4, 9]);
-    selection.extend(&mut rows, 9, 4, None, Some(&[2, 4, 9]));
+    selection.extend(&mut rows, 9, 4, None, &input.shown);
     assert_eq!(rows, [2, 4]);
     selection.all(&mut rows, 100, Some(&[2, 4, 9]), true);
     assert_eq!(rows, [9]);

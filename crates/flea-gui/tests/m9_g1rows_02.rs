@@ -1,23 +1,27 @@
 //! A real backend process lists a marked 100k folder: its first answer is one viewport window, and the pane asks nothing more.
+#[path = "../../../tests/lib/cargo_artifacts.rs"]
+mod cargo_artifacts;
+#[path = "m9_g1rows_02/helpers.rs"]
+mod helpers;
+#[path = "m9_g1rows_02/prior.rs"]
+mod prior;
 #[path = "m9_g1rows_02/probe.rs"]
 mod probe;
 #[path = "m9_g1rows_02/process.rs"]
 mod process;
+#[path = "m9_g1rows_02/startup.rs"]
+mod startup;
+#[path = "m9_g1rows_02/timing.rs"]
+mod timing;
 
-use flea::protocol::{parse_reply, Reply};
 use flea_gui::backend::{list_line, Backend, Event};
 use flea_gui::list::pane::Pane;
 use flea_gui::navigation::folder_state::{Folders, Writer};
 use flea_gui::navigation::{Listing, Navigator};
-use probe::{probe, probed};
-use process::{
-    binary, children, cpu_ticks, fixture, marked_root, sandboxed, threads, Observer, Process,
-    DEADLINE, SETTLE,
-};
+use process::{binary, fixture, marked_root, sandboxed, DEADLINE, SETTLE};
+use startup::startup;
 use std::cell::RefCell;
-use std::collections::BTreeSet;
 use std::fs::{self, File};
-use std::io::Read;
 use std::path::Path;
 use std::process::Command;
 use std::rc::Rc;
@@ -39,150 +43,6 @@ fn first_listing(pane: &Pane, dir: &Path) -> Listing {
         Rc::new(RefCell::new(Writer::default())),
     );
     navigator.listing(pane, &dir.to_string_lossy(), false)
-}
-
-struct Startup {
-    total: usize,
-    start: usize,
-    rows: usize,
-    stats: usize,
-    spawns: usize,
-    named_opens: usize,
-    children: usize,
-    late_rows: usize,
-    threads: usize,
-    cpu_ticks: u64,
-    listed: String,
-    rows_ms: String,
-}
-
-// Sample input: {"t":"rows","start":0,"listing":2,"ms":0.389,"rows":[...]}
-fn rows_ms(line: &str) -> String {
-    match flea::jsondoc::parse(line)
-        .ok()
-        .and_then(|document| document.get("ms").cloned())
-    {
-        Some(flea::jsondoc::Json::Num(value)) => value,
-        _ => "absent".into(),
-    }
-}
-
-fn startup(root: &Path, dir: &Path, listing: &Listing) -> Startup {
-    let log = root.join(format!("probe-{}.log", listing.first));
-    fs::write(&log, b"").unwrap();
-    let mut observer = Observer::watch(dir);
-    assert_eq!(
-        observer.named(),
-        0,
-        "the fixture is quiet before the backend starts"
-    );
-    let mut process = Process::start(root, dir, &log);
-    let pid = process.child.id();
-    process.send(&list_line(listing));
-    let listed = process.next();
-    let Ok(Reply::Listed { path, total }) = parse_reply(&listed) else {
-        panic!("the first answer is listed: {listed}")
-    };
-    assert_eq!(path, dir.to_string_lossy());
-    let rows_line = process.next();
-    let Ok(Reply::Rows { start, rows, .. }) = parse_reply(&rows_line) else {
-        panic!("the second answer is rows: {rows_line}")
-    };
-    let visible: BTreeSet<_> = rows.iter().map(|row| dir.join(&row.name)).collect();
-    let late = process.late();
-    let late_rows = late
-        .iter()
-        .filter(|line| matches!(parse_reply(line), Ok(Reply::Rows { .. })))
-        .count();
-    let found = Startup {
-        total,
-        start,
-        rows: rows.len(),
-        stats: probed(&log, b's'),
-        spawns: probed(&log, b'p'),
-        named_opens: observer.named(),
-        children: children(pid),
-        late_rows,
-        threads: threads(pid),
-        cpu_ticks: cpu_ticks(pid),
-        listed: listed.clone(),
-        rows_ms: rows_ms(&rows_line),
-    };
-    let targets = probe::stat_targets(dir, &log);
-    assert_eq!(
-        targets.len(),
-        found.stats,
-        "every stat has an identity record"
-    );
-    assert_eq!(
-        probe::offscreen(&targets, &visible),
-        0,
-        "every stat targets a returned row"
-    );
-    println!("M9_G1ROWS_02 stat_identities={} offscreen=0", targets.len());
-    // Negative control: an offscreen window adds its own stats, so the probe counts the backend's real stat path.
-    process.send(&format!(
-        "{{\"c\":\"window\",\"start\":{},\"count\":{FAR_COUNT}}}",
-        FAR_START.min(total.saturating_sub(FAR_COUNT))
-    ));
-    let far = process.next();
-    assert!(
-        matches!(parse_reply(&far), Ok(Reply::Rows { ref rows, .. }) if rows.len() == FAR_COUNT),
-        "the far window answers: {far}"
-    );
-    assert!(
-        probed(&log, b's') >= found.stats + FAR_COUNT,
-        "the probe sees the backend stat the far window"
-    );
-    let all = probe::stat_targets(dir, &log);
-    let mut mixed = targets[..targets.len() - FAR_COUNT].to_vec();
-    mixed.extend_from_slice(&all[targets.len()..targets.len() + FAR_COUNT]);
-    assert_eq!(
-        mixed.len(),
-        found.stats,
-        "the aggregate count cannot detect this control"
-    );
-    assert!(
-        probe::offscreen(&mixed, &visible) > 0,
-        "same-count offscreen identities are rejected"
-    );
-    process.close();
-    let dropped_pid = {
-        let abandoned = Process::start(root, dir, &log);
-        abandoned.child.id()
-    };
-    assert!(
-        !Path::new(&format!("/proc/{dropped_pid}")).exists(),
-        "Drop kills and reaps an unfinished backend"
-    );
-    // Negative control: a subshell needs a real fork (dash runs simple commands through vfork), so a zero spawn count above is a measurement.
-    let mut shell = Command::new("/bin/sh");
-    shell.arg("-c").arg("(/bin/true); /bin/true");
-    sandboxed(&mut shell, root);
-    let before = probed(&log, b'p');
-    assert!(shell
-        .env("LD_PRELOAD", probe())
-        .env("FLEA_PROBE_LOG", &log)
-        .status()
-        .unwrap()
-        .success());
-    assert!(probed(&log, b'p') > before, "the probe counts a libc spawn");
-    // Negative control: the observer does see a named read, so its zero above is a measurement.
-    let mut probe = File::open(
-        fs::read_dir(dir)
-            .unwrap()
-            .filter_map(Result::ok)
-            .next()
-            .unwrap()
-            .path(),
-    )
-    .unwrap();
-    probe.read_to_end(&mut Vec::new()).unwrap();
-    assert!(
-        observer.named() > 0,
-        "the inotify observer counts a named open"
-    );
-    found
 }
 
 #[test]
@@ -222,18 +82,12 @@ fn m9_g1rows_02_startup_work_is_viewport_bounded() {
             found.stats <= found.rows,
             "{label}: at most one stat per drawn row, none offscreen"
         );
-        assert_eq!(
-            found.spawns, 0,
-            "{label}: no thumbnail or helper process is spawned"
-        );
+        found.assert_helpers(label);
         assert_eq!(
             found.named_opens, 0,
             "{label}: no entry is opened or read for MIME or a thumbnail at startup"
         );
-        assert_eq!(
-            found.children, 0,
-            "{label}: no thumbnail or helper process starts"
-        );
+
         assert_eq!(
             found.late_rows, 0,
             "{label}: no further rows are pushed unasked"

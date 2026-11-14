@@ -1,12 +1,11 @@
 // Test-only capability check shared by sandbox integration tests.
 use std::io::Write;
 use std::process::Command;
-use std::sync::OnceLock;
+use std::sync::LazyLock;
 
 // Probe the kernel boundary independently of the product's sandbox argument builder.
 pub fn skipped() -> bool {
-    static FAILURE: OnceLock<Option<String>> = OnceLock::new();
-    let failure = FAILURE.get_or_init(|| {
+    static FAILURE: LazyLock<Option<String>> = LazyLock::new(|| {
         match Command::new(super::sandbox::BWRAP)
             .args([
                 "--unshare-user",
@@ -33,6 +32,7 @@ pub fn skipped() -> bool {
             Err(error) => Some(error.to_string()),
         }
     });
+    let failure = &*FAILURE;
     let Some(reason) = failure else { return false };
     let thread = std::thread::current();
     let name = thread.name().unwrap_or("sandbox integration test");

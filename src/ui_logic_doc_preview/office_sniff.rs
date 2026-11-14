@@ -131,8 +131,7 @@ pub fn real_container(path: &str, head: &[u8], tail: &[u8], tail_at: u64) -> boo
     if !head.starts_with(&ZIP_MAGIC) || end_record(tail).is_none() {
         return false;
     }
-    // map_or because is_none_or needs Rust 1.82 over the 1.77 floor.
-    entries(tail, tail_at).map_or(true, |list| list.iter().any(|(name, _)| *name == wanted))
+    entries(tail, tail_at).is_none_or(|list| list.iter().any(|(name, _)| *name == wanted))
 }
 
 /// The whole container check over a reader of the file's bytes, `read(at, len)`, bounded like the sniff.

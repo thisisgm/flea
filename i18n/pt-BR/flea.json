@@ -2083,6 +2083,7 @@
   "settings.caption.group_by_kind": "pastas, fotos, arquivos",
   "settings.caption.permanently": "permanentemente",
   "settings.caption.wrap": "subir no topo da lista",
+  "settings.caption.grid_wrap_rows": "esquerda e direita na Grade",
   "settings.choice.automatic": "Automático",
   "settings.choice.breadcrumb": "Trilha de navegação",
   "settings.choice.chosen": "Escolhida",
@@ -2291,6 +2292,7 @@
   "settings.row.use_this_folder": "Usar esta pasta",
   "settings.row.view": "Última visualização usada",
   "settings.row.wrap": "Dar a volta nos extremos da lista",
+  "settings.row.grid_wrap_rows": "Continuar nas extremidades das linhas",
   "settings.section.about": "Sobre",
   "settings.section.display": "Tela",
   "settings.section.keys": "Teclas",
@@ -2778,5 +2780,7 @@
     "one": "Não foi possível mover %1 item dentro; o primeiro é %2: %3",
     "many": "Não foi possível mover %1 itens dentro; o primeiro é %2: %3",
     "other": "Não foi possível mover %1 itens dentro; o primeiro é %2: %3"
-  }
+  },
+  "keys.action.extendLeft": "Estender à esquerda",
+  "keys.action.extendRight": "Estender à direita"
 }

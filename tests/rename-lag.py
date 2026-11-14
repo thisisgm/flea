@@ -7,23 +7,11 @@ import queue
 import subprocess
 import sys
 import time
-from importlib.machinery import SourceFileLoader
-from importlib.util import module_from_spec, spec_from_loader
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
+from flea_import import load_source
 
-# Python 3.15 dropped SourceFileLoader.load_module; a spec and exec_module load the same file.
-def load_source(name, path):
-    loader = SourceFileLoader(name, path)
-    spec = spec_from_loader(name, loader)
-    if spec is None:
-        raise ImportError("%s has no spec to load from %s" % (name, path))
-    module = module_from_spec(spec)
-    loader.exec_module(module)
-    sys.modules[name] = module
-    return module
-
-
-Backend = load_source("rename_timing", str(Path(__file__).with_name("rename-timing.py"))).Backend
+Backend = load_source("rename_timing", Path(__file__).with_name("rename-timing.py")).Backend
 
 # A distinct child status proves the kernel refused its nonblocking lock attempt.
 CONTENDED_EXIT = 75
@@ -172,12 +160,17 @@ def case(binary, root, shim, mode):
     return failed is None
 
 
-binary, directory, shim = sys.argv[1:]
-root = Path(directory)
-assert directory and root.is_absolute() and root.resolve() == root
-assert (root / ".flea-test-sandbox").is_file() and not root.is_relative_to(Path.home())
-assert Path(shim).is_relative_to(root)
-witness_controls(root, shim)
-results = [case(binary, root, shim, mode) for mode in ("syscall", "journal", "journal-timeout")]
-print(f"RENAMELAG DONE cases=3 failed={results.count(False)}")
-sys.exit(0 if all(results) else 1)
+def main():
+    binary, directory, shim = sys.argv[1:]
+    root = Path(directory)
+    assert directory and root.is_absolute() and root.resolve() == root
+    assert (root / ".flea-test-sandbox").is_file() and not root.is_relative_to(Path.home())
+    assert Path(shim).is_relative_to(root)
+    witness_controls(root, shim)
+    results = [case(binary, root, shim, mode) for mode in ("syscall", "journal", "journal-timeout")]
+    print(f"RENAMELAG DONE cases=3 failed={results.count(False)}")
+    return 0 if all(results) else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

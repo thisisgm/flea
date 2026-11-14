@@ -2033,6 +2033,7 @@
   "settings.caption.group_by_kind": "கோப்புறைகள், படங்கள், கோப்புகள்",
   "settings.caption.permanently": "நிரந்தரமாக",
   "settings.caption.wrap": "பட்டியலின் தொடக்கத்தில் மேலே நகர்த்தும்போது",
+  "settings.caption.grid_wrap_rows": "கட்டக் காட்சியில் இடது மற்றும் வலது நகர்வு",
   "settings.choice.automatic": "தானியக்கம்",
   "settings.choice.breadcrumb": "பாதைத் தடம்",
   "settings.choice.chosen": "தேர்ந்தெடுத்தது",
@@ -2241,6 +2242,7 @@
   "settings.row.use_this_folder": "இந்தக் கோப்புறையைப் பயன்படுத்து",
   "settings.row.view": "கடைசியாகப் பயன்படுத்திய காட்சி",
   "settings.row.wrap": "பட்டியல் முடிவுகளில் மறுமுனைக்குச் செல்",
+  "settings.row.grid_wrap_rows": "வரிசை முனைகளில் அடுத்த வரிசைக்குச் செல்",
   "settings.section.about": "பற்றி",
   "settings.section.display": "காட்சி அமைப்புகள்",
   "settings.section.keys": "விசைகள்",
@@ -2664,5 +2666,7 @@
   "feedback.unheld.move_many": {
     "one": "உள்ளேயுள்ள உருப்படிகளை (%1) நகர்த்த முடியவில்லை; முதலாவது %2: %3",
     "other": "உள்ளேயுள்ள உருப்படிகளை (%1) நகர்த்த முடியவில்லை; முதலாவது %2: %3"
-  }
+  },
+  "keys.action.extendLeft": "இடப்புறம் நீட்டு",
+  "keys.action.extendRight": "வலப்புறம் நீட்டு"
 }

@@ -16,7 +16,7 @@ fn file(dir: &TestDir, name: &str) -> String {
 fn a_token_names_the_entries_and_the_intent_the_lift_fixed() {
     let (dir, shelf) = shelf("shelfdrag");
     let one = file(&dir, "one.txt");
-    let token = shelf.drag_begin(true, &[one.clone()], 1_000).unwrap();
+    let token = shelf.drag_begin(true, std::slice::from_ref(&one), 1_000).unwrap();
     assert_eq!(token.len(), TOKEN_BYTES * 2, "sixteen bytes of randomness, hex encoded");
     let redeemed = shelf.redeem(&token, 1_500).unwrap();
     assert!(redeemed.moving, "a plain shelf drag asks for a move");
@@ -50,7 +50,7 @@ fn a_token_nobody_minted_is_refused() {
 fn an_entry_that_is_not_the_file_it_was_is_refused() {
     let (dir, shelf) = shelf("shelfswapped");
     let one = file(&dir, "one.txt");
-    let token = shelf.drag_begin(true, &[one.clone()], 1_000).unwrap();
+    let token = shelf.drag_begin(true, std::slice::from_ref(&one), 1_000).unwrap();
     // The same name, another inode: renamed over rather than deleted and rewritten, because a freed inode is commonly handed straight back to the next file created in the same group.
     let other = file(&dir, "other.txt");
     std::fs::write(&other, "another file entirely").unwrap();
@@ -83,7 +83,7 @@ fn reason(kind: std::io::ErrorKind) -> String {
 fn a_lift_of_something_that_is_gone_says_why_in_words() {
     let (dir, shelf) = shelf("shelfdraggone");
     let gone = dir.path().join("never-written").to_string_lossy().to_string();
-    let why = shelf.drag_begin(true, &[gone.clone()], 1_000).unwrap_err();
+    let why = shelf.drag_begin(true, std::slice::from_ref(&gone), 1_000).unwrap_err();
     assert_eq!(why, format!("{} could not be read: {}", gone, reason(std::io::ErrorKind::NotFound)));
 }
 

@@ -3,6 +3,9 @@ use crate::backend::Event;
 use crate::window::u07_tests::read;
 use gpui::TestAppContext;
 
+#[path = "rename_wording_tests.rs"]
+mod wording;
+
 fn row_identity(shell: &mut crate::state::Shell, source: Option<&str>) {
     let host = shell.panes[0].as_mut().unwrap();
     let held = &host.pane.held;
@@ -71,13 +74,10 @@ fn a_row_without_identity_waits_for_the_snapshot_before_its_editor_opens(cx: &mu
             mode: 0,
         },
     );
-    assert!(shell.read_with(cx, |shell, _| shell
-        .rename
-        .edit
-        .as_ref()
-        .unwrap()
-        .error
-        .contains("Selected item changed")));
+    let error = shell.read_with(cx, |shell, _| {
+        shell.rename.edit.as_ref().unwrap().error.clone()
+    });
+    assert_eq!(error, "Item changed; reopen Rename.");
     cx.simulate_keystrokes("escape");
     assert!(sent(&mut lines)
         .iter()
@@ -144,7 +144,7 @@ fn a_refused_identity_snapshot_says_why_and_opens_no_editor(cx: &mut TestAppCont
     assert!(editing(&shell, cx).is_none());
     assert_eq!(
         read(&shell, cx, "lastMessage", &[]),
-        "Selected items changed; reopen the menu."
+        "Item changed; reopen Rename."
     );
     assert!(closed(&mut lines, id));
     close(&shell, cx);

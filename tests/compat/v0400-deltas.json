@@ -54,6 +54,11 @@
       "from": "  \"highlightToday\": false,\n",
       "to": "  \"highlightToday\": false,\n  \"highlightHover\": false,\n",
       "reason": "651d3f115 adds the approved Highlight on hover setting with its fresh-install default off."
+    },
+    {
+      "from": "  \"wrapAtEnds\": false,\n",
+      "to": "  \"wrapAtEnds\": false,\n  \"gridWrapRows\": false,\n",
+      "reason": "0402-settings-cursor (design-hig/CHANGES.md:4364) approves gridWrapRows=false."
     }
   ],
   "cli:ui-state-write": [
@@ -111,6 +116,11 @@
       "from": "  \"highlightToday\": false,\n",
       "to": "  \"highlightToday\": false,\n  \"highlightHover\": false,\n",
       "reason": "651d3f115 adds the approved Highlight on hover setting with its fresh-install default off."
+    },
+    {
+      "from": "  \"wrapAtEnds\": false,\n",
+      "to": "  \"wrapAtEnds\": false,\n  \"gridWrapRows\": false,\n",
+      "reason": "0402-settings-cursor (design-hig/CHANGES.md:4364) approves gridWrapRows=false."
     }
   ],
   "state:ui-state": [
@@ -168,6 +178,11 @@
       "from": "  \"highlightToday\": false,\n",
       "to": "  \"highlightToday\": false,\n  \"highlightHover\": false,\n",
       "reason": "651d3f115 adds the approved Highlight on hover setting with its fresh-install default off."
+    },
+    {
+      "from": "  \"wrapAtEnds\": false,\n",
+      "to": "  \"wrapAtEnds\": false,\n  \"gridWrapRows\": false,\n",
+      "reason": "0402-settings-cursor (design-hig/CHANGES.md:4364) approves gridWrapRows=false."
     }
   ],
   "cli:gui-desktop": [

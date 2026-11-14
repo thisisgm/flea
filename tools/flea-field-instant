@@ -98,21 +98,8 @@ import subprocess
 import sys
 import tempfile
 import time
-from importlib.machinery import SourceFileLoader
-from importlib.util import module_from_spec, spec_from_loader
-
-
-# Python 3.15 dropped SourceFileLoader.load_module; a spec and exec_module load the same file.
-def load_source(name, path):
-    loader = SourceFileLoader(name, path)
-    spec = spec_from_loader(name, loader)
-    if spec is None:
-        raise ImportError("%s has no spec to load from %s" % (name, path))
-    module = module_from_spec(spec)
-    loader.exec_module(module)
-    sys.modules[name] = module
-    return module
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from flea_import import load_source
 from flea_ipc import Client
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -2635,6 +2622,11 @@ def selftest():
     def check(name, got, want):
         if got != want:
             fail.append("%s: got %r, wanted %r" % (name, got, want))
+
+    imports = subprocess.run([sys.executable, "-B", os.path.join(REPO, "tests/lib/test_flea_import.py")],
+                             capture_output=True, text=True, timeout=30)
+    if imports.returncode:
+        fail.append("sibling imports: %s%s" % (imports.stdout, imports.stderr))
 
     ms = MS
     check("row_cursor", row_of("nav.grid.l"), 1)

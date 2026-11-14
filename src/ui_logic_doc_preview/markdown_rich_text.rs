@@ -51,11 +51,11 @@ impl Tildes {
                     let before = markup[..i]
                         .chars()
                         .next_back()
-                        .map_or(true, char::is_whitespace);
+                        .is_none_or(char::is_whitespace);
                     let after = markup[i + run..]
                         .chars()
                         .next()
-                        .map_or(true, char::is_whitespace);
+                        .is_none_or(char::is_whitespace);
                     if run <= 2 {
                         if let Some(at) = open
                             .iter()

@@ -239,8 +239,8 @@ fn configure_child(cmd: &mut Command) {
 }
 
 fn set_backend_binary(cmd: &mut Command) {
-    // An explicit choice is the operator's; map_or because is_none_or needs Rust 1.82 over the 1.77 floor.
-    if std::env::var_os("FLEA_BIN").map_or(true, |value| value.is_empty()) {
+    // An explicit choice is the operator's.
+    if std::env::var_os("FLEA_BIN").is_none_or(|value| value.is_empty()) {
         if let Ok(binary) = std::env::current_exe() {
             cmd.env("FLEA_BIN", binary);
         }

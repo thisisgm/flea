@@ -11,7 +11,18 @@ use std::path::{Path, PathBuf};
 mod syncs;
 pub use syncs::FolderSyncs;
 
+#[path = "records.rs"]
+mod records;
+pub(super) use records::RecordInput;
+#[path = "batch.rs"]
+pub(super) mod batch;
+
 const FINISHED: &[u8] = b"flea recovery complete 1";
+
+#[cfg(test)]
+thread_local! {
+    pub(in crate::backend::trashdelete) static ITEM_BARRIERS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
 
 pub fn recovery_root() -> Result<PathBuf, String> {
     let state = match crate::userfile::env_dir("XDG_STATE_HOME") {
@@ -33,74 +44,32 @@ fn left(detail: &str, reason: &str) -> Refusal {
     Refusal::new(Outcome::RecordLeft(None), detail).because(reason)
 }
 
+fn unchanged_quarantine(path: &Path, quarantine: &File) -> Result<(), Refusal> {
+    if !same_node(
+        &identity(path).refuse(Outcome::RecordLeft(None), "Quarantine unreadable")?,
+        &Identity::of(
+            &quarantine
+                .metadata()
+                .refuse(Outcome::RecordLeft(None), "Quarantine unreadable")?,
+        ),
+    ) {
+        return Err(left(
+            "Recovery quarantine changed before cleanup; it was preserved.",
+            "the temporary folder changed",
+        ));
+    }
+    Ok(())
+}
+
 pub(super) struct Recovery {
     path: PathBuf,
     record: Manifest,
+    batch: Option<batch::Ticket>,
+    cleanup: Option<batch::Cleanup>,
+    metadata: Option<Identity>,
+    metadata_pending: bool,
 }
 impl Recovery {
-    pub(super) fn begin(root: &Path, source: &Path, parent: &File, payload: &Identity,
-        paired: Option<(&Path, &Identity, &File)>, quarantine_path: &Path, quarantine: &File,
-        tree: Option<&Records>, destination: Option<&Path>) -> Result<Self, Refusal> {
-        if !root.is_absolute() { return Err(unkept("Recovery storage requires an absolute folder.").because("the recovery folder is not valid")); }
-        std::fs::DirBuilder::new().recursive(true).mode(0o700).create(root)
-            .map_err(|e| Refusal::os(Outcome::NoRecord(Op::Delete), &format!("Could not create recovery folder {}", root.display()), &e))?;
-        let directory = open_dir(root)?;
-        let name = quarantine_path.file_name().ok_or_else(|| unkept("Missing quarantine name."))?.to_string_lossy();
-        let path = root.join(format!("{}.review", name));
-        let mut record = written(Manifest::create(&path), "Could not start the recovery record")?;
-        let (info, metadata, info_parent) = match paired {
-            Some((path, identity, parent)) => (path.exact_text().into_owned(), identity.saved(),
-                Identity::of(&parent.metadata().refuse(Outcome::NoRecord(Op::Delete), "Trash metadata folder unreadable")?).saved()),
-            None => Default::default(),
-        };
-        let text = format!(r#"{{"version":1,"source":"{}","parent":"{}","payload":"{}","info":"{}","metadata":"{}","infoParent":"{}","quarantine":"{}","quarantineIdentity":"{}","destination":"{}"}}"#,
-            escape(&source.exact_text()),
-            Identity::of(&parent.metadata().refuse(Outcome::NoRecord(Op::Delete), "Trash folder unreadable")?).saved(), payload.saved(),
-            escape(&info), metadata, info_parent, escape(&quarantine_path.exact_text()),
-            Identity::of(&quarantine.metadata().refuse(Outcome::NoRecord(Op::Delete), "Quarantine unreadable")?).saved(),
-            escape(destination.map(|path| path.exact_text().into_owned()).unwrap_or_default().as_str()));
-        written(record.append(text.as_bytes()), "Could not write the recovery record")?;
-        if let Some(tree) = tree {
-            let mut offset = tree.start();
-            while let Some(bytes) = written(tree.next(&mut offset), "Could not read the Trash review")? {
-                written(record.append(&bytes), "Could not write the recovery record")?;
-            }
-        }
-        written(record.sync(), "Could not sync the recovery record")?;
-        directory.sync_all().map_err(|e| Refusal::os(Outcome::NoRecord(Op::Delete), "Could not sync recovery folder", &e))?;
-        Ok(Self { path, record })
-    }
-    pub(super) fn complete(self) -> Result<(), Refusal> {
-        if identity(&self.path).refuse(Outcome::RecordLeft(None), "Recovery record unreadable")?
-            != Identity::of(&self.record.file().metadata().refuse(Outcome::RecordLeft(None), "Recovery record unreadable")?) {
-            return Err(left("Recovery record changed; it was preserved.", "the record changed"));
-        }
-        std::fs::remove_file(&self.path)
-            .map_err(|e| Refusal::os(Outcome::RecordLeft(None), &format!("Could not finish recovery record {}", self.path.display()), &e))?;
-        let folder = self.path.parent().refuse(Outcome::RecordUnconfirmed(None), "Missing recovery folder.")?;
-        // An open restore batch syncs the folder once at its close; the record's removal is only cleanup.
-        if syncs::held(folder) { return Ok(()); }
-        open_dir(folder)
-            .map_err(|refusal| refusal.wrap(Outcome::RecordUnconfirmed(None)))?.sync_all()
-            .map_err(|e| Refusal::os(Outcome::RecordUnconfirmed(None), "Could not sync completed recovery record", &e))
-    }
-    pub(super) fn remove_empty(&mut self, path: &Path, quarantine: &File, parent: &File) -> Result<(), Refusal> {
-        let cleanup = |what: &str, e: &std::io::Error| Refusal::os(Outcome::RecordLeft(None), what, e);
-        if !same_node(&identity(path).refuse(Outcome::RecordLeft(None), "Quarantine unreadable")?,
-            &Identity::of(&quarantine.metadata().refuse(Outcome::RecordLeft(None), "Quarantine unreadable")?)) {
-            return Err(left("Recovery quarantine changed before cleanup; it was preserved.", "the temporary folder changed"));
-        }
-        let mut entries = std::fs::read_dir(fd_path(quarantine, OsStr::new("."))).refuse(Outcome::RecordLeft(None), "Quarantine unreadable")?;
-        if let Some(entry) = entries.next() {
-            entry.refuse(Outcome::RecordLeft(None), "Quarantine unreadable")?;
-            return Err(Refusal::new(Outcome::Held(path.to_path_buf()), format!("Recovery data remains at {}; no cleanup was recorded.", path.display())).because("it still holds items"));
-        }
-        quarantine.sync_all().map_err(|e| cleanup("Could not sync empty recovery quarantine", &e))?;
-        self.record.append(FINISHED).and_then(|_| self.record.sync()).map_err(|e| left(&e, "the recovery record could not be written"))?;
-        std::fs::remove_dir(path).map_err(|e| cleanup(&format!("Could not remove empty recovery quarantine {}", path.display()), &e))?;
-        if syncs::held_open(parent) { return Ok(()); }
-        parent.sync_all().map_err(|e| cleanup("Could not sync recovery quarantine removal", &e))
-    }
     // Where the quarantine opened, its items stay recoverable at that path; before that, nothing was moved.
     fn replay(&mut self) -> Result<(), Refusal> {
         let mut opened = None;
@@ -360,7 +329,7 @@ fn recover_entries(root: &Path, entries: impl IntoIterator<Item = std::io::Resul
         let path = entry.path();
         let result_for_record = (|| {
             let Some(record) = Manifest::open_inactive(&path).refuse(Outcome::NothingMoved, "Could not open the recovery record")? else { return Ok(false); };
-            let mut recovery = Recovery { path: path.clone(), record };
+            let mut recovery = Recovery { path: path.clone(), record, batch: None, cleanup: None, metadata: None, metadata_pending: false };
             recovery.replay()?;
             recovery.complete()?;
             Ok::<bool, Refusal>(true)

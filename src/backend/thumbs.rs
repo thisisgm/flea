@@ -1,16 +1,17 @@
 use crate::backend::aliases::Aliases;
 use crate::backend::appicon;
 use crate::backend::child::{run_with_timeout, Ran};
-use crate::backend::{rawpreview, sandbox, thumbbind};
 use crate::backend::thumbargv::argv;
 use crate::backend::thumbcache::{uri_for, Cache};
+use crate::backend::thumbreq::identity;
 use crate::backend::thumbspec::Thumbnailers;
 use crate::backend::thumbwrite::{exclusive_temp, stamp, write_marker};
 use crate::backend::workerlink::{worker_shape, WorkerLink};
+use crate::backend::{rawpreview, sandbox, thumbbind};
 use std::collections::VecDeque;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::Sender;
-use std::sync::{Arc, Condvar, Mutex, OnceLock};
+use std::sync::{Arc, Condvar, LazyLock, Mutex};
 use std::time::{Duration, Instant};
 
 // A viewport holds about 35 rows, so a queue twice that absorbs one fast scroll without unbounded growth.
@@ -43,17 +44,26 @@ pub struct Trace {
 
 // The environment is read once for the process, because the queue path must not pay a lookup per row.
 pub fn trace(row: usize) -> Option<Trace> {
-    static ON: OnceLock<bool> = OnceLock::new();
-    if !*ON.get_or_init(|| std::env::var_os("FLEA_THUMB_TRACE").is_some_and(|v| !v.is_empty())) {
+    static ON: LazyLock<bool> =
+        LazyLock::new(|| std::env::var_os("FLEA_THUMB_TRACE").is_some_and(|v| !v.is_empty()));
+    if !*ON {
         return None;
     }
     let zero = Duration::ZERO;
-    Some(Trace { row, depth: 0, at: Instant::now(), popped: zero, spawned: zero, exited: zero })
+    Some(Trace {
+        row,
+        depth: 0,
+        at: Instant::now(),
+        popped: zero,
+        spawned: zero,
+        exited: zero,
+    })
 }
 
 pub enum Outcome {
     Ready(PathBuf),
     Failed,
+    Cancelled,
 }
 
 pub struct Done {
@@ -67,7 +77,12 @@ pub struct Done {
 }
 
 // Parsed once by the caller and shared from here, so no pool thread reads these files again; the shelf's single job has no pool and so no worker.
-pub(crate) struct Tables { pub aliases: Arc<Aliases>, pub specs: Arc<Thumbnailers>, pub cache: Cache, pub worker: Option<WorkerLink> }
+pub(crate) struct Tables {
+    pub aliases: Arc<Aliases>,
+    pub specs: Arc<Thumbnailers>,
+    pub cache: Cache,
+    pub worker: Option<WorkerLink>,
+}
 
 type Shared = Arc<(Mutex<VecDeque<Job>>, Condvar)>;
 
@@ -79,27 +94,56 @@ pub struct Pool {
 impl Pool {
     // The cache root and both tables are the caller's, so tests share parsed tables without writing into the operator's cache.
     #[cfg(test)]
-    pub fn new(workers: usize, results: Sender<Done>, root: PathBuf, aliases: Arc<Aliases>, specs: Arc<Thumbnailers>) -> Pool {
-        Pool::start(workers, results, Tables { aliases, specs, cache: Cache::at(root), worker: Some(WorkerLink::new()) })
+    pub fn new(
+        workers: usize,
+        results: Sender<Done>,
+        root: PathBuf,
+        aliases: Arc<Aliases>,
+        specs: Arc<Thumbnailers>,
+    ) -> Pool {
+        Pool::start(
+            workers,
+            results,
+            Tables {
+                aliases,
+                specs,
+                cache: Cache::at(root),
+                worker: Some(WorkerLink::new()),
+            },
+        )
     }
 
     #[cfg(test)]
     fn start(workers: usize, results: Sender<Done>, tables: Tables) -> Pool {
-        let inner: Shared = Arc::new((Mutex::new(VecDeque::new()), Condvar::new()));
-        Self::start_workers(&inner, workers, results, tables);
-        Pool { inner, startup: ().into() }
+        Pool::sharing(workers, results, Arc::new(tables))
     }
 
-    fn start_workers(inner: &Shared, workers: usize, results: Sender<Done>, tables: Tables) {
-        let tables = Arc::new(tables);
+    // Test-only: the caller keeps its own handle on the tables, so it can hold the worker link's lock while a job is taken.
+    #[cfg(test)]
+    pub(crate) fn sharing(workers: usize, results: Sender<Done>, tables: Arc<Tables>) -> Pool {
+        let inner: Shared = Arc::new((Mutex::new(VecDeque::new()), Condvar::new()));
+        Self::start_workers(&inner, workers, results, tables);
+        Pool {
+            inner,
+            startup: ().into(),
+        }
+    }
+
+    fn start_workers(inner: &Shared, workers: usize, results: Sender<Done>, tables: Arc<Tables>) {
         for _ in 0..workers.max(1) {
-            let (inner, tables, results) = (Arc::clone(inner), Arc::clone(&tables), results.clone());
+            let (inner, tables, results) =
+                (Arc::clone(inner), Arc::clone(&tables), results.clone());
             std::thread::spawn(move || worker(inner, results, tables));
         }
     }
 
     // Tables and workers are demanded only by the first uncached thumbnail job.
-    pub(crate) fn lazy(workers: usize, tables: &super::state::Tables, root: PathBuf, events: super::events::Sender<super::events::Event>) -> Pool {
+    pub(crate) fn lazy(
+        workers: usize,
+        tables: &super::state::Tables,
+        root: PathBuf,
+        events: super::events::Sender<super::events::Event>,
+    ) -> Pool {
         let inner: Shared = Arc::new((Mutex::new(VecDeque::new()), Condvar::new()));
         let shared = Arc::clone(&inner);
         let (aliases, specs) = (tables.aliases.clone(), tables.thumbs.clone());
@@ -109,8 +153,13 @@ impl Pool {
             if !sandbox::available() {
                 eprintln!("flea: thumbnails are disabled, bwrap or prlimit is not on PATH");
             }
-            let tables = Tables { aliases: Arc::clone(&aliases), specs: Arc::clone(&specs), cache: Cache::at(root), worker: Some(WorkerLink::new()) };
-            Self::start_workers(&shared, workers, results, tables);
+            let tables = Tables {
+                aliases: Arc::clone(&aliases),
+                specs: Arc::clone(&specs),
+                cache: Cache::at(root),
+                worker: Some(WorkerLink::new()),
+            };
+            Self::start_workers(&shared, workers, results, Arc::new(tables));
         });
         Pool { inner, startup }
     }
@@ -141,7 +190,9 @@ impl Pool {
     pub fn cancel(&self, path: &Path, trash_identity: Option<&str>) -> Vec<Job> {
         let (lock, _cv) = &*self.inner;
         let mut q = lock.lock().unwrap();
-        let (dropped, kept): (Vec<Job>, Vec<Job>) = q.drain(..).partition(|j| j.path == path && j.trash_identity.as_deref() == trash_identity);
+        let (dropped, kept): (Vec<Job>, Vec<Job>) = q
+            .drain(..)
+            .partition(|j| j.path == path && j.trash_identity.as_deref() == trash_identity);
         *q = kept.into();
         dropped
     }
@@ -150,7 +201,8 @@ impl Pool {
     pub fn cancel_listing(&self) -> Vec<Job> {
         let (lock, _cv) = &*self.inner;
         let mut q = lock.lock().unwrap();
-        let (dropped, kept): (Vec<Job>, Vec<Job>) = q.drain(..).partition(|j| j.trash_identity.is_none());
+        let (dropped, kept): (Vec<Job>, Vec<Job>) =
+            q.drain(..).partition(|j| j.trash_identity.is_none());
         *q = kept.into();
         dropped
     }
@@ -165,7 +217,10 @@ impl Pool {
     // Test-only: a pool that starts no worker, so a request-policy test reads back exactly what it queued and a drain waits out its limit; a harness that needs jobs run attaches its own worker to `inner`.
     #[cfg(test)]
     pub(crate) fn idle() -> Pool {
-        Pool { inner: Arc::new((Mutex::new(VecDeque::new()), Condvar::new())), startup: ().into() }
+        Pool {
+            inner: Arc::new((Mutex::new(VecDeque::new()), Condvar::new())),
+            startup: ().into(),
+        }
     }
 
     // Jobs no worker has taken yet; the request policy reads it to see how many more the queue holds.
@@ -183,18 +238,43 @@ fn worker(inner: Shared, results: Sender<Done>, tables: Arc<Tables>) {
             while q.is_empty() {
                 q = cv.wait(q).unwrap();
             }
-            match q.pop_front() {
-                Some(j) => j,
-                None => continue,
+            let Some(job) = q.pop_front() else { continue };
+            if tables.worker.as_ref().is_some_and(WorkerLink::may_accept)
+                && tables
+                    .specs
+                    .for_mime(&job.mime, &tables.aliases)
+                    .and_then(worker_shape)
+                    .is_some()
+            {
+                if let Some(shared) = &job.replies {
+                    identity::begin_video(shared);
+                }
             }
+            job
         };
         if let Some(t) = job.trace.as_mut() {
             t.popped = t.at.elapsed();
         }
         let started = Instant::now();
         let outcome = run_one(&tables, &mut job);
+        let outcome = if job.replies.as_ref().is_some_and(identity::finish_video) {
+            Outcome::Cancelled
+        } else {
+            outcome
+        };
         let ms = started.elapsed().as_secs_f64() * 1000.0;
-        if results.send(Done { replies: job.replies, path: job.path, mtime: job.mtime, trash_identity: job.trash_identity, result: outcome, ms, trace: job.trace }).is_err() {
+        if results
+            .send(Done {
+                replies: job.replies,
+                path: job.path,
+                mtime: job.mtime,
+                trash_identity: job.trash_identity,
+                result: outcome,
+                ms,
+                trace: job.trace,
+            })
+            .is_err()
+        {
             return;
         }
     }
@@ -207,7 +287,9 @@ pub(crate) fn run_one(tables: &Tables, job: &mut Job) -> Outcome {
 
 // The copies of a camera RAW's embedded JPEG live in raw_dir, which a test points at its sandbox instead of the user's cache.
 pub(crate) fn run_one_in(tables: &Tables, job: &mut Job, raw_dir: &Path) -> Outcome {
-    if super::model3d::embedded_thumbnail_supported(&job.path.to_string_lossy()) { return super::model3dreq::thumbnail(tables,job) }
+    if super::model3d::embedded_thumbnail_supported(&job.path.to_string_lossy()) {
+        return super::model3dreq::thumbnail(tables, job);
+    }
     let spec = match tables.specs.for_mime(&job.mime, &tables.aliases) {
         Some(s) => s,
         None => return Outcome::Failed,
@@ -217,7 +299,9 @@ pub(crate) fn run_one_in(tables: &Tables, job: &mut Job, raw_dir: &Path) -> Outc
     }
     // The cache key is the URI of the path the user named, because that is the key every other application on the box looks under; see AGENTS.md "Thumbnail cache".
     let key_uri = uri_for(&job.path);
-    let final_path = tables.cache.large_path_for(&key_uri, job.trash_identity.as_deref());
+    let final_path = tables
+        .cache
+        .large_path_for(&key_uri, job.trash_identity.as_deref());
     // Checked before the thumbnailer runs, so a document this cache cannot replace costs no child; publish checks again.
     if !crate::cachewrite::allowed(&final_path) {
         return Outcome::Failed;
@@ -248,13 +332,29 @@ pub(crate) fn run_one_in(tables: &Tables, job: &mut Job, raw_dir: &Path) -> Outc
         return discard(&temp);
     }
     // corner: a thumbnailer that wrote then renamed would fail against this file bind, and only glycin and ffmpegthumbnailer were probed; see AGENTS.md "Thumbnail pool".
-    let Some(full) = thumbbind::wrap(&inner, &abs, &temp) else { return discard(&temp) };
+    let Some(full) = thumbbind::wrap(&inner, &abs, &temp) else {
+        return discard(&temp);
+    };
     if let Some(t) = job.trace.as_mut() {
         t.spawned = t.at.elapsed();
     }
-    // A video the pre-linked worker can take goes there first; anything it does not finish runs the exec path as before.
+    // A video the pre-linked worker can take goes there first; a cancelled job ends here, and anything else it does not finish runs the exec path as before.
     let by_worker = match (&tables.worker, worker_shape(spec)) {
-        (Some(worker), Some(film_strip)) => worker.generate(&abs, &temp, THUMB_SIZE, film_strip, JOB_TIMEOUT),
+        (Some(worker), Some(film_strip)) => match worker.generate(
+            &abs,
+            &temp,
+            THUMB_SIZE,
+            film_strip,
+            JOB_TIMEOUT,
+            job.replies.as_ref(),
+        ) {
+            // A cancel that raced the verdict still wins: nothing is published, marked or retried.
+            Ok(result) if !job.replies.as_ref().is_some_and(identity::finish_video) => result,
+            _ => {
+                discard(&temp);
+                return Outcome::Cancelled;
+            }
+        },
         _ => None,
     };
     let ran = match by_worker {
@@ -267,7 +367,13 @@ pub(crate) fn run_one_in(tables: &Tables, job: &mut Job, raw_dir: &Path) -> Outc
     if matches!(ran, Ran::Succeeded) && wrote_something(&temp) {
     } else if records_marker(&ran, super::extclass::classify(&job.path)) {
         // corner: glycin exits 0 on bytes it cannot decode, so an empty output is the decoder's verdict on the file; see AGENTS.md "Thumbnail pool".
-        record_failure_for(&tables.cache, &key_uri, job.mtime, tables.specs.fingerprint(), job.trash_identity.as_deref());
+        record_failure_for(
+            &tables.cache,
+            &key_uri,
+            job.mtime,
+            tables.specs.fingerprint(),
+            job.trash_identity.as_deref(),
+        );
         return discard(&temp);
     } else {
         // corner: a child that never started is the machine's fault, not the file's, so it is not recorded in fail/; see AGENTS.md "Thumbnail pool".
@@ -278,7 +384,9 @@ pub(crate) fn run_one_in(tables: &Tables, job: &mut Job, raw_dir: &Path) -> Outc
 
 // The child wrote a bare PNG, so the spec's own metadata is added before the file is published.
 pub(crate) fn publish(temp: &Path, key_uri: &str, mtime: i64, final_path: PathBuf) -> Outcome {
-    if crate::cachewrite::require(&final_path).is_err() { return discard(temp); }
+    if crate::cachewrite::require(&final_path).is_err() {
+        return discard(temp);
+    }
     if stamp(temp, key_uri, mtime).is_err() || std::fs::rename(temp, &final_path).is_err() {
         return discard(temp);
     }
@@ -288,7 +396,9 @@ pub(crate) fn publish(temp: &Path, key_uri: &str, mtime: i64, final_path: PathBu
 // What the thumbnailer is handed: a camera RAW's embedded JPEG, copied out once per file version, or the file itself.
 pub(crate) fn input_for(tables: &Tables, job: &Job, raw_dir: &Path) -> Option<PathBuf> {
     match tables.specs.raw_route(&job.mime, &tables.aliases) {
-        Some(_) if tables.aliases.canonical(&job.mime) == super::thumbspec::IIQ_MIME => Some(job.path.clone()),
+        Some(_) if tables.aliases.canonical(&job.mime) == super::thumbspec::IIQ_MIME => {
+            Some(job.path.clone())
+        }
         Some(_) => rawpreview::ensure_in(raw_dir, &job.path).map(|copy| copy.file),
         None => Some(job.path.clone()),
     }
@@ -305,7 +415,9 @@ pub(crate) fn records_marker(ran: &Ran, class: &str) -> bool {
 
 // A decoder that ran to completion and left an empty file has judged these bytes, which is exactly what a fail marker records.
 pub(crate) fn wrote_something(temp: &Path) -> bool {
-    std::fs::metadata(temp).map(|m| m.len() > 0).unwrap_or(false)
+    std::fs::metadata(temp)
+        .map(|m| m.len() > 0)
+        .unwrap_or(false)
 }
 
 // Every failing path drops its own temp; the one path that cannot is a worker abandoned at exit, which run.rs sweeps by pid.
@@ -318,9 +430,17 @@ pub(crate) fn record_failure(cache: &Cache, uri: &str, mtime: i64, table: &str) 
     record_failure_for(cache, uri, mtime, table, None);
 }
 
-pub(crate) fn record_failure_for(cache: &Cache, uri: &str, mtime: i64, table: &str, identity: Option<&str>) {
+pub(crate) fn record_failure_for(
+    cache: &Cache,
+    uri: &str,
+    mtime: i64,
+    table: &str,
+    identity: Option<&str>,
+) {
     let path = cache.fail_path_for(uri, identity);
-    if crate::cachewrite::require(&path).is_err() { return; }
+    if crate::cachewrite::require(&path).is_err() {
+        return;
+    }
     let dir = match path.parent() {
         Some(d) => d.to_path_buf(),
         None => return,
@@ -329,7 +449,9 @@ pub(crate) fn record_failure_for(cache: &Cache, uri: &str, mtime: i64, table: &s
         return;
     }
     if let Some(temp) = exclusive_temp(&dir) {
-        if write_marker(&temp, uri, mtime, Some(table)).is_err() || std::fs::rename(&temp, &path).is_err() {
+        if write_marker(&temp, uri, mtime, Some(table)).is_err()
+            || std::fs::rename(&temp, &path).is_err()
+        {
             let _ = std::fs::remove_file(&temp);
         }
     }

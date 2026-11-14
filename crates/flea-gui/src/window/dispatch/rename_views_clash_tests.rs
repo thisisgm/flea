@@ -1,6 +1,10 @@
 //! Mounted regression cases sharing the parent fixture.
 use super::*;
 
+#[path = "rename_views_gesture_cases.rs"]
+mod gesture_cases;
+use gesture_cases::{band_drag_survives_a_refusal, row_press_survives_a_refusal};
+
 #[gpui::test]
 fn a_list_edit_drops_once_its_row_leaves_the_list(cx: &mut TestAppContext) {
     drops_once_row_leaves(cx, View::List);
@@ -163,111 +167,6 @@ fn a_clashing_list_rename_grows_its_row_and_keeps_the_editor(cx: &mut TestAppCon
 #[gpui::test]
 fn a_clashing_columns_rename_grows_its_row_and_keeps_the_editor(cx: &mut TestAppContext) {
     clash_grows_the_row(cx, View::Columns);
-}
-
-// The List's live gesture: whether a band is up, the row a press holds, and the selection.
-fn gesture(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> (bool, Option<usize>, Vec<usize>) {
-    shell.read_with(cx, |shell, _| {
-        let host = shell.panes[0].as_ref().unwrap();
-        (
-            host.input.band.is_some(),
-            host.input.press.as_ref().map(|press| press.row),
-            host.selected.clone(),
-        )
-    })
-}
-
-// The rows' height in the view: the List's own metrics or the Columns track's row.
-fn row_height(shell: &Entity<Shell>, cx: &mut VisualTestContext, view: View) -> f32 {
-    match view {
-        View::Columns => crate::list::pane::ROW_HEIGHT,
-        _ => shell.read_with(cx, |shell, _| {
-            shell.panes[0]
-                .as_ref()
-                .unwrap()
-                .list
-                .borrow()
-                .drawn
-                .metrics
-                .row
-        }),
-    }
-}
-
-// A press below the rows commits the refused draft and re-sends it, so the band is down until the second refusal.
-// A second refusal that lands mid-drag raises the band again: the drag must keep its band and its selection.
-fn band_drag_survives_a_refusal(cx: &mut TestAppContext, view: View) {
-    let (shell, cx, mut lines) = refused_clash(cx, view);
-    let row = row_height(&shell, cx, view);
-    let bounds = clip(&shell, cx, view);
-    // Below all four rows, with or without the band's extra height.
-    let start = point(
-        bounds.origin.x + px(40.),
-        bounds.origin.y + px(4. * row + 40.),
-    );
-    cx.simulate_mouse_move(start, None, Modifiers::default());
-    cx.simulate_mouse_down(start, MouseButton::Left, Modifiers::default());
-    draw(cx);
-    assert_eq!(
-        sent(&mut lines),
-        [CLASH_SEND],
-        "{view:?}: the press commits the draft"
-    );
-    assert!(gesture(&shell, cx).0, "{view:?}: the press starts a band");
-    let mut at = start;
-    for step in 1..=3 {
-        at = start + point(px(20.), px(-40. * step as f32));
-        cx.simulate_mouse_move(at, Some(MouseButton::Left), Modifiers::default());
-        draw(cx);
-    }
-    receive(&shell, cx, clash_refusal());
-    draw(cx);
-    assert!(
-        gesture(&shell, cx).0,
-        "{view:?}: the refusal's band must not cancel the band drag"
-    );
-    for step in 4..=5 {
-        at = start + point(px(20.), px(-40. * step as f32));
-        cx.simulate_mouse_move(at, Some(MouseButton::Left), Modifiers::default());
-        draw(cx);
-    }
-    let (band, _, selected) = gesture(&shell, cx);
-    assert!(band, "{view:?}: the band survives every frame of the drag");
-    assert!(
-        selected.contains(&2) && selected.contains(&3),
-        "{view:?}: the band selects the rows it crosses: {selected:?}"
-    );
-    cx.simulate_mouse_up(at, MouseButton::Left, Modifiers::default());
-    draw(cx);
-    close(&shell, cx);
-}
-
-// A press on a row, while the commit's send is pending, keeps its press when the refusal raises the band.
-fn row_press_survives_a_refusal(cx: &mut TestAppContext, view: View) {
-    let (shell, cx, _lines) = refused_clash(cx, view);
-    let row = row_height(&shell, cx, view);
-    let bounds = clip(&shell, cx, view);
-    // The first row, above the band's extra height.
-    let press = point(bounds.origin.x + px(40.), bounds.origin.y + px(row / 2.));
-    cx.simulate_mouse_move(press, None, Modifiers::default());
-    cx.simulate_mouse_down(press, MouseButton::Left, Modifiers::default());
-    draw(cx);
-    assert_eq!(
-        gesture(&shell, cx).1,
-        Some(0),
-        "{view:?}: the press holds alpha"
-    );
-    receive(&shell, cx, clash_refusal());
-    draw(cx);
-    draw(cx);
-    assert_eq!(
-        gesture(&shell, cx).1,
-        Some(0),
-        "{view:?}: the refusal's band must not cancel the row press"
-    );
-    cx.simulate_mouse_up(press, MouseButton::Left, Modifiers::default());
-    draw(cx);
-    close(&shell, cx);
 }
 
 #[gpui::test]

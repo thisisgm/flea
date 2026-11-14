@@ -41,6 +41,11 @@ mod drags;
 mod row_drop;
 pub use drags::Drags;
 
+// A row takes a drop as a folder when Enter opens it as one: a folder, or a link whose icon the backend gave its target folder.
+fn folder_row(row: &flea::protocol::RowFacts) -> bool {
+    flea::ui_logic_picker_portal::directory(row.dir, row.mode, &row.icon)
+}
+
 struct HostRows<'a>(&'a PaneHost);
 
 impl Rows for HostRows<'_> {
@@ -55,7 +60,7 @@ impl Rows for HostRows<'_> {
             .pane
             .held
             .row(index)
-            .map(|row| (row.name.as_str(), row.dir))
+            .map(|row| (row.name.as_str(), folder_row(row)))
     }
     fn selected(&self) -> &[usize] {
         &self.0.selected
@@ -273,11 +278,11 @@ impl Shell {
             return;
         };
         let path = host.path.clone();
-        let first = owned.first_source();
+        let sources = owned.sources();
         let read_dest = dest.clone();
         let facts = cx
             .background_executor()
-            .spawn(async move { facts::read(first.as_deref(), &read_dest) });
+            .spawn(async move { facts::read(&sources, &read_dest) });
         cx.spawn_in(window, async move |this, cx| {
             let facts = facts.await;
             let _ = this.update_in(cx, |shell, window, cx| {

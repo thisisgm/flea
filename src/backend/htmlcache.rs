@@ -76,7 +76,7 @@ fn used(meta: &Metadata) -> SystemTime {
 }
 
 pub fn evict(dir: &Path) {
-    if PUBLISHED.fetch_add(1, Ordering::Relaxed) % SCAN_EVERY == 0 {
+    if PUBLISHED.fetch_add(1, Ordering::Relaxed).is_multiple_of(SCAN_EVERY) {
         trim(dir, MAX_FILES, MAX_BYTES, SystemTime::now());
     }
 }
@@ -98,7 +98,7 @@ fn trim(dir: &Path, files: usize, bytes: u64, now: SystemTime) {
             }
             continue;
         }
-        if !meta.is_file() || path.extension().map_or(true, |ext| ext != "png") {
+        if !meta.is_file() || path.extension().is_none_or(|ext| ext != "png") {
             continue;
         }
         if !htmldeps::replaceable(&path) || !crate::cachewrite::allowed(&path) { continue; }

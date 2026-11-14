@@ -94,7 +94,9 @@ def source_checks(root, paths, metadata, policy):
                 if not isinstance(node, dict):
                     return
                 for key, value in node.items():
-                    if isinstance(value, dict) and gpui(value.get("package", key)):
+                    # Only a string renames a dependency; [workspace.package] is a table of package fields.
+                    name = value.get("package", key) if isinstance(value, dict) else key
+                    if isinstance(value, dict) and gpui(name if isinstance(name, str) else key):
                         if value.get("workspace") is not True and (
                             value.get("git") != fork["url"] or value.get("rev") != fork["rev"]
                             or any(k in value for k in ("path", "branch", "tag"))

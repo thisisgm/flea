@@ -1,6 +1,8 @@
-use super::{Shell, FALLBACK_HEADER_HEIGHT};
+use super::Shell;
 use crate::window::{composition::Geometry, startup::View};
 use gpui::Window;
+
+const FALLBACK_HEADER_HEIGHT: f32 = 27.;
 
 impl Shell {
     pub(crate) fn has_tabs(&self) -> bool {

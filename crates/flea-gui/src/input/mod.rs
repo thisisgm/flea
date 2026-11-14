@@ -6,6 +6,7 @@ mod element;
 pub mod focus;
 mod pointer;
 mod pointer_press;
+mod positions;
 pub mod scroll;
 pub mod selection;
 // The oracle tests keep their input::slow path while the rename owner supplies the shared policy.
@@ -85,7 +86,7 @@ fn whole_lines(frame: Frame, scroll: f32) -> (usize, usize) {
 #[derive(Default)]
 pub struct PaneInput {
     pub selection: Selection,
-    pub shown: Option<std::rc::Rc<[usize]>>,
+    pub shown: positions::Rows,
     pub hit_boxes: Option<HitBoxes>,
     pub hovered: Option<usize>,
     pub pointer_origin: bool,
@@ -211,6 +212,10 @@ pub struct Band {
 }
 
 impl PaneInput {
+    pub(crate) fn prepared_frame(&self) -> Option<Frame> {
+        self.prepared
+    }
+
     /// Call before preparing a view's row states so rollback and the new geometry present together.
     pub fn prepare(&mut self, frame: Frame, selected: &mut Vec<usize>, cursor: &mut usize) {
         // A rename band moves only the rows below its own row, and gestures hold content positions, so it never cancels one.
@@ -284,18 +289,6 @@ impl PaneInput {
         self.wrote = None;
         self.motion_at = None;
     }
-    pub fn index(&self, view: usize) -> usize {
-        self.shown
-            .as_ref()
-            .and_then(|shown| shown.get(view))
-            .copied()
-            .unwrap_or(view)
-    }
-    pub fn view_index(&self, row: usize) -> usize {
-        self.shown.as_ref().map_or(row, |shown| {
-            shown.binary_search(&row).unwrap_or_else(|at| at)
-        })
-    }
     pub fn hit(&self, point: Point<Pixels>) -> Option<usize> {
         let frame = self.frame?;
         self.hit_in(frame, point)
@@ -314,7 +307,7 @@ impl PaneInput {
     }
     /// The listing row drawn at this position; under a filter the frame spans every held row, so a position past the drawn ones is blank ground.
     pub fn drawn_row(&self, view: usize) -> Option<usize> {
-        match &self.shown {
+        match self.shown.as_ref() {
             Some(shown) => shown.get(view).copied(),
             None => Some(view),
         }
@@ -369,14 +362,17 @@ impl PaneInput {
     }
     /// A new filter answer renumbers the view rows, so a band in flight rebuilds from its starting marks.
     pub fn set_shown(&mut self, shown: Option<std::rc::Rc<[usize]>>) {
-        let same = match (&self.shown, &shown) {
+        let same = match (self.shown.as_ref(), shown.as_ref()) {
             (Some(old), Some(new)) => std::rc::Rc::ptr_eq(old, new),
             (old, new) => old.is_none() && new.is_none(),
         };
-        if let Some(band) = self.band.as_mut().filter(|_| !same) {
+        if same {
+            return;
+        }
+        if let Some(band) = self.band.as_mut() {
             band.basis = None;
         }
-        self.shown = shown;
+        self.shown = positions::Rows::new(shown);
     }
     pub fn cancel(&mut self, selected: &mut Vec<usize>, cursor: &mut usize) {
         if let Some(band) = self.band.take().filter(|band| band.active) {

@@ -26,7 +26,8 @@ pub(super) struct Cue {
     source_keys: Option<(bool, bool)>,
     pub(super) own: bool,
     proposed: Proposed,
-    facts: Facts,
+    /// None until the background read lands; a cue paints nothing before it, since unread facts would say copy.
+    facts: Option<Facts>,
 }
 
 #[path = "feedback_keys.rs"]
@@ -61,7 +62,7 @@ impl Shell {
             (hover.index, Some(hover.slot))
         } else {
             let row = host.input.hit(point)?;
-            if !host.pane.held.row(row)?.dir {
+            if !folder_row(host.pane.held.row(row)?) {
                 return None;
             }
             (row, None)
@@ -104,8 +105,7 @@ impl Shell {
                     return None;
                 }
                 Some((
-                    paths.first()?.clone(),
-                    paths.len(),
+                    paths.clone(),
                     Some((lift.marker.copy, lift.marker.shift)),
                     None,
                     Proposed::default(),
@@ -138,19 +138,15 @@ impl Shell {
                     .as_deref()
                     .and_then(core::shelf)
                     .map(|(_, copy)| if copy { Verb::Copy } else { Verb::Move });
-                Some((
-                    paths.first()?.clone(),
-                    paths.len(),
-                    marker.map(|m| (m.copy, m.shift)),
-                    fixed,
-                    proposed,
-                ))
+                Some((paths, marker.map(|m| (m.copy, m.shift)), fixed, proposed))
             })
         };
-        let Some((first, count, flags, fixed, proposed)) = source else {
+        let Some((sources, flags, fixed, proposed)) = source.filter(|source| !source.0.is_empty())
+        else {
             self.clear_file_cue(window, cx);
             return;
         };
+        let count = sources.len();
         let dest = target.dest.clone();
         drags.serial += 1;
         let serial = drags.serial;
@@ -165,20 +161,21 @@ impl Shell {
                 source_keys: None,
                 own,
                 proposed,
-                facts: Facts::default(),
+                facts: None,
             },
         ));
-        self.refresh_file_cue(window, cx);
+        // The folder left behind gives up its line now; this one says its own once its facts are read.
+        self.settle_file_feedback(window, cx);
         cx.refresh_windows();
         let facts = cx
             .background_executor()
-            .spawn(async move { facts::read(Some(&first), &dest) });
+            .spawn(async move { facts::read(&sources, &dest) });
         cx.spawn_in(window, async move |this, cx| {
             let facts = facts.await;
             let _ = this.update_in(cx, |shell, window, cx| {
                 if let Some((owner, cue)) = cx.default_global::<Drags>().cue.as_mut() {
                     if *owner == key && cue.serial == serial {
-                        cue.facts = facts;
+                        cue.facts = Some(facts);
                         shell.refresh_file_cue(window, cx);
                         cx.notify();
                     }
@@ -197,6 +194,7 @@ impl Shell {
             && host.path == cue.target.folder
             && host.pane.held.listing == cue.target.listing
             && !host.pane.busy()
+            && cue.facts.is_some_and(|facts| facts.refused.is_none())
             && self
                 .cue_target(window.mouse_position(), cue.own, window, cx)
                 .is_some_and(|target| target == cue.target))

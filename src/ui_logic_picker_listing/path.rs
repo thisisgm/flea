@@ -83,7 +83,7 @@ pub fn grid_target(index: usize, delta: isize, columns: usize, total: usize) -> 
     }
     let at = index.min(end);
     let next = next as usize;
-    if columns > 0 && ((delta == -1 && at % columns == 0) || (delta == 1 && next % columns == 0)) {
+    if columns > 0 && ((delta == -1 && at.is_multiple_of(columns)) || (delta == 1 && next.is_multiple_of(columns))) {
         return at;
     }
     next

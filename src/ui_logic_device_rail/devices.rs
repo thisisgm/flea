@@ -1,5 +1,6 @@
 //! The DEVICES half of the rail: one lsblk listing turned into disk and volume rows.
 use super::lsblk::{bytes, children, device_path, has, is_true, mount_of, mountpoints, parse_hex, parse_nodes, raw_name, text};
+use super::encrypted::is_container;
 use super::{Group, Kind, RailEntry};
 use crate::jsondoc::Json;
 
@@ -93,7 +94,7 @@ pub fn hidden(n: &Json) -> bool {
     if fs == "swap" || fs.ends_with("_member") || fs == "bcache" || fs == "ceph" || fs == "drbd" {
         return true;
     }
-    if fs.starts_with("crypto_") {
+    if is_container(&fs) {
         return false;
     }
     (is_firmware_part(n) && !is_isohybrid_keep(n)) || is_recovery_label(n) || is_system_mount_only(n)
@@ -217,11 +218,11 @@ pub fn dedupe(rows: Vec<RailEntry>) -> Vec<RailEntry> {
 
 /// A crypto container leaf with nothing mounted on it.
 pub fn is_locked_node(n: &Json) -> bool {
-    children(n).is_empty() && mount_of(n).is_empty() && text(n, "fstype").to_lowercase().starts_with("crypto_")
+    children(n).is_empty() && mount_of(n).is_empty() && is_container(&text(n, "fstype"))
 }
 
 fn browsable(n: &Json) -> bool {
-    !text(n, "fstype").to_lowercase().starts_with("crypto_") && !text(n, "parttypename").to_lowercase().contains("efi")
+    !is_container(&text(n, "fstype")) && !text(n, "parttypename").to_lowercase().contains("efi")
 }
 
 /// A drive somebody can pull out: removable media or a USB transport.
@@ -236,7 +237,7 @@ pub fn mount_timer_start(exit_code: i32) -> bool {
 
 /// The name a crypto container's owner gave it, "" for any other node.
 pub fn container_name(n: &Json) -> String {
-    if text(n, "fstype").to_lowercase().starts_with("crypto_") && has(n, "label") {
+    if is_container(&text(n, "fstype")) && has(n, "label") {
         return text(n, "label");
     }
     String::new()

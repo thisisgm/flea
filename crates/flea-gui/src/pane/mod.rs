@@ -2,6 +2,7 @@
 pub(crate) mod clock;
 pub(crate) mod presentation;
 pub mod requests;
+mod sparse;
 pub mod states;
 pub mod swap;
 

@@ -95,7 +95,7 @@ pub fn decode(value: &Json) -> Result<Vec<Identity>, String> {
         .collect()
 }
 pub fn matches(held: Option<&[Identity]>, source: &std::path::Path) -> bool {
-    held.map_or(true, |held| {
+    held.is_none_or(|held| {
         held.iter()
             .find(|h| h.path == source)
             .is_some_and(|h| ItemIdentity::inspect(source).is_ok_and(|now| h.item.same_item(&now)))

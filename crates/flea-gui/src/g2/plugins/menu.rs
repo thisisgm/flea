@@ -10,7 +10,7 @@ use flea::{
 use gpui::{Context, Subscription, Task, Window};
 use std::{
     collections::{HashMap, HashSet},
-    sync::{Arc, OnceLock},
+    sync::{Arc, LazyLock},
     time::Instant,
 };
 
@@ -327,12 +327,9 @@ impl Shell {
         if self.menu.plugin_runtime.mimes.is_some() || self.menu.plugin_runtime.loading.is_some() {
             return;
         }
-        static DB: OnceLock<Arc<mime::Db>> = OnceLock::new();
+        static DB: LazyLock<Arc<mime::Db>> = LazyLock::new(|| Arc::new(mime::Db::load()));
         self.menu.plugin_runtime.loading = Some(cx.spawn_in(window, async move |this, cx| {
-            let db = cx
-                .background_executor()
-                .spawn(async { DB.get_or_init(|| Arc::new(mime::Db::load())).clone() })
-                .await;
+            let db = cx.background_executor().spawn(async { DB.clone() }).await;
             let _ = this.update_in(cx, |shell, window, cx| {
                 shell.menu.plugin_runtime.mimes = Some(db);
                 shell.menu.plugin_runtime.loading = None;

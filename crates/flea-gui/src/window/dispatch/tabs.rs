@@ -1,7 +1,10 @@
 //! The tabs family: the strip keys, Ctrl+Return and a middle click on a folder row or a rail place, through the strip's model.
 use super::Order;
 use crate::{g2::rail_places::producer::Event, state::Shell};
-use flea::{keys::Context as Keys, ui_logic_rail_places::rail::Kind};
+use flea::{
+    keys::Context as Keys,
+    ui_logic_rail_places::rail::{FavouriteError, Kind},
+};
 use gpui::{Context, Window};
 
 pub(super) fn run(
@@ -68,13 +71,8 @@ fn place_tab(
     }
     let catalog = shell.locale.catalog.clone();
     let label = crate::g2::rail_places::content::row_label(&catalog, entry).to_string();
-    let (message, error) = if let Some(error) = &entry.error {
-        let error = match error {
-            flea::ui_logic_rail_places::rail::FavouriteError::Record(record) => {
-                catalog.tr(record.key())
-            }
-            flea::ui_logic_rail_places::rail::FavouriteError::Status(line) => line.clone(),
-        };
+    let (message, error) = if let Some(FavouriteError::Record(record)) = &entry.error {
+        let error = catalog.tr(record.key());
         let text = catalog.tr_args("places.favorite.open_failed", &[&label, &error]);
         (text, true)
     } else if entry.path.contains("://") && !entry.path.starts_with("file://") {

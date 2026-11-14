@@ -101,6 +101,8 @@ def generate(data, rust=False):
         seen = {}
         for row in data.get(kind, []):
             key = row[field]
+            if 'frontend' in row or 'context' in row:
+                fail(f'shared listing key {caps(mods, key)} binds every frontend in the listing; a scoped binding belongs in [[preset]]: {row}')
             if key in seen:
                 fail(f'shared listing key {caps(mods, key)} claims {seen[key]} and {row["action"]}')
             seen[key] = row['action']

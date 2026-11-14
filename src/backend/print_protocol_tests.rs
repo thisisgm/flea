@@ -48,7 +48,7 @@ case "$tool" in
    previous=$arg; last=$arg
   done
   if test "$last" = info:; then
-   for arg do test "$arg" != -- || printf '800 600\n'; done
+   for arg do case "$arg" in --|-read) printf '800 600\n' ;; esac; done
    exit 0
   fi
   test "$tool" != pdftoppm || last=$last.$codec
@@ -58,7 +58,7 @@ case "$tool" in
   printf '%s %s\n' "$tool" "$page" > "$last"
   take=0
   for arg do
-   if test "$arg" = --; then take=1; continue; fi
+   case "$arg" in --|-read) take=1; continue ;; esac
    if test "$take" = 1; then
     take=0; file=${arg%\[0\]}
     test ! -f "$file" || cat -- "$file" >> "$last"

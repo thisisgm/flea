@@ -234,19 +234,25 @@ impl Navigator {
         let now = pane.now();
         pane.swap.end(now, "retried");
         pane.state.kind = Kind::Loading;
-        if waited != pane.path() {
-            return self.open_without_history(pane, &waited, Options::default(), None, false);
+        // A place whose rows never landed retries its navigation, so its first rows are no change.
+        if pane.listed.as_deref() != Some(waited.as_str()) {
+            return self.open_without_history(pane, &waited, Options::default(), None, true);
         }
         self.reload(pane, selected)
     }
 
-    // PaneWire.qml onTransferDone: the folder a transfer finished in is read again in place, its cursor back at the top; a search keeps its rows.
-    pub fn refresh_after_transfer(&mut self, pane: &mut Pane) -> Result<bool, Refusal> {
+    // The re-read PaneWire.qml onTransferDone asks for, taken here as a watch notice due at once, so the anchored re-read keeps the cursor's file, the marks and the view, and whatever owns the rows holds the debt; a search keeps its rows.
+    pub fn refresh_after_transfer(
+        &mut self,
+        pane: &mut Pane,
+        selected: &[usize],
+        now: u64,
+    ) -> bool {
         if pane.state.search {
-            return Ok(false);
+            return false;
         }
-        let path = pane.path().to_owned();
-        self.open_without_history(pane, &path, Options::default(), None, false)
+        self.watch.owe(now);
+        self.fire_watch(pane, selected, now)
     }
 
     // The owed re-read: the anchor rides the list so its first rows hold the cursor's file.
@@ -260,15 +266,19 @@ impl Navigator {
         if pane.busy() {
             return false;
         }
-        let mut anchor = self
+        let deleted = self
             .deletion_anchor
             .take()
-            .filter(|anchor| anchor.path == pane.path())
-            .unwrap_or_else(|| {
-                let mut anchor = Anchor::capture(pane, selected, select, want_changed);
-                anchor.grid_offset = self.viewport.as_ref().map(|view| view.offset(pane.cursor));
-                anchor
-            });
+            .filter(|anchor| anchor.path == pane.path());
+        // Anchor.js afterDelete: the cursor stands on the first deleted slot before the re-read, so a kept viewport lands on that slot and not on the row the cursor had.
+        if let Some(slot) = deleted.as_ref().map(|anchor| anchor.index) {
+            pane.cursor = slot.min(pane.held.total.saturating_sub(1));
+        }
+        let mut anchor = deleted.unwrap_or_else(|| {
+            let mut anchor = Anchor::capture(pane, selected, select, want_changed);
+            anchor.grid_offset = self.viewport.as_ref().map(|view| view.offset(pane.cursor));
+            anchor
+        });
         let need = anchor.unnamed();
         if !need.is_empty() && !self.gate.paths_pending {
             if let Some(action) = pane.row_action(need.clone()) {

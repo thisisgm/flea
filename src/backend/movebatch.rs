@@ -210,12 +210,7 @@ fn confirm_batch(durability: &mut Durability, dsts: &[PathBuf]) -> Result<(), Fl
 
 // A same-filesystem rename answers at once; a cross-device copy stages into the batch.
 pub(crate) fn land_move(
-    id: usize,
-    index: usize,
-    name: &str,
-    src: &Path,
-    dst: &Path,
-    source: ItemIdentity,
+    item: super::opsreq::TransferItem<'_>,
     cancel: &AtomicBool,
     tx: &Sender<OpMsg>,
     settled: &AtomicU64,
@@ -223,8 +218,9 @@ pub(crate) fn land_move(
     durability: &mut Durability,
     batch: &mut MoveBatch,
 ) -> MoveOutcome {
+    let (src, dst) = (item.src, item.dst);
     if force_copy() {
-        return stage_copy(id, index, name, src, dst, source, cancel, tx, settled, steps, durability, batch);
+        return stage_copy(item, cancel, tx, settled, steps, durability, batch);
     }
     match crate::backend::renamecompat::rename_noreplace(src, dst) {
         Ok(()) => {
@@ -235,7 +231,7 @@ pub(crate) fn land_move(
             if let Some(parent) = src.parent() {
                 durability.touch(parent);
             }
-            match undo::moved(src, dst, source) {
+            match undo::moved(src, dst, item.source) {
                 Ok(step) => {
                     steps.push(step);
                     MoveOutcome::Done(Ok(()))
@@ -244,7 +240,7 @@ pub(crate) fn land_move(
             }
         }
         Err(e) if e.raw_os_error() == Some(EXDEV) => {
-            stage_copy(id, index, name, src, dst, source, cancel, tx, settled, steps, durability, batch)
+            stage_copy(item, cancel, tx, settled, steps, durability, batch)
         }
         Err(e) => MoveOutcome::Done(Err(from_io("rename", &dst.to_string_lossy(), &e))),
     }
@@ -252,12 +248,7 @@ pub(crate) fn land_move(
 
 // The EXDEV half of land_move: copy with today's file fsync, then wait on the batch's confirm.
 pub(crate) fn stage_copy(
-    id: usize,
-    index: usize,
-    name: &str,
-    src: &Path,
-    dst: &Path,
-    source: ItemIdentity,
+    item: super::opsreq::TransferItem<'_>,
     cancel: &AtomicBool,
     tx: &Sender<OpMsg>,
     settled: &AtomicU64,
@@ -265,6 +256,7 @@ pub(crate) fn stage_copy(
     durability: &mut Durability,
     batch: &mut MoveBatch,
 ) -> MoveOutcome {
+    let super::opsreq::TransferItem { id, index, name, src, dst, source } = item;
     let mut last = Instant::now() - PROGRESS_EVERY;
     let mut sink = |done: u64, total: u64| {
         if last.elapsed() < PROGRESS_EVERY {

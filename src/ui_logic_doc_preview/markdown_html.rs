@@ -270,8 +270,8 @@ pub struct TagHead {
 
 /// The head of a raw tag: '<img src="pic.png"/>' answers name "img", its attributes and a self-closing flag.
 pub fn tag_head(tag: &str) -> TagHead {
-    let ascii_edges = tag.as_bytes().first().map_or(true, u8::is_ascii)
-        && tag.as_bytes().last().map_or(true, u8::is_ascii);
+    let ascii_edges = tag.as_bytes().first().is_none_or(u8::is_ascii)
+        && tag.as_bytes().last().is_none_or(u8::is_ascii);
     // The reader counts UTF-16 units: one skipped before the name, one dropped at the end, a lone surrogate reading as U+FFFD.
     let wide;
     let text = if ascii_edges {

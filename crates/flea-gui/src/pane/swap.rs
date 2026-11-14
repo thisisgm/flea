@@ -313,7 +313,7 @@ impl super::Pane {
                 .restore_name
                 .as_ref()
                 .and_then(|name| held.rows.iter().position(|row| &row.name == name))
-                .map(|at| held.start + at)
+                .map(|at| held.index_at(at))
                 .unwrap_or(self.cursor)
                 .min(held.total.saturating_sub(1));
         }

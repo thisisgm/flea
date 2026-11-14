@@ -10,7 +10,7 @@ all three scripts refuse to build anywhere `findmnt` calls tmpfs or cannot name 
 | `/home/flea-sandbox/flea-bench-btrfs` | `tools/flea-bench`, warm run | 100,000 empty `.txt` files | listing: readdir, sort, window stat |
 | `/home/flea-sandbox/flea-media-btrfs` | `tools/flea-media-fixture` | 2,000 real media files, 4.7 GB | thumbnail generation and icon resolution |
 | `/home/flea-sandbox/flea-matched-btrfs` | `tools/flea-matched-fixture` | the media fixture minus heic and mkv, 1,700 files, 4.0 GB | the same comparison with every entrant at equal capability |
-| a `mktemp -d` of its own | `tools/flea-gvfs-fixture` | a zip mounted through `gvfsd-archive` | the NETWORK rail and anything needing a real FUSE mount, at zero privilege |
+| a `mktemp -d` of its own | `tools/flea-gvfs-fixture` | a read-only loopback DAV endpoint (`tools/flea-gvfs-dav.py`) mounted through `gvfsd-dav` | the NETWORK rail and anything needing a real FUSE mount, at zero privilege |
 
 The listing fixture contains no media at all, so it cannot exercise a thumbnailer. The
 media fixture is small enough that its listing time says nothing. Report both.

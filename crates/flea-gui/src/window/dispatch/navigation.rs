@@ -22,9 +22,10 @@ pub(super) fn run(
         return false;
     };
     let busy = host.pane.busy();
-    // Reload.js begin: a listing past its wait is let go, so a reload asks for its folder again.
-    let waited = busy && host.waiting;
-    let searching = host.search.owner.active();
+    if event.action == "reload" {
+        shell.reload_folder(side, window, cx);
+        return true;
+    }
     // Focus.js pageForward: a symlink drawn as a folder browses in like one.
     let folder = host
         .pane
@@ -60,10 +61,6 @@ pub(super) fn run(
         "parent" => Step::Up,
         "historyBack" => Step::Back,
         "historyForward" => Step::Forward,
-        // Focus.js: a reload goes quiet while a walk owns the header.
-        "reload" if searching => return true,
-        "reload" if waited => Step::Retry,
-        "reload" => Step::Reload,
         _ => return false,
     };
     // Shell::step puts a refusal's own sentence in the pane status, so its result is spent here.

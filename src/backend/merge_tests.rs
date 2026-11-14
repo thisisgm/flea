@@ -102,7 +102,7 @@ fn merged_policy(id: usize, paths: &[&Path], dest: &Path, inner: &str) -> Policy
 // Runs one merge transfer on this thread and answers its counts, entry, totals and folder.
 fn transfer(moving: bool, paths: &[&Path], dest: &Path, policy: Policy) -> (usize, usize, usize, Vec<String>, Entry, usize, usize, String) {
     let (tx, rx) = channel();
-    run_transfer_checked(1, moving, owned(paths), dest.to_path_buf(), AtomicBool::new(false).into(), tx, None, None, policy);
+    run_transfer_checked(1, moving, owned(paths), dest.to_path_buf(), AtomicBool::new(false).into(), tx, crate::backend::opsreq::TransferChecks { selection: None, destination: None, collision: policy });
     let mut errors = Vec::new();
     let mut out = (0, 0, 0, Vec::new(), Entry { op: String::new(), steps: Vec::new() }, 0, 0, String::new());
     for msg in rx.iter() {
@@ -130,8 +130,7 @@ fn move_merge_closes_an_open_batch_first_so_items_report_in_index_order() {
     d.file("from/trip/x.txt", "x");
     d.dir("to/trip");
     let (tx, rx) = channel();
-    run_transfer_checked(10, true, owned(&[&a, &b, &trip]), to.clone(), AtomicBool::new(false).into(), tx, None, None,
-        merged_policy(7, &[&a, &b, &trip], &to, "skip"));
+    run_transfer_checked(10, true, owned(&[&a, &b, &trip]), to.clone(), AtomicBool::new(false).into(), tx, crate::backend::opsreq::TransferChecks { selection: None, destination: None, collision: merged_policy(7, &[&a, &b, &trip], &to, "skip") });
     let mut order = Vec::new();
     for msg in rx.iter() {
         if let OpMsg::Item { index, ok, .. } = msg {

@@ -2,7 +2,9 @@
 use crate::backend::aliases::Aliases;
 use crate::backend::archivework::{run_boxed_cancellable_capped, Work};
 use crate::backend::convert;
-use crate::backend::fontinfo::cache::{cached, entry, is_png, key, prune, root as cache_root, WORK_TAG};
+use crate::backend::fontinfo::cache::{
+    cached, entry, is_png, key, prune, root as cache_root, WORK_TAG,
+};
 use crate::backend::fontinfo::{self, Facts};
 use crate::backend::iomount;
 use crate::backend::mime::Db;
@@ -72,7 +74,11 @@ pub fn looked_line(id: usize, facts: &Facts, files: &[PathBuf]) -> String {
 
 // Sample output: {"t":"fontlooked","id":4,"err":"ImageMagick is not installed"}
 pub fn failed_line(id: usize, err: &str) -> String {
-    format!(r#"{{"t":"fontlooked","id":{},"err":"{}"}}"#, id, escape(err))
+    format!(
+        r#"{{"t":"fontlooked","id":{},"err":"{}"}}"#,
+        id,
+        escape(err)
+    )
 }
 
 fn hex_colour(s: &str) -> bool {
@@ -81,7 +87,11 @@ fn hex_colour(s: &str) -> bool {
 
 // label: reads a file for a leading @, expands backslash escapes, and expands percent escapes, so those three are closed here.
 fn label_text(text: &str) -> Result<String, String> {
-    if text.is_empty() || text.len() > MAX_TEXT_BYTES || text.starts_with('@') || text.chars().any(|c| c.is_control() || c == '\\') {
+    if text.is_empty()
+        || text.len() > MAX_TEXT_BYTES
+        || text.starts_with('@')
+        || text.chars().any(|c| c.is_control() || c == '\\')
+    {
         return Err("that sample text cannot be drawn".to_string());
     }
     Ok(text.replace('%', "%%"))
@@ -95,25 +105,41 @@ fn check(ask: &Ask) -> Result<String, String> {
         return Err("a font sample takes #rrggbb colours".to_string());
     }
     if ask.sizes.len() != SAMPLES || ask.sizes.iter().any(|px| !(MIN_PX..=MAX_PX).contains(px)) {
-        return Err(format!("a font sample takes {} sizes from {} to {} pixels", SAMPLES, MIN_PX, MAX_PX));
+        return Err(format!(
+            "a font sample takes {} sizes from {} to {} pixels",
+            SAMPLES, MIN_PX, MAX_PX
+        ));
     }
     label_text(&ask.text)
 }
 
 // One process, three images: -write then +delete is how magick makes several files from one run.
 pub fn argv(program: &str, font: &Path, ask: &Ask, label: &str, out: &[PathBuf]) -> Vec<String> {
-    let mut a: Vec<String> = [program, "-background", &ask.bg, "-fill", &ask.fg, "-font"].iter().map(|s| s.to_string()).collect();
-    a.push(font.exact_text().to_string());
+    let [define, literal] = flea::ui_logic_print_convert::output::MAGICK_LITERAL;
+    let mut a: Vec<String> = [
+        program,
+        define,
+        literal,
+        "-background",
+        &ask.bg,
+        "-fill",
+        &ask.fg,
+        "-font",
+    ]
+    .iter()
+    .map(|s| s.to_string())
+    .collect();
+    a.push(flea::ui_logic_print_convert::output::magick_font(font));
     for (i, px) in ask.sizes.iter().enumerate() {
         a.push("-pointsize".to_string());
         a.push(px.to_string());
         a.push(format!("label:{}", label));
         if i + 1 < ask.sizes.len() {
             a.push("-write".to_string());
-            a.push(out[i].exact_text().to_string());
+            a.push(flea::ui_logic_print_convert::output::magick_output(&out[i]));
             a.push("+delete".to_string());
         } else {
-            a.push(out[i].exact_text().to_string());
+            a.push(flea::ui_logic_print_convert::output::magick_output(&out[i]));
         }
     }
     a
@@ -148,16 +174,34 @@ fn jail(inner: &[String], font: &Path, work: &mut Work) -> Result<(), FleaError>
 type Runner<'a> = dyn FnMut(&[String], &Path, &mut Work) -> Result<(), FleaError> + 'a;
 
 // The reply line for one ask. run draws the three files into the work folder it is given; a hit never calls it.
-pub fn answer(ask: &Ask, mime: &Db, aliases: &Aliases, root: &Path, program: &str, run: &mut Runner) -> String {
+pub fn answer(
+    ask: &Ask,
+    mime: &Db,
+    aliases: &Aliases,
+    root: &Path,
+    program: &str,
+    run: &mut Runner,
+) -> String {
     match look(ask, mime, aliases, root, program, run) {
         Ok((facts, files)) => looked_line(ask.id, &facts, &files),
         Err(err) => failed_line(ask.id, &err),
     }
 }
 
-fn look(ask: &Ask, mime: &Db, aliases: &Aliases, root: &Path, program: &str, run: &mut Runner) -> Result<(Facts, Vec<PathBuf>), String> {
+fn look(
+    ask: &Ask,
+    mime: &Db,
+    aliases: &Aliases,
+    root: &Path,
+    program: &str,
+    run: &mut Runner,
+) -> Result<(Facts, Vec<PathBuf>), String> {
     check(ask)?;
-    let name = ask.path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+    let name = ask
+        .path
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_default();
     let kind = mime.lookup(&name).map(|m| aliases.canonical(m));
     // Equal-weight *.otf rules can resolve to an OpenDocument formula template; only readable font tables admit that case.
     let ambiguous_otf = name.to_ascii_lowercase().ends_with(".otf")
@@ -192,9 +236,15 @@ fn look(ask: &Ask, mime: &Db, aliases: &Aliases, root: &Path, program: &str, run
     if let Some(files) = cached(root, &key) {
         return Ok((facts, files));
     }
-    std::fs::DirBuilder::new().recursive(true).mode(0o700).create(root).map_err(|e| crate::error::io_message(&e))?;
+    std::fs::DirBuilder::new()
+        .recursive(true)
+        .mode(0o700)
+        .create(root)
+        .map_err(|e| crate::error::io_message(&e))?;
     let mut work = Work::new(root, WORK_TAG).map_err(|e| e.msg)?;
-    let drawn: Vec<PathBuf> = (0..SAMPLES).map(|i| work.dir.join(format!("{}.png", i))).collect();
+    let drawn: Vec<PathBuf> = (0..SAMPLES)
+        .map(|i| work.dir.join(format!("{}.png", i)))
+        .collect();
     run(&argv(program, &font, ask, &label, &drawn), &font, &mut work).map_err(|e| e.msg)?;
     if !drawn.iter().all(|f| is_png(f)) {
         return Err("ImageMagick did not draw the sample".to_string());

@@ -681,6 +681,7 @@
   "settings.row.lang_marks": "显示代码图标",
   "settings.row.remember_sort": "记住每个文件夹的排序",
   "settings.row.wrap": "在列表两端循环",
+  "settings.row.grid_wrap_rows": "在行末换行",
   "settings.row.escape_up": "按 Esc 返回上级文件夹",
   "settings.row.start_in": "Flea 启动位置",
   "settings.row.start_folder": "指定的文件夹",
@@ -705,6 +706,7 @@
   "settings.row.preset": "快捷键预设",
   "settings.caption.group_by_kind": "文件夹、照片、文件",
   "settings.caption.wrap": "在顶部按向上键时",
+  "settings.caption.grid_wrap_rows": "网格视图中的左右移动",
   "settings.caption.escape_up": "没有可关闭的内容时",
   "settings.caption.permanently": "永久删除",
   "settings.hint.compact_default": "默认值仍为“紧凑”。",
@@ -2271,7 +2273,9 @@
   "keys.print": "打印…",
   "archive.flash.chooser_failed": "无法启动 %1 来选择镜像：%2。",
   "carry.hint": "点击目标位置，esc 取消",
-  "carry.status": {"other": "携带中：%1 个项目"},
+  "carry.status": {
+    "other": "携带中：%1 个项目"
+  },
   "clipboard.no_cursor_row": "光标下没有项目，无法打开菜单",
   "dialogs.file.disconnected": "该驱动器或共享已断开连接，因此无法再访问此文件夹",
   "dialogs.file.open.unlisted": "该文件已不在列表中。",
@@ -2321,7 +2325,9 @@
   "menu.shelf.added_one": "已添加到暂存架",
   "menu.shelf.nothing": "没有可放到暂存架上的项目。",
   "menu.shelf.refused": "暂存架未能接收该项目。",
-  "picker.browser.selection_changed": {"other": "%1 个所选项目已移动或更改，请重新选择。"},
+  "picker.browser.selection_changed": {
+    "other": "%1 个所选项目已移动或更改，请重新选择。"
+  },
   "picker.browser.selection_timeout": "Flea 未能确认所选项目。请重试。",
   "places.recent.hidden_refused": "“最近”会显示其列表中的所有项目，包括隐藏项目",
   "places.recent.new_folder_refused": "无法在“最近”中新建文件夹。请先打开一个文件夹",
@@ -2335,8 +2341,12 @@
   "send.providers.dropbox_checking": "正在检查 Dropbox",
   "send.providers.dropbox_timeout": "Dropbox 未能及时响应",
   "send.providers.taildrop_failed": "Taildrop 无法将 %1 发送到 %2。",
-  "tui.convert.cancelled": {"other": "转换已取消；已创建 %1 个输出文件。"},
-  "tui.convert.failed": {"other": "创建 %1 个输出文件后转换失败：%2"},
+  "tui.convert.cancelled": {
+    "other": "转换已取消；已创建 %1 个输出文件。"
+  },
+  "tui.convert.failed": {
+    "other": "创建 %1 个输出文件后转换失败：%2"
+  },
   "tui.find.invalid_response": "无法安全使用搜索结果。请重新查找。",
   "tui.find.scope_hint": "%1 · tab 切换范围",
   "tui.find.status": "查找“%1” · %2",
@@ -2542,5 +2552,7 @@
   },
   "feedback.unheld.move_many": {
     "other": "内部有 %1 个项目无法移动；第一个是 %2：%3"
-  }
+  },
+  "keys.action.extendLeft": "向左扩展选区",
+  "keys.action.extendRight": "向右扩展选区"
 }

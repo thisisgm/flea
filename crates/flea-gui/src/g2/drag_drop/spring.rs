@@ -223,7 +223,7 @@ impl Shell {
         (!matches!(
             entry.kind,
             Kind::Trash | Kind::Recent | Kind::Tag | Kind::Phone
-        ) && entry.error.is_none()
+        ) && !entry.invalid_record()
             && entry.mounted != Some(false)
             && entry.path.starts_with('/'))
         .then_some((producer.side, entry.path))

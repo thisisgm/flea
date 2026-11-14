@@ -1993,6 +1993,7 @@
   "settings.caption.group_by_kind": "kansiot, kuvat, tiedostot",
   "settings.caption.permanently": "pysyvästi",
   "settings.caption.wrap": "ylhäällä",
+  "settings.caption.grid_wrap_rows": "vasen ja oikea ruudukkonäkymässä",
   "settings.choice.automatic": "Automaattinen",
   "settings.choice.breadcrumb": "Murupolku",
   "settings.choice.chosen": "Valittu",
@@ -2201,6 +2202,7 @@
   "settings.row.use_this_folder": "Käytä tätä kansiota",
   "settings.row.view": "Viimeksi käytetty näkymä",
   "settings.row.wrap": "Jatka luettelon lopusta alkuun",
+  "settings.row.grid_wrap_rows": "Jatka rivien päissä",
   "settings.section.about": "Tietoja",
   "settings.section.display": "Näyttö",
   "settings.section.keys": "Näppäimet",
@@ -2664,5 +2666,7 @@
   "feedback.unheld.move_many": {
     "one": "Sisältä ei voitu siirtää %1 kohde; ensimmäinen on %2: %3",
     "other": "Sisältä ei voitu siirtää %1 kohdetta; ensimmäinen on %2: %3"
-  }
+  },
+  "keys.action.extendLeft": "Laajenna vasemmalle",
+  "keys.action.extendRight": "Laajenna oikealle"
 }

@@ -192,6 +192,7 @@ impl Shell {
                     side,
                     view.slot,
                     Rc::clone(&tracks),
+                    focus.grow_for(view.slot),
                 ));
             }
             if matches!(view.rows, TrackRows::Preview) {
@@ -281,6 +282,7 @@ impl Shell {
                         side,
                         view.slot,
                         Rc::clone(&tracks),
+                        focus.grow_for(view.slot),
                     ));
             }
             area = area.child(track);

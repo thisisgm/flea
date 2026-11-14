@@ -156,6 +156,7 @@ for line in sys.stdin:
         print('{"t":"error","where":"stale","path":"collisions","msg":"Listing changed"}',flush=True)
 "#]);
     let backend = Backend::start_command(command, "/files".into(), None, 320).unwrap();
+    let _ = backend.test_own(cx);
     let events = backend.replies.clone();
     let handle = open(cx, backend);
     update(cx, handle, |shell, window, cx| {

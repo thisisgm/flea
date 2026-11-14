@@ -3,13 +3,13 @@ use std::ffi::{c_char, c_int, CStr, CString, OsString};
 use std::collections::HashSet;
 use std::os::unix::ffi::{OsStrExt, OsStringExt};
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, OnceLock};
+use std::sync::{LazyLock, Mutex};
 use crate::oflags::{O_DIRECTORY, O_NOFOLLOW};
 
 // A cancelled caller may leave one syscall behind; another session must not start a second reader on that mount.
 fn active_mounts() -> &'static Mutex<HashSet<PathBuf>> {
-    static ACTIVE: OnceLock<Mutex<HashSet<PathBuf>>> = OnceLock::new();
-    ACTIVE.get_or_init(Default::default)
+    static ACTIVE: LazyLock<Mutex<HashSet<PathBuf>>> = LazyLock::new(Default::default);
+    &ACTIVE
 }
 
 struct MountRead(PathBuf);

@@ -158,10 +158,8 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
                         player.seek(-5)?;
                     }
                 }
-                "seekForward" | "pageForward" => {
-                    if player.control == 1 {
-                        player.seek(5)?;
-                    }
+                "seekForward" | "pageForward" if player.control == 1 => {
+                    player.seek(5)?;
                 }
                 _ => {}
             }
@@ -215,7 +213,7 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
         let expired = action == "trashArm"
             && model
                 .trash_armed_at
-                .map_or(true, |at| at.elapsed() >= TRASH_ARM);
+                .is_none_or(|at| at.elapsed() >= TRASH_ARM);
         if armed != action || expired {
             if action == "trashArm" {
                 model.trash_armed_at = Some(std::time::Instant::now());

@@ -38,7 +38,6 @@ impl Shell {
                 pictures.map.borrow_mut().release();
             }
             let live = connected
-                && !host.pane.state.search
                 && match surface {
                     Some(Surface::Grid) => host.grid.as_ref().is_some_and(|grid| grid.view.visible),
                     Some(Surface::List) => host.pane.state.kind == Kind::Ready,
@@ -80,6 +79,7 @@ impl Shell {
                     cx,
                 );
             }
+            pictures.flush_retired(window, cx);
             crate::preview_quality::sweep(cx);
             if connected {
                 self.send_picture_lines(side, lines, cx);

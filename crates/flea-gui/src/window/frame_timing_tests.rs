@@ -31,6 +31,27 @@ fn settled(shell: &gpui::Entity<crate::state::Shell>, cx: &mut gpui::VisualTestC
     }
 }
 
+fn active(json: &Json) -> Option<&Json> {
+    json.get("activity").and_then(|a| a.get("active"))
+}
+
+/// Positive control: one notification moves every counter, so an unchanged counter is a measurement.
+fn assert_counters_live(
+    shell: &gpui::Entity<crate::state::Shell>,
+    cx: &mut gpui::VisualTestContext,
+    before: &Json,
+) {
+    shell.update(cx, |_, cx| cx.notify());
+    idle_frame(cx);
+    let poked = scene(shell, cx);
+    assert_eq!(
+        count(&poked, "activity", "notifications"),
+        count(before, "activity", "notifications") + 1
+    );
+    assert!(count(&poked, "activity", "draws") > count(before, "activity", "draws"));
+    assert!(count(&poked, "activity", "committed") > count(before, "activity", "committed"));
+}
+
 #[gpui::test]
 fn unfocused_window_at_rest_requests_no_frames_and_notifies_nothing(cx: &mut gpui::TestAppContext) {
     let (shell, cx, _requests) = mount(cx, true);
@@ -38,12 +59,7 @@ fn unfocused_window_at_rest_requests_no_frames_and_notifies_nothing(cx: &mut gpu
     cx.update(|window, _| window.activate_window());
     cx.run_until_parked();
     idle_frame(cx);
-    assert_eq!(
-        scene(&shell, cx)
-            .get("activity")
-            .and_then(|a| a.get("active")),
-        Some(&Json::Bool(true))
-    );
+    assert_eq!(active(&scene(&shell, cx)), Some(&Json::Bool(true)));
     cx.deactivate_window();
     // The blur itself may repaint the unfocused ink once; the scene samples after it settles.
     for _ in 0..4 {
@@ -51,10 +67,7 @@ fn unfocused_window_at_rest_requests_no_frames_and_notifies_nothing(cx: &mut gpu
         idle_frame(cx);
     }
     let before = scene(&shell, cx);
-    assert_eq!(
-        before.get("activity").and_then(|a| a.get("active")),
-        Some(&Json::Bool(false))
-    );
+    assert_eq!(active(&before), Some(&Json::Bool(false)));
     for _ in 0..100 {
         step(cx, Duration::from_millis(100));
         idle_frame(cx);
@@ -67,16 +80,49 @@ fn unfocused_window_at_rest_requests_no_frames_and_notifies_nothing(cx: &mut gpu
             "an unfocused window at rest changed {field} over 10 s"
         );
     }
-    // Positive control: the counters are live, so the zero above is a measurement.
-    shell.update(cx, |_, cx| cx.notify());
+    assert_counters_live(&shell, cx, &after);
+}
+
+/// One simulated day in one-minute steps, with the compositor's frame callback after each step or none at all.
+fn idle_day(cx: &mut gpui::VisualTestContext, frame_callbacks: bool) {
+    for _ in 0..24 * 60 {
+        step(cx, Duration::from_secs(60));
+        if frame_callbacks {
+            idle_frame(cx);
+        }
+    }
+}
+
+#[gpui::test]
+fn untouched_window_does_no_frame_work_over_a_simulated_day(cx: &mut gpui::TestAppContext) {
+    let (shell, cx, _requests) = mount(cx, true);
+    settled(&shell, cx);
+    cx.update(|window, _| window.activate_window());
+    cx.run_until_parked();
+    for _ in 0..4 {
+        step(cx, Duration::from_millis(250));
+        idle_frame(cx);
+    }
+    let rested = scene(&shell, cx);
+    assert_eq!(active(&rested), Some(&Json::Bool(true)));
+    // Shown and focused: the compositor offers a frame every minute and none is taken.
+    idle_day(cx, true);
+    let shown = scene(&shell, cx);
+    assert_eq!(active(&shown), Some(&Json::Bool(true)));
+    // No frame callbacks, as on another workspace or a blanked output: nothing may queue for the frame that ends it.
+    idle_day(cx, false);
     idle_frame(cx);
-    let poked = scene(&shell, cx);
-    assert_eq!(
-        count(&poked, "activity", "notifications"),
-        count(&after, "activity", "notifications") + 1
-    );
-    assert!(count(&poked, "activity", "draws") > count(&after, "activity", "draws"));
-    assert!(count(&poked, "activity", "committed") > count(&after, "activity", "committed"));
+    let returned = scene(&shell, cx);
+    for (state, after) in [("shown", &shown), ("without frame callbacks", &returned)] {
+        for field in ["draws", "notifications", "committed"] {
+            assert_eq!(
+                count(after, "activity", field),
+                count(&rested, "activity", field),
+                "an untouched window {state} changed {field} over a simulated day"
+            );
+        }
+    }
+    assert_counters_live(&shell, cx, &returned);
 }
 
 #[gpui::test]

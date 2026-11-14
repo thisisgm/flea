@@ -3,7 +3,7 @@ use super::{
     scroll::{self, Axis, Limits, Phase, Wheel},
     Glide, PaneInput,
 };
-use crate::{list::pane::Pane, state::Shell};
+use crate::{list::pane::Pane, state::Shell, window::startup::View};
 use gpui::{Context, ScrollDelta, ScrollWheelEvent, TouchPhase, Window};
 use std::time::Instant;
 
@@ -128,8 +128,12 @@ impl PaneInput {
 }
 
 impl Shell {
-    /// Any release returns a held overscroll, a refused or menu one included, as Flickable's release fixup does.
+    /// A release on a drawn pane scroll (List, Dual, Columns) returns a held overscroll, a refused or menu one included, as Flickable's release fixup does.
     pub(crate) fn pointer_release(&mut self, side: usize, cx: &mut Context<Self>) {
+        // Grid owns its scroll; the parked List offset does not belong to its frame.
+        if self.view == View::Grid {
+            return;
+        }
         let (now, reduced) = (cx.background_executor().now(), cx.reduce_motion());
         if let Some(host) = &mut self.panes[side] {
             if host.input.release(&mut host.pane, now, reduced) {

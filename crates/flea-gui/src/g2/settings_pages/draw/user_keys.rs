@@ -67,36 +67,58 @@ impl Rows<'_> {
         let keys_w = keys_w.max(s.of(super::KEYS_W));
         let cell = (self.view.panel.pane.0 - 2. * s.of(PAD_X) - s.of(GAP)) / 2.;
         base.flex()
-            .flex_wrap()
+            .flex_col()
             .gap(self.px(GAP))
             .py(self.px(7.))
             .px(self.px(PAD_X))
             .text_size(self.view.typeface.caption)
-            .children(row.items.iter().map(|item| {
-                div()
-                    .w(px(cell))
-                    .h(self.px(CHIP_H))
-                    .flex()
-                    .items_center()
-                    .gap(self.px(GAP))
-                    .child(
-                        div()
-                            .w(px(keys_w))
-                            .mr(self.px(5.))
-                            .flex()
-                            .justify_end()
-                            .text_color(ink.foreground)
-                            .child(SharedString::from(keys_text(
-                                item,
-                                &self.view.panel.catalog,
-                            ))),
-                    )
-                    .when(!item.glyph.is_empty(), |cell| {
-                        cell.child(mark(item.glyph, s.of(16.), ink.muted_frame))
-                    })
-                    .child(div().whitespace_nowrap().text_color(ink.foreground).child(
-                        SharedString::from(item.label.resolve(&self.view.panel.catalog)),
-                    ))
-            }))
+            .children(
+                row.items
+                    .chunks(KEY_COLUMNS)
+                    .enumerate()
+                    .map(|(band, items)| {
+                        div().flex_1().min_h_0().flex().gap(self.px(GAP)).children(
+                            items.iter().enumerate().map(|(at, item)| {
+                                let (id, label_id) = (row.id.clone(), row.id.clone());
+                                let at = band * KEY_COLUMNS + at;
+                                div()
+                                    .debug_selector(move || {
+                                        format!("settings-key-preview-{id}-{at}")
+                                    })
+                                    .w(px(cell))
+                                    .h_full()
+                                    .flex()
+                                    .items_center()
+                                    .gap(self.px(GAP))
+                                    .child(
+                                        div()
+                                            .w(px(keys_w))
+                                            .mr(self.px(5.))
+                                            .flex()
+                                            .justify_end()
+                                            .text_color(ink.foreground)
+                                            .child(SharedString::from(keys_text(
+                                                item,
+                                                &self.view.panel.catalog,
+                                            ))),
+                                    )
+                                    .when(!item.glyph.is_empty(), |cell| {
+                                        cell.child(mark(item.glyph, s.of(16.), ink.muted_frame))
+                                    })
+                                    .child(
+                                        div()
+                                            .debug_selector(move || {
+                                                format!("settings-key-label-{label_id}-{at}")
+                                            })
+                                            .whitespace_nowrap()
+                                            .text_color(ink.foreground)
+                                            .child(SharedString::from(
+                                                item.label.resolve(&self.view.panel.catalog),
+                                            )),
+                                    )
+                            }),
+                        )
+                    }),
+            )
     }
 }

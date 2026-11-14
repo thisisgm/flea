@@ -10,6 +10,7 @@ use std::collections::HashMap;
 
 pub fn row(name: &str, dir: bool) -> RowFacts {
     RowFacts {
+        listing_index: None,
         source: None,
         depth: 0,
         open: false,

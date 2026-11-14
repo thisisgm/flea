@@ -4,13 +4,13 @@ use std::{
     cell::RefCell,
     collections::HashMap,
     rc::{Rc, Weak},
-    sync::OnceLock,
+    sync::LazyLock,
     time::Instant,
 };
 
 fn kit() -> &'static omi::Kit {
-    static KIT: OnceLock<omi::Kit> = OnceLock::new();
-    KIT.get_or_init(omi::Kit::bundled)
+    static KIT: LazyLock<omi::Kit> = LazyLock::new(omi::Kit::bundled);
+    &KIT
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

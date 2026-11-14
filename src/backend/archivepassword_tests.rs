@@ -146,13 +146,16 @@ fn fix_7zpass_menu_extract_uses_cursor_archive_and_reaches_password_gate() {
         &mut ops,
         Arc::new(Formats::from_tools(true, true)),
         "extract",
-        Vec::new(),
-        String::new(),
-        archive.clone(),
-        dest.clone(),
+        crate::backend::archivereq::ArchiveRequest {
+            compressing: false,
+            paths: Vec::new(),
+            format: String::new(),
+            archive: archive.clone(),
+            dest: dest.clone(),
+            password: String::new(),
+            encrypt_names: false,
+        },
         17,
-        String::new(),
-        false,
     );
     while !String::from_utf8_lossy(&out).contains(r#""t":"archivedone""#) {
         opsdispatch::report_op(

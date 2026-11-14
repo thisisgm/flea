@@ -23,8 +23,7 @@ fn binary(root: &Path) -> &'static Path {
     BINARY.get_or_init(|| {
         let workspace = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         let executable = std::env::current_exe().unwrap();
-        let dependencies = executable.parent().unwrap();
-        let library = foldhash::core_library(dependencies, &executable);
+        let library = foldhash::core_library(&executable);
         let binary = root.join("flea-backend");
         let output = Command::new("rustc")
             .arg("--edition=2021")
@@ -32,9 +31,7 @@ fn binary(root: &Path) -> &'static Path {
             .arg(workspace.join("src/main.rs"))
             .arg("--extern")
             .arg(format!("flea={}", library.display()))
-            .args(foldhash::backend_extern_args(&workspace, dependencies))
-            .arg("-L")
-            .arg(format!("dependency={}", dependencies.display()))
+            .args(foldhash::backend_extern_args(&workspace, &executable))
             .arg("-o")
             .arg(&binary)
             .env("CARGO_MANIFEST_DIR", &workspace)

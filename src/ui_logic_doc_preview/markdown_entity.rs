@@ -2,7 +2,7 @@
 
 use super::markdown_entity_table::PACKED;
 use super::markdown_text::at;
-use std::sync::OnceLock;
+use std::sync::LazyLock;
 
 const REPLACEMENT: char = '\u{fffd}';
 // The longest reference is "&CounterClockwiseContourIntegral;" (33 characters), so a window this long holds any one.
@@ -13,8 +13,7 @@ const MAX_HEX: usize = 6;
 
 /// The named references in name order, unpacked on first use.
 fn names() -> &'static [(&'static str, String)] {
-    static NAMES: OnceLock<Vec<(&'static str, String)>> = OnceLock::new();
-    NAMES.get_or_init(|| {
+    static NAMES: LazyLock<Vec<(&'static str, String)>> = LazyLock::new(|| {
         PACKED
             .split(' ')
             .filter_map(|entry| {
@@ -27,7 +26,8 @@ fn names() -> &'static [(&'static str, String)] {
                 Some((name, value))
             })
             .collect()
-    })
+    });
+    &NAMES
 }
 
 /// A named reference's text, as "copy" answers "\u{a9}"; an unknown name answers None.

@@ -16,6 +16,7 @@ import time
 
 from flea_transport import MARKER, REPO, TransportError, drain_timeout, exchange, group_members, owned, private
 from flea_transport_lifecycle import drain, identity, subreaper
+from flea_cargo_artifacts import profile_directory
 
 MAX_TIMEOUT_S = 30
 READ_BYTES = 65536
@@ -65,8 +66,8 @@ class Host:
             directory = self.root / name
             directory.mkdir(mode=0o700)
             environment[key] = str(directory)
-        # The driver is target/<profile>/deps/<test>, so the flea beside it shares its profile, debug or release.
-        binary = Path(os.environ.get("FLEA_BIN", driver.parent.parent / "flea")).resolve(strict=True)
+        declared = os.environ.get("FLEA_BIN")
+        binary = (Path(declared) if declared is not None else profile_directory(driver) / "flea").resolve(strict=True)
         if not os.access(binary, os.X_OK):
             raise TransportError("build the production flea binary first")
         environment["FLEA_BIN"] = str(binary)

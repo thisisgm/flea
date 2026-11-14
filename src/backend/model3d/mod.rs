@@ -10,6 +10,7 @@ mod gcode;
 mod mesh;
 mod ply;
 mod project;
+mod project_part;
 mod projectmeta;
 mod projectplates;
 mod properties;
@@ -17,8 +18,10 @@ mod slicer;
 pub use slicer::SlicerFacts;
 pub mod wire;
 mod xml;
+mod xml_budget;
 mod zip;
 
+use flea::ui_logic_model_preview::wire::{Failure, Refusal};
 use std::collections::BTreeMap;
 
 #[path = "../../ui_logic_model_preview/model_wire_types.rs"]
@@ -62,7 +65,21 @@ pub(super) fn embedded_thumbnail_supported(name: &str) -> bool {
 }
 
 // Sample input: format="obj", bytes=b"v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n".
+#[cfg(test)]
 pub fn parse(format: &str, bytes: &[u8]) -> Result<Model> {
+    parse_classified(format, bytes).map_err(|failure| failure.reason)
+}
+
+// Sample input: format="3mf", bytes are a ZIP containing 3D/3dmodel.model and its component parts.
+pub fn parse_classified(format: &str, bytes: &[u8]) -> std::result::Result<Model, Failure> {
+    let mut budget = xml::Budget::new();
+    parse_inner(format, bytes, &mut budget).map_err(|reason| Failure {
+        reason,
+        refusal: budget.exhausted().then_some(Refusal::TooLarge),
+    })
+}
+
+fn parse_inner(format: &str, bytes: &[u8], budget: &mut xml::Budget) -> Result<Model> {
     if bytes.is_empty() || bytes.len() > MAX_INPUT {
         return Err("3D input exceeds its bound".into());
     }
@@ -75,7 +92,7 @@ pub fn parse(format: &str, bytes: &[u8]) -> Result<Model> {
         "obj" => mesh::obj(bytes, &mut model)?,
         "ply" => ply::parse(bytes, &mut model)?,
         "amf" => amf::parse(bytes, &mut model)?,
-        "3mf" => project::parse(bytes, &mut model)?,
+        "3mf" => project::parse(bytes, &mut model, budget)?,
         "gcode" => gcode::parse(bytes, &mut model)?,
         "bgcode" => bgcode::parse(bytes, &mut model)?,
         _ => return Err("unsupported 3D format".into()),
@@ -178,7 +195,7 @@ fn color(value: &str) -> Result<Color> {
         return Err("invalid 3D colour".into());
     }
     let mut out = [255; 4];
-    for (i, part) in value.as_bytes().chunks_exact(2).enumerate() {
+    for (i, part) in value.as_bytes().as_chunks::<2>().0.iter().enumerate() {
         out[i] = u8::from_str_radix(std::str::from_utf8(part).unwrap(), 16)
             .map_err(|_| "invalid 3D colour")?;
     }
@@ -207,3 +224,10 @@ mod r3_tests;
 
 #[cfg(test)]
 mod regression_tests;
+
+#[cfg(test)]
+mod memory_tests;
+#[cfg(test)]
+mod refusal_tests;
+#[cfg(test)]
+mod single_part_tests;

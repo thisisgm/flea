@@ -31,9 +31,9 @@ pub fn load(file: &Path) -> (Stamp, Vec<String>) {
 
 /// The desktop's recent file, named once from the environment the window started with.
 pub fn file() -> &'static Path {
-    static FILE: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
-    FILE.get_or_init(|| {
+    static FILE: std::sync::LazyLock<PathBuf> = std::sync::LazyLock::new(|| {
         let home = std::env::var("HOME").unwrap_or_default();
         history::history_path(std::env::var("XDG_DATA_HOME").ok().as_deref(), &home)
-    })
+    });
+    &FILE
 }

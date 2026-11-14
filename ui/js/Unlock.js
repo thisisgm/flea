@@ -95,6 +95,8 @@ function namingRow(primary, fallback, device) {
 
 // Sample input: "crypto_LUKS" with "2", the fstype and FSVER lsblk reports for a LUKS2 container.
 function cryptoName(fstype, fsver) {
+    if (String(fstype || "").toLowerCase() === "bitlocker")
+        return "BitLocker"
     if (String(fstype || "").toLowerCase() === "crypto_luks") {
         if (String(fsver || "") === "2")
             return "LUKS2"

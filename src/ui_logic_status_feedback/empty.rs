@@ -137,7 +137,7 @@ impl Rotation {
                 .map(|at| at + CLOSE_MS);
             let beat = self.next_beat();
             match (swap, beat) {
-                (Some(at), b) if at <= now && b.map_or(true, |b| at <= b) => {
+                (Some(at), b) if at <= now && b.is_none_or(|b| at <= b) => {
                     self.index = (self.index + 1) % PHRASES.len();
                     self.swapped = true;
                     self.landed = true;

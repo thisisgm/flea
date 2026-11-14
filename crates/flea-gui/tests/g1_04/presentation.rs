@@ -40,8 +40,27 @@ fn sheet_hints_are_bounded_mirrored_and_use_the_active_preset() {
                 assert!(keys::SHEET_GROUPS.iter().any(|group| group.id == row.group));
             }
             for pair in keys::SHEET_MIRRORS {
-                let first = rows.iter().find(|row| row.action == pair[0]).unwrap();
-                let second = rows.iter().find(|row| row.action == pair[1]).unwrap();
+                let first = rows.iter().find(|row| row.action == pair[0]);
+                let second = rows.iter().find(|row| row.action == pair[1]);
+                // A pair bound in one frontend only is absent from the other's sheet, both members together.
+                assert_eq!(first.is_some(), second.is_some(), "{preset}: {pair:?}");
+                let (Some(first), Some(second)) = (first, second) else {
+                    let other = match frontend {
+                        Frontend::Gui => Frontend::Tui,
+                        Frontend::Tui => Frontend::Gui,
+                    };
+                    let binds = |side: Frontend| {
+                        pair.map(|action| {
+                            keys::binding_rows(preset, side).any(|row| row.action == action)
+                        })
+                    };
+                    assert_eq!(
+                        (binds(frontend), binds(other)),
+                        ([false; 2], [true; 2]),
+                        "{preset}: {pair:?} is missing from the {frontend:?} sheet"
+                    );
+                    continue;
+                };
                 assert_eq!(
                     first.keys.contains(" / "),
                     second.keys.contains(" / "),

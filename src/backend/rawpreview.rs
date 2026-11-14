@@ -86,7 +86,7 @@ fn ensure_bounded(dir: &Path, src: &Path, bound: &Bound) -> Option<Extracted> {
         mark_used(&file);
     } else {
         publish(dir, &file, src, stamp)?;
-        if bound.publishes.fetch_add(1, Ordering::Relaxed) % SCAN_EVERY == 0 {
+        if bound.publishes.fetch_add(1, Ordering::Relaxed).is_multiple_of(SCAN_EVERY) {
             evict(dir, bound);
         }
     }

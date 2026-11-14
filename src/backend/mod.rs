@@ -154,6 +154,7 @@ mod htmlsandbox;
 pub mod compare;
 pub mod sort;
 pub mod ordering;
+pub mod sortkey;
 mod tuifolders;
 pub mod state;
 pub(crate) mod lazy;

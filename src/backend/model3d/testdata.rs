@@ -74,7 +74,7 @@ pub(super) fn heatshrink_literal(bytes: &[u8]) -> Vec<u8> {
 }
 
 pub(super) fn hex(source: &str) -> Vec<u8> {
-    source.as_bytes().chunks_exact(2).map(|p| u8::from_str_radix(std::str::from_utf8(p).unwrap(),16).unwrap()).collect()
+    source.as_bytes().as_chunks::<2>().0.iter().map(|p| u8::from_str_radix(std::str::from_utf8(p).unwrap(),16).unwrap()).collect()
 }
 
 pub(super) fn ply(format: &str) -> Vec<u8> {

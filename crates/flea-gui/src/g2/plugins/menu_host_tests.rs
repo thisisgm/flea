@@ -78,6 +78,7 @@ pub(super) fn attach(
         .current_dir(root);
     let backend =
         Backend::start_with(command, wire::request_line(0, "list", "", Vec::new())).unwrap();
+    let _ = backend.test_own(cx);
     fixture.drained = Some(backend.drained());
     update(cx, fixture.handle, |shell, window, cx| {
         shell.follow_plugins(window, cx);

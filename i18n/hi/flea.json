@@ -1993,6 +1993,7 @@
   "settings.caption.group_by_kind": "फ़ोल्डर, फ़ोटो, फ़ाइलें",
   "settings.caption.permanently": "स्थायी रूप से",
   "settings.caption.wrap": "ऊपर सबसे पहले",
+  "settings.caption.grid_wrap_rows": "ग्रिड में बाएँ और दाएँ चलना",
   "settings.choice.automatic": "स्वचालित",
   "settings.choice.breadcrumb": "पथ के खंड",
   "settings.choice.chosen": "चुना हुआ",
@@ -2201,6 +2202,7 @@
   "settings.row.use_this_folder": "यह फ़ोल्डर उपयोग करें",
   "settings.row.view": "अंतिम उपयोग किया गया दृश्य",
   "settings.row.wrap": "सूची के अंत से दूसरे सिरे पर जाएँ",
+  "settings.row.grid_wrap_rows": "पंक्ति के अंत पर अगली पंक्ति में जाएँ",
   "settings.section.about": "बारे में",
   "settings.section.display": "डिस्प्ले",
   "settings.section.keys": "कुंजियाँ",
@@ -2664,5 +2666,7 @@
   "feedback.unheld.move_many": {
     "one": "अंदर के %1 आइटम स्थानांतरित नहीं किए जा सके; पहला %2 है: %3",
     "other": "अंदर के %1 आइटम स्थानांतरित नहीं किए जा सके; पहला %2 है: %3"
-  }
+  },
+  "keys.action.extendLeft": "चयन बाईं ओर बढ़ाएँ",
+  "keys.action.extendRight": "चयन दाईं ओर बढ़ाएँ"
 }

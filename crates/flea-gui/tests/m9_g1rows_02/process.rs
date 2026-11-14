@@ -119,12 +119,9 @@ pub(crate) fn build_dir() -> PathBuf {
 
 pub(crate) fn rustc(args: &[&std::ffi::OsStr]) {
     let executable = std::env::current_exe().unwrap();
-    let dependencies = executable.parent().unwrap();
     let output = Command::new("rustc")
         .args(args)
-        .args(foldhash::backend_extern_args(&workspace(), dependencies))
-        .arg("-L")
-        .arg(format!("dependency={}", dependencies.display()))
+        .args(foldhash::backend_extern_args(&workspace(), &executable))
         .env("CARGO_MANIFEST_DIR", workspace())
         .env("CARGO_PKG_VERSION", env!("CARGO_PKG_VERSION"))
         .output()
@@ -234,9 +231,9 @@ impl Observer {
 }
 
 // Sample input: "4302 4305 " per task; a task that exits mid-read is skipped, but some task must expose the file (CONFIG_PROC_CHILDREN).
-pub(crate) fn children(pid: u32) -> usize {
+pub(crate) fn children(pid: u32) -> Vec<u32> {
     let mut readable = 0;
-    let mut count = 0;
+    let mut found = Vec::new();
     for task in fs::read_dir(format!("/proc/{pid}/task"))
         .unwrap()
         .filter_map(Result::ok)
@@ -244,14 +241,28 @@ pub(crate) fn children(pid: u32) -> usize {
         match fs::read_to_string(task.path().join("children")) {
             Ok(line) => {
                 readable += 1;
-                count += line.split_whitespace().count();
+                found.extend(
+                    line.split_whitespace()
+                        .map(|child| child.parse::<u32>().unwrap()),
+                );
             }
             Err(_) if !task.path().exists() => {}
             Err(error) => panic!("/proc/{pid}/task children file: {error}"),
         }
     }
     assert!(readable > 0, "no task of {pid} exposes /proc children");
-    count
+    found
+}
+
+// Sample input: "zoxide\0query\0--list\0--all\0--score\0" in /proc/<pid>/cmdline; a zombie or reaped child reads empty.
+pub(crate) fn child_argv(child: u32) -> String {
+    let cmdline = fs::read(format!("/proc/{child}/cmdline")).unwrap_or_default();
+    let args: Vec<String> = cmdline
+        .split(|&byte| byte == 0)
+        .filter(|arg| !arg.is_empty())
+        .map(|arg| format!("{:?}", String::from_utf8_lossy(arg)))
+        .collect();
+    args.join(" ")
 }
 
 pub(crate) fn threads(pid: u32) -> usize {
@@ -274,7 +285,18 @@ pub(crate) struct Process {
 
 impl Process {
     pub(crate) fn start(root: &Path, dir: &Path, log: &Path) -> Self {
+        Self::start_with(root, dir, log, |_| {})
+    }
+
+    pub(crate) fn start_with(
+        root: &Path,
+        dir: &Path,
+        log: &Path,
+        configure: impl FnOnce(&mut Command),
+    ) -> Self {
         fs::write(log.with_extension("paths"), b"").unwrap();
+        fs::write(log.with_extension("spawns"), b"").unwrap();
+        fs::write(log.with_extension("events"), b"").unwrap();
         let mut command = Command::new(binary());
         command.arg("--backend");
         sandboxed(&mut command, root);
@@ -282,7 +304,10 @@ impl Process {
             .env("LD_PRELOAD", probe())
             .env("FLEA_PROBE_DIR", dir)
             .env("FLEA_PROBE_LOG", log)
+            .env("FLEA_PROBE_SPAWNS", log.with_extension("spawns"))
+            .env("FLEA_PROBE_EVENTS", log.with_extension("events"))
             .env("FLEA_PROBE_PATHS", log.with_extension("paths"));
+        configure(&mut command);
         let mut child = command
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
@@ -311,8 +336,8 @@ impl Process {
             .expect("the backend answers")
     }
 
-    pub(crate) fn late(&self) -> Vec<String> {
-        let until = Instant::now() + SETTLE;
+    pub(crate) fn late_for(&self, settle: Duration) -> Vec<String> {
+        let until = Instant::now() + settle;
         let mut late = Vec::new();
         while let Ok(line) = self
             .lines

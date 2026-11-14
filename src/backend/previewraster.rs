@@ -12,7 +12,7 @@ use super::{
 use std::{
     io::Read,
     path::{Path, PathBuf},
-    sync::OnceLock,
+    sync::LazyLock,
 };
 
 struct Tables {
@@ -21,8 +21,7 @@ struct Tables {
     specs: Thumbnailers,
 }
 fn tables() -> &'static Tables {
-    static TABLES: OnceLock<Tables> = OnceLock::new();
-    TABLES.get_or_init(|| {
+    static TABLES: LazyLock<Tables> = LazyLock::new(|| {
         let aliases = Aliases::load();
         let specs = Thumbnailers::load(&aliases);
         Tables {
@@ -30,7 +29,8 @@ fn tables() -> &'static Tables {
             mime: Db::load(),
             specs,
         }
-    })
+    });
+    &TABLES
 }
 
 struct Temporary(PathBuf);

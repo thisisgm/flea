@@ -1,10 +1,15 @@
 # Source after the shared flea-ci-visual lane cases to register the plugin SOURCE regression and the AirDrop plugin.
+. "$(dirname "${BASH_SOURCE[0]}")/wait.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/trash.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/state_pairs.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/search_root.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/search_chrome.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/tight_window.sh"
 . "$(dirname "${BASH_SOURCE[0]}")/grid_filter.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/wording.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/name_tip.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/grid_wrap.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/settings_keys.sh"
 CASES+=("settings-plugin-source-row 1100x700 surface:SettingsPanel")
 # Print and print-no-printer boards: Ctrl+P opens the real card with fixture CUPS replies.
 CASES+=("print-card 1100x700 key:print"

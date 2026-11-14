@@ -1,11 +1,34 @@
 use crate::backend::thumbcache::uri_for;
 use crate::backend::thumbspec::Spec;
 use flea::bytename::ExactText as _;
+use flea::ui_logic_print_convert::output as magick;
 use std::path::{Path, PathBuf};
 
 // argv returns the canonicalised input beside the argv, so a caller cannot bind one path and hand the child another; see AGENTS.md "Thumbnailer specs".
 pub fn argv(spec: &Spec, input: &Path, output: &Path, size: u32) -> Option<(PathBuf, Vec<String>)> {
     let abs = std::fs::canonicalize(input).ok()?;
+    // magick expands percent bytes in a `--` path even under filename:literal, so its `--` becomes -read; subcommands keep their own `--`.
+    let program = Path::new(spec.exec.first()?).file_name()?.to_str()?;
+    let modern = program == "magick" || program.starts_with("magick-im");
+    let subcommand = modern
+        && spec.exec.get(1).is_some_and(|arg| {
+            matches!(
+                arg.as_str(),
+                "animate"
+                    | "compare"
+                    | "composite"
+                    | "conjure"
+                    | "convert"
+                    | "display"
+                    | "identify"
+                    | "import"
+                    | "mogrify"
+                    | "montage"
+                    | "stream"
+            )
+        });
+    let magick_output =
+        modern || program == "convert" || program.starts_with("convert-im") || program == "montage";
     // %i and %u are two spellings of the one input the sandbox bound, so the URI is built here and never handed in; see AGENTS.md "Thumbnail cache".
     let child_uri = uri_for(&abs);
     let input = abs.exact_text();
@@ -16,9 +39,14 @@ pub fn argv(spec: &Spec, input: &Path, output: &Path, size: u32) -> Option<(Path
         // The validated program is literal; only its arguments contain field codes.
         out.push(if index == 0 {
             tok.clone()
+        } else if modern && !subcommand && tok == "--" {
+            "-read".into()
         } else {
             expand(tok, &input, &child_uri, &output, &size)
         });
+        if index == usize::from(subcommand) && magick_output {
+            out.extend(magick::MAGICK_LITERAL.map(String::from));
+        }
     }
     Some((abs, out))
 }
@@ -58,7 +86,10 @@ mod tests {
     // A table of exactly one spec, so a test names the Exec line it is substituting and nothing else.
     fn spec_for(exec: &str) -> Thumbnailers {
         let aliases = Aliases::from_str("image/heic image/heif\n");
-        let body = format!("[Thumbnailer Entry]\nTryExec=/bin/sh\nExec={}\nMimeType=image/jpeg;\n", exec);
+        let body = format!(
+            "[Thumbnailer Entry]\nTryExec=/bin/sh\nExec={}\nMimeType=image/jpeg;\n",
+            exec
+        );
         Thumbnailers::from_entries(&[("t.thumbnailer".to_string(), body)], &aliases)
     }
 
@@ -95,7 +126,11 @@ mod tests {
         let got = argv(s, &dir.join("link/pic.jpg"), Path::new("/tmp/o.png"), 256);
         let (abs, got) = got.unwrap();
         // The sandbox binds abs, so a %u naming the link sends the child at a path that does not exist inside the namespace.
-        assert!(got[1].contains("/real/pic.jpg"), "%u kept the path that was asked for: {}", got[1]);
+        assert!(
+            got[1].contains("/real/pic.jpg"),
+            "%u kept the path that was asked for: {}",
+            got[1]
+        );
         assert!(!got[1].contains("/link/"));
         assert_eq!(got[1], uri_for(&abs));
     }

@@ -2083,6 +2083,7 @@
   "settings.caption.group_by_kind": "aplankai, nuotraukos, failai",
   "settings.caption.permanently": "visam laikui",
   "settings.caption.wrap": "ir viršuje judant aukštyn",
+  "settings.caption.grid_wrap_rows": "kairėn ir dešinėn tinklelyje",
   "settings.choice.automatic": "Automatiškai",
   "settings.choice.breadcrumb": "Kelio dalys",
   "settings.choice.chosen": "Pasirinkta",
@@ -2291,6 +2292,7 @@
   "settings.row.use_this_folder": "Naudoti šį aplanką",
   "settings.row.view": "Paskutinis naudotas rodinys",
   "settings.row.wrap": "Tęsti nuo kito sąrašo galo",
+  "settings.row.grid_wrap_rows": "Tęsti ties eilučių galais",
   "settings.section.about": "Apie",
   "settings.section.display": "Ekranas",
   "settings.section.keys": "Klavišai",
@@ -2778,5 +2780,7 @@
     "few": "Nepavyko perkelti viduje esančių elementų (%1); pirmasis yra %2: %3",
     "one": "Nepavyko perkelti viduje esančių elementų (%1); pirmasis yra %2: %3",
     "other": "Nepavyko perkelti viduje esančių elementų (%1); pirmasis yra %2: %3"
-  }
+  },
+  "keys.action.extendLeft": "Išplėsti kairėn",
+  "keys.action.extendRight": "Išplėsti dešinėn"
 }

@@ -53,7 +53,7 @@ fn write_to_tmp(path: &str, first: usize, dest: &Path, tmp: &Path) -> Result<(),
     let (mime, icons, aliases) = (Db::load(), Names::load(), Aliases::load());
     let thumbs = Thumbnailers::load(&aliases);
     let mut kinds = Kinds::new();
-    let rows = rows_line(&PathBuf::from(path), &listing, &metas, 0, ms, &mime, &icons, &aliases, &thumbs, &mut kinds);
+    let rows = rows_line(&PathBuf::from(path), &listing, &metas, crate::backend::rows::Window { start: 0, ms }, crate::backend::rows::Services { mime: &mime, icons: &icons, aliases: &aliases, thumbs: &thumbs, kinds: &mut kinds });
     writeln!(out, "{}", stamped(rows, FIRST_LISTING))
         .map_err(|e| from_io("prewarm", &tmp.display().to_string(), &e))?;
     out.flush()

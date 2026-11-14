@@ -1,4 +1,5 @@
 //! The one thing a pane shows instead of rows when a listing failed: the mark, one sentence, and the detail the system can prove.
+pub use super::state_reload::Reload;
 use super::{
     bump,
     mark::{Glyph, StateMark},
@@ -60,7 +61,7 @@ impl Metrics {
 pub enum Kind {
     Locked,
     Error,
-    /// A listing past its wait, drawn as the Error state.
+    /// A listing past its wait offers Reload under the error-role mark and waiting sentence.
     Waiting,
 }
 
@@ -70,6 +71,7 @@ pub struct Facts {
     pub kind: Kind,
     pub sentence: SharedString,
     pub detail: SharedString,
+    pub reload: Option<SharedString>,
 }
 
 impl Facts {
@@ -88,6 +90,7 @@ impl Facts {
             kind,
             sentence: sentence(place, message, "").render(catalog).into(),
             detail: detail.into(),
+            reload: None,
         }
     }
 
@@ -96,6 +99,7 @@ impl Facts {
             kind: Kind::Waiting,
             sentence: catalog.tr("window.waiting").into(),
             detail: SharedString::default(),
+            reload: Some(catalog.tr("keys.action.reload").into()),
         }
     }
 
@@ -116,7 +120,9 @@ impl Facts {
 pub struct StateMessage {
     facts: Option<Facts>,
     metrics: Metrics,
-    typeface: Typeface,
+    pub(super) typeface: Typeface,
+    pub(super) corner: f32,
+    pub(super) reload: Option<super::state_reload::Button>,
     pub counters: Rc<Counters>,
 }
 
@@ -132,6 +138,8 @@ impl StateMessage {
             facts: None,
             metrics: LIST,
             typeface: Typeface::omarchy_default(),
+            corner: 0.,
+            reload: None,
             counters: Rc::default(),
         }
     }
@@ -163,12 +171,27 @@ impl StateMessage {
         .map(|(text, size)| {
             super::caption::measure(text, self.typeface.font.clone(), size, px(0.), window)
         })
+        .chain(facts.reload.as_ref().map(|label| {
+            super::state_reload::width(
+                super::caption::measure(
+                    label.clone(),
+                    self.typeface.font.clone(),
+                    self.typeface.body,
+                    px(0.),
+                    window,
+                ),
+                f32::from(self.typeface.body),
+            )
+        }))
         .fold(super::mark::STATE, f32::max)
     }
 
     /// Shows a failure, or clears the surface with None; an unchanged value repaints nothing.
     pub fn set(&mut self, facts: Option<Facts>, cx: &mut Context<Self>) {
         if self.facts != facts {
+            if let Some(button) = &mut self.reload {
+                button.reset();
+            }
             self.facts = facts;
             cx.notify();
         }
@@ -200,6 +223,7 @@ impl Render for StateMessage {
             return root;
         };
         let metrics = self.metrics.at(&self.typeface);
+        let reload = facts.reload.clone();
         let line = |part: &'static str, text: SharedString, size, height: f32, color| {
             div()
                 .debug_selector(move || part.into())
@@ -241,6 +265,9 @@ impl Render for StateMessage {
                     )
                     .mt(px(metrics.detail_drop)),
                 )
+            })
+            .when_some(reload, |root, label| {
+                root.child(self.reload_button(label, ink, window, cx))
             })
     }
 }

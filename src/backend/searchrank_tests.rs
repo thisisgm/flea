@@ -205,7 +205,7 @@ fn corpus_session(dir: &TestDir) -> Session {
         let mut path = String::new();
         for _ in 0..depth {
             let word = *rng.pick(&WORDS);
-            let part = if rng.next() % TYPO_FOLDER_ONE_IN == 0 { edited(&mut rng, word, 1) } else { word.to_string() };
+            let part = if rng.next().is_multiple_of(TYPO_FOLDER_ONE_IN) { edited(&mut rng, word, 1) } else { word.to_string() };
             path.push_str(&part);
             if seen.insert(path.clone()) { assert!(index.push(&path, true)); }
             path.push('/');

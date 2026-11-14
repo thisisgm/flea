@@ -5,6 +5,8 @@ mod frame_tests;
 pub mod live;
 #[cfg(test)]
 mod m9_g2rows_16_tests;
+#[cfg(test)]
+mod memory_tests;
 pub mod parts;
 pub mod seam;
 pub mod session;

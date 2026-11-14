@@ -6,7 +6,7 @@ use std::{
     rc::Rc,
     sync::{
         atomic::{AtomicU64, Ordering},
-        OnceLock,
+        LazyLock,
     },
     time::Duration,
 };
@@ -42,9 +42,10 @@ struct State {
 }
 impl Trace {
     pub fn begin(surface: &str, path: &str) -> Option<Self> {
-        static ON: OnceLock<bool> = OnceLock::new();
+        static ON: LazyLock<bool> =
+            LazyLock::new(|| std::env::var_os("FLEA_PREVIEW_TRACE").is_some());
         static NEXT: AtomicU64 = AtomicU64::new(1);
-        if !*ON.get_or_init(|| std::env::var_os("FLEA_PREVIEW_TRACE").is_some()) {
+        if !*ON {
             return None;
         }
         let start = now()?;

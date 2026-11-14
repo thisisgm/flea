@@ -1,6 +1,9 @@
 //! Mounted commit keys preserve the IME candidate and its backend destination.
 use super::*;
 
+#[path = "word_navigation_tests.rs"]
+mod word_navigation_tests;
+
 #[gpui::test]
 fn i50_ime_root_find_tab_commits(cx: &mut TestAppContext) {
     use flea::{json, ui_logic_file_search::Scope};

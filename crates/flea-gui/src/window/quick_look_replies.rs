@@ -109,7 +109,7 @@ impl Shell {
                 },
                 Reply::Menu(doc),
             ) => {
-                let ask = (listing, rows, mark, kinds);
+                let ask = (listing, rows, mark.map(|mark| *mark), kinds);
                 self.compare_resolved(side, token, ask, &doc, window, cx);
                 return true;
             }

@@ -119,14 +119,7 @@ impl Shell {
                             && !host.stopped
                             && host.error.is_none()
                         {
-                            host.waiting = true;
-                            host.pane.state.kind = crate::pane::states::Kind::Waiting;
-                            host.pane.swap.mark_shown(false, host.pane.now());
-                            host.state_text = host
-                                .pane
-                                .state
-                                .text(&shell.locale.catalog, host.pane.held.total);
-                            host.status = shell.locale.catalog.tr("window.waiting").into();
+                            shell.show_waiting_place(side, cx);
                             if side == 0 {
                                 shell.ensure_ipc_reader(window, cx);
                             }

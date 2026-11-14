@@ -1,6 +1,9 @@
 //! Controller native findings: walked folder bytes and selection from the same painted frame.
 use super::{ask, frame, open};
 
+#[path = "fx400_tests.rs"]
+mod fx400;
+
 #[path = "s4_size_tests.rs"]
 mod s4_size_tests;
 
@@ -40,6 +43,7 @@ for line in sys.stdin:
     let mut command = Command::new("python3");
     command.args(["-u", "-c", script, class]);
     let backend = Backend::start_with(command, r#"{"c":"noop"}"#.into()).unwrap();
+    let _ = backend.test_own(cx);
     handle
         .update(cx, |shell, _, _| {
             // The backend receipts every command, and these tests count folder walks only.

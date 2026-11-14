@@ -273,9 +273,7 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
                     &model,
                     &style.theme,
                     &map,
-                    size.0,
-                    size.1,
-                    cell_pixels,
+                    render::TerminalSize { columns: size.0, lines: size.1 },
                     started.elapsed(),
                     &mut frame,
                 )?;

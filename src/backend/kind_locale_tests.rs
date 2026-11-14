@@ -65,13 +65,14 @@ fn kind_lang_search_cache_observes_a_change_another_response_saw_first() {
             &body,
             &listing,
             &metas,
-            0,
-            ms,
-            &mime,
-            &icons,
-            &aliases,
-            &thumbs,
-            kinds,
+            crate::backend::rows::Window { start: 0, ms },
+            crate::backend::rows::Services {
+                mime: &mime,
+                icons: &icons,
+                aliases: &aliases,
+                thumbs: &thumbs,
+                kinds,
+            },
             cache,
         )
     };

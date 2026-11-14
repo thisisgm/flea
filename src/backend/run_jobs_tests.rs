@@ -43,17 +43,7 @@ fn review_job_undo_patches_the_session() {
                 line,
                 &mut out,
                 st,
-                &tb,
-                &pool,
-                &cache,
-                ops,
-                &mut flashslot::Ctx::new(channel().0),
-                &mut watch,
-                &mut peeks,
-                &mut fsinfo,
-                &poller,
-                &events,
-                &mut Gate::new(events.clone())
+                RequestContext { tb: &tb, pool: &pool, cache: &cache, ops, flash: &mut flashslot::Ctx::new(channel().0), watch: &mut watch, peeks: &mut peeks, fsinfo: &mut fsinfo, poller: &poller, loop_tx: &events, gate: &mut Gate::new(events.clone()) }
             ) == Control::Continue
         );
         String::from_utf8(std::mem::take(&mut out))
@@ -233,17 +223,7 @@ fn refused_requests_preserve_job_undo_offer() {
             line,
             &mut out,
             st,
-            &tb,
-            &pool,
-            &cache,
-            ops,
-            &mut flashslot::Ctx::new(channel().0),
-            &mut watch,
-            &mut peeks,
-            &mut fsinfo,
-            &poller,
-            &events,
-            &mut Gate::new(events.clone()),
+            RequestContext { tb: &tb, pool: &pool, cache: &cache, ops, flash: &mut flashslot::Ctx::new(channel().0), watch: &mut watch, peeks: &mut peeks, fsinfo: &mut fsinfo, poller: &poller, loop_tx: &events, gate: &mut Gate::new(events.clone()) },
         );
         String::from_utf8(std::mem::take(&mut out)).unwrap()
     };

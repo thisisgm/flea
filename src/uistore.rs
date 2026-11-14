@@ -237,16 +237,6 @@ pub(crate) fn make_dir(dir: &Path) -> Result<(), String> {
         .map_err(|e| format!("{} could not be created ({:?})", dir.display(), e.kind()))
 }
 
-// flock(2) numbers from Linux sys/file.h, the same on both supported architectures.
-const LOCK_EXCLUSIVE: i32 = 2;
-const LOCK_UNLOCK: i32 = 8;
-const LOCK_NONBLOCKING: i32 = 4;
-
-// std already links the system libc, so flock is declared here the way src/thp.rs declares prctl.
-extern "C" {
-    fn flock(fd: i32, operation: i32) -> i32;
-}
-
 // flock(2), advisory and cross-process, released on close or death, and waited for only LOCK_WAIT so a stuck holder stops nothing.
 pub(crate) fn take_lock(path: &Path) -> Result<fs::File, String> {
     let file = fs::OpenOptions::new()
@@ -282,38 +272,23 @@ fn wait_for_lock(file: &fs::File) -> std::io::Result<bool> {
     }
 }
 
-// File::lock needs Rust 1.89 over the 1.77 floor; the binary's Trash recovery record is its one caller.
+// File::lock is flock(2) LOCK_EX on Linux, the call earlier releases make, so the two exclude each other.
 #[allow(dead_code)]
 pub(crate) fn lock_exclusive(file: &fs::File) -> std::io::Result<()> {
-    use std::os::fd::AsRawFd;
-    if unsafe { flock(file.as_raw_fd(), LOCK_EXCLUSIVE) } == 0 {
-        Ok(())
-    } else {
-        Err(std::io::Error::last_os_error())
-    }
+    file.lock()
 }
 
-// File::try_lock needs Rust 1.89 over the 1.77 floor; true is locked, false is held elsewhere.
+// File::try_lock is flock(2) LOCK_EX | LOCK_NB; true is locked, false is held elsewhere.
 pub fn try_lock_exclusive(file: &fs::File) -> std::io::Result<bool> {
-    use std::os::fd::AsRawFd;
-    if unsafe { flock(file.as_raw_fd(), LOCK_EXCLUSIVE | LOCK_NONBLOCKING) } == 0 {
-        return Ok(true);
+    match file.try_lock() {
+        Ok(()) => Ok(true),
+        Err(fs::TryLockError::WouldBlock) => Ok(false),
+        Err(fs::TryLockError::Error(error)) => Err(error),
     }
-    let failed = std::io::Error::last_os_error();
-    if failed.kind() == std::io::ErrorKind::WouldBlock {
-        return Ok(false);
-    }
-    Err(failed)
 }
 
-// File::unlock needs Rust 1.89 over the 1.77 floor; this is its flock release.
 pub(crate) fn unlock(file: &fs::File) -> std::io::Result<()> {
-    use std::os::fd::AsRawFd;
-    if unsafe { flock(file.as_raw_fd(), LOCK_UNLOCK) } == 0 {
-        Ok(())
-    } else {
-        Err(std::io::Error::last_os_error())
-    }
+    file.unlock()
 }
 
 // A link, a device or an unreadable state file is refused, never renamed over; outcome names the document kept.
@@ -372,3 +347,7 @@ mod tests;
 #[cfg(test)]
 #[path = "uistore_bad_tests.rs"]
 mod bad_tests;
+
+#[cfg(test)]
+#[path = "uistore_lock_tests.rs"]
+mod lock_tests;

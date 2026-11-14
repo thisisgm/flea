@@ -156,7 +156,7 @@ impl Shell {
         self.rename_sync_gate(window, cx);
     }
 
-    /// A press outside the editor commits it first (Tap.js), except on the tab strip, which never commits (Tabs.js tearRefusal reads the editor).
+    /// A tap outside the editor commits it on release (Tap.js), except one pressed on the tab strip, which never commits (Tabs.js tearRefusal reads the editor).
     pub(crate) fn rename_press_away(
         &mut self,
         at: gpui::Point<gpui::Pixels>,

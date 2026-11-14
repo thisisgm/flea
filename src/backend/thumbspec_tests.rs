@@ -364,9 +364,16 @@ fn the_fingerprint_carries_the_embedded_field_codes_version() {
         .to_string();
     let tagged = format!(
         "{:016x}",
-        crate::backend::xxh64::hash(b"embedded-field-codes-v1")
+        crate::backend::xxh64::hash(b"embedded-field-codes-v1\nliteral-imagemagick-paths-v1")
     );
     let untagged = format!("{:016x}", crate::backend::xxh64::hash(b""));
     assert_eq!(empty, tagged);
     assert_ne!(empty, untagged);
+    assert_ne!(
+        empty,
+        format!(
+            "{:016x}",
+            crate::backend::xxh64::hash(b"embedded-field-codes-v1")
+        )
+    );
 }

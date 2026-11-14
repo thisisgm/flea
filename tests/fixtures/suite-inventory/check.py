@@ -43,7 +43,7 @@ execute(generator + ['--suite-cases', '--tree', str(repo),
                      '--layout', str(fixture / 'layouts/default.layout'), '--out', str(parity)])
 options = ['--evidence', str(fixture / 'suite-evidence.txt'), '--layouts', str(fixture / 'layouts')]
 baseline = execute(tool + options + ['--parity', str(parity)]).stdout
-check(baseline.startswith('SUITE_INVENTORY PASS suites=') and 'retired=0' in baseline, 'committed inventory passes')
+check(baseline.startswith('SUITE_INVENTORY PASS suites=') and 'retired=3' in baseline.split(), 'committed inventory passes')
 check(execute(tool + options).stdout == baseline, 'default checker invokes the same g06 projection')
 small = repo / 'tests/fixtures/parity'
 small_args = ['--tree', str(small), '--layout', str(small / 'ci/default.layout')]
@@ -226,7 +226,7 @@ check('SUITE_LAYOUT PASS' not in red.stdout, 'cross-tree layout never prints a p
 shutil.copyfile(fixture / 'batches/default.layout', cross_tree / 'layouts/default.layout')
 without_aur_suites(cross_tree / 'layouts/default.layout')
 twin = execute(cross_command)
-check('SUITE_LAYOUT PASS layout=default.layout suites=301' in twin.stdout,
+check('SUITE_LAYOUT PASS layout=default.layout suites=298' in twin.stdout,
       'the stage runner passes against its own layout')
 mutants += 1
 diagnostic = next(line for line in red.stderr.splitlines() if 'layout-unregistered suite=jobs:' in line)
@@ -292,7 +292,7 @@ for name, mechanism in [('signalarity', 'obsolete: QML signal/emit arity'),
     directory = sandbox('retirement-' + name)
     update_row(directory, name, state='retired', replacement=mechanism)
     unschedule(directory, name)
-    check('retired=1' in execute(command(directory)).stdout, f'{name} obsolete mechanism can retire')
+    check('retired=4' in execute(command(directory)).stdout.split(), f'{name} obsolete mechanism can retire')
     update_row(directory, 'parity', state='retired', replacement=mechanism)
     check('retired-replacement suite=parity:' in execute(command(directory), 1).stderr,
           'obsolete mechanism exception does not exempt other suites')

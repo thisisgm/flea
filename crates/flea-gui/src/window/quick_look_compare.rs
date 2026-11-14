@@ -72,7 +72,7 @@ impl Shell {
         host.ask = Ask::Resolve {
             listing,
             rows,
-            mark: held.into_iter().next().flatten(),
+            mark: held.into_iter().next().flatten().map(Box::new),
             kinds: None,
         };
         self.quick_look_send(side, line);
@@ -110,7 +110,7 @@ impl Shell {
                     host.ask = Ask::Resolve {
                         listing,
                         rows,
-                        mark,
+                        mark: mark.map(Box::new),
                         kinds: Some(kinds),
                     };
                     let line = format!(

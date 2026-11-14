@@ -258,17 +258,19 @@ fn a_thumb_request_carries_its_rows_in_order() {
 }
 
 #[test]
-fn a_dirsize_request_carries_its_rows_and_cancel_carries_none() {
+fn a_dirsize_request_and_selective_cancel_carry_their_rows() {
     match parse_request(r#"{"c":"dirsize","rows":[4,9]}"#) {
         Request::DirSize { rows } => assert_eq!(rows, vec![4, 9]),
         _ => panic!("expected DirSize"),
     }
-    // Unlike thumbcancel, dirsizecancel names nothing: it always cancels everything in flight.
-    assert!(matches!(parse_request(r#"{"c":"dirsizecancel"}"#), Request::DirSizeCancel));
-    assert!(matches!(
-        parse_request(r#"{"c":"dirsizecancel","rows":[1,2]}"#),
-        Request::DirSizeCancel
-    ));
+    match parse_request(r#"{"c":"dirsizecancel"}"#) {
+        Request::DirSizeCancel { rows } => assert!(rows.is_empty()),
+        _ => panic!("expected full DirSizeCancel"),
+    }
+    match parse_request(r#"{"c":"dirsizecancel","rows":[1,2]}"#) {
+        Request::DirSizeCancel { rows } => assert_eq!(rows, vec![1, 2]),
+        _ => panic!("expected selective DirSizeCancel"),
+    }
 }
 
 #[test]

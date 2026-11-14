@@ -35,6 +35,7 @@ python3 -c 'import gi; gi.require_version("Gio", "2.0")' 2>/dev/null || {
     printf 'portal.sh: python-gobject is missing, which is the backend the suite drives\n' >&2
     exit 1
 }
+python3 tests/portal-labels.py || exit 1
 
 dir="$FIXTURE_ROOT/flea-portal-$$"
 # The one child this suite starts, so the one it may signal: the pid came from its own spawn.

@@ -7,6 +7,9 @@ use gpui::{
 };
 use std::time::Duration;
 
+#[path = "grid_release_tests.rs"]
+mod grid_release_tests;
+
 pub(super) fn switch(shell: &Entity<Shell>, cx: &mut VisualTestContext, view: View) {
     cx.update(|window, cx| shell.update(cx, |shell, cx| shell.set_view(view, window, cx)));
     for _ in 0..4 {

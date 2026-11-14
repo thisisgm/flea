@@ -1,6 +1,9 @@
 pub mod backend;
 mod bench_thumbs;
 mod capture;
+#[cfg(test)]
+#[path = "../../../tests/lib/cargo_artifacts.rs"]
+mod cargo_artifacts;
 pub mod columns;
 pub(crate) mod compositor;
 #[cfg(test)]
@@ -17,6 +20,7 @@ pub mod ipc;
 pub mod leaf;
 pub mod list;
 pub mod locale_geometry;
+pub(crate) mod name_tip;
 pub mod navigation;
 pub mod palette;
 pub mod pane;

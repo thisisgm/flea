@@ -50,7 +50,7 @@ fn open_names(model: &mut Model, wire: &mut Wire, names: &[(&str, bool)]) {
     let n = names.len();
     model.receive(jsondoc::parse(&format!(r#"{{"t":"listed","n":{n},"read":0.0,"sort":0.0,"v":1,"path":"/listing"}}"#)).unwrap(), wire).unwrap();
     let sent = drain(wire);
-    assert!(requests(&sent, "window").len() >= 1, "listed answers with a window fetch");
+    assert!(!requests(&sent, "window").is_empty(), "listed answers with a window fetch");
     let rows = names.iter().map(|(name, dir)| {
         if *dir { format!(r#"{{"n":"{name}","d":true}}"#) } else { format!(r#"{{"n":"{name}"}}"#) }
     }).collect::<Vec<_>>().join(",");

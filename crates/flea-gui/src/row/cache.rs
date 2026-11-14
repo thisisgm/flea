@@ -119,7 +119,7 @@ impl RowCache {
                     .iter()
                     .position(|row| row.name == entry.facts.name)?;
                 entry.revision = UNRESOLVED;
-                Some((held.start + at, entry))
+                Some((held.index_at(at), entry))
             })
             .collect();
     }

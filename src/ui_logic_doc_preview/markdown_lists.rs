@@ -31,7 +31,7 @@ pub fn run_step(
     } else {
         ordered_marker(given)
     };
-    let deeper = previous.map_or(true, |previous| depth > previous);
+    let deeper = previous.is_none_or(|previous| depth > previous);
     (
         held.filter(|run| !deeper && ordered == ordered_of(*run)),
         ordered,
@@ -133,7 +133,7 @@ pub fn layout(block: &List, advance: &dyn Fn(&str) -> f32, spacing: f32) -> Vec<
         let gap = (k > 0 || block.joined)
             && block.gaps.as_ref().is_some_and(|gaps| {
                 gaps[k]
-                    || (k > 0 && previous.map_or(true, |previous| depth > previous) && gaps[k - 1])
+                    || (k > 0 && previous.is_none_or(|previous| depth > previous) && gaps[k - 1])
             });
         out.push((
             Cell {

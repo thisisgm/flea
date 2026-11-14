@@ -1,6 +1,9 @@
 //! The painted rail asks the real favorites CLI about its visible local paths.
 use super::*;
 
+#[path = "producer_availability_tests.rs"]
+mod availability;
+
 use std::process::Command;
 
 struct Rail(gpui::Entity<Producer>);
@@ -235,13 +238,7 @@ fn rail_favourites_inspect_real_visible_paths_and_newly_scrolled_rows(
 ) {
     let fixture = Fixture::new();
     let root = &fixture.0;
-    let backend = std::env::current_exe()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .join("flea");
+    let backend = crate::cargo_artifacts::binary("flea");
     assert!(
         backend.is_file(),
         "build the matching flea backend before this test: {}",

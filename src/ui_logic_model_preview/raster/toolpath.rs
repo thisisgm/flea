@@ -45,23 +45,41 @@ impl Raster {
                     }
                     tone_index(dot(n, light)).map_or([f32::NAN; 3], |step| tones[step])
                 };
-                raster.line(view.project(basis, s.a), view.project(basis, s.b), width, color, 1., true);
+                raster.line(
+                    view.project(basis, s.a),
+                    view.project(basis, s.b),
+                    width,
+                    color,
+                    1.,
+                    true,
+                );
             }
         };
         if scene.layers.is_empty() {
-            draw(self, 0..scene.segments.len(), false, stride(scene.segments.len(), TOOLPATH_SEGMENTS));
+            draw(
+                self,
+                0..scene.segments.len(),
+                false,
+                stride(scene.segments.len(), TOOLPATH_SEGMENTS),
+            );
             return;
         }
-        let clip = |r: &Range<u32>| (r.start as usize).min(scene.segments.len())..(r.end as usize).min(scene.segments.len());
+        let clip = |r: &Range<u32>| {
+            (r.start as usize).min(scene.segments.len())..(r.end as usize).min(scene.segments.len())
+        };
         let shown = scene.layers.len().min(current.saturating_add(1));
         let len = |i: usize| clip(&scene.layers[i].segments).len();
         let here = if current < shown { len(current) } else { 0 };
         let under: usize = (0..shown).filter(|&i| i != current).map(len).sum();
         let here_stride = stride(here, TOOLPATH_SEGMENTS / 2);
         let under_stride = stride(under, TOOLPATH_SEGMENTS - here.div_ceil(here_stride));
-        for i in 0..shown {
-            let (flat, step) = if i == current { (true, here_stride) } else { (false, under_stride) };
-            draw(self, clip(&scene.layers[i].segments), flat, step);
+        for (i, layer) in scene.layers.iter().enumerate().take(shown) {
+            let (flat, step) = if i == current {
+                (true, here_stride)
+            } else {
+                (false, under_stride)
+            };
+            draw(self, clip(&layer.segments), flat, step);
         }
     }
 }

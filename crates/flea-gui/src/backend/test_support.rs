@@ -3,6 +3,9 @@ use super::{transport, Backend, Closing, Control, Event};
 use std::os::unix::net::UnixStream;
 use std::sync::{atomic::AtomicUsize, mpsc, Arc, Mutex};
 
+#[path = "test_completion.rs"]
+mod completion;
+
 impl Backend {
     pub(crate) fn test_output(&self) -> async_channel::Sender<Event> {
         self.plugin_output.clone()
@@ -42,6 +45,22 @@ impl Backend {
         (backend, receive)
     }
 
+    pub(crate) fn test_window_lines() -> (Self, impl FnMut() -> Option<String>) {
+        let (backend, receiver) = Self::test_controls();
+        let receive = move || loop {
+            match receiver.try_recv().ok()? {
+                Control::Window { start, count } => {
+                    return Some(format!(
+                        r#"{{"c":"window","start":{start},"count":{count}}}"#
+                    ))
+                }
+                Control::Line(line) => return Some(line),
+                _ => {}
+            }
+        };
+        (backend, receive)
+    }
+
     pub(super) fn test_controls() -> (Self, mpsc::Receiver<Control>) {
         let (requests, receiver) = mpsc::channel();
         let (wake, _) = UnixStream::pair().unwrap();
@@ -57,6 +76,7 @@ impl Backend {
                 wake,
                 replies,
                 drained,
+                worker: Default::default(),
                 thumbs: Default::default(),
                 folders: Default::default(),
                 transfers: Default::default(),
@@ -84,6 +104,7 @@ impl Backend {
                 wake,
                 replies,
                 drained,
+                worker: Default::default(),
                 thumbs: Default::default(),
                 folders: Default::default(),
                 transfers: Default::default(),

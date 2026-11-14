@@ -74,9 +74,11 @@ pub fn transfer(moving: bool, rest: &[String]) -> i32 {
                 dest,
                 cancel,
                 tx,
-                None,
-                None,
-                crate::backend::collide::Policy::default(),
+                crate::backend::opsreq::TransferChecks {
+                    selection: None,
+                    destination: None,
+                    collision: crate::backend::collide::Policy::default(),
+                },
             )
         })
     };
@@ -196,7 +198,17 @@ fn report(
                 println!(
                     "{}",
                     transferdone_line(
-                        id, ok, bad, skipped, cancelled, &retry, durable, &note, &refused
+                        id,
+                        crate::backend::opsreq::TransferCounts {
+                            ok,
+                            failed: bad,
+                            skipped
+                        },
+                        cancelled,
+                        &retry,
+                        durable,
+                        &note,
+                        &refused
                     )
                 );
                 steps = entry.steps;

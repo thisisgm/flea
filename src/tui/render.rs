@@ -17,8 +17,15 @@ pub fn bytes(n: usize) -> String { crate::i18n::Locale::default().format_size(n 
 pub fn items(n: usize) -> String { super::words::items(&crate::i18n::test_catalogs::english(), n) }
 #[cfg(test)]
 pub fn grouped(n: usize) -> String { crate::i18n::Locale::default().format_count(n.min(i64::MAX as usize) as i64) }
-pub fn draw(m: &Model, theme: &Theme, map: &Map, columns: usize, lines: usize,
-    _cell_pixels: Option<(usize, usize)>, elapsed: std::time::Duration, last: &mut String) -> io::Result<bool> {
+// The terminal's size in cells.
+pub struct TerminalSize {
+    pub columns: usize,
+    pub lines: usize,
+}
+
+pub fn draw(m: &Model, theme: &Theme, map: &Map, size: TerminalSize, elapsed: std::time::Duration,
+    last: &mut String) -> io::Result<bool> {
+    let TerminalSize { columns, lines } = size;
     if m.find.waiting || m.find.cancelling { return Ok(false); }
     let out = super::look::frame(m, theme, map, columns, lines, elapsed);
     present(out, last, &mut io::stdout().lock())
@@ -159,3 +166,7 @@ pub(crate) mod frame_tests;
 #[cfg(test)]
 #[path = "jobrender_tests.rs"]
 mod jobrender_tests;
+
+#[cfg(test)]
+#[path = "terminal_size_tests.rs"]
+mod terminal_size_tests;

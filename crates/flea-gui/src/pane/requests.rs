@@ -21,6 +21,7 @@ pub struct RowAction {
 
 #[derive(Default)]
 pub struct Requests {
+    pub(crate) sparse: Option<Vec<usize>>,
     pub outstanding: Option<WindowRequest>,
     pub refused: Option<WindowRequest>,
     pub sent: usize,
@@ -29,16 +30,22 @@ pub struct Requests {
 
 impl Requests {
     pub fn wanted(&mut self, held: &Held, first: usize, visible: usize) -> Option<WindowRequest> {
+        self.keep_sparse_span(held, first, visible);
         if self.outstanding.is_some() || held.total == 0 {
             return None;
         }
         let last = first.saturating_add(visible).min(held.total);
         let end = held.start.saturating_add(held.rows.len()).min(held.total);
-        if self.initial_first == Some(first) && first >= held.start && last <= end {
+        if !held.indexed()
+            && self.initial_first == Some(first)
+            && first >= held.start
+            && last <= end
+        {
             return None;
         }
         self.initial_first = None;
-        let drifted = held.rows.is_empty()
+        let drifted = held.indexed()
+            || held.rows.is_empty()
             || first < held.start
             || (first.saturating_sub(held.start) < MARGIN && held.start > 0)
             || (end.saturating_sub(last) < MARGIN && end < held.total);
@@ -50,6 +57,10 @@ impl Requests {
             count: visible.saturating_add(2 * BUFFER),
             listing: held.listing,
         };
+        self.begin(request)
+    }
+
+    pub(super) fn begin(&mut self, request: WindowRequest) -> Option<WindowRequest> {
         // A window answered malformed is asked again only after the listing or the wanted window changes.
         if self.refused.take() == Some(request) {
             self.refused = Some(request);
@@ -75,6 +86,7 @@ impl Requests {
 
     pub fn cancel(&mut self) {
         self.outstanding = None;
+        self.sparse = None;
     }
 }
 
@@ -169,6 +181,9 @@ impl Pane {
         listing: usize,
         now: u64,
     ) -> Result<bool, String> {
+        if self.requests.sparse.is_some() {
+            return self.take_sparse_rows(start, rows, listing);
+        }
         let answered = self
             .requests
             .outstanding
@@ -366,7 +381,7 @@ impl Pane {
         Ok(())
     }
 
-    fn check_complete(
+    pub(super) fn check_complete(
         start: usize,
         count: usize,
         total: usize,

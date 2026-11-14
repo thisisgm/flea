@@ -11,7 +11,7 @@ use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
 use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicU64;
-use std::sync::{mpsc, Arc, Mutex, OnceLock};
+use std::sync::{mpsc, Arc, LazyLock, Mutex};
 use std::time::{Duration, Instant};
 
 // The one selected file and the private output folder, at fixed paths inside the sandbox.
@@ -38,7 +38,7 @@ extern "C" {
 }
 
 static NEXT: AtomicU64 = AtomicU64::new(0);
-static TYPES: OnceLock<mime::Db> = OnceLock::new();
+static TYPES: LazyLock<mime::Db> = LazyLock::new(mime::Db::load);
 
 #[cfg(test)]
 pub(super) static TEST_ROOT: std::sync::Mutex<Option<PathBuf>> = std::sync::Mutex::new(None);
@@ -240,10 +240,7 @@ fn selected(manifest: &Manifest, request: &Json) -> Result<std::fs::File, Invali
         .file_name()
         .map(|n| n.to_string_lossy().into_owned())
         .unwrap_or_default();
-    let kind = TYPES
-        .get_or_init(mime::Db::load)
-        .lookup(&name)
-        .unwrap_or("application/octet-stream");
+    let kind = TYPES.lookup(&name).unwrap_or("application/octet-stream");
     let globs = manifest
         .block("previewer")
         .and_then(|b| b.get("mime"))

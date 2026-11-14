@@ -166,8 +166,8 @@ impl Parents for ParentCache {
                 let bytes = index.names.get(name);
                 matcher.advance(state, bytes, &mut self.letters, false);
                 // The same boundary rule as QueryScratch::state, so both arms build the same column.
-                let boundary = if bytes.is_ascii() { bytes.last().map_or(true, |&byte| separator(byte as char)) }
-                    else { self.letters.last().map_or(true, |letter| separator(letter.lower)) };
+                let boundary = if bytes.is_ascii() { bytes.last().is_none_or(|&byte| separator(byte as char)) }
+                    else { self.letters.last().is_none_or(|letter| separator(letter.lower)) };
                 state.advance(&matcher.needle, &[Letter { lower: '/', boundary }], false);
             }
             self.state_ready = true;
@@ -181,7 +181,7 @@ impl Parents for ParentCache {
             self.text.clear();
             for &name in self.names.iter().rev() {
                 fold(index.names.get(name), &mut self.letters);
-                let boundary = self.letters.last().map_or(true, |letter| separator(letter.lower));
+                let boundary = self.letters.last().is_none_or(|letter| separator(letter.lower));
                 self.text.extend_from_slice(&self.letters);
                 self.text.push(Letter { lower: '/', boundary });
             }

@@ -97,6 +97,20 @@ def text_option(options, key):
     return value if isinstance(value, str) else ""
 
 
+def action_label(options):
+    # Sample: "Save _As" -> "Save As", "Under__score" -> "Under_score", "literal_" -> "literal_".
+    # GTK 4's rule (pango_parse_markup, "_" marker): a non-final underscore drops and its next character shows literally.
+    label = text_option(options, "accept_label")
+    shown = []
+    index = 0
+    while index < len(label):
+        if label[index] == "_" and index + 1 < len(label):
+            index += 1
+        shown.append(label[index])
+        index += 1
+    return "".join(shown)
+
+
 def flag_option(options, key):
     return options.get(key) is True
 
@@ -157,7 +171,7 @@ def request_for(method, title, app_id, options):
         "mode": mode,
         "title": title,
         "app": app_id,
-        "accept": text_option(options, "accept_label"),
+        "accept": action_label(options),
         "multiple": flag_option(options, "multiple"),
         "directory": flag_option(options, "directory"),
         "folder": path_option(options, "current_folder"),

@@ -647,33 +647,3 @@ transferlive_replace() {
     fi
     sandbox_remove "$dir"
 }
-
-# Issue: the transfer card must be proven on a real copy, speed and time left included, and operationslive
-# misses its window because its 1 GiB sparse file copies before the harness looks. This case sizes a random payload
-# from a throughput sample taken on the fixture filesystem itself, then drives three pastes through the real
-# clipboard: one big file into an empty folder, a batch with Skip whose total must leave the skipped file out, and a
-# Replace whose old item must land in this case's own Trash. Every payload byte is deleted on every exit path.
-case_transferlive() {
-    local menus_checks=0
-    transferlive_root="$fixture_root/transferlive"
-    transferlive_bus_pid=""
-    transferlive_writer_pids=()
-    transferlive_sample_one="" transferlive_sample_batch="" transferlive_sample_replace=""
-    trap 'transferlive_teardown' EXIT
-    sandbox_make "$transferlive_root"
-    seed_ui_state "$transferlive_root/state" "$transferlive_ui_state"
-    export XDG_DATA_HOME="$transferlive_root/data"
-    mkdir "$XDG_DATA_HOME" || fail "transferlive: no private data home"
-    transferlive_prepare
-    transferlive_start_bus
-    transferlive_one
-    transferlive_batch
-    transferlive_replace
-    printf 'TRANSFERLIVE copy=%s/s random_write=%s/s payload=%s half=%s one=%s batch=%s replace=%s\n' \
-        "$(transferlive_size "$transferlive_copy_rate")" "$(transferlive_size "$transferlive_random_rate")" \
-        "$(transferlive_size "$transferlive_full_bytes")" "$(transferlive_size "$transferlive_half_bytes")" \
-        "$transferlive_sample_one" "$transferlive_sample_batch" "$transferlive_sample_replace"
-    transferlive_teardown
-    trap - EXIT
-    [[ ! -e "$transferlive_root" ]] || fail "transferlive: $transferlive_root survived the teardown"
-}

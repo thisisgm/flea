@@ -348,9 +348,9 @@ fn the_done_line_names_each_refused_entry_and_its_reason() {
     names.sort_unstable();
     assert_eq!(names, ["tree/broken", "tree/link-file", "tree/sub/link-dir"]);
     assert!(refused.iter().all(|(_, why)| why == super::LINKS));
-    let line = crate::backend::opsreq::transferdone_line(4, 0, 1, 0, false, &[], false, "", &refused[..1]);
+    let line = crate::backend::opsreq::transferdone_line(4, crate::backend::opsreq::TransferCounts { ok: 0, failed: 1, skipped: 0 }, false, &[], false, "", &refused[..1]);
     assert!(line.ends_with(&format!(r#","refused":[{{"name":"{}","err":"this drive cannot hold links"}}]}}"#, refused[0].0)), "{line}");
-    let clean = crate::backend::opsreq::transferdone_line(4, 1, 0, 0, false, &[], false, "", &[]);
+    let clean = crate::backend::opsreq::transferdone_line(4, crate::backend::opsreq::TransferCounts { ok: 1, failed: 0, skipped: 0 }, false, &[], false, "", &[]);
     assert!(!clean.contains("refused"), "a transfer nothing was refused in keeps its line byte for byte: {clean}");
 }
 
