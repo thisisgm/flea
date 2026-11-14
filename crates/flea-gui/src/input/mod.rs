@@ -118,6 +118,9 @@ pub struct PaneInput {
     pub(crate) motion_at: Option<std::time::Instant>,
     epoch: Option<std::time::Instant>,
     pub(crate) queued: Option<actions::Queued>,
+    /// ui.json "scrollKeepsCursor" for this pane's window, set by the shell before each frame: a scroll moves only the
+    /// viewport and leaves the cursor on its row, even once that row is scrolled out of sight.
+    pub(crate) keep_cursor_on_scroll: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -244,7 +247,11 @@ impl PaneInput {
         (pull.to == cursor && pull.listing == listing).then_some(pull.from)
     }
     /// List.qml:213-231 and Filter.js:241-251: after a scroll outside a band the cursor stays in the viewport rows.
+    /// With "scrollKeepsCursor" on the cursor stays where it was, and the next cursor key reveals it again.
     pub fn scrolled(&mut self, scroll: f32, cursor: &mut usize) {
+        if self.keep_cursor_on_scroll {
+            return;
+        }
         let views = |frame: Frame| {
             self.shown
                 .as_ref()
@@ -389,4 +396,31 @@ impl PaneInput {
 #[cfg(test)]
 mod band_delta_tests;
 #[cfg(test)]
+mod scroll_sync_tests;
+#[cfg(test)]
+mod scrolled_tests;
+#[cfg(test)]
 mod whole_rows_tests;
+
+impl crate::state::Shell {
+    /// Settings > View "Scrolling leaves the cursor in place", per window, read before any wheel or scrollbar move:
+    /// on every frame and as soon as the settings change. The List and Grid panes take it, never Columns.
+    pub(crate) fn sync_scroll_keeps_cursor(&mut self) {
+        let keep = self
+            .launch
+            .settings
+            .data
+            .get("scrollKeepsCursor")
+            .and_then(flea::jsondoc::Json::as_bool)
+            == Some(true)
+            // Columns keeps its own cursor rule, so its row-drag scroll still pulls the cursor along.
+            && self.shown_view() != crate::window::startup::View::Columns;
+        for host in self.panes.iter_mut().flatten() {
+            // A pull left by a scroll before the switch would start the next Shift+move from the old cursor.
+            if keep && !host.input.keep_cursor_on_scroll {
+                host.input.pulled = None;
+            }
+            host.input.keep_cursor_on_scroll = keep;
+        }
+    }
+}
