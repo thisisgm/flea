@@ -10,6 +10,7 @@ use std::sync::Arc;
 // Main rule 4: the shelf draws a thumbnail in the mark slot, and it has no listing to address rows
 // in, so it asks by path. One line per path, the cache file or `none`, then a tab and the path
 // back, because the card asked for a set and answers can only be matched by the path they name.
+/// Handle one shelf thumbnail request.
 pub fn command(rest: &[String]) -> i32 {
     if rest.is_empty() {
         eprintln!("flea: shelf thumb takes at least one path");
@@ -17,7 +18,7 @@ pub fn command(rest: &[String]) -> i32 {
     }
     let mime = Db::load();
     let aliases = Arc::new(Aliases::load());
-    let specs = Arc::new(Thumbnailers::load(&aliases));
+    let specs = Arc::new(Thumbnailers::load_for_listing(&aliases));
     let root = crate::backend::thumbcache::default_root();
     let cache = Cache::at(root.clone());
     for path in rest {
@@ -30,6 +31,7 @@ pub fn command(rest: &[String]) -> i32 {
 
 // The cache is the answer whenever it holds one; a miss is produced through the writer every other
 // part of Flea produces one with, so the shelf and the pane share one cache and one failure record.
+/// Find or generate the cached thumbnail for a shelf item.
 fn thumb_of(
     file: &Path,
     mime: &Db,

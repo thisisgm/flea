@@ -1439,6 +1439,7 @@ dependencies = [
  "foldhash 0.2.0",
  "icu_properties",
  "libc",
+ "png",
  "regex",
  "regex-syntax",
  "unicode-bidi",

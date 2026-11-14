@@ -3,13 +3,15 @@ use crate::backend::appicon;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-// exec is the tokenised Exec line with its placeholders still in place, which argv substitutes.
+// Exec holds the arguments and their placeholders until argv expands them.
+#[derive(Clone)]
 pub struct Spec {
     pub exec: Vec<String>,
 }
 
 pub struct Thumbnailers {
     by_mime: HashMap<String, Spec>,
+    stl_fallbacks: HashMap<String, Spec>,
     // Computed once when the table is built; a fail marker names the table that made it by this; see AGENTS.md "Thumbnail cache".
     fingerprint: String,
 }
@@ -24,26 +26,34 @@ pub(crate) const IIQ_MIME: &str = "image/x-phaseone-iiq";
 
 impl Thumbnailers {
     pub fn load(aliases: &Aliases) -> Thumbnailers {
-        let mut entries: Vec<(String, String)> = Vec::new();
-        for dir in search_path() {
-            let read = match std::fs::read_dir(&dir) {
-                Ok(r) => r,
-                Err(_) => continue,
-            };
-            let mut in_dir: Vec<(String, String)> = Vec::new();
-            for item in read.flatten() {
-                let path = item.path();
-                if path.extension().and_then(|e| e.to_str()) != Some("thumbnailer") {
-                    continue;
-                }
-                if let Ok(text) = std::fs::read_to_string(&path) {
-                    in_dir.push((path.to_string_lossy().to_string(), text));
-                }
-            }
-            // Sorting one directory at a time, rather than the whole list, keeps the search path's own precedence intact.
-            entries.append(&mut sorted_by_path(in_dir));
-        }
-        Thumbnailers::from_entries(&entries, aliases)
+        Self::load_with(aliases, None)
+    }
+
+    // The small shared thumbnails have a native STL route. Sized raster previews
+    // use the usual desktop providers and keep their own size limits.
+    /// Load listing thumbnailers with the optional native STL route.
+    pub(crate) fn load_for_listing(aliases: &Aliases) -> Thumbnailers {
+        let stl = std::env::current_exe()
+            .ok()
+            .and_then(|path| path.into_os_string().into_string().ok())
+            .map(|exe| Spec {
+                exec: vec![
+                    exe,
+                    "--stl-thumbnail-worker".into(),
+                    "%i".into(),
+                    "%o".into(),
+                    "%s".into(),
+                ],
+            });
+        Self::load_with(aliases, stl)
+    }
+
+    /// Read thumbnailers in user and system precedence order.
+    fn load_with(aliases: &Aliases, stl: Option<Spec>) -> Thumbnailers {
+        let (user_dir, system_dirs) = search_path();
+        let user = user_dir.as_deref().map(read_specs).unwrap_or_default();
+        let system: Vec<_> = system_dirs.iter().flat_map(|dir| read_specs(dir)).collect();
+        Self::from_layers(&user, &system, aliases, stl)
             .with_appimage_route(aliases, appicon::available())
     }
 
@@ -59,41 +69,56 @@ impl Thumbnailers {
         self
     }
 
+    #[cfg(test)]
     pub fn from_entries(entries: &[(String, String)], aliases: &Aliases) -> Thumbnailers {
-        let mut by_mime: HashMap<String, Spec> = HashMap::new();
-        for (_name, text) in entries {
-            let (exec_line, try_exec, mimes) = fields(text);
-            let mut exec = match exec_line {
-                Some(l) => tokenise(&l),
-                None => continue,
-            };
-            let found = match exec
-                .first()
-                .filter(|p| !p.is_empty())
-                .and_then(|p| resolve(p))
-            {
-                Some(f) => f,
-                None => continue,
-            };
-            // Both are validated: a TryExec that resolves must not vouch for an Exec program that does not.
-            if try_exec.as_deref().is_some_and(|t| resolve(t).is_none()) {
-                continue;
-            }
-            // The jail has no PATH, so the program is stored as the path validation found; see AGENTS.md "Thumbnailer specs".
-            exec[0] = found;
-            for mime in mimes {
-                let key = aliases.canonical(&mime).to_string();
-                // corner: the first file to declare a MIME type keeps it, and load sorts each directory by path so that winner is fixed; see AGENTS.md "Thumbnailer specs".
-                by_mime
-                    .entry(key)
-                    .or_insert_with(|| Spec { exec: exec.clone() });
+        Self::from_layers(entries, &[], aliases, None)
+    }
+
+    /// Keep user overrides ahead of the native STL route and retain its system fallback.
+    pub(super) fn from_layers(
+        user: &[(String, String)],
+        system: &[(String, String)],
+        aliases: &Aliases,
+        stl: Option<Spec>,
+    ) -> Thumbnailers {
+        let mut by_mime = HashMap::new();
+        add_entries(&mut by_mime, user, aliases);
+        let native_keys: Vec<_> = [
+            "model/stl",
+            "application/sla",
+            "application/vnd.ms-pki.stl",
+            "model/x.stl-ascii",
+            "model/x.stl-binary",
+        ]
+        .into_iter()
+        .map(|mime| aliases.canonical(mime))
+        .filter(|mime| !by_mime.contains_key(*mime))
+        .collect();
+        add_entries(&mut by_mime, system, aliases);
+
+        let mut stl_fallbacks = HashMap::new();
+        if let Some(stl) = stl {
+            for key in native_keys {
+                // Several aliases can canonicalize to the same key.
+                if by_mime.get(key).is_some_and(|spec| spec.exec == stl.exec) {
+                    continue;
+                }
+                if let Some(previous) = by_mime.insert(key.to_string(), stl.clone()) {
+                    stl_fallbacks.insert(key.to_string(), previous);
+                }
             }
         }
-        let fingerprint = fingerprint_of(&by_mime);
+        let fingerprint = fingerprint_of(&by_mime, &stl_fallbacks);
         Thumbnailers {
             by_mime,
+            stl_fallbacks,
             fingerprint,
         }
+    }
+
+    /// Find the configured system decoder for a native STL route.
+    pub(crate) fn stl_fallback(&self, mime: &str, aliases: &Aliases) -> Option<&Spec> {
+        self.stl_fallbacks.get(aliases.canonical(mime))
     }
 
     pub fn fingerprint(&self) -> &str {
@@ -125,12 +150,71 @@ impl Thumbnailers {
     }
 }
 
+/// Load usable specs while keeping the first entry for each MIME type.
+fn add_entries(
+    by_mime: &mut HashMap<String, Spec>,
+    entries: &[(String, String)],
+    aliases: &Aliases,
+) {
+    for (_, text) in entries {
+        let (exec_line, try_exec, mimes) = fields(text);
+        let Some(exec_line) = exec_line else { continue };
+        let mut exec = tokenise(&exec_line);
+        let Some(found) = exec
+            .first()
+            .filter(|p| !p.is_empty())
+            .and_then(|p| resolve(p))
+        else {
+            continue;
+        };
+        // A runnable TryExec does not vouch for a missing Exec program.
+        if try_exec.as_deref().is_some_and(|t| resolve(t).is_none()) {
+            continue;
+        }
+        // The sandbox has no PATH. A later declaration does not replace the first.
+        exec[0] = found;
+        for mime in mimes {
+            by_mime
+                .entry(aliases.canonical(&mime).to_string())
+                .or_insert_with(|| Spec { exec: exec.clone() });
+        }
+    }
+}
+
+/// Read and sort a directory's thumbnailer files for deterministic precedence.
+fn read_specs(dir: &std::path::Path) -> Vec<(String, String)> {
+    let Ok(read) = std::fs::read_dir(dir) else {
+        return Vec::new();
+    };
+    let entries = read
+        .flatten()
+        .filter_map(|item| {
+            let path = item.path();
+            if path.extension().and_then(|ext| ext.to_str()) != Some("thumbnailer") {
+                return None;
+            }
+            let text = std::fs::read_to_string(&path).ok()?;
+            Some((path.to_string_lossy().into_owned(), text))
+        })
+        .collect();
+    sorted_by_path(entries)
+}
+
 // Sample output, 16 lowercase hex characters over every (MIME type, resolved program, arguments) entry; the entries are sorted so the map's order never reaches the hash.
-fn fingerprint_of(by_mime: &HashMap<String, Spec>) -> String {
+/// Hash the provider table and its fallbacks for cached failure records.
+fn fingerprint_of(
+    by_mime: &HashMap<String, Spec>,
+    stl_fallbacks: &HashMap<String, Spec>,
+) -> String {
     let mut entries: Vec<String> = by_mime
         .iter()
         .map(|(mime, spec)| format!("{}\0{}", mime, spec.exec.join("\0")))
         .collect();
+    entries.extend(
+        stl_fallbacks
+            .iter()
+            .map(|(mime, spec)| format!("stl-fallback\0{}\0{}", mime, spec.exec.join("\0"))),
+    );
     entries.sort();
     entries.insert(
         0,
@@ -149,15 +233,13 @@ fn sorted_by_path(mut entries: Vec<(String, String)>) -> Vec<(String, String)> {
 }
 
 // XDG_DATA_HOME comes first, so a user's own thumbnailer overrides a system one, as the freedesktop spec orders it.
-fn search_path() -> Vec<PathBuf> {
+/// Return the user thumbnailer directory and the ordered system directories.
+fn search_path() -> (Option<PathBuf>, Vec<PathBuf>) {
     let mut dirs: Vec<PathBuf> = Vec::new();
     let home = std::env::var_os("XDG_DATA_HOME")
         .map(PathBuf::from)
         .filter(|p| !p.as_os_str().is_empty())
         .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".local/share")));
-    if let Some(h) = home {
-        dirs.push(h.join(THUMBNAILERS_SUBDIR));
-    }
     let data_dirs = std::env::var("XDG_DATA_DIRS").unwrap_or_default();
     let data_dirs = if data_dirs.is_empty() {
         DEFAULT_DATA_DIRS.to_string()
@@ -169,7 +251,7 @@ fn search_path() -> Vec<PathBuf> {
             dirs.push(PathBuf::from(d).join(THUMBNAILERS_SUBDIR));
         }
     }
-    dirs
+    (home.map(|h| h.join(THUMBNAILERS_SUBDIR)), dirs)
 }
 
 // Sample input, a .thumbnailer file: "[Thumbnailer Entry]", then "TryExec=prog", "Exec=prog -i %i -o %o -s %s", "MimeType=video/mp4;video/webm;".
@@ -277,3 +359,7 @@ mod tests;
 #[cfg(test)]
 #[path = "raw_gap64_tests.rs"]
 mod gap64_tests;
+
+#[cfg(test)]
+#[path = "thumbspec_stl_tests.rs"]
+mod stl_tests;

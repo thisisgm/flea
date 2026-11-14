@@ -102,7 +102,9 @@ pub(crate) fn flash_picker(args: &[String]) -> bool {
 #[path = "copysrc_tests.rs"]
 mod copysrc_tests;
 
+mod stl_thumbnail;
 fn main() {
+    stl_thumbnail::dispatch();
     // args() panics on a non-UTF-8 argument and a Linux filename is any bytes, so each argument is carried as its exact text.
     let args: Vec<String> = std::env::args_os()
         .map(|a| flea::bytename::path_text(std::path::Path::new(&a)).into_owned())

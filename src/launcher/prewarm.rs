@@ -31,6 +31,7 @@ pub fn write_prewarm(path: &str, first: usize, dest: &Path) -> Result<(), FleaEr
     wrote
 }
 
+/// Write a prewarmed listing to its temporary cache file.
 fn write_to_tmp(path: &str, first: usize, dest: &Path, tmp: &Path) -> Result<(), FleaError> {
     // Prewarm never asks for dotfiles: it mirrors list's own default, see docs/protocol.md.
     let (mut listing, read_ms) = scan(path, false)?;
@@ -51,7 +52,7 @@ fn write_to_tmp(path: &str, first: usize, dest: &Path, tmp: &Path) -> Result<(),
     let (metas, ms) = stat_range(&PathBuf::from(path), &listing, 0, first);
     // Its own copy: prewarm is one shot, so there is no loop to hoist the load out of.
     let (mime, icons, aliases) = (Db::load(), Names::load(), Aliases::load());
-    let thumbs = Thumbnailers::load(&aliases);
+    let thumbs = Thumbnailers::load_for_listing(&aliases);
     let mut kinds = Kinds::new();
     let rows = rows_line(&PathBuf::from(path), &listing, &metas, crate::backend::rows::Window { start: 0, ms }, crate::backend::rows::Services { mime: &mime, icons: &icons, aliases: &aliases, thumbs: &thumbs, kinds: &mut kinds });
     writeln!(out, "{}", stamped(rows, FIRST_LISTING))

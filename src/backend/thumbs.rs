@@ -286,6 +286,7 @@ pub(crate) fn run_one(tables: &Tables, job: &mut Job) -> Outcome {
 }
 
 // The copies of a camera RAW's embedded JPEG live in raw_dir, which a test points at its sandbox instead of the user's cache.
+/// Generate and publish a thumbnail, with a shared deadline for any STL fallback.
 pub(crate) fn run_one_in(tables: &Tables, job: &mut Job, raw_dir: &Path) -> Outcome {
     if super::model3d::embedded_thumbnail_supported(&job.path.to_string_lossy()) {
         return super::model3dreq::thumbnail(tables, job);
@@ -332,40 +333,51 @@ pub(crate) fn run_one_in(tables: &Tables, job: &mut Job, raw_dir: &Path) -> Outc
         return discard(&temp);
     }
     // corner: a thumbnailer that wrote then renamed would fail against this file bind, and only glycin and ffmpegthumbnailer were probed; see AGENTS.md "Thumbnail pool".
-    let Some(full) = thumbbind::wrap(&inner, &abs, &temp) else {
-        return discard(&temp);
-    };
+    let full = thumbbind::wrap(&inner, &abs, &temp);
     if let Some(t) = job.trace.as_mut() {
         t.spawned = t.at.elapsed();
     }
-    // A video the pre-linked worker can take goes there first; a cancelled job ends here, and anything else it does not finish runs the exec path as before.
-    let by_worker = match (&tables.worker, worker_shape(spec)) {
-        (Some(worker), Some(film_strip)) => match worker.generate(
-            &abs,
-            &temp,
-            THUMB_SIZE,
-            film_strip,
-            JOB_TIMEOUT,
-            job.replies.as_ref(),
-        ) {
-            // A cancel that raced the verdict still wins: nothing is published, marked or retried.
-            Ok(result) if !job.replies.as_ref().is_some_and(identity::finish_video) => result,
-            _ => {
-                discard(&temp);
-                return Outcome::Cancelled;
-            }
-        },
-        _ => None,
+    let deadline = Instant::now() + JOB_TIMEOUT;
+    // The video worker handles only compatible .thumbnailer specs.
+    // An unbindable native executable can leave a usable system STL provider.
+    let mut ran = if let Some(full) = full {
+        let by_worker = match (&tables.worker, worker_shape(spec)) {
+            (Some(worker), Some(film_strip)) => match worker.generate(
+                &abs,
+                &temp,
+                THUMB_SIZE,
+                film_strip,
+                JOB_TIMEOUT,
+                job.replies.as_ref(),
+            ) {
+                // A cancel that raced the verdict still wins: nothing is published, marked or retried.
+                Ok(result) if !job.replies.as_ref().is_some_and(identity::finish_video) => result,
+                _ => {
+                    discard(&temp);
+                    return Outcome::Cancelled;
+                }
+            },
+            _ => None,
+        };
+        by_worker.unwrap_or_else(|| run_with_timeout(&full, JOB_TIMEOUT))
+    } else {
+        Ran::NotStarted
     };
-    let ran = match by_worker {
-        Some(ran) => ran,
-        None => run_with_timeout(&full, JOB_TIMEOUT),
-    };
+    let mut ready = matches!(ran, Ran::Succeeded) && wrote_something(&temp);
+    if !ready && !matches!(ran, Ran::TimedOut) {
+        if let Some(fallback) = tables.specs.stl_fallback(&job.mime, &tables.aliases) {
+            ran = retry_stl(fallback, &input, &temp, deadline);
+            ready = matches!(ran, Ran::Succeeded) && wrote_something(&temp);
+        }
+    }
     if let Some(t) = job.trace.as_mut() {
         t.exited = t.at.elapsed();
     }
-    if matches!(ran, Ran::Succeeded) && wrote_something(&temp) {
-    } else if records_marker(&ran, super::extclass::classify(&job.path)) {
+    if ready {
+        publish(&temp, &key_uri, job.mtime, final_path)
+    } else if !matches!(ran, Ran::NotStarted)
+        && records_marker(&ran, super::extclass::classify(&job.path))
+    {
         // corner: glycin exits 0 on bytes it cannot decode, so an empty output is the decoder's verdict on the file; see AGENTS.md "Thumbnail pool".
         record_failure_for(
             &tables.cache,
@@ -374,12 +386,38 @@ pub(crate) fn run_one_in(tables: &Tables, job: &mut Job, raw_dir: &Path) -> Outc
             tables.specs.fingerprint(),
             job.trash_identity.as_deref(),
         );
-        return discard(&temp);
+        discard(&temp)
     } else {
-        // corner: a child that never started is the machine's fault, not the file's, so it is not recorded in fail/; see AGENTS.md "Thumbnail pool".
-        return discard(&temp);
+        // A child that never started says nothing about the file.
+        discard(&temp)
     }
-    publish(&temp, &key_uri, job.mtime, final_path)
+}
+
+/// Retry with the system thumbnailer using the original job's deadline.
+fn retry_stl(spec: &super::thumbspec::Spec, input: &Path, temp: &Path, deadline: Instant) -> Ran {
+    if Instant::now() >= deadline {
+        return Ran::TimedOut;
+    }
+    let Some((input, inner)) = argv(spec, input, temp, THUMB_SIZE) else {
+        return Ran::NotStarted;
+    };
+    let Some(full) = thumbbind::wrap(&inner, &input, temp) else {
+        return Ran::NotStarted;
+    };
+    // The previous child can leave a partial image even though it failed.
+    if std::fs::OpenOptions::new()
+        .write(true)
+        .truncate(true)
+        .open(temp)
+        .is_err()
+    {
+        return Ran::NotStarted;
+    }
+    let left = deadline.saturating_duration_since(Instant::now());
+    if left.is_zero() {
+        return Ran::TimedOut;
+    }
+    run_with_timeout(&full, left)
 }
 
 // The child wrote a bare PNG, so the spec's own metadata is added before the file is published.
@@ -460,3 +498,7 @@ pub(crate) fn record_failure_for(
 #[cfg(test)]
 #[path = "thumbs_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "thumbs_stl_tests.rs"]
+mod stl_tests;
