@@ -38,7 +38,11 @@ impl Thumbnailers {
             .and_then(|path| path.into_os_string().into_string().ok())
             .map(|exe| Spec {
                 exec: vec![
-                    exe, "--stl-thumbnail-worker".into(), "%i".into(), "%o".into(), "%s".into(),
+                    exe,
+                    "--stl-thumbnail-worker".into(),
+                    "%i".into(),
+                    "%o".into(),
+                    "%s".into(),
                 ],
             });
         Self::load_with(aliases, stl)
@@ -80,8 +84,11 @@ impl Thumbnailers {
         let mut by_mime = HashMap::new();
         add_entries(&mut by_mime, user, aliases);
         let native_keys: Vec<_> = [
-            "model/stl", "application/sla", "application/vnd.ms-pki.stl",
-            "model/x.stl-ascii", "model/x.stl-binary",
+            "model/stl",
+            "application/sla",
+            "application/vnd.ms-pki.stl",
+            "model/x.stl-ascii",
+            "model/x.stl-binary",
         ]
         .into_iter()
         .map(|mime| aliases.canonical(mime))
@@ -102,7 +109,11 @@ impl Thumbnailers {
             }
         }
         let fingerprint = fingerprint_of(&by_mime, &stl_fallbacks);
-        Thumbnailers { by_mime, stl_fallbacks, fingerprint }
+        Thumbnailers {
+            by_mime,
+            stl_fallbacks,
+            fingerprint,
+        }
     }
 
     /// Find the configured system decoder for a native STL route.
@@ -149,7 +160,11 @@ fn add_entries(
         let (exec_line, try_exec, mimes) = fields(text);
         let Some(exec_line) = exec_line else { continue };
         let mut exec = tokenise(&exec_line);
-        let Some(found) = exec.first().filter(|p| !p.is_empty()).and_then(|p| resolve(p)) else {
+        let Some(found) = exec
+            .first()
+            .filter(|p| !p.is_empty())
+            .and_then(|p| resolve(p))
+        else {
             continue;
         };
         // A runnable TryExec does not vouch for a missing Exec program.
@@ -159,7 +174,8 @@ fn add_entries(
         // The sandbox has no PATH. A later declaration does not replace the first.
         exec[0] = found;
         for mime in mimes {
-            by_mime.entry(aliases.canonical(&mime).to_string())
+            by_mime
+                .entry(aliases.canonical(&mime).to_string())
                 .or_insert_with(|| Spec { exec: exec.clone() });
         }
     }
@@ -167,23 +183,38 @@ fn add_entries(
 
 /// Read and sort a directory's thumbnailer files for deterministic precedence.
 fn read_specs(dir: &std::path::Path) -> Vec<(String, String)> {
-    let Ok(read) = std::fs::read_dir(dir) else { return Vec::new() };
-    let entries = read.flatten().filter_map(|item| {
-        let path = item.path();
-        if path.extension().and_then(|ext| ext.to_str()) != Some("thumbnailer") {
-            return None;
-        }
-        let text = std::fs::read_to_string(&path).ok()?;
-        Some((path.to_string_lossy().into_owned(), text))
-    }).collect();
+    let Ok(read) = std::fs::read_dir(dir) else {
+        return Vec::new();
+    };
+    let entries = read
+        .flatten()
+        .filter_map(|item| {
+            let path = item.path();
+            if path.extension().and_then(|ext| ext.to_str()) != Some("thumbnailer") {
+                return None;
+            }
+            let text = std::fs::read_to_string(&path).ok()?;
+            Some((path.to_string_lossy().into_owned(), text))
+        })
+        .collect();
     sorted_by_path(entries)
 }
 
 // Sample output, 16 lowercase hex characters over every (MIME type, resolved program, arguments) entry; the entries are sorted so the map's order never reaches the hash.
 /// Hash the provider table and its fallbacks for cached failure records.
-fn fingerprint_of(by_mime: &HashMap<String, Spec>, stl_fallbacks: &HashMap<String, Spec>) -> String {
-    let mut entries: Vec<String> = by_mime.iter().map(|(mime, spec)| format!("{}\0{}", mime, spec.exec.join("\0"))).collect();
-    entries.extend(stl_fallbacks.iter().map(|(mime, spec)| format!("stl-fallback\0{}\0{}", mime, spec.exec.join("\0"))));
+fn fingerprint_of(
+    by_mime: &HashMap<String, Spec>,
+    stl_fallbacks: &HashMap<String, Spec>,
+) -> String {
+    let mut entries: Vec<String> = by_mime
+        .iter()
+        .map(|(mime, spec)| format!("{}\0{}", mime, spec.exec.join("\0")))
+        .collect();
+    entries.extend(
+        stl_fallbacks
+            .iter()
+            .map(|(mime, spec)| format!("stl-fallback\0{}\0{}", mime, spec.exec.join("\0"))),
+    );
     entries.sort();
     entries.insert(
         0,
@@ -328,3 +359,7 @@ mod tests;
 #[cfg(test)]
 #[path = "raw_gap64_tests.rs"]
 mod gap64_tests;
+
+#[cfg(test)]
+#[path = "thumbspec_stl_tests.rs"]
+mod stl_tests;

@@ -1,5 +1,5 @@
 use crate::backend::{model3d, regfile};
-use flea::ui_logic_pv4::{
+use flea::ui_logic_model_preview::{
     camera,
     color::Palette,
     raster::{Prepared, Raster, Style},
@@ -20,6 +20,20 @@ const PALETTE: Palette = Palette {
 };
 
 /// Render a supported STL input to the sandbox-provided thumbnail file.
+/// Dispatch the internal worker before ordinary commands; preserve raw Linux path bytes.
+pub fn dispatch() {
+    if std::env::args_os()
+        .nth(1)
+        .is_some_and(|arg| arg == "--stl-thumbnail-worker")
+    {
+        if let Err(error) = run(std::env::args_os().skip(2)) {
+            eprintln!("flea STL thumbnail: {error}");
+            std::process::exit(1);
+        }
+        std::process::exit(0);
+    }
+}
+
 pub fn run(args: impl Iterator<Item = OsString>) -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<_> = args.collect();
     let [input, output, size] = args.as_slice() else {
@@ -40,7 +54,7 @@ pub fn run(args: impl Iterator<Item = OsString>) -> Result<(), Box<dyn std::erro
     source
         .take(model3d::MAX_INPUT as u64 + 1)
         .read_to_end(&mut bytes)?;
-    let model = model3d::parse("stl", &bytes)?;
+    let model = model3d::parse_classified("stl", &bytes).map_err(|failure| failure.reason)?;
     drop(bytes);
     let scene = Scene {
         positions: model
@@ -100,3 +114,7 @@ pub fn run(args: impl Iterator<Item = OsString>) -> Result<(), Box<dyn std::erro
     writer.finish()?;
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "stl_thumbnail_tests.rs"]
+mod tests;

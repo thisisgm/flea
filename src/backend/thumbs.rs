@@ -341,26 +341,28 @@ pub(crate) fn run_one_in(tables: &Tables, job: &mut Job, raw_dir: &Path) -> Outc
     // The video worker handles only compatible .thumbnailer specs.
     // An unbindable native executable can leave a usable system STL provider.
     let mut ran = if let Some(full) = full {
-    let by_worker = match (&tables.worker, worker_shape(spec)) {
-        (Some(worker), Some(film_strip)) => match worker.generate(
-            &abs,
-            &temp,
-            THUMB_SIZE,
-            film_strip,
-            JOB_TIMEOUT,
-            job.replies.as_ref(),
-        ) {
-            // A cancel that raced the verdict still wins: nothing is published, marked or retried.
-            Ok(result) if !job.replies.as_ref().is_some_and(identity::finish_video) => result,
-            _ => {
-                discard(&temp);
-                return Outcome::Cancelled;
-            }
-        },
-        _ => None,
+        let by_worker = match (&tables.worker, worker_shape(spec)) {
+            (Some(worker), Some(film_strip)) => match worker.generate(
+                &abs,
+                &temp,
+                THUMB_SIZE,
+                film_strip,
+                JOB_TIMEOUT,
+                job.replies.as_ref(),
+            ) {
+                // A cancel that raced the verdict still wins: nothing is published, marked or retried.
+                Ok(result) if !job.replies.as_ref().is_some_and(identity::finish_video) => result,
+                _ => {
+                    discard(&temp);
+                    return Outcome::Cancelled;
+                }
+            },
+            _ => None,
+        };
+        by_worker.unwrap_or_else(|| run_with_timeout(&full, JOB_TIMEOUT))
+    } else {
+        Ran::NotStarted
     };
-    by_worker.unwrap_or_else(|| run_with_timeout(&full, JOB_TIMEOUT))
-    } else { Ran::NotStarted };
     let mut ready = matches!(ran, Ran::Succeeded) && wrote_something(&temp);
     if !ready && !matches!(ran, Ran::TimedOut) {
         if let Some(fallback) = tables.specs.stl_fallback(&job.mime, &tables.aliases) {
@@ -373,9 +375,17 @@ pub(crate) fn run_one_in(tables: &Tables, job: &mut Job, raw_dir: &Path) -> Outc
     }
     if ready {
         publish(&temp, &key_uri, job.mtime, final_path)
-    } else if !matches!(ran, Ran::NotStarted) && records_marker(&ran, super::extclass::classify(&job.path)) {
+    } else if !matches!(ran, Ran::NotStarted)
+        && records_marker(&ran, super::extclass::classify(&job.path))
+    {
         // corner: glycin exits 0 on bytes it cannot decode, so an empty output is the decoder's verdict on the file; see AGENTS.md "Thumbnail pool".
-        record_failure_for(&tables.cache, &key_uri, job.mtime, tables.specs.fingerprint(), job.trash_identity.as_deref());
+        record_failure_for(
+            &tables.cache,
+            &key_uri,
+            job.mtime,
+            tables.specs.fingerprint(),
+            job.trash_identity.as_deref(),
+        );
         discard(&temp)
     } else {
         // A child that never started says nothing about the file.
@@ -388,10 +398,19 @@ fn retry_stl(spec: &super::thumbspec::Spec, input: &Path, temp: &Path, deadline:
     if Instant::now() >= deadline {
         return Ran::TimedOut;
     }
-    let Some((input, inner)) = argv(spec, input, temp, THUMB_SIZE) else { return Ran::NotStarted };
-    let Some(full) = thumbbind::wrap(&inner, &input, temp) else { return Ran::NotStarted };
+    let Some((input, inner)) = argv(spec, input, temp, THUMB_SIZE) else {
+        return Ran::NotStarted;
+    };
+    let Some(full) = thumbbind::wrap(&inner, &input, temp) else {
+        return Ran::NotStarted;
+    };
     // The previous child can leave a partial image even though it failed.
-    if std::fs::OpenOptions::new().write(true).truncate(true).open(temp).is_err() {
+    if std::fs::OpenOptions::new()
+        .write(true)
+        .truncate(true)
+        .open(temp)
+        .is_err()
+    {
         return Ran::NotStarted;
     }
     let left = deadline.saturating_duration_since(Instant::now());
