@@ -13,6 +13,7 @@ ShellRoot {
     property var keys: null
     property string scenario: Quickshell.env("FLEA_PICKER_HUNT_CASE")
     property int stage: 0
+    property bool timerBusy: false
     property double stamp: Date.now()
     property int failures: 0
     property int checks: 0
@@ -382,7 +383,7 @@ ShellRoot {
             return
         }
         if (stage === 1) {
-            if (!form.statusItem.visible) return
+            if (!form.statusItem.visible || Date.now() - root.stamp < root.pollIntervalMs * 5) return
             root.reviewShown(form)
             if (scenario === "collision") {
                 root.press(Qt.Key_X)
@@ -705,6 +706,9 @@ ShellRoot {
         running: true
         repeat: true
         onTriggered: {
+            if (root.timerBusy) return
+            root.timerBusy = true
+            try {
             if (Date.now() - root.stamp > root.deadlineMs) {
                 var fellows = win ? root.descendants(win.contentItem).filter(function(item) {
                     return item.activeFocus && typeof item.selectAll === "function"
@@ -946,6 +950,9 @@ ShellRoot {
                 root.check("a refused file keeps the field open", root.openFields().length, 1)
                 root.check("a refused file lists nothing", root.listings - root.listingsBefore, 0)
                 root.finish()
+            }
+            } finally {
+                root.timerBusy = false
             }
         }
     }

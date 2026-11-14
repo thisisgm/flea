@@ -196,7 +196,7 @@ tests/js/picker.js 382
 tests/picker-grid.qml 465
 tests/picker-hunt.qml 448
 tests/permissions-focus.qml 417
-tests/picker-040.qml 952
+tests/picker-040.qml 959
 tests/js/network.js 307
 tests/js/ops.js 597
 tests/js/slowclick.js 309
