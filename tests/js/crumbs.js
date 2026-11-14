@@ -32,6 +32,11 @@ function run(check) {
     var root = Crumbs.crumbs("/", "/home/gm")
     check("the root is one crumb and it is the last one",
           drawn(root) + "|" + targets(root) + "|" + root.length, "/|/|1")
+    var literalNames = Crumbs.crumbs("/tmp/space name/#[draft]%/雪", "/home/gm")
+    check("Unicode and special characters remain intact in visible segments",
+          drawn(literalNames), "/tmp/space name/#[draft]%/雪")
+    check("Unicode and special characters remain intact in navigation targets",
+          targets(literalNames), "/ /tmp /tmp/space name /tmp/space name/#[draft]% /tmp/space name/#[draft]%/雪")
     var noHome = Crumbs.crumbs("/home/gm/Work", "")
     check("with no home in the environment every component is its own crumb",
           drawn(noHome) + "|" + targets(noHome), "/home/gm/Work|/ /home /home/gm /home/gm/Work")

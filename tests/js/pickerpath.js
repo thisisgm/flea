@@ -8,6 +8,7 @@ function run(check) {
     var chromeSrc = Source.source("ui/ChromeBar.qml")
     var barSrc = Source.source("ui/PickerPathBar.qml")
     var logicSrc = Source.source("ui/PickerChrome.qml")
+    var crumbsSrc = Source.source("ui/js/Crumbs.js")
 
     // One shared field: both hosts hold it, neither copies it; the main chrome holds its half in a synchronous Loader.
     var entryBlock = Source.slice(chromeSrc, "id: entryLoader", "onLoaded:")
@@ -85,4 +86,11 @@ function run(check) {
         Source.source("ui/PickerList.qml").indexOf('"pathBar"') >= 0, true)
     check("the grid routes the pathBar action",
         Source.source("ui/PickerGrid.qml").indexOf('"pathBar"') >= 0, true)
+    check("the picker strip builds individual directory crumbs", logicSrc.indexOf('import "js/Crumbs.js" as Crumbs') >= 0
+        && logicSrc.indexOf("Crumbs.crumbs(root.picker.path, root.picker.home)") >= 0, true)
+    check("the picker uses the shared crumb input and visual conventions", logicSrc.indexOf("delegate: Flea.Crumb") >= 0
+        && logicSrc.indexOf("onChosen: function (path) { root.picker.open(path); root.picker.focusDefault() }") >= 0, true)
+    check("crumb navigation calls the existing history-preserving picker open", Source.source("ui/PickerWindow.qml").indexOf("function open(next)") >= 0, true)
+    check("the collapsed marker has no destination", crumbsSrc.indexOf('path: "", last: false, elided: true') >= 0, true)
+    check("Recent remains a single non-path label", logicSrc.indexOf("path: Picker.RECENT, last: true") >= 0, true)
 }

@@ -195,7 +195,7 @@ tests/js/picker.js 382
 tests/picker-grid.qml 465
 tests/picker-hunt.qml 448
 tests/permissions-focus.qml 417
-tests/picker-040.qml 952
+tests/picker-040.qml 959
 tests/js/network.js 307
 tests/js/ops.js 597
 tests/js/slowclick.js 309
@@ -275,7 +275,7 @@ ui/PreviewColumn.qml 559
 ui/DeviceMounts.qml 540
 ui/js/Facts.js 402
 ui/PreviewPdf.qml 482
-ui/PickerChrome.qml 295
+ui/PickerChrome.qml 297
 ui/PreviewMarkdown.qml 676
 tests/markdown-code.qml 477
 ui/Row.qml 469
