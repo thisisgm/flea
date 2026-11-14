@@ -239,7 +239,7 @@
   "device.unlock.unlocked": "ปลดล็อกและเมานต์ %1 แล้ว",
   "device.unlock.unlocking": "กำลังปลดล็อก %1…",
   "device.unlock.wrong": "รหัสผ่านนั้นใช้ไม่ได้",
-  "device.unlock.caps_lock": "%1 ตรวจสอบ Caps Lock",
+  "device.unlock.caps_lock": "ตรวจสอบ Caps Lock",
   "device.unmount_failed": "เลิกเมานต์ %1 ไม่ได้",
   "device.unmount_refused": "ไม่ได้เลิกเมานต์ %1 คุณไม่มีสิทธิ์",
   "dialogs.file.apply": "omarchy:shell.common.apply",

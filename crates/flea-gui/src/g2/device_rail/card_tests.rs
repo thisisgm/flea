@@ -1,5 +1,5 @@
 //! The card's words against the unlock and unlock-empty boards, through the real catalog and its omarchy references.
-use super::card::{note_shown, CardText};
+use super::card::CardText;
 use super::process::Outcome;
 use super::unlock::{Card, Proc};
 use flea::i18n::{I18n, Paths};
@@ -267,27 +267,43 @@ fn backspace_after_a_refusal_clears_the_held_dots() {
 }
 
 #[test]
-fn the_caps_lock_hint_shows_only_while_caps_lock_is_on() {
+fn the_caps_lock_hint_names_caps_lock_only_when_it_was_on_at_submit() {
     let root = Root::new("card-caps");
-    let text = CardText::of(&refused_card("crypto_LUKS"), &catalog(&root));
-    assert_eq!(note_shown(&text, false), "That passphrase did not work.");
+    let shown = |fstype: &str, caps: bool| {
+        let mut card = Card::new();
+        card.open_for("/dev/sdb1", "Backup", 0, fstype, "2");
+        card.type_text("1234567");
+        card.field.caps_on = caps;
+        card.submit(0);
+        let refused = Outcome {
+            code: 1,
+            stdout: String::new(),
+            stderr: "GDBus.Error:org.freedesktop.UDisks2.Error.Failed: x".into(),
+        };
+        card.exited(Proc::Unlock, &refused, 5);
+        CardText::of(&card, &catalog(&root)).note
+    };
+    assert_eq!(shown("crypto_LUKS", false), "That passphrase did not work.");
     assert_eq!(
-        note_shown(&text, true),
-        "That passphrase did not work. Check Caps Lock."
+        shown("crypto_LUKS", true),
+        "That passphrase did not work.\nCaps Lock is on."
     );
-    let text = CardText::of(&refused_card("BitLocker"), &catalog(&root));
     assert_eq!(
-        note_shown(&text, false),
+        shown("BitLocker", false),
         "That password or recovery key did not work."
     );
     assert_eq!(
-        note_shown(&text, true),
-        "That password or recovery key did not work. Check Caps Lock."
+        shown("BitLocker", true),
+        "That password or recovery key did not work.\nCaps Lock is on."
     );
     let mut card = Card::new();
     card.open_for("/dev/sdb1", "Backup", 0, "crypto_LUKS", "2");
-    let text = CardText::of(&card, &catalog(&root));
-    assert_eq!(note_shown(&text, true), "", "an empty note gains no hint");
+    card.field.caps_on = true;
+    assert_eq!(
+        CardText::of(&card, &catalog(&root)).note,
+        "",
+        "an empty note gains no hint"
+    );
 }
 
 #[test]

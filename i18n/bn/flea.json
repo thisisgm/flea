@@ -249,7 +249,7 @@
   "device.unlock.unlocked": "%1 আনলক ও মাউন্ট হয়েছে।",
   "device.unlock.unlocking": "%1 আনলক হচ্ছে…",
   "device.unlock.wrong": "ওই পাসফ্রেজ কাজ করেনি।",
-  "device.unlock.caps_lock": "%1 Caps Lock পরীক্ষা করুন।",
+  "device.unlock.caps_lock": "Caps Lock পরীক্ষা করুন।",
   "device.unmount_failed": "%1 আনমাউন্ট করা যায়নি।",
   "device.unmount_refused": "%1 আনমাউন্ট করা হয়নি: আপনার অনুমতি নেই।",
   "dialogs.file.apply": "omarchy:shell.common.apply",

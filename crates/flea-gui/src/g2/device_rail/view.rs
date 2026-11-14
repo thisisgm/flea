@@ -245,6 +245,13 @@ impl UnlockView {
         }));
     }
 
+    /// Remembers whether Caps Lock is on as Unlock is pressed, for the refusal that may follow.
+    fn note_caps(&mut self, window: &Window) {
+        if let Some(card) = self.host.card.as_mut() {
+            card.field.caps_on = window.capslock().on;
+        }
+    }
+
     pub fn submit(&mut self, cx: &mut Context<Self>) {
         let now = self.now();
         let effects = self
@@ -290,7 +297,10 @@ impl UnlockView {
         cx.stop_propagation();
         match action {
             Act::Close => return self.close(cx),
-            Act::Submit => return self.submit(cx),
+            Act::Submit => {
+                self.note_caps(window);
+                return self.submit(cx);
+            }
             Act::Tab { back } => card.step_tab(back),
             Act::Backspace => card.backspace(),
             Act::Type(text) => card.type_text(&text),
@@ -307,8 +317,7 @@ impl Render for UnlockView {
             .absolute()
             .size_full()
             .track_focus(&self.focus)
-            .on_key_down(cx.listener(Self::key))
-            .on_modifiers_changed(cx.listener(|_, _, _, cx| cx.notify()));
+            .on_key_down(cx.listener(Self::key));
         let Some(state) = self.host.card.as_ref().filter(|c| c.opened) else {
             self.probes.clear();
             return root;
@@ -328,7 +337,10 @@ impl Render for UnlockView {
         let input = (state.phase != super::unlock::Phase::Unlocking)
             .then(|| (cx.entity(), crate::list::Typeface::for_window(window, cx)));
         let cancel = cx.listener(|view: &mut Self, _, _, cx| view.close(cx));
-        let unlock = cx.listener(|view: &mut Self, _, _, cx| view.submit(cx));
+        let unlock = cx.listener(|view: &mut Self, _, window, cx| {
+            view.note_caps(window);
+            view.submit(cx)
+        });
         let view = cx.entity();
         let press = Press {
             cancel: Box::new(cancel),
@@ -364,7 +376,6 @@ impl Render for UnlockView {
                 Some(super::card::Mounted {
                     input,
                     probes: &self.probes,
-                    caps_lock: window.capslock().on,
                 }),
             ))
     }

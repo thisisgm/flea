@@ -259,7 +259,7 @@
   "device.unlock.unlocked": "Se desbloqueó y montó %1.",
   "device.unlock.unlocking": "Desbloqueando %1…",
   "device.unlock.wrong": "Esa frase de acceso no funcionó.",
-  "device.unlock.caps_lock": "%1 Revisa el bloqueo de mayúsculas.",
+  "device.unlock.caps_lock": "Revisa el bloqueo de mayúsculas.",
   "device.unmount_failed": "No se pudo desmontar %1.",
   "device.unmount_refused": "No se desmontó %1: no tienes permiso.",
   "dialogs.file.apply": "omarchy:shell.common.apply",

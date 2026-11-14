@@ -249,7 +249,7 @@
   "device.unlock.unlocked": "Το %1 ξεκλειδώθηκε και προσαρτήθηκε.",
   "device.unlock.unlocking": "Ξεκλείδωμα του %1…",
   "device.unlock.wrong": "Αυτή η φράση πρόσβασης δεν λειτούργησε.",
-  "device.unlock.caps_lock": "%1 Έλεγξε το Caps Lock.",
+  "device.unlock.caps_lock": "Έλεγξε το Caps Lock.",
   "device.unmount_failed": "Δεν ήταν δυνατή η αποπροσάρτηση του %1.",
   "device.unmount_refused": "Δεν έγινε αποπροσάρτηση του %1: δεν έχεις δικαίωμα.",
   "dialogs.file.apply": "omarchy:shell.common.apply",

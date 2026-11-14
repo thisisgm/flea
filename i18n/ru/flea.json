@@ -269,7 +269,7 @@
   "device.unlock.unlocked": "%1 разблокирован и подключён.",
   "device.unlock.unlocking": "Разблокировка %1…",
   "device.unlock.wrong": "Кодовая фраза не подошла.",
-  "device.unlock.caps_lock": "%1 Проверьте Caps Lock.",
+  "device.unlock.caps_lock": "Проверьте Caps Lock.",
   "device.unmount_failed": "Не удалось отключить %1 от файловой системы.",
   "device.unmount_refused": "%1 не отключён: у вас нет разрешения.",
   "dialogs.file.apply": "omarchy:shell.common.apply",

@@ -249,7 +249,7 @@
   "device.unlock.unlocked": "%1 अनलॉक और माउंट किया गया।",
   "device.unlock.unlocking": "%1 अनलॉक हो रहा है…",
   "device.unlock.wrong": "वह पासफ़्रेज़ काम नहीं किया।",
-  "device.unlock.caps_lock": "%1 Caps Lock जाँचें।",
+  "device.unlock.caps_lock": "Caps Lock जाँचें।",
   "device.unmount_failed": "%1 अनमाउंट नहीं किया जा सका।",
   "device.unmount_refused": "%1 अनमाउंट नहीं किया गया: आपके पास अनुमति नहीं है।",
   "dialogs.file.apply": "omarchy:shell.common.apply",

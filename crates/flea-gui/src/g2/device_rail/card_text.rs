@@ -1,4 +1,4 @@
-//! The unlock card's words, built once per card change or language change and chosen in paint only by Caps Lock.
+//! The unlock card's words, built once per card change or language change.
 use super::unlock::Card;
 use super::words::say;
 use crate::g2::status_feedback::caption::heading_for;
@@ -14,8 +14,6 @@ pub struct CardText {
     pub subtitle: String,
     pub label: String,
     pub note: String,
-    /// The note with the Caps Lock hint, drawn in its place while Caps Lock is on; empty unless a key was refused.
-    pub caps_note: String,
     pub cancel: String,
     pub unlock: String,
 }
@@ -38,16 +36,15 @@ impl CardText {
             .note
             .as_ref()
             .is_some_and(|(n, _)| n.key == "device.unlock.wrong");
-        let note = match &card.note {
+        let mut note = match &card.note {
             Some(_) if wrong && bitlocker => catalog.tr("device.unlock.wrong_bitlocker"),
             Some((n, _)) => say(catalog, n),
             None => String::new(),
         };
-        let caps_note = if wrong {
-            catalog.tr_args("device.unlock.caps_lock", &[&note])
-        } else {
-            String::new()
-        };
+        // A refusal names Caps Lock on its own line when it was on as Unlock was pressed, however long the key took to refuse.
+        if wrong && card.field.caps_on {
+            note = format!("{note}\n{}", catalog.tr("device.unlock.caps_lock"));
+        }
         Self {
             language: catalog.language().into(),
             title: say(catalog, &title(&card.label)),
@@ -55,18 +52,8 @@ impl CardText {
             subtitle: say(catalog, &subtitle(&card.label, &size, &card.crypto)),
             label: heading_for(&label, catalog.language()),
             note,
-            caps_note,
             cancel: catalog.tr("device.unlock.cancel"),
             unlock: catalog.tr("device.unlock.button"),
         }
-    }
-}
-
-/// The line under the field as drawn: a refused key names Caps Lock only while Caps Lock is on.
-pub fn note_shown(text: &CardText, caps_lock: bool) -> &str {
-    if caps_lock && !text.caps_note.is_empty() {
-        &text.caps_note
-    } else {
-        &text.note
     }
 }

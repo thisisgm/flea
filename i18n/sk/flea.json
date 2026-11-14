@@ -259,7 +259,7 @@
   "device.unlock.unlocked": "%1 je odomknuté a pripojené.",
   "device.unlock.unlocking": "Odomyká sa %1…",
   "device.unlock.wrong": "Táto prístupová fráza nefungovala.",
-  "device.unlock.caps_lock": "%1 Skontrolujte Caps Lock.",
+  "device.unlock.caps_lock": "Skontrolujte Caps Lock.",
   "device.unmount_failed": "%1 sa nepodarilo odpojiť.",
   "device.unmount_refused": "%1 sa neodpojilo: nemáte oprávnenie.",
   "dialogs.file.apply": "omarchy:shell.common.apply",

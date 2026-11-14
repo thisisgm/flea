@@ -338,7 +338,7 @@
   "device.unlock.unlocked": "%1 ontgrendeld en aangekoppeld.",
   "device.unlock.unlocking": "%1 ontgrendelen…",
   "device.unlock.wrong": "Die wachtwoordzin werkte niet.",
-  "device.unlock.caps_lock": "%1 Controleer Caps Lock.",
+  "device.unlock.caps_lock": "Controleer Caps Lock.",
   "device.unmount_refused": "%1 is niet afgekoppeld: je hebt geen toestemming.",
   "dialogs.file.apply": "omarchy:shell.common.apply",
   "dialogs.file.bulk.clash": "Geef elk item een andere naam.",

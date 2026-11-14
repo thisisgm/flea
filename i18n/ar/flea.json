@@ -289,7 +289,7 @@
   "device.unlock.unlocked": "فُتح قفل ⁨%1⁩ ووُصل.",
   "device.unlock.unlocking": "جارٍ فتح قفل ⁨%1⁩…",
   "device.unlock.wrong": "لم تنجح عبارة المرور تلك.",
-  "device.unlock.caps_lock": "⁨%1⁩ تحقق من ⁦Caps⁩ ⁦Lock⁩.",
+  "device.unlock.caps_lock": "تحقق من ⁦Caps⁩ ⁦Lock⁩.",
   "device.unmount_failed": "تعذّر فصل ⁨%1⁩.",
   "device.unmount_refused": "لم يُفصل ⁨%1⁩: ليس لديك إذن.",
   "dialogs.file.apply": "omarchy:shell.common.apply",

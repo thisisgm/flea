@@ -317,7 +317,7 @@
   "device.unlock.title": "解锁 %1",
   "device.unlock.unlocking": "正在解锁 %1…",
   "device.unlock.wrong": "该密码短语无效。",
-  "device.unlock.caps_lock": "%1请检查大写锁定键。",
+  "device.unlock.caps_lock": "请检查大写锁定键。",
   "device.unlock.unlocked": "已解锁并挂载 %1。",
   "device.unlock.lock_failed": "%1 已卸载，但无法锁定；请关闭正在使用它的程序。",
   "device.unlock.mount_failed": "%1 已解锁，但无法挂载。",

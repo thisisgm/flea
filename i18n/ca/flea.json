@@ -259,7 +259,7 @@
   "device.unlock.unlocked": "S'ha desbloquejat i muntat %1.",
   "device.unlock.unlocking": "S'està desbloquejant %1…",
   "device.unlock.wrong": "Aquesta frase de pas no ha funcionat.",
-  "device.unlock.caps_lock": "%1 Comprova el bloqueig de majúscules.",
+  "device.unlock.caps_lock": "Comprova el bloqueig de majúscules.",
   "device.unmount_failed": "No s'ha pogut desmuntar %1.",
   "device.unmount_refused": "No s'ha desmuntat %1: no tens permís.",
   "dialogs.file.apply": "omarchy:shell.common.apply",

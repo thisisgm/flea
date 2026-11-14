@@ -249,7 +249,7 @@
   "device.unlock.unlocked": "Aflæsti og tengdi %1 við skráakerfið.",
   "device.unlock.unlocking": "Aflæsi %1…",
   "device.unlock.wrong": "Þessi aðgangssetning virkaði ekki.",
-  "device.unlock.caps_lock": "%1 Athugaðu Caps Lock.",
+  "device.unlock.caps_lock": "Athugaðu Caps Lock.",
   "device.unmount_failed": "Ekki tókst að aftengja %1 frá skráakerfinu.",
   "device.unmount_refused": "%1 var ekki aftengt: þú hefur ekki heimild.",
   "dialogs.file.apply": "omarchy:shell.common.apply",

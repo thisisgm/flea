@@ -249,7 +249,7 @@
   "device.unlock.unlocked": "⁨%1⁩ ان لاک اور ماؤنٹ ہو گیا۔",
   "device.unlock.unlocking": "⁨%1⁩ ان لاک ہو رہا ہے…",
   "device.unlock.wrong": "وہ پاس فریز درست نہیں۔",
-  "device.unlock.caps_lock": "⁨%1⁩ Caps Lock دیکھیں۔",
+  "device.unlock.caps_lock": "Caps Lock دیکھیں۔",
   "device.unmount_failed": "⁨%1⁩ ان ماؤنٹ نہیں ہو سکا۔",
   "device.unmount_refused": "⁨%1⁩ ان ماؤنٹ نہیں ہوا: آپ کو اجازت نہیں ہے۔",
   "dialogs.file.apply": "omarchy:shell.common.apply",

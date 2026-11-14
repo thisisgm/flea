@@ -259,7 +259,7 @@
   "device.unlock.unlocked": "%1 a fost deblocat și montat.",
   "device.unlock.unlocking": "Se deblochează %1…",
   "device.unlock.wrong": "Acea frază de acces nu a funcționat.",
-  "device.unlock.caps_lock": "%1 Verifică tasta Caps Lock.",
+  "device.unlock.caps_lock": "Verifică tasta Caps Lock.",
   "device.unmount_failed": "%1 nu a putut fi demontat.",
   "device.unmount_refused": "%1 nu a fost demontat: nu ai permisiune.",
   "dialogs.file.apply": "omarchy:shell.common.apply",

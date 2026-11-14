@@ -165,7 +165,7 @@ pub const ENGLISH: &[(&str, &str)] = &[
     ("device.unlock.title", "Unlock %1"),
     ("device.unlock.unlocking", "Unlocking %1…"),
     ("device.unlock.wrong", "That passphrase did not work."),
-    ("device.unlock.caps_lock", "%1 Check Caps Lock."),
+    ("device.unlock.caps_lock", "Caps Lock is on."),
     ("device.unlock.unlocked", "Unlocked and mounted %1."),
     ("device.unlock.lock_failed", "%1 was unmounted but could not be locked; close what is using it."),
     ("device.unlock.mount_failed", "%1 was unlocked but could not be mounted."),

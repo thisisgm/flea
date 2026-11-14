@@ -249,7 +249,7 @@
   "device.unlock.unlocked": "Kufuli ya %1 imefunguliwa na imepachikwa.",
   "device.unlock.unlocking": "Inafungua kufuli ya %1…",
   "device.unlock.wrong": "Kauli hiyo ya siri haikufanya kazi.",
-  "device.unlock.caps_lock": "%1 Kagua Caps Lock.",
+  "device.unlock.caps_lock": "Kagua Caps Lock.",
   "device.unmount_failed": "Upachikaji wa %1 haukuweza kuondolewa.",
   "device.unmount_refused": "Upachikaji wa %1 haukuondolewa: huna ruhusa.",
   "dialogs.file.apply": "omarchy:shell.common.apply",

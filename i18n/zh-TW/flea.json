@@ -239,7 +239,7 @@
   "device.unlock.unlocked": "已解鎖並掛載 %1。",
   "device.unlock.unlocking": "正在解鎖 %1…",
   "device.unlock.wrong": "通行密碼不正確。",
-  "device.unlock.caps_lock": "%1請檢查 Caps Lock。",
+  "device.unlock.caps_lock": "請檢查 Caps Lock。",
   "device.unmount_failed": "無法卸載 %1。",
   "device.unmount_refused": "未卸載 %1：您沒有權限。",
   "dialogs.file.apply": "omarchy:shell.common.apply",
