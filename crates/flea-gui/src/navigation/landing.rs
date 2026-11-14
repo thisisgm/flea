@@ -103,9 +103,8 @@ impl Navigator {
         pane.cursor = super::anchor::index_of(pane, name)
             .unwrap_or_else(|| restore.entry.index.min(total - 1));
         pane.reveal_cursor();
-        if self.keep_screen_line {
-            self.lines.restore(pane, name);
-        }
+        let name = name.to_owned();
+        self.restore_line(pane, &name);
         pane.requests.initial_first = Some((pane.scroll_y / pane.row_height()).floor() as usize);
     }
 

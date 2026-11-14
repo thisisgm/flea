@@ -233,6 +233,12 @@ impl PaneHost {
                 .reflow(shown, &focus, |view| view.metrics = metrics);
         }
         drop(list);
+        // keepScreenLine reads where the cursor tile sits when the pane leaves, from Grid's own scroll.
+        self.nav.lines.grid = if self.nav.keep_screen_line {
+            self.grid_anchor_viewport()
+        } else {
+            None
+        };
         self.restore_grid_anchor();
     }
 

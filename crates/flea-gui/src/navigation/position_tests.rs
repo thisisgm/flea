@@ -67,3 +67,26 @@ fn a_row_landed_on_under_a_standing_filter_takes_its_line_among_the_drawn_rows()
     lines.restore(&mut pane, "000100");
     assert_eq!(pane.scroll_y, 40. * ROW_HEIGHT);
 }
+
+#[test]
+fn under_grid_the_tile_rows_offset_is_handed_back() {
+    let mut pane = listed(320);
+    pane.cursor = 100;
+    // Six tiles a row, 120 px each, scrolled so row 16 (tiles 96 to 101) stands 50 px below the top.
+    let grid = super::super::anchor::Viewport {
+        columns: 6,
+        row_height: 120.,
+        origin: 0.,
+        scroll: 16. * 120. - 50.,
+        shown: None,
+    };
+    let mut lines = Lines {
+        grid: Some(grid),
+        ..Lines::default()
+    };
+    lines.remember(&pane);
+    assert_eq!(lines.restore(&mut pane, "000100"), Some(50.));
+    // Back in List, the same folder keeps its List line rather than Grid's offset.
+    lines.grid = None;
+    assert_eq!(lines.restore(&mut pane, "000100"), None);
+}
