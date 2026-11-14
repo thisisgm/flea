@@ -44,6 +44,7 @@ impl Shell {
                 &mut geometry.panes[0],
                 &self.launch.settings.data,
                 self.list_side_live.get(),
+                self.dual_min(),
             );
         }
         if view != View::Dual && (self.slots.covers[0].is_some() || self.flash_covers(0)) {

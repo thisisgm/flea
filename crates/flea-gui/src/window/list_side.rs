@@ -8,9 +8,11 @@ use crate::{list::Palette, palette::Theme, state::Shell};
 use flea::jsondoc::Json;
 use gpui::{div, prelude::*, px, AnyElement, Context, SharedString, Window};
 
-/// The list keeps at least this much room; below twice of it there is no preview.
-const LIST_MIN: f32 = 360.;
-const SIDE_MIN: f32 = 240.;
+/// The preview keeps at least `min`, the room a dual pane keeps at the window's text size, and the list half as
+/// much again; a pane narrower than both has no preview.
+fn mins(min: f32) -> (f32, f32) {
+    (1.5 * min, min)
+}
 
 pub(crate) fn enabled(data: &Json) -> bool {
     let preview = data.get("preview").unwrap_or(&Json::Null);
@@ -30,13 +32,15 @@ fn share(data: &Json, live: Option<f32>) -> f32 {
 
 /// Cuts the preview from the pane's right, past a one-pixel hairline.
 /// live is the share of an edge being dragged in this window, which wins over the stored one.
-pub(crate) fn split(pane: &mut Rect, data: &Json, live: Option<f32>) -> Option<Rect> {
-    if pane.width < LIST_MIN + SIDE_MIN + 1. {
+/// min is the shell's dual_min, so both limits follow the text size.
+pub(crate) fn split(pane: &mut Rect, data: &Json, live: Option<f32>, min: f32) -> Option<Rect> {
+    let (list_min, side_min) = mins(min);
+    if pane.width < list_min + side_min + 1. {
         return None;
     }
     let width = (pane.width * share(data, live))
         .floor()
-        .clamp(SIDE_MIN, pane.width - LIST_MIN - 1.);
+        .clamp(side_min, pane.width - list_min - 1.);
     pane.width -= width + 1.;
     Some(Rect {
         x: pane.x + pane.width + 1.,
@@ -77,7 +81,8 @@ fn edge(cx: &mut Context<Shell>) -> impl IntoElement {
         .left_0()
         .top_0()
         .h_full()
-        .w(px(10.))
+        // As wide as the dual divider's own target.
+        .w(px(crate::dual::ZONE))
         .cursor(gpui::CursorStyle::ResizeLeftRight)
         .on_drag(SideEdge, |_, _, _, cx| cx.new(|_| EdgeGhost))
         .on_mouse_down(gpui::MouseButton::Left, |_, _, cx| cx.stop_propagation())
@@ -195,7 +200,7 @@ impl Shell {
                     .text_size(typeface.body)
                     .text_color(palette.foreground)
                     .truncate()
-                    .child(SharedString::from(format!("\u{f07b}  {name}"))),
+                    .child(SharedString::from(name)),
             )
             .child(
                 div()
@@ -204,10 +209,17 @@ impl Shell {
                     .child(SharedString::from(summary)),
             );
         let rows = entries.into_iter().map(|(name, dir)| {
+            // The list's own folder and file marks, at its mark slot.
             let (mark, ink) = if dir {
-                ("\u{f07b}", palette.accent)
+                (crate::row::marks::Mark::Folder, palette.accent)
             } else {
-                ("\u{f15b}", palette.muted)
+                (crate::row::marks::Mark::File, palette.muted)
+            };
+            let (key, data) = mark.svg();
+            let mark = crate::g2::file_ops::glyph::Glyph {
+                paint: crate::g2::file_ops::glyph::Paint::Svg(key, data),
+                side: metrics.slot.min(metrics.row),
+                ink,
             };
             div()
                 .flex()
@@ -217,7 +229,7 @@ impl Shell {
                 .px(pad)
                 .gap(pad)
                 .text_size(typeface.body)
-                .child(div().flex_none().text_color(ink).child(mark))
+                .child(div().flex_none().child(mark))
                 .child(
                     div()
                         .min_w_0()
