@@ -201,7 +201,15 @@ fn queue_row(
     st.thumb_mtimes.insert(path.clone(), mtime);
     st.outstanding += 1;
     let replies = Some(identity::start(st, path.clone(), mtime, reply));
-    st.deferred.enqueue(Job { replies, path, mtime, source_size: Some(size), trash_identity: None, mime, trace: trace(row) });
+    st.deferred.enqueue(Job {
+        replies,
+        path,
+        mtime,
+        source_size: Some(size),
+        trash_identity: None,
+        mime,
+        trace: trace(row),
+    });
     super::thumbdefer::pump(out, st, pool);
 }
 
