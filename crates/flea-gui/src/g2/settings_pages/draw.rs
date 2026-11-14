@@ -378,17 +378,7 @@ impl Rows<'_> {
             row.display.clone()
         };
         let index = line.index;
-        let button = |id: &'static str, glyph: &'static str| {
-            div()
-                .id((id, index.unwrap_or(0)))
-                .size(self.px(24.))
-                .flex_none()
-                .flex()
-                .items_center()
-                .justify_center()
-                .cursor_pointer()
-                .child(mark(glyph, self.s().of(19.), ink.muted_frame))
-        };
+        let button = |id: &'static str, glyph: &'static str| self.icon_button(id, glyph, index);
         let width = self.view.panel.pane.0;
         base.flex()
             .items_center()
@@ -450,6 +440,24 @@ impl Rows<'_> {
                         }),
                     )),
             )
+    }
+
+    /// A favourite's grip or remove, or a shown column's grip: a muted mark in a square the pointer can take.
+    fn icon_button(
+        &self,
+        id: &'static str,
+        glyph: &'static str,
+        index: Option<usize>,
+    ) -> gpui::Stateful<Div> {
+        div()
+            .id((id, index.unwrap_or(0)))
+            .size(self.px(24.))
+            .flex_none()
+            .flex()
+            .items_center()
+            .justify_center()
+            .cursor_pointer()
+            .child(mark(glyph, self.s().of(19.), self.ink.muted_frame))
     }
 
     /// A grip or remove control reports its centre to the settings reader only while its row shows it.
@@ -563,6 +571,30 @@ impl Rows<'_> {
             .when(row.kind == Kind::Lock, |line| {
                 line.child(mark("lock", self.s().of(MARK_SLOT), ink.muted_frame))
             })
+            .when(
+                row.kind == Kind::Check && row.on && row.id.starts_with("column:"),
+                |line| {
+                    line.child(self.favourite_control(
+                        index,
+                        &row.id,
+                        "drag",
+                        self.icon_button("settings-grip", "list", index).when_some(
+                            index.filter(|_| hit.is_none()),
+                            |grip, index| {
+                                // As a favourite's grip: held until the button comes up anywhere in the window.
+                                grip.on_mouse_down(
+                                    MouseButton::Left,
+                                    cx.listener(move |view, event: &MouseDownEvent, _, cx| {
+                                        view.panel.grip =
+                                            Some((index, f32::from(event.position.y)));
+                                        cx.stop_propagation();
+                                    }),
+                                )
+                            },
+                        ),
+                    ))
+                },
+            )
             .when(row.kind == Kind::Check, |line| {
                 line.child(check(row_state(row), ink, self.corner(), self.s()))
             })

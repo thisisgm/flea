@@ -24,7 +24,7 @@ pub enum Press {
     Step,
     Pick(usize),
     Remove,
-    /// A favourite's grip released this many rows from where it was pressed.
+    /// A favourite's or a shown column's grip released this many rows from where it was pressed.
     Drag(isize),
 }
 
@@ -65,7 +65,7 @@ pub struct Panel {
     pub scale: Scale,
     /// View's height, which sets the card's, so the card keeps one height whichever section is open.
     pub view_height: f32,
-    /// A favourite's grip held down: its row and where the press began.
+    /// A favourite's or a shown column's grip held down: its row and where the press began.
     pub grip: Option<(usize, f32)>,
     store: Box<dyn Store>,
     everything: Vec<(usize, Vec<Row>)>,
@@ -139,11 +139,16 @@ impl Panel {
 
     /// Rows come from the document, so every write or catalog change rebuilds the pane and any standing search.
     pub fn rebuild(&mut self) {
+        let held = self.rows.get(self.cursor).map(|row| row.id.clone());
         self.rows = self.section_rows(self.section);
         self.view_height = geometry::heights(&self.section_rows("view"), &[], self.scale)
             .iter()
             .sum();
-        self.cursor = self.cursor.min(self.rows.len().saturating_sub(1));
+        // A write can reorder the rows, as a toggled column moves between shown and hidden: the cursor keeps its row.
+        self.cursor = held
+            .filter(|id| !id.is_empty())
+            .and_then(|id| self.rows.iter().position(|row| row.id == id))
+            .unwrap_or_else(|| self.cursor.min(self.rows.len().saturating_sub(1)));
         if self.query.is_some() {
             self.everything = SECTIONS
                 .iter()
@@ -271,6 +276,11 @@ impl Panel {
                 if let Some(at) = self.rows[index].favourite {
                     self.requests.push(Request::RemoveFavourite(at));
                 }
+            }
+            Press::Drag(rows) if self.rows[index].id.starts_with("column:") => {
+                let change = edit::move_column(&self.rows[index], self.store.document(), rows);
+                // The rows are rebuilt in the new order, and the cursor keeps the column it moved.
+                self.apply(change);
             }
             Press::Drag(rows) => {
                 let Some(from) = self.rows[index].favourite else {

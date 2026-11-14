@@ -2213,6 +2213,7 @@
   "settings.group.trash": "Kôš",
   "settings.group.view": "Zobrazenie",
   "settings.hint.automatic_load": "Automatické načítanie sleduje kurzor.",
+  "settings.hint.column_order": "Zobrazený stĺpec presunieš ťahaním za úchyt; zoznam ich kreslí v tomto poradí.",
   "settings.hint.compact_default": "Kompaktné zostáva predvolené.",
   "settings.hint.last_folder_tabs": "Posledný priečinok znova otvorí všetky predchádzajúce karty.",
   "settings.hint.load_key": "%1 načíta aktuálny výber.",
