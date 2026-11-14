@@ -2,7 +2,9 @@
 //!
 //! A folder wanted while a read runs waits for it, and the running read stops early once it is no longer
 //! wanted. An answer lands only on the peek of the read that asked for it, so a slow read never overwrites a
-//! newer one. Every entry is counted, but no more than the shown ones are held while reading.
+//! newer one. Every entry is counted, but no more than the shown ones are held while reading. A read stuck in
+//! the filesystem past STALL (a share that stopped answering) no longer holds other folders back: each read
+//! runs on its own thread, and a stuck one's late answer is dropped.
 use crate::state::Shell;
 use gpui::Context;
 use std::{
@@ -17,6 +19,12 @@ const MAX_ENTRIES: usize = 500;
 
 /// A folder preview older than this is read again, so a folder that changed under it catches up.
 const PEEK_FRESH: std::time::Duration = std::time::Duration::from_secs(2);
+
+/// A read running longer than this is taken as stuck: another folder may start its own read meanwhile.
+const STALL: std::time::Duration = std::time::Duration::from_secs(3);
+
+/// Symlinks a read follows to tell a folder from a file; past this many a link ranks as a file.
+const MAX_FOLLOWED: usize = MAX_ENTRIES;
 
 /// What a folder read gave: its first entries and whole count, why it could not be listed, or that its own
 /// storage holds it until Load.
@@ -49,8 +57,9 @@ struct Peek {
 #[derive(Default)]
 struct Peeks {
     shown: Option<Peek>,
-    /// The one read in flight, by generation; a newer folder waits for it and then reads by itself.
-    running: Option<u64>,
+    /// The one read in flight, by generation, and when it started; a newer folder waits for it and then reads
+    /// by itself, unless it has run past STALL.
+    running: Option<(u64, std::time::Instant)>,
     next: u64,
     /// The folder Load released under Load: manual or a held storage class, with the listing it was released
     /// in, until the cursor leaves it, the listing changes or the preview stops drawing it.
@@ -126,6 +135,7 @@ fn read(path: &str, hidden: bool, generation: u64, gate: Option<Gate>) -> Option
     };
     let mut kept = BinaryHeap::with_capacity(MAX_ENTRIES + 1);
     let mut total = 0;
+    let mut followed = 0;
     for entry in entries {
         if WANTED.load(Ordering::Relaxed) != generation {
             return None;
@@ -135,9 +145,15 @@ fn read(path: &str, hidden: bool, generation: u64, gate: Option<Gate>) -> Option
         if !hidden && name.starts_with('.') {
             continue;
         }
-        let dir = entry
-            .file_type()
-            .is_ok_and(|kind| kind.is_dir() || (kind.is_symlink() && entry.path().is_dir()));
+        // A link is followed only for the first MAX_FOLLOWED, so a folder of thousands of links costs no more
+        // target checks than the rows it can show.
+        let dir = entry.file_type().is_ok_and(|kind| {
+            kind.is_dir()
+                || (kind.is_symlink() && followed < MAX_FOLLOWED && {
+                    followed += 1;
+                    entry.path().is_dir()
+                })
+        });
         total += 1;
         kept.push(Ranked {
             key: (dir, name.to_lowercase()),
@@ -255,19 +271,49 @@ impl Shell {
             }
             let shown = peek.shown.as_ref()?;
             let waiting = shown.entries.is_none() || !fresh;
-            (peek.running.is_none() && waiting).then_some(shown.generation)
+            // A stuck read holds back only its own folder; any other folder starts a read beside it.
+            let free = peek.running.is_none_or(|(running, at)| {
+                running != shown.generation && at.elapsed() > STALL
+            });
+            (free && waiting).then_some(shown.generation)
         });
         let Some(generation) = start else { return };
-        PEEK.with(|peek| peek.borrow_mut().running = Some(generation));
+        PEEK.with(|peek| {
+            peek.borrow_mut().running = Some((generation, std::time::Instant::now()))
+        });
         let wanted = path.to_owned();
-        let task = cx
-            .background_executor()
-            .spawn(async move { read(&wanted, hidden, generation, gate) });
+        // Its own thread, so a read stuck in the filesystem never holds a shared executor thread.
+        let (sender, answer) = async_channel::bounded(1);
+        let spawned = std::thread::Builder::new()
+            .name("flea-list-peek".into())
+            .spawn(move || {
+                let _ = sender.send_blocking(read(&wanted, hidden, generation, gate));
+            });
+        if spawned.is_err() {
+            PEEK.with(|peek| peek.borrow_mut().running = None);
+            return;
+        }
+        // A ticker wakes the window once the read is past STALL, so a folder waiting behind it starts its own.
         cx.spawn(async move |this, cx| {
-            let read = task.await;
+            cx.background_executor().timer(STALL).await;
+            let stuck = PEEK.with(|peek| {
+                peek.borrow()
+                    .running
+                    .is_some_and(|(running, _)| running == generation)
+            });
+            if stuck {
+                let _ = this.update(cx, |_, cx| cx.notify());
+            }
+        })
+        .detach();
+        cx.spawn(async move |this, cx| {
+            let read = answer.recv().await.ok().flatten();
             PEEK.with(|peek| {
                 let mut peek = peek.borrow_mut();
-                peek.running = None;
+                // A late answer from a stuck read leaves the read that replaced it running.
+                if peek.running.is_some_and(|(running, _)| running == generation) {
+                    peek.running = None;
+                }
                 if let (Some(shown), Some(read)) = (
                     peek.shown
                         .as_mut()
