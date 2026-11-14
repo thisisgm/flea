@@ -162,8 +162,9 @@ impl Theme {
         let background = pick(&["background", "color0"], 0x101315);
         let foreground = pick(&["foreground", "color7"], fallback_ink);
         let accent = pick(&["accent", "blue", "color4"], foreground);
-        // ui/js/Palette.js:18 SURFACE_KEYS with ui/Theme.qml:46 fallbackColor.surface, the ground Theme.qml:330 lifts against.
-        let surface = pick(&["dark_background", "background", "selection"], 0x181825);
+        // Share the same derived surface with the core and contrast calculations.
+        let core = flea::theme::Theme::resolve(text, "", "", None, "monospace").colors;
+        let surface = u32::from_str_radix(&core.surface.argb()[3..], 16).unwrap();
         // src/theme/tokens.rs takes the last red or color1 line, else #a55555, as Commons.Color.urgent.
         let urgent = values
             .iter()
@@ -177,7 +178,6 @@ impl Theme {
         );
         let frame = u32::from_str_radix(&raised[1..], 16).unwrap_or(accent);
         // The colour roles need no shell or font input, so an empty shell and the stock family resolve them.
-        let core = flea::theme::Theme::resolve(text, "", "", None, "monospace").colors;
         let roles = Roles::from_core(&core);
         let hex = |value: u32| format!("#{value:06x}");
         let (ground, plane) = (hex(background), hex(surface));
@@ -187,6 +187,10 @@ impl Theme {
             .collect();
         let lifted = flea::ui_logic_doc_preview::code::inks(
             |key| {
+                // The code renderer receives the resolved grounds below.
+                if matches!(key, "background" | "dark_background" | "selection") {
+                    return None;
+                }
                 named
                     .iter()
                     .rev()

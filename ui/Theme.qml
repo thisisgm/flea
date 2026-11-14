@@ -326,7 +326,8 @@ Singleton {
     function applyColors(body) {
         var found = Palette.parse(body);
         var bg = Palette.pick(found, ["background"], root.fallbackColor.background);
-        var surface = Palette.pick(found, Palette.SURFACE_KEYS, root.fallbackColor.surface);
+        var fg = Palette.pick(found, ["foreground", "color7"], "#cacccc");
+        var surface = Palette.surface(Palette.pick(found, ["background", "color0"], root.fallbackColor.background), fg, Palette.pick(found, Palette.SURFACE_KEYS, root.fallbackColor.surface));
         root.color.surface = surface;
         Commons.Color.loadColors(body);
         // Frames and glyphs draw the palette's muted lifted to frameContrast; text lifts that to textContrast on the background, then the surface.

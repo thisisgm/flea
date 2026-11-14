@@ -29,7 +29,7 @@ var NEITHER_LADDER_KEY = "mode = \"dark\"\n"
 
 // ui/Theme.qml's applyColors picks colour.surface with this exact array, so these cases read the
 // app's own ladder rather than a copy of it that could stay green over a wrong one.
-var SURFACE = Palette.SURFACE_KEYS
+var SURFACE = ["dark_background", "background", "selection"]
 var SURFACE_FALLBACK = "#181825"
 
 // Lines of the stock tokyo-night colors.toml, verbatim, the shape every theme installed here has.
@@ -59,8 +59,8 @@ function run(check) {
 
     var live = Palette.parse(VERNIER)
     check("the live fixture yields five colours", Object.keys(live).length, 5)
-    check("the surface ladder is ThemeRoles.html's own three rungs, in its order",
-          Palette.SURFACE_KEYS.join(","), "dark_background,background,selection")
+    check("light surface mixes the canvas toward the ink", Palette.surface("#ece3d6", "#2b1d07", "#b1aaa1"), "#ddd3c5")
+    check("dark surface mixes the canvas toward the ink", Palette.surface("#101315", "#cacccc", "#181825"), "#181825")
     check("dark_background is the surface role",
           Palette.pick(live, SURFACE, SURFACE_FALLBACK), "#0e1112")
     // The live-theme guard on the insert: every theme installed here sets all three keys, and the

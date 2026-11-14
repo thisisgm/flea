@@ -13,7 +13,8 @@ var TAB = 8
 // The foreground, then bat's six colours, each the palette's own (its ANSI slot when unnamed) lifted to 4.5:1 on the background or surface it contrasts less with.
 function inks(found, fallback, foreground) {
     var bg = Palette.pick(found, ["background"], fallback.background)
-    var surface = Palette.pick(found, Palette.SURFACE_KEYS, fallback.surface)
+    var surface = Palette.surface(bg, Palette.pick(found, ["foreground", "color7"], foreground),
+                                  Palette.pick(found, Palette.SURFACE_KEYS, fallback.surface))
     var out = [foreground]
     for (var i = 0; i < INKS.length; i++) {
         var ink = Palette.pick(found, [INKS[i], "color" + (i + 1)], FALLBACK[INKS[i]])
