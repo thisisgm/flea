@@ -1,6 +1,6 @@
 {
-  "catalog_file_sha256": "56993e8e75b5b4ae4df4feaa1af9a771cffeb4244c8e043c078650fd76dfa67d",
-  "catalog_sha256": "f1802568fb9ba23ad88897d5f4f82a101a7407a0eca42dfab5d4f1aa7efb5140",
+  "catalog_file_sha256": "8511f6a5e3412b5c8478a0759d6729be0de147896aa60d32ed278f646c1b8f1b",
+  "catalog_sha256": "d0ab95386dbb2b1fd53fcef626eb9e073019000ef3c49667b084a371e072604b",
   "counts": {
     "direct_references": 0,
     "keys": 2330,
@@ -24570,7 +24570,7 @@
       "call_sites": [
         {
           "excerpt": "unlock: catalog.tr(\"device.unlock.button\"),",
-          "line": 53,
+          "line": 49,
           "path": "crates/flea-gui/src/g2/device_rail/card_text.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -24599,7 +24599,7 @@
       "call_sites": [
         {
           "excerpt": "cancel: catalog.tr(\"device.unlock.cancel\"),",
-          "line": 52,
+          "line": 48,
           "path": "crates/flea-gui/src/g2/device_rail/card_text.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -24627,14 +24627,14 @@
     "device.unlock.caps_lock": {
       "call_sites": [
         {
-          "excerpt": "catalog.tr_args(\"device.unlock.caps_lock\", &[&note])",
-          "line": 40,
+          "excerpt": "note = format!(\"{note}\\n{}\", catalog.tr(\"device.unlock.caps_lock\"));",
+          "line": 39,
           "path": "crates/flea-gui/src/g2/device_rail/card_text.rs",
           "surface": "gui",
           "usage": "translated-call"
         },
         {
-          "excerpt": "(\"device.unlock.caps_lock\", \"%1 Check Caps Lock.\"),",
+          "excerpt": "(\"device.unlock.caps_lock\", \"Caps Lock is on.\"),",
           "line": 171,
           "path": "src/ui_logic_device_rail.rs",
           "surface": "core/backend",
@@ -24643,17 +24643,15 @@
       ],
       "context": "device.unlock.caps_lock: crates/flea-gui/src/g2/device_rail/card_text.rs:40",
       "coverage": "existing-translated-call",
-      "english": "%1 Check Caps Lock.",
+      "english": "Caps Lock is on.",
       "kind": "text",
       "omarchy_reference": null,
-      "placeholders": [
-        "%1"
-      ],
+      "placeholders": [],
       "plural_categories": [],
-      "resolved_english": "%1 Check Caps Lock.",
-      "resolved_sha256": "199e93877236977457a389fc84fd88d3d7b671c9663e984bfd3f5b005d318867",
-      "resolved_source_hash": "a4a57031698b",
-      "source_hash": "a4a57031698b"
+      "resolved_english": "Caps Lock is on.",
+      "resolved_sha256": "9ad5a9fc3661d3765c37f669ff967ac7d67e2c63b684ad9ab9a84885c5a7e1af",
+      "resolved_source_hash": "55f2c30f9244",
+      "source_hash": "55f2c30f9244"
     },
     "device.unlock.failed": {
       "call_sites": [
@@ -24752,7 +24750,7 @@
       "call_sites": [
         {
           "excerpt": "label: heading_for(&catalog.tr(\"device.unlock.passphrase\"), catalog.language()),",
-          "line": 49,
+          "line": 46,
           "path": "crates/flea-gui/src/g2/device_rail/card_text.rs",
           "surface": "gui",
           "usage": "translated-call"
@@ -24946,7 +24944,7 @@
       "call_sites": [
         {
           "excerpt": ".is_some_and(|(n, _)| n.key == \"device.unlock.wrong\");",
-          "line": 33,
+          "line": 31,
           "path": "crates/flea-gui/src/g2/device_rail/card_text.rs",
           "surface": "gui",
           "usage": "key-declaration"
@@ -115035,7 +115033,7 @@
     },
     {
       "excerpt": "esc: \"esc\".into(),",
-      "line": 47,
+      "line": 44,
       "literal": "esc",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/device_rail/card_text.rs",
@@ -115044,7 +115042,7 @@
     },
     {
       "excerpt": "f.debug_struct(\"Field\")",
-      "line": 108,
+      "line": 111,
       "literal": "Field",
       "owner": "I50-07",
       "path": "crates/flea-gui/src/g2/device_rail/field.rs",
@@ -183299,9 +183297,9 @@
       "surface": "core/backend"
     },
     {
-      "excerpt": "(\"device.unlock.caps_lock\", \"%1 Check Caps Lock.\"),",
+      "excerpt": "(\"device.unlock.caps_lock\", \"Caps Lock is on.\"),",
       "line": 171,
-      "literal": "%1 Check Caps Lock.",
+      "literal": "Caps Lock is on.",
       "owner": "controller",
       "path": "src/ui_logic_device_rail.rs",
       "reason": "untranslated-literal-candidate-needs-owner-verification",
@@ -254181,12 +254179,12 @@
     "crates/flea-gui/src/g2/custom_actions/launch.rs": "0fc60b13efaa5db540a7c29268fe98ef9824764e6859c1c05662933626b14830",
     "crates/flea-gui/src/g2/custom_actions/mod.rs": "95143fcf3d0f2561fc17eaef87b98f06cecf6e3ab008dc41c806f2f93d357563",
     "crates/flea-gui/src/g2/custom_actions/model.rs": "10aa6624e54cbd44f69b2bd18aae63437cc406c8abc0451bf58dc63128c06609",
-    "crates/flea-gui/src/g2/device_rail/card.rs": "a2d83a638725c6532af7acfb0379abcd44e7b3d1e270ce873770c31635cba940",
-    "crates/flea-gui/src/g2/device_rail/card_text.rs": "b3c57cfcb6d7c6a5ee1cad4f610ff90c6771a1a2df4dc6f3f24d10ec92a4df52",
+    "crates/flea-gui/src/g2/device_rail/card.rs": "2ac0ef56847d6588fcb565a714d71e400bcdd77920c0e7150806a100286123f4",
+    "crates/flea-gui/src/g2/device_rail/card_text.rs": "af8db40a3b432b1be84f83553bbed6950f177d4962c53611f3a3390f03db6604",
     "crates/flea-gui/src/g2/device_rail/devices.rs": "77ec15f312dc2ea9dcf53a00d9a6f3050dfa864e096b0510212db5ecc1218d20",
     "crates/flea-gui/src/g2/device_rail/eject.rs": "abc6218f02ebf9eaf6d81baffa119bba0d083b9c2d341d238f838673b0adeaa0",
     "crates/flea-gui/src/g2/device_rail/eye.rs": "75a28887d88afab593d793ab380dab5b96424da3b0e5e781497efd8b1ee618d5",
-    "crates/flea-gui/src/g2/device_rail/field.rs": "c4f9bd7d4c6c2f66d284cc21ef8a45309a702c6a65c350aa649992e3aea066d9",
+    "crates/flea-gui/src/g2/device_rail/field.rs": "12c21414da656390fe67d57743156de7516afdc3e962a5763eada033bcc9ddc8",
     "crates/flea-gui/src/g2/device_rail/host.rs": "c8ce29a6470a713b76c8d7bed9b8ccb905dd1301a63bb90a76207ee5501debd3",
     "crates/flea-gui/src/g2/device_rail/ime.rs": "56c85f4c85cfa7cbfc77a013a3caa31f652bc4343ec8ce0c8eddddfaf224a625",
     "crates/flea-gui/src/g2/device_rail/ink.rs": "498b94b7125917c2185c967cfe416288023ba5a3adf7e33d757298cab897f9b4",
@@ -254210,7 +254208,7 @@
     "crates/flea-gui/src/g2/device_rail/source_release.rs": "5d142619f0f6389806714eac72117f57358584a19cc9f6a95109266d9aa11012",
     "crates/flea-gui/src/g2/device_rail/source_seed.rs": "fca9b89c5fd01eb2d43ddd1c43c116351d83ffb982fa0844777b61e9f4182e81",
     "crates/flea-gui/src/g2/device_rail/unlock.rs": "d5fc78da1cdcc0b8dd0f45b7aeb1c7068fd31f3f21af0311870cb6e0ff4ce44e",
-    "crates/flea-gui/src/g2/device_rail/view.rs": "04ccd55f4c392c0720c76d49e82b7b09c8dc169081ac3ac710ecc358e39f9181",
+    "crates/flea-gui/src/g2/device_rail/view.rs": "6a62d4c6484bfa12c0bc880539567414e4741966cab08c2a9f49e77e36dc1847",
     "crates/flea-gui/src/g2/device_rail/view_reading.rs": "1ea6b6d1e67991bc7fc3b490fe95e6c1f857e3e84f2c537bdcfbabf1fddf13e5",
     "crates/flea-gui/src/g2/device_rail/words.rs": "e88e7901fe274f976b06cde44c4b8d455a0a547e16a2767ed4bbde0b1a30b96e",
     "crates/flea-gui/src/g2/doc_preview/archive/mod.rs": "ea5bd4aceab21355c3efb3bcfe3fd19b0fc697cacd29b20d7341bbd26d4009b1",
@@ -255941,7 +255939,7 @@
     "src/ui_logic_custom_actions/rows.rs": "d02e7f3b57a845867cc05498ab4d0894287276edd127fcc2f047edc088c6b3d8",
     "src/ui_logic_custom_actions/scripts.rs": "a68e9d879831a81abe155f5b4da59374a6e1027083651fc4c43ef2ec0181cc8a",
     "src/ui_logic_custom_actions/wire.rs": "009e0a5f7434abfe5a0044fbb2cac04be483d0936700ff14603175283019e87f",
-    "src/ui_logic_device_rail.rs": "3d41eea3cb85c1bd82dcdf8d3b537a69f481cab00fd7d610444b41cb12f5c28b",
+    "src/ui_logic_device_rail.rs": "5d88974ace087a5a476d1cde12228e1c51797af895ae7d3424e72a5a5023ea10",
     "src/ui_logic_device_rail/devices.rs": "4c501b005e1e945dcf0fa9e363b03b5beda5291b4091fa5175176ec8fc5167e9",
     "src/ui_logic_device_rail/eject.rs": "97b14f8861f2718f0692c45a7f3ddb7be3f5debec5b2b9c8d0cb8409a0ab1911",
     "src/ui_logic_device_rail/encrypted.rs": "37a3db1729a0e774ae1808f94d024ab10a9c503c743ecaf11f2163323ce5ee77",
@@ -256847,8 +256845,8 @@
     "ui/js/UserDirs.js": "8491aa662ef9528159793b3be957309584495f8400118aa50c221091b0934f46"
   },
   "source_ref": "HEAD",
-  "source_ref_sha": "e25e2ce23220715b43f0db966b02b3c00b274f38",
-  "source_sha": "e25e2ce23220715b43f0db966b02b3c00b274f38",
+  "source_ref_sha": "c910bd945026564c08a307c4f2e6e567582d006b",
+  "source_sha": "c910bd945026564c08a307c4f2e6e567582d006b",
   "surface_coverage": {
     "core/backend": {
       "keys_with_occurrences": 1380,

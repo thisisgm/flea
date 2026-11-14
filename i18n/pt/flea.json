@@ -334,7 +334,7 @@
   "device.unlock.title": "Desbloquear %1",
   "device.unlock.unlocking": "A desbloquear %1…",
   "device.unlock.wrong": "Essa frase-passe não funcionou.",
-  "device.unlock.caps_lock": "%1 Verifica o Caps Lock.",
+  "device.unlock.caps_lock": "Verifica o Caps Lock.",
   "device.unlock.unlocked": "%1 desbloqueada e montada.",
   "device.unlock.lock_failed": "%1 foi desmontada, mas não foi possível bloqueá-la; fecha o que a está a utilizar.",
   "device.unlock.mount_failed": "%1 foi desbloqueada, mas não foi possível montá-la.",

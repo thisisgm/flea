@@ -8,6 +8,8 @@ pub struct Field {
     /// The submitted length, kept so the dots draw after the bytes have gone to the child.
     pub held_mask: usize,
     pub error: bool,
+    /// Caps Lock was on when the held secret was submitted; the view sets it just before Unlock.
+    pub caps_on: bool,
     /// The eye is held: the entry carries the real secret instead of its mask.
     pub revealed: bool,
 }
@@ -41,6 +43,7 @@ impl Field {
 
     pub fn clear(&mut self) {
         self.conceal();
+        self.caps_on = false;
         self.entry.close();
         self.text.clear();
         self.held_mask = 0;

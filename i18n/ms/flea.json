@@ -318,7 +318,7 @@
   "device.unlock.title": "Buka kunci %1",
   "device.unlock.unlocking": "Membuka kunci %1…",
   "device.unlock.wrong": "Frasa laluan itu tidak berjaya.",
-  "device.unlock.caps_lock": "%1 Semak Caps Lock.",
+  "device.unlock.caps_lock": "Semak Caps Lock.",
   "device.unlock.unlocked": "%1 dibuka kunci dan dilekapkan.",
   "device.unlock.lock_failed": "%1 dinyahlekap tetapi tidak dapat dikunci; tutup apa-apa yang menggunakannya.",
   "device.unlock.mount_failed": "%1 dibuka kunci tetapi tidak dapat dilekapkan.",

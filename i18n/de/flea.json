@@ -326,7 +326,7 @@
   "device.unlock.title": "%1 entsperren",
   "device.unlock.unlocking": "%1 wird entsperrt…",
   "device.unlock.wrong": "Diese Passphrase hat nicht funktioniert.",
-  "device.unlock.caps_lock": "%1 Prüfe die Feststelltaste.",
+  "device.unlock.caps_lock": "Prüfe die Feststelltaste.",
   "device.unlock.unlocked": "%1 entsperrt und eingebunden.",
   "device.unlock.lock_failed": "%1 wurde ausgehängt, konnte aber nicht gesperrt werden. Schließe alle Anwendungen, die es verwenden.",
   "device.unlock.mount_failed": "%1 wurde entsperrt, konnte aber nicht eingebunden werden.",

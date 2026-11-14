@@ -1,5 +1,5 @@
 //! The unlock card as the board draws it: title and esc, a hairline, the drive line, the field, one note line and two buttons.
-pub use super::card_text::{note_shown, CardText};
+pub use super::card_text::CardText;
 use super::ink::CardInk;
 use super::mark::{Mark, DRIVE, EYE};
 use super::probes::{observe, ButtonProbe, Probes};
@@ -46,7 +46,6 @@ pub fn card(
 pub(super) struct Mounted<'a> {
     pub input: Option<(gpui::Entity<super::view::UnlockView>, crate::list::Typeface)>,
     pub probes: &'a Probes,
-    pub caps_lock: bool,
 }
 
 pub(super) fn card_with_input(
@@ -58,13 +57,9 @@ pub(super) fn card_with_input(
     press: Press,
     mounted: Option<Mounted<'_>>,
 ) -> impl IntoElement {
-    let (input, probes, caps_lock) = match mounted {
-        Some(Mounted {
-            input,
-            probes,
-            caps_lock,
-        }) => (input, Some(probes), caps_lock),
-        None => (None, None, false),
+    let (input, probes) = match mounted {
+        Some(Mounted { input, probes }) => (input, Some(probes)),
+        None => (None, None),
     };
     let eye = press.eye.clone();
     let k = move |v: f32| px(v * scale);
@@ -207,12 +202,11 @@ pub(super) fn card_with_input(
         .child(
             div()
                 .mt(k(-2.))
-                .h(k(NOTE_H))
+                .min_h(k(NOTE_H))
                 .line_height(k(NOTE_H))
                 .text_size(k(12.))
-                .overflow_hidden()
                 .text_color(if note_error { ink.error } else { ink.muted })
-                .child(note_shown(text, caps_lock).to_string()),
+                .child(text.note.clone()),
         )
         .child(
             div()

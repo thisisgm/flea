@@ -326,7 +326,7 @@
   "device.unlock.title": "%1 feloldása",
   "device.unlock.unlocking": "%1 feloldása…",
   "device.unlock.wrong": "A jelmondat nem működött.",
-  "device.unlock.caps_lock": "%1 Ellenőrizd a Caps Lock állapotát.",
+  "device.unlock.caps_lock": "Ellenőrizd a Caps Lock állapotát.",
   "device.unlock.unlocked": "%1 feloldva és csatolva.",
   "device.unlock.lock_failed": "%1 leválasztva, de a zárolása sikertelen. Zárd be, ami használja.",
   "device.unlock.mount_failed": "%1 feloldva, de a csatolása sikertelen.",

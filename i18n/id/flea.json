@@ -399,7 +399,7 @@
   "device.unlock.title": "Buka kunci %1",
   "device.unlock.unlocking": "Membuka kunci %1…",
   "device.unlock.wrong": "Frasa sandi tersebut tidak berhasil.",
-  "device.unlock.caps_lock": "%1 Periksa Caps Lock.",
+  "device.unlock.caps_lock": "Periksa Caps Lock.",
   "device.unlock.unlocked": "Kunci %1 dibuka dan drive dikaitkan.",
   "device.unlock.lock_failed": "Kaitan %1 dilepas tetapi tidak dapat dikunci; tutup aplikasi yang menggunakannya.",
   "device.unlock.mount_failed": "Kunci %1 dibuka tetapi drive tidak dapat dikaitkan.",
