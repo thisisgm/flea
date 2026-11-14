@@ -140,11 +140,9 @@ impl Shell {
                 // once the card was dismissed the pane still lands it, and never arms Rename: the card
                 // already asked for the name, so a land here is not an unnamed folder to fix up.
                 if self.operations.fileops.creations.owns(side, "newFile", request) {
+                    // A refusal leaves the card open to retry under the same id, so the origin stays
+                    // until an answer it did ask for replaces it.
                     if document.get("ok").and_then(Json::as_bool) != Some(true) {
-                        self.operations
-                            .fileops
-                            .creations
-                            .failed(side, "newFile", request);
                         return false;
                     }
                     // The created target matches on the kind the receipt carries, and Rename is off
@@ -174,6 +172,29 @@ impl Shell {
                     self.deletion_landed(side, anchor, landed, window, cx);
                 }
                 false
+            }
+            // A file create whose card was dismissed before the answer still lands here, with no
+            // rename: the card asked for the name.
+            "menuaction" if text("op") == "newFile" => {
+                let request = flea::json::field_usize(line, "id").unwrap_or(0) as u64;
+                if request == 0 || !self.operations.fileops.creations.owns(side, "newFile", request) {
+                    return false;
+                }
+                // An open card answers this reply itself.
+                if self.operations.card_request(side, cx) == Some(request) {
+                    return false;
+                }
+                if document.get("ok").and_then(Json::as_bool) != Some(true) {
+                    let said = text("msg").to_owned();
+                    if !said.is_empty() {
+                        self.fileops_say(side, &said, true, cx);
+                    }
+                    self.operations.fileops.creations.failed(side, "newFile", request);
+                    return true;
+                }
+                let path = text("path").to_owned();
+                self.fileops_created_target(side, "newFile", Some(request), false, path, window, cx);
+                true
             }
             "menuaction" => self.fileops_delete_reply(side, line, window, cx),
             _ => false,

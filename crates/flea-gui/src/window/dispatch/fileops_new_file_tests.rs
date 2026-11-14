@@ -518,3 +518,85 @@ fn a_slow_notice_never_closes_a_card_it_did_not_ask_for(cx: &mut TestAppContext)
     }
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
+
+// A file create dismissed before its answer still lands on its pane.
+/// A dismissed file card still lands its reply
+#[gpui::test]
+fn a_dismissed_file_card_still_lands_its_reply(cx: &mut TestAppContext) {
+    let (shell, mut cx) = opened(cx);
+    let cx = &mut cx;
+    let mut sent = asked(&shell, cx);
+    open_card(&shell, cx);
+    cx.simulate_input("notes");
+    cx.simulate_keystrokes("enter");
+    let id = id_of(&sent()[0]);
+    cx.simulate_keystrokes("escape");
+    assert!(card(&shell, cx).is_none(), "Escape closes a busy file card");
+    let before = lists(&shell, cx);
+    reply(
+        &shell,
+        cx,
+        &format!(
+            r#"{{"t":"menuaction","id":{id},"op":"newFile","ok":true,"path":"/files/notes"}}"#
+        ),
+    );
+    assert_eq!(
+        lists(&shell, cx),
+        before + 1,
+        "the dismissed card's reply still reads the folder again"
+    );
+    let select = shell.read_with(cx, |shell, _| {
+        shell.panes[0].as_ref().unwrap().nav.pending_select.clone()
+    });
+    assert_eq!(
+        select.as_deref(),
+        Some("/files/notes"),
+        "and selects the file that landed"
+    );
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+// A refusal keeps the card open to retry, so the origin it will answer under must survive it.
+/// A refused folder keeps the card and its origin, so a retry can still land
+#[gpui::test]
+fn a_refused_folder_keeps_the_origin_its_retry_answers_under(cx: &mut TestAppContext) {
+    let (shell, mut cx) = opened(cx);
+    let cx = &mut cx;
+    let mut sent = asked(&shell, cx);
+    open_card(&shell, cx);
+    cx.simulate_input("photos/");
+    cx.simulate_keystrokes("enter");
+    let request = flea::json::field_usize(&sent()[0], "request").unwrap() as u64;
+    reply(
+        &shell,
+        cx,
+        &format!(
+            r#"{{"t":"menuaction","op":"creation","id":{request},"kind":"made","ok":false,"msg":"An item named photos already exists."}}"#
+        ),
+    );
+    assert!(
+        matches!(card(&shell, cx), Some(Dialog::NewFile { .. })),
+        "a refusal keeps the card for a retry"
+    );
+    assert!(
+        shell.read_with(cx, |shell, _| shell
+            .operations
+            .fileops
+            .creations
+            .owns(0, "newFile", request)),
+        "the refused request still has its origin, so a retry can land"
+    );
+    // Dismissed after the refusal, the retry's own receipt still lands.
+    cx.simulate_keystrokes("escape");
+    assert!(card(&shell, cx).is_none());
+    let before = lists(&shell, cx);
+    reply(
+        &shell,
+        cx,
+        &format!(
+            r#"{{"t":"menuaction","op":"creation","id":{request},"kind":"made","ok":true,"path":"/files/photos"}}"#
+        ),
+    );
+    assert_eq!(lists(&shell, cx), before + 1, "the retried folder is read again");
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
