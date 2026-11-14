@@ -38,6 +38,8 @@ pub(super) const BOARDS: &[super::Board] = &[
             "[on]",
             "Open folders while dragging",
             "[off]",
+            "Open folders in place",
+            "[on]",
             "Sorting",
             "Sort by",
             "Name",

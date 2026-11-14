@@ -118,6 +118,12 @@ pub fn view_rows(state: &State<'_>) -> Vec<Row> {
             "",
             is_true(data, &["openFoldersWhileDragging"]),
         ),
+        check(
+            "outline",
+            "settings.row.outline",
+            "",
+            not_false(data, &["outline"]),
+        ),
         Row::group("settings.group.sorting"),
         choice(
             "sort.key",

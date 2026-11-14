@@ -14,6 +14,8 @@ pub(crate) struct Request {
     pub(super) folder: String,
     pub(super) line: String,
     pub(super) mode: bool,
+    /// An open of a row, which the setting can still refuse while the request waits for its listing.
+    pub(super) open: bool,
 }
 
 impl Shell {
@@ -25,7 +27,10 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        if self.view != View::List || self.input_blocked(cx) {
+        if self.view != View::List
+            || self.input_blocked(cx)
+            || (open && crate::list::outline::off(&self.launch.settings.data))
+        {
             return;
         }
         let Some(host) = self.panes[side].as_mut() else {
@@ -81,6 +86,7 @@ impl Shell {
                 host.pane.first_count()
             ),
             mode: false,
+            open,
         });
         if !host
             .nav
@@ -133,6 +139,7 @@ impl Shell {
                     host.pane.first_count()
                 ),
                 mode: true,
+                open: false,
             });
             if host.pane.busy() || host.search.owner.active() || host.pane.state.search {
                 let sent = match (&host.backend, host.outline_request.take()) {
@@ -180,8 +187,12 @@ pub(super) fn send_navigation(
         _ => None,
     };
     let backend = host.backend.as_ref()?;
+    // Settings > View "Open folders in place" switched off while an open waited: the plain list goes instead.
+    let refused = request
+        .as_ref()
+        .is_some_and(|(_, request)| request.open && host.list.borrow().view.outline_off);
     match request {
-        Some((true, request)) => return Some(backend.line(request.line)),
+        Some((true, request)) if !refused => return Some(backend.line(request.line)),
         // A list of another folder drops a row toggle; a view switch still reaches the backend before it.
         Some((false, request)) if request.mode => {
             if let Err(error) = backend.line(request.line) {

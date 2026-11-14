@@ -3,6 +3,11 @@ use super::{ListView, Metrics};
 use crate::row::marks::Mark;
 use flea::protocol::RowFacts;
 
+/// Settings > View "Open folders in place" switched off, read from one window's own settings.
+pub(crate) fn off(data: &flea::jsondoc::Json) -> bool {
+    data.get("outline").and_then(flea::jsondoc::Json::as_bool) == Some(false)
+}
+
 pub fn indent(row: &RowFacts, metrics: &Metrics) -> f32 {
     row.depth as f32 * (metrics.slot + metrics.gap)
 }
@@ -12,9 +17,10 @@ pub fn mark(view: &ListView, row: &RowFacts) -> Option<Mark> {
     (view.picker.is_none() && row.dir && row.open).then_some(Mark::FolderOpen)
 }
 
+/// With "Open folders in place" off only an open folder takes the click, to close it.
 /// The right edge of a folder's mark target, from the row's edge to the gap before its name.
 pub fn mark_target(view: &ListView, row: &RowFacts, metrics: &Metrics) -> Option<f32> {
-    (view.picker.is_none() && row.dir && (row.open || row.link.is_none()))
+    (view.picker.is_none() && row.dir && (row.open || (!view.outline_off && row.link.is_none())))
         .then(|| metrics.pad + indent(row, metrics) + metrics.slot)
 }
 

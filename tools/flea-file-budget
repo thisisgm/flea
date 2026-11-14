@@ -63,7 +63,7 @@ crates/flea-gui/src/columns/element.rs 434
 crates/flea-gui/src/g2/context_menus/element.rs 451
 crates/flea-gui/src/window/quick_look.rs 401
 crates/flea-gui/src/g2/picker_listing/route_ports_tests.rs 407
-crates/flea-gui/src/list.rs 415
+crates/flea-gui/src/list.rs 418
 shelf/Model.js 701
 crates/flea-gui/src/g2/context_menus/menu.rs 569
 crates/flea-gui/src/g2/context_menus/tests.rs 638
