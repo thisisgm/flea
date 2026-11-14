@@ -102,7 +102,6 @@ pub(crate) fn flash_picker(args: &[String]) -> bool {
 #[path = "copysrc_tests.rs"]
 mod copysrc_tests;
 
-/// Dispatch internal worker modes and ordinary Flea commands.
 fn main() {
     // args() panics on a non-UTF-8 argument and a Linux filename is any bytes, so each argument is carried as its exact text.
     let args: Vec<String> = std::env::args_os()

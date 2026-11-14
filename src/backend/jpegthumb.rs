@@ -12,12 +12,19 @@ const FAST_TIMEOUT: Duration = Duration::from_secs(2);
 const MIN_BYTES: u64 = 768 * 1024;
 
 /// Run the optional JPEG child and the existing decoder within the same job budget.
-pub(super) fn run(input: &Path, output: &Path, size: u32, source_size: Option<u64>, fallback: &[String]) -> Ran {
+pub(super) fn run(
+    input: &Path,
+    output: &Path,
+    size: u32,
+    source_size: Option<u64>,
+    fallback: &[String],
+    program: &dyn Fn(&str) -> String,
+) -> Ran {
     if source_size.is_some_and(|bytes| bytes < MIN_BYTES) {
         return run_with_timeout(fallback, thumbs::JOB_TIMEOUT);
     }
     let deadline = Instant::now() + thumbs::JOB_TIMEOUT;
-    generate(input, output, size).unwrap_or_else(|| {
+    generate(input, output, size, program).unwrap_or_else(|| {
         let remaining = deadline.saturating_duration_since(Instant::now());
         if remaining.is_zero() {
             Ran::NotStarted
@@ -28,7 +35,12 @@ pub(super) fn run(input: &Path, output: &Path, size: u32, source_size: Option<u6
 }
 
 /// Start the jailed JPEG attempt without opening or probing the source on the pool thread.
-fn generate(input: &Path, output: &Path, size: u32) -> Option<Ran> {
+fn generate(
+    input: &Path,
+    output: &Path,
+    size: u32,
+    program: &dyn Fn(&str) -> String,
+) -> Option<Ran> {
     let (input_arg, output_arg) = path_arguments(input, output)?;
     if !eligible_mount(input) {
         return None;
@@ -39,7 +51,7 @@ fn generate(input: &Path, output: &Path, size: u32) -> Option<Ran> {
         .into_string()
         .ok()?;
     let args = vec![
-        executable,
+        program(&executable),
         CHILD_MODE.into(),
         input_arg.into(),
         output_arg.into(),

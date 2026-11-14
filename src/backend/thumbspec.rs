@@ -22,7 +22,15 @@ const THUMBNAILERS_SUBDIR: &str = "thumbnailers";
 const ENTRY_GROUP: &str = "[Thumbnailer Entry]";
 const JPEG_MIME: &str = "image/jpeg";
 const SYSTEM_GLYCIN_SPEC: &str = "/usr/share/thumbnailers/glycin-image-rs.thumbnailer";
-const GLYCIN_JPEG_EXEC: [&str; 7] = ["/usr/bin/glycin-thumbnailer", "--input", "%u", "--output", "%o", "--size", "%s"];
+const GLYCIN_JPEG_EXEC: [&str; 7] = [
+    "/usr/bin/glycin-thumbnailer",
+    "--input",
+    "%u",
+    "--output",
+    "%o",
+    "--size",
+    "%s",
+];
 pub(crate) const IIQ_MIME: &str = "image/x-phaseone-iiq";
 
 impl Thumbnailers {
@@ -48,7 +56,8 @@ impl Thumbnailers {
             entries.append(&mut sorted_by_path(in_dir));
         }
         let vips = is_runnable(super::jpegthumb::PROGRAM);
-        Thumbnailers::from_entries_with_vips(&entries, aliases, vips, resolve).with_appimage_route(aliases, appicon::available())
+        Thumbnailers::from_entries_with_vips(&entries, aliases, vips, resolve)
+            .with_appimage_route(aliases, appicon::available())
     }
 
     // An internal spec so rows.rs sets t for an AppImage; a thumbnailer file that declares the type keeps it, and without 7z there is no route.
@@ -69,7 +78,7 @@ impl Thumbnailers {
     }
 
     /// Build the effective provider table and detect the shipped Glycin JPEG entry.
-    fn from_entries_with_vips(
+    pub(super) fn from_entries_with_vips(
         entries: &[(String, String)],
         aliases: &Aliases,
         vips: bool,
@@ -109,7 +118,11 @@ impl Thumbnailers {
             }
         }
         let fingerprint = fingerprint_of(&by_mime, fast_jpeg);
-        Thumbnailers { by_mime, fast_jpeg, fingerprint }
+        Thumbnailers {
+            by_mime,
+            fast_jpeg,
+            fingerprint,
+        }
     }
 
     /// Report whether the configured JPEG thumbnailer may use the optional accelerator.
@@ -148,13 +161,22 @@ impl Thumbnailers {
 
 /// Hash the effective thumbnailer table so cached failures can be retried after routing changes.
 fn fingerprint_of(by_mime: &HashMap<String, Spec>, fast_jpeg: bool) -> String {
-    let mut entries: Vec<String> = by_mime.iter().map(|(mime, spec)| format!("{}\0{}", mime, spec.exec.join("\0"))).collect();
+    let mut entries: Vec<String> = by_mime
+        .iter()
+        .map(|(mime, spec)| format!("{}\0{}", mime, spec.exec.join("\0")))
+        .collect();
     entries.sort();
-    entries.insert(0, "embedded-field-codes-v1\nliteral-imagemagick-paths-v1".to_string()); // Retry failures made before embedded argv expansion.
+    entries.insert(
+        0,
+        "embedded-field-codes-v1\nliteral-imagemagick-paths-v1".to_string(),
+    ); // Retry failures made before embedded argv expansion.
     if fast_jpeg {
         entries.push("libvips-jpeg-v1".to_string());
     }
-    format!("{:016x}", crate::backend::xxh64::hash(entries.join("\n").as_bytes()))
+    format!(
+        "{:016x}",
+        crate::backend::xxh64::hash(entries.join("\n").as_bytes())
+    )
 }
 
 // read_dir order is unspecified by POSIX, so a directory's files are ordered by path and the winner of a duplicate declaration is the same on every box.
@@ -292,3 +314,7 @@ mod tests;
 #[cfg(test)]
 #[path = "raw_gap64_tests.rs"]
 mod gap64_tests;
+
+#[cfg(test)]
+#[path = "thumbspec_jpeg_tests.rs"]
+mod jpeg_tests;

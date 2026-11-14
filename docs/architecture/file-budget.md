@@ -1,3 +1,7 @@
+The optional JPEG worker adds one module registration to `src/backend/mod.rs`,
+raising its exact recorded ceiling from 410 to 411 lines. Worker implementation
+and regressions stay in separate files; global limits are unchanged.
+
 The optional JPEG thumbnail route shares the existing frame parser in
 `src/backend/imagesize.rs` (560 lines) so it can check the component count.
 
