@@ -24,6 +24,8 @@ pub mod words;
 #[cfg(test)]
 pub(crate) mod bfx_net_tests;
 #[cfg(test)]
+mod backspace_tests;
+#[cfg(test)]
 mod bitlocker_tests;
 #[cfg(test)]
 mod card_tests;

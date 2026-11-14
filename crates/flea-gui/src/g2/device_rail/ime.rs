@@ -99,9 +99,7 @@ impl UnlockView {
                         entry.move_to(to);
                     }
                 }
-                "backspace" | "delete" if !command && !held.alt => {
-                    private_entry::erase(entry, &mut field.text, key == "delete")
-                }
+                "backspace" | "delete" if !command && !held.alt => field.erase(key == "delete"),
                 "a" if command => entry.select_all(),
                 "c" | "x" if command => {}
                 _ if crate::window::input::paste_key(event) => {

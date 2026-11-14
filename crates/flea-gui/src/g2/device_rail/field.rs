@@ -23,8 +23,12 @@ impl Field {
     }
 
     pub fn backspace(&mut self) {
+        self.erase(false);
+    }
+
+    /// Backspace or Delete: held dots after a refused try stand for bytes already handed to udisks, so either clears them whole.
+    pub fn erase(&mut self, forward: bool) {
         self.conceal();
-        // Held dots after a refused try stand for bytes already handed to udisks, so Backspace clears them whole.
         if self.text.is_empty() && self.held_mask > 0 {
             self.held_mask = 0;
             return;
@@ -32,7 +36,7 @@ impl Field {
         if !self.entry.editing {
             self.begin();
         }
-        super::private_entry::erase(&mut self.entry, &mut self.text, false);
+        super::private_entry::erase(&mut self.entry, &mut self.text, forward);
     }
 
     pub fn clear(&mut self) {
