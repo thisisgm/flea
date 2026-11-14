@@ -25,6 +25,8 @@ pub struct Job {
     pub replies: Option<super::thumbreq::identity::Shared>,
     pub path: PathBuf,
     pub mtime: i64,
+    // A size already read by the caller. The JPEG child verifies it before decoding.
+    pub source_size: Option<u64>,
     // The submitted Reviewed identity for Trash; unknown listing and shelf identities stay None.
     pub trash_identity: Option<String>,
     pub mime: String,
@@ -286,7 +288,18 @@ pub(crate) fn run_one(tables: &Tables, job: &mut Job) -> Outcome {
 }
 
 // The copies of a camera RAW's embedded JPEG live in raw_dir, which a test points at its sandbox instead of the user's cache.
+/// Generate and publish a thumbnail using the selected provider and its fallback.
 pub(crate) fn run_one_in(tables: &Tables, job: &mut Job, raw_dir: &Path) -> Outcome {
+    run_one_with_programs(tables, job, raw_dir, &str::to_owned)
+}
+
+// Resolve only executables after provider selection; tests use private real processes.
+fn run_one_with_programs(
+    tables: &Tables,
+    job: &mut Job,
+    raw_dir: &Path,
+    program: &dyn Fn(&str) -> String,
+) -> Outcome {
     if super::model3d::embedded_thumbnail_supported(&job.path.to_string_lossy()) {
         return super::model3dreq::thumbnail(tables, job);
     }
@@ -323,7 +336,7 @@ pub(crate) fn run_one_in(tables: &Tables, job: &mut Job, raw_dir: &Path) -> Outc
         None => return Outcome::Failed,
     };
     // corner: an input that will not canonicalise is not recorded in fail/, because a vanished file is not a broken one; see AGENTS.md "Thumbnail pool".
-    let (abs, inner) = match argv(spec, &input, &temp, THUMB_SIZE) {
+    let (abs, mut inner) = match argv(spec, &input, &temp, THUMB_SIZE) {
         Some(a) => a,
         None => return discard(&temp),
     };
@@ -332,6 +345,7 @@ pub(crate) fn run_one_in(tables: &Tables, job: &mut Job, raw_dir: &Path) -> Outc
         return discard(&temp);
     }
     // corner: a thumbnailer that wrote then renamed would fail against this file bind, and only glycin and ffmpegthumbnailer were probed; see AGENTS.md "Thumbnail pool".
+    inner[0] = program(&inner[0]);
     let Some(full) = thumbbind::wrap(&inner, &abs, &temp) else {
         return discard(&temp);
     };
@@ -359,6 +373,9 @@ pub(crate) fn run_one_in(tables: &Tables, job: &mut Job, raw_dir: &Path) -> Outc
     };
     let ran = match by_worker {
         Some(ran) => ran,
+        None if tables.specs.can_speed_up_jpeg(&job.mime, &tables.aliases) => {
+            super::jpegthumb::run(&abs, &temp, THUMB_SIZE, job.source_size, &full, program)
+        }
         None => run_with_timeout(&full, JOB_TIMEOUT),
     };
     if let Some(t) = job.trace.as_mut() {
@@ -460,3 +477,7 @@ pub(crate) fn record_failure_for(
 #[cfg(test)]
 #[path = "thumbs_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "thumbs_jpeg_tests.rs"]
+mod jpeg_tests;

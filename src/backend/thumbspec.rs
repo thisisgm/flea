@@ -10,6 +10,7 @@ pub struct Spec {
 
 pub struct Thumbnailers {
     by_mime: HashMap<String, Spec>,
+    fast_jpeg: bool,
     // Computed once when the table is built; a fail marker names the table that made it by this; see AGENTS.md "Thumbnail cache".
     fingerprint: String,
 }
@@ -20,9 +21,20 @@ const THUMBNAILERS_SUBDIR: &str = "thumbnailers";
 // The one group whose keys are honoured, because a key outside it names a program nothing may run.
 const ENTRY_GROUP: &str = "[Thumbnailer Entry]";
 const JPEG_MIME: &str = "image/jpeg";
+const SYSTEM_GLYCIN_SPEC: &str = "/usr/share/thumbnailers/glycin-image-rs.thumbnailer";
+const GLYCIN_JPEG_EXEC: [&str; 7] = [
+    "/usr/bin/glycin-thumbnailer",
+    "--input",
+    "%u",
+    "--output",
+    "%o",
+    "--size",
+    "%s",
+];
 pub(crate) const IIQ_MIME: &str = "image/x-phaseone-iiq";
 
 impl Thumbnailers {
+    /// Load thumbnailers with user precedence and detect optional JPEG acceleration.
     pub fn load(aliases: &Aliases) -> Thumbnailers {
         let mut entries: Vec<(String, String)> = Vec::new();
         for dir in search_path() {
@@ -43,7 +55,8 @@ impl Thumbnailers {
             // Sorting one directory at a time, rather than the whole list, keeps the search path's own precedence intact.
             entries.append(&mut sorted_by_path(in_dir));
         }
-        Thumbnailers::from_entries(&entries, aliases)
+        let vips = is_runnable(super::jpegthumb::PROGRAM);
+        Thumbnailers::from_entries_with_vips(&entries, aliases, vips, resolve)
             .with_appimage_route(aliases, appicon::available())
     }
 
@@ -59,9 +72,21 @@ impl Thumbnailers {
         self
     }
 
+    #[cfg(test)]
     pub fn from_entries(entries: &[(String, String)], aliases: &Aliases) -> Thumbnailers {
+        Self::from_entries_with_vips(entries, aliases, false, resolve)
+    }
+
+    /// Build the effective provider table and detect the shipped Glycin JPEG entry.
+    pub(super) fn from_entries_with_vips(
+        entries: &[(String, String)],
+        aliases: &Aliases,
+        vips: bool,
+        resolve: impl Fn(&str) -> Option<String>,
+    ) -> Thumbnailers {
         let mut by_mime: HashMap<String, Spec> = HashMap::new();
-        for (_name, text) in entries {
+        let mut fast_jpeg = false;
+        for (name, text) in entries {
             let (exec_line, try_exec, mimes) = fields(text);
             let mut exec = match exec_line {
                 Some(l) => tokenise(&l),
@@ -84,16 +109,25 @@ impl Thumbnailers {
             for mime in mimes {
                 let key = aliases.canonical(&mime).to_string();
                 // corner: the first file to declare a MIME type keeps it, and load sorts each directory by path so that winner is fixed; see AGENTS.md "Thumbnailer specs".
-                by_mime
-                    .entry(key)
-                    .or_insert_with(|| Spec { exec: exec.clone() });
+                by_mime.entry(key).or_insert_with_key(|key| {
+                    if key == JPEG_MIME {
+                        fast_jpeg = vips && name == SYSTEM_GLYCIN_SPEC && exec == GLYCIN_JPEG_EXEC;
+                    }
+                    Spec { exec: exec.clone() }
+                });
             }
         }
-        let fingerprint = fingerprint_of(&by_mime);
+        let fingerprint = fingerprint_of(&by_mime, fast_jpeg);
         Thumbnailers {
             by_mime,
+            fast_jpeg,
             fingerprint,
         }
+    }
+
+    /// Report whether the configured JPEG thumbnailer may use the optional accelerator.
+    pub(super) fn can_speed_up_jpeg(&self, mime: &str, aliases: &Aliases) -> bool {
+        self.fast_jpeg && aliases.canonical(mime) == JPEG_MIME
     }
 
     pub fn fingerprint(&self) -> &str {
@@ -125,8 +159,8 @@ impl Thumbnailers {
     }
 }
 
-// Sample output, 16 lowercase hex characters over every (MIME type, resolved program, arguments) entry; the entries are sorted so the map's order never reaches the hash.
-fn fingerprint_of(by_mime: &HashMap<String, Spec>) -> String {
+/// Hash the effective thumbnailer table so cached failures can be retried after routing changes.
+fn fingerprint_of(by_mime: &HashMap<String, Spec>, fast_jpeg: bool) -> String {
     let mut entries: Vec<String> = by_mime
         .iter()
         .map(|(mime, spec)| format!("{}\0{}", mime, spec.exec.join("\0")))
@@ -135,7 +169,10 @@ fn fingerprint_of(by_mime: &HashMap<String, Spec>) -> String {
     entries.insert(
         0,
         "embedded-field-codes-v1\nliteral-imagemagick-paths-v1".to_string(),
-    ); // Retry failures made before literal ImageMagick paths.
+    ); // Retry failures made before embedded argv expansion.
+    if fast_jpeg {
+        entries.push("libvips-jpeg-v1".to_string());
+    }
     format!(
         "{:016x}",
         crate::backend::xxh64::hash(entries.join("\n").as_bytes())
@@ -277,3 +314,7 @@ mod tests;
 #[cfg(test)]
 #[path = "raw_gap64_tests.rs"]
 mod gap64_tests;
+
+#[cfg(test)]
+#[path = "thumbspec_jpeg_tests.rs"]
+mod jpeg_tests;

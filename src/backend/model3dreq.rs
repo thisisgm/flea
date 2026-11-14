@@ -284,6 +284,7 @@ fn ready(
     })
 }
 
+/// Pass the embedded image to the ordinary thumbnail pipeline before publishing it.
 pub(super) fn thumbnail(tables: &thumbs::Tables, job: &thumbs::Job) -> thumbs::Outcome {
     let root = tables
         .cache
@@ -332,6 +333,7 @@ pub(super) fn thumbnail(tables: &thumbs::Tables, job: &thumbs::Job) -> thumbs::O
         path: image,
         mime: mime.into(),
         mtime: job.mtime,
+        source_size: None,
         trash_identity: None,
         trace: None,
     };

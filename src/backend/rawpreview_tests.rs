@@ -165,8 +165,9 @@ fn jpeg_only_thumbnailer(png: &[u8]) -> Thumbnailers {
     Thumbnailers::from_entries(&[("jpeg.thumbnailer".to_string(), body)], &Aliases::from_str(""))
 }
 
+/// Build a test thumbnail request for a RAW file or its extracted preview.
 fn job(path: &Path, mime: &str) -> Job {
-    Job { replies: None, path: path.to_path_buf(), mtime: 1_700_000_000, trash_identity: None, mime: mime.to_string(), trace: None }
+    Job { replies: None, path: path.to_path_buf(), mtime: 1_700_000_000, source_size: None, trash_identity: None, mime: mime.to_string(), trace: None }
 }
 
 fn tables(d: &TestDir, png: &[u8]) -> Tables {

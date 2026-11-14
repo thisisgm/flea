@@ -9,7 +9,7 @@ pub fn write_window(out: &mut impl Write, st: &mut State, start: usize, count: u
     write_window_gen(out, st, start, count, tb, None);
 }
 
-// A session answer's window, stamped with the query gen beside the listing stamp.
+/// A session answer's window, stamped with the query gen beside the listing stamp.
 pub fn write_window_gen(
     out: &mut impl Write,
     st: &mut State,
@@ -28,7 +28,7 @@ pub fn write_window_gen(
     // Zeroes from a failed stat are never cached, so the next window over these rows asks the mount again.
     if failure.is_none() {
         for (i, m) in metas.iter().enumerate() {
-            st.window_meta.insert(start + i, (m.mode, m.mtime, m.target_is_dir));
+            st.window_meta.insert(start + i, (m.mode, m.mtime, m.target_is_dir, m.size));
         }
         // Sample window: start 0 with 3 metas keeps keys 0..3, so a scrolled-past window never grows the map.
         st.window_meta.retain(|&row, _| row >= start && row < end);

@@ -1,5 +1,4 @@
-// Pixel dimensions read from a file header, because the preview column names them and the wire does
-// not carry them. Only the first bytes are read: no image is ever decoded to answer this.
+//! Read image dimensions from headers for the preview column without decoding images.
 use crate::backend::regfile::open_regular;
 use std::io::{BufReader, Read, Seek, SeekFrom};
 use std::path::Path;
@@ -22,17 +21,17 @@ pub struct Header {
     pub orientation: u8,
 }
 
+/// Read image dimensions and orientation from the file header.
 pub fn header(path: &Path) -> Option<Header> {
     let mut buf = vec![0u8; PROBE];
     let mut f = open_regular(path)?;
     let n = f.read(&mut buf).ok()?;
     buf.truncate(n);
-    // Issue 90, nixfred: a camera writes an EXIF segment of tens of kilobytes carrying its preview,
-    // and the frame header sits behind it, so a JPEG's chain is walked over the file and not the probe.
+    // Issue 90: a camera's EXIF segment can carry a preview that pushes the frame past the probe.
     if buf.starts_with(&[0xFF, 0xD8]) {
         f.seek(SeekFrom::Start(2)).ok()?;
         // Buffered, because the walk resyncs a byte at a time and a raw File makes that a syscall each.
-        return jpeg_header(&mut BufReader::new(&mut f));
+        return jpeg_frame(&mut BufReader::new(&mut f)).map(|(header, _)| header);
     }
     from_header(&buf).map(|(width, height)| Header { width, height, orientation: NO_TURN })
 }
@@ -99,13 +98,13 @@ fn step<R: Read>(r: &mut R, walked: &mut u64) -> Option<u8> {
     Some(byte[0])
 }
 
+/// Read JPEG dimensions from the marker stream.
 fn jpeg<R: Read + Seek>(r: &mut R) -> Option<(u32, u32)> {
-    jpeg_header(r).map(|h| (h.width, h.height))
+    jpeg_frame(r).map(|(header, _)| (header.width, header.height))
 }
 
-// Sample input: FF D8 | FF C0 <len:2> <precision:1> <height:2> <width:2> ..., with any number of
-// other FF xx segments before that frame header, one of which may be the APP1 carrying EXIF.
-fn jpeg_header<R: Read + Seek>(r: &mut R) -> Option<Header> {
+/// Read dimensions, orientation and the component count (0 if missing) after the JPEG SOI marker.
+pub fn jpeg_frame<R: Read + Seek>(r: &mut R) -> Option<(Header, u8)> {
     let mut walked: u64 = 0;
     let mut orientation: Option<u8> = None;
     loop {
@@ -132,12 +131,14 @@ fn jpeg_header<R: Read + Seek>(r: &mut R) -> Option<Header> {
         // A frame header, except the four that are not: DHT, JPG, DAC and the restart markers.
         let is_frame = (0xC0..=0xCF).contains(&marker) && marker != 0xC4 && marker != 0xC8 && marker != 0xCC;
         if is_frame {
-            // Sample input, a frame header after its length: precision(1) | height(2) | width(2), big endian.
+            // After its length: precision(1) | height(2) | width(2) | components(1), big endian.
             let mut head = [0u8; 5];
             r.read_exact(&mut head).ok()?;
             let height = u16::from_be_bytes([head[1], head[2]]) as u32;
             let width = u16::from_be_bytes([head[3], head[4]]) as u32;
-            return Some(Header { width, height, orientation: orientation.unwrap_or(NO_TURN) });
+            let mut components = [0];
+            let _ = r.read_exact(&mut components);
+            return Some((Header { width, height, orientation: orientation.unwrap_or(NO_TURN) }, components[0]));
         }
         let mut body = u64::from(len) - 2;
         // The first APP1 named Exif carries the orientation near its start, so only its head is read, in this same walk.
@@ -357,9 +358,9 @@ mod tests {
         v.extend_from_slice(&[0u8; 8]);
         v
     }
-
+    /// Read the frame from an in-memory JPEG fixture after its signature.
     fn walk(v: &[u8]) -> Option<Header> {
-        jpeg_header(&mut std::io::Cursor::new(&v[2..]))
+        jpeg_frame(&mut std::io::Cursor::new(&v[2..])).map(|(header, _)| header)
     }
 
     #[test]

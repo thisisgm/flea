@@ -43,6 +43,7 @@ fn run_search_empty_remote_window_never_enters_the_mount_worker() {
     assert_eq!(super::super::iomount::test_calls(), before);
 }
 
+/// Verify that a search can request its first thumbnail through the lazy pool.
 #[test]
 fn run_search_lazy_thumbnail_pool_reports_its_first_job() {
     const CHILD: &str = "FLEA_TEST_DISABLED_THUMB_CHILD";
@@ -66,7 +67,7 @@ fn run_search_lazy_thumbnail_pool_reports_its_first_job() {
     assert!(tb.aliases.get().is_none() && tb.thumbs.get().is_none());
     for name in ["first-not-decoded", "second-not-decoded"] {
         let path = d.join(name);
-        pool.submit(super::super::thumbs::Job { replies: None, path: path.clone(), mtime: 0, mime: "application/x-flea-no-thumbnailer".into(), trace: None, trash_identity: None });
+        pool.submit(super::super::thumbs::Job { replies: None, path: path.clone(), mtime: 0, source_size: None, mime: "application/x-flea-no-thumbnailer".into(), trace: None, trash_identity: None });
         let reply = replies.recv_timeout(Duration::from_secs(5)).expect("each lazy job reaches the loop");
         assert!(matches!(reply, Event::Thumb(Done { path: got, result: super::super::thumbs::Outcome::Failed, .. }) if got == path));
     }

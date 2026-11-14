@@ -134,6 +134,10 @@ fn main() {
         usage("--version takes nothing");
     }
 
+    if args.get(1).map(String::as_str) == Some(backend::jpegthumb::CHILD_MODE) {
+        exit(backend::jpegthumb::run_child(&args[2..]));
+    }
+
     if args.iter().any(|a| a == "--backend") {
         let code = backend::run::run();
         backend::pluginruntime::shutdown();

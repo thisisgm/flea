@@ -72,6 +72,7 @@ fn cancellation_discards_partial_output_without_cache_marker_or_exec_retry() {
         };
         let (st, shared) = context(&input);
         let mut job = thumbs::Job {
+            source_size: None,
             replies: Some(shared.clone()),
             path: input.clone(),
             mtime: 1,
@@ -170,6 +171,7 @@ fn the_pool_registers_a_taken_video_so_a_cancel_before_its_socket_is_kept() {
     // Holding the link stops the pool thread inside generate, after the take and before any socket exists.
     let held = tables.worker.as_ref().unwrap().state.lock().unwrap();
     pool.submit(thumbs::Job {
+        source_size: None,
         replies: Some(shared),
         path: input.clone(),
         mtime: 1,

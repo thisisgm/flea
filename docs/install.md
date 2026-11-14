@@ -25,6 +25,10 @@ compiles on your machine. `omarchy update` keeps it current: a release arrives a
 it ships, once Omarchy has reviewed and built it. Omarchy refuses `yay -Syu` and `pacman -Syu`;
 `omarchy update` is the update command.
 
+With the optional `libvips` package installed, Flea can generate thumbnails for large local
+JPEGs faster when it uses the system Glycin thumbnailer. An explicit user thumbnailer keeps
+priority, and Glycin handles files the faster route cannot decode.
+
 **Moving from the AUR.** Earlier releases were also on the AUR as `flea-bin`, `flea-git` and a
 source-built `flea`. To move from `flea-bin` or `flea-git`, run the interactive command and answer
 `y` when pacman asks whether to remove the AUR package:

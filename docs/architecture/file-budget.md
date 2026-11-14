@@ -1,3 +1,10 @@
+The optional JPEG worker adds one module registration to `src/backend/mod.rs`,
+raising its exact recorded ceiling from 410 to 411 lines. Worker implementation
+and regressions stay in separate files; global limits are unchanged.
+
+The optional JPEG thumbnail route shares the existing frame parser in
+`src/backend/imagesize.rs` (560 lines) so it can check the component count.
+
 The shared Grid selection keys add three generated lines to `ui/js/Keymap.js`: the Shift+Left and Shift+Right bindings and their mirrored sheet pair. Its exact recorded ceiling moves from 412 to 415 lines, measured with `wc -l`. The file is regenerated from `keys.toml` by `tools/flea-keymap-gen`; generated rows and their presentation stay together. No code or comments were compressed, and the global limits remain unchanged.
 
 The Carry hand-off adds four dispatch composition lines to `crates/flea-gui/src/window/events_ipc.rs`, raising its recorded ceiling from 433 to 437 (`wc -l`). The wire format, peer transport, token lifecycle and landing authorization remain in separate file_clipboard modules below 400 lines. This keeps the internal Carry calls ahead of the ordinary reader fallback without compressing code or changing the global limit.

@@ -228,6 +228,7 @@ fn metadata(out: &mut impl Write, st: &State, start: usize, count: usize) {
     }
 }
 
+/// Write the search result window and retain metadata for its thumbnail requests.
 fn rows(out: &mut impl Write, st: &mut State, tb: &Tables, start: usize, count: usize) {
     let Some(held) = &st.contents.held else {
         return;
@@ -250,7 +251,7 @@ fn rows(out: &mut impl Write, st: &mut State, tb: &Tables, start: usize, count: 
     st.window_meta.clear();
     for (offset, meta) in metas.iter().enumerate() {
         st.window_meta
-            .insert(start + offset, (meta.mode, meta.mtime, meta.target_is_dir));
+            .insert(start + offset, (meta.mode, meta.mtime, meta.target_is_dir, meta.size));
     }
     let line = tb.rows_line(&st.base, &st.listing, &metas, start, ms);
     super::run::say(out, &super::rowguard::stamped_gen(line, st.generation, gen));

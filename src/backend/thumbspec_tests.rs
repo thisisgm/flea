@@ -355,7 +355,6 @@ fn the_fingerprint_changes_when_a_program_path_changes() {
     );
     assert_ne!(base.fingerprint(), moved.fingerprint());
 }
-
 #[test]
 fn the_fingerprint_carries_the_embedded_field_codes_version() {
     // Failures recorded before embedded argv expansion hashed the entries alone, so the tag keeps them from matching.

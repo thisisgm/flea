@@ -46,7 +46,8 @@ picture. A missing, unparsable or different `Thumb::MTime` is a miss, never a hi
 
 A `fail/flea` marker also carries an `X-Flea-Table` `tEXt` key, a 16 character `xxh64` hex
 digest of the loaded thumbnailer table's sorted (MIME type, resolved program, arguments)
-entries that `Thumbnailers` computes once when it is built and hands to `lookup` and
+entries, including the optional libvips JPEG route when active. `Thumbnailers` computes it
+once when it is built and hands it to `lookup` and
 `record_failure`. A marker is `Hit::Failed` only when its mtime and its `X-Flea-Table` both
 match, so a marker from another table, or one with no such key (every marker written before it
 existed), is a `Hit::Miss`, the file is tried once more and a new failure rewrites the marker

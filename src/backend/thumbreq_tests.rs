@@ -38,7 +38,7 @@ fn tables() -> Tables {
     }
 }
 
-// Sample input: rows [0] over a listing holding photo.jpg; out collects the wire.
+/// Sample input: rows [0] over a listing holding photo.jpg; out collects the wire.
 fn listed(dir: &TestDir, st: &mut State) {
     st.base = dir.path().to_path_buf();
     let mut l = Listing::new();
@@ -46,7 +46,7 @@ fn listed(dir: &TestDir, st: &mut State) {
     st.listing = l;
     // The window statted this row, so a thumb request reuses its figures with no stat.
     if let Ok(m) = std::fs::symlink_metadata(dir.join("photo.jpg")) {
-        st.window_meta.insert(0, (m.mode(), m.mtime(), false));
+        st.window_meta.insert(0, (m.mode(), m.mtime(), false, 0));
     }
 }
 
@@ -149,6 +149,7 @@ fn a_windowed_row_queues_from_its_cached_figures_with_no_stat() {
     );
 }
 
+/// Verify that a link to a FIFO never reaches a decoder.
 #[test]
 fn a_symlink_to_a_fifo_is_refused_rather_than_queued() {
     // Sample input: link.jpg -> fifo lstats as S_IFLNK while the target is a fifo, so no job queues.
@@ -176,7 +177,7 @@ fn a_symlink_to_a_fifo_is_refused_rather_than_queued() {
             S_IFLNK,
             "the window holds the link's lstat mode"
         );
-        st.window_meta.insert(0, (m.mode(), m.mtime(), false));
+        st.window_meta.insert(0, (m.mode(), m.mtime(), false, 0));
     }
     let mut out = Vec::new();
     thumb_rows(&mut out, &[0], &mut st, &tb, &pool, &cache, false);
@@ -194,6 +195,7 @@ fn a_symlink_to_a_fifo_is_refused_rather_than_queued() {
     );
 }
 
+/// Verify that changing a link target invalidates its cached thumbnail.
 #[test]
 fn a_symlink_row_keys_the_cache_on_its_target_mtime() {
     // Sample input: link.jpg -> photo.jpg with differing link and target mtimes queues the target's.
@@ -222,7 +224,7 @@ fn a_symlink_row_keys_the_cache_on_its_target_mtime() {
     l.push("link.jpg", false);
     st.listing = l;
     if let Ok(m) = std::fs::symlink_metadata(d.join("link.jpg")) {
-        st.window_meta.insert(0, (m.mode(), m.mtime(), false));
+        st.window_meta.insert(0, (m.mode(), m.mtime(), false, 0));
     }
     let mut out = Vec::new();
     thumb_rows(&mut out, &[0], &mut st, &tb, &pool, &cache, false);
@@ -248,6 +250,7 @@ fn a_symlink_row_keys_the_cache_on_its_target_mtime() {
     }
 }
 
+/// Verify that a cached target still serves a cache-only request.
 #[test]
 fn a_cached_symlink_is_served_under_cache_only() {
     // Sample input: link.jpg -> photo.jpg with a Ready entry keyed on the link path and target mtime.
@@ -281,7 +284,7 @@ fn a_cached_symlink_is_served_under_cache_only() {
     l.push("link.jpg", false);
     st.listing = l;
     if let Ok(m) = std::fs::symlink_metadata(&link) {
-        st.window_meta.insert(0, (m.mode(), m.mtime(), false));
+        st.window_meta.insert(0, (m.mode(), m.mtime(), false, 0));
     }
     let mut out = Vec::new();
     thumb_rows(&mut out, &[0], &mut st, &tb, &pool, &cache, true);
