@@ -9,9 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/tcballard/omarchy-badges"><img src="https://raw.githubusercontent.com/tcballard/omarchy-badges/85f859029e236e784e7b05ada6dbe73506d07a91/badges/v1/built-for-omarchy.svg" height="20" alt="Built for Omarchy"></a>
-  <a href="https://www.greptile.com/?utm_source=oss_badge&utm_medium=readme&utm_campaign=greptile_for_open_source"><img src="https://www.greptile.com/badge.svg" height="20" alt="Greptile: The War on Bugs"></a>
-  <a href="https://buymeacoffee.com/thisisgm"><img src="https://img.shields.io/badge/Buy_me_a_coffee-FFDD00?style=flat-square&logo=buymeacoffee&logoColor=black" height="20" alt="Buy me a coffee"></a>
+  <a href="https://github.com/tcballard/omarchy-badges"><img src="https://raw.githubusercontent.com/tcballard/omarchy-badges/85f859029e236e784e7b05ada6dbe73506d07a91/badges/v1/built-for-omarchy.svg" alt="Built for Omarchy"></a>
 </p>
 
 <p align="center">
@@ -241,6 +239,11 @@ See [PLUGINS.md](PLUGINS.md) to write, validate, install and debug a Flea plugin
 If this saved you an afternoon, you can
 [sponsor me on GitHub](https://github.com/sponsors/thisisgm) or
 [buy me a coffee](https://buymeacoffee.com/thisisgm).
+
+<p>
+  <a href="https://buymeacoffee.com/thisisgm"><img src="https://img.shields.io/badge/Buy_me_a_coffee-FFDD00?style=flat-square&logo=buymeacoffee&logoColor=black" height="20" alt="Buy me a coffee"></a>
+  <a href="https://www.greptile.com/?utm_source=oss_badge&utm_medium=readme&utm_campaign=greptile_for_open_source"><img src="https://www.greptile.com/badge.svg" height="20" alt="Greptile: The War on Bugs"></a>
+</p>
 
 ## Licence
 
