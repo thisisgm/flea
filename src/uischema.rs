@@ -55,7 +55,8 @@ pub const DEFAULTS: &str = r#"{
     "column": true, "loadOn": "automatic",
     "thumbnails": "media", "thumbSize": "medium",
     "thumbNetwork": false, "thumbPhone": false, "thumbUsb": true,
-    "ctrlZoom": true, "volume": 100, "width": 0, "tracks": [], "wrap": false
+    "ctrlZoom": true, "volume": 100, "width": 0, "tracks": [], "wrap": false,
+    "list": false, "listWidth": 40
   },
   "previewFacts": "compact",
   "keys": "default",
@@ -186,6 +187,9 @@ pub const PREVIEW: &[(&str, Rule)] = &[
     ("tracks", Rule::Tracks),
     // Quick Look's w: wraps long lines in a code or text file; off until pressed.
     ("wrap", Rule::Bool),
+    // The preview beside the List view, off until chosen, and the percent of the pane it takes.
+    ("list", Rule::Bool),
+    ("listWidth", Rule::Count(20.0, 70.0)),
 ];
 
 // mode is "system" or one stop, so there is nowhere to put a free number; see the handoff's Display row.
