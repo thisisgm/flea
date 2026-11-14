@@ -304,6 +304,37 @@ impl Shell {
         self.flush_operations(side, cx);
     }
 
+    /// A slow mkdir belongs to the create card: the card lets go so the window answers again, and the
+    /// pane's queued origin keeps the receipt the backend answers when the held write lands.
+    pub(crate) fn fileops_slow_create(
+        &mut self,
+        side: usize,
+        line: &str,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if flea::json::field_str(line, "op").as_deref() != Some("mkdir") {
+            return;
+        }
+        let Some(view) = self.operation_overlay(side, window, cx) else {
+            return;
+        };
+        let taken = view.update(cx, |overlay, cx| {
+            let taken = overlay.model.slow_new_file();
+            if taken.is_some() {
+                cx.notify();
+            }
+            taken
+        });
+        let Some(request) = taken else {
+            return;
+        };
+        // The backend answers a held mkdir with a "made" receipt, so the pane claims that one.
+        self.operations.fileops.creations.adopt(side, request, "made");
+        let shell_focus = self.focus.clone();
+        window.focus(&shell_focus, cx);
+    }
+
     // The backend takes the first free name from the client catalog's suggestion.
     /// Asks the backend for a folder named from the catalog's base
     fn fileops_new_folder(&mut self, side: usize, chosen: Option<&Chosen>, cx: &mut Context<Self>) {

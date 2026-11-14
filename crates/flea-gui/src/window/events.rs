@@ -86,6 +86,7 @@ impl Shell {
         }
         if let BackendEvent::Producer(line) | BackendEvent::Operations(line) = &event {
             self.slow_line(line, cx);
+            self.fileops_slow_create(side, line, window, cx);
             if self.open_with_line(side, line, cx) {
                 return;
             }

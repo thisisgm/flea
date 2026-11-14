@@ -144,6 +144,17 @@ impl Operations {
         }
     }
 
+    /// A create the backend called slow: the card lets go so the window answers again, and the pane's
+    /// own origin keeps the receipt the backend answers by itself when the held write lands.
+    pub(crate) fn slow_new_file(&mut self) -> Option<u64> {
+        let Some(Dialog::NewFile { id, busy: true, .. }) = self.dialog.clone() else {
+            return None;
+        };
+        self.dialog = None;
+        self.changed = true;
+        Some(id)
+    }
+
     /// Create sends v0.3.12's newfile request once the name is a plain filename, and one trailing slash
     /// asks the same mkdir the TUI's create prompt does; a bad name says so in the card.
     pub(super) fn confirm_new_file(&mut self, catalog: &I18n) {

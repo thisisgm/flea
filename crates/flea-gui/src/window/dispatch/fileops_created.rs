@@ -34,6 +34,15 @@ impl Targets {
             .iter()
             .any(|origin| origin.kind == kind && origin.request == request)
     }
+
+    /// A create the card let go of: its origin answers under the kind the backend's late receipt carries.
+    pub(super) fn adopt(&mut self, side: usize, request: u64, kind: &'static str) {
+        for origin in self.0[side].iter_mut() {
+            if origin.request == request {
+                origin.kind = kind;
+            }
+        }
+    }
 }
 
 impl Shell {

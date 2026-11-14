@@ -444,3 +444,55 @@ fn new_file_folder_drafts_refuse_a_second_or_a_lone_slash(cx: &mut TestAppContex
     }
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }
+
+// A held mkdir answers slow, the card lets go, and the late receipt still lands on the pane.
+/// A slow create dismisses its card and the eventual receipt still selects the folder
+#[gpui::test]
+fn a_slow_create_lets_the_card_go_and_the_late_receipt_still_lands(cx: &mut TestAppContext) {
+    let (shell, mut cx) = opened(cx);
+    let cx = &mut cx;
+    let mut sent = asked(&shell, cx);
+    open_card(&shell, cx);
+    cx.simulate_input("photos/");
+    cx.simulate_keystrokes("enter");
+    let requests = sent();
+    // A slash asks mkdir, whose identifier is the request token, not the card's own id.
+    let id = flea::json::field_usize(&requests[0], "request").unwrap();
+    assert!(
+        matches!(card(&shell, cx), Some(Dialog::NewFile { busy: true, .. })),
+        "the card holds while the write is out"
+    );
+    cx.simulate_keystrokes("escape");
+    assert!(
+        matches!(card(&shell, cx), Some(Dialog::NewFile { busy: true, .. })),
+        "a busy card ignores Escape on its own"
+    );
+    reply(
+        &shell,
+        cx,
+        r#"{"t":"slow","op":"mkdir","msg":"The new folder will finish on its own."}"#,
+    );
+    assert!(card(&shell, cx).is_none(), "the slow notice lets the card go");
+    let before = lists(&shell, cx);
+    reply(
+        &shell,
+        cx,
+        &format!(
+            r#"{{"t":"menuaction","op":"creation","id":{id},"kind":"made","ok":true,"path":"/files/photos"}}"#
+        ),
+    );
+    assert_eq!(
+        lists(&shell, cx),
+        before + 1,
+        "the late receipt reads the folder again"
+    );
+    let select = shell.read_with(cx, |shell, _| {
+        shell.panes[0].as_ref().unwrap().nav.pending_select.clone()
+    });
+    assert_eq!(
+        select.as_deref(),
+        Some("/files/photos"),
+        "and selects the folder that landed"
+    );
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
