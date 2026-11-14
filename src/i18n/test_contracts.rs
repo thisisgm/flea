@@ -52,6 +52,10 @@ fn no_test_loads_the_shipped_catalog_dir() {
             "crates/flea-gui/src/window/dispatch/rename_refusal_tests.rs",
             "FX-I18N2 reads a drive name refusal under the rename draft in the shipped German catalog",
         ),
+        (
+            "src/i18n/locale.rs",
+            "Catalog-only zero digits match Omarchy's roster for every shipped catalog",
+        ),
     ];
     // Split so this file never matches itself; cargo runs tests from the package root, so cwd and relative forms name i18n/ too.
     let manifest = concat!("CARGO_MANIFEST_", "DIR\")");

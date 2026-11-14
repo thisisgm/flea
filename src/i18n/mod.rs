@@ -93,6 +93,8 @@ pub struct I18n {
     watched: Vec<(PathBuf, Option<Stamp>)>,
     language_text: Option<String>,
     paragraphs: bool,
+    // LC_ALL, LC_MESSAGES and LANG as this process started with them; only read without Omarchy's roster.
+    session: Vec<(String, String)>,
 }
 
 impl Default for I18n {
@@ -101,12 +103,21 @@ impl Default for I18n {
 
 impl I18n {
     pub fn load(paths: Paths) -> Self {
+        let session = locale::SESSION_KEYS.iter()
+            .filter_map(|key| Some(((*key).to_owned(), std::env::var(key).ok()?)))
+            .collect();
+        Self::load_with_session(paths, session)
+    }
+
+    /// `load` with the session locale given, so a test never touches the process environment.
+    pub fn load_with_session(paths: Paths, session: Vec<(String, String)>) -> Self {
         let mut result = Self {
             paths, roster: Vec::new(), locale: Locale::default(),
             english: Catalog::new(), translated: Catalog::new(),
             omarchy_english: HashMap::new(), omarchy_translated: HashMap::new(), watched: Vec::new(),
             paragraphs: false,
             language_text: None,
+            session,
         };
         result.reload();
         result
@@ -252,9 +263,36 @@ impl I18n {
         // Stamp before reading so a concurrent edit remains visible to the next poll.
         let language_file = self.watch(self.paths.language_file.clone());
         let registry = self.watch(self.paths.omarchy.join("default/i18n/locales.json"));
-        self.roster = locale::parse(&catalog::read(&registry).unwrap_or_default(), &registry);
+        // Omarchy's roster and language file name the language; without Omarchy, Flea's own
+        // catalogs and the session's locale do.
+        let registry_text = catalog::read(&registry);
+        let omarchy = registry_text.is_some();
+        self.roster = match registry_text {
+            Some(text) => locale::parse(&text, &registry),
+            None => {
+                // A catalog added or removed at runtime changes a root's or a language folder's stamp.
+                for root in self.paths.catalogs.clone() {
+                    let entries: Vec<PathBuf> = std::fs::read_dir(self.watch(root)).into_iter().flatten().flatten()
+                        .map(|entry| entry.path()).filter(|path| path.is_dir()).collect();
+                    for entry in entries {
+                        self.watch(entry);
+                    }
+                }
+                locale::from_catalogs(&self.paths.catalogs)
+            }
+        };
         self.language_text = catalog::read(&language_file);
-        let code = language_code(self.language_text.as_deref().unwrap_or_default());
+        let session;
+        let code = if omarchy {
+            // A missing language file means English, as it always has.
+            language_code(self.language_text.as_deref().unwrap_or_default())
+        } else {
+            // Omarchy's language file belongs to Omarchy's roster; without it the session decides.
+            let values = &self.session;
+            let get = |key: &str| values.iter().find(|(k, _)| k == key).map(|(_, v)| v.clone());
+            session = locale::pick_from_session(&mut self.roster, get).unwrap_or_default();
+            session.as_str()
+        };
         self.locale = self.roster.iter().find(|l| l.code == code).cloned()
             .unwrap_or_else(|| self.roster.iter().find(|l| l.code == "en").unwrap().clone());
         let code = self.locale.code.clone();
