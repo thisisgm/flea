@@ -22,21 +22,43 @@ impl Snapshot {
     }
 }
 
-pub(super) type Inputs = [Option<String>; 7];
+/// How many files a presentation reads: seven Omarchy and fontconfig inputs, then three GTK 4 stylesheets.
+pub(super) const INPUT_COUNT: usize = 10;
+// The first of the three GTK 4 stylesheets in `Sources::inputs`.
+const GTK_SHEETS: usize = 7;
+pub(super) type Inputs = [Option<String>; INPUT_COUNT];
 /// The most bytes one input may hold; a larger file is refused, never cut.
 pub(super) const INPUT_CAP: usize = 65536;
-pub(super) type Stamps = [Option<(u64, u64, u64, i64, i64, i64, i64, u32)>; 7];
+pub(super) type Stamps = [Option<(u64, u64, u64, i64, i64, i64, i64, u32)>; INPUT_COUNT];
 
-/// The seven files a presentation reads, and where the resolved font family is cached.
+/// The files a presentation reads, and where the resolved font family is cached.
 pub(super) struct Sources {
-    inputs: [PathBuf; 7],
+    inputs: [PathBuf; INPUT_COUNT],
     cache: PathBuf,
+    // Omarchy's state folder. While it exists the GTK sheets are never read, so a theme swap's
+    // missing colors.toml keeps today's behaviour instead of falling back to GTK colours.
+    omarchy: Option<PathBuf>,
 }
 
 impl Sources {
     #[cfg(test)]
-    pub fn at(inputs: [PathBuf; 7], cache: PathBuf) -> Self {
-        Self { inputs, cache }
+    pub fn at(inputs: [PathBuf; INPUT_COUNT], cache: PathBuf) -> Self {
+        Self {
+            inputs,
+            cache,
+            omarchy: None,
+        }
+    }
+
+    #[cfg(test)]
+    pub fn with_omarchy(mut self, dir: PathBuf) -> Self {
+        self.omarchy = Some(dir);
+        self
+    }
+
+    /// Whether this input is read: the GTK sheets only without an Omarchy install.
+    fn active(&self, at: usize) -> bool {
+        at < GTK_SHEETS || !self.omarchy.as_deref().is_some_and(Path::is_dir)
     }
 
     pub fn current() -> Self {
@@ -49,6 +71,11 @@ impl Sources {
             .filter(|v| !v.is_empty())
             .map(PathBuf::from)
             .unwrap_or_else(|| home.join(".local/state"));
+        Self::from_dirs(home, config, state)
+    }
+
+    /// The inputs under these home, config and state folders, so a test needs no process environment.
+    fn from_dirs(home: PathBuf, config: PathBuf, state: PathBuf) -> Self {
         let theme = home.join(".local/state/omarchy/current/theme");
         Self {
             inputs: [
@@ -59,8 +86,16 @@ impl Sources {
                 config.join("fontconfig/conf.d/50-omarchy-input-method.conf"),
                 state.join("omarchy/toggles/hypr/window-opaque.lua"),
                 state.join("omarchy/toggles/hypr/window-glassy.lua"),
+                // Without an Omarchy theme the palette comes from what GTK 4 apps are given:
+                // gtk.css, the colors.css a KDE or theme export imports into it, and the
+                // wallpaper palette DankMaterialShell writes beside them.
+                config.join("gtk-4.0/gtk.css"),
+                config.join("gtk-4.0/colors.css"),
+                config.join("gtk-4.0/dank-colors.css"),
             ],
             cache: state.join("flea/fc-match-monospace"),
+            // The same HOME-based folder the theme is read from, whatever XDG_STATE_HOME says.
+            omarchy: Some(home.join(".local/state/omarchy")),
         }
     }
 
@@ -98,10 +133,11 @@ impl Sources {
     }
 
     /// Every input or the first failure: a live change that cannot be read keeps the last complete snapshot.
+    /// On an Omarchy install the GTK sheets are never read, so they can never hold back an Omarchy change.
     pub fn read(&self) -> io::Result<Inputs> {
-        let mut inputs = std::array::from_fn(|_| None);
-        for (path, input) in self.inputs.iter().zip(&mut inputs) {
-            *input = Self::read_one(path)?;
+        let mut inputs: Inputs = std::array::from_fn(|_| None);
+        for at in (0..INPUT_COUNT).filter(|&at| self.active(at)) {
+            inputs[at] = Self::read_one(&self.inputs[at])?;
         }
         Ok(inputs)
     }
@@ -110,7 +146,10 @@ impl Sources {
     pub fn read_for_launch(&self) -> (Inputs, Vec<String>) {
         let mut inputs = std::array::from_fn(|_| None);
         let mut failures = Vec::new();
-        for (path, input) in self.inputs.iter().zip(&mut inputs) {
+        for (at, (path, input)) in self.inputs.iter().zip(&mut inputs).enumerate() {
+            if !self.active(at) {
+                continue;
+            }
             match Self::read_one(path) {
                 Ok(text) => *input = text,
                 Err(error) => failures.push(format!("{}: {error}", path.display())),
@@ -154,7 +193,17 @@ impl Sources {
         deadline: std::time::Duration,
     ) -> (Snapshot, Option<io::Error>) {
         let text = |at: usize| input[at].as_deref().unwrap_or("");
-        let (mut theme, parsed) = Theme::from_text_observed(text(0));
+        // An Omarchy theme names the palette; elsewhere the GTK sheets do, the imported colors.css
+        // first, gtk.css over it, and the DankMaterialShell palette last.
+        let desktop;
+        let colours = match input[0].as_deref() {
+            Some(omarchy) => omarchy,
+            None => {
+                desktop = flea::desktop_palette::colours_text(&[text(8), text(7), text(9)]);
+                &desktop
+            }
+        };
+        let (mut theme, parsed) = Theme::from_text_observed(colours);
         theme.glass = crate::window::glass::Inputs::resolve(
             text(0),
             text(1),
@@ -181,10 +230,11 @@ mod tests {
     use super::*;
     use std::process::Command;
 
-    fn sources(inputs: [PathBuf; 7]) -> Sources {
+    fn sources(inputs: [PathBuf; INPUT_COUNT]) -> Sources {
         Sources {
             inputs,
             cache: PathBuf::from("/proc/self/flea-u01-no-cache/entry"),
+            omarchy: None,
         }
     }
 
@@ -193,24 +243,79 @@ mod tests {
         let absent = sources(std::array::from_fn(|_| {
             PathBuf::from("/proc/self/flea-u01-absent-input")
         }));
-        assert_eq!(
-            absent.read().unwrap(),
-            [None, None, None, None, None, None, None]
-        );
+        assert_eq!(absent.read().unwrap(), std::array::from_fn(|_| None));
         let failed = sources(std::array::from_fn(|_| PathBuf::from("/proc/self")));
         assert_eq!(
             failed.read().unwrap_err().kind(),
             io::ErrorKind::InvalidInput
         );
         let (launch, failures) = failed.read_for_launch();
-        assert_eq!(launch, [None, None, None, None, None, None, None]);
-        assert_eq!(failures.len(), 7);
+        assert_eq!(launch, std::array::from_fn(|_| None));
+        assert_eq!(failures.len(), INPUT_COUNT);
         let valid = sources(std::array::from_fn(|_| PathBuf::from("/proc/self/status")));
         assert!(valid
             .read()
             .unwrap()
             .iter()
             .all(|value| value.as_ref().is_some_and(|text| !text.is_empty())));
+    }
+
+    #[test]
+    fn the_omarchy_gate_is_the_folder_the_theme_is_read_from() {
+        let sources = Sources::from_dirs(
+            PathBuf::from("/home/u"),
+            PathBuf::from("/home/u/.config"),
+            PathBuf::from("/var/xdg-state"),
+        );
+        assert_eq!(
+            sources.omarchy,
+            Some(PathBuf::from("/home/u/.local/state/omarchy"))
+        );
+        assert!(sources.inputs[0].starts_with(sources.omarchy.as_ref().unwrap()));
+    }
+
+    #[test]
+    fn on_omarchy_the_gtk_sheets_are_never_read() {
+        let fixture = super::super::fixture::Fixture::new("gtk-sheet");
+        let sheet = fixture.path().join("dank-colors.css");
+        fixture.write(&sheet, "@define-color accent_bg_color #c4c0ff;");
+        let paths: [PathBuf; INPUT_COUNT] = std::array::from_fn(|at| match at {
+            // A directory fails a regular-file read, as an oversized or unreadable sheet does.
+            7 => PathBuf::from("/proc/self"),
+            9 => sheet.clone(),
+            _ => PathBuf::from("/proc/self/flea-absent"),
+        });
+        let omarchy = sources(paths.clone()).with_omarchy(fixture.path().to_path_buf());
+        // Neither a broken sheet nor a theme swap's missing colors.toml reaches the GTK colours.
+        let read = omarchy
+            .read()
+            .expect("a broken sheet never holds back Omarchy");
+        assert!(read.iter().all(Option::is_none));
+        assert!(omarchy.read_for_launch().1.is_empty());
+        // Without Omarchy the sheets are live, so a broken one keeps the last snapshot.
+        let elsewhere = sources(paths).with_omarchy(fixture.path().join("absent"));
+        assert!(elsewhere.read().is_err());
+        let (launch, failures) = elsewhere.read_for_launch();
+        assert!(launch[9].is_some() && failures.len() == 1);
+        fixture.cleanup();
+    }
+
+    #[test]
+    fn without_an_omarchy_theme_the_gtk_sheets_paint_and_dms_wins() {
+        let absent = sources(std::array::from_fn(|_| {
+            PathBuf::from("/proc/self/flea-absent")
+        }));
+        let mut input: Inputs = std::array::from_fn(|_| None);
+        input[8] = Some("@define-color theme_bg_color_breeze #202326;\n@define-color accent_color_breeze #3daee9;".into());
+        input[9] = Some("@define-color accent_bg_color #c4c0ff;".into());
+        let (snapshot, _) = absent.resolve(&input, "monospace");
+        let want = Theme::from_text("background = '#202326'\naccent = '#c4c0ff'\n");
+        assert!(snapshot.theme.background == want.background);
+        assert!(snapshot.theme.accent == want.accent);
+        // An Omarchy colors.toml, even one naming nothing, keeps the GTK sheets out.
+        input[0] = Some(String::new());
+        let (omarchy, _) = absent.resolve(&input, "monospace");
+        assert!(omarchy.theme.background == Theme::from_text("").background);
     }
 
     #[test]
