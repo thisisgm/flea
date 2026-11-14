@@ -353,6 +353,7 @@ impl Navigator {
         }
         if let Some(target) = self.pending_select.clone() {
             if anchor::apply_select(pane, &target, selected) {
+                self.restore_line(pane, super::position::leaf(&target));
                 self.pending_select = None;
                 self.select_locate = None;
                 self.landed = Some((pane.held.listing, pane.cursor));

@@ -148,6 +148,7 @@ impl crate::window::pane::PaneHost {
         };
         self.filter.sync(self.pane.held.listing);
         self.input.set_shown(self.filter.shown.clone());
+        self.nav.lines.shown.clone_from(&self.filter.shown);
         if let (Some(asked), Some(backend)) = (asked, &self.backend) {
             let _ = backend.line(wire::request(asked.id, &asked.query).trim_end().to_owned());
         }
@@ -218,6 +219,7 @@ impl Shell {
         host.filter.owner.sync_entry();
         host.filter.sync(listing);
         host.input.set_shown(host.filter.shown.clone());
+        host.nav.lines.shown.clone_from(&host.filter.shown);
         let owner = &host.filter.owner;
         if !owner.up() {
             self.slots.strips[side] = None;

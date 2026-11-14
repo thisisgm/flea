@@ -5,6 +5,7 @@ mod fresh;
 pub mod history;
 mod landing;
 mod orders;
+pub(crate) mod position;
 mod retry;
 mod selected;
 pub mod sort;
@@ -87,6 +88,9 @@ pub struct Counters {
 
 #[derive(Default)]
 pub struct Navigator {
+    /// ui.json "keepScreenLine" for this pane's window, set by the shell before each frame.
+    pub(crate) keep_screen_line: bool,
+    pub(crate) lines: position::Lines,
     pub history: History,
     pub restore: Option<Restore>,
     pub anchor: Option<Anchor>,
@@ -275,6 +279,9 @@ impl Navigator {
         restore: Option<Restore>,
         want_changed: bool,
     ) -> Result<bool, Refusal> {
+        if self.keep_screen_line {
+            self.lines.remember(pane);
+        }
         if pane.busy() {
             if !options.supersede {
                 return Err(Refusal::Busy);

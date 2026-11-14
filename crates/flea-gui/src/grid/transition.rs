@@ -286,6 +286,7 @@ impl Shell {
             }
             host.nav.viewport = None;
             host.nav.grid_landing = None;
+            host.nav.lines.grid = None;
             host.pane
                 .set_height(if scroll.is_some() { landing } else { height });
             if let Some(scroll) = scroll {

@@ -67,6 +67,7 @@ impl Render for Shell {
         }
         self.sync_footer_height(window, cx);
         self.sync_tabs(window, cx);
+        self.sync_keep_screen_line();
         let geometry = self.geometry(window);
         self.size_trash(&geometry, cx);
         self.trash_frame(window, cx);

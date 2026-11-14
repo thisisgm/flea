@@ -203,6 +203,12 @@ pub fn view_rows(state: &State<'_>) -> Vec<Row> {
                 is_true(data, &["escapeUp"]),
             )
         },
+        check(
+            "keepScreenLine",
+            "settings.row.keep_screen_line",
+            "",
+            is_true(data, &["keepScreenLine"]),
+        ),
         Row::group("settings.group.opening"),
         choice(
             "startIn",
