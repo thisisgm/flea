@@ -720,6 +720,7 @@
   "settings.row.click_rename": "Click a selected name to rename",
   "settings.row.back_view": "Back to View",
   "settings.row.back": "Back",
+  "settings.row.keep_screen_line": "Keep the row's place when coming back",
   "settings.row.preview_column": "Show the preview column",
   "settings.row.load": "Load",
   "settings.row.thumbnails": "Thumbnails",

@@ -34,6 +34,8 @@ The Stage13 landing correction retains exact scoped composition ceilings for the
 
 ## File budget
 
+Keep the row's place records two exact composed ceilings from `wc -l`: `src/uischema.rs` 622 to 626 for the keepScreenLine default, its rule, the key list and the default assertion, and `crates/flea-gui/src/navigation/mod.rs` 406 to 407 for the navigator's per-window switch. The remembered lines, their window sync and their tests live in `crates/flea-gui/src/navigation/position.rs` and `position_tests.rs`. Global limits remain unchanged.
+
 The OPR sandbox-capability guards add three lines to each of ten contents review tests. The exact scoped ceiling for `src/backend/contents_review_tests.rs` is 476 lines, measured with `wc -l`. Every test still runs in full on namespace-capable hosts, and the global 400-line cap stays unchanged.
 
 The RAW3 join onto the 0.3.11 stage records the merged `wc -l` ceilings at `src/backend/metareq.rs` 541, `src/backend/menu_actions.rs` 674, `tests/js/facts.js` 415 and `ui/js/Facts.js` 402. `ui/MenuActionDialog.qml` crosses the unchanged 400-line cap at 402 for the initial photo facts combined with the deferred file facts, each pair drawn once in the board's order; its scoped ceiling is the merged count. No code or comment was compressed to meet a cap.
