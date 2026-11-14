@@ -11,6 +11,8 @@ pub struct Ink {
     pub foreground: Hsla,
     pub muted: Hsla,
     pub muted_frame: Hsla,
+    /// The list's metadata ink, which its column header titles wear.
+    pub metadata: Hsla,
     pub accent: Hsla,
     pub accent_frame: Hsla,
     pub mark_fill: Hsla,
@@ -27,6 +29,7 @@ impl Ink {
             foreground: palette.foreground,
             muted: palette.muted,
             muted_frame: palette.muted_frame,
+            metadata: palette.metadata,
             accent: palette.accent,
             accent_frame: palette.accent_frame,
             mark_fill: palette.marked,

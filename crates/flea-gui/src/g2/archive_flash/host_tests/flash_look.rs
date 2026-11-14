@@ -75,6 +75,20 @@ fn flash_covers_the_pane_slot_and_keeps_the_rail_and_the_status_bar() {
     });
 }
 
+#[test]
+fn flash_keeps_its_slot_beside_the_rail_under_a_window_wide_bar() {
+    let mut cx = crate::list::bench::real_cx();
+    let handle = opened(&mut cx, View::List);
+    // "Across the window" widens only Trash, which insets its own body; the flasher would cover the places.
+    let geometry = edit(&mut cx, handle, |shell, window, _| {
+        shell.launch.settings.data = flea::jsondoc::parse(r#"{"windowBar":"window"}"#).unwrap();
+        shell.geometry(window)
+    });
+    assert_eq!(geometry.cover_inset, 0.);
+    assert_eq!((geometry.rail.y, geometry.rail.width), (0., 192.));
+    assert!(geometry.panes[0].x >= 192., "{:?}", geometry.panes[0]);
+}
+
 /// The flash cursor (0 image, 1 first drive, 9 the step) and the window's focused stop.
 fn seat(cx: &mut TestAppContext, handle: Handle) -> (usize, &'static str) {
     edit(cx, handle, |shell, window, cx| {

@@ -152,9 +152,9 @@ fn trash_wire_pins_hold_in_the_rust_sources() {
             && pane.contains("words::confirm_body(&self.catalog, &snapshot, scope)"),
         "the card draws its words from the unfilled guard"
     );
-    let strip = include_str!("strip.rs");
+    let header = include_str!("header.rs");
     // The pin reads through the formatter: one blank stands for every run of whitespace.
-    let flat = strip.split_whitespace().collect::<Vec<_>>().join(" ");
+    let flat = header.split_whitespace().collect::<Vec<_>>().join(" ");
     assert!(
         flat.contains(r#"sort::title( &self.catalog.tr("trash.header.deleted"), true,"#),
         "the header draws the shared descending mark"

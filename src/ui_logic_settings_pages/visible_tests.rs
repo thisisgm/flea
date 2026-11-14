@@ -136,3 +136,19 @@ fn a_walked_choice_shows_its_value_and_marks_show_no_words() {
     assert_eq!(said(&view, true, &english()), ["Last-used view"]);
     assert!(texts(&super::super::rows::Row::hint(Text::Empty), true).is_empty());
 }
+
+#[test]
+fn the_window_bar_row_reads_the_saved_choice() {
+    for (saved, label) in [
+        ("mixed", "As shipped"),
+        ("list", "Over the list"),
+        ("window", "Across the window"),
+    ] {
+        let got = drawn("view", &format!(r#"{{"windowBar":"{saved}"}}"#));
+        let at = got
+            .iter()
+            .position(|text| text == "Window bar")
+            .expect("the View board has the row");
+        assert_eq!(got.get(at + 1).map(String::as_str), Some(label), "{saved}");
+    }
+}

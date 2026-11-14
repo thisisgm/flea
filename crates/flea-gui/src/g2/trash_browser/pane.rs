@@ -44,6 +44,10 @@ pub struct TrashPane {
     pub(super) scrollbar: super::scrollbar::Bar,
     pub menu_open: bool,
     pub width: f32,
+    /// Where the header and rows start right of the strip's left edge (geometry.cover_inset); 0 beside the places.
+    pub inset: f32,
+    /// "Window bar" other than As shipped: the strip, header and rows wear every folder's look.
+    pub unified: bool,
     pub(super) height: f32,
     pub presentation_loading: bool,
     pub loading_at: Option<Instant>,
@@ -95,6 +99,8 @@ impl TrashPane {
             scrollbar: Default::default(),
             menu_open: false,
             width: 0.,
+            inset: 0.,
+            unified: false,
             height: 0.,
             presentation_loading: false,
             loading_at: None,
