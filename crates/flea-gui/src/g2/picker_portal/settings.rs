@@ -22,6 +22,15 @@ pub(super) struct Followed {
     pub(super) ctrl_zoom: bool,
     // Settings > View "Open items with": "single" activates a row on one click, as the browser does (#372).
     pub(super) single_click: bool,
+    // Settings > View "Address bar": "breadcrumb" lets a parent crumb navigate, "path" keeps every press on the entry (#354).
+    pub(super) address: Address,
+}
+
+/// The address bar's two forms: crumbs that each open a folder, or one path that opens the entry.
+#[derive(Clone, Copy, PartialEq)]
+pub(super) enum Address {
+    Crumbs,
+    Path,
 }
 
 // The saved Show Hidden Files setting read before the window opens, so the first listing already carries it.
@@ -42,6 +51,7 @@ impl Default for Preferences {
                 hidden: false,
                 ctrl_zoom: true,
                 single_click: false,
+                address: Address::Crumbs,
             },
             view_chosen: false,
             relist: false,
@@ -68,6 +78,10 @@ impl Picker {
             .to_owned();
         self.preferences.followed.single_click =
             data.get("openMode").and_then(Json::as_str) == Some("single");
+        self.preferences.followed.address = match data.get("addressBar").and_then(Json::as_str) {
+            Some("path") => Address::Path,
+            _ => Address::Crumbs,
+        };
         let preview = data.get("preview");
         self.preferences.followed.ctrl_zoom = preview
             .and_then(|preview| preview.get("ctrlZoom"))

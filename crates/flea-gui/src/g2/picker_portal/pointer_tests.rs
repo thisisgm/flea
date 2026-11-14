@@ -18,10 +18,15 @@ pub(super) fn path_click(f: &mut Fixture, padding: bool) {
     let path = f.update(|picker, cx| picker.browse.path_view(cx));
     let bounds =
         f.cx.update(|_, cx| path.read(cx).paint.borrow().strips[0].unwrap());
+    // The leaf crumb and the padding after it are inert; a parent crumb navigates instead (issue 354).
     let x = if padding {
         bounds.right() - px(2.)
     } else {
-        bounds.left() + px(5.)
+        let (left, width) = f.cx.update(|_, cx| {
+            let strip = &path.read(cx).strips[0];
+            strip.extent(strip.crumbs().len() - 1).unwrap()
+        });
+        bounds.left() + px(left + width / 2.)
     };
     f.cx.simulate_click(point(x, bounds.center().y), Modifiers::none());
     f.cx.run_until_parked();
@@ -54,7 +59,7 @@ fn check_path(cx: &mut TestAppContext, save: bool) {
                 !f.listing.sent()[sent..]
                     .iter()
                     .any(|line| line.contains("\"c\":\"peek\"")),
-                "clicking a parent run must not navigate"
+                "clicking the leaf or the padding must not navigate"
             );
             let path = f.update(|picker, cx| picker.browse.path_view(cx));
             let at =
