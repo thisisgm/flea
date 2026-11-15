@@ -1614,6 +1614,8 @@
   "plugins.airdrop.receiving": "Λήψη",
   "plugins.airdrop.receiving.off": "Ανενεργό",
   "plugins.airdrop.receiving.everyone": "Όλοι για 10 λεπτά",
+  "plugins.airdrop.receiving.omdrop_everyone": "Όλοι",
+  "plugins.airdrop.receiving.omdrop_contacts": "Μόνο επαφές",
   "plugins.airdrop.folder": "Αποθήκευση ληφθέντων αρχείων σε",
   "plugins.airdrop.computer": "Αυτός ο υπολογιστής",
   "plugins.airdrop.shown_as": "Εμφάνιση ως",

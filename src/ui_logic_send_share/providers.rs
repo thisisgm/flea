@@ -82,9 +82,11 @@ pub struct Facts {
     pub dropbox_ready: bool,
     // owly, the AirDrop stack the AirDrop plugin runs; empty while it is not on PATH.
     pub owly_command: String,
+    // Omdrop, the AirDrop stack the plugin runs when owly is not installed; empty while it is not on PATH.
+    pub omdrop_command: String,
 }
 
-// Sample input: {"taildrop":{"installed":true,"command":"/usr/bin/tailscale","reason":""},"taildropSend":{...},"localsend":{"installed":false,"command":"","reason":"localsend-cli is not installed."},"rclone":{...},"dropbox":{...},"owly":{...},"dropboxInfo":"{...}","dropboxError":""}
+// Sample input: {"taildrop":{"installed":true,"command":"/usr/bin/tailscale","reason":""},"taildropSend":{...},"localsend":{"installed":false,"command":"","reason":"localsend-cli is not installed."},"rclone":{...},"dropbox":{...},"owly":{...},"omdrop":{...},"dropboxInfo":"{...}","dropboxError":""}
 pub fn parse_facts(raw: &str) -> Result<Facts, String> {
     let data = jsondoc::parse(raw).map_err(|problem| format!("providers facts do not parse: {problem}"))?;
     let command = |key: &str| {
@@ -117,6 +119,7 @@ pub fn parse_facts(raw: &str) -> Result<Facts, String> {
             .unwrap_or_default()
             .is_empty(),
         owly_command: command("owly"),
+        omdrop_command: command("omdrop"),
     })
 }
 
@@ -181,6 +184,7 @@ mod tests {
 "localsend":{"installed":true,"command":"/usr/bin/localsend-cli","reason":""},
 "dropbox":{"installed":true,"command":"/usr/bin/dropbox-cli","reason":""},
 "owly":{"installed":true,"command":"/usr/bin/owly","reason":""},
+"omdrop":{"installed":true,"command":"/usr/bin/omdrop","reason":""},
 "dropboxInfo":"{\"personal\":{\"path\":\"/d\"}}","dropboxError":""}"#,
         )
         .expect("facts parse");
@@ -191,6 +195,7 @@ mod tests {
         assert_eq!(facts.dropbox_command, "/usr/bin/dropbox-cli");
         assert!(facts.dropbox_ready);
         assert_eq!(facts.owly_command, "/usr/bin/owly");
+        assert_eq!(facts.omdrop_command, "/usr/bin/omdrop");
         assert!(parse_facts("not json").is_err());
         assert!(parse_facts("{}").expect("empty facts").tailscale_command.is_empty());
     }

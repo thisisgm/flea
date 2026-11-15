@@ -41,6 +41,8 @@ fn ready() -> Page {
             readiness: Readiness::Ready,
             card: "Intel AX210".into(),
         },
+        omdrop: false,
+        contacts: false,
     }
 }
 
@@ -75,6 +77,32 @@ fn lines(rows: &[Row]) -> Vec<String> {
             other => format!("{other:?}"),
         })
         .collect()
+}
+
+#[test]
+fn under_omdrop_the_on_choice_names_its_saved_audience_and_no_window_length() {
+    let choice = |page: &Page| {
+        let rows = rows(&airdrop(true), page, &english());
+        lines(&rows).into_iter().find(|l| l.starts_with("choice")).unwrap()
+    };
+    assert!(choice(&ready()).contains("Off | Everyone for 10 Minutes"));
+    let everyone = Page { omdrop: true, ..ready() };
+    assert!(choice(&everyone).contains("Off | Everyone = "), "{}", choice(&everyone));
+    let contacts = Page { omdrop: true, contacts: true, receiving: true, ..ready() };
+    assert!(choice(&contacts).contains("Off | Contacts Only = everyone"), "{}", choice(&contacts));
+}
+
+#[test]
+fn a_running_receiver_can_be_turned_off_even_when_starting_one_could_not() {
+    let choice = |page: &Page| {
+        let rows = rows(&airdrop(true), page, &english());
+        lines(&rows).into_iter().find(|l| l.starts_with("choice")).unwrap()
+    };
+    let unready = Adapter { readiness: Readiness::NotReady, card: "Omdrop".into() };
+    let running = Page { omdrop: true, receiving: true, adapter: unready.clone(), ..ready() };
+    assert!(choice(&running).ends_with("= everyone true"), "{}", choice(&running));
+    let stopped = Page { omdrop: true, receiving: false, adapter: unready, ..ready() };
+    assert!(choice(&stopped).ends_with("= off false"), "{}", choice(&stopped));
 }
 
 #[test]

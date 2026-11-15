@@ -578,6 +578,8 @@
   "plugins.airdrop.receiving": "接收",
   "plugins.airdrop.receiving.off": "关闭",
   "plugins.airdrop.receiving.everyone": "所有人（10 分钟）",
+  "plugins.airdrop.receiving.omdrop_everyone": "所有人",
+  "plugins.airdrop.receiving.omdrop_contacts": "仅限联系人",
   "plugins.airdrop.folder": "接收的文件保存到",
   "plugins.airdrop.computer": "此计算机",
   "plugins.airdrop.shown_as": "显示为",

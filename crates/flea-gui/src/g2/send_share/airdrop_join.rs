@@ -1,10 +1,12 @@
 //! The window's AirDrop: each Act carried out, and the menu and page owly's runs (airdrop_run.rs) feed.
 use super::airdrop::Act;
+use super::airdrop_run::Origin;
 use super::join::now_ms;
 use super::seams::Action;
 use crate::state::Shell;
 use flea::ui_logic_context_menus::build::Context as MenuContext;
 use flea::ui_logic_plugin_settings::{airdrop::saved_folder, builtin::AIRDROP};
+use flea::ui_logic_send_share::omdrop::Stack;
 use flea::ui_logic_send_share::providers::Role;
 use gpui::{Context, Window};
 use std::process::{Command, Stdio};
@@ -44,15 +46,19 @@ impl Shell {
             .unwrap_or_else(downloads)
     }
 
-    // The facts of a file menu just opened: owly's path, then doctor and a browse while the row shows.
+    // The facts of a file menu just opened: owly's or Omdrop's path, then doctor and a browse while the row shows.
     pub(super) fn airdrop_facts(
         &mut self,
         side: usize,
-        owly: &str,
+        (owly, omdrop): (&str, &str),
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        self.menu.providers.airdrop.facts(owly);
+        let owly = self.airdrop_tools((owly, omdrop), side, window, cx);
+        if self.omdrop_active() {
+            return self.omdrop_menu_opened(side, window, cx);
+        }
+        self.menu.providers.airdrop.facts(&owly);
         if self.menu.providers.sides[side].row_on(Role::AirDrop) {
             let menus = self.menu.providers.airdrop.menus;
             self.airdrop_look(window, cx, move |shell, seen, window, cx| {
@@ -64,6 +70,11 @@ impl Shell {
 
     // A shut menu stops the browse; nothing else runs behind it.
     pub(super) fn airdrop_menu_closed(&mut self) {
+        // Omdrop's flag follows every close, so an Omdrop that takes over again starts no lookup behind a shut menu.
+        self.menu.providers.omdrop.menu_closed();
+        if self.omdrop_active() {
+            return;
+        }
         for act in self.menu.providers.airdrop.menu_closed() {
             if let Act::Stop(proc) = act {
                 self.menu.providers.airdrop_pids.stop(proc);
@@ -83,9 +94,25 @@ impl Shell {
         self.airdrop_acts(side, said, window, cx);
     }
 
+    // Acts owly's state asked for.
     pub(crate) fn airdrop_acts(
         &mut self,
         side: usize,
+        acts: Vec<Act>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let from = Origin {
+            side,
+            stack: Stack::Owly,
+        };
+        self.stack_acts(from, acts, window, cx);
+    }
+
+    // Each run started goes back to the stack that asked for it, even once the other stack runs AirDrop.
+    pub(super) fn stack_acts(
+        &mut self,
+        from: Origin,
         acts: Vec<Act>,
         window: &mut Window,
         cx: &mut Context<Self>,
@@ -94,33 +121,43 @@ impl Shell {
         for act in acts {
             match act {
                 Act::Doctor(generation, argv) => {
-                    self.airdrop_doctor(side, generation, argv, window, cx)
+                    self.airdrop_doctor(from, generation, argv, window, cx)
                 }
                 Act::Start(proc, generation, argv) => {
-                    self.airdrop_start(side, proc, generation, argv, window, cx)
+                    self.airdrop_start(from, proc, generation, argv, window, cx)
                 }
-                Act::Stop(proc) => self.menu.providers.airdrop_pids.stop(proc),
+                Act::Stop(proc) => self.menu.providers.pids(from.stack).stop(proc),
                 Act::Say(text, error) => {
-                    self.provider_actions(side, vec![Action::Say(text, error)], window, cx)
+                    self.provider_actions(from.side, vec![Action::Say(text, error)], window, cx)
                 }
                 Act::Refresh => {
                     self.provider_refresh(window, cx);
                     self.airdrop_page(cx);
                 }
                 Act::AskStop => self.airdrop_ask_stop(cx),
+                Act::StatusLater(token, ms) => {
+                    self.omdrop_status_later(from, token, ms, window, cx)
+                }
             }
         }
         self.airdrop_watch(window, cx);
     }
 
+    // The plugin is switched on in Settings.
+    pub(super) fn airdrop_enabled(&self) -> bool {
+        self.declared_menu_plugins("send-target")
+            .any(|p| p.manifest.id == AIRDROP)
+    }
+
     // The row shows only while owly is there, the plugin on and the Wi-Fi able, as board 0401-airdrop-menu draws it.
     pub(crate) fn airdrop_context(&self, side: usize, context: &mut MenuContext) {
         let air = &self.menu.providers.airdrop;
-        let declared = self
-            .declared_menu_plugins("send-target")
-            .any(|p| p.manifest.id == AIRDROP);
-        context.airdrop_installed =
-            declared && self.menu.providers.sides[side].row_on(Role::AirDrop) && air.ready();
+        let row_on =
+            self.airdrop_enabled() && self.menu.providers.sides[side].row_on(Role::AirDrop);
+        if self.omdrop_active() {
+            return self.omdrop_context(row_on, context);
+        }
+        context.airdrop_installed = row_on && air.ready();
         context.airdrop_on = air.on();
         context.airdrop_devices = air.devices();
     }
@@ -134,6 +171,9 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        if self.omdrop_active() {
+            return self.omdrop_chosen(side, leaf, paths, window, cx);
+        }
         let catalog = self.locale.catalog.clone();
         let acts = match flea::ui_logic_context_menus::airdrop::peer_id(leaf) {
             Some(peer) => {
@@ -141,10 +181,7 @@ impl Shell {
                     .as_ref()
                     .and_then(|host| host.backend.as_ref());
                 let wire = super::join::Pipe(backend);
-                self.menu
-                    .providers
-                    .airdrop
-                    .send(&wire, peer, paths, &catalog)
+                (self.menu.providers.airdrop).send(&wire, peer, paths, &catalog)
             }
             None if leaf == flea::ui_logic_context_menus::airdrop::TURN_ON => {
                 let folder = self.airdrop_folder();
@@ -164,6 +201,9 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        if self.omdrop_active() {
+            return self.omdrop_receiving(on, window, cx);
+        }
         let side = self.focus_side;
         if on {
             self.airdrop_turn_on(side, folder, window, cx);
@@ -199,9 +239,10 @@ impl Shell {
 
     // The plugin switched off while the radio holds Wi-Fi: hand it back at once.
     pub(crate) fn airdrop_plugin_off(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        let enabled = self
-            .declared_menu_plugins("send-target")
-            .any(|p| p.manifest.id == AIRDROP);
+        let enabled = self.airdrop_enabled();
+        if self.omdrop_active() {
+            return self.omdrop_plugin(enabled, window, cx);
+        }
         if !enabled {
             let acts = self.menu.providers.airdrop.turn_off();
             let side = self.focus_side;
@@ -211,9 +252,25 @@ impl Shell {
 
     // The Settings page asks doctor when it shows, so its adapter fact is current.
     pub(crate) fn airdrop_settings_shown(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        // The page can open before any file menu brought the backend's facts, so it finds owly itself.
+        // The page can open before any file menu brought the backend's facts, so it finds owly and omdrop itself.
         let path = std::env::var_os("PATH").unwrap_or_default();
-        let owly = flea::ui_logic_send_share::airdrop::find(&path).unwrap_or_default();
+        let find =
+            |program| flea::ui_logic_send_share::airdrop::find(&path, program).unwrap_or_default();
+        self.airdrop_settings_for((&find("owly"), &find("omdrop")), window, cx);
+    }
+
+    pub(crate) fn airdrop_settings_for(
+        &mut self,
+        tools: (&str, &str),
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let side = self.focus_side;
+        let owly = self.airdrop_tools(tools, side, window, cx);
+        self.airdrop_host_lookup(window, cx);
+        if self.omdrop_active() {
+            return self.omdrop_settings_shown(window, cx);
+        }
         self.menu.providers.airdrop.facts(&owly);
         self.airdrop_look(window, cx, |shell, seen, window, cx| {
             let air = &mut shell.menu.providers.airdrop;
@@ -223,7 +280,10 @@ impl Shell {
             shell.airdrop_acts(side, acts, window, cx);
         });
         self.airdrop_page(cx);
-        // The host name is read off the window's thread; the page redraws once it is known.
+    }
+
+    // The page's Shown as falls back to this machine's name, read off the window's thread; the page redraws once known.
+    fn airdrop_host_lookup(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         cx.spawn_in(window, async move |this, cx| {
             let host = cx.background_executor().spawn(async { host_name() }).await;
             let _ = this.update_in(cx, |shell, _, cx| {
@@ -237,11 +297,11 @@ impl Shell {
     }
 
     pub(crate) fn airdrop_page(&mut self, cx: &mut Context<Self>) {
-        let page = self
-            .menu
-            .providers
-            .airdrop
-            .page(&self.airdrop_folder(), &self.menu.providers.airdrop_host);
+        let (folder, host) = (self.airdrop_folder(), &self.menu.providers.airdrop_host);
+        let page = match self.omdrop_active() {
+            true => self.menu.providers.omdrop.page(&folder, host),
+            false => self.menu.providers.airdrop.page(&folder, host),
+        };
         if let Some(view) = &self.settings.plugins.pane {
             view.update(cx, |view, cx| view.set_airdrop(page, cx));
         }
@@ -255,6 +315,7 @@ impl Shell {
         cx: &mut Context<Self>,
     ) {
         let binary = crate::window::startup::binary();
+        let tool = self.airdrop_tool();
         let (title, start) = (
             self.locale.catalog.tr("plugins.airdrop.folder"),
             start.to_string(),
@@ -276,14 +337,42 @@ impl Shell {
                 })
                 .await;
             if let Some(path) = chosen {
-                let _ = this.update(cx, |shell, cx| {
-                    if let Some(view) = &shell.settings.plugins.pane {
-                        view.update(cx, |view, cx| view.set_airdrop_folder(&path, cx));
-                    }
+                let _ = this.update_in(cx, |shell, window, cx| {
+                    shell.airdrop_folder_landed(&tool, &path, window, cx)
                 });
             }
         })
         .detach();
+    }
+
+    // The tool running AirDrop, by stack and path, so another stack or another install of the same one never matches.
+    pub(super) fn airdrop_tool(&self) -> (Stack, String) {
+        let providers = &self.menu.providers;
+        match self.omdrop_active() {
+            true => (Stack::Omdrop, providers.omdrop.path().to_string()),
+            false => (Stack::Owly, providers.airdrop.tool().to_string()),
+        }
+    }
+
+    // A chosen folder goes to the tool that ran AirDrop when the chooser opened, or nowhere if another runs it now.
+    pub(super) fn airdrop_folder_landed(
+        &mut self,
+        tool: &(Stack, String),
+        path: &str,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if self.airdrop_tool() != *tool {
+            return;
+        }
+        match tool.0 {
+            Stack::Omdrop => self.omdrop_folder_chosen(path, window, cx),
+            Stack::Owly => {
+                if let Some(view) = &self.settings.plugins.pane {
+                    view.update(cx, |view, cx| view.set_airdrop_folder(path, cx));
+                }
+            }
+        }
     }
 }
 

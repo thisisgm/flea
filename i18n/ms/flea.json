@@ -588,6 +588,8 @@
   "plugins.airdrop.receiving": "Penerimaan",
   "plugins.airdrop.receiving.off": "Mati",
   "plugins.airdrop.receiving.everyone": "Semua orang selama 10 minit",
+  "plugins.airdrop.receiving.omdrop_everyone": "Semua orang",
+  "plugins.airdrop.receiving.omdrop_contacts": "Kenalan sahaja",
   "plugins.airdrop.folder": "Simpan fail yang diterima ke",
   "plugins.airdrop.computer": "Komputer ini",
   "plugins.airdrop.shown_as": "Dipaparkan sebagai",

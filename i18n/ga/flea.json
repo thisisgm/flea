@@ -652,6 +652,8 @@
   "plugins.airdrop.receiving": "Glacadh",
   "plugins.airdrop.receiving.off": "As",
   "plugins.airdrop.receiving.everyone": "Gach duine ar feadh 10 nóiméad",
+  "plugins.airdrop.receiving.omdrop_everyone": "Gach duine",
+  "plugins.airdrop.receiving.omdrop_contacts": "Teagmhálacha amháin",
   "plugins.airdrop.folder": "Sábháil comhaid fhaighte i",
   "plugins.airdrop.computer": "An ríomhaire seo",
   "plugins.airdrop.shown_as": "Taispeánta mar",

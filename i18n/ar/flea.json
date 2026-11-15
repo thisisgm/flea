@@ -1898,6 +1898,8 @@
   "plugins.airdrop.receiving": "الاستقبال",
   "plugins.airdrop.receiving.off": "معطّل",
   "plugins.airdrop.receiving.everyone": "الجميع لمدة 10 دقائق",
+  "plugins.airdrop.receiving.omdrop_everyone": "الجميع",
+  "plugins.airdrop.receiving.omdrop_contacts": "جهات الاتصال فقط",
   "plugins.airdrop.folder": "حفظ الملفات المستلمة في",
   "plugins.airdrop.computer": "هذا الحاسوب",
   "plugins.airdrop.shown_as": "يظهر باسم",

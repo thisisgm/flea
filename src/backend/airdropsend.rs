@@ -1,7 +1,8 @@
-// One AirDrop send: `owly send` (https://github.com/t4t5/owly, MIT) as a job with owly's byte progress, cancel and the device's answer.
+// One AirDrop send: `owly send` (https://github.com/t4t5/owly, MIT), or `omdrop send` when owly is absent, as a job with cancel and the device's answer.
 use crate::backend::menu_actions::Selected;
 use crate::backend::opsreq::OpMsg;
 use flea::ui_logic_send_share::airdrop::{self, Verdict};
+use flea::ui_logic_send_share::omdrop::{self, Stack, Tool};
 use std::io::Read;
 use std::path::PathBuf;
 use std::process::Stdio;
@@ -10,12 +11,23 @@ use std::sync::mpsc::Sender;
 use std::time::Duration;
 
 const POLL: Duration = Duration::from_millis(100);
+// How long a send's stderr is read on after it ends, for the last of its sentences.
+const TERM_GRACE: Duration = Duration::from_secs(3);
+// A cancelled `omdrop send` waits for the `omdrop on` it began to undo its start, whose radio teardown alone may take 75 s;
+// twice that, then its session is killed.
+const CANCEL_GRACE: Duration = Duration::from_secs(150);
 // A shell reports a run killed by signal N as exit 128 + N.
 const SIGNAL_EXIT_BASE: i32 = 128;
 const READ_CHUNK: usize = 4096;
+// One drain reads at most this much, so a child that never stops writing cannot hold off cancel or the deadlines.
+const MAX_READ_TURN: usize = 64 * 1024;
+// The reason is the last sentence, so only this much of the end of a send's stderr is kept.
+const KEPT_MAX: usize = 16 * 1024;
+// A line longer than this keeps only its start: a writer that never ends its line cannot grow it.
+const LINE_MAX: usize = 4 * 1024;
 
 pub(crate) struct Send {
-    // The service ID `owly browse` printed, which `owly send --to` takes.
+    // The service ID `owly browse` printed, or the address `omdrop peers` did; either's `send --to` takes it.
     pub peer: String,
     pub paths: Vec<String>,
     pub request: usize,
@@ -33,70 +45,138 @@ pub(crate) fn sent_line(request: usize, code: &str, reason: &str) -> String {
     )
 }
 
-fn owly() -> Option<String> {
-    airdrop::find(&std::env::var_os("PATH").unwrap_or_default())
+fn tool() -> Option<Tool> {
+    omdrop::find(&std::env::var_os("PATH").unwrap_or_default())
 }
 
-// owly redraws "\r<sent> / <total> bytes" on stderr; every step becomes the job's byte count, the rest is kept for the reason.
-fn read_progress(
-    mut stderr: impl Read,
+// One send's stderr, read without blocking: owly's "\r<sent> / <total> bytes" steps become the job's byte count,
+// every other line is kept for the reason.
+struct Said {
+    pipe: Option<std::process::ChildStderr>,
+    step: Vec<u8>,
+    kept: String,
     id: usize,
     total: usize,
     file: String,
     tx: Sender<OpMsg>,
-) -> String {
-    let (mut kept, mut step, mut buf) = (String::new(), Vec::new(), [0u8; READ_CHUNK]);
-    while let Ok(n) = stderr.read(&mut buf) {
-        if n == 0 {
-            break;
+}
+
+impl Said {
+    fn new(pipe: Option<std::process::ChildStderr>, id: usize, total: usize, file: String, tx: Sender<OpMsg>) -> Self {
+        // A pipe left blocking would hold the job for as long as any descendant keeps stderr open.
+        let pipe = pipe.filter(|p| crate::backend::nearbytool::nonblocking(p).is_ok());
+        Self { pipe, step: Vec::new(), kept: String::new(), id, total, file, tx }
+    }
+
+    // Reads what the pipe holds now, up to one turn's worth; true once it has closed or failed.
+    fn drain(&mut self) -> bool {
+        let mut buf = [0u8; READ_CHUNK];
+        let mut read = 0;
+        while read < MAX_READ_TURN {
+            let Some(pipe) = self.pipe.as_mut() else { return true };
+            match pipe.read(&mut buf) {
+                Ok(0) => return true,
+                Ok(n) => {
+                    self.feed(&buf[..n]);
+                    read += n;
+                }
+                Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => return false,
+                Err(e) if e.kind() == std::io::ErrorKind::Interrupted => {}
+                Err(_) => return true,
+            }
         }
-        for &byte in &buf[..n] {
+        false
+    }
+
+    fn feed(&mut self, bytes: &[u8]) {
+        for &byte in bytes {
             if byte != b'\r' && byte != b'\n' {
-                step.push(byte);
+                if self.step.len() < LINE_MAX {
+                    self.step.push(byte);
+                }
                 continue;
             }
-            let text = String::from_utf8_lossy(&step).into_owned();
-            step.clear();
+            let text = String::from_utf8_lossy(&self.step).into_owned();
+            self.step.clear();
             match airdrop::progress(&text) {
                 Some((bytes, total_bytes)) => {
-                    let _ = tx.send(OpMsg::JobEntries {
-                        id,
+                    let _ = self.tx.send(OpMsg::JobEntries {
+                        id: self.id,
                         done: 0,
-                        total,
-                        file: file.clone(),
+                        total: self.total,
+                        file: self.file.clone(),
                         bytes,
                         total_bytes,
                         item_bytes: bytes,
                     });
                 }
                 None if !text.trim().is_empty() => {
-                    kept.push_str(&text);
-                    kept.push('\n');
+                    self.kept.push_str(&text);
+                    self.kept.push('\n');
+                    self.keep_tail();
                 }
                 None => {}
             }
         }
     }
-    kept.push_str(&String::from_utf8_lossy(&step));
-    kept
+
+    // Drops whole lines from the front until the kept text fits KEPT_MAX.
+    fn keep_tail(&mut self) {
+        let Some(over) = self.kept.len().checked_sub(KEPT_MAX) else { return };
+        // A newline is one byte and never inside a character, so cutting after one keeps the text valid.
+        let newline = self.kept.as_bytes()[over..].iter().position(|&b| b == b'\n');
+        let cut = newline.map_or(self.kept.len(), |at| over + at + 1);
+        self.kept.drain(..cut);
+    }
+
+    // Reads until the pipe closes or `wait` passes, then closes it: a descendant holding it open delays the job
+    // that long at most, and every line read before then is kept.
+    fn finish(mut self, wait: Duration) -> String {
+        let deadline = std::time::Instant::now() + wait;
+        while !self.drain() && std::time::Instant::now() < deadline {
+            std::thread::sleep(POLL);
+        }
+        self.kept.push_str(&String::from_utf8_lossy(&self.step));
+        self.kept
+    }
 }
 
-// The verdict's code and reason; a cancel kills owly and ends as cancelled whatever it printed.
+// omdrop must hear SIGTERM to stop its sender's process group, which SIGKILL to the script would leave running; whatever
+// of its session is left once it exits or the grace ends, a sender included, is then killed.
+fn stop(child: &mut std::process::Child, stack: Stack, said: &mut Said) {
+    if stack == Stack::Omdrop {
+        return super::airdropsession::cancel(child, CANCEL_GRACE, || {
+            said.drain();
+        });
+    }
+    let _ = child.kill();
+    let _ = child.wait();
+}
+
+// The verdict's code and reason; a cancel stops the send and ends as cancelled whatever it printed.
 pub(crate) fn run(
-    program: Option<String>,
+    tool: Option<Tool>,
     id: usize,
     send: &Send,
     cancel: &AtomicBool,
     tx: &Sender<OpMsg>,
 ) -> (String, String) {
-    let Some(program) = program else {
+    let Some(Tool { stack, path: program }) = tool else {
         return ("missing".into(), String::new());
     };
-    let argv = airdrop::send_argv(&program, &send.peer, &send.paths);
+    let argv = match stack {
+        Stack::Owly => airdrop::send_argv(&program, &send.peer, &send.paths),
+        Stack::Omdrop => omdrop::send_argv(&program, &send.peer, &send.paths),
+    };
+    // Omdrop's verdict is on stderr and its stdout can outgrow a pipe nobody reads until exit, so it goes nowhere.
+    let stdout = match stack {
+        Stack::Owly => Stdio::piped(),
+        Stack::Omdrop => Stdio::null(),
+    };
     let spawned = crate::backend::locale::command(&*flea::bytename::text_name(&argv[0]))
         .args(flea::bytename::args(&argv[1..]))
         .stdin(Stdio::null())
-        .stdout(Stdio::piped())
+        .stdout(stdout)
         .stderr(Stdio::piped())
         .spawn();
     let mut child = match spawned {
@@ -108,27 +188,22 @@ pub(crate) fn run(
         .first()
         .map(|p| p.rsplit('/').next().unwrap_or(p).to_string())
         .unwrap_or_default();
-    let (stderr, total, progress_tx) = (child.stderr.take(), send.paths.len(), tx.clone());
-    let reader = std::thread::spawn(move || {
-        stderr
-            .map(|s| read_progress(s, id, total, file, progress_tx))
-            .unwrap_or_default()
-    });
+    let mut said = Said::new(child.stderr.take(), id, send.paths.len(), file, tx.clone());
     let mut stdout = child.stdout.take();
     let status = loop {
         if cancel.load(Ordering::Relaxed) {
-            let _ = child.kill();
-            let _ = child.wait();
-            let _ = reader.join();
+            stop(&mut child, stack, &mut said);
+            said.finish(TERM_GRACE);
             return ("cancelled".into(), String::new());
         }
+        said.drain();
         match child.try_wait() {
             Ok(Some(status)) => break status,
             Ok(None) => std::thread::sleep(POLL),
             Err(error) => {
-                let _ = child.kill();
-                let _ = child.wait();
-                let _ = reader.join();
+                // Not known to be reaped, so the session it leads is still its own to sweep.
+                stop(&mut child, stack, &mut said);
+                said.finish(TERM_GRACE);
                 return ("failed".into(), crate::error::io_message(&error));
             }
         }
@@ -137,13 +212,17 @@ pub(crate) fn run(
     if let Some(stdout) = stdout.as_mut() {
         let _ = stdout.read_to_string(&mut out);
     }
-    let err = reader.join().unwrap_or_default();
+    let err = said.finish(TERM_GRACE);
     use std::os::unix::process::ExitStatusExt;
     let code = status
         .code()
         .or_else(|| status.signal().map(|s| SIGNAL_EXIT_BASE + s))
         .unwrap_or(-1);
-    match airdrop::verdict(&out, &err, code) {
+    let verdict = match stack {
+        Stack::Owly => airdrop::verdict(&out, &err, code),
+        Stack::Omdrop => omdrop::verdict(&err, code),
+    };
+    match verdict {
         Verdict::Delivered => ("delivered".into(), String::new()),
         Verdict::Declined => ("declined".into(), String::new()),
         Verdict::Failed(reason) => ("failed".into(), reason),
@@ -157,7 +236,7 @@ fn job_reason(code: &str, reason: &str) -> String {
         // The backend holds only the device's service ID; the window's status line names the device.
         "declined" => "The device declined the files.".into(),
         "cancelled" => "Send cancelled.".into(),
-        "missing" => "AirDrop needs the owly package.".into(),
+        "missing" => "AirDrop needs the owly or Omdrop package.".into(),
         _ => "AirDrop could not finish the transfer.".into(),
     }
 }
@@ -171,7 +250,7 @@ pub(crate) fn background(
     let sources: Vec<PathBuf> = send.paths.iter().map(flea::bytename::exact).collect();
     let (code, reason) =
         match crate::backend::menu_actions::validate_sources(Some(&send.items), &sources) {
-            Ok(()) => run(owly(), id, &send, &cancel, &tx),
+            Ok(()) => run(tool(), id, &send, &cancel, &tx),
             Err(error) => ("stale".into(), error),
         };
     let ok = code == "delivered";

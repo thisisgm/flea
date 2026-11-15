@@ -1614,6 +1614,8 @@
   "plugins.airdrop.receiving": "Pagtanggap",
   "plugins.airdrop.receiving.off": "Naka-off",
   "plugins.airdrop.receiving.everyone": "Lahat sa loob ng 10 minuto",
+  "plugins.airdrop.receiving.omdrop_everyone": "Lahat",
+  "plugins.airdrop.receiving.omdrop_contacts": "Mga contact lang",
   "plugins.airdrop.folder": "I-save ang mga natanggap na file sa",
   "plugins.airdrop.computer": "Ang computer na ito",
   "plugins.airdrop.shown_as": "Ipinapakita bilang",

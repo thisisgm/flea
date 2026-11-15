@@ -1654,6 +1654,8 @@
   "plugins.airdrop.receiving": "Qabul qilish",
   "plugins.airdrop.receiving.off": "Oʻchirilgan",
   "plugins.airdrop.receiving.everyone": "10 daqiqaga hamma uchun",
+  "plugins.airdrop.receiving.omdrop_everyone": "Hamma",
+  "plugins.airdrop.receiving.omdrop_contacts": "Faqat kontaktlar",
   "plugins.airdrop.folder": "Qabul qilingan fayllarni saqlash joyi",
   "plugins.airdrop.computer": "Bu kompyuter",
   "plugins.airdrop.shown_as": "Koʻrsatiladigan nom",
