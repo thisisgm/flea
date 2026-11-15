@@ -1,0 +1,77 @@
+#!/bin/bash
+# Reproduces video preview flip-backs: the screen showing a frame, then an older one, then a newer one.
+#   tools/flea-video-flipback CLIP [flea|mpv]
+# flea (default) plays CLIP in the media kit's Quick Look card; mpv plays it with --vo=gpu-next on Vulkan
+# as the control. Each run records the focused monitor with gpu-screen-recorder at 60 fps CFR and counts
+# A-B-A frames inside the window: a refresh that differs from the one before it but matches the one
+# before that. The kit needs a build with it compiled in:
+#   cargo build --release -p flea-gui --features bench-seam
+# Needs Hyprland, gpu-screen-recorder, ffmpeg, jq, socat (mpv mode), and numpy through python3 or uv.
+# Writes only into a new directory under $XDG_RUNTIME_DIR, which it prints and leaves in place.
+set -u
+clip=${1:?usage: tools/flea-video-flipback CLIP [flea|mpv]}
+mode=${2:-flea}
+root=$(cd "$(dirname "$0")/.." && pwd) || exit 1
+bin=${BIN:-$root/target/release/flea-gui}
+[ -f "$clip" ] || { echo "no clip at $clip" >&2; exit 1; }
+case $mode in flea | mpv) ;; *) echo "mode is flea or mpv" >&2; exit 1 ;; esac
+# A shell started outside the session has no signature; the newest instance is the live one.
+[ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ] ||
+  export HYPRLAND_INSTANCE_SIGNATURE=$(ls -t "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/hypr/" | head -1)
+out=$(mktemp -d "${XDG_RUNTIME_DIR:-/tmp}/flea-flipback.XXXXXX") || exit 1
+# The kit refuses a FIFO or records path outside a directory holding this marker.
+touch "$out/.flea-pv3-kit-root"
+
+window_of() {
+  hyprctl clients -j | jq -r --argjson p "$1" '.[] | select(.pid==$p) | "\(.at[0]) \(.at[1]) \(.size[0]) \(.size[1])"' | head -1
+}
+
+monitor=$(hyprctl monitors -j | jq -r '.[] | select(.focused) | .name')
+scale=$(hyprctl monitors -j | jq -r '.[] | select(.focused) | .scale')
+if [ "$mode" = flea ]; then
+  mkfifo "$out/fifo"
+  "$bin" --media-kit window --fifo "$out/fifo" --records "$out/kit.jsonl" >"$out/app.log" 2>&1 &
+  app=$!
+  exec 3>"$out/fifo"
+else
+  mpv --no-config --really-quiet --vo=gpu-next --gpu-api=vulkan --pause \
+    --input-ipc-server="$out/mpv.sock" "$clip" >"$out/app.log" 2>&1 &
+  app=$!
+fi
+sleep 2
+read -r x y w h < <(window_of "$app")
+[ -n "${h:-}" ] || { echo "no window for pid $app; see $out/app.log" >&2; kill "$app"; exit 1; }
+gpu-screen-recorder -w "$monitor" -f 60 -fm cfr -o "$out/capture.mp4" >"$out/recorder.log" 2>&1 &
+recorder=$!
+sleep 1
+if [ "$mode" = flea ]; then
+  echo "open $clip" >&3
+else
+  echo '{"command":["set_property","pause",false]}' | socat - "$out/mpv.sock" >/dev/null
+fi
+sleep "${SECONDS_RECORDED:-8}"
+kill -INT "$recorder"; wait "$recorder"
+if [ "$mode" = flea ]; then echo quit >&3; exec 3>&-; fi
+sleep 0.5; kill "$app" 2>/dev/null
+[ -s "$out/capture.mp4" ] || { echo "the recorder wrote nothing; see $out/recorder.log" >&2; exit 1; }
+
+# The window's inside in physical pixels, an inset off each edge so borders and gaps stay out.
+crop=$(awk -v x="$x" -v y="$y" -v w="$w" -v h="$h" -v s="$scale" \
+  'BEGIN { i = 12; printf "%d:%d:%d:%d", w*s - 2*i, h*s - 2*i, x*s + i, y*s + i }')
+ffmpeg -v error -y -i "$out/capture.mp4" -vf "crop=$crop,scale=160:90,format=gray" -f rawvideo "$out/frames.raw" ||
+  exit 1
+
+python=(python3 -I)
+python3 -c 'import numpy' 2>/dev/null || python=(uv run -q --with numpy python -I)
+"${python[@]}" - "$out/frames.raw" <<'EOF'
+import sys
+import numpy as np
+frames = np.fromfile(sys.argv[1], np.uint8).reshape(-1, 90, 160).astype(np.float32)
+diff = lambda a, b: float(np.abs(frames[a] - frames[b]).mean())
+changes = sum(diff(i, i - 1) > 1.0 for i in range(1, len(frames)))
+# A-B-A: a real change (mean step over 2 grey levels) whose result is the frame two refreshes back.
+flips = [i for i in range(2, len(frames)) if diff(i, i - 1) > 2.0 and diff(i, i - 2) < 0.3]
+print(f"refreshes {len(frames)}  changes {changes}  flip-backs {len(flips)}")
+assert diff(0, 0) == 0.0  # self-check: identical frames measure zero
+EOF
+echo "capture and logs: $out"
