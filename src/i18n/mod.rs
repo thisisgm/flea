@@ -93,7 +93,7 @@ pub struct I18n {
     watched: Vec<(PathBuf, Option<Stamp>)>,
     language_text: Option<String>,
     paragraphs: bool,
-    // LC_ALL, LC_MESSAGES and LANG as this process started with them; only read without Omarchy's roster.
+    // LC_ALL, LC_MESSAGES, LC_NUMERIC, LC_TIME and LANG as this process started with them; only read without Omarchy's roster.
     session: Vec<(String, String)>,
 }
 

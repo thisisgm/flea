@@ -92,14 +92,17 @@ fn session_locale(value: &str) -> Option<(String, Option<String>)> {
 }
 
 /// The roster entry the session's own locale picks, LC_ALL over LC_MESSAGES over LANG as gettext
-/// reads them: the exact region, then the bare language, then any region of that language. The
-/// entry then formats numbers and dates the session's way, since that locale is the user's choice.
-pub(super) const SESSION_KEYS: [&str; 3] = ["LC_ALL", "LC_MESSAGES", "LANG"];
+/// reads them: the exact region, then the bare language, then any region of that language. Numbers
+/// and dates then follow the session's LC_NUMERIC and LC_TIME, since those are the user's choice.
+pub(super) const SESSION_KEYS: [&str; 5] = ["LC_ALL", "LC_MESSAGES", "LC_NUMERIC", "LC_TIME", "LANG"];
+
+// POSIX reads one category from LC_ALL, then the category's own variable, then LANG; empty is unset.
+fn category(get: &impl Fn(&str) -> Option<String>, key: &str) -> Option<String> {
+    ["LC_ALL", key, "LANG"].iter().find_map(|key| get(key).filter(|value| !value.is_empty()))
+}
 
 pub(super) fn pick_from_session(roster: &mut [Locale], get: impl Fn(&str) -> Option<String>) -> Option<String> {
-    let value = SESSION_KEYS
-        .iter()
-        .find_map(|key| get(key).filter(|value| !value.is_empty()))?;
+    let value = category(&get, "LC_MESSAGES")?;
     let (language, region) = session_locale(&value)?;
     let exact = region.as_ref().map(|region| format!("{language}-{region}"));
     let regional = format!("{language}-");
@@ -108,13 +111,15 @@ pub(super) fn pick_from_session(roster: &mut [Locale], get: impl Fn(&str) -> Opt
         .position(|l| Some(&l.code) == exact.as_ref())
         .or_else(|| roster.iter().position(|l| l.code == language))
         .or_else(|| roster.iter().position(|l| l.code.starts_with(&regional)))?;
+    // With only LC_MESSAGES set, the language's own conventions are a kinder default than C's.
+    let numeric = category(&get, "LC_NUMERIC").unwrap_or_else(|| value.clone());
     let locale = &mut roster[at];
-    locale.glibc_locale = value.clone();
+    locale.glibc_locale = category(&get, "LC_TIME").unwrap_or(value);
     locale.format_locale = exact.unwrap_or_else(|| language.clone());
-    if let Some(mark) = super::format::decimal_mark(&value) {
+    if let Some(mark) = super::format::decimal_mark(&numeric) {
         locale.decimal = mark;
     }
-    super::format::set_grouping(locale);
+    super::format::set_grouping_from(locale, &numeric);
     Some(locale.code.clone())
 }
 
@@ -175,6 +180,29 @@ mod session_tests {
         assert_eq!(list[1].format_locale, "es-ES");
         assert_eq!(pick_from_session(&mut list, env(&[("LANG", "pt_BR.UTF-8")])).as_deref(), Some("pt-BR"));
         assert_eq!(pick_from_session(&mut list, env(&[("LANG", "pt_PT.UTF-8")])).as_deref(), Some("pt"));
+    }
+
+    #[test]
+    fn numbers_and_dates_follow_their_own_category_over_lang() {
+        let pairs = [("LC_NUMERIC", "en_US.UTF-8"), ("LC_TIME", ""), ("LANG", "de_DE.UTF-8")];
+        assert_eq!(super::category(&env(&pairs), "LC_NUMERIC").as_deref(), Some("en_US.UTF-8"));
+        assert_eq!(super::category(&env(&pairs), "LC_TIME").as_deref(), Some("de_DE.UTF-8"));
+        let all = [("LC_ALL", "fr_FR.UTF-8"), ("LC_NUMERIC", "en_US.UTF-8"), ("LANG", "de_DE.UTF-8")];
+        assert_eq!(super::category(&env(&all), "LC_NUMERIC").as_deref(), Some("fr_FR.UTF-8"));
+        assert_eq!(super::category(&env(&[("LC_MESSAGES", "de_DE.UTF-8")]), "LC_NUMERIC"), None);
+        // C is generated on every machine, so the mixed session is checked end to end with it.
+        let mut list = roster(&["en", "de"]);
+        list[1].decimal = ",".into();
+        let mixed = [("LANG", "de_DE.UTF-8"), ("LC_NUMERIC", "C"), ("LC_TIME", "C")];
+        assert_eq!(pick_from_session(&mut list, env(&mixed)).as_deref(), Some("de"));
+        assert_eq!((list[1].decimal.as_str(), list[1].separator.as_str()), (".", ""));
+        assert_eq!(list[1].format_size(22_100), "22.1 kB");
+        assert_eq!(list[1].glibc_locale, "C");
+        assert_eq!(list[1].format_locale, "de-DE");
+        // Without a numeric variable of its own, the message language's locale formats numbers too.
+        let mut list = roster(&["en", "de"]);
+        assert_eq!(pick_from_session(&mut list, env(&[("LC_MESSAGES", "de_DE.UTF-8")])).as_deref(), Some("de"));
+        assert_eq!(list[1].glibc_locale, "de_DE.UTF-8");
     }
 
     #[test]

@@ -50,7 +50,13 @@ pub(super) fn decimal_mark(glibc_locale: &str) -> Option<String> {
 }
 
 pub(super) fn set_grouping(locale: &mut Locale) {
-    if let Some(handle) = Handle::new(&locale.glibc_locale, LC_NUMERIC_MASK) {
+    let numeric = locale.glibc_locale.clone();
+    set_grouping_from(locale, &numeric);
+}
+
+// A session can name one locale for numbers and another for dates, so the numeric one is given.
+pub(super) fn set_grouping_from(locale: &mut Locale, numeric: &str) {
+    if let Some(handle) = Handle::new(numeric, LC_NUMERIC_MASK) {
         unsafe {
             locale.separator = CStr::from_ptr(nl_langinfo_l(NL_THOUSANDS_SEP, handle.0)).to_string_lossy().into_owned();
             locale.grouping = CStr::from_ptr(nl_langinfo_l(NL_GROUPING, handle.0)).to_bytes().to_vec();
