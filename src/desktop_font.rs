@@ -35,7 +35,7 @@ pub fn base_px(settings_ini: &str) -> Option<u32> {
         } else if section == "Settings" {
             if let Some(value) = line.strip_prefix("gtk-font-name").and_then(|rest| rest.trim_start().strip_prefix('=')) {
                 // GTK keeps the last value of a repeated key.
-                found = size_px(value.trim().trim_matches('"')).or(found);
+                found = size_px(value.trim().trim_matches('"'));
             }
         }
     }
@@ -70,6 +70,15 @@ mod tests {
         assert_eq!(base_px("[Other]\ngtk-font-name=Noto Sans 10\n"), None);
         assert_eq!(base_px(""), None);
         assert_eq!(shell_text(""), "");
+    }
+
+    #[test]
+    fn the_last_of_a_repeated_key_decides_even_without_a_size() {
+        let ini = |fonts: [&str; 2]| format!("[Settings]\ngtk-font-name={}\ngtk-font-name={}\n", fonts[0], fonts[1]);
+        assert_eq!(base_px(&ini(["Noto Sans 12", "Noto Sans 10"])), Some(13));
+        assert_eq!(base_px(&ini(["Noto Sans 12", "Noto Sans"])), None);
+        assert_eq!(base_px(&ini(["Noto Sans 12", "Noto Sans 400"])), None);
+        assert_eq!(base_px(&ini(["Noto Sans", "Noto Sans 12"])), Some(16));
         assert_eq!(shell_text("[Settings]\ngtk-font-name = Noto Sans 9"), "[font]\nbase-size=12\n");
     }
 }
