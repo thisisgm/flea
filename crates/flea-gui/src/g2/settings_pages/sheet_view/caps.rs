@@ -5,11 +5,31 @@ use crate::g2::settings_pages::seams::Ink;
 use crate::g2::settings_pages::sheet::Hover;
 use crate::leaf::Painted;
 use crate::locale_geometry::{unmirrored, Unmirrored};
-use flea::keys::physical::Part;
+use flea::keys::physical::{Cap, Part};
 use flea::ui_logic_settings_pages::sheet_keyboard::{Face, Look};
 use gpui::{div, prelude::*, px, Div, Hsla, SharedString, Window};
 
-const RADIUS: f32 = 3.;
+/// A cap rounds at half the compositor's corner, as Flea's other small controls do: square where windows are square.
+fn radius(corner: f32) -> f32 {
+    corner / 2.
+}
+
+/// A row's top: the function row at the band's top, the main block below the function row's gap.
+fn row_top(row: u8, unit: f32) -> f32 {
+    if row == 0 {
+        0.
+    } else {
+        f32::from(row) * unit + ROW_GAP
+    }
+}
+
+/// A cap's left edge and width, snapped edge by edge: caps that end on the same unit share one pixel edge at any
+/// unit, so ISO Enter's two pieces keep one straight right side.
+fn span(x: f32, w: f32, unit: f32) -> (f32, f32) {
+    let left = (x * unit).round();
+    let right = ((x + w) * unit).round() - CAP_GAP;
+    (left, right - left)
+}
 
 struct Inks {
     edge: Hsla,
@@ -59,19 +79,17 @@ fn legend_sizes(legend: &str, width: f32, unit: f32, scale: f32) -> (f32, f32) {
 }
 
 /// One cap as its look draws it: the edge and fill of its look, its legend, its shifted legend in the corner.
-fn cap(face: &Face, look: Look, unit: f32, scale: f32, ink: &Ink) -> Div {
+fn cap(face: &Face, look: Look, unit: f32, scale: f32, corner: f32, ink: &Ink) -> Div {
     let cap = &face.cap;
+    let round = px(radius(corner));
     let Inks {
         edge,
         fill,
         text,
         width,
     } = inks(look, ink);
-    let top = if cap.row == 0 {
-        0.
-    } else {
-        f32::from(cap.row) * unit + ROW_GAP
-    };
+    let top = row_top(cap.row, unit);
+    let (left, wide) = span(cap.x, cap.w, unit);
     let pad = unit * 0.14;
     let letter = unit * 0.30;
     let (size, shifted) = legend_sizes(&face.legend, cap.w, unit, scale);
@@ -79,9 +97,9 @@ fn cap(face: &Face, look: Look, unit: f32, scale: f32, ink: &Ink) -> Div {
     let drop = (letter - size).max(0.) * 0.95;
     let mut key = div()
         .absolute()
-        .left(px(cap.x * unit))
+        .left(px(left))
         .top(px(top))
-        .w(px(cap.w * unit - CAP_GAP))
+        .w(px(wide))
         .h(px(unit - CAP_GAP))
         .px(px(pad))
         .pt(px(unit * 0.08 + drop))
@@ -98,19 +116,16 @@ fn cap(face: &Face, look: Look, unit: f32, scale: f32, ink: &Ink) -> Div {
             move || format!("sheet-cap-{id}")
         });
     key = match cap.part {
-        Part::Whole => key.border(px(width)).rounded(px(RADIUS)),
-        // ISO Enter's top runs through the row gap to the foot's row, where the foot carries on below it.
-        Part::EnterTop => key
-            .h(px(unit))
-            .border_t(px(width))
-            .border_l(px(width))
-            .border_r(px(width))
-            .rounded_t(px(RADIUS)),
+        Part::Whole => key.border(px(width)).rounded(round),
+        // ISO Enter's top is a whole cap of its row, so its bottom edge is the step, level with the row's other caps.
+        Part::EnterTop => key.border(px(width)).rounded_t(round),
+        // The foot keeps its row's top and height, so its bottom snaps onto the row's line as every cap's does; `join`
+        // carries it up to the step.
         Part::EnterFoot => key
             .border_b(px(width))
             .border_l(px(width))
             .border_r(px(width))
-            .rounded_b(px(RADIUS)),
+            .rounded_b(round),
     };
     if !face.shifted.is_empty() {
         key = key.child(
@@ -125,17 +140,42 @@ fn cap(face: &Face, look: Look, unit: f32, scale: f32, ink: &Ink) -> Div {
     key
 }
 
-/// The step on ISO Enter's left side, where the wide top meets the narrower foot.
-fn step(top: &Face, foot: &Face, look: Look, unit: f32, ink: &Ink) -> Div {
-    let Inks { edge, width, .. } = inks(look, ink);
-    let y = f32::from(foot.cap.row) * unit + ROW_GAP;
-    div()
-        .absolute()
-        .left(px(top.cap.x * unit))
-        .top(px(y))
-        .w(px((foot.cap.x - top.cap.x) * unit + width))
-        .h(px(width))
-        .bg(edge)
+/// The rounding of ISO Enter's step, its outer corner on the top's bottom left: the caps' own, as far as the step
+/// reaches before the foot.
+fn step_radius(top: &Face, foot: &Face, unit: f32, corner: f32) -> f32 {
+    let (top_left, _) = span(top.cap.x, top.cap.w, unit);
+    let (foot_left, _) = span(foot.cap.x, foot.cap.w, unit);
+    radius(corner).min(foot_left - top_left)
+}
+
+/// A box in the band: left, top, width, height.
+type Area = (f32, f32, f32, f32);
+
+/// Where ISO Enter's foot meets its top: a neck carrying the foot's sides up through the row gap from the step line,
+/// and a patch of fill over the top's bottom edge between those sides. Each reaches a pixel above and below its ends
+/// into the same ink, so a piece snapped a pixel off leaves no seam.
+fn join_areas(foot: &Cap, unit: f32, width: f32) -> (Area, Area) {
+    let (left, wide) = span(foot.x, foot.w, unit);
+    let step = row_top(foot.row - 1, unit) + unit - CAP_GAP;
+    let neck = (left, step - 1., wide, row_top(foot.row, unit) - step + 2.);
+    let patch = (
+        left + width,
+        step - width - 1.,
+        wide - 2. * width,
+        width + 2.,
+    );
+    (neck, patch)
+}
+
+/// The join drawn in the foot's look, over both pieces.
+fn join(foot: &Face, look: Look, unit: f32, ink: &Ink) -> [Div; 2] {
+    let Inks {
+        edge, fill, width, ..
+    } = inks(look, ink);
+    let placed = |(x, y, w, h): Area| div().absolute().left(px(x)).top(px(y)).w(px(w)).h(px(h));
+    let (neck, patch) = join_areas(&foot.cap, unit, width);
+    let sides = placed(neck).border_color(edge).border_l(px(width));
+    [sides.border_r(px(width)).bg(fill), placed(patch).bg(fill)]
 }
 
 impl SheetView {
@@ -179,13 +219,21 @@ impl SheetView {
             .w(px(keyboard_width(unit)))
             .h(px(keyboard_height(unit)))
             .debug_selector(|| "sheet-keyboard".into());
+        let foot = faces.iter().find(|face| face.cap.part == Part::EnterFoot);
         for (face, look) in faces.iter().zip(looks.iter().copied()) {
-            band = band.child(cap(face, look, unit, scale, ink));
-            if face.cap.part == Part::EnterFoot {
-                if let Some(top) = faces.iter().find(|top| top.cap.part == Part::EnterTop) {
-                    band = band.child(step(top, face, look, unit, ink));
-                }
+            let mut drawn = cap(face, look, unit, scale, self.corner, ink);
+            if let (Part::EnterTop, Some(foot)) = (face.cap.part, foot) {
+                drawn = drawn.rounded_bl(px(step_radius(face, foot, unit, self.corner)));
             }
+            band = band.child(drawn);
+        }
+        // Drawn after every cap, so it lies over both of Enter's pieces whatever their order.
+        if let Some((foot, look)) = faces
+            .iter()
+            .zip(looks.iter().copied())
+            .find(|(face, _)| face.cap.part == Part::EnterFoot)
+        {
+            band = band.children(join(foot, look, unit, ink));
         }
         // A keyboard is a thing on the desk: a right-to-left window draws it as it lies, Esc on the left.
         Some(unmirrored(band))

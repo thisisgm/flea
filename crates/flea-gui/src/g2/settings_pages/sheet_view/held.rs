@@ -28,7 +28,7 @@ impl SheetView {
         let lit = self.sheet.hover.as_ref() == Some(&hover);
         line.mx(px(-6.))
             .px(px(6.))
-            .rounded(px(4.))
+            .rounded(px(self.corner / 2.))
             .when(lit, |line| line.bg(ink.hover))
             .on_hover(cx.listener(move |view, over: &bool, _, cx| {
                 if *over {
