@@ -85,6 +85,17 @@ impl Host for SheetView {
         }
         cx.notify();
     }
+    // Over a keyboard keys look themselves up until Ctrl+F opens the search, so neither a dead key nor an input method
+    // composes into the field before then.
+    fn accepts_input(&self, window: &Window) -> bool {
+        let sheet = &self.sheet;
+        let resting = sheet.keyboard.is_some() && !sheet.typing && sheet.query.is_empty();
+        let editor = &self.editor;
+        !resting
+            && !editor.retired
+            && self.focus.is_focused(window)
+            && editor.drawn.borrow().line.accepts(&editor.entry)
+    }
 }
 input_handler!(SheetView);
 
@@ -124,6 +135,10 @@ impl SheetView {
     ) {
         self.sync_editor();
         if self.text_menu_key(event, window, cx) {
+            return;
+        }
+        if self.chord_down(event, window, cx) {
+            cx.stop_propagation();
             return;
         }
         match self.editor.key(event, cx) {

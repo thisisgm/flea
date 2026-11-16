@@ -1,19 +1,20 @@
 //! Draws the keyboard sheet to the keymap boards: two columns of groups, or the query field over ranked results.
 use super::geometry::{CLAMP, GAP};
 use super::input::{Editor, Field, Host};
-use super::marks::{self, spaced, washed};
+use super::marks::{self, washed};
 use super::probe::Probe;
 use super::seams::{Ink, Request};
-use super::sheet::Sheet;
+use super::sheet::{Hover, Sheet};
 use super::view::SettingsView;
 use crate::g2::context_menus::keycaps;
 use crate::list::Typeface;
-use flea::ui_logic_settings_pages::{caps, sheet::match_of};
+use flea::ui_logic_settings_pages::sheet::match_of;
 use gpui::{
     div, linear_color_stop, linear_gradient, prelude::*, px, AnyElement, Context, Div,
     EventEmitter, FocusHandle, FontWeight, Render, SharedString, Stateful, Window,
 };
 
+mod keyboard;
 mod scroll;
 use scroll::{Measured, COLUMNS, LAST_ROWS};
 #[path = "sheet_geometry.rs"]
@@ -53,6 +54,8 @@ pub struct SheetView {
     key_col: f32,
     // A keyboard group switch while the sheet is open relabels its keys at once.
     _layout: gpui::Subscription,
+    // Losing the window forgets held keys, whose key-up lands elsewhere.
+    pub(super) blur: Option<gpui::Subscription>,
 }
 
 impl EventEmitter<Request> for SheetView {}
@@ -62,6 +65,7 @@ impl SheetView {
         sheet.set_keycaps(keycaps::watch(cx));
         Self {
             _layout: keycaps::follow(cx, |view: &mut Self, caps| view.sheet.set_keycaps(caps)),
+            blur: None,
             sheet,
             editor: Editor::default(),
             focus: cx.focus_handle(),
@@ -79,6 +83,7 @@ impl SheetView {
             .on_children_prepainted(self.probe.children(format!("keys:{keys}")))
             .w(px(self.key_col))
             .flex_none()
+            .overflow_hidden()
             .mr(px(5.))
             .flex()
             .justify_end()
@@ -91,32 +96,19 @@ impl SheetView {
             if index > 0 {
                 column = column.child(div().text_color(ink.muted).child(" / "));
             }
-            column = column.child(SharedString::from(key.to_owned()));
+            column = column.child(self.key_part(key, ink));
         }
         column
     }
 
     /// The groups split into two columns at the first group that would pass half the rows, each faded at its own foot.
     fn columns(&self, measured: &Measured, ink: &Ink, cx: &mut Context<Self>) -> Stateful<Div> {
-        let catalog = &self.sheet.catalog;
         let groups = self.sheet.groups();
         let last = [0, 1].map(|side| groups.iter().rposition(|(on, ..)| *on == side));
         let mut columns: [Vec<AnyElement>; 2] = [Vec::new(), Vec::new()];
         for (index, (side, group, rows)) in groups.iter().enumerate() {
             let side = *side;
-            let label = caps::heading(&catalog.tr(group.label_key), catalog.language());
-            columns[side].push(
-                div()
-                    .h(px(HEAD_SLOT))
-                    .flex_none()
-                    .flex()
-                    .items_end()
-                    .pb(px(2.))
-                    .line_height(px(16.))
-                    .text_color(ink.muted)
-                    .child(spaced(&label, 1.))
-                    .into_any_element(),
-            );
+            columns[side].push(self.heading(group.label_key, ink).into_any_element());
             for (at, row) in rows.iter().enumerate() {
                 let line = div()
                     .h(px(KEY_ROW))
@@ -139,6 +131,8 @@ impl SheetView {
                 } else {
                     line
                 };
+                let line =
+                    self.hovering(line, row.action, Hover::Action(row.action.into()), ink, cx);
                 columns[side].push(line.into_any_element());
             }
         }
@@ -199,7 +193,7 @@ impl SheetView {
         let catalog = &self.sheet.catalog;
         let query = &self.sheet.query;
         let rows = self.sheet.ranked.iter().enumerate().map(|(index, row)| {
-            let lifted = index == self.sheet.cursor;
+            let lifted = index == self.sheet.cursor && self.sheet.chosen();
             let label = row.label.resolve(catalog);
             let label_run = match_of(&label, query).map(|run| (run.start, run.length));
             let keys = self.sheet.result_keys(index);
@@ -240,7 +234,7 @@ impl SheetView {
                 .whitespace_nowrap()
                 .when(lifted, |line| line.bg(ink.hover))
                 .on_mouse_move(cx.listener(move |view, _, _, cx| {
-                    if view.sheet.cursor != index {
+                    if view.sheet.cursor != index || !view.sheet.chosen() {
                         view.sheet.point(index, false);
                         cx.notify();
                     }
@@ -260,7 +254,7 @@ impl SheetView {
                     )
                 })
         });
-        self.body(div().flex().flex_col().children(rows), cx)
+        self.body(self.with_heads(rows, ink), cx)
             .mx(px(-PAD))
             .id("sheet-results")
     }
@@ -286,11 +280,10 @@ impl Render for SheetView {
             .copied()
             .unwrap_or_default();
         let ink = Ink::inherited(&window.text_style(), theme);
-        let searching = !self.sheet.query.is_empty() || !self.editor.entry.text.is_empty();
-        self.key_col = fit::key_column(&self.sheet, &self.typeface, window);
+        let searching = self.searching();
+        self.key_col = self.key_column(window);
         let measured = self.laid_out(window, cx);
-        let (left, top, card_w, card_h) =
-            fit::for_sheet(&self.sheet, &self.typeface, self.key_col, window);
+        let (left, top, card_w, card_h) = self.card(window);
         let title = self.sheet.catalog.tr("keys.action.keymapSheet");
         let mut card = div()
             .id("sheet-card")
@@ -332,11 +325,14 @@ impl Render for SheetView {
                             .font_weight(FontWeight::NORMAL)
                             .text_size(self.typeface.caption)
                             .text_color(ink.muted)
-                            .child("esc"),
+                            .child(self.corner(window, &ink, cx)),
                     ),
             )
-            .child(div().h(px(1.)).flex_none().bg(ink.rule));
-        card = if searching {
+            .child(div().h(px(1.)).flex_none().bg(ink.rule))
+            .children(self.keyboard_band(window, &ink));
+        card = if let Some(held) = self.keyboard_body(window, &measured, &ink, cx) {
+            card.child(held)
+        } else if searching {
             card.child(
                 SettingsView::field(
                     cx.entity(),
@@ -372,7 +368,7 @@ impl Render for SheetView {
                     .absolute()
                     .left(px(PAD + 32.))
                     .right(px(PAD + 30.))
-                    .top(px(PAD + TITLE_H + 1. + 2. * STACK_GAP))
+                    .top(px(self.field_top(window)))
                     .h(px(FIELD_H))
                     .child(Field::mount(cx.entity(), &self.typeface, false)),
             )
@@ -389,6 +385,7 @@ impl Render for SheetView {
         )
         .track_focus(&self.focus)
         .on_key_down(cx.listener(Self::key_down))
+        .map(|ground| Self::listen(ground, cx))
         .size_full()
         .relative()
         .bg(ink.scrim)
