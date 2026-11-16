@@ -1759,3 +1759,7 @@ Opening search in the current folder adds one scope assignment and its comment a
 ## Clippy argument grouping
 
 The clippy `too_many_arguments` and `type_complexity` grouping (RUST-PERFECT A2) adds each named type beside the function it serves, so four files already over the cap move their recorded ceilings, each re-derived with `wc -l`: `src/backend/run.rs` 1286 to 1289 for `RequestContext`, `src/backend/menu_registry.rs` 621 to 624 for the `IconCache` alias, `src/tui/preview.rs` 407 to 410 for the `RunningRead` alias, and `src/backend/movebatch_tests.rs` 783 to 789 for the `Staging` helper type. `src/backend/ordering.rs` would have crossed 400 with `SortKey`, so the struct has its own module, `src/backend/sortkey.rs`, and `src/backend/mod.rs` moves from 409 to 410 for its declaration.
+
+## Unlocked but unmountable BitLocker volumes
+
+Issue #494 moves two recorded ceilings, each re-derived with `wc -l` after `cargo fmt`. `crates/flea-gui/src/g2/device_rail/unlock.rs` goes from 421 to 422 for the line that leaves the field unmarked after a relock, because the passphrase was right. `crates/flea-gui/src/g2/device_rail/unlock_tests.rs` goes from 594 to 597 because the relock assertion now checks both the phase and the field. No code or comments were compressed.

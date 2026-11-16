@@ -331,7 +331,10 @@ fn failed_mount_relocks_and_says_so_then_a_retry_unlocks() {
     );
     assert_eq!(card.stage(), Stage::Relock);
     assert!(card.exited(Proc::Lock, &out(0, "", ""), 15).is_empty());
-    assert_eq!(card.phase, Phase::Wrong);
+    assert!(
+        card.phase == Phase::Typing && !card.field.error,
+        "a failed mount does not blame the passphrase"
+    );
     assert_eq!(note(&card), Some(mount_note("Backup")));
     assert!(
         holds_no_secret(&card),

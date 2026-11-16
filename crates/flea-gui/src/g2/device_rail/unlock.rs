@@ -408,6 +408,7 @@ impl Card {
             if self.opened && !quiet {
                 let label = self.lock_label.clone();
                 self.refuse(mount_note(&label));
+                (self.phase, self.field.error) = (Phase::Typing, false); // the passphrase was right
             } else {
                 self.stage = Stage::Idle;
             }
