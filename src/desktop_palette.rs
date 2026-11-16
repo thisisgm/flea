@@ -47,7 +47,7 @@ fn defines(text: &str) -> impl Iterator<Item = (&str, &str)> {
         if words.next().is_some() {
             return None;
         }
-        Some((name.strip_suffix("_breeze").unwrap_or(name), value))
+        Some((name, value))
     })
 }
 
@@ -73,11 +73,13 @@ pub fn colours_text(sheets: &[&str]) -> String {
     for sheet in &sheets {
         named.extend(defines(sheet));
     }
+    // A name as written, or KDE's Breeze export of it; the two stay apart so one can name the other.
+    let lookup = |name: &str| named.get(name).or_else(|| named.get(format!("{name}_breeze").as_str())).copied();
     let resolve = |name: &str| {
-        let mut value = *named.get(name)?;
+        let mut value = lookup(name)?;
         for _ in 0..MAX_HOPS {
             match value.strip_prefix('@') {
-                Some(next) => value = named.get(next.strip_suffix("_breeze").unwrap_or(next))?,
+                Some(next) => value = lookup(next)?,
                 None => return hex(value),
             }
         }
@@ -125,6 +127,20 @@ mod tests {
         assert!(text.contains("foreground = '#fcfcfc'"));
         assert!(text.contains("accent = '#c4c0ff'"));
         assert!(text.contains("red = '#da4453'"));
+    }
+
+    #[test]
+    fn a_plain_name_that_points_at_its_breeze_export_keeps_the_colour() {
+        let sheet = "@define-color theme_bg_color_breeze #202326;\n\
+            @define-color theme_bg_color @theme_bg_color_breeze;\n\
+            @define-color theme_fg_color_breeze #fcfcfc;\n\
+            @define-color theme_fg_color #eeeeee;\n\
+            @define-color theme_selected_bg_color @theme_hover_color;\n\
+            @define-color theme_hover_color_breeze #3daee9;";
+        assert_eq!(
+            colours_text(&[sheet]),
+            "background = '#202326'\nforeground = '#eeeeee'\naccent = '#3daee9'\n"
+        );
     }
 
     #[test]

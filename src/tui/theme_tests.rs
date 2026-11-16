@@ -83,6 +83,57 @@ fn a_read_that_changes_before_its_second_look_is_not_published() {
     assert_eq!(settled(&path, None, || {}).as_deref(), Some(full));
     assert_eq!(settled(&path, Some(full), || panic!("an unchanged read waits for a second look")), None);
 }
+// A session without Omarchy: the theme path Omarchy would own, and the folder GTK 4 apps read.
+fn gtk_session(tag: &str) -> (crate::backend::testdir::TestDir, std::path::PathBuf, std::path::PathBuf) {
+    let root = crate::backend::testdir::TestDir::new(tag);
+    let theme = root.join("home/.local/state/omarchy/current/theme/colors.toml");
+    let gtk = root.dir("home/.config/gtk-4.0");
+    root.assert_contains(&theme);
+    (root, theme, gtk)
+}
+const GTK: &str = "@define-color window_bg_color #201f25;\n@define-color window_fg_color #e5e1e9;\n";
+#[test]
+fn without_omarchy_the_gtk_sheets_paint_and_a_later_sheet_wins() {
+    let (_root, theme, gtk) = gtk_session("theme-gtk-load");
+    assert_eq!(read_at(&theme, Some(&gtk)), None, "an empty GTK folder painted");
+    std::fs::write(gtk.join("gtk.css"), GTK).unwrap();
+    std::fs::write(gtk.join("dank-colors.css"), "@define-color window_bg_color #101418;").unwrap();
+    let text = read_at(&theme, Some(&gtk)).unwrap();
+    assert_eq!(text, "background = '#101418'\nforeground = '#e5e1e9'\n");
+    assert_eq!(Theme::from_text(&text).ground, "#101418");
+    assert_eq!(read_at(&theme, None), None, "a path that is not the session theme read the GTK folder");
+    assert_eq!(gtk_for(&gtk), None);
+}
+#[test]
+fn without_omarchy_a_rewritten_gtk_sheet_reaches_the_live_theme() {
+    let (_root, theme, gtk) = gtk_session("theme-gtk-live");
+    std::fs::write(gtk.join("dank-colors.css"), GTK).unwrap();
+    let watch = Watch::start_at(theme, Some(gtk.clone()));
+    assert_eq!(watch.updates.recv_timeout(std::time::Duration::from_secs(3)).unwrap(), "background = '#201f25'\nforeground = '#e5e1e9'\n");
+    std::fs::write(gtk.join("dank-colors.css"), "@define-color window_bg_color #ffffff;").unwrap();
+    assert_eq!(watch.updates.recv_timeout(std::time::Duration::from_secs(3)).unwrap(), "background = '#ffffff'\n");
+}
+#[test]
+fn on_omarchy_the_gtk_sheets_are_never_read() {
+    let (root, theme, gtk) = gtk_session("theme-gtk-omarchy");
+    std::fs::write(gtk.join("gtk.css"), GTK).unwrap();
+    root.dir("home/.local/state/omarchy");
+    assert_eq!(read_at(&theme, Some(&gtk)), None, "a theme swap's gap painted GTK colours");
+    assert_eq!(settled_at(&theme, Some(&gtk), None, || panic!("nothing to settle")), None);
+    root.dir("home/.local/state/omarchy/current/theme");
+    std::fs::write(&theme, BENCH).unwrap();
+    assert_eq!(read_at(&theme, Some(&gtk)).as_deref(), Some(BENCH));
+}
+#[test]
+fn an_unreadable_gtk_sheet_is_skipped_and_the_others_still_paint() {
+    let (root, theme, gtk) = gtk_session("theme-gtk-unreadable");
+    std::fs::write(gtk.join("colors.css"), format!("@define-color window_bg_color #000000;{}", " ".repeat(THEME_BYTES))).unwrap();
+    root.dir("home/.config/gtk-4.0/gtk.css");
+    assert_eq!(read_at(&theme, Some(&gtk)), None, "an oversized sheet or a folder was read");
+    std::fs::write(gtk.join("dank-colors.css"), GTK).unwrap();
+    assert_eq!(read_at(&theme, Some(&gtk)).as_deref(), Some("background = '#201f25'\nforeground = '#e5e1e9'\n"));
+    assert_eq!(read_at(&theme, Some(&root.join("home/.config/absent"))), None);
+}
 // The prompt field is the foreground's 7% over the background; its stem wash eases from 24% only as far as foreground text needs.
 #[test]
 fn prompt_field_and_stem_wash_keep_text_contrast() {

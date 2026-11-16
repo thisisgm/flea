@@ -182,15 +182,20 @@ impl Theme {
 }
 // The Omarchy palette, or, without an Omarchy install, the one GTK 4 apps are given (src/desktop_palette.rs).
 // Omarchy's state folder, three levels above colors.toml, decides, so a theme swap's gap never paints GTK colours.
-fn read(path: &std::path::Path) -> Option<String> {
+#[cfg(test)]
+fn read(path: &std::path::Path) -> Option<String> { read_at(path, gtk_for(path).as_deref()) }
+fn read_at(path: &std::path::Path, gtk: Option<&std::path::Path>) -> Option<String> {
     read_file(path).or_else(|| {
         let omarchy = path.ancestors().nth(3).is_some_and(std::path::Path::is_dir);
-        (path == Theme::path() && !omarchy).then(desktop_palette).flatten()
+        gtk.filter(|_| !omarchy).and_then(desktop_palette)
     })
 }
+// Only the session's own theme path falls back to the GTK folder; any other path is read as it is.
+fn gtk_for(path: &std::path::Path) -> Option<std::path::PathBuf> {
+    (path == Theme::path()).then(|| crate::userfile::config_home().ok()).flatten().map(|config| config.join("gtk-4.0"))
+}
 // The same three sheets, in the same order, as the GUI's crates/flea-gui/src/presentation/source.rs.
-fn desktop_palette() -> Option<String> {
-    let gtk = crate::userfile::config_home().ok()?.join("gtk-4.0");
+fn desktop_palette(gtk: &std::path::Path) -> Option<String> {
     let sheets = ["colors.css", "gtk.css", "dank-colors.css"].map(|name| read_file(&gtk.join(name)).unwrap_or_default());
     let text = flea::desktop_palette::colours_text(&sheets.each_ref().map(String::as_str));
     (!text.is_empty()).then_some(text)
@@ -202,10 +207,12 @@ fn read_file(path: &std::path::Path) -> Option<String> {
     (bytes.len() <= THEME_BYTES).then(|| String::from_utf8_lossy(&bytes).into_owned())
 }
 // A changed read is published only if it yields a colour, ui/js/Palette.js's isPalette test, and a second read after the pause matches it, so a rewrite caught empty or part way waits for the next poll.
-fn settled(path: &std::path::Path, previous: Option<&str>, pause: impl FnOnce()) -> Option<String> {
-    let first = read(path).filter(|text| previous != Some(text.as_str()) && !parse(text).is_empty())?;
+#[cfg(test)]
+fn settled(path: &std::path::Path, previous: Option<&str>, pause: impl FnOnce()) -> Option<String> { settled_at(path, None, previous, pause) }
+fn settled_at(path: &std::path::Path, gtk: Option<&std::path::Path>, previous: Option<&str>, pause: impl FnOnce()) -> Option<String> {
+    let first = read_at(path, gtk).filter(|text| previous != Some(text.as_str()) && !parse(text).is_empty())?;
     pause();
-    (read(path)? == first).then_some(first)
+    (read_at(path, gtk)? == first).then_some(first)
 }
 // A single worker follows theme switches without file reads in the event loop.
 pub struct Watch {
@@ -214,13 +221,17 @@ pub struct Watch {
 }
 impl Watch {
     pub fn start(path: std::path::PathBuf) -> Self {
+        let gtk = gtk_for(&path);
+        Self::start_at(path, gtk)
+    }
+    fn start_at(path: std::path::PathBuf, gtk: Option<std::path::PathBuf>) -> Self {
         let (tx, updates) = std::sync::mpsc::sync_channel(1);
         let (stop, wait) = std::sync::mpsc::channel();
         std::thread::spawn(move || {
             let mut previous: Option<String> = None;
             loop {
                 let mut stopped = false;
-                if let Some(text) = settled(&path, previous.as_deref(), || stopped = wait.recv_timeout(THEME_SETTLE).is_ok()) {
+                if let Some(text) = settled_at(&path, gtk.as_deref(), previous.as_deref(), || stopped = wait.recv_timeout(THEME_SETTLE).is_ok()) {
                     if tx.try_send(text.clone()).is_ok() { previous = Some(text); }
                 }
                 if stopped || wait.recv_timeout(THEME_POLL).is_ok() { break; }
