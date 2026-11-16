@@ -3,8 +3,8 @@ use super::field::Field;
 use super::process::{Job, Outcome};
 use super::secret::Secret;
 use flea::ui_logic_device_rail::unlock::{
-    crypto_name, lock_argv, lock_note, mount_note, parse_mounted, parse_unlocked, refusal_note,
-    unlock_argv, unlock_failed_note, unlocked_note, unlocking_note, wrong_note,
+    crypto_name, lock_argv, lock_note, mount_argv, mount_note, parse_mounted, parse_unlocked,
+    refusal_note, unlock_argv, unlock_failed_note, unlocked_note, unlocking_note, wrong_note,
 };
 use flea::ui_logic_device_rail::Note;
 
@@ -79,6 +79,7 @@ pub struct Card {
     quiet_lock: bool,
     abandon_device: String,
     abandon_label: String,
+    mapped: (String, bool),
     queued: bool,
     started: bool,
     running: [bool; 3],
@@ -363,11 +364,13 @@ impl Card {
             return Vec::new();
         }
         self.stage = Stage::Mount;
+        self.mapped = (mapped, false);
+        self.start_mount(None)
+    }
+
+    fn start_mount(&mut self, driver: Option<&str>) -> Vec<Effect> {
         self.running[Proc::Mount as usize] = true;
-        let argv = ["udisksctl", "mount", "--block-device", &mapped]
-            .iter()
-            .map(|s| s.to_string())
-            .collect();
+        let argv = mount_argv(&self.mapped.0, driver);
         vec![Effect::Start(Proc::Mount, Job::c_locale(argv))]
     }
 
@@ -385,6 +388,10 @@ impl Card {
             String::new()
         };
         if folder.is_empty() {
+            // ntfs3 refuses some BitLocker volumes Windows mounts; the native ntfs driver takes them (#494).
+            if self.crypto == "BitLocker" && !std::mem::replace(&mut self.mapped.1, true) {
+                return self.start_mount(Some("ntfs"));
+            }
             return vec![self.lock_container(true, "", "")];
         }
         let label = self.label.clone();
