@@ -22,21 +22,43 @@ impl Snapshot {
     }
 }
 
-pub(super) type Inputs = [Option<String>; 7];
+/// How many files a presentation reads: seven Omarchy and fontconfig inputs, then GTK 4's settings.ini.
+pub(super) const INPUT_COUNT: usize = 8;
+// GTK 4's settings.ini in `Sources::inputs`.
+const GTK_SETTINGS: usize = 7;
+pub(super) type Inputs = [Option<String>; INPUT_COUNT];
 /// The most bytes one input may hold; a larger file is refused, never cut.
 pub(super) const INPUT_CAP: usize = 65536;
-pub(super) type Stamps = [Option<(u64, u64, u64, i64, i64, i64, i64, u32)>; 7];
+pub(super) type Stamps = [Option<(u64, u64, u64, i64, i64, i64, i64, u32)>; INPUT_COUNT];
 
-/// The seven files a presentation reads, and where the resolved font family is cached.
+/// The files a presentation reads, and where the resolved font family is cached.
 pub(super) struct Sources {
-    inputs: [PathBuf; 7],
+    inputs: [PathBuf; INPUT_COUNT],
     cache: PathBuf,
+    // Omarchy's state folder. While it exists GTK's settings.ini is never read, so a theme swap's
+    // missing shell.toml keeps today's behaviour instead of falling back to GTK's font size.
+    omarchy: Option<PathBuf>,
 }
 
 impl Sources {
     #[cfg(test)]
-    pub fn at(inputs: [PathBuf; 7], cache: PathBuf) -> Self {
-        Self { inputs, cache }
+    pub fn at(inputs: [PathBuf; INPUT_COUNT], cache: PathBuf) -> Self {
+        Self {
+            inputs,
+            cache,
+            omarchy: None,
+        }
+    }
+
+    #[cfg(test)]
+    pub fn with_omarchy(mut self, dir: PathBuf) -> Self {
+        self.omarchy = Some(dir);
+        self
+    }
+
+    /// Whether this input is read: GTK's settings.ini only without an Omarchy install.
+    fn active(&self, at: usize) -> bool {
+        at != GTK_SETTINGS || !self.omarchy.as_deref().is_some_and(Path::is_dir)
     }
 
     pub fn current() -> Self {
@@ -49,6 +71,11 @@ impl Sources {
             .filter(|v| !v.is_empty())
             .map(PathBuf::from)
             .unwrap_or_else(|| home.join(".local/state"));
+        Self::from_dirs(home, config, state)
+    }
+
+    /// The inputs under these home, config and state folders, so a test needs no process environment.
+    fn from_dirs(home: PathBuf, config: PathBuf, state: PathBuf) -> Self {
         let theme = home.join(".local/state/omarchy/current/theme");
         Self {
             inputs: [
@@ -59,8 +86,12 @@ impl Sources {
                 config.join("fontconfig/conf.d/50-omarchy-input-method.conf"),
                 state.join("omarchy/toggles/hypr/window-opaque.lua"),
                 state.join("omarchy/toggles/hypr/window-glassy.lua"),
+                // Without Omarchy's shell.toml, the text size comes from the font GTK 4 apps are given.
+                config.join("gtk-4.0/settings.ini"),
             ],
             cache: state.join("flea/fc-match-monospace"),
+            // The same HOME-based folder the theme is read from, whatever XDG_STATE_HOME says.
+            omarchy: Some(home.join(".local/state/omarchy")),
         }
     }
 
@@ -98,10 +129,11 @@ impl Sources {
     }
 
     /// Every input or the first failure: a live change that cannot be read keeps the last complete snapshot.
+    /// On an Omarchy install GTK's settings.ini is never read, so it can never hold back an Omarchy change.
     pub fn read(&self) -> io::Result<Inputs> {
-        let mut inputs = std::array::from_fn(|_| None);
-        for (path, input) in self.inputs.iter().zip(&mut inputs) {
-            *input = Self::read_one(path)?;
+        let mut inputs: Inputs = std::array::from_fn(|_| None);
+        for at in (0..INPUT_COUNT).filter(|&at| self.active(at)) {
+            inputs[at] = Self::read_one(&self.inputs[at])?;
         }
         Ok(inputs)
     }
@@ -110,7 +142,10 @@ impl Sources {
     pub fn read_for_launch(&self) -> (Inputs, Vec<String>) {
         let mut inputs = std::array::from_fn(|_| None);
         let mut failures = Vec::new();
-        for (path, input) in self.inputs.iter().zip(&mut inputs) {
+        for (at, (path, input)) in self.inputs.iter().zip(&mut inputs).enumerate() {
+            if !self.active(at) {
+                continue;
+            }
             match Self::read_one(path) {
                 Ok(text) => *input = text,
                 Err(error) => failures.push(format!("{}: {error}", path.display())),
@@ -155,6 +190,12 @@ impl Sources {
     ) -> (Snapshot, Option<io::Error>) {
         let text = |at: usize| input[at].as_deref().unwrap_or("");
         let (mut theme, parsed) = Theme::from_text_observed(text(0));
+        // Omarchy's shell.toml sizes the text when either copy exists; elsewhere GTK's font does.
+        let shell = if input[1].is_some() || input[2].is_some() {
+            text(1).to_owned()
+        } else {
+            flea::desktop_font::shell_text(text(7))
+        };
         theme.glass = crate::window::glass::Inputs::resolve(
             text(0),
             text(1),
@@ -170,7 +211,7 @@ impl Sources {
         let snapshot = Snapshot {
             theme,
             parsed,
-            fonts: Fonts::from_sources(text(1), text(2), family),
+            fonts: Fonts::from_sources(&shell, text(2), family),
         };
         (snapshot, failure)
     }
@@ -181,10 +222,11 @@ mod tests {
     use super::*;
     use std::process::Command;
 
-    fn sources(inputs: [PathBuf; 7]) -> Sources {
+    fn sources(inputs: [PathBuf; INPUT_COUNT]) -> Sources {
         Sources {
             inputs,
             cache: PathBuf::from("/proc/self/flea-u01-no-cache/entry"),
+            omarchy: None,
         }
     }
 
@@ -193,24 +235,70 @@ mod tests {
         let absent = sources(std::array::from_fn(|_| {
             PathBuf::from("/proc/self/flea-u01-absent-input")
         }));
-        assert_eq!(
-            absent.read().unwrap(),
-            [None, None, None, None, None, None, None]
-        );
+        assert_eq!(absent.read().unwrap(), std::array::from_fn(|_| None));
         let failed = sources(std::array::from_fn(|_| PathBuf::from("/proc/self")));
         assert_eq!(
             failed.read().unwrap_err().kind(),
             io::ErrorKind::InvalidInput
         );
         let (launch, failures) = failed.read_for_launch();
-        assert_eq!(launch, [None, None, None, None, None, None, None]);
-        assert_eq!(failures.len(), 7);
+        assert_eq!(launch, std::array::from_fn(|_| None));
+        assert_eq!(failures.len(), INPUT_COUNT);
         let valid = sources(std::array::from_fn(|_| PathBuf::from("/proc/self/status")));
         assert!(valid
             .read()
             .unwrap()
             .iter()
             .all(|value| value.as_ref().is_some_and(|text| !text.is_empty())));
+    }
+
+    #[test]
+    fn the_omarchy_gate_is_the_folder_the_theme_is_read_from() {
+        let sources = Sources::from_dirs(
+            PathBuf::from("/home/u"),
+            PathBuf::from("/home/u/.config"),
+            PathBuf::from("/var/xdg-state"),
+        );
+        assert_eq!(
+            sources.omarchy,
+            Some(PathBuf::from("/home/u/.local/state/omarchy"))
+        );
+        assert!(sources.inputs[0].starts_with(sources.omarchy.as_ref().unwrap()));
+    }
+
+    #[test]
+    fn on_omarchy_gtk_settings_are_never_read() {
+        let fixture = super::super::fixture::Fixture::new("gtk-settings");
+        // A directory fails a regular-file read, as an oversized or unreadable file does.
+        let paths: [PathBuf; INPUT_COUNT] = std::array::from_fn(|at| match at {
+            7 => PathBuf::from("/proc/self"),
+            _ => PathBuf::from("/proc/self/flea-absent"),
+        });
+        let omarchy = sources(paths.clone()).with_omarchy(fixture.path().to_path_buf());
+        // Neither a broken settings.ini nor a theme swap's missing shell.toml reaches GTK's font.
+        let read = omarchy
+            .read()
+            .expect("a broken settings.ini never holds back Omarchy");
+        assert!(read.iter().all(Option::is_none));
+        assert!(omarchy.read_for_launch().1.is_empty());
+        // Without Omarchy the settings are live, so a broken file keeps the last snapshot.
+        let elsewhere = sources(paths).with_omarchy(fixture.path().join("absent"));
+        assert!(elsewhere.read().is_err());
+        assert_eq!(elsewhere.read_for_launch().1.len(), 1);
+        fixture.cleanup();
+    }
+
+    #[test]
+    fn without_an_omarchy_shell_toml_the_gtk_font_sizes_the_text() {
+        let absent = sources(std::array::from_fn(|_| {
+            PathBuf::from("/proc/self/flea-absent")
+        }));
+        let mut input: Inputs = std::array::from_fn(|_| None);
+        input[7] = Some("[Settings]\ngtk-font-name=Noto Sans,  10\n".into());
+        assert_eq!(absent.resolve(&input, "monospace").0.fonts.base, 13);
+        // An Omarchy shell.toml, even one naming no size, keeps GTK's font out.
+        input[2] = Some(String::new());
+        assert_eq!(absent.resolve(&input, "monospace").0.fonts.base, 12);
     }
 
     #[test]
