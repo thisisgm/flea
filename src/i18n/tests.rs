@@ -305,3 +305,41 @@ fn dates_keep_fixed_fields_and_use_digits_without_mutating_global_locale() {
 
 #[path = "test_contracts.rs"]
 mod contracts;
+
+#[test]
+fn without_omarchy_the_shipped_catalogs_and_the_session_language_choose() {
+    let f = Fixture::new();
+    f.write("source/i18n/es-MX/flea.json", r#"{"folder.empty":"Carpeta vacía"}"#);
+    f.write("source/i18n/bn/flea.json", r#"{"folder.empty":"খালি"}"#);
+    let mut paths = f.paths();
+    paths.omarchy = f.path("no-omarchy");
+    let session = |lang: &str| vec![("LANG".to_owned(), lang.to_owned())];
+    let i = I18n::load_with_session(paths.clone(), session("es_ES.UTF-8"));
+    assert_eq!(i.roster().iter().map(|l| l.code.as_str()).collect::<Vec<_>>(), ["en", "bn", "es-MX"]);
+    assert_eq!(i.language(), "es-MX");
+    assert_eq!(i.tr("folder.empty"), "Carpeta vacía");
+    assert_eq!(i.locale().format_locale, "es-ES");
+    // Formatting follows the chosen locale: Bengali draws its own digits, as Omarchy's roster gives them.
+    let bengali = I18n::load_with_session(paths.clone(), session("bn_BD.UTF-8"));
+    assert_eq!(bengali.language(), "bn");
+    assert_eq!(bengali.locale().localize_number("12"), "\u{09e7}\u{09e8}");
+    // C names no language, so English stays.
+    assert_eq!(I18n::load_with_session(paths, session("C.UTF-8")).language(), "en");
+}
+
+#[test]
+fn without_omarchy_its_language_file_is_ignored_and_a_new_catalog_is_seen() {
+    let f = Fixture::new();
+    f.write("source/i18n/fa/flea.json", r#"{"folder.empty":"خالی"}"#);
+    f.write("config/omarchy/language", "fa");
+    let mut paths = f.paths();
+    paths.omarchy = f.path("no-omarchy");
+    let mut i = I18n::load_with_session(paths, vec![("LANG".to_owned(), "C.UTF-8".to_owned())]);
+    // Omarchy's language file asks for Persian, but without Omarchy's roster the session decides.
+    assert_eq!(i.language(), "en");
+    assert!(i.roster().iter().any(|l| l.code == "fa" && l.right_to_left && l.zero_digit == '\u{06f0}'));
+    assert!(!i.roster().iter().any(|l| l.code == "de"));
+    f.write("installed/i18n/de/flea.json", r#"{"folder.empty":"Leer"}"#);
+    assert!(i.poll_changed());
+    assert!(i.roster().iter().any(|l| l.code == "de"));
+}

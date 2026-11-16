@@ -6,6 +6,8 @@ use std::ffi::{c_char, c_int, c_void, CStr, CString};
 const LC_NUMERIC_MASK: c_int = 1 << 1;
 // glibc locale.h defines LC_TIME as category 2 and its mask as 1 << LC_TIME.
 const LC_TIME_MASK: c_int = 1 << 2;
+// glibc langinfo.h uses _NL_ITEM(LC_NUMERIC, 0) for the decimal mark.
+const NL_RADIXCHAR: c_int = 0x10000;
 // glibc langinfo.h uses _NL_ITEM(LC_NUMERIC, 1) for the thousands separator.
 const NL_THOUSANDS_SEP: c_int = 0x10001;
 // glibc langinfo.h uses _NL_ITEM(LC_NUMERIC, 2) for the grouping sequence.
@@ -40,8 +42,21 @@ impl Drop for Handle {
     }
 }
 
+// The decimal mark glibc gives this locale, when the locale is generated on this machine.
+pub(super) fn decimal_mark(glibc_locale: &str) -> Option<String> {
+    let handle = Handle::new(glibc_locale, LC_NUMERIC_MASK)?;
+    let mark = unsafe { CStr::from_ptr(nl_langinfo_l(NL_RADIXCHAR, handle.0)) };
+    Some(mark.to_string_lossy().into_owned()).filter(|mark| !mark.is_empty())
+}
+
 pub(super) fn set_grouping(locale: &mut Locale) {
-    if let Some(handle) = Handle::new(&locale.glibc_locale, LC_NUMERIC_MASK) {
+    let numeric = locale.glibc_locale.clone();
+    set_grouping_from(locale, &numeric);
+}
+
+// A session can name one locale for numbers and another for dates, so the numeric one is given.
+pub(super) fn set_grouping_from(locale: &mut Locale, numeric: &str) {
+    if let Some(handle) = Handle::new(numeric, LC_NUMERIC_MASK) {
         unsafe {
             locale.separator = CStr::from_ptr(nl_langinfo_l(NL_THOUSANDS_SEP, handle.0)).to_string_lossy().into_owned();
             locale.grouping = CStr::from_ptr(nl_langinfo_l(NL_GROUPING, handle.0)).to_bytes().to_vec();
