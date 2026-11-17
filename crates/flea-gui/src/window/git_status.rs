@@ -1,8 +1,15 @@
 //! The GUI consumes the backend's bounded Git snapshot and requests marks only for painted rows.
-use crate::{backend::Event, state::Shell};
+use crate::{
+    backend::{Backend, Event},
+    state::Shell,
+};
 use flea::jsondoc::{self, Json};
-use gpui::Context;
-use std::{collections::HashMap, rc::Rc};
+use gpui::{Context, Task};
+use std::{collections::HashMap, rc::Rc, time::Duration};
+
+/// How often a drawn folder re-reads Git while Flea sits idle. The backend keeps one
+/// snapshot in flight, so a slow `git status` only delays the next tick, never stacks them.
+pub(crate) const REFRESH_EVERY: Duration = Duration::from_secs(5);
 
 #[derive(Clone, Copy, Default)]
 pub(crate) struct Mark {
@@ -25,9 +32,22 @@ pub(crate) struct Runtime {
     rows_id: usize,
     ready: bool,
     pending: bool,
+    /// Set by the wake task; consumed by the next frame that can send a refresh.
+    due: bool,
+    /// One idle refresh loop per drawn pane, alive only while Git status is on.
+    wake: Option<Task<()>>,
     paths: Vec<String>,
     pub paint: Rc<Paint>,
 }
+
+impl Runtime {
+    /// Ends this pane's idle refresh loop and forgets any refresh it still owed.
+    pub(crate) fn stop(&mut self) {
+        self.wake = None;
+        self.due = false;
+    }
+}
+
 fn text<'a>(doc: &'a Json, key: &str) -> &'a str {
     doc.get(key).and_then(Json::as_str).unwrap_or("")
 }
@@ -35,8 +55,26 @@ fn quote(text: &str) -> String {
     format!("\"{}\"", flea::json::escape(text))
 }
 
+/// Starts a new snapshot read, dropping the cached rows so the reply owes a fresh `gitrows`.
+/// Every read carries `refresh:true`, whether it follows a navigation or an idle tick.
+fn ask_status(git: &mut Runtime, backend: Option<&Backend>, path: &str, on: bool) {
+    git.serial += 1;
+    git.status_id = git.serial;
+    git.ready = false;
+    git.pending = false;
+    git.due = false;
+    git.paths.clear();
+    if let Some(backend) = backend {
+        let _ = backend.line(format!(
+            "{{\"c\":\"gitstatus\",\"id\":{},\"path\":{},\"enabled\":{on},\"refresh\":true}}",
+            git.status_id,
+            quote(path)
+        ));
+    }
+}
+
 impl Shell {
-    pub(crate) fn sync_git(&mut self) {
+    pub(crate) fn sync_git(&mut self, cx: &mut Context<Self>) {
         let enabled = self
             .launch
             .settings
@@ -44,26 +82,49 @@ impl Shell {
             .get("showGitStatus")
             .and_then(Json::as_bool)
             == Some(true);
-        for host in self.panes.iter_mut().flatten() {
+        for (side, host) in self.panes.iter_mut().enumerate() {
+            let Some(host) = host else {
+                continue;
+            };
             let on = enabled && !host.pane.state.search && !host.recent.on;
-            let target = (host.path.clone(), host.pane.held.listing, on);
+            let git = &mut host.git;
+            if !on {
+                git.stop();
+            } else if git.wake.is_none() {
+                // One sleeping task per drawn pane. It only marks a refresh owed and asks for a
+                // frame; all backend work stays on the frame that already owns the request path.
+                git.wake = Some(cx.spawn(async move |this, cx| loop {
+                    cx.background_executor().timer(REFRESH_EVERY).await;
+                    let live = this.update(cx, |shell, cx| {
+                        let Some(host) = shell.panes[side].as_mut() else {
+                            return false;
+                        };
+                        if host.git.wake.is_none() {
+                            return false;
+                        }
+                        host.git.due = true;
+                        cx.notify();
+                        true
+                    });
+                    if !live.unwrap_or(false) {
+                        break;
+                    }
+                }));
+            }
             if host.pane.busy() {
                 continue;
             }
-            let git = &mut host.git;
+            let target = (host.path.clone(), host.pane.held.listing, on);
             if git.target.as_ref() != Some(&target) {
                 let was_on = git.target.as_ref().is_some_and(|target| target.2);
                 git.target = Some(target);
-                git.serial += 1;
-                git.status_id = git.serial;
-                git.ready = false;
-                git.pending = false;
-                git.paths.clear();
                 git.paint = Rc::default();
                 host.list.borrow_mut().view.git = git.paint.clone();
-                if let Some(backend) = host.backend.as_ref().filter(|_| on || was_on) {
-                    let _ = backend.line(format!("{{\"c\":\"gitstatus\",\"id\":{},\"path\":{},\"enabled\":{on},\"refresh\":true}}", git.status_id, quote(&host.path)));
-                }
+                let backend = host.backend.as_ref().filter(|_| on || was_on);
+                ask_status(git, backend, &host.path, on);
+            }
+            if git.due && on && git.ready && !git.pending {
+                ask_status(git, host.backend.as_ref(), &host.path, on);
             }
             if !on || !git.ready || git.pending {
                 continue;
@@ -130,12 +191,20 @@ impl Shell {
         let ok = doc.get("ok").and_then(Json::as_bool) == Some(true);
         if kind == "gitstatus" && id == git.status_id {
             git.ready = ok && !text(&doc, "root").is_empty();
+            // An idle refresh keeps the last marks on screen until its rows land. A failed
+            // snapshot has nothing truthful left to draw, so it clears them.
+            let marks = if git.ready {
+                git.paint.marks.clone()
+            } else {
+                HashMap::new()
+            };
             git.paint = Rc::new(Paint {
                 label: if git.ready {
                     text(&doc, "label").into()
                 } else {
                     String::new()
                 },
+                marks,
                 ..Default::default()
             });
         } else if kind == "gitrows" && git.pending && id == git.rows_id {

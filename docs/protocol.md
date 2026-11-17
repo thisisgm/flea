@@ -253,11 +253,12 @@ older work without discovery or process launch. Navigation also cancels the old 
 Replies may interleave other backend replies, so clients match both `path` and their current `id`
 before displaying them.
 
-The existing `changed` event drives refresh through the client's 400 ms absorbing timer: the
-first notification starts it, later notifications do not restart it, and expiry sends this request
-with `refresh:true`. Keep one status request in flight and preserve later watch debt until its
-reply. The existing non-recursive watch covers the displayed directory, not all repository paths
-or `.git` metadata; another directory change or explicit refresh discovers those other changes.
+The window sends this request with `refresh:true` on navigation and again every five seconds
+while the folder is drawn and `showGitStatus` is on. It keeps one status request in flight: the
+idle tick is remembered, not queued, until the earlier reply lands and its rows are re-asked.
+That tick is what picks up work done in another terminal, including staging and commits that
+only touch `.git`, which the non-recursive directory watch cannot see. A watched change re-lists
+the folder and so asks for a new snapshot without waiting for the tick.
 
 The argv is `/usr/bin/git -c core.fsmonitor=false -c core.hooksPath=/dev/null -c core.untrackedCache=false
 -c status.renames=true status --porcelain=v2 -z --branch --untracked-files=all --ignore-submodules=none --`.

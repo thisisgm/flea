@@ -170,6 +170,134 @@ fn vf5_git_marks_rows_inside_a_folder_opened_in_place(cx: &mut TestAppContext) {
     close(&shell, cx);
 }
 
+#[gpui::test]
+fn vf5_git_refreshes_a_sitting_folder_and_stops_with_the_setting(cx: &mut TestAppContext) {
+    use crate::window::git_status::REFRESH_EVERY;
+
+    let (shell, cx, mut requests) = opened(cx);
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            shell.change_settings(
+                Json::Obj(vec![("showGitStatus".into(), Json::Bool(true))]),
+                window,
+                cx,
+            )
+        })
+    });
+    land(
+        &shell,
+        cx,
+        "/files",
+        vec![file("notes.txt", "text-plain")],
+        1,
+    );
+    draw(cx);
+
+    let first = sent(&mut requests, "gitstatus")
+        .pop()
+        .expect("the first listing asks for status");
+    let first_id = first.get("id").and_then(Json::as_f64).unwrap() as usize;
+    answer(
+        &shell,
+        cx,
+        format!(
+            r#"{{"t":"gitstatus","id":{first_id},"path":"/files","ok":true,"root":"/files","label":"main · 1 changed"}}"#
+        ),
+    );
+    let rows = sent(&mut requests, "gitrows")
+        .pop()
+        .expect("painted rows reach Git");
+    let rows_id = rows.get("id").and_then(Json::as_f64).unwrap() as usize;
+    answer(
+        &shell,
+        cx,
+        format!(
+            r#"{{"t":"gitrows","id":{rows_id},"path":"/files","ok":true,"marks":[{{"path":"/files/notes.txt","status":"M","folder":false}}]}}"#
+        ),
+    );
+    draw(cx);
+    assert!(
+        sent(&mut requests, "gitstatus").is_empty(),
+        "a still folder asks nothing before its interval"
+    );
+
+    cx.executor().advance_clock(REFRESH_EVERY);
+    cx.run_until_parked();
+    draw(cx);
+
+    let refresh = sent(&mut requests, "gitstatus")
+        .pop()
+        .expect("an idle folder still refreshes Git");
+    assert_eq!(refresh.get("refresh").and_then(Json::as_bool), Some(true));
+    let refresh_id = refresh.get("id").and_then(Json::as_f64).unwrap() as usize;
+    assert!(refresh_id > first_id);
+    assert!(
+        sent(&mut requests, "gitrows").is_empty(),
+        "no rows are asked until the refreshed snapshot replies"
+    );
+    shell.read_with(cx, |shell, _| {
+        let git = &shell.panes[0].as_ref().unwrap().git.paint;
+        assert_eq!(git.label, "main · 1 changed");
+        assert_eq!(
+            git.marks.get("notes.txt").map(|mark| mark.letter),
+            Some('M'),
+            "the last mark stays drawn while the refresh is in flight"
+        );
+    });
+
+    answer(
+        &shell,
+        cx,
+        format!(
+            r#"{{"t":"gitstatus","id":{refresh_id},"path":"/files","ok":true,"root":"/files","label":"main · 2 changed"}}"#
+        ),
+    );
+    let next_rows = sent(&mut requests, "gitrows")
+        .pop()
+        .expect("the new snapshot re-asks the same viewport");
+    let next_rows_id = next_rows.get("id").and_then(Json::as_f64).unwrap() as usize;
+    answer(
+        &shell,
+        cx,
+        format!(
+            r#"{{"t":"gitrows","id":{next_rows_id},"path":"/files","ok":true,"marks":[{{"path":"/files/notes.txt","status":"A","folder":false}}]}}"#
+        ),
+    );
+    shell.read_with(cx, |shell, _| {
+        let git = &shell.panes[0].as_ref().unwrap().git.paint;
+        assert_eq!(git.label, "main · 2 changed");
+        assert_eq!(
+            git.marks.get("notes.txt").map(|mark| mark.letter),
+            Some('A')
+        );
+    });
+
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            shell.change_settings(
+                Json::Obj(vec![("showGitStatus".into(), Json::Bool(false))]),
+                window,
+                cx,
+            )
+        })
+    });
+    draw(cx);
+    let disabling = sent(&mut requests, "gitstatus");
+    assert_eq!(disabling.len(), 1, "turning Git off clears the snapshot");
+    assert_eq!(
+        disabling[0].get("enabled").and_then(Json::as_bool),
+        Some(false)
+    );
+    cx.executor().advance_clock(REFRESH_EVERY);
+    cx.run_until_parked();
+    draw(cx);
+    assert!(
+        sent(&mut requests, "gitstatus").is_empty(),
+        "no wake survives the setting going off"
+    );
+    close(&shell, cx);
+}
+
 #[test]
 fn vf5_git_label_starts_after_the_whole_path() {
     let mut strip = crate::path::strip::Strip::default();
