@@ -14,6 +14,35 @@ fn mins(min: f32) -> (f32, f32) {
     (1.5 * min, min)
 }
 
+/// Keep this preview independent of the separate hidden-name shading feature.
+fn name_ink(name: &str, regular: gpui::Hsla, muted: gpui::Hsla) -> gpui::Hsla {
+    let leaf = name
+        .trim_end_matches('/')
+        .rsplit('/')
+        .next()
+        .unwrap_or(name);
+    if leaf.starts_with('.') && leaf != "." && leaf != ".." {
+        muted
+    } else {
+        regular
+    }
+}
+
+#[cfg(test)]
+mod hidden_name_tests {
+    #[test]
+    fn hidden_names_and_headings_use_the_quiet_role() {
+        let regular = gpui::hsla(0., 0., 0.9, 1.);
+        let muted = gpui::hsla(0., 0., 0.5, 1.);
+        for name in [".env", ".config/", "/home/me/.secret"] {
+            assert_eq!(super::name_ink(name, regular, muted), muted, "{name}");
+        }
+        for name in ["photo.png", ".config/visible", ".", ".."] {
+            assert_eq!(super::name_ink(name, regular, muted), regular, "{name}");
+        }
+    }
+}
+
 pub(crate) fn enabled(data: &Json) -> bool {
     let preview = data.get("preview").unwrap_or(&Json::Null);
     preview.get("column").and_then(Json::as_bool) != Some(false)
@@ -198,7 +227,7 @@ impl Shell {
             .child(
                 div()
                     .text_size(typeface.body)
-                    .text_color(palette.foreground)
+                    .text_color(name_ink(&name, palette.foreground, palette.muted))
                     .truncate()
                     .child(SharedString::from(name)),
             )
@@ -234,11 +263,15 @@ impl Shell {
                     div()
                         .min_w_0()
                         .truncate()
-                        .text_color(if dir {
-                            palette.accent
-                        } else {
-                            palette.foreground
-                        })
+                        .text_color(name_ink(
+                            &name,
+                            if dir {
+                                palette.accent
+                            } else {
+                                palette.foreground
+                            },
+                            palette.muted,
+                        ))
                         .child(SharedString::from(name)),
                 )
         });
