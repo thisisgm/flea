@@ -2,6 +2,26 @@ use super::bench::{held, open, real_cx};
 use std::rc::Rc;
 
 #[test]
+fn preview_names_use_raw_filenames_and_keep_visible_children_bright() {
+    let palette = super::Palette::inherited(
+        &gpui::TextStyle::default(),
+        crate::palette::Theme::default(),
+    );
+    for (name, expected) in [
+        ("/files/.secret.txt", palette.muted),
+        (".config/", palette.muted),
+        (".config/visible.txt", palette.foreground),
+        ("photo.png", palette.foreground),
+    ] {
+        assert_eq!(
+            crate::row::preview_name_ink(name, palette.foreground, palette.muted),
+            expected,
+            "{name}",
+        );
+    }
+}
+
+#[test]
 fn hidden_names_are_muted_until_lifted() {
     let palette = super::Palette::inherited(
         &gpui::TextStyle::default(),

@@ -65,7 +65,11 @@ pub(super) fn name_parts(
         .overflow_hidden()
         .whitespace_nowrap()
         .text_ellipsis_middle()
-        .text_color(look.foreground)
+        .text_color(crate::row::preview_name_ink(
+            name.text,
+            look.foreground,
+            look.muted,
+        ))
         .child(SharedString::from(
             flea::bytename::display(name.text).into_owned(),
         ))

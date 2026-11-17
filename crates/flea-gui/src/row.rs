@@ -53,7 +53,11 @@ pub fn is_symlink(mode: u32) -> bool {
 
 /// Dotfiles use the quiet role, including search results whose names contain a path.
 pub fn is_hidden_name(name: &str) -> bool {
-    let leaf = name.rsplit('/').next().unwrap_or(name);
+    let leaf = name
+        .trim_end_matches('/')
+        .rsplit('/')
+        .next()
+        .unwrap_or(name);
     leaf.starts_with('.') && leaf != "." && leaf != ".."
 }
 
@@ -69,6 +73,15 @@ pub fn name_ink(row: &RowFacts) -> NameInk {
         NameInk::Executable
     } else {
         NameInk::Foreground
+    }
+}
+
+/// Preview filenames share the quiet role without changing the preview's content or icons.
+pub fn preview_name_ink(name: &str, foreground: gpui::Hsla, muted: gpui::Hsla) -> gpui::Hsla {
+    if is_hidden_name(name) {
+        muted
+    } else {
+        foreground
     }
 }
 
@@ -268,7 +281,13 @@ mod tests {
 
     #[test]
     fn hidden_names_use_the_leaf_and_override_file_kinds() {
-        for name in [".env", ".config", "/home/me/.env", "nested/.secret"] {
+        for name in [
+            ".env",
+            ".config",
+            ".config/",
+            "/home/me/.env",
+            "nested/.secret",
+        ] {
             assert!(is_hidden_name(name), "{name}");
             for mode in [0o100644, 0o100755, 0o120777] {
                 assert_eq!(name_ink(&row(name, mode)), NameInk::Hidden);
