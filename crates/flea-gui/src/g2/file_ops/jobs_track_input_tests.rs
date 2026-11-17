@@ -139,6 +139,77 @@ fn jobs_whitespace_blocks_columns_left_and_right_press_but_keeps_cancel() {
     }
 }
 
+/// Issue 398: the Jobs card's own frame keeps a middle click from reaching a folder row hidden
+/// under it, while a middle click beside the card still opens that row in a tab.
+#[test]
+fn jobs_card_occludes_a_middle_click_on_a_covered_folder() {
+    let (mut cx, handle, _received) = open(View::List);
+    update(&mut cx, handle, |shell, _, _| {
+        let host = shell.panes[0].as_mut().unwrap();
+        let old = std::rc::Rc::clone(&host.pane.held);
+        host.pane.held = std::rc::Rc::new(crate::list::pane::Held {
+            listing: old.listing,
+            total: old.total,
+            start: old.start,
+            rows: old
+                .rows
+                .iter()
+                .map(|row| {
+                    let mut row = row.clone();
+                    row.dir = true;
+                    row.name = "child".into();
+                    row
+                })
+                .collect(),
+        });
+    });
+    frame(&mut cx, handle);
+    start(&mut cx, handle);
+    reset(&mut cx, handle);
+    let jobs = bounds(&mut cx, handle, "op1-jobs");
+    let inside = point(jobs.left() + px(12.), jobs.top() + px(12.));
+    let outside = point(jobs.left() + px(5.), jobs.top() - px(30.));
+    let before = update(&mut cx, handle, |shell, _, _| shell.strip.tabs[0].count());
+    // The point is a real folder row under the card: without the guard this routing opens it.
+    let covered = update(&mut cx, handle, |shell, _, _| {
+        let host = shell.panes[0].as_ref().unwrap();
+        (
+            host.input.hit(inside),
+            host.list.borrow().drawn.mask.contains(&inside),
+        )
+    });
+    assert!(
+        covered.0.is_some() && covered.1,
+        "the covered point is a folder row"
+    );
+    update(&mut cx, handle, |shell, window, cx| {
+        shell.middle_tab_pointer(
+            &gpui::MouseDownEvent {
+                position: inside,
+                button: MouseButton::Middle,
+                ..Default::default()
+            },
+            window,
+            cx,
+        );
+    });
+    update(&mut cx, handle, |shell, _, _| {
+        assert_eq!(
+            shell.strip.tabs[0].count(),
+            before,
+            "a middle click on the Jobs card must not open the folder under it"
+        );
+    });
+    press(&mut cx, handle, outside, MouseButton::Middle);
+    update(&mut cx, handle, |shell, _, _| {
+        assert_eq!(
+            shell.strip.tabs[0].count(),
+            before + 1,
+            "a middle click beside the card still opens the covered folder in a tab"
+        );
+    });
+}
+
 #[test]
 fn jobs_padding_blocks_grid_press_at_a_measured_tile_overlap() {
     let (mut cx, handle, _received) = open(View::Grid);
