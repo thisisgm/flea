@@ -20,6 +20,7 @@ impl Shell {
                 columns.timer = None;
             }
             host.transition = None;
+            host.git.stop();
             host.pane.swap.mark_shown(false, host.pane.now());
             host.reader = None;
             host.stopped = true;
