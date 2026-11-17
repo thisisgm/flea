@@ -38,7 +38,8 @@ impl Shell {
                 .is_some_and(|overlay| overlay.read_with(cx, |card, cx| card.modal(cx)))
     }
 
-    /// The non-modal Jobs card blocks listing presses, but leaves listing keys and wheels beside it available.
+    /// The non-modal Jobs card occludes its own frame, but leaves listing presses, keys and wheels
+    /// beside it available so a folder can still be browsed while a job runs (issue 398).
     pub(crate) fn jobs_card_showing(&self, cx: &App) -> bool {
         self.overlay
             .as_ref()
