@@ -22,7 +22,7 @@ fn name_ink(name: &str, regular: gpui::Hsla, muted: gpui::Hsla) -> gpui::Hsla {
         .next()
         .unwrap_or(name);
     if leaf.starts_with('.') && leaf != "." && leaf != ".." {
-        muted
+        muted.opacity(0.65)
     } else {
         regular
     }
@@ -35,7 +35,11 @@ mod hidden_name_tests {
         let regular = gpui::hsla(0., 0., 0.9, 1.);
         let muted = gpui::hsla(0., 0., 0.5, 1.);
         for name in [".env", ".config/", "/home/me/.secret"] {
-            assert_eq!(super::name_ink(name, regular, muted), muted, "{name}");
+            assert_eq!(
+                super::name_ink(name, regular, muted),
+                muted.opacity(0.65),
+                "{name}"
+            );
         }
         for name in ["photo.png", ".config/visible", ".", ".."] {
             assert_eq!(super::name_ink(name, regular, muted), regular, "{name}");
@@ -215,7 +219,11 @@ impl Shell {
             ),
         };
         let metrics = crate::list::Metrics::for_typeface(&typeface);
-        let line = px(metrics.row);
+        let smaller = |value: gpui::Pixels| px((f32::from(value) - 4.).max(1.));
+        let body = smaller(typeface.body);
+        let caption = smaller(typeface.caption);
+        let line = smaller(px(metrics.row));
+        let icon = f32::from(smaller(px(metrics.slot.min(metrics.row))));
         let pad = px(metrics.pad);
         let head = div()
             .flex()
@@ -226,19 +234,19 @@ impl Shell {
             .pb(pad)
             .child(
                 div()
-                    .text_size(typeface.body)
+                    .text_size(body)
                     .text_color(name_ink(&name, palette.foreground, palette.muted))
                     .truncate()
                     .child(SharedString::from(name)),
             )
             .child(
                 div()
-                    .text_size(typeface.caption)
+                    .text_size(caption)
                     .text_color(palette.metadata)
                     .child(SharedString::from(summary)),
             );
         let rows = entries.into_iter().map(|(name, dir)| {
-            // The list's own folder and file marks, at its mark slot.
+            // The list's own marks, four pixels smaller along with the preview's text.
             let (mark, ink) = if dir {
                 (crate::row::marks::Mark::Folder, palette.accent)
             } else {
@@ -247,7 +255,7 @@ impl Shell {
             let (key, data) = mark.svg();
             let mark = crate::g2::file_ops::glyph::Glyph {
                 paint: crate::g2::file_ops::glyph::Paint::Svg(key, data),
-                side: metrics.slot.min(metrics.row),
+                side: icon,
                 ink,
             };
             div()
@@ -257,7 +265,7 @@ impl Shell {
                 .h(line)
                 .px(pad)
                 .gap(pad)
-                .text_size(typeface.body)
+                .text_size(body)
                 .child(div().flex_none().child(mark))
                 .child(
                     div()
@@ -278,12 +286,18 @@ impl Shell {
         Some(
             frame
                 .child(
-                    div()
-                        .size_full()
-                        .flex()
-                        .flex_col()
-                        .child(head)
-                        .child(div().flex().flex_col().overflow_hidden().children(rows)),
+                    div().size_full().flex().flex_col().child(head).child(
+                        div()
+                            .id(SharedString::from(format!("list-folder-preview:{path}")))
+                            .debug_selector(|| "list-folder-preview-scroll".into())
+                            .w_full()
+                            .flex_1()
+                            .min_h(px(0.))
+                            .flex()
+                            .flex_col()
+                            .overflow_y_scroll()
+                            .children(rows),
+                    ),
                 )
                 .child(edge(cx))
                 .into_any_element(),
