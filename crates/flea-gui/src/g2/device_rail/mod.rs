@@ -1,7 +1,9 @@
 //! pl1: devices, phones, eject and power-off, and the encrypted-drive unlock card.
 pub mod card;
+pub mod card_text;
 pub mod devices;
 pub mod eject;
+pub mod eye;
 pub mod field;
 pub mod host;
 pub mod ink;
@@ -21,6 +23,8 @@ pub mod words;
 
 #[cfg(test)]
 pub(crate) mod bfx_net_tests;
+#[cfg(test)]
+mod backspace_tests;
 #[cfg(test)]
 mod bitlocker_tests;
 #[cfg(test)]

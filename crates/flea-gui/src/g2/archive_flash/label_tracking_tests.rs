@@ -31,6 +31,7 @@ impl Render for Probe {
                 unlock::Press {
                     cancel: Box::new(|_, _, _| {}),
                     unlock: Box::new(|_, _, _| {}),
+                    eye: std::rc::Rc::new(|_, _, _| {}),
                 },
             )
             .into_any_element(),

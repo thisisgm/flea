@@ -26,7 +26,12 @@ impl UnlockView {
             } else if !active {
                 card.field.entry.ime_unmark();
                 card.field.entry.editing = false;
-                self.drawn.borrow_mut().line.registered = None;
+                let mut drawn = self.drawn.borrow_mut();
+                // A secret the eye showed leaves no shaped copy behind once the field closes or submits.
+                if drawn.revealed {
+                    *drawn = Default::default();
+                }
+                drawn.line.registered = None;
             }
         }
         self.input_active = active;
@@ -52,6 +57,7 @@ impl UnlockView {
             return;
         };
         let field = &mut card.field;
+        field.conceal();
         if private_entry::replace(&mut field.entry, &mut field.text, range, text, marked) {
             field.held_mask = 0;
             card.edited();
@@ -99,9 +105,7 @@ impl UnlockView {
                         entry.move_to(to);
                     }
                 }
-                "backspace" | "delete" if !command && !held.alt => {
-                    private_entry::erase(entry, &mut field.text, key == "delete")
-                }
+                "backspace" | "delete" if !command && !held.alt => field.erase(key == "delete"),
                 "a" if command => entry.select_all(),
                 "c" | "x" if command => {}
                 _ if crate::window::input::paste_key(event) => {
@@ -144,6 +148,9 @@ impl FieldView for UnlockView {
     }
     fn field_focus(&self) -> Option<FocusHandle> {
         Some(self.focus_handle().clone())
+    }
+    fn field_revealed(&self) -> bool {
+        self.host.card.as_ref().is_some_and(|card| card.revealed())
     }
     fn field_held(&self) -> usize {
         self.host

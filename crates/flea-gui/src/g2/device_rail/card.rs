@@ -1,13 +1,11 @@
 //! The unlock card as the board draws it: title and esc, a hairline, the drive line, the field, one note line and two buttons.
+pub use super::card_text::CardText;
 use super::ink::CardInk;
 use super::mark::{Mark, DRIVE, EYE};
 use super::probes::{observe, ButtonProbe, Probes};
 use super::unlock::{Card, Part, Phase};
-use super::words::say;
 use crate::g2::file_ops::glyph::Tracked;
-use crate::g2::status_feedback::caption::{heading_for, tracking_for};
-use flea::i18n::I18n;
-use flea::ui_logic_device_rail::unlock::{subtitle, title};
+use crate::g2::status_feedback::caption::tracking_for;
 use gpui::{div, prelude::*, px, App, ClickEvent, FontWeight, Hsla, SharedString, Window};
 
 /// The card's own width on the board, narrowed only by a narrow window.
@@ -21,43 +19,6 @@ pub const WASH_HOVER: f32 = 0.08;
 pub const WASH_PRESS: f32 = 0.14;
 /// Unlock unavailable draws at this opacity, the board's disabled button.
 pub const DISABLED_OPACITY: f32 = 0.55;
-
-/// The words the card shows, built once per card change or language change, never in paint.
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct CardText {
-    pub language: String,
-    pub title: String,
-    pub esc: String,
-    pub subtitle: String,
-    pub label: String,
-    pub note: String,
-    pub cancel: String,
-    pub unlock: String,
-}
-
-impl CardText {
-    pub fn of(card: &Card, catalog: &I18n) -> Self {
-        let size = if card.size > 0 {
-            catalog.locale().format_size(card.size)
-        } else {
-            String::new()
-        };
-        Self {
-            language: catalog.language().into(),
-            title: say(catalog, &title(&card.label)),
-            esc: "esc".into(),
-            subtitle: say(catalog, &subtitle(&card.label, &size, &card.crypto)),
-            label: heading_for(&catalog.tr("device.unlock.passphrase"), catalog.language()),
-            note: card
-                .note
-                .as_ref()
-                .map(|(n, _)| say(catalog, n))
-                .unwrap_or_default(),
-            cancel: catalog.tr("device.unlock.cancel"),
-            unlock: catalog.tr("device.unlock.button"),
-        }
-    }
-}
 
 /// Every size above is the board's at its 14 px body; the card multiplies by the live body over 14, as the other dialog cards do (#310).
 pub const BOARD_BODY: f32 = 14.;
@@ -100,6 +61,7 @@ pub(super) fn card_with_input(
         Some(Mounted { input, probes }) => (input, Some(probes)),
         None => (None, None),
     };
+    let eye = press.eye.clone();
     let k = move |v: f32| px(v * scale);
     let note_error = card.note.as_ref().is_some_and(|(_, e)| *e);
     let field_frame = if card.field.error {
@@ -216,6 +178,22 @@ pub(super) fn card_with_input(
                         .child(observe(
                             div()
                                 .flex_none()
+                                .cursor_pointer()
+                                .on_mouse_down(gpui::MouseButton::Left, {
+                                    let eye = eye.clone();
+                                    move |_, window, cx| {
+                                        cx.stop_propagation();
+                                        eye(true, window, cx)
+                                    }
+                                })
+                                .on_mouse_up(gpui::MouseButton::Left, {
+                                    let eye = eye.clone();
+                                    move |_, window, cx| eye(false, window, cx)
+                                })
+                                .on_mouse_up_out(gpui::MouseButton::Left, {
+                                    let eye = eye.clone();
+                                    move |_, window, cx| eye(false, window, cx)
+                                })
                                 .child(Mark::new(EYE, 13. * scale, ink.frame)),
                             probes.map(|p| p.eye.clone()),
                         )),
@@ -224,10 +202,9 @@ pub(super) fn card_with_input(
         .child(
             div()
                 .mt(k(-2.))
-                .h(k(NOTE_H))
+                .min_h(k(NOTE_H))
                 .line_height(k(NOTE_H))
                 .text_size(k(12.))
-                .overflow_hidden()
                 .text_color(if note_error { ink.error } else { ink.muted })
                 .child(text.note.clone()),
         )
@@ -269,6 +246,8 @@ pub(super) fn card_with_input(
 pub struct Press {
     pub cancel: Click,
     pub unlock: Click,
+    /// True while the eye is held down, false when it is let go.
+    pub eye: std::rc::Rc<dyn Fn(bool, &mut Window, &mut App)>,
 }
 
 pub type Click = Box<dyn Fn(&ClickEvent, &mut Window, &mut App) + 'static>;

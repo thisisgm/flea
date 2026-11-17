@@ -84,7 +84,7 @@ fn unlock_wrong_board_words_and_seven_held_dots() {
     };
     card.exited(Proc::Unlock, &refused, 5);
     let text = CardText::of(&card, &catalog(&root));
-    assert_eq!(text.note, "That passphrase did not work. Check Caps Lock.");
+    assert_eq!(text.note, "That passphrase did not work.");
     assert_eq!(card.field.dots(), 7);
     assert!(card.field.error && card.unlock_available());
 }
@@ -221,4 +221,123 @@ fn a_focused_primary_on_a_hued_accent_keeps_one_foreground_hairline() {
         (ink.foreground, true),
         "RING wide only where the rest frame is the foreground"
     );
+}
+
+fn refused_card(fstype: &str) -> Card {
+    let mut card = Card::new();
+    card.open_for("/dev/sdb1", "Backup", 0, fstype, "2");
+    card.type_text("1234567");
+    card.submit(0);
+    let refused = Outcome {
+        code: 1,
+        stdout: String::new(),
+        stderr: "GDBus.Error:org.freedesktop.UDisks2.Error.Failed: x".into(),
+    };
+    card.exited(Proc::Unlock, &refused, 5);
+    card
+}
+
+#[test]
+fn backspace_after_a_refusal_clears_the_held_dots() {
+    let mut card = refused_card("crypto_LUKS");
+    assert_eq!(card.field.dots(), 7, "the refused try stays drawn");
+    card.backspace();
+    assert_eq!(
+        card.field.dots(),
+        0,
+        "Backspace clears dots whose bytes already went to udisks"
+    );
+    assert!(!card.unlock_available(), "nothing is left to submit");
+    card.type_text("ab");
+    card.backspace();
+    assert_eq!(
+        card.field.dots(),
+        1,
+        "Backspace then deletes typed characters one at a time"
+    );
+}
+
+#[test]
+fn the_caps_lock_hint_names_caps_lock_only_when_it_was_on_at_submit() {
+    let root = Root::new("card-caps");
+    let shown = |fstype: &str, caps: bool| {
+        let mut card = Card::new();
+        card.open_for("/dev/sdb1", "Backup", 0, fstype, "2");
+        card.type_text("1234567");
+        card.field.caps_on = caps;
+        card.submit(0);
+        let refused = Outcome {
+            code: 1,
+            stdout: String::new(),
+            stderr: "GDBus.Error:org.freedesktop.UDisks2.Error.Failed: x".into(),
+        };
+        card.exited(Proc::Unlock, &refused, 5);
+        CardText::of(&card, &catalog(&root)).note
+    };
+    assert_eq!(shown("crypto_LUKS", false), "That passphrase did not work.");
+    assert_eq!(
+        shown("crypto_LUKS", true),
+        "That passphrase did not work.\nCaps Lock is on."
+    );
+    let mut card = Card::new();
+    card.open_for("/dev/sdb1", "Backup", 0, "crypto_LUKS", "2");
+    card.field.caps_on = true;
+    assert_eq!(
+        CardText::of(&card, &catalog(&root)).note,
+        "",
+        "an empty note gains no hint"
+    );
+}
+
+#[test]
+fn the_eye_shows_the_typed_secret_only_while_held() {
+    let mut card = Card::new();
+    card.open_for("/dev/sdb1", "Backup", 0, "BitLocker", "2");
+    card.type_text("12ab-é");
+    let hidden = card.field.entry.text.clone();
+    assert_eq!(
+        hidden.len(),
+        "12ab-é".len(),
+        "the shadow keeps the secret's byte length"
+    );
+    assert_ne!(hidden, "12ab-é", "typing draws a mask, not the secret");
+    card.eye_press();
+    assert!(card.revealed());
+    assert_eq!(
+        card.field.entry.text, "12ab-é",
+        "holding the eye shows what was typed"
+    );
+    card.eye_release();
+    assert!(!card.revealed());
+    assert_eq!(card.field.entry.text, hidden, "letting go hides it again");
+}
+
+#[test]
+fn a_submit_or_close_while_the_eye_is_held_leaves_no_secret_in_the_entry() {
+    let mut card = Card::new();
+    card.open_for("/dev/sdb1", "Backup", 0, "crypto_LUKS", "2");
+    card.type_text("S3cr3t-canary");
+    card.eye_press();
+    card.submit(0);
+    assert!(!card.revealed(), "submitting lets go of the eye");
+    assert!(!format!("{card:?}").contains("S3cr3t-canary"));
+    assert!(!card.field.entry.text.contains("S3cr3t"));
+    let mut card = Card::new();
+    card.open_for("/dev/sdb1", "Backup", 0, "crypto_LUKS", "2");
+    card.type_text("S3cr3t-canary");
+    card.eye_press();
+    card.close();
+    assert!(
+        !card.revealed() && card.field.entry.text.is_empty(),
+        "closing lets go and empties the entry"
+    );
+}
+
+#[test]
+fn the_eye_does_nothing_on_an_empty_field() {
+    let mut card = Card::new();
+    card.open_for("/dev/sdb1", "Backup", 0, "crypto_LUKS", "2");
+    card.eye_press();
+    assert_eq!(card.field.entry.text, "");
+    card.eye_release();
 }

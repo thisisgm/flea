@@ -31,7 +31,7 @@ fn control(name: &str, enabled: bool, focused: bool, probe: &ButtonProbe) -> Str
 }
 
 impl UnlockView {
-    /// The open card's state, or None while closed; revealed stays false because GPUI's eye never reveals.
+    /// The open card's state, or None while closed; revealed is true only while the eye is held.
     pub fn reading(&self) -> Option<String> {
         let card = self.host.card.as_ref().filter(|c| c.opened)?;
         let phase = match card.phase {
@@ -52,7 +52,7 @@ impl UnlockView {
         };
         let probes = &self.probes;
         Some(format!(
-            "{{\"opened\":true,\"phase\":\"{phase}\",\"note\":\"{}\",\"noteIsError\":{},\"device\":\"{}\",\"label\":\"{}\",\"subtitle\":\"{}\",\"focus\":\"{focus}\",\"masked\":{},\"rect\":\"{}\",\"controls\":[{},{}],\"revealed\":false,\"eye\":\"{}\"}}",
+            "{{\"opened\":true,\"phase\":\"{phase}\",\"note\":\"{}\",\"noteIsError\":{},\"device\":\"{}\",\"label\":\"{}\",\"subtitle\":\"{}\",\"focus\":\"{focus}\",\"masked\":{},\"rect\":\"{}\",\"controls\":[{},{}],\"revealed\":{},\"eye\":\"{}\"}}",
             escape(&self.text.note),
             card.note.as_ref().is_some_and(|(_, error)| *error),
             escape(&card.device),
@@ -62,6 +62,7 @@ impl UnlockView {
             rect(&probes.card),
             control("cancel", true, focus == "cancel", &probes.cancel),
             control("unlock", card.unlock_available(), focus == "unlock", &probes.unlock),
+            card.revealed(),
             centre(&probes.eye),
         ))
     }
