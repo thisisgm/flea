@@ -78,6 +78,12 @@ pub fn unlock_argv(device: &str) -> Vec<String> {
     ["udisksctl", "unlock", "--block-device", device, "--key-file", "/dev/stdin"].iter().map(|s| s.to_string()).collect()
 }
 
+/// The mount argv for an unlocked cleartext device, naming a filesystem driver when one is forced.
+pub fn mount_argv(device: &str, driver: Option<&str>) -> Vec<String> {
+    let forced = driver.map(|d| ["--filesystem-type", d]);
+    ["udisksctl", "mount", "--block-device", device].into_iter().chain(forced.into_iter().flatten()).map(String::from).collect()
+}
+
 /// The lock argv for a container.
 pub fn lock_argv(backing: &str) -> Vec<String> {
     ["udisksctl", "lock", "--block-device", backing].iter().map(|s| s.to_string()).collect()
