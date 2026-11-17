@@ -2,6 +2,7 @@
 use crate::{
     backend::{Backend, Event},
     state::Shell,
+    window::startup::View,
 };
 use flea::jsondoc::{self, Json};
 use gpui::{Context, Task};
@@ -30,8 +31,13 @@ pub(crate) struct Runtime {
     serial: usize,
     status_id: usize,
     rows_id: usize,
+    /// The last status reply succeeded and has a repository root, so its rows may be needed.
     ready: bool,
+    /// A `gitrows` request is out; its reply fills the marks.
     pending: bool,
+    /// A `gitstatus` request is out. Kept separate from `ready` so a failed reply cannot stop
+    /// later refreshes: a read being unpaid for and a read that failed are different states.
+    status_pending: bool,
     /// Set by the wake task; consumed by the next frame that can send a refresh.
     due: bool,
     /// One idle refresh loop per drawn pane, alive only while Git status is on.
@@ -45,6 +51,12 @@ impl Runtime {
     pub(crate) fn stop(&mut self) {
         self.wake = None;
         self.due = false;
+    }
+
+    /// Whether a Git request is still waiting for a reply. Test-only view of the state machine.
+    #[cfg(test)]
+    pub(crate) fn in_flight(&self) -> bool {
+        self.status_pending || self.pending
     }
 }
 
@@ -62,14 +74,18 @@ fn ask_status(git: &mut Runtime, backend: Option<&Backend>, path: &str, on: bool
     git.status_id = git.serial;
     git.ready = false;
     git.pending = false;
+    git.status_pending = false;
     git.due = false;
     git.paths.clear();
     if let Some(backend) = backend {
-        let _ = backend.line(format!(
+        let line = format!(
             "{{\"c\":\"gitstatus\",\"id\":{},\"path\":{},\"enabled\":{on},\"refresh\":true}}",
             git.status_id,
             quote(path)
-        ));
+        );
+        // Only a request that actually reached the pipe is in flight. A failed write must not
+        // leave the pane believing a reply is coming, or the next tick could never refresh it.
+        git.status_pending = backend.line(line).is_ok();
     }
 }
 
@@ -82,11 +98,15 @@ impl Shell {
             .get("showGitStatus")
             .and_then(Json::as_bool)
             == Some(true);
+        let view = self.view;
         for (side, host) in self.panes.iter_mut().enumerate() {
             let Some(host) = host else {
                 continue;
             };
-            let on = enabled && !host.pane.state.search && !host.recent.on;
+            // Only side 0 is drawn outside Dual. A hidden pane must not hold a wake or run reads
+            // for a folder the user cannot see.
+            let shown = side == 0 || view == View::Dual;
+            let on = enabled && shown && !host.pane.state.search && !host.recent.on;
             let git = &mut host.git;
             if !on {
                 git.stop();
@@ -102,8 +122,13 @@ impl Shell {
                         if host.git.wake.is_none() {
                             return false;
                         }
-                        host.git.due = true;
-                        cx.notify();
+                        // A read already out covers this tick. Owing a refresh here would start a
+                        // second read the moment the first one's rows land, turning a slow mount
+                        // into back-to-back snapshots instead of delaying the next tick.
+                        if !host.git.status_pending && !host.git.pending {
+                            host.git.due = true;
+                            cx.notify();
+                        }
                         true
                     });
                     if !live.unwrap_or(false) {
@@ -123,37 +148,46 @@ impl Shell {
                 let backend = host.backend.as_ref().filter(|_| on || was_on);
                 ask_status(git, backend, &host.path, on);
             }
-            if git.due && on && git.ready && !git.pending {
-                ask_status(git, host.backend.as_ref(), &host.path, on);
-            }
-            if !on || !git.ready || git.pending {
+            // One read at a time. A request already out is advanced by its reply on a later
+            // frame, not by another frame here; a failed reply must still clear `status_pending`.
+            if git.status_pending || git.pending {
                 continue;
             }
-            let paths: Vec<_> = host
-                .list
-                .borrow()
-                .visible()
-                .iter()
-                .take(400)
-                .filter_map(|shown| host.pane.held.row(shown.index))
-                .map(|row| crate::navigation::history::join(&host.path, &row.name))
-                .collect();
-            if paths == git.paths {
-                continue;
-            }
-            if let Some(backend) = &host.backend {
-                git.serial += 1;
-                git.rows_id = git.serial;
-                let line = format!(
-                    "{{\"c\":\"gitrows\",\"id\":{},\"path\":{},\"paths\":[{}]}}",
-                    git.rows_id,
-                    quote(&host.path),
-                    paths.iter().map(|p| quote(p)).collect::<Vec<_>>().join(",")
-                );
-                if backend.line(line).is_ok() {
-                    git.paths = paths;
-                    git.pending = true;
+            // A finished snapshot owes fresh rows for the current viewport before any owed tick
+            // may start another read. Fetching rows first keeps a read slower than REFRESH_EVERY
+            // from updating its label while starving its own marks on every later tick.
+            if on && git.ready {
+                let paths: Vec<_> = host
+                    .list
+                    .borrow()
+                    .visible()
+                    .iter()
+                    .take(400)
+                    .filter_map(|shown| host.pane.held.row(shown.index))
+                    .map(|row| crate::navigation::history::join(&host.path, &row.name))
+                    .collect();
+                if paths != git.paths {
+                    if let Some(backend) = &host.backend {
+                        git.serial += 1;
+                        git.rows_id = git.serial;
+                        let line = format!(
+                            "{{\"c\":\"gitrows\",\"id\":{},\"path\":{},\"paths\":[{}]}}",
+                            git.rows_id,
+                            quote(&host.path),
+                            paths.iter().map(|p| quote(p)).collect::<Vec<_>>().join(",")
+                        );
+                        if backend.line(line).is_ok() {
+                            git.paths = paths;
+                            git.pending = true;
+                        }
+                    }
+                    continue;
                 }
+            }
+            // The guard tracks the in-flight read, not `ready`: a failed reply left `ready` false,
+            // but the next tick still owes a fresh read and must be free to start one.
+            if git.due && on && host.backend.is_some() {
+                ask_status(git, host.backend.as_ref(), &host.path, on);
             }
         }
     }
@@ -180,6 +214,17 @@ impl Shell {
         };
         let git = &mut host.git;
         let id = doc.get("id").and_then(Json::as_f64).unwrap_or(0.) as usize;
+        let status = kind == "gitstatus" && id == git.status_id;
+        let rows = kind == "gitrows" && git.pending && id == git.rows_id;
+        // Settle the request before the path/target guard. A reply carrying the current id means
+        // that read is over even when its path no longer matches (a rename, a late reply after
+        // navigation); leaving the flag set would block every later refresh for this pane.
+        if status {
+            git.status_pending = false;
+        }
+        if rows {
+            git.pending = false;
+        }
         if text(&doc, "path") != host.path
             || git
                 .target
@@ -189,7 +234,7 @@ impl Shell {
             return true;
         }
         let ok = doc.get("ok").and_then(Json::as_bool) == Some(true);
-        if kind == "gitstatus" && id == git.status_id {
+        if status {
             git.ready = ok && !text(&doc, "root").is_empty();
             // An idle refresh keeps the last marks on screen until its rows land. A failed
             // snapshot has nothing truthful left to draw, so it clears them.
@@ -207,8 +252,7 @@ impl Shell {
                 marks,
                 ..Default::default()
             });
-        } else if kind == "gitrows" && git.pending && id == git.rows_id {
-            git.pending = false;
+        } else if rows {
             let mut paint = Paint {
                 label: git.paint.label.clone(),
                 ..Default::default()
