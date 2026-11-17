@@ -35,6 +35,10 @@ fn tile_ink_takes_the_style_ground_and_the_style_colour() {
     );
     let list = Palette::inherited(&style, theme);
     assert_eq!(
+        ink.muted, list.muted,
+        "hidden names share the list's quiet role"
+    );
+    assert_eq!(
         (
             ink.background,
             ink.foreground,

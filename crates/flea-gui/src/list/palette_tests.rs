@@ -1,6 +1,22 @@
 use super::bench::{held, open, real_cx};
 use std::rc::Rc;
 
+#[test]
+fn hidden_names_are_muted_until_lifted() {
+    let palette = super::Palette::inherited(
+        &gpui::TextStyle::default(),
+        crate::palette::Theme::default(),
+    );
+    assert_eq!(
+        palette.name(crate::row::NameInk::Hidden, false),
+        palette.muted
+    );
+    assert_eq!(
+        palette.name(crate::row::NameInk::Hidden, true),
+        palette.foreground
+    );
+}
+
 struct InheritedProbe {
     list: Rc<std::cell::RefCell<super::ListState>>,
 }

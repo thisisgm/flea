@@ -32,6 +32,10 @@ The actual-train rehearsal includes the approved staging ancestors that precede 
 
 The Stage13 landing correction retains exact scoped composition ceilings for the small overages in the already reviewed union: rail tests 415, events 405, navigation 408, rail join 411, search join 403, search tests 468, Columns element 421, menu element 408, picker route tests 401 and list owner 411. These files are byte-identical to frozen Stage13 tree `a647d05fe2da8eecab65a60bc0916f9ea71abe1c`; the existing per-file ceiling mechanism records their exact counts. Larger new ownership growth moves into filter input routing, sort inline tests and three mounted test units. No behavior or assertion is removed, and the global 400-line Rust cap stays unchanged. Parent-identical budget debt remains explicitly red rather than being added to this exception list.
 
+## Hidden-file name shading
+
+The Grid caption painter resolves its filename role before the existing glass contrast lift. Rustfmt expands that call by four lines, raising `crates/flea-gui/src/grid/element/paint.rs` from 463 to 467 lines (`wc -l`). The hidden-name policy stays in the shared row module and Grid's ground module; the global limit is unchanged.
+
 ## File budget
 
 The OPR sandbox-capability guards add three lines to each of ten contents review tests. The exact scoped ceiling for `src/backend/contents_review_tests.rs` is 476 lines, measured with `wc -l`. Every test still runs in full on namespace-capable hosts, and the global 400-line cap stays unchanged.

@@ -92,7 +92,7 @@ crates/flea-gui/src/g2/settings_pages/panel.rs 421
 crates/flea-gui/src/window/settings/fix1_tests.rs 409
 crates/flea-gui/src/g2/trash_browser/tests.rs 527
 crates/flea-gui/src/g2/file_search/contents.rs 430
-crates/flea-gui/src/grid/element/paint.rs 463
+crates/flea-gui/src/grid/element/paint.rs 467
 crates/flea-gui/src/list/element.rs 667
 crates/flea-gui/src/path/paint.rs 451
 crates/flea-gui/tests/g1_07/cols_pwid.rs 420

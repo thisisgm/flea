@@ -68,6 +68,16 @@ pub(super) fn plate(
 }
 
 impl Ink {
+    /// Focused, selected and drop-target names retain their full contrast.
+    pub(super) fn name(&self, name: &str, drawn: &super::Drawn) -> Hsla {
+        let lit = drawn.cursor || drawn.selected || drawn.drop.is_some();
+        if !lit && crate::row::is_hidden_name(name) {
+            self.muted
+        } else {
+            self.foreground
+        }
+    }
+
     /// The window's roles and Settings > View > Highlight on hover, read once per frame in prepaint.
     pub(super) fn for_window(window: &Window, cx: &gpui::App) -> Self {
         let theme = cx
