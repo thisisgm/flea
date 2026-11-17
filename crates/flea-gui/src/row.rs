@@ -79,10 +79,15 @@ pub fn name_ink(row: &RowFacts) -> NameInk {
 /// Preview filenames share the quiet role without changing the preview's content or icons.
 pub fn preview_name_ink(name: &str, foreground: gpui::Hsla, muted: gpui::Hsla) -> gpui::Hsla {
     if is_hidden_name(name) {
-        muted
+        hidden_name_ink(muted)
     } else {
         foreground
     }
+}
+
+/// One faded theme role for hidden names in every view and preview.
+pub fn hidden_name_ink(muted: gpui::Hsla) -> gpui::Hsla {
+    muted.opacity(0.65)
 }
 
 /// Row.qml decoratedName: the name, then a link's target, each as shown_name draws it.

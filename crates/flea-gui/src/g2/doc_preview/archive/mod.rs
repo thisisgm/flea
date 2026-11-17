@@ -306,7 +306,7 @@ impl ArchiveView {
                 cx,
             );
             // Archive entries already use muted text; hidden entries take a quieter version of that role.
-            let ink = crate::row::preview_name_ink(name, p.muted, p.muted.opacity(0.65));
+            let ink = crate::row::preview_name_ink(name, p.muted, p.muted);
             text(run, left + glyph + px(m.gap), y, row, ink, window);
             y += row;
         }

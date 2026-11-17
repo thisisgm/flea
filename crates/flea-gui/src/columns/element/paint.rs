@@ -170,7 +170,7 @@ impl TrackElement {
                                 && row_at(&view.rows, held, *index)
                                     .is_some_and(|row| crate::row::is_hidden_name(row.name()))
                             {
-                                inks.name = palette.muted;
+                                inks.name = crate::row::hidden_name_ink(palette.muted);
                             }
                             inks.name =
                                 crate::window::glass::producers::text_ink(inks.name, window, cx);

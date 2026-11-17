@@ -72,7 +72,7 @@ impl Ink {
     pub(super) fn name(&self, name: &str, drawn: &super::Drawn) -> Hsla {
         let lit = drawn.cursor || drawn.selected || drawn.drop.is_some();
         if !lit && crate::row::is_hidden_name(name) {
-            self.muted
+            crate::row::hidden_name_ink(self.muted)
         } else {
             self.foreground
         }

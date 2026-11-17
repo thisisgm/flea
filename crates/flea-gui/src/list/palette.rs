@@ -92,7 +92,7 @@ impl Palette {
     pub fn name(&self, ink: NameInk, lifted: bool) -> Hsla {
         match (lifted, ink) {
             (true, _) | (false, NameInk::Foreground) => self.foreground,
-            (false, NameInk::Hidden) => self.muted,
+            (false, NameInk::Hidden) => crate::row::hidden_name_ink(self.muted),
             (false, NameInk::Symlink) => self.symlink,
             (false, NameInk::Executable) => self.executable,
         }

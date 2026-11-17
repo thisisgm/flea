@@ -8,8 +8,8 @@ fn preview_names_use_raw_filenames_and_keep_visible_children_bright() {
         crate::palette::Theme::default(),
     );
     for (name, expected) in [
-        ("/files/.secret.txt", palette.muted),
-        (".config/", palette.muted),
+        ("/files/.secret.txt", palette.muted.opacity(0.65)),
+        (".config/", palette.muted.opacity(0.65)),
         (".config/visible.txt", palette.foreground),
         ("photo.png", palette.foreground),
     ] {
@@ -29,7 +29,7 @@ fn hidden_names_are_muted_until_lifted() {
     );
     assert_eq!(
         palette.name(crate::row::NameInk::Hidden, false),
-        palette.muted
+        palette.muted.opacity(0.65)
     );
     assert_eq!(
         palette.name(crate::row::NameInk::Hidden, true),
