@@ -9,7 +9,12 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        if event.button != MouseButton::Middle || self.input_blocked(cx) {
+        if event.button != MouseButton::Middle
+            || self.input_blocked(cx)
+            || self.jobs_card_at(event.position, cx)
+        {
+            // The card is occluded, but the capture phase can run before its own mouse handler.
+            // A press inside its frame must never reach a folder row drawn underneath it.
             return;
         }
         for side in 0..2 {

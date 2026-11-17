@@ -4,10 +4,13 @@ use crate::state::Shell;
 use gpui::{Context, MouseButton, MouseDownEvent, Window};
 
 impl Shell {
+    /// The shared gate for listing presses, wheels and the actions beside them. The non-modal Jobs
+    /// card is deliberately not part of it: it occludes its own frame and stops that frame's mouse
+    /// events, so a press or wheel anywhere else still belongs to the pane under it (issue 398).
     pub(crate) fn input_blocked(&self, cx: &gpui::App) -> bool {
-        self.wheel_blocked(cx) || self.jobs_card_showing(cx)
+        self.wheel_blocked(cx)
     }
-    /// `input_blocked` without the Jobs card: a wheel beside that non-modal card still moves its track.
+    /// The modal cards, menus and fields that take the wheel and the listing keys with them.
     pub(crate) fn wheel_blocked(&self, cx: &gpui::App) -> bool {
         self.lifecycle.phase() != crate::window::lifecycle::Phase::Open
             || self.modal_card_holds_keyboard(cx)
