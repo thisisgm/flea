@@ -5,7 +5,6 @@ cd "$(dirname "$0")/.." || exit 1
 repo=$PWD
 . "$repo/tools/flea-sandbox-guard"
 . "$repo/tests/headless-commons.sh"
-FIXTURE_ROOT="$repo/.superpowers/raildrop"
 sandbox_root_ok
 mkdir -p "$SANDBOX_ROOT" || exit 1
 probe=$(mktemp -d "$SANDBOX_ROOT/probe.XXXXXXXX") || exit 1
