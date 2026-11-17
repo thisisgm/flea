@@ -26,7 +26,12 @@ impl UnlockView {
             } else if !active {
                 card.field.entry.ime_unmark();
                 card.field.entry.editing = false;
-                self.drawn.borrow_mut().line.registered = None;
+                let mut drawn = self.drawn.borrow_mut();
+                // A secret the eye showed leaves no shaped copy behind once the field closes or submits.
+                if drawn.revealed {
+                    *drawn = Default::default();
+                }
+                drawn.line.registered = None;
             }
         }
         self.input_active = active;
@@ -52,6 +57,7 @@ impl UnlockView {
             return;
         };
         let field = &mut card.field;
+        field.conceal();
         if private_entry::replace(&mut field.entry, &mut field.text, range, text, marked) {
             field.held_mask = 0;
             card.edited();
