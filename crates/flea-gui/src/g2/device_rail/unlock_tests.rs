@@ -324,6 +324,7 @@ fn failed_mount_relocks_and_says_so_then_a_retry_unlocks() {
     let mut card = opened();
     submit(&mut card, 0);
     card.exited(Proc::Unlock, &unlocked(), 5);
+    card.exited(Proc::Mount, &out(1, "", "Error mounting"), 8);
     let effects = card.exited(Proc::Mount, &out(1, "", "Error mounting"), 10);
     assert_eq!(
         lock_of(&effects).as_deref(),
@@ -357,6 +358,7 @@ fn failed_mount_with_a_refused_lock_tells_both() {
     let mut card = opened();
     submit(&mut card, 0);
     card.exited(Proc::Unlock, &unlocked(), 5);
+    card.exited(Proc::Mount, &out(1, "", ""), 8);
     card.exited(Proc::Mount, &out(1, "", ""), 10);
     let effects = card.exited(Proc::Lock, &out(1, "", ""), 15);
     assert!(matches!(&effects[..], [Effect::LockFailed(n)] if *n == lock_note("Backup")));

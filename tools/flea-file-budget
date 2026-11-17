@@ -74,7 +74,7 @@ crates/flea-gui/src/g2/file_ops/view.rs 684
 crates/flea-gui/src/g2/doc_preview/surface.rs 440
 crates/flea-gui/src/g2/device_rail/devices.rs 419
 crates/flea-gui/src/g2/device_rail/unlock.rs 429
-crates/flea-gui/src/g2/device_rail/unlock_tests.rs 597
+crates/flea-gui/src/g2/device_rail/unlock_tests.rs 599
 crates/flea-gui/src/g2/device_rail/view_quad_tests.rs 517
 crates/flea-gui/src/g2/model_preview/frame_tests.rs 512
 crates/flea-gui/src/g2/model_preview/tests.rs 410

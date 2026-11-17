@@ -388,8 +388,8 @@ impl Card {
             String::new()
         };
         if folder.is_empty() {
-            // ntfs3 refuses some BitLocker volumes Windows mounts; the native ntfs driver takes them (#494).
-            if self.crypto == "BitLocker" && !std::mem::replace(&mut self.mapped.1, true) {
+            // ntfs3 refuses some volumes Windows mounts; the native ntfs driver takes them (#494). Any crypto: an early-typed card still reads "LUKS".
+            if !std::mem::replace(&mut self.mapped.1, true) {
                 return self.start_mount(Some("ntfs"));
             }
             return vec![self.lock_container(true, "", "")];
