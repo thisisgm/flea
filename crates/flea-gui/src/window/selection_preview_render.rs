@@ -327,6 +327,7 @@ impl Render for SelectionPreview {
         root = root.child(
             div()
                 .debug_selector(|| "column-preview-name".into())
+                .text_color(self.name_ink(frame, &roles))
                 .w_full()
                 .flex_none()
                 .overflow_hidden()

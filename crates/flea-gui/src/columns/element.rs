@@ -21,6 +21,7 @@ use std::{cell::RefCell, rc::Rc};
 mod tags;
 
 mod menu_target;
+mod name_lit;
 mod options;
 mod paint;
 

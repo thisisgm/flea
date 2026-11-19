@@ -131,6 +131,7 @@ pub struct Overlay {
 pub struct Ink {
     pub background: Hsla,
     pub foreground: Hsla,
+    pub muted: Hsla,
     pub muted_frame: Hsla,
     pub accent: Hsla,
     pub accent_frame: Hsla,
@@ -145,6 +146,7 @@ impl Ink {
         Self {
             background: base.background,
             foreground: base.foreground,
+            muted: base.muted,
             muted_frame: base.muted_frame,
             accent: base.accent,
             accent_frame: base.accent_frame,

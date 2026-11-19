@@ -274,7 +274,8 @@ impl ArchiveView {
         };
         if let Some((_, name)) = &frame.name {
             let height = m.name * 1.3;
-            text(name, left, y, height, p.foreground, window);
+            let ink = crate::row::preview_name_ink(&self.path, p.foreground, p.muted);
+            text(name, left, y, height, ink, window);
             y += height + px(m.gap);
         }
         if let Some((_, line)) = &frame.line {
@@ -284,7 +285,12 @@ impl ArchiveView {
         }
         let row = px(m.row);
         let glyph = px(m.glyph);
-        for (dir, (_, run)) in &frame.rows {
+        let names = self
+            .meta
+            .as_ref()
+            .map(|meta| meta.names.as_slice())
+            .unwrap_or_default();
+        for ((dir, (_, run)), (name, _)) in frame.rows.iter().zip(names) {
             let (key, data) = if *dir {
                 &self.folder_mark
             } else {
@@ -299,7 +305,9 @@ impl ArchiveView {
                 p.muted_frame,
                 cx,
             );
-            text(run, left + glyph + px(m.gap), y, row, p.muted, window);
+            // Archive entries already use muted text; hidden entries take a quieter version of that role.
+            let ink = crate::row::preview_name_ink(name, p.muted, p.muted);
+            text(run, left + glyph + px(m.gap), y, row, ink, window);
             y += row;
         }
         if let Some((_, more)) = &frame.more {

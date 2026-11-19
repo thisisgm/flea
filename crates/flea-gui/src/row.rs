@@ -42,6 +42,7 @@ const ANY_EXECUTE_BIT: u32 = 0o111;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum NameInk {
     Foreground,
+    Hidden,
     Symlink,
     Executable,
 }
@@ -50,9 +51,21 @@ pub fn is_symlink(mode: u32) -> bool {
     mode & S_IFMT == S_IFLNK
 }
 
-/// Row.qml nameColor(): a link, then a folder, then an executable file the mount reports real modes for.
+/// Dotfiles use the quiet role, including search results whose names contain a path.
+pub fn is_hidden_name(name: &str) -> bool {
+    let leaf = name
+        .trim_end_matches('/')
+        .rsplit('/')
+        .next()
+        .unwrap_or(name);
+    leaf.starts_with('.') && leaf != "." && leaf != ".."
+}
+
+/// Hidden names first, then links, folders and executable files with real modes.
 pub fn name_ink(row: &RowFacts) -> NameInk {
-    if is_symlink(row.mode) {
+    if is_hidden_name(&row.name) {
+        NameInk::Hidden
+    } else if is_symlink(row.mode) {
         NameInk::Symlink
     } else if row.dir {
         NameInk::Foreground
@@ -61,6 +74,20 @@ pub fn name_ink(row: &RowFacts) -> NameInk {
     } else {
         NameInk::Foreground
     }
+}
+
+/// Preview filenames share the quiet role without changing the preview's content or icons.
+pub fn preview_name_ink(name: &str, foreground: gpui::Hsla, muted: gpui::Hsla) -> gpui::Hsla {
+    if is_hidden_name(name) {
+        hidden_name_ink(muted)
+    } else {
+        foreground
+    }
+}
+
+/// One faded theme role for hidden names in every view and preview.
+pub fn hidden_name_ink(muted: gpui::Hsla) -> gpui::Hsla {
+    muted.opacity(0.65)
 }
 
 /// Row.qml decoratedName: the name, then a link's target, each as shown_name draws it.
@@ -254,6 +281,30 @@ mod tests {
             mode,
             real_modes: true,
             ..RowFacts::default()
+        }
+    }
+
+    #[test]
+    fn hidden_names_use_the_leaf_and_override_file_kinds() {
+        for name in [
+            ".env",
+            ".config",
+            ".config/",
+            "/home/me/.env",
+            "nested/.secret",
+        ] {
+            assert!(is_hidden_name(name), "{name}");
+            for mode in [0o100644, 0o100755, 0o120777] {
+                assert_eq!(name_ink(&row(name, mode)), NameInk::Hidden);
+            }
+        }
+        let folder = RowFacts {
+            dir: true,
+            ..row(".config", 0o040755)
+        };
+        assert_eq!(name_ink(&folder), NameInk::Hidden);
+        for name in ["", ".", "..", "file.txt", ".config/visible", "/tmp/file"] {
+            assert!(!is_hidden_name(name), "{name}");
         }
     }
 

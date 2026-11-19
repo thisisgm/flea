@@ -266,7 +266,7 @@ impl Element for MediaElement {
                     );
                 }
             }
-            Picture::Audio { .. } => {
+            Picture::Audio { name, .. } => {
                 // ql-audio.html: the mark and a fixed text column centre on the whole card, under the strip too.
                 let column = audio_column(f32::from(bounds.size.width));
                 let left = centre.x - px(size::STATE_MARK + size::AUDIO_GAP + column) / 2.;
@@ -283,7 +283,7 @@ impl Element for MediaElement {
                 let mut top = centre.y - px(heights / 2.);
                 for (index, (run, height)) in shaped.lines.iter().enumerate() {
                     let colour = if index == 0 {
-                        ink.foreground
+                        crate::row::preview_name_ink(name, ink.foreground, ink.muted)
                     } else {
                         ink.muted
                     };

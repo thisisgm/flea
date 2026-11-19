@@ -38,6 +38,15 @@ pub(crate) fn line_ink(roles: &crate::list::Palette) -> gpui::Hsla {
 }
 
 impl SelectionPreview {
+    /// A multi-selection caption is not a filename and keeps its ordinary foreground.
+    pub(crate) fn name_ink(&self, frame: &Frame, roles: &crate::list::Palette) -> gpui::Hsla {
+        if frame.kind == Kind::Multi {
+            roles.foreground
+        } else {
+            crate::row::preview_name_ink(&frame.subject.row.name, roles.foreground, roles.muted)
+        }
+    }
+
     /// cols-preview-video.html: an 18 px fact row at caption 12, the name's 20 px line at body 14.
     pub(crate) fn fact_row(&self) -> (f32, f32) {
         (

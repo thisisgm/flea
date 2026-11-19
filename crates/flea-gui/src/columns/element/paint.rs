@@ -165,8 +165,18 @@ impl TrackElement {
                             }
                             let name = prepared.name_for(chevron, cursor);
                             let name_x = left + px(geometry.name_x);
-                            inks.name =
-                                crate::window::glass::producers::text_ink(inks.name, window, cx);
+                            let lift = |color| {
+                                crate::window::glass::producers::text_ink(color, window, cx)
+                            };
+                            // The glass lift knows only exact theme roles, so a hidden name fades after it, as List.
+                            inks.name = if !focus.name_lit(view.slot, *index, lifted)
+                                && row_at(&view.rows, held, *index)
+                                    .is_some_and(|row| crate::row::is_hidden_name(row.name()))
+                            {
+                                crate::row::hidden_name_ink(lift(palette.muted))
+                            } else {
+                                lift(inks.name)
+                            };
                             paint_line(name, name_x, top, self.band, inks.name, window);
                             let mut name_width = f32::from(name.line().width);
                             if let Some(location) = prepared.location.as_ref() {
