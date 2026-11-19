@@ -165,8 +165,7 @@ impl TrackElement {
                             }
                             let name = prepared.name_for(chevron, cursor);
                             let name_x = left + px(geometry.name_x);
-                            if !cursor
-                                && !lifted
+                            if !focus.name_lit(view.slot, *index, lifted)
                                 && row_at(&view.rows, held, *index)
                                     .is_some_and(|row| crate::row::is_hidden_name(row.name()))
                             {

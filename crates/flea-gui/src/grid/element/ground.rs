@@ -70,7 +70,16 @@ pub(super) fn plate(
 impl Ink {
     /// Focused, selected and drop-target names retain their full contrast.
     pub(super) fn name(&self, name: &str, drawn: &super::Drawn) -> Hsla {
-        let lit = drawn.cursor || drawn.selected || drawn.drop.is_some();
+        self.name_in(
+            name,
+            drawn.cursor || drawn.selected || drawn.drop.is_some(),
+            drawn.hovered,
+        )
+    }
+
+    /// A hovered tile brightens only under Highlight on hover, as List's lit pointer row does.
+    pub(super) fn name_in(&self, name: &str, lit: bool, hovered: bool) -> Hsla {
+        let lit = lit || (hovered && self.hover_wash);
         if !lit && crate::row::is_hidden_name(name) {
             crate::row::hidden_name_ink(self.muted)
         } else {
