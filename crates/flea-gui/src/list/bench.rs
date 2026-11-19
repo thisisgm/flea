@@ -66,6 +66,7 @@ fn row(name: String, icon: &str, size: u64, dir: bool) -> RowFacts {
         kind: String::new(),
         inline: None,
         tags: None,
+        sync: None,
     }
 }
 

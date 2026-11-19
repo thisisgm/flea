@@ -58,6 +58,7 @@ fn landed() -> Listing {
                 kind: String::new(),
                 inline: None,
                 tags: None,
+                sync: None,
             },
             RowFacts {
                 listing_index: None,
@@ -76,6 +77,7 @@ fn landed() -> Listing {
                 kind: String::new(),
                 inline: None,
                 tags: None,
+                sync: None,
             },
         ]
     ));

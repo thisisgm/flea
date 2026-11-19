@@ -26,6 +26,7 @@ pub(crate) mod language_capture;
 #[cfg(test)]
 mod language_tests;
 pub mod marks;
+pub mod sync;
 pub mod tags;
 
 use flea::protocol::RowFacts;

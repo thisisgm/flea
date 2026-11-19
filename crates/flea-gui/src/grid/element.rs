@@ -12,6 +12,7 @@ mod pictures_tests;
 #[cfg(test)]
 #[path = "row_pictures_tests.rs"]
 mod row_pictures_tests;
+mod sync;
 mod tags;
 mod tip;
 

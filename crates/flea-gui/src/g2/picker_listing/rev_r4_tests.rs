@@ -23,6 +23,7 @@ fn row(name: &str, dir: bool) -> RowFacts {
         kind: String::new(),
         inline: None,
         tags: None,
+        sync: None,
     }
 }
 

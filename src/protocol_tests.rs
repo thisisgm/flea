@@ -26,6 +26,31 @@ fn tag_metadata_preserves_absence_empty_and_names_without_accepting_wrong_types(
 }
 
 #[test]
+fn sync_state_reads_known_words_ignores_unknown_ones_and_refuses_a_non_string() {
+    let line = |suffix: &str| {
+        format!(
+            r#"{{"t":"rows","start":0,"listing":1,"rows":[{{"n":"a","d":false,"s":0,"m":0,"p":33188,"i":"file"{suffix}}}]}}"#
+        )
+    };
+    for (suffix, expected) in [
+        ("", None),
+        (r#", "sy":"synced""#, Some(SyncMark::Synced)),
+        (r#", "sy":"conflict""#, Some(SyncMark::Conflict)),
+        (r#", "sy":"pending""#, None),
+    ] {
+        let Reply::Rows { rows, .. } = parse_reply(&line(suffix)).unwrap() else {
+            panic!("rows")
+        };
+        assert_eq!(rows[0].sync, expected, "{suffix}");
+    }
+    assert!(parse_reply(&line(r#", "sy":1"#)).is_err());
+    for mark in SyncMark::ALL {
+        assert_eq!(SyncMark::from_word(mark.word()), Some(mark));
+    }
+    assert_eq!(SyncMark::from_word("Synced"), None);
+}
+
+#[test]
 fn list_paths_cannot_inject_another_line_or_field() {
     let path = "/files/a\"b\nnext\\file";
     let mut wire = Vec::new();

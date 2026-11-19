@@ -26,6 +26,7 @@ pub(super) fn landed_two() -> Listing {
                 kind: String::new(),
                 inline: None,
                 tags: None,
+                sync: None,
             },
             RowFacts {
                 listing_index: None,
@@ -44,6 +45,7 @@ pub(super) fn landed_two() -> Listing {
                 kind: String::new(),
                 inline: None,
                 tags: None,
+                sync: None,
             },
         ]
     ));
