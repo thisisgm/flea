@@ -67,3 +67,23 @@ fn a_release_lasts_only_its_listing_and_leaving_stops_the_read() {
     assert_ne!(WANTED.load(Ordering::Relaxed), 9);
     assert!(PEEK.with(|peek| peek.borrow().shown.is_none() && peek.borrow().released.is_none()));
 }
+
+#[test]
+fn a_folder_whose_name_is_not_utf8_reads_from_its_own_bytes() {
+    use std::os::unix::ffi::OsStrExt;
+    let _wanted = WANTED_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let dir = std::env::temp_dir().join(format!("flea-list-side-bytes-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    let odd = dir.join(std::ffi::OsStr::from_bytes(b"caf\xe9"));
+    std::fs::create_dir_all(odd.join("inside")).unwrap();
+    // The listing's text form of that path, as the List view joins it.
+    let path = flea::bytename::path_text(&odd).into_owned();
+    WANTED.store(9, Ordering::Relaxed);
+    let Some(Answer::Listed(entries, total)) = read(&path, false, 9, None) else {
+        panic!("the folder lists from its own bytes");
+    };
+    assert_eq!((entries, total), (vec![("inside".to_owned(), true)], 1));
+    let _ = std::fs::remove_dir_all(&dir);
+}

@@ -10,7 +10,6 @@ use gpui::Context;
 use std::{
     cell::RefCell,
     collections::BinaryHeap,
-    path::Path,
     sync::atomic::{AtomicU64, Ordering},
 };
 
@@ -117,9 +116,12 @@ impl PartialOrd for Ranked {
 /// at once; it gives up as soon as a newer folder is wanted.
 fn read(path: &str, hidden: bool, generation: u64, gate: Option<Gate>) -> Option<Answer> {
     // The folder's own storage: a mount point or a link onto a held class waits for Load, as a file there would.
+    // A listing name that is not UTF-8 carries an encoded tail; the filesystem wants its own bytes back.
+    let folder = flea::bytename::text_path(path);
     if let Some(gate) = gate {
         let table = std::fs::read_to_string("/proc/self/mountinfo").unwrap_or_default();
-        let class = super::list_mount::crossing(&table, Path::new(&gate.parent), Path::new(path));
+        let parent = flea::bytename::text_path(&gate.parent);
+        let class = super::list_mount::crossing(&table, &parent, &folder);
         let at = |class| {
             super::list_mount::CLASSES
                 .iter()
@@ -129,7 +131,7 @@ fn read(path: &str, hidden: bool, generation: u64, gate: Option<Gate>) -> Option
             return Some(Answer::Held);
         }
     }
-    let entries = match std::fs::read_dir(path) {
+    let entries = match std::fs::read_dir(&folder) {
         Ok(entries) => entries,
         Err(error) => return Some(Answer::Failed(error.to_string())),
     };
@@ -170,6 +172,16 @@ fn read(path: &str, hidden: bool, generation: u64, gate: Option<Gate>) -> Option
         .map(|ranked| ranked.entry)
         .collect();
     Some(Answer::Listed(entries, total))
+}
+
+/// Whether the answer of read `generation` is still the one the preview shows.
+fn still_shown(generation: u64) -> bool {
+    PEEK.with(|peek| {
+        peek.borrow()
+            .shown
+            .as_ref()
+            .is_some_and(|shown| shown.generation == generation && shown.entries.is_some())
+    })
 }
 
 pub(super) fn join(directory: &str, name: &str) -> String {
@@ -272,15 +284,13 @@ impl Shell {
             let shown = peek.shown.as_ref()?;
             let waiting = shown.entries.is_none() || !fresh;
             // A stuck read holds back only its own folder; any other folder starts a read beside it.
-            let free = peek.running.is_none_or(|(running, at)| {
-                running != shown.generation && at.elapsed() > STALL
-            });
+            let free = peek
+                .running
+                .is_none_or(|(running, at)| running != shown.generation && at.elapsed() > STALL);
             (free && waiting).then_some(shown.generation)
         });
         let Some(generation) = start else { return };
-        PEEK.with(|peek| {
-            peek.borrow_mut().running = Some((generation, std::time::Instant::now()))
-        });
+        PEEK.with(|peek| peek.borrow_mut().running = Some((generation, std::time::Instant::now())));
         let wanted = path.to_owned();
         // Its own thread, so a read stuck in the filesystem never holds a shared executor thread.
         let (sender, answer) = async_channel::bounded(1);
@@ -311,7 +321,10 @@ impl Shell {
             PEEK.with(|peek| {
                 let mut peek = peek.borrow_mut();
                 // A late answer from a stuck read leaves the read that replaced it running.
-                if peek.running.is_some_and(|(running, _)| running == generation) {
+                if peek
+                    .running
+                    .is_some_and(|(running, _)| running == generation)
+                {
                     peek.running = None;
                 }
                 if let (Some(shown), Some(read)) = (
@@ -326,6 +339,12 @@ impl Shell {
             });
             // Drawn again, the folder now under the cursor starts its own read if it still waits.
             let _ = this.update(cx, |_, cx| cx.notify());
+            // While this answer stays shown, an idle window still wakes once it goes stale, so entries
+            // deleted or added meanwhile show; a newer read or another folder ends the wait.
+            cx.background_executor().timer(PEEK_FRESH).await;
+            if still_shown(generation) {
+                let _ = this.update(cx, |_, cx| cx.notify());
+            }
         })
         .detach();
     }
