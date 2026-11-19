@@ -34,7 +34,7 @@ The Stage13 landing correction retains exact scoped composition ceilings for the
 
 ## Hidden-file name shading
 
-The Grid caption painter resolves its filename role before the existing glass contrast lift. Rustfmt expands that call by four lines, raising `crates/flea-gui/src/grid/element/paint.rs` from 463 to 467 lines (`wc -l`). The hidden-name policy stays in the shared row module and Grid's ground module; the global limit is unchanged.
+The Grid caption painter passes the glass contrast lift into its filename role, so a hidden name fades after the lift. The call that passes the glass lift adds two lines, raising `crates/flea-gui/src/grid/element/paint.rs` from 463 to 465 lines (`wc -l`). The hidden-name policy stays in the shared row module and Grid's ground module; the global limit is unchanged.
 
 ## File budget
 
