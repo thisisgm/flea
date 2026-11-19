@@ -82,11 +82,13 @@ fn class_of(mount: &Mount, path: &Path) -> &'static str {
     }
 }
 
-/// The class of the folder at `path` when it lies on another mount than `parent`, None when it shares the
-/// parent's mount or cannot be walked (the read then reports why).
+/// The class of the folder at `path` when it lies on another mount than `parent`, or on the same mount under
+/// another class (a phone's share under the gvfs folder); None when it shares the parent's mount and class or
+/// cannot be walked (the read then reports why).
 pub(super) fn crossing(table: &str, parent: &Path, path: &Path) -> Option<&'static str> {
-    let home = holding(table, parent).map(|mount| mount.point);
-    let differs = |mount: &Mount| home.as_ref() != Some(&mount.point);
+    let home = holding(table, parent).map(|mount| (class_of(&mount, parent), mount.point));
+    let differs =
+        |mount: &Mount, class: &'static str| home.as_ref() != Some(&(class, mount.point.clone()));
     let mut pending: Vec<PathBuf> = path
         .components()
         .rev()
@@ -109,7 +111,8 @@ pub(super) fn crossing(table: &str, parent: &Path, path: &Path) -> Option<&'stat
                     let whole: PathBuf = std::iter::once(candidate)
                         .chain(pending.into_iter().rev())
                         .collect();
-                    return differs(&mount).then(|| class_of(&mount, &whole));
+                    let class = class_of(&mount, &whole);
+                    return differs(&mount, class).then_some(class);
                 }
                 let meta = std::fs::symlink_metadata(&candidate).ok()?;
                 if !meta.file_type().is_symlink() {
@@ -132,7 +135,8 @@ pub(super) fn crossing(table: &str, parent: &Path, path: &Path) -> Option<&'stat
         }
     }
     let mount = holding(table, &resolved)?;
-    differs(&mount).then(|| class_of(&mount, &resolved))
+    let class = class_of(&mount, &resolved);
+    differs(&mount, class).then_some(class)
 }
 
 #[cfg(test)]
@@ -168,6 +172,17 @@ mod tests {
         assert_eq!(class("nas"), Some("network"));
         assert_eq!(class("phone"), Some("phone"));
         assert_eq!(class("disk"), Some(""));
+        // Inside the gvfs folder a phone's share keeps its own class though it shares the mount; a network
+        // share there follows the gvfs folder's own rule.
+        let gvfs = dir.join("gvfs");
+        assert_eq!(
+            crossing(&table, &gvfs, &gvfs.join("mtp:host=Pixel")),
+            Some("phone")
+        );
+        assert_eq!(
+            crossing(&table, &gvfs, &gvfs.join("smb-share:server=nas,share=docs")),
+            None
+        );
         // Under /media or not, a disk sysfs does not call USB or removable is local.
         let internal = Mount {
             point: "/media/data".into(),
