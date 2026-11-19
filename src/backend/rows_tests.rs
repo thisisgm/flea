@@ -260,6 +260,33 @@ fn a_tagged_row_carries_its_names_while_an_untagged_row_carries_no_field() {
 }
 
 #[test]
+fn a_row_a_sync_engine_marked_carries_sy_while_an_unmarked_row_carries_no_field() {
+    use crate::backend::testdir::TestDir;
+    let d = TestDir::new("rowssync");
+    let marked = d.file("marked.txt", "body");
+    let _plain = d.file("plain.txt", "body");
+    let path = std::ffi::CString::new(marked.as_os_str().as_encoded_bytes()).unwrap();
+    let name = std::ffi::CString::new("user.sync.status").unwrap();
+    // SAFETY: both strings are NUL-terminated and the value outlives the call.
+    if unsafe { libc::lsetxattr(path.as_ptr(), name.as_ptr(), b"partial".as_ptr().cast(), 7, 0) } != 0 {
+        return; // No user xattrs here: the field can never appear, which the gate below still covers.
+    }
+    let mut l = Listing::new();
+    l.push("marked.txt", false);
+    l.push("plain.txt", false);
+    let metas = vec![
+        Meta { ino: None, birth: None, size: 4, mtime: 2, mode: 33188, target_is_dir: false, target: String::new(), dev: 0 },
+        Meta { ino: None, birth: None, size: 4, mtime: 2, mode: 33188, target_is_dir: false, target: String::new(), dev: 0 },
+    ];
+    let (mime, icons, aliases, thumbs, mut kinds) = dbs();
+    let s = rows_line(d.path(), &l, &metas, crate::backend::rows::Window { start: 0, ms: 0.0 }, crate::backend::rows::Services { mime: &mime, icons: &icons, aliases: &aliases, thumbs: &thumbs, kinds: &mut kinds });
+    assert_eq!(s.matches(r#""sy":"partial""#).count(), 1, "only the marked row carries the field: {}", s);
+    let flea::protocol::Reply::Rows { rows, .. } = flea::protocol::parse_reply(&super::super::rowguard::stamped(s, 1)).unwrap() else { panic!("rows receipt") };
+    assert_eq!(rows[0].sync, Some(flea::protocol::SyncMark::Partial));
+    assert_eq!(rows[1].sync, None);
+}
+
+#[test]
 fn a_network_base_reads_no_attributes_even_where_a_file_carries_some() {
     use crate::backend::testdir::TestDir;
     let d = TestDir::new("rowstagsremote");

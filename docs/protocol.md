@@ -2301,7 +2301,7 @@ detail displays a localized date or the localized unavailable value. Properties'
 single-item `menuaction` payload carries the same optional value as `birth`.
 
 
-`{"t":"rows","start":<uint>,"rows":[{"n":<string>,"d":<bool>,"s":<uint>,"m":<int>,"p":<uint>,"i":<string>,"t":<bool>,"k":<uint>[,"l":<string>][,"v":<uint>][,"tg":[<string>,...]][,"a":true][,"x":false]},...],"kinds":[<string>,...],"ms":<float>,"listing":<uint>}`
+`{"t":"rows","start":<uint>,"rows":[{"n":<string>,"d":<bool>,"s":<uint>,"m":<int>,"p":<uint>,"i":<string>,"t":<bool>,"k":<uint>[,"l":<string>][,"v":<uint>][,"tg":[<string>,...]][,"sy":<string>][,"a":true][,"x":false]},...],"kinds":[<string>,...],"ms":<float>,"listing":<uint>}`
 
 Example:
 `{"t":"rows","start":0,"rows":[{"n":"say \"hi\".txt","d":false,"s":12,"m":1787790423,"p":33188,"i":"text-x-generic","t":false,"k":0},{"n":"photos","d":true,"s":4096,"m":1787790424,"p":16877,"i":"folder","t":false,"k":1,"v":56}],"kinds":["Plain text document","Folder"],"ms":1.250,"listing":1}`
@@ -2341,6 +2341,15 @@ row draws its swatches with no call per row; an untagged row carries no `tg` at 
 foreign word stays untouched and shows in Properties instead. One `getxattr` per emitted row
 reads it, which is exactly the rows a window stats and never a sweep; on a network or phone
 mount no row carries it, because each read there would be a round trip.
+
+**`sy` is the state a cloud sync engine wrote for the file, and only a marked row carries it.** It is
+the `user.sync.status` value when it is one of `synced`, `syncing`, `partial`, `conflict` or
+`excluded`, the words rclone bisync wrappers such as Omarchy Storage Drives write on each file and
+folder of a sync folder; any other value, or none, carries no `sy` at all. `partial` is a folder
+only some of whose contents are kept on disk, and `excluded` is a file or folder the sync leaves
+out. The views draw it as a badge on the row's mark. Like `tg` it is one `getxattr` per emitted
+row, never a sweep, and no row on a network or phone mount carries it. A sync engine changing the
+value is an attribute change in the open directory, so the watch refreshes the row like any other.
 
 **`a` marks a thumbnailable AppImage, and only that row carries it.** Its own icon is its identity, so
 the Images thumbnail mode draws it while a row with any other executable icon, such as a Windows

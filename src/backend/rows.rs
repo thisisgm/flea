@@ -14,6 +14,9 @@ use crate::json::escape;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+// A child of rows, the one reader of it, because src/backend/mod.rs sits at its recorded ceiling.
+#[path = "syncstatus.rs"]
+mod syncstatus;
 
 // A row is a short name, two flags, three numbers and an icon name, so this rarely reallocates.
 const ROW_BYTES_ESTIMATE: usize = 128;
@@ -216,13 +219,15 @@ fn rows_line_body(
         } else {
             String::new()
         };
+        // Only a row a sync engine marked carries sy, under the same gate as tg: a remote read is a round trip.
+        let sy = if tag_ok { syncstatus::field(&path) } else { String::new() };
         // The icon is escaped like every other field: the escape is the contract, not an optimisation.
         let row_at = s.len();
         let outline = super::outline::row_fields(l, start + i);
         let born = m.birth.map_or_else(|| "null".to_string(), |time| time.to_string());
         let source = m.ino.map_or_else(String::new, |ino| format!(r#","source":"{}:{ino}:{}""#, m.dev, m.mode & super::meta::S_IFMT));
         s.push_str(&format!(
-            r#"{{"n":"{}","d":{},"s":{},"m":{},"b":{},"p":{},"i":"{}","t":{},"k":{}{}{}{}{}{}{}{}}}"#,
+            r#"{{"n":"{}","d":{},"s":{},"m":{},"b":{},"p":{},"i":"{}","t":{},"k":{}{}{}{}{}{}{}{}{}}}"#,
             escape(name),
             is_dir,
             m.size,
@@ -236,6 +241,7 @@ fn rows_line_body(
             link,
             dev,
             tg,
+            sy,
             appimage,
             outline,
             if real_modes { "" } else { r#","x":false"# }

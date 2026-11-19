@@ -73,6 +73,37 @@ pub struct RowFacts {
     pub inline: Option<u64>,
     /// The optional tg field; absent rows do not latch a folder's tag slot.
     pub tags: Option<Vec<String>>,
+    /// The optional sy field: the state a cloud sync engine wrote in user.sync.status.
+    pub sync: Option<SyncMark>,
+}
+
+/// A cloud sync engine's word for one file, docs/protocol.md "rows" `sy`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SyncMark {
+    Synced,
+    Syncing,
+    Partial,
+    Conflict,
+    Excluded,
+}
+
+impl SyncMark {
+    pub const ALL: [Self; 5] = [Self::Synced, Self::Syncing, Self::Partial, Self::Conflict, Self::Excluded];
+
+    /// Sample input: "partial" answers Some(Partial); any other word, in any other case, answers None.
+    pub fn from_word(word: &str) -> Option<Self> {
+        Self::ALL.into_iter().find(|mark| mark.word() == word)
+    }
+
+    pub fn word(self) -> &'static str {
+        match self {
+            Self::Synced => "synced",
+            Self::Syncing => "syncing",
+            Self::Partial => "partial",
+            Self::Conflict => "conflict",
+            Self::Excluded => "excluded",
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -186,6 +217,12 @@ fn row_facts(row: &Json, kinds: &[Json]) -> Result<RowFacts, String> {
                     .collect::<Result<Vec<_>, _>>()
             })
             .transpose()?,
+        // A word this build does not know draws no badge rather than refusing the whole window.
+        sync: row
+            .get("sy")
+            .map(|value| value.as_str().ok_or("sy must be a string"))
+            .transpose()?
+            .and_then(SyncMark::from_word),
         name: string(row, "n")?.to_owned(),
         dir: row
             .get("d")

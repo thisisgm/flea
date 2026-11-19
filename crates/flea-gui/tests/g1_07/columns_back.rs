@@ -50,6 +50,7 @@ pub fn list_rows(dir: &str, n: usize) -> Vec<RowFacts> {
             kind: String::new(),
             inline: None,
             tags: None,
+            sync: None,
         })
         .collect()
 }

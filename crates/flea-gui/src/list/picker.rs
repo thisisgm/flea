@@ -148,6 +148,7 @@ pub(super) fn paint_icon(
             size(px(side), px(side)),
         );
         paint_in_slot(picture, slot, window);
+        crate::row::sync::paint(row, slot, window, cx);
         return (1, 1);
     }
     let at = point(
@@ -185,5 +186,7 @@ pub(super) fn paint_icon(
                 opacity: dim,
             });
     }
+    let mark = Bounds::new(at, size(px(metrics.mark), px(metrics.mark)));
+    crate::row::sync::paint(row, mark, window, cx);
     (1, 0)
 }

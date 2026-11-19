@@ -163,6 +163,18 @@ impl TrackElement {
                                     );
                                 }
                             }
+                            let (mark_x, mark_y, side) = if picture.is_some() {
+                                picture_box(self.band)
+                            } else {
+                                mark_box(self.band)
+                            };
+                            if let Some(Row::Listing(facts)) = row_at(&view.rows, held, *index) {
+                                let mark = Bounds::new(
+                                    point(left + px(mark_x), top + px(mark_y)),
+                                    size(px(side), px(side)),
+                                );
+                                crate::row::sync::paint(Some(facts), mark, window, cx);
+                            }
                             let name = prepared.name_for(chevron, cursor);
                             let name_x = left + px(geometry.name_x);
                             inks.name =
