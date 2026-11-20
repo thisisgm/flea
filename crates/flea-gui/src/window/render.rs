@@ -67,6 +67,7 @@ impl Render for Shell {
         }
         self.sync_footer_height(window, cx);
         self.sync_tabs(window, cx);
+        self.settle_list_side(window, cx);
         let geometry = self.geometry(window);
         self.size_trash(&geometry, cx);
         self.trash_frame(window, cx);
@@ -366,6 +367,8 @@ impl Render for Shell {
             )
             .children(self.dual_divider(&geometry, palette, cx))
             .children(self.sidebar_edge(&geometry, cx))
+            .children(self.list_side(&geometry, window, cx))
+            .map(|root| super::list_side::edge_listeners(root, cx))
             .body_ground(background, window, cx)
             .track_focus(&self.focus)
             .on_key_down(cx.listener(Self::key_with_preview))

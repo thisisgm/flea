@@ -75,6 +75,17 @@ fn flash_covers_the_pane_slot_and_keeps_the_rail_and_the_status_bar() {
     });
 }
 
+#[test]
+fn flash_takes_the_slot_a_list_preview_would_share() {
+    let mut cx = crate::list::bench::real_cx();
+    let handle = opened(&mut cx, View::List);
+    let geometry = edit(&mut cx, handle, |shell, window, _| {
+        shell.launch.settings.data = flea::jsondoc::parse(r#"{"preview":{"list":true}}"#).unwrap();
+        shell.geometry(window)
+    });
+    assert!(geometry.side.is_none(), "{:?}", geometry.side);
+}
+
 /// The flash cursor (0 image, 1 first drive, 9 the step) and the window's focused stop.
 fn seat(cx: &mut TestAppContext, handle: Handle) -> (usize, &'static str) {
     edit(cx, handle, |shell, window, cx| {

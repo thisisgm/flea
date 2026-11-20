@@ -32,6 +32,7 @@ pub(crate) fn shell_with(backend: Backend, cx: &mut Context<Shell>) -> Shell {
     let mut lifecycle = Lifecycle::default();
     lifecycle.attach(0);
     Shell {
+        list_side_live: Default::default(),
         capture: crate::capture::Capture::default(),
         visual: crate::visual::Visual::default(),
         path_labels: launch.paths.clone().map(SharedString::from),
