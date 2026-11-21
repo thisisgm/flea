@@ -8,6 +8,22 @@ use std::time::Duration;
 
 // How long a catalog read that raced a file replacement waits before reading again.
 const SETTLE: Duration = Duration::from_millis(50);
+// How often the worker stats its files while inotify cannot watch their folders.
+const POLL: Duration = Duration::from_millis(500);
+
+enum Signal {
+    Wake,
+    Stop,
+}
+
+// The wake thread holds a sender too, so the service stops the worker with a message, not a disconnect.
+struct Stop(mpsc::Sender<Signal>);
+
+impl Drop for Stop {
+    fn drop(&mut self) {
+        let _ = self.0.send(Signal::Stop);
+    }
+}
 
 #[derive(Clone)]
 pub struct Snapshot {
@@ -50,7 +66,7 @@ impl Drop for Closing {
 #[derive(Clone)]
 pub struct Service {
     state: Arc<Mutex<State>>,
-    _stop: Arc<mpsc::Sender<()>>,
+    _stop: Arc<Stop>,
 }
 
 impl Service {
@@ -73,6 +89,7 @@ impl Service {
         }));
         let worker_state = state.clone();
         let (stop, stopping) = mpsc::channel();
+        let waker = stop.clone();
         thread::Builder::new()
             .name("flea-catalogs".into())
             .spawn(move || {
@@ -82,11 +99,13 @@ impl Service {
                 catalog.mark_paragraphs();
                 let _ = catalog.locale().format_date(0);
                 let mut revision = 1;
+                let mut _wake = None;
                 loop {
                     // A language or catalog file replaced mid-read is read again, so no snapshot mixes two versions.
                     while !catalog.sources_unchanged() {
                         match stopping.recv_timeout(SETTLE) {
                             Err(mpsc::RecvTimeoutError::Timeout) => catalog.reload(),
+                            Ok(Signal::Wake) => {}
                             _ => return,
                         }
                     }
@@ -107,13 +126,26 @@ impl Service {
                             subscriber.sender.try_send(snapshot.clone()).is_ok()
                         });
                     }
-                    loop {
-                        match stopping.recv_timeout(Duration::from_millis(500)) {
-                            Err(mpsc::RecvTimeoutError::Timeout) => {}
+                    // A reload can name other files, so the watch follows the catalog it just published.
+                    let waker = waker.clone();
+                    _wake = Some(crate::dirwake::start(
+                        "catalogs",
+                        catalog.watched_dirs(),
+                        POLL,
+                        move || waker.send(Signal::Wake).is_ok(),
+                    ));
+                    // Checked once before the first wait, so a change made before the watch was armed is not missed.
+                    // A change still settling is retried on the poll: its new files may lie in folders this
+                    // watch does not cover, such as another language's catalog.
+                    while !catalog.poll_changed() {
+                        let wait = if catalog.sources_unchanged() {
+                            Duration::MAX
+                        } else {
+                            POLL
+                        };
+                        match stopping.recv_timeout(wait) {
+                            Ok(Signal::Wake) | Err(mpsc::RecvTimeoutError::Timeout) => {}
                             _ => return,
-                        }
-                        if catalog.poll_changed() {
-                            break;
                         }
                     }
                     revision += 1;
@@ -122,7 +154,7 @@ impl Service {
         Ok((
             Self {
                 state,
-                _stop: Arc::new(stop),
+                _stop: Arc::new(Stop(stop)),
             },
             initial,
         ))

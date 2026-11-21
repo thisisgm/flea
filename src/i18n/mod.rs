@@ -224,6 +224,14 @@ impl I18n {
             && catalog::read(&self.paths.language_file) == self.language_text
     }
 
+    /// The folders holding every file this catalog was read from, for a watcher to follow.
+    pub fn watched_dirs(&self) -> Vec<PathBuf> {
+        let mut dirs: Vec<PathBuf> = self.watched.iter().filter_map(|(path, _)| path.parent()).map(Path::to_path_buf).collect();
+        dirs.sort();
+        dirs.dedup();
+        dirs
+    }
+
     // Stage a stable replacement without mutating the catalog any current frame still holds.
     pub fn prepare_changed(&self) -> Option<Self> {
         if self.sources_unchanged() {

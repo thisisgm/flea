@@ -61,7 +61,7 @@ pub struct Service {
 
 /// The face a launch draws until fc-match answers: gpui finds no face named `monospace` and falls to sans, so this is Omarchy's default.
 pub(super) const FALLBACK_FAMILY: &str = "JetBrainsMono Nerd Font";
-/// How often the worker stats its inputs when no folder event woke it; the hung-probe test counts its margin in these.
+/// How often the worker stats its inputs while inotify cannot watch them, and how soon an owed retry runs; the hung-probe test counts its margin in these.
 pub(super) const TICK: Duration = Duration::from_millis(500);
 
 // How long inputs must hold still before they are read; Omarchy's swap and an editor's save each land well inside it.
@@ -127,16 +127,25 @@ impl Service {
         }));
         let worker = state.clone();
         let (stop, stopping) = mpsc::channel();
-        wake::start(sources.dirs(), tick, stop.clone());
+        let wake = wake::start(sources.dirs(), tick, stop.clone());
         let spawned = thread::Builder::new()
             .name("flea-presentation".into())
             .spawn(move || {
                 let _closing = Closing(worker.clone());
+                let _wake = wake;
                 before_watch();
-                // Set when an input moved during the settle, so it is stat'ed again without waiting for a wake.
-                let mut again = false;
+                // Stats without waiting: once for edits made before the watch was armed (an owed retry's tick
+                // stats anyway), then after any settle an input moved in.
+                let mut again = !retry;
                 loop {
-                    if !std::mem::take(&mut again) && !waited(&stopping, tick, true) {
+                    // The wake thread ticks for itself while inotify cannot watch; only an owed retry needs a timeout here.
+                    if !std::mem::take(&mut again)
+                        && !(if retry {
+                            waited(&stopping, tick, true)
+                        } else {
+                            matches!(stopping.recv(), Ok(Signal::Wake))
+                        })
+                    {
                         return;
                     }
                     // One stat per input; nothing is read and no probe runs while they are unchanged.
