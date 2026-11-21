@@ -33,8 +33,9 @@ impl Picker {
         }
         let catalog = &self.locale.catalog;
         let tracking = crate::g2::status_feedback::caption::tracking_for(catalog.language());
-        // The window's own New Folder name and the field name its prompt uses.
-        let (seed, label) = (catalog.tr("prompt.newFolder"), catalog.tr("prompt.folder"));
+        // The window's own New Folder name, and the same words label its field: prompt.create is the
+        // rule line the create card prints, which would teach a slash this folder-only field cannot take.
+        let (seed, label) = (catalog.tr("prompt.newFolder"), catalog.tr("prompt.newFolder"));
         let menu_catalog = catalog.clone();
         let field = cx
             .new(|cx| Filename::folder_name(&seed, label, tracking, cx).with_catalog(menu_catalog));

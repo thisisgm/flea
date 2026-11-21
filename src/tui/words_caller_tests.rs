@@ -4,6 +4,7 @@ use crate::{
     tui::{render::cards, wire},
 };
 
+/// A properties reply keeps its path, id and action across a locale refresh that sends nothing
 #[test]
 fn tui_words_properties_receive_and_refresh_keep_original_facts() {
     let fixture = Fixture::new();
@@ -32,6 +33,7 @@ fn tui_words_properties_receive_and_refresh_keep_original_facts() {
     wire::finish(backend, reader);
 }
 
+/// A fixture whose English catalog carries every name fault, and Japanese two of them
 fn name_fixture() -> Fixture {
     let fixture = Fixture::new();
     fixture.write("catalog/en/flea.json", r#"{
@@ -51,6 +53,7 @@ fn name_fixture() -> Fixture {
     fixture
 }
 
+/// Each invalid name keeps its own fault, in the editor and on the status row
 #[test]
 fn tui_words_name_faults_keep_specific_shared_validation_detail() {
     let fixture = name_fixture();
@@ -73,6 +76,36 @@ fn tui_words_name_faults_keep_specific_shared_validation_detail() {
     }
 }
 
+// A 64-column terminal leaves 2 cells once the four-line rule is drawn whole, so the rule gives way instead.
+/// The create prompt keeps the name and caret on the row at 64, 80 and 130 columns
+#[test]
+fn tui_words_create_prompt_keeps_its_field_on_a_narrow_row() {
+    let fixture = name_fixture();
+    let mut model = fixture.model();
+    let theme = crate::tui::theme::Theme::from_text("");
+    model.editor = Some(crate::tui::editor::Editor::new(
+        "mkdir",
+        "New Folder/".into(),
+        "/fx".into(),
+    ));
+    for columns in [64, 80, 130] {
+        let (row, caret) =
+            crate::tui::prompts::status(&model, &theme, columns, std::time::Duration::ZERO);
+        let plain = crate::tui::render::frame_tests::plain(&row);
+        assert_eq!(
+            crate::tui::cells::text_width(&plain),
+            columns,
+            "{columns}: the row fills the terminal"
+        );
+        assert!(
+            plain.contains("New Folder/"),
+            "{columns}: the name and its caret survive: {plain:?}"
+        );
+        assert!(caret.is_some(), "{columns}: the caret has a column");
+    }
+}
+
+/// A backend error string survives a locale refresh, because it is data and not a key
 #[test]
 fn tui_words_name_backend_error_keeps_data_identity() {
     let fixture = name_fixture();

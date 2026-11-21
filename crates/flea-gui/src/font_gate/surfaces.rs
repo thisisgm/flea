@@ -1,6 +1,7 @@
 use super::*;
 use crate::window::startup::View;
 
+/// Opens every main surface in each view and returns the names whose frames missed their text
 pub(super) fn check() -> Vec<String> {
     let mut failed = Vec::new();
     for view in [View::List, View::Columns, View::Grid, View::Dual] {
@@ -153,6 +154,7 @@ pub(super) fn check() -> Vec<String> {
     failed
 }
 
+/// Runs one surface case with no extra required text
 pub(super) fn case(
     name: &str,
     failed: &mut Vec<String>,
@@ -161,6 +163,7 @@ pub(super) fn case(
     case_with(name, &[], failed, setup)
 }
 
+/// Mounts `setup`'s view, draws it and checks the text its frame painted against the required set
 pub(super) fn case_with(
     name: &str,
     extra: &[&str],
@@ -196,7 +199,7 @@ pub(super) fn case_with(
         "run-file" => vec!["run.sh is a program.", "Run in Terminal"],
         "confirm-delete" => vec!["Delete 2 items permanently?"],
         "confirm-empty-trash" => vec!["Empty Trash"],
-        "new-file" => vec!["New file"],
+        "new-file" => vec!["New file", "Enter name for a new file or directory (dirs end with a \"/\"):"],
         "fat-name-confirm" => vec!["Rename incompatible names"],
         "collision-confirm" => vec!["Replace existing files"],
         "compress-password" => vec!["Compress 1 Item"],

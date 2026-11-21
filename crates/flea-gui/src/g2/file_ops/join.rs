@@ -40,6 +40,17 @@ pub(crate) struct Sessions {
     pub(crate) archive: crate::g2::archive_flash::host::Archive,
 }
 
+impl Sessions {
+    /// The request an open create card is waiting on, so a reply knows whether the card answers it.
+    pub(crate) fn card_request(&self, side: usize, cx: &gpui::App) -> Option<u64> {
+        let view = self.views[side].as_ref()?;
+        match view.read(cx).model.dialog {
+            Some(crate::g2::file_ops::model::Dialog::NewFile { id, busy: true, .. }) => Some(id),
+            _ => None,
+        }
+    }
+}
+
 impl Shell {
     pub fn operation_view(&self, side: usize) -> Option<Entity<Overlay>> {
         self.operations.views.get(side)?.clone()

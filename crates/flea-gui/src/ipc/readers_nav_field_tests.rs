@@ -81,7 +81,7 @@ fn fx_eject3_menu_dialog_state_answers_the_drawn_new_file_card(cx: &mut TestAppC
     let view = cx.update(|window, cx| {
         shell.update(cx, |shell, cx| {
             let view = shell.operation_overlay(0, window, cx).unwrap();
-            view.update(cx, |overlay, cx| overlay.new_file(7, "/files", cx));
+            view.update(cx, |overlay, cx| overlay.new_file(7, "/files", None, cx));
             shell.show_operation(&view, cx);
             view
         })

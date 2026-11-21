@@ -6,6 +6,7 @@ use super::{
 };
 use std::{io, path::PathBuf};
 
+/// Routes a key to the open editor and sends its request on Enter
 pub fn edit(m: &mut Model, key: &Key, w: &mut Wire) -> io::Result<()> {
     let mut editor = m.editor.take().unwrap();
     let kind = editor.kind;
@@ -72,18 +73,21 @@ pub fn edit(m: &mut Model, key: &Key, w: &mut Wire) -> io::Result<()> {
                 ])?;
             }
             "mkdir" | "newfile" => {
-                let default_base = editor
-                    .default_base
-                    .as_deref()
-                    .filter(|base| kind == "mkdir" && *base == value.as_str());
+                // A trailing slash asks for a folder and every other name is a file: the one
+                // prompt creates either, so the request carries the kind the name spells.
+                let folder = value.ends_with('/');
+                let name = value.strip_suffix('/').unwrap_or(value);
+                // The default name belongs to the folder request alone: a draft that dropped the
+                // slash asks for a file of that name, and an empty name is no file at all.
+                let default_base = editor.default_base.as_deref().filter(|base| folder && *base == name);
                 let mut fields = vec![
-                    ("c", word(kind)),
+                    ("c", word(if folder { "mkdir" } else { "newfile" })),
                     ("op", word("newFile")),
                     ("id", super::wire::number(m.action_id)),
                     ("path", word(&editor.path.exact_text())),
                     (
                         "name",
-                        word(if default_base.is_some() { "" } else { value }),
+                        word(if default_base.is_some() { "" } else { name }),
                     ),
                 ];
                 if let Some(base) = default_base {

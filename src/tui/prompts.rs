@@ -1,5 +1,5 @@
 // The status row's prompts and receipts, the paste question, and the undo steps an undo of a trash lands the cursor on.
-use super::{cells::{ellipsis, fit, text_width}, editor::Editor, model::Model, theme::Theme,
+use super::{cells::{ellipsis, text_width}, editor::Editor, model::Model, theme::Theme,
     wire::{count, flag, number, text, word, Wire}};
 use crate::jsondoc::Json;
 use flea::{i18n::I18n, ui_logic_file_search::{scope_label, Kind, Scope, Session}};
@@ -25,7 +25,7 @@ pub struct Prompts {
 }
 #[cfg(test)]
 impl Prompts {
-    // Tests read English only; the fields are spelled out because Self::default() would still load the host's language.
+    /// Tests read English only; the fields are spelled out because Self::default() would still load the host's language.
     pub fn english() -> Self {
         Self {
             i18n: crate::i18n::test_catalogs::library_english(),
@@ -51,19 +51,46 @@ pub struct Paste {
 }
 struct Step { op: &'static str, paths: Vec<PathBuf> }
 
-// The status row: the paste question, an open prompt with its field, or the footer; and where the terminal's caret goes.
+/// The status row: the paste question, an open prompt with its field, or the footer; and where the terminal's caret goes.
 pub fn status(m: &Model, theme: &Theme, columns: usize, elapsed: Duration) -> (String, Option<usize>) {
     if let Some(question) = &m.prompts.question { return (ask(m, question, theme, columns), None); }
     let Some(editor) = &m.editor else { return (super::layout::footer(m, theme, columns, elapsed), None); };
     let i18n = &m.prompts.i18n;
     let base = theme.base();
     let label = i18n.tr(match editor.kind {
-        "rename" => "prompt.rename", "mkdir" => "prompt.folder", "newfile" => "prompt.file", "path" => "prompt.path", "filter" => "prompt.filter", _ => "prompt.find",
+        "rename" => "prompt.rename",
+        // One prompt makes either entry, so the line states the rule and the draft never retitles it.
+        "mkdir" | "newfile" => "prompt.create",
+        "path" => "prompt.path", "filter" => "prompt.filter", _ => "prompt.find",
     });
-    let mut used = text_width(&label).min(columns);
-    let mut out = format!("{}{}", theme.muted, fit(&label, used));
+    // A row this narrow still owes the field cells to show the name and the caret; past that the rule gives way.
+    const FIELD_FLOOR: usize = 12;
+    let label_width = text_width(&label);
+    // An error sentence must draw cells, or Enter reads as doing nothing on a narrow row: it takes
+    // room from the rule first, then from the field, and never past the field's floor.
+    let error_room = if editor.error.is_empty() {
+        0
+    } else {
+        text_width(&editor.error).min(columns / 2).max(1)
+    };
+    let mut used = if label_width + 1 + FIELD_FLOOR + error_room <= columns {
+        label_width
+    } else {
+        columns.saturating_sub(1 + FIELD_FLOOR + error_room)
+    };
+    let mut out = format!(
+        "{}{}",
+        theme.muted,
+        if used < label_width {
+            ellipsis(&label, used)
+        } else {
+            label.clone()
+        }
+    );
+    used = used.min(columns);
     let ghost = if editor.kind == "path" { m.completion.strip_prefix(editor.value.as_str()).unwrap_or("") } else { "" };
-    let (field, cells, caret) = editor.field(ghost, columns.saturating_sub(used + 1), theme);
+    let (field, cells, caret) =
+        editor.field(ghost, columns.saturating_sub(used + 1 + error_room), theme);
     let caret = caret.filter(|_| cells > 0).map(|at| used + 1 + at);
     if cells > 0 {
         out.push_str(&format!("{base} {field}"));
@@ -81,7 +108,7 @@ pub fn status(m: &Model, theme: &Theme, columns: usize, elapsed: Duration) -> (S
     out.push_str(&" ".repeat(columns - used));
     (out, caret)
 }
-// What follows a prompt's field: its one error sentence, a working note, the filter's count, Find's scope or Rename's keys at the trailing end.
+/// What follows a prompt's field: its one error sentence, a working note, the filter's count, Find's scope or Rename's keys at the trailing end.
 fn after<'a>(m: &Model, editor: &Editor, theme: &'a Theme) -> (String, &'a str, bool) {
     let i18n = &m.prompts.i18n;
     if !editor.error.is_empty() { return (editor.error.clone(), &theme.error, false); }
@@ -100,6 +127,7 @@ fn after<'a>(m: &Model, editor: &Editor, theme: &'a Theme) -> (String, &'a str, 
         _ => (String::new(), &theme.muted, false),
     }
 }
+/// The filter's count: how many rows show of how many the folder holds
 fn shown(m: &Model) -> String {
     m.prompts.i18n.tr_args("filter.shown", &[&m.i18n.locale().format_count(m.filter_count() as i64), &m.i18n.locale().format_count(m.total as i64)])
 }
@@ -130,7 +158,7 @@ fn scope(m: &Model, contents: bool) -> String {
     let root = root(folder(m), m.find.session.scope);
     scope_label(&m.prompts.i18n, root.as_deref(), &home, m.find.session.scope, if contents { Kind::Contents } else { Kind::Names })
 }
-// The footer's leading runs: an applied filter in muted ink with its count, Find's count and its query in muted ink, or the item count.
+/// The footer's leading runs: an applied filter in muted ink with its count, Find's count and its query in muted ink, or the item count.
 pub fn lead<'a>(m: &Model, theme: &'a Theme, count: String) -> Vec<(&'a str, String, usize)> {
     let i18n = &m.prompts.i18n;
     if !m.filter.is_empty() {
@@ -142,22 +170,23 @@ pub fn lead<'a>(m: &Model, theme: &'a Theme, count: String) -> Vec<(&'a str, Str
     parts.push((&theme.muted, i18n.tr_args("tui.find.status", &[&m.search_query, &scope(m, m.find.active.as_ref().is_some_and(|q| q.contents))]), 2));
     parts
 }
-// Find's status: what it found, and what it has scanned only while it is still walking.
+/// Find's status: what it found, and what it has scanned only while it is still walking.
 pub fn found(m: &Model, scanned: usize) -> String {
     if m.searching { m.prompts.i18n.tr_args("find.scanning", &[&m.i18n.locale().format_count(m.total as i64), &m.i18n.locale().format_count(scanned as i64)]) }
     else { m.prompts.i18n.tr_args("find.found", &[&m.i18n.locale().format_count(m.total as i64)]) }
 }
+/// The undo key's clause for a receipt, empty while no undo step stands
 fn hint(m: &Model) -> String {
     if m.hints.undo.is_empty() { String::new() } else { format!(" {}", m.prompts.i18n.tr_args("receipt.undoes", &[&m.hints.undo])) }
 }
-// A receipt for a step Undo can take back names the undo key after it.
+/// A receipt for a step Undo can take back names the undo key after it.
 pub fn undoable(m: &Model, line: String) -> String { format!("{line}{}", hint(m)) }
-// A receipt that names the undo key stays for the error time, then clears like every message.
+/// A receipt that names the undo key stays for the error time, then clears like every message.
 pub fn lasting(m: &Model) -> bool {
     let hint = hint(m);
     !hint.is_empty() && m.message.ends_with(&hint)
 }
-// The message run, with a trailing undo key in muted ink one cell after the receipt.
+/// The message run, with a trailing undo key in muted ink one cell after the receipt.
 pub fn message<'a>(m: &Model, theme: &'a Theme) -> Vec<(&'a str, String, usize)> {
     let hint = hint(m);
     match m.message.strip_suffix(&hint).filter(|head| !hint.is_empty() && !head.is_empty()) {
@@ -165,14 +194,16 @@ pub fn message<'a>(m: &Model, theme: &'a Theme) -> Vec<(&'a str, String, usize)>
         None => vec![(theme.foreground.as_str(), m.message.clone(), 2)],
     }
 }
+/// The clipboard receipt, Cut or Copied with the held count; tests read it in English
 #[cfg(test)]
 #[allow(dead_code)]
 pub fn clipboard(m: &Model) -> String {
     m.prompts.i18n.trn(if m.cut { "clipboard.cut" } else { "clipboard.copied" }, m.clipboard.len() as i64)
 }
-// The first trash press says what the second does, "it" for one item and "them" for a selection.
+/// The first trash press says what the second does, "it" for one item and "them" for a selection.
 #[cfg(test)]
 pub fn trash_arm(m: &Model, arm: &str) -> String { trash_arm_text(m, arm).render(&m.i18n) }
+/// The trash arm sentence as words, for one item or a selection, naming the key and its second press
 pub fn trash_arm_text(m: &Model, arm: &str) -> super::words::Text {
     let many = m.selected.len() > 1;
     let key = match (many, m.hints.trash.is_empty()) {
@@ -181,7 +212,7 @@ pub fn trash_arm_text(m: &Model, arm: &str) -> super::words::Text {
     let arm = m.keycaps.and_then(|snapshot| snapshot.label(arm).ok()).unwrap_or(arm);
     super::words::args(key, vec![arm.into(), m.hints.trash.clone().into()])
 }
-// Sends a trash of the selection or the cursor row under a request id, so its answer is recorded once and names what moved.
+/// Sends a trash of the selection or the cursor row under a request id, so its answer is recorded once and names what moved.
 pub fn trash(m: &mut Model, w: &mut Wire) -> io::Result<()> {
     if m.total == 0 { return Ok(()); }
     m.prompts.id = m.prompts.id.wrapping_add(1).max(1);
@@ -189,6 +220,7 @@ pub fn trash(m: &mut Model, w: &mut Wire) -> io::Result<()> {
     m.prompts.trashing.insert(request);
     w.send(vec![("c", word("trash")), ("id", number(request)), ("rows", m.indices())])
 }
+/// The catalog key naming an undo step's op, None for an op no receipt speaks of
 fn step_key(op: &str) -> Option<&'static str> {
     let key = match op {
         "trash" => "step.trash", "rename" | "bulkrename" => "step.rename", "duplicate" => "step.duplicate", "mkdir" => "step.mkdir",
@@ -197,11 +229,12 @@ fn step_key(op: &str) -> Option<&'static str> {
     };
     Some(key)
 }
+/// Records a step this client took so Undo can take it back, and drops the redo trail
 pub fn record(m: &mut Model, op: &'static str, paths: Vec<PathBuf>) {
     m.prompts.undo.push(Step { op, paths });
     m.prompts.redo.clear();
 }
-// The receipt for a finished step, its failures raised as one sentence; an undo of this client's trash anchors the cursor on what came back.
+/// The receipt for a finished step, its failures raised as one sentence; an undo of this client's trash anchors the cursor on what came back.
 pub fn receipt(m: &mut Model, value: &Json) -> String {
     let i18n = &m.prompts.i18n;
     let (ok, failed, skipped) = (count(value, "ok"), count(value, "failed"), count(value, "skipped"));
@@ -254,13 +287,16 @@ pub fn receipt(m: &mut Model, value: &Json) -> String {
         }
     }
 }
+/// A receipt's words with the undo key appended while an undo step stands
 pub fn undoable_text(m: &Model, line: super::words::Text) -> super::words::Text {
     use super::words::{Text, args};
     if m.hints.undo.is_empty() { line } else { Text::Joined(vec![line, Text::from(" "), args("receipt.undoes", vec![Text::from(m.hints.undo.clone())])]) }
 }
+/// The clipboard receipt as words, plural on the held count
 pub fn clipboard_text(m: &Model) -> super::words::Text {
     super::words::Text::Plural(if m.cut { "clipboard.cut" } else { "clipboard.copied" }, m.clipboard.len(), vec![])
 }
+/// A backend answer's receipt as words instead of ink, for the model to record and say
 pub fn receipt_text(m: &Model, value: &Json) -> super::words::Text {
     use super::words::{Text, args};
     let (ok, failed, skipped) = (count(value, "ok"), count(value, "failed"), count(value, "skipped"));
@@ -306,7 +342,7 @@ pub fn previewed(m: &Model) -> bool {
 // The gate's calls and comparisons on this thread, for the cost test.
 #[cfg(test)]
 thread_local! { pub(super) static GATE: std::cell::Cell<(usize, usize)> = const { std::cell::Cell::new((0, 0)) }; }
-// The terminal's own bar cursor is the caret while a prompt holds a cell for it, and it hides otherwise.
+/// The terminal's own bar cursor is the caret while a prompt holds a cell for it, and it hides otherwise.
 pub fn caret(at: Option<usize>, lines: usize) -> String {
     at.map_or_else(|| "\x1b[?25l".into(), |x| format!("\x1b[{lines};{}H\x1b[6 q\x1b[?25h", x + 2))
 }

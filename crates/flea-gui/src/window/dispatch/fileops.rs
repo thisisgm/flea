@@ -54,6 +54,7 @@ impl Held {
 }
 
 impl Held {
+    /// The dd arm's stamp for this side only, 0 when the seat sits elsewhere
     pub(crate) fn armed_at_side(&self, side: usize) -> u64 {
         self.seat
             .filter(|seat| seat.focus == side as u64)
@@ -61,6 +62,7 @@ impl Held {
     }
 }
 
+/// Runs a listing action or a menu row for this family; false when another family owns it
 pub(super) fn run(
     shell: &mut Shell,
     order: &Order,
@@ -79,7 +81,8 @@ pub(super) fn run(
                 "trash" => shell.fileops_trash(side, None, cx),
                 "trashArm" => shell.fileops_arm(side, event.seat, cx),
                 "deletePermanently" => shell.fileops_delete(side, None, cx),
-                "newFolder" => shell.fileops_new_folder(side, None, cx),
+                // The TUI's newFolder is this prompt too: one card, and the name decides the kind.
+                "newFolder" | "newFile" => shell.fileops_new_file(side, window, cx),
                 _ => return false,
             }
             true
@@ -91,6 +94,7 @@ pub(super) fn run(
 
 impl Shell {
     // A menu row runs on the captured snapshot, so the backend checks the rows the menu showed.
+    /// Runs the menu's trash, duplicate, delete or New Folder row once its snapshot still allows it
     fn fileops_menu(&mut self, chosen: &Chosen, _: &mut Window, cx: &mut Context<Self>) -> bool {
         let captured = &chosen.captured;
         let side = captured.side;
@@ -116,6 +120,7 @@ impl Shell {
     }
 
     // Ops.js duplicate: the cursor row, or the menu's one row; no row is quiet.
+    /// Duplicates the cursor row, or the menu's row, and sends the request
     fn fileops_duplicate(&mut self, side: usize, chosen: Option<&Chosen>, cx: &mut Context<Self>) {
         let (path, menu) = match chosen {
             Some(chosen) => match chosen.paths.first() {
@@ -159,6 +164,7 @@ impl Shell {
     }
 
     // Ops.js trash: the marked rows, or the cursor while the filter draws it; none says why.
+    /// Trashes the marked rows, or the cursor row, and keeps the anchor to restore them by
     fn fileops_trash(&mut self, side: usize, chosen: Option<&Chosen>, cx: &mut Context<Self>) {
         let Some(host) = self.panes[side].as_ref() else {
             return;
@@ -214,6 +220,7 @@ impl Shell {
     }
 
     // Pane.qml act: Delete permanently reviews the rows on a snapshot of its own, then opens the permanent-delete card.
+    /// Reviews Delete permanently's rows on a snapshot of its own, or says one is already finishing
     fn fileops_delete(&mut self, side: usize, chosen: Option<&Chosen>, cx: &mut Context<Self>) {
         if self.operations.fileops.deleting[side].is_some() {
             if let Some(chosen) = chosen.filter(|chosen| !chosen.captured.background) {
@@ -266,7 +273,58 @@ impl Shell {
         self.fileops_send(side, line, cx);
     }
 
+    /// Ctrl+Shift+N's create card: the background menu's New File row, reached without the menu. The
+    /// suggestion is a folder's, so Enter on an untouched name still makes one, as this key always has.
+    pub(crate) fn fileops_new_file(&mut self, side: usize, window: &mut Window, cx: &mut Context<Self>) {
+        if self.recent_refuses(side, "places.recent.new_folder_refused", cx) {
+            return;
+        }
+        let Some(host) = self.panes[side].as_ref() else {
+            return;
+        };
+        if host.backend.is_none() {
+            return;
+        }
+        let folder = host.path.clone();
+        let Some(view) = self.operation_overlay(side, window, cx) else {
+            return;
+        };
+        let Some(id) = self.fileops_creation_requested(side, "newFile", &folder, cx) else {
+            return;
+        };
+        let base = self.locale.catalog.tr("prompt.newFolder");
+        view.update(cx, |overlay, cx| {
+            overlay.new_file(id, &folder, Some(&base), cx)
+        });
+        self.show_operation(&view, cx);
+        // A key-opened card takes the keyboard at once, remembering the listing so closing it gives the keys back.
+        let shell_focus = self.focus.clone();
+        window.focus(&shell_focus, cx);
+        view.update(cx, |overlay, cx| overlay.acquire_mount_focus(window, cx));
+        self.flush_operations(side, cx);
+    }
+
+    /// A card that asked for a create its pane now lands itself, so nothing keeps drawing "Working…".
+    pub(crate) fn fileops_retire_new_file_card(
+        &mut self,
+        side: usize,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let Some(view) = self.operation_overlay(side, window, cx) else {
+            return;
+        };
+        view.update(cx, |overlay, cx| {
+            if matches!(overlay.model.dialog, Some(crate::g2::file_ops::model::Dialog::NewFile { .. })) {
+                overlay.model.dialog = None;
+                overlay.model.changed = true;
+                cx.notify();
+            }
+        });
+    }
+
     // The backend takes the first free name from the client catalog's suggestion.
+    /// Asks the backend for a folder named from the catalog's base
     fn fileops_new_folder(&mut self, side: usize, chosen: Option<&Chosen>, cx: &mut Context<Self>) {
         // Focus.js:271: Recent holds no folder, so the refusal lands before any mkdir.
         if self.recent_refuses(side, "places.recent.new_folder_refused", cx) {
@@ -289,6 +347,7 @@ impl Shell {
     }
 
     // The rows an action takes, or the sentence that says why it takes none.
+    /// Resolves an action's rows through the selection and filter, or the refusal sentence
     fn fileops_targets(&self, side: usize) -> Result<(usize, Vec<usize>), String> {
         let catalog = &self.locale.catalog;
         let Some(host) = self.panes[side].as_ref() else {
@@ -306,6 +365,7 @@ impl Shell {
         .map_err(|refusal| crate::g2::listing_filter::present::refusal(refusal, catalog))
     }
 
+    /// Puts a creation on the wire under its request token, recording a failure in the pane
     pub(super) fn fileops_send(&mut self, side: usize, line: String, cx: &mut Context<Self>) {
         let Some(line) = self.fileops_creation_request(side, line, cx) else {
             return;
@@ -335,6 +395,7 @@ impl Shell {
         self.operations.fileops.arrival[side] = None;
     }
 
+    /// Says a sentence on the pane and on its status lane
     pub(crate) fn fileops_say(
         &mut self,
         side: usize,
@@ -361,6 +422,7 @@ impl Shell {
         flea::ui_logic_status_feedback::status::split_undo(text, &self.locale.catalog, &preset)
     }
 
+    /// The keys preset this launch runs under
     pub(super) fn fileops_preset(&self) -> String {
         let keys = self.launch.settings.data.get("keys");
         keys.and_then(flea::jsondoc::Json::as_str)
@@ -369,10 +431,12 @@ impl Shell {
     }
 }
 
+/// Appends a name to a base path without doubling the slash
 pub(super) fn join(base: &str, name: &str) -> String {
     format!("{}/{name}", base.trim_end_matches('/'))
 }
 
+/// The row numbers as the comma-joined array body a request wants
 fn numbers(rows: &[usize]) -> String {
     rows.iter()
         .map(usize::to_string)

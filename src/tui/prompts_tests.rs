@@ -11,6 +11,7 @@ use crate::tui::{actions, keymap::{Hints, Map}, render::{self, frame_tests}, wir
 use crate::tui::wire::sort_tests::{drain, requests};
 
 // Sample input: "\x1b[38;2;1;2;3mA\x1b[0mB" gives [('A', "\x1b[38;2;1;2;3m", ""), ('B', "", "")].
+/// Splits rendered text into cells, each with the foreground and background ink it carries
 fn inks(text: &str) -> Vec<(char, String, String)> {
     let (mut fg, mut bg, mut out) = (String::new(), String::new(), Vec::new());
     let mut chars = text.chars().peekable();
@@ -29,7 +30,7 @@ fn inks(text: &str) -> Vec<(char, String, String)> {
     }
     out
 }
-// The text at a cell offset, which must keep one foreground and one background across its cells.
+/// The text at a cell offset, which must keep one foreground and one background across its cells.
 fn span(cells: &[(char, String, String)], at: usize, text: &str) -> (String, String) {
     let n = text.chars().count();
     assert_eq!(cells[at..at + n].iter().map(|c| c.0).collect::<String>(), text, "at {at}");
@@ -37,6 +38,7 @@ fn span(cells: &[(char, String, String)], at: usize, text: &str) -> (String, Str
     assert!(cells[at..at + n].iter().all(|c| c.1 == fg && c.2 == bg), "{text:?} keeps one ink");
     (fg, bg)
 }
+/// The status row's cells and caret for a model, filling a 128-cell row
 fn row(m: &Model) -> (Vec<(char, String, String)>, Option<usize>) {
     let theme = Theme::from_text("");
     // The frame sets its base ink before the row, as render does.
@@ -45,10 +47,12 @@ fn row(m: &Model) -> (Vec<(char, String, String)>, Option<usize>) {
     assert_eq!(cells.len(), 128, "the status row fills its columns");
     (cells, caret)
 }
+/// Presses one key through the real action path
 fn press(m: &mut Model, w: &mut Wire, key: Key) { actions::key(m, &key, &Map::load(), w).unwrap(); }
+/// Feeds one backend line to the model as the receive path would
 fn event(m: &mut Model, w: &mut Wire, line: &str) { m.receive(parse(line).unwrap(), w).unwrap(); }
 
-// tui-filter-typing and tui-filter: the label and count in muted ink while typing, the count in foreground once applied.
+/// tui-filter-typing and tui-filter: the label and count in muted ink while typing, the count in foreground once applied.
 #[test]
 fn filter_prompt_and_applied_filter_keep_the_board_columns() {
     let theme = Theme::from_text("");
@@ -67,7 +71,7 @@ fn filter_prompt_and_applied_filter_keep_the_board_columns() {
     assert_eq!(span(&cells, 10, "5 of 9 shown").0, theme.foreground);
     assert_eq!(caret, None);
 }
-// tui-path: Go to with the completion's ghost after the caret in the extension ink.
+/// tui-path: Go to with the completion's ghost after the caret in the extension ink.
 #[test]
 fn go_to_prompt_draws_its_completion_after_the_caret() {
     let theme = Theme::from_text("");
@@ -80,7 +84,7 @@ fn go_to_prompt_draws_its_completion_after_the_caret() {
     assert_eq!(span(&cells, 8, "dia/ "), (theme.ext.clone(), theme.field.clone()));
     assert_eq!(caret, Some(8));
 }
-// tui-new-folder and tui-rename: the suggested name and the stem open selected, with no caret, and Rename's keys trail the row.
+/// tui-new-folder and tui-rename: the suggested name and the stem open selected, with no caret, and Rename's keys trail the row.
 #[test]
 fn new_folder_and_rename_open_selected_on_the_status_row() {
     let theme = Theme::from_text("");
@@ -90,12 +94,24 @@ fn new_folder_and_rename_open_selected_on_the_status_row() {
     let mut m = frame_tests::model();
     m.path = sandbox.path().into();
     press(&mut m, &mut w, Key::character('N', "shift"));
-    assert_eq!(m.editor.as_ref().map(|e| e.kind), Some("mkdir"), "N opens New Folder");
-    let (cells, caret) = row(&m);
-    assert_eq!(span(&cells, 0, "Folder name").0, theme.muted);
-    assert_eq!(span(&cells, 12, "New Folder"), (theme.foreground.clone(), theme.stem.clone()));
-    assert_eq!(span(&cells, 22, " ").1, theme.field);
-    assert_eq!(caret, None);
+    assert_eq!(m.editor.as_ref().map(|e| e.kind), Some("mkdir"), "N opens the one create prompt");
+    let (cells, _caret) = row(&m);
+    // The line states the rule once, as neo-tree's prompt does; the draft never retitles it.
+    const RULE: &str = "Enter name for a new file or directory (dirs end with a \"/\"):";
+    assert_eq!(span(&cells, 0, RULE).0, theme.muted);
+    let field_at = RULE.chars().count() + 1;
+    // The suggested name carries the slash that makes Enter a folder, and the whole draft is
+    // selected, so it draws in the stem ink until something is typed over it.
+    assert_eq!(span(&cells, field_at, "New Folder/"), (theme.foreground.clone(), theme.stem.clone()));
+    // Dropping the slash asks for a file without touching the suggestion's words or the line.
+    m.editor.as_mut().unwrap().replace("New Folder".into());
+    let (cells, _caret) = row(&m);
+    assert_eq!(span(&cells, 0, RULE).0, theme.muted, "no trailing slash keeps the same line");
+    assert_eq!(span(&cells, field_at, "New Folder"), (theme.foreground.clone(), theme.field.clone()), "a typed draft draws in the field ink");
+    // And the yazi preset's own file prompt reads the same line.
+    m.editor = Some(Editor::named("newfile", "photos/".into(), m.path.clone()));
+    let (cells, _caret) = row(&m);
+    assert_eq!(span(&cells, 0, RULE).0, theme.muted, "a trailing slash keeps the same line");
     m.editor = Some(Editor::rename("notes.txt".into(), path.clone(), false).unwrap());
     let (cells, caret) = row(&m);
     assert_eq!(span(&cells, 0, "Rename").0, theme.muted);
@@ -112,7 +128,7 @@ fn new_folder_and_rename_open_selected_on_the_status_row() {
     assert_eq!(std::fs::read_to_string(path).unwrap(), "kept");
     finish(w, reader);
 }
-// tui-rename-error: a refused name keeps its field with the caret after the edit, and the one sentence follows it in the error ink.
+/// tui-rename-error: a refused name keeps its field with the caret after the edit, and the one sentence follows it in the error ink.
 #[test]
 fn a_refused_rename_says_one_sentence_after_its_field() {
     let theme = Theme::from_text("");
@@ -143,7 +159,7 @@ fn a_refused_rename_says_one_sentence_after_its_field() {
     assert_eq!(std::fs::read_to_string(path).unwrap(), "kept");
     finish(w, reader);
 }
-// tui-filter-nomatch: the search mark over NOTHING MATCHES, and no preview of a row the filter does not draw, before and after the answer.
+/// tui-filter-nomatch: the search mark over NOTHING MATCHES, and no preview of a row the filter does not draw, before and after the answer.
 #[test]
 fn a_filter_that_matches_nothing_clears_the_preview() {
     let (mut w, reader) = echo_wire();
@@ -163,7 +179,7 @@ fn a_filter_that_matches_nothing_clears_the_preview() {
     }
     finish(w, reader);
 }
-// tui-trash-arm, tui-trashed and tui-undone: the arm's sentence, the receipt with its muted undo key, the kept scroll, and the cursor on what came back.
+/// tui-trash-arm, tui-trashed and tui-undone: the arm's sentence, the receipt with its muted undo key, the kept scroll, and the cursor on what came back.
 #[test]
 fn trash_keeps_the_scroll_and_its_undo_lands_on_the_restored_file() {
     let theme = Theme::from_text("");
@@ -221,7 +237,7 @@ fn trash_keeps_the_scroll_and_its_undo_lands_on_the_restored_file() {
     }
     finish(w, reader);
 }
-// A selection trashes as "them"; a trash that failed says so in one sentence and claims no receipt.
+/// A selection trashes as "them"; a trash that failed says so in one sentence and claims no receipt.
 #[test]
 fn trash_of_many_says_them_and_a_failure_is_one_sentence() {
     let (mut w, reader) = echo_wire();
@@ -235,7 +251,7 @@ fn trash_of_many_says_them_and_a_failure_is_one_sentence() {
     assert!(m.message.is_empty());
     finish(w, reader);
 }
-// tui-copied and the transfer receipts: the clipboard's count, then what a paste copied, skipped and whether it was cancelled.
+/// tui-copied and the transfer receipts: the clipboard's count, then what a paste copied, skipped and whether it was cancelled.
 #[test]
 fn copy_and_paste_receipts_count_items() {
     let (mut w, reader) = echo_wire();
@@ -251,7 +267,7 @@ fn copy_and_paste_receipts_count_items() {
     assert_eq!(m.message, "Copied 1,204 items · 1 skipped · cancelled · z undoes");
     finish(w, reader);
 }
-// tui-progress: Copying 2 of 5, then the 20-cell bar and its percent in the metadata ink.
+/// tui-progress: Copying 2 of 5, then the 20-cell bar and its percent in the metadata ink.
 #[test]
 fn transfer_progress_draws_the_twenty_cell_bar() {
     let theme = Theme::from_text("");
@@ -267,7 +283,7 @@ fn transfer_progress_draws_the_twenty_cell_bar() {
     assert_eq!(span(&cells, 47, "40%").0, theme.meta);
     finish(w, reader);
 }
-// tui-collision: Paste asks first; Enter or b keeps both, r replaces, s skips and Escape sends nothing.
+/// tui-collision: Paste asks first; Enter or b keeps both, r replaces, s skips and Escape sends nothing.
 #[test]
 fn paste_asks_and_each_answer_sends_its_choice() {
     let theme = Theme::from_text("");
@@ -305,7 +321,7 @@ fn paste_asks_and_each_answer_sends_its_choice() {
         finish(w, reader);
     }
 }
-// Nothing collides: the transfer still refuses a name that appears meanwhile; a FAT drive's answer asks again under drive-safe names; a second paste waits.
+/// Nothing collides: the transfer still refuses a name that appears meanwhile; a FAT drive's answer asks again under drive-safe names; a second paste waits.
 #[test]
 fn paste_without_collisions_refuses_late_names_and_a_second_paste_waits() {
     let (mut w, reader) = echo_wire();
@@ -327,7 +343,7 @@ fn paste_without_collisions_refuses_late_names_and_a_second_paste_waits() {
     assert_eq!((text(transfer, "collide"), text(transfer, "fat"), count(transfer, "collideId")), ("refuse", "rename", id));
     finish(w, reader);
 }
-// The undo key's receipt stays for the error time and then clears; any other message goes after four seconds.
+/// The undo key's receipt stays for the error time and then clears; any other message goes after four seconds.
 #[test]
 fn only_a_receipt_that_names_its_undo_outlasts_the_message_time() {
     let mut m = frame_tests::model();
@@ -344,7 +360,7 @@ fn only_a_receipt_that_names_its_undo_outlasts_the_message_time() {
     m.expire_message(m.message_at + Duration::from_secs(4));
     assert!(m.message.is_empty(), "with no undo key the receipt is an ordinary message");
 }
-// Two trashes in flight, answered out of order: each receipt undoes the paths that its own request moved.
+/// Two trashes in flight, answered out of order: each receipt undoes the paths that its own request moved.
 #[test]
 fn two_trashes_in_flight_each_receipt_undoes_its_own_paths() {
     let (mut w, reader) = echo_wire();
@@ -364,7 +380,7 @@ fn two_trashes_in_flight_each_receipt_undoes_its_own_paths() {
     assert_eq!(m.restore_path.as_deref(), Some(std::path::Path::new("/fx/v/work/todo.md")), "the other answer undoes to its own item");
     finish(w, reader);
 }
-// A partly failed trash: the undo anchor is an item that moved, never the first requested item that failed.
+/// A partly failed trash: the undo anchor is an item that moved, never the first requested item that failed.
 #[test]
 fn undo_of_a_partly_failed_trash_lands_on_the_item_that_moved() {
     let (mut w, reader) = echo_wire();
@@ -376,4 +392,19 @@ fn undo_of_a_partly_failed_trash_lands_on_the_item_that_moved() {
     event(&mut m, &mut w, r#"{"t":"undone","op":"trash","ok":true}"#);
     assert_eq!(m.restore_path.as_deref(), Some(std::path::Path::new("/fx/v/work/todo.md")), "the undo lands on the item that moved");
     finish(w, reader);
+}
+
+// tui-prompt-narrow-error: at 64 columns the rule gives way so the refused name's one sentence still draws.
+#[test]
+fn a_refused_name_still_says_its_sentence_on_a_64_column_row() {
+    let theme = Theme::from_text("");
+    let sandbox = TestDir::new("tui-prompt-narrow-error");
+    let path = sandbox.file("notes.txt", "kept");
+    let mut m = frame_tests::model();
+    let mut editor = Editor::rename("notes.txt".into(), path, false).unwrap();
+    editor.error = "A name cannot contain /.".into();
+    m.editor = Some(editor);
+    let (row, _caret) = status(&m, &theme, 64, Duration::ZERO);
+    assert!(row.contains("cannot"), "the sentence draws: {row:?}");
+    assert_eq!(inks(&row).len(), 64, "and the row is exactly 64 cells");
 }
