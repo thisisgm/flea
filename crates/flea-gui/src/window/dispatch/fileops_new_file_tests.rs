@@ -57,6 +57,14 @@ fn notice(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> String {
     })
 }
 
+/// The transient sentence the footer shows, which is where a refusal is drawn
+fn transient(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> String {
+    shell.update(cx, |shell, cx| {
+        let catalog = shell.locale.catalog.clone();
+        shell.status_messages(cx, |messages, _| messages.transient_text(&catalog))
+    })
+}
+
 /// Opens the New File card from the folder's background menu
 fn open_card(shell: &Entity<Shell>, cx: &mut VisualTestContext) {
     background_menu(shell, cx);
@@ -552,6 +560,43 @@ fn a_dismissed_file_card_still_lands_its_reply(cx: &mut TestAppContext) {
         select.as_deref(),
         Some("/files/notes"),
         "and selects the file that landed"
+    );
+    shell.update(cx, |shell, _| shell.stop_for_app_quit());
+}
+
+// A dismissed file card whose create is then refused must still say why: the reply carries `error`.
+/// A dismissed file card shows the backend's reason when the create failed
+#[gpui::test]
+fn a_dismissed_file_card_says_why_its_create_failed(cx: &mut TestAppContext) {
+    let (shell, mut cx) = opened(cx);
+    let cx = &mut cx;
+    let mut sent = asked(&shell, cx);
+    open_card(&shell, cx);
+    cx.simulate_input("notes");
+    cx.simulate_keystrokes("enter");
+    let id = id_of(&sent()[0]);
+    cx.simulate_keystrokes("escape");
+    assert!(card(&shell, cx).is_none(), "Escape closes a busy file card");
+    let sentence = "Could not create /files/notes: Permission denied.";
+    reply(
+        &shell,
+        cx,
+        &format!(
+            r#"{{"t":"menuaction","id":{id},"op":"newFile","ok":false,"error":"{sentence}"}}"#
+        ),
+    );
+    assert!(
+        transient(&shell, cx).contains(sentence),
+        "the dismissed card's refusal is still said: {}",
+        transient(&shell, cx)
+    );
+    assert!(
+        shell.read_with(cx, |shell, _| !shell
+            .operations
+            .fileops
+            .creations
+            .owns(0, "newFile", id as u64)),
+        "a refusal releases the dismissed card's request"
     );
     shell.update(cx, |shell, _| shell.stop_for_app_quit());
 }

@@ -185,7 +185,8 @@ impl Shell {
                     return false;
                 }
                 if document.get("ok").and_then(Json::as_bool) != Some(true) {
-                    let said = text("msg").to_owned();
+                    // A refused create answers with `error`; a dismissed card has no other way to say why.
+                    let said = text("error").to_owned();
                     if !said.is_empty() {
                         self.fileops_say(side, &said, true, cx);
                     }
