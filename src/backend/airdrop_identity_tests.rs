@@ -50,6 +50,10 @@ exit 2
     .into_owned()
 }
 
+fn owly(path: String) -> Option<Tool> {
+    Some(Tool { stack: Stack::Owly, path })
+}
+
 fn attempt(root: &TestDir, program: &str, peer: &airdrop::Peer) -> (String, String) {
     let mut selected = send(vec![root
         .file("-photo.png", "private")
@@ -58,7 +62,7 @@ fn attempt(root: &TestDir, program: &str, peer: &airdrop::Peer) -> (String, Stri
     selected.peer = peer.id.clone();
     let (tx, _rx) = mpsc::channel();
     run(
-        Some(program.to_string()),
+        owly(program.to_owned()),
         3,
         &selected,
         &AtomicBool::new(false),
@@ -170,7 +174,7 @@ fn cancelling_after_mdns_failure_never_tries_another_destination() {
     let (tx, _rx) = mpsc::channel();
     let started = Instant::now();
     assert_eq!(
-        run(Some(program), 3, &selected, &cancel, &tx),
+        run(owly(program), 3, &selected, &cancel, &tx),
         ("cancelled".into(), String::new())
     );
     stopper.join().unwrap();
@@ -209,7 +213,7 @@ fn a_discovered_service_id_is_refused_when_only_its_awdl_peer_answers() {
         .into_owned()]);
     selected.peer = peer.id.clone();
     let (tx, _rx) = mpsc::channel();
-    let result = run(Some(program), 3, &selected, &AtomicBool::new(false), &tx);
+    let result = run(owly(program), 3, &selected, &AtomicBool::new(false), &tx);
     assert_eq!(
         result,
         (
