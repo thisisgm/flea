@@ -1654,6 +1654,8 @@
   "plugins.airdrop.receiving": "Alma",
   "plugins.airdrop.receiving.off": "Kapalı",
   "plugins.airdrop.receiving.everyone": "10 dakika için herkes",
+  "plugins.airdrop.receiving.omdrop_everyone": "Herkes",
+  "plugins.airdrop.receiving.omdrop_contacts": "Yalnızca kişiler",
   "plugins.airdrop.folder": "Alınan dosyaların kaydedileceği yer",
   "plugins.airdrop.computer": "Bu bilgisayar",
   "plugins.airdrop.shown_as": "Şu adla gösterilir",

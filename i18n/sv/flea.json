@@ -1654,6 +1654,8 @@
   "plugins.airdrop.receiving": "Mottagning",
   "plugins.airdrop.receiving.off": "Av",
   "plugins.airdrop.receiving.everyone": "Alla i 10 minuter",
+  "plugins.airdrop.receiving.omdrop_everyone": "Alla",
+  "plugins.airdrop.receiving.omdrop_contacts": "Endast kontakter",
   "plugins.airdrop.folder": "Spara mottagna filer i",
   "plugins.airdrop.computer": "Den här datorn",
   "plugins.airdrop.shown_as": "Visas som",

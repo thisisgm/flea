@@ -1776,6 +1776,8 @@
   "plugins.airdrop.receiving": "Приём",
   "plugins.airdrop.receiving.off": "Выкл.",
   "plugins.airdrop.receiving.everyone": "Для всех в течение 10 минут",
+  "plugins.airdrop.receiving.omdrop_everyone": "Все",
+  "plugins.airdrop.receiving.omdrop_contacts": "Только контакты",
   "plugins.airdrop.folder": "Сохранять полученные файлы в",
   "plugins.airdrop.computer": "Этот компьютер",
   "plugins.airdrop.shown_as": "Отображается как",

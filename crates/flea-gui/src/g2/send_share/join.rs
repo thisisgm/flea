@@ -31,7 +31,11 @@ pub(crate) struct Senders {
     pub(super) activation: Option<super::activation::Activation>,
     // Dropped first: a closing window waits for owly's teardown before it lets go of the machine's radio.
     pub(crate) airdrop_pids: super::airdrop_pids::Pids,
+    // Omdrop's lookups; its on and off are never held here.
+    pub(crate) omdrop_pids: super::airdrop_pids::Pids,
     pub(crate) airdrop: super::airdrop::AirDrop,
+    // AirDrop when Omdrop runs it in place of owly.
+    pub(crate) omdrop: super::airdrop_omdrop::Omdrop,
     // The host name the AirDrop page shows, read each time Settings shows the page.
     pub(crate) airdrop_host: String,
     chosen: Option<Subscription>,
@@ -198,7 +202,8 @@ impl Shell {
             only,
         );
         self.provider_actions(side, actions, window, cx);
-        self.airdrop_facts(side, &facts.owly_command, window, cx);
+        let tools = (facts.owly_command.as_str(), facts.omdrop_command.as_str());
+        self.airdrop_facts(side, tools, window, cx);
         let path = self.menu.providers.account[side].path.clone();
         let capture = self
             .menu

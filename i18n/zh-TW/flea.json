@@ -1593,6 +1593,8 @@
   "plugins.airdrop.receiving": "接收",
   "plugins.airdrop.receiving.off": "關閉",
   "plugins.airdrop.receiving.everyone": "所有人（10 分鐘）",
+  "plugins.airdrop.receiving.omdrop_everyone": "所有人",
+  "plugins.airdrop.receiving.omdrop_contacts": "僅限聯絡人",
   "plugins.airdrop.folder": "接收的檔案儲存到",
   "plugins.airdrop.computer": "這台電腦",
   "plugins.airdrop.shown_as": "顯示為",

@@ -743,6 +743,8 @@
   "plugins.airdrop.receiving": "수신",
   "plugins.airdrop.receiving.off": "끔",
   "plugins.airdrop.receiving.everyone": "모든 사람(10분 동안)",
+  "plugins.airdrop.receiving.omdrop_everyone": "모든 사용자",
+  "plugins.airdrop.receiving.omdrop_contacts": "연락처만",
   "plugins.airdrop.folder": "받은 파일 저장 위치",
   "plugins.airdrop.computer": "이 컴퓨터",
   "plugins.airdrop.shown_as": "표시 이름",

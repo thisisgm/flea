@@ -1614,6 +1614,8 @@
   "plugins.airdrop.receiving": "Vastaanotto",
   "plugins.airdrop.receiving.off": "Pois",
   "plugins.airdrop.receiving.everyone": "Kaikki 10 minuutin ajan",
+  "plugins.airdrop.receiving.omdrop_everyone": "Kaikki",
+  "plugins.airdrop.receiving.omdrop_contacts": "Vain yhteystiedot",
   "plugins.airdrop.folder": "Tallenna vastaanotetut tiedostot kansioon",
   "plugins.airdrop.computer": "Tämä tietokone",
   "plugins.airdrop.shown_as": "Näkyy nimellä",

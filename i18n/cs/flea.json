@@ -1674,6 +1674,8 @@
   "plugins.airdrop.receiving": "Příjem",
   "plugins.airdrop.receiving.off": "Vypnuto",
   "plugins.airdrop.receiving.everyone": "Všichni po dobu 10 minut",
+  "plugins.airdrop.receiving.omdrop_everyone": "Všichni",
+  "plugins.airdrop.receiving.omdrop_contacts": "Pouze kontakty",
   "plugins.airdrop.folder": "Ukládat přijaté soubory do",
   "plugins.airdrop.computer": "Tento počítač",
   "plugins.airdrop.shown_as": "Zobrazuje se jako",

@@ -604,6 +604,8 @@
   "plugins.airdrop.receiving": "Vastuvõtt",
   "plugins.airdrop.receiving.off": "Väljas",
   "plugins.airdrop.receiving.everyone": "Kõik 10 minutiks",
+  "plugins.airdrop.receiving.omdrop_everyone": "Kõik",
+  "plugins.airdrop.receiving.omdrop_contacts": "Ainult kontaktid",
   "plugins.airdrop.folder": "Salvesta saadud failid kausta",
   "plugins.airdrop.computer": "See arvuti",
   "plugins.airdrop.shown_as": "Kuvatakse kui",
