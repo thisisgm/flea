@@ -47,6 +47,9 @@ const IN_DELETE: u32 = 0x200;
 const IN_DELETE_SELF: u32 = 0x400;
 const IN_MOVE_SELF: u32 = 0x800;
 const IN_DONT_FOLLOW: u32 = 0x0200_0000;
+const IN_IGNORED: u32 = 0x8000;
+// struct inotify_event: wd, mask, cookie and len, each 4 bytes, then len bytes of name.
+const EVENT_HEADER: usize = 16;
 // Every way Omarchy or an editor replaces a file, and the folder itself going, so the next wake re-arms.
 const MASK: u32 = IN_MODIFY
     | IN_ATTRIB
@@ -85,6 +88,25 @@ impl Drop for DirWake {
     }
 }
 
+// True when the queue held anything besides IN_IGNORED, which only says a watch was removed.
+fn drain(inotify: c_int, buf: &mut [u8]) -> bool {
+    let word = |buf: &[u8], at: usize| {
+        u32::from_ne_bytes([buf[at], buf[at + 1], buf[at + 2], buf[at + 3]])
+    };
+    let mut changed = false;
+    loop {
+        let read = unsafe { read(inotify, buf.as_mut_ptr().cast(), buf.len()) };
+        let Ok(read @ 1..) = usize::try_from(read) else {
+            return changed;
+        };
+        let mut at = 0;
+        while at + EVENT_HEADER <= read {
+            changed |= word(buf, at + 4) != IN_IGNORED;
+            at += EVENT_HEADER + word(buf, at + 12) as usize;
+        }
+    }
+}
+
 // True when every folder is watched, itself or through its nearest existing parent. `held` is the
 // previous arm's watches; those this arm no longer places are removed.
 fn arm(
@@ -103,19 +125,25 @@ fn arm(
                 all = false;
                 break;
             };
-            let watch = unsafe { inotify_add_watch(inotify, path.as_ptr(), MASK) };
-            if watch >= 0 {
-                placed.push(watch);
-                // A watch follows a link to its target, so the link is watched too, to see it repointed.
-                if fs::symlink_metadata(at).is_ok_and(|meta| meta.file_type().is_symlink()) {
-                    let link = MASK | IN_DONT_FOLLOW;
-                    placed.push(unsafe { inotify_add_watch(inotify, path.as_ptr(), link) });
-                }
+            let target = unsafe { inotify_add_watch(inotify, path.as_ptr(), MASK) };
+            // A watch follows a link to its target, so the link is watched too, to see it repointed;
+            // 0 stands for no link, as inotify numbers its watches from 1.
+            let link = if target >= 0
+                && fs::symlink_metadata(at).is_ok_and(|meta| meta.file_type().is_symlink())
+            {
+                unsafe { inotify_add_watch(inotify, path.as_ptr(), MASK | IN_DONT_FOLLOW) }
+            } else {
+                0
+            };
+            placed.extend([target, link].into_iter().filter(|watch| *watch > 0));
+            if target >= 0 && link >= 0 {
                 break;
             }
+            // A refused link watch keeps the poll too: without it a repointed link goes unseen.
             let error = io::Error::last_os_error();
-            let absent =
-                error.kind() == io::ErrorKind::NotFound || error.raw_os_error() == Some(ENOTDIR);
+            let absent = target < 0
+                && (error.kind() == io::ErrorKind::NotFound
+                    || error.raw_os_error() == Some(ENOTDIR));
             if let (true, Some(parent)) = (absent, at.parent()) {
                 at = parent;
                 continue;
@@ -209,13 +237,15 @@ fn start_with(
                 if fds[1].revents != 0 {
                     return;
                 }
+                // A tick always wakes; an inotify wake only when something besides IN_IGNORED came in.
+                let mut changed = fds[0].revents == 0;
                 if inotify.0 >= 0 {
+                    // Drained before the arm, so an event landing during it stays queued, wakes the
+                    // next poll and re-arms; the IN_IGNORED of a watch the arm removes wakes nothing.
+                    changed |= drain(inotify.0, &mut buf);
                     armed = arm(inotify.0, name, &dirs, &mut told, &mut held);
-                    // Drained after the arm, so a removed watch's IN_IGNORED does not wake again; the
-                    // wake below covers anything else drained here.
-                    while unsafe { read(inotify.0, buf.as_mut_ptr().cast(), buf.len()) } > 0 {}
                 }
-                if !wake() {
+                if changed && !wake() {
                     return;
                 }
             }
@@ -228,4 +258,4 @@ fn start_with(
 
 #[cfg(test)]
 #[path = "dirwake_tests.rs"]
-mod tests;
+pub(crate) mod tests;

@@ -67,8 +67,7 @@ fn m9_integ_g05_first_publish_worker_exit_never_hangs() {
 // language's watch covers never report the new one's later edits, so the worker must retry on the poll.
 #[test]
 fn a_language_switch_lands_while_its_catalog_is_still_being_written() {
-    let root = std::env::temp_dir().join(format!("flea-locale-switch-{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&root);
+    let root = crate::dirwake::tests::scratch("locale-switch");
     let roster = root.join("omarchy/default/i18n");
     std::fs::create_dir_all(&roster).unwrap();
     std::fs::write(roster.join("locales.json"), r#"{"en":{},"de":{}}"#).unwrap();

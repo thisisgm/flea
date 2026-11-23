@@ -9,10 +9,21 @@ const GUARD: Duration = Duration::from_secs(10);
 // Long enough for a stray tick or event to land if one were coming.
 const QUIET: Duration = Duration::from_millis(300);
 
-fn scratch(name: &str) -> std::path::PathBuf {
-    let dir = std::env::temp_dir().join(format!("flea-dirwake-{name}-{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&dir);
-    std::fs::create_dir_all(&dir).unwrap();
+// A fresh 0700 folder under an unguessable name. mkdir fails on a path planted in its place, never
+// follows it, and nothing else can enter the folder once it exists.
+pub(crate) fn scratch(name: &str) -> std::path::PathBuf {
+    use std::os::unix::fs::DirBuilderExt;
+    static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .subsec_nanos();
+    let next = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let dir = std::env::temp_dir().join(format!(
+        "flea-dirwake-{name}-{}-{nanos:08x}-{next}",
+        std::process::id()
+    ));
+    std::fs::DirBuilder::new().mode(0o700).create(&dir).unwrap();
     dir
 }
 
