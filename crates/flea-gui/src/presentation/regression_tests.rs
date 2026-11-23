@@ -11,6 +11,8 @@ use std::{
 };
 
 const RACE: &str = "presentation::regression_tests::u01_fix2_same_content_save_during_probe_publishes_stable_snapshot";
+const LAUNCH: &str =
+    "presentation::regression_tests::an_input_edited_during_the_launch_probe_is_published";
 const GUARD: &str = "presentation::regression_tests::u01_fix2_fixtures_preserve_unmarked_sentinels_and_refuse_unowned_paths";
 
 fn child(test: &str, fixture: &Fixture) {
@@ -176,5 +178,58 @@ fn u01_fix2_fixtures_preserve_unmarked_sentinels_and_refuse_unowned_paths() {
     }
     let fixture = Fixture::new("sentinel");
     child(GUARD, &fixture);
+    fixture.cleanup();
+}
+
+// The launch stamps the inputs before its font probe and arms the watch after it, so an edit in
+// between reaches no watch; the worker must stat once before it first waits.
+#[test]
+fn an_input_edited_during_the_launch_probe_is_published() {
+    if let Some(_fixture) = child_fixture() {
+        let (service, initial) = Service::start();
+        assert_eq!(
+            initial.fonts.base, 12,
+            "the launch read the inputs after the probe"
+        );
+        let updates = service.subscribe();
+        let until = Instant::now() + super::service::RETRY_PUBLISH;
+        let mut latest = initial;
+        while latest.fonts.base != 16 && Instant::now() < until {
+            while let Ok(next) = updates.try_recv() {
+                latest = next;
+            }
+            thread::sleep(Duration::from_millis(10));
+        }
+        assert_eq!(
+            latest.fonts.base, 16,
+            "the edit made during the launch probe was never published"
+        );
+        drop(service);
+        return;
+    }
+    let fixture = Fixture::new("launch-edit");
+    let root = fixture.path();
+    let shell = root.join(".config/omarchy/shell.toml");
+    fixture.write(&shell, "[font]\nbase-size=12\n");
+    fixture.write(&root.join(".config/fontconfig/fonts.conf"), "font-a");
+    let helper = root.join("bin/fc-match");
+    fixture.write(
+        &helper,
+        format!(
+            r#"#!/bin/sh
+set -eu
+{SHELL_GUARD}
+if [ ! -f "$HOME/first" ]; then
+    guard "$HOME" "$HOME/first" "$U01_FIXTURE_PARENT"
+    printf first > "$HOME/first"
+    guard "$HOME" "$HOME/.config/omarchy/shell.toml" "$U01_FIXTURE_PARENT"
+    printf '[font]\nbase-size=16\n' > "$HOME/.config/omarchy/shell.toml"
+fi
+printf 'First Mono'
+"#
+        ),
+    );
+    fixture.executable(&helper);
+    child(LAUNCH, &fixture);
     fixture.cleanup();
 }

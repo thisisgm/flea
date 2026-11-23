@@ -1,4 +1,4 @@
-//! Settings writes use the core CLI's locked merge; polling and child processes stay off the UI thread.
+//! Settings writes use the core CLI's locked merge; re-reads and child processes stay off the UI thread.
 use crate::g2::settings_pages::seams::Store;
 use flea::{jsondoc::Json, ui_logic_settings_pages::Text};
 use std::{cell::RefCell, path::PathBuf, process::Command, rc::Rc, sync::mpsc, time::Duration};
@@ -107,6 +107,17 @@ pub(super) fn keep_own<'a>(document: &mut Json, own: &Json, owed: impl Iterator<
     }
 }
 
+// How often ui.json is read for another process's change while inotify cannot watch its folder.
+const POLL: Duration = Duration::from_millis(200);
+
+// The worker's one queue: the window's writes, forwarded, and a re-read whenever ui.json's folder changes.
+enum Request {
+    Write((u64, Json, Option<Json>)),
+    Reread,
+    // Every window-side sender is gone; the wake thread's sender alone would keep the queue open.
+    Closed,
+}
+
 impl Worker {
     pub fn start() -> std::io::Result<Self> {
         let home = std::env::var_os("HOME")
@@ -126,10 +137,29 @@ impl Worker {
         let compositor = crate::compositor::Service::start(move |corner| {
             corners.send_blocking(Update::Corner(corner)).is_ok()
         })?;
+        let (requests, inbox) = mpsc::channel::<Request>();
+        let forward = requests.clone();
+        std::thread::Builder::new()
+            .name("flea-settings-queue".into())
+            .spawn(move || {
+                for write in queue {
+                    if forward.send(Request::Write(write)).is_err() {
+                        return;
+                    }
+                }
+                let _ = forward.send(Request::Closed);
+            })?;
+        let folder = path
+            .parent()
+            .map_or_else(|| PathBuf::from("."), PathBuf::from);
+        let wake = crate::dirwake::start("settings", vec![folder], POLL, move || {
+            requests.send(Request::Reread).is_ok()
+        });
         std::thread::Builder::new()
             .name("flea-settings".into())
             .spawn(move || {
                 let _compositor = compositor;
+                let _wake = wake;
                 let mut last = None;
                 let mut through = 0;
                 let mut read_failed = None;
@@ -147,12 +177,15 @@ impl Worker {
                 loop {
                     let launch = std::mem::take(&mut initial);
                     let request = if launch {
-                        Err(mpsc::RecvTimeoutError::Timeout)
+                        Request::Reread
                     } else {
-                        queue.recv_timeout(Duration::from_millis(200))
+                        match inbox.recv() {
+                            Ok(request) => request,
+                            Err(_) => break,
+                        }
                     };
                     match request {
-                        Ok((id, patch, operation)) => {
+                        Request::Write((id, patch, operation)) => {
                             through = id;
                             let (mode, value) = match &operation {
                                 Some(op) => ("--favourites", op),
@@ -215,8 +248,8 @@ impl Worker {
                                 break;
                             }
                         }
-                        Err(mpsc::RecvTimeoutError::Disconnected) => break,
-                        Err(mpsc::RecvTimeoutError::Timeout) => {
+                        Request::Closed => break,
+                        Request::Reread => {
                             let first = std::mem::take(&mut at_start);
                             let result = match read_document(&path) {
                                 Ok(None) if established => Err(ReadFailure::Missing),

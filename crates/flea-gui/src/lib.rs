@@ -8,6 +8,7 @@ pub mod columns;
 pub(crate) mod compositor;
 #[cfg(test)]
 mod compositor_surface_tests;
+pub(crate) mod dirwake;
 pub mod driver_notice;
 pub mod dual;
 pub mod feedback;
