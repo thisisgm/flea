@@ -28,6 +28,7 @@ mod photo_source_tests;
 #[cfg(test)]
 mod photo_tests;
 mod picture;
+mod pinch;
 mod pointer;
 #[cfg(test)]
 mod quality_tests;
@@ -132,6 +133,8 @@ pub struct QuickLook {
     svg: Option<SvgPicture>,
     trace: Option<crate::preview_trace::Trace>,
     zoom: f64,
+    /// A pinch in progress: the zoom it is scaling from and the fingers' scale since it began.
+    pinch: Option<(f64, f64)>,
     raster: Option<Rasterizer>,
     raster_latest: Arc<AtomicU64>,
     raster_in_flight: bool,
@@ -184,6 +187,7 @@ impl QuickLook {
             svg: None,
             trace: None,
             zoom: 1.,
+            pinch: None,
             raster: None,
             raster_latest: Arc::new(AtomicU64::new(0)),
             raster_in_flight: false,
@@ -334,6 +338,7 @@ impl QuickLook {
         self.arm_waiting(cx);
         self.retire_svg(cx);
         self.zoom = 1.;
+        self.pinch = None;
         self.revealed = revealed;
         self.focused = None;
         self.pressed = None;

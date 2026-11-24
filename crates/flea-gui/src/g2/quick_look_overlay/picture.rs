@@ -13,7 +13,12 @@ use gpui::{
 use std::path::Path;
 
 impl QuickLook {
-    fn picture_fit(&self, w: f64, h: f64, device: f64) -> Option<(&Path, Fit, (f64, f64))> {
+    pub(super) fn picture_fit(
+        &self,
+        w: f64,
+        h: f64,
+        device: f64,
+    ) -> Option<(&Path, Fit, (f64, f64))> {
         let (path, sw, sh, top, bottom, painted) = match &self.subject.as_ref()?.body {
             Body::Image { path, w, h } => (path, *w, *h, 0., 0., false),
             Body::Link { path, w, h, .. } => (path, *w, *h, f64::from(look::BAR), 0., true),
@@ -98,20 +103,29 @@ impl QuickLook {
             "zoomFit" => 1.,
             _ => return false,
         };
-        // As in PreviewImage.qml, a picture without its first frame cannot zoom in.
-        if next != self.zoom && (next <= 1. || self.svg.as_ref().is_some_and(|s| s.image.is_some()))
-        {
-            // The next frame centres the new viewport on this point: a key runs inside the window's own update, so no window is borrowed here.
-            self.scroll.anchor = (next > 1.).then(|| self.scroll.centre());
-            if next <= 1. {
-                self.scroll.x = 0.;
-                self.scroll.y = 0.;
-                self.scroll.pan = None;
-                self.scroll.view = None;
-            }
-            self.zoom = next;
+        // The next frame centres the new viewport on this point: a key runs inside the window's own update, so no window is borrowed here.
+        let anchor = (next > 1.).then(|| self.scroll.centre());
+        if self.zoom_to(next) {
+            self.scroll.anchor = anchor;
             cx.notify();
         }
+        true
+    }
+
+    /// The one way the picture's zoom changes, for a key and a pinch alike; false when it stays.
+    pub(super) fn zoom_to(&mut self, next: f64) -> bool {
+        // As in PreviewImage.qml, a picture without its first frame cannot zoom in.
+        if next == self.zoom || (next > 1. && !self.svg.as_ref().is_some_and(|s| s.image.is_some()))
+        {
+            return false;
+        }
+        if next <= 1. {
+            self.scroll.x = 0.;
+            self.scroll.y = 0.;
+            self.scroll.pan = None;
+            self.scroll.view = None;
+        }
+        self.zoom = next;
         true
     }
 

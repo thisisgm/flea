@@ -4,7 +4,7 @@ use flea::ui_logic_preview_core::ground::{Button, Pointer};
 use gpui::{
     fill, relative, size, App, Bounds, DispatchPhase, Hitbox, HitboxBehavior, Hsla, IntoElement,
     LayoutId, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, PinchEvent, Pixels, Point,
-    ScrollDelta, ScrollWheelEvent, Style, Window,
+    ScrollDelta, ScrollWheelEvent, Style, TouchPhase, Window,
 };
 use std::rc::Rc;
 
@@ -17,6 +17,10 @@ pub struct Hand {
     pub wheel: Option<ScrollDelta>,
     /// A move made with the left button down; a held knob or pan ends on a move without it.
     pub held: bool,
+    /// A touchpad pinch's phase and its scale change since the last event.
+    pub pinch: Option<(TouchPhase, f32)>,
+    /// The card in window coordinates, as the shield was painted with it.
+    pub card: Bounds<Pixels>,
 }
 
 /// Called with each event the shield has already consumed.
@@ -104,6 +108,8 @@ impl Leaf for Shield {
                         inside: card.contains(&event.position),
                         wheel,
                         held,
+                        pinch: None,
+                        card,
                     };
                     on_pointer(hand, window, cx);
                 });
@@ -134,6 +140,23 @@ impl Leaf for Shield {
             Some(e.delta),
             false
         ));
-        end!(PinchEvent, false, |_| (Pointer::Pinch, None, false));
+        // A pinch carries its own phase and scale, so it is handed on here rather than through end!.
+        let on_pointer = Rc::clone(&self.on_pointer);
+        window.on_mouse_event(move |event: &PinchEvent, phase, window, cx| {
+            if phase != DispatchPhase::Bubble || !bounds.contains(&event.position) {
+                return;
+            }
+            cx.stop_propagation();
+            let hand = Hand {
+                pointer: Pointer::Pinch,
+                at: event.position,
+                inside: card.contains(&event.position),
+                wheel: None,
+                held: false,
+                pinch: Some((event.phase, event.delta)),
+                card,
+            };
+            on_pointer(hand, window, cx);
+        });
     }
 }

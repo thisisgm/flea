@@ -330,6 +330,8 @@ fn gh336_raster_zoom_requests_larger_pixels_retains_on_zoom_out_and_releases_at_
 include!("gh_preview_animation_test.rs");
 
 include!("gh_preview_zoom_test.rs");
+
+include!("gh505_pinch_test.rs");
 include!("gh_preview_own_size_test.rs");
 include!("fixpreview_zoom_test.rs");
 
