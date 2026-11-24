@@ -15,6 +15,8 @@ pub struct Press {
     pub name: Option<String>,
     pub event: MouseDownEvent,
     pub dragged: bool,
+    /// Set when the press already selected its row (#506): whether the row was the sole selection before it.
+    pub was_sole: Option<bool>,
 }
 
 pub struct Tap {
@@ -260,11 +262,13 @@ impl Shell {
                 return;
             }
             let from = host.pane.cursor;
-            let was_sole = super::slow::was_sole_selection(
-                host.selected.len(),
-                host.selected.binary_search(&row).is_ok(),
-                from == row,
-            );
+            let was_sole = press.was_sole.unwrap_or_else(|| {
+                super::slow::was_sole_selection(
+                    host.selected.len(),
+                    host.selected.binary_search(&row).is_ok(),
+                    from == row,
+                )
+            });
             let pulled = host.input.take_pull(from, host.pane.held.listing);
             let selection = &mut host.input.selection;
             let mut marked = true;

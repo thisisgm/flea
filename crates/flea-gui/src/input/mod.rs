@@ -7,6 +7,7 @@ pub mod focus;
 mod pointer;
 mod pointer_press;
 mod positions;
+mod press_select;
 pub mod scroll;
 pub mod selection;
 // The oracle tests keep their input::slow path while the rename owner supplies the shared policy.
