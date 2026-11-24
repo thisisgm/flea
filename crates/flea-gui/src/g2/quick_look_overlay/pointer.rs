@@ -13,6 +13,8 @@ impl QuickLook {
             inside,
             wheel,
             held,
+            pinch,
+            card,
         } = hand;
         match pointer {
             Pointer::Release { .. } => {
@@ -42,6 +44,11 @@ impl QuickLook {
                 } else if self.zoom > 1. {
                     // PreviewImage.qml's Flickable: a zoomed picture pans under a drag.
                     self.scroll.grab(at);
+                }
+            }
+            Pointer::Pinch if self.revealed => {
+                if let Some((phase, delta)) = pinch {
+                    self.picture_pinch(phase, delta, at, card, cx);
                 }
             }
             Pointer::Wheel if self.revealed => {

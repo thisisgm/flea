@@ -59,6 +59,7 @@ impl QuickLook {
         self.release_held(cx);
         self.retire_svg(cx);
         self.zoom = 1.;
+        self.pinch = None;
         self.revealed = false;
         self.expanded = false;
         self.strip_shown = false;

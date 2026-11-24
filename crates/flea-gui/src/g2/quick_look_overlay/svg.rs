@@ -60,9 +60,12 @@ impl QuickLook {
             .and_then(|n| n.to_str())
             .is_some_and(is_vector_name);
         let scale = f64::from(window.scale_factor());
+        // A pinch zooms in fine steps; decoding at the zoom ladder's next rung keeps it to one job per rung.
+        let step = flea::ui_logic_preview_core::keys::ZOOM_STEP;
+        let rung = (self.zoom / step).ceil() * step;
         let (dw, dh) = decode_size(
-            fit_w * self.zoom,
-            fit_h * self.zoom,
+            fit_w * rung,
+            fit_h * rung,
             scale,
             source.0,
             source.1,
