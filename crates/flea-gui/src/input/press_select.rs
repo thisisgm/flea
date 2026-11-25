@@ -15,10 +15,11 @@ impl Shell {
         outline: Option<usize>,
         event: &MouseDownEvent,
     ) {
-        // Columns move their cursor on press already, and a directory press there opens a column on release.
+        // List, Grid and both Dual lists select on press. Columns move their cursor on press already, and a
+        // directory press there opens a column on release.
         if event.button != MouseButton::Left
             || event.click_count != 1
-            || self.view != View::List && self.view != View::Grid
+            || self.view == View::Columns
             || self.shown_view() == View::Columns
         {
             return;
