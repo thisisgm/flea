@@ -101,6 +101,7 @@ impl Shell {
                 name: host.pane.held.row(row).map(|row| row.name.clone()),
                 event: event.clone(),
                 dragged: false,
+                was_sole: None,
             });
         } else if event.button == MouseButton::Left && !frame.in_lane(event.position) {
             // SelectionBand.qml: a ground press ends the pending slow click, or its timer renames the sole selected row.
@@ -122,6 +123,7 @@ impl Shell {
                 basis: None,
             });
         }
+        self.select_on_press(side, outline, event);
         // A row press bubbles on to the pane's on_drag, which lifts the row once the press travels.
         let row_press = event.button == MouseButton::Left
             && self.panes[side]

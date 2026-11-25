@@ -140,6 +140,12 @@ fn u03_release_never_retargets_a_reordered_row_in_the_same_listing(cx: &mut Test
         frame.bounds.left() + px(60.),
         frame.bounds.top() + px(frame.row * 2.5),
     );
+    // #506: a press inside the selection decides on release, so only that release could retarget.
+    shell.update(cx, |shell, _| {
+        let host = shell.panes[0].as_mut().unwrap();
+        host.selected = vec![2, 4];
+        host.pane.cursor = 4;
+    });
     cx.simulate_mouse_move(at, None, Modifiers::none());
     cx.simulate_mouse_down(at, MouseButton::Left, Modifiers::none());
     shell.update(cx, |shell, _| {
@@ -156,8 +162,8 @@ fn u03_release_never_retargets_a_reordered_row_in_the_same_listing(cx: &mut Test
     cx.simulate_mouse_up(at, MouseButton::Left, Modifiers::none());
     shell.read_with(cx, |shell, _| {
         let host = shell.panes[0].as_ref().unwrap();
-        assert!(host.selected.is_empty());
-        assert_eq!(host.pane.cursor, 0);
+        assert_eq!(host.selected, [2, 4]);
+        assert_eq!(host.pane.cursor, 4);
     });
 }
 

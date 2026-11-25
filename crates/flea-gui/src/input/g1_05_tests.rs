@@ -332,10 +332,10 @@ fn g1_05_a_release_a_busy_pane_refuses_still_returns_the_overscroll(cx: &mut Tes
     let before = shell.update(cx, |shell, _| {
         let host = shell.panes[0].as_mut().unwrap();
         let row = host.input.press.as_ref().unwrap().row;
-        assert!(
-            host.selected.is_empty() && host.pane.cursor != row,
-            "a click on the pressed row would mark and move"
-        );
+        // #506 marks an unmarked row on press, so the pressed row joins a wider selection: a click's release
+        // would reduce it to that row and move the cursor.
+        host.selected = vec![row, row + 1];
+        host.pane.cursor = row + 1;
         let now = host.pane.now();
         assert!(host.pane.begin("/next".into(), Default::default(), now));
         assert!(host.pane.busy());

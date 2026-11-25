@@ -123,9 +123,10 @@ fn u03_native_pointer_release_scrollbar_and_modal_failure_paths(cx: &mut TestApp
     cx.simulate_mouse_move(row(2.), None, Modifiers::none());
     cx.simulate_mouse_down(row(2.), MouseButton::Left, Modifiers::none());
     shell.read_with(cx, |shell, _| {
-        assert!(
-            shell.panes[0].as_ref().unwrap().selected.is_empty(),
-            "press preserves marks until release"
+        assert_eq!(
+            shell.panes[0].as_ref().unwrap().selected,
+            [2],
+            "#506: a plain press marks an unmarked row at once"
         )
     });
     cx.simulate_mouse_up(row(2.), MouseButton::Left, Modifiers::none());

@@ -18,6 +18,7 @@ fn u03_double_click_requires_the_first_taps_file_identity() {
             ..Default::default()
         },
         dragged: false,
+        was_sole: None,
     };
     assert_eq!(input.tap_count(&press("old", 1)), 1);
     assert_eq!(input.tap_count(&press("other", 2)), 0);

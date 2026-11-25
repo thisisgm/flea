@@ -43,6 +43,7 @@ fn m9_dg2_mounted_a_blank_press_never_lifts_an_earlier_press() {
                     first_mouse: false,
                 },
                 dragged: true,
+                was_sole: None,
             });
         })
         .unwrap();
